@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -15,6 +16,9 @@ import org.bukkit.event.EventHandler;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 
 /**
  * WormholeXtreme Entity Listener.
@@ -117,6 +121,12 @@ class WormholeXTremeEntityListener implements Listener
         if ( !event.isCancelled())
         {
             final List<Block> explodeBlocks = event.blockList();
+            // A mirror and its wall stay standing; the rest of the blast goes ahead.
+            if (!explodeBlocks.isEmpty() && !MirrorManager.all().isEmpty())
+            {
+                final Set<MirrorBlock> kept = MirrorPlacement.protectedIn(explodeBlocks.get(0).getWorld());
+                explodeBlocks.removeIf(block -> kept.contains(MirrorBlock.of(block)));
+            }
             if (handleEntityExplodeEvent(explodeBlocks))
             {
                 event.setCancelled(true);

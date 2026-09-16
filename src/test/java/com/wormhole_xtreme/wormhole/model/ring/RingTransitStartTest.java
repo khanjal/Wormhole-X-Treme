@@ -144,13 +144,20 @@ class RingTransitStartTest
     @AfterEach
     void tearDown() throws Exception
     {
-        bukkit.close();
-        config.close();
-        RingTransit.clear();
-        RingManager.clear();
-        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
-        PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
-        RingTransit.clock = System::currentTimeMillis;
+        // In a finally: a pinned clock leaking into the next class is the harder failure to read.
+        try
+        {
+            bukkit.close();
+            config.close();
+            RingTransit.clear();
+            RingManager.clear();
+            PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+            PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
+        }
+        finally
+        {
+            RingTransit.clock = System::currentTimeMillis;
+        }
     }
 
     /** Moves the clock on until the remembered blockage answer is no longer trusted. */
@@ -403,7 +410,7 @@ class RingTransitStartTest
      * refusal would refuse this second walk-in, and the pair would never work again.
      */
     @Test
-    void aPairRefusedOnceFiresWhenTheWayIsClearAgain() throws Exception
+    void aPairRefusedOnceFiresWhenTheWayIsClearAgain()
     {
         final RingPair pair = pair();
         buildOver(BX, BY, BZ);
@@ -422,7 +429,7 @@ class RingTransitStartTest
      * somebody has since cleared refusing every walk-in for the rest of the server's life.
      */
     @Test
-    void theWorldIsReadAgainOnceTheRememberedAnswerIsStale() throws Exception
+    void theWorldIsReadAgainOnceTheRememberedAnswerIsStale()
     {
         final RingPair pair = pair();
         buildOver(BX, BY, BZ);

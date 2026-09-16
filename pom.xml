@@ -196,13 +196,6 @@
 		</plugins>
 	</build>
 	<dependencies>
-		<dependency>
-			<groupId>org.spigotmc</groupId>
-			<artifactId>spigot-api</artifactId>
-			<version>${spigot.api.version}</version>
-			<scope>provided</scope>
-		</dependency>
-
 		<!--
 			Both of these are compile-time only; neither is shaded into the jar.
 
@@ -236,6 +229,63 @@
 		</dependency>
 	</dependencies>
 	<profiles>
+		<!-- The server API, Spigot's unless -Dpaper.api.version is given. A property rather
+		     than activeByDefault, which would switch off whenever -Pmodern-api is passed. -->
+		<profile>
+			<id>spigot-api</id>
+			<activation>
+				<property>
+					<name>!paper.api.version</name>
+				</property>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.spigotmc</groupId>
+					<artifactId>spigot-api</artifactId>
+					<version>${spigot.api.version}</version>
+					<scope>provided</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+
+		<!-- CI only: proves the methods reached reflectively are really on Paper's API
+		     (PaperApiTest), and that Paper has not removed anything else the plugin calls. -->
+		<profile>
+			<id>paper-api</id>
+			<activation>
+				<property>
+					<name>paper.api.version</name>
+				</property>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.papermc.paper</groupId>
+					<artifactId>paper-api</artifactId>
+					<version>${paper.api.version}</version>
+					<scope>provided</scope>
+				</dependency>
+			</dependencies>
+			<repositories>
+				<repository>
+					<id>papermc-repo</id>
+					<url>https://repo.papermc.io/repository/maven-public/</url>
+				</repository>
+			</repositories>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<systemPropertyVariables>
+								<server.api>paper</server.api>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 		<!--
 			The mirror of legacy-api, for servers at the other end. org.spigotmc's
 			EntityDismountEvent was removed in 1.20.6, so LegacyGateDismountListener cannot

@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * the column at all -- their equipment stayed standing in it, in the shape of a person, which
  * is the one read the whole sequence exists to sell. {@code hideEntity} stops the entity being
  * sent to that client at all, so equipment, nameplate and hitbox go with it. It has been on
- * plain Spigot, not just Paper, for the whole 1.20-1.21.10 range this plugin supports, and
+ * plain Spigot, not just Paper, for the whole 1.20-26.2 range this plugin supports, and
  * unlike the one-argument {@code hidePlayer(Player)} it is not deprecated.
  *
  * <p>Invisibility is still applied on top of that, and it is worth being precise about what

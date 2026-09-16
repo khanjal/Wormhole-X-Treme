@@ -393,12 +393,12 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code /wormhole mirror <verb> [name] [name]}.
+     * Completions for {@code /wormhole mirror <verb> [name] ...}.
      *
-     * <p>{@code set} is not completed from existing mirrors: naming a new one is the common
+     * <p>{@code create} is not completed from existing mirrors: naming a new one is the common
      * case, and offering the existing names there would invite rebinding one by accident.
-     * Every other verb names a mirror that already exists, {@code link} names two, and
-     * {@code stamp} takes a mirror and then a preset.
+     * {@code remove} names a mirror that already exists, and {@code set} names one and then what
+     * to change about it.
      *
      * @param args
      *            the full argument array
@@ -408,42 +408,139 @@ public final class SubCommands
     {
         if (args.length == 2)
         {
-            return prefixed(args[1],
-                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs());
+            // debug is left out of the usage line, and offered here only to whoever may run it.
+            final String[] verbs = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs();
+            return prefixed(args[1], CommandHandlerUtils.hasConfigPermission(sender)
+                ? both(verbs, new String[] { DEBUG }) : verbs);
         }
         final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
-        // Named rather than excluded. Falling through for anything that is not set or list
-        // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
-        // which reads as though the typo were a real command.
-        final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb)
-            || "display".equals(verb) || "mode".equals(verb);
-        // link takes the existing mirror first now, and an optional name for this side.
-        final boolean takesTwoNames = "link".equals(verb);
-        final boolean stamp = "stamp".equals(verb);
-        if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))
+        if (DEBUG.equals(verb))
         {
-            // And what the verb takes instead of a name, where it takes one. display, mode and
-            // stamp act on the banner being looked at when no name is given, so the third word
-            // can be the setting or the look -- a completion offering only names would hide
-            // that the name is optional at all.
-            return prefixed(args[2],
-                both(mirrorNames(), stamp ? presetNames() : settingsFor(verb)));
+            return completeMirrorDebug(sender, args);
         }
-        if ((args.length == 4) && takesTwoNames)
+        if (SET.equals(verb))
         {
-            return prefixed(args[3], mirrorNames());
+            return completeMirrorSet(args);
+        }
+        // remove is named rather than every other verb excluded. Falling through meant a verb
+        // nobody has -- a typo, most likely -- still offered the mirror names, which reads as
+        // though the typo were a real command; create and list offer nothing on purpose.
+        if (REMOVE.equals(verb) && (args.length == 3))
+        {
+            return prefixed(args[2], mirrorNames());
+        }
+        return none();
+    }
+
+    /** The mirror verb that changes one thing a mirror has. */
+    private static final String SET = "set";
+
+    /**
+     * Completions for {@code /wormhole mirror set [name] <property> ...}.
+     *
+     * <p>The third word is a name or a property, and is offered both, since a property there is
+     * how the banner being looked at is meant. After that the words are put back in the shape
+     * the property had as a verb of its own, and completed as that.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeMirrorSet(final String[] args)
+    {
+        final String[] properties = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.properties();
+        if (args.length < 3)
+        {
+            return none();
+        }
+        if (args.length == 3)
+        {
+            return prefixed(args[2], both(mirrorNames(), properties));
+        }
+        final boolean propertyFirst = isOneOf(args[2], properties);
+        final int at = propertyFirst ? 2 : 3;
+        if (!propertyFirst && (args.length == 4))
+        {
+            return prefixed(args[3], properties);
+        }
+        if ((args.length <= at) || !isOneOf(args[at], properties))
+        {
+            return none();
+        }
+        final List<String> asVerb = new java.util.ArrayList<>();
+        asVerb.add(args[0]);
+        asVerb.add(args[at].toLowerCase(java.util.Locale.ROOT));
+        if (!propertyFirst)
+        {
+            asVerb.add(args[2]);
+        }
+        asVerb.addAll(java.util.Arrays.asList(args).subList(at + 1, args.length));
+        return completeMirrorProperty(asVerb.toArray(new String[0]));
+    }
+
+    /** Whether a word is one of a list, whatever its case. */
+    private static boolean isOneOf(final String word, final String[] words)
+    {
+        return java.util.Arrays.stream(words).anyMatch(word::equalsIgnoreCase);
+    }
+
+    /**
+     * Completions for one of set's properties, in the shape {@code mirror <property> [name] ...}.
+     *
+     * @param args
+     *            the property in the verb's place, and its words after it
+     * @return the candidates
+     */
+    private static List<String> completeMirrorProperty(final String[] args)
+    {
+        final String property = args[1];
+        final boolean stamp = "stamp".equals(property);
+        if (args.length == 3)
+        {
+            // And what the property takes instead of a name. start and stamp act on the
+            // banner being looked at when no name is given, so the third word can be the setting
+            // or the look -- a completion offering only names would hide that the name is
+            // optional at all.
+            return prefixed(args[2],
+                both(mirrorNames(), stamp ? presetNames() : settingsFor(property)));
         }
         // Presets, not mirrors, and the empty offer is the point: leaving it blank is what
         // makes stamp read the far side rather than apply a look somebody picked.
-        if ((args.length == 4) && stamp)
-        {
-            return prefixed(args[3], presetNames());
-        }
         if (args.length == 4)
         {
-            return prefixed(args[3], settingsFor(verb));
+            return prefixed(args[3], stamp ? presetNames() : settingsFor(property));
         }
         return none();
+    }
+
+    /** The mirror verb for what a window draws from; not in the usage line. */
+    private static final String DEBUG = "debug";
+
+    /** What {@code mirror debug} takes on its own, or after a name: all and full take one. */
+    private static final String[] DEBUG_SWITCHES = { "all", "full", "off", "on" };
+
+    /**
+     * Completions for {@code /wormhole mirror debug [name] [save|full]} and {@code debug off|on}.
+     *
+     * @param sender
+     *            whoever is typing; offered nothing without {@code wormhole.config}
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeMirrorDebug(final CommandSender sender, final String[] args)
+    {
+        if (!CommandHandlerUtils.hasConfigPermission(sender))
+        {
+            return none();
+        }
+        if (args.length == 3)
+        {
+            return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
+        }
+        final boolean afterName = (args.length == 4)
+            && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
+        return afterName ? prefixed(args[3], "all", "full") : none();
     }
 
     /**
@@ -469,21 +566,17 @@ public final class SubCommands
     }
 
     /**
-     * What the fourth word can be, for the two verbs that take a setting.
+     * What the last word can be, for the properties that take a setting.
      *
      * @param verb
-     *            the mirror verb typed
+     *            the property typed
      * @return the values it accepts, or nothing
      */
     private static String[] settingsFor(final String verb)
     {
-        if ("display".equals(verb))
+        if ("start".equals(verb))
         {
-            return new String[] { "always", "proximity" };
-        }
-        if ("mode".equals(verb))
-        {
-            return new String[] { "static", "dynamic" };
+            return both(mirrorNames(), new String[] { "none" });
         }
         return new String[0];
     }

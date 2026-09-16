@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -38,7 +39,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 /**
  * The line a mirror shows to whoever is looking at it.
  *
- * <p>This replaced a line sent once, on crossing into the proximity radius, and the two tests
+ * <p>This replaced a line sent once, on crossing into the proximity distance, and the two tests
  * that matter most here are the ones that pin down why. An action bar entry fades after about
  * three seconds, so a message sent on arrival is gone by the time somebody is stood in front of
  * the banner deciding whether to click it -- the one moment it is worth having. So the line is
@@ -93,9 +94,45 @@ class MirrorSignpostTest
     @AfterEach
     void tearDown() throws Exception
     {
+        MirrorSignpost.clear();
         MirrorManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * A line a click put above the hotbar is not spoken over at the next sweep.
+     *
+     * <p>"The showing its own room message appears when clicking but is quickly replaced by right
+     * click to choose a mirror." The approach line is sent again every sweep, and took the slot back
+     * before the click's line could be read.
+     */
+    @Test
+    void aLineAClickPutAboveTheHotbarIsNotSpokenOver()
+    {
+        boundMirror();
+        lookingAt(banner);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        MirrorSignpost.hold(player);
+
+        sweep();
+
+        assertEquals(0, shown().size(), "held while the click's line is up");
+        MirrorSignpost.clear();
+        sweep();
+        assertEquals(1, shown().size(), "and saying it again once the hold is over");
+    }
+
+    /**
+     * A hold for a player who has since logged out is quietly nothing.
+     *
+     * <p>The line above the hotbar takes a null player for exactly that, and a hint hands the same
+     * player to the line and then to the hold, so the hold has to take what the line took.
+     */
+    @Test
+    void aHoldForAPlayerWhoHasLoggedOutIsQuietlyNothing()
+    {
+        assertDoesNotThrow(() -> MirrorSignpost.hold(null));
     }
 
     /**

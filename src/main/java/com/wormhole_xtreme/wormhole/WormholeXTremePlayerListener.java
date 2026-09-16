@@ -999,6 +999,9 @@ class WormholeXTremePlayerListener implements Listener
         // and the two can never both act on one step. Ring creation refuses any footprint
         // touching gate blocks, so in practice they never contend for the same block at all.
         handleRingMoveEvent(event);
+        // A window mirror's view depends on where the eye is, so it follows the step.
+        com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.moved(event.getPlayer(),
+            event.getTo());
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {
             // Crossing into a chunk the client has not held before means the client is

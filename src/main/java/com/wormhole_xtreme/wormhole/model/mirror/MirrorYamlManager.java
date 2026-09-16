@@ -38,14 +38,14 @@ public final class MirrorYamlManager
     /** The section holding where clicking it sends you. */
     private static final String DESTINATION = "Destination";
 
-    /** Whether the look is in the block for everyone, or sent to whoever comes close. */
-    private static final String DISPLAY = "Display";
-
-    /** Whether the look was chosen once or is re-read from the far side. */
-    private static final String MODE = "Mode";
-
     /** The section holding what it looks like. */
     private static final String LOOK = "Look";
+
+    /** The mirror it opens onto when nobody at it has chosen, if it has one. */
+    private static final String START = "Start";
+
+    /** How many banners wide it is, written only when more than one. */
+    private static final String WIDTH = "Width";
 
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
@@ -145,8 +145,8 @@ public final class MirrorYamlManager
             // mirror. A mirror that travels is worth keeping even if its cosmetics are not
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
-                MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
-                readLook(map.get(LOOK)));
+                readLook(map.get(LOOK)), text(map.get(START)),
+                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1);
         }
         catch (final RuntimeException e)
         {
@@ -318,13 +318,13 @@ public final class MirrorYamlManager
         }
         // Written only when they are not the default, so a file full of ordinary mirrors reads
         // the way it did before any of this existed.
-        if (mirror.display() != MirrorDisplay.ALWAYS)
+        if (mirror.start() != null)
         {
-            map.put(DISPLAY, mirror.display().lower());
+            map.put(START, mirror.start());
         }
-        if (mirror.mode() != MirrorMode.STATIC)
+        if (mirror.width() > 1)
         {
-            map.put(MODE, mirror.mode().lower());
+            map.put(WIDTH, mirror.width());
         }
         writeLook(map, mirror.look());
         return map;

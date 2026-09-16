@@ -250,9 +250,9 @@ class MirrorYamlManagerTest
      * A mirror written before any of this existed reads back exactly as it behaved.
      *
      * <p>The whole point of defaulting in the record rather than at each use. An old file has
-     * no Display, no Mode and no Look, and the mirror it produces has to be an ordinary
-     * always-visible static one rather than something with null settings that the sweep and
-     * the stamp then have to guess about.
+     * no Start, no Width and no Look, and the mirror it produces has to be an ordinary one
+     * rather than something with null settings that the sweep and the stamp then have to guess
+     * about.
      */
     @Test
     void aMirrorFromAnOlderFileIsAnOrdinaryOne()
@@ -262,25 +262,51 @@ class MirrorYamlManagerTest
 
         final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
 
-        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
-        assertEquals(MirrorMode.STATIC, mirror.mode());
+        assertNull(mirror.start());
+        assertEquals(1, mirror.width());
         assertNull(mirror.look(), "it has never been stamped");
     }
 
     @Test
-    void keepsDisplayModeAndANamedLookAcrossARoundTrip()
+    void keepsANamedLookAcrossARoundTrip()
     {
         final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
-            null).withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC)
-            .withLook(MirrorLook.named("cavern"));
+            null).withLook(MirrorLook.named("cavern"));
 
         final QuantumMirror after =
             MirrorYamlManager.readMirror("M", MirrorYamlManager.writeMirror(before));
 
-        assertEquals(MirrorDisplay.PROXIMITY, after.display());
-        assertEquals(MirrorMode.DYNAMIC, after.mode());
         assertEquals("cavern", after.look().presetName());
         assertNull(after.look().view(), "a named look has nothing sampled behind it");
+    }
+
+    /** A mirror's start survives the file, and a mirror with none writes nothing for it. */
+    @Test
+    void keepsAStartAcrossARoundTripAndWritesNoneWhenThereIsNone()
+    {
+        final QuantumMirror before = new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 2, 3),
+            null).withStart("hub");
+
+        final QuantumMirror after =
+            MirrorYamlManager.readMirror("archive", MirrorYamlManager.writeMirror(before));
+
+        assertEquals("hub", after.start());
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+            .containsKey("Start"), "an ordinary mirror's entry reads the way it always did");
+    }
+
+    /** A mirror two banners wide stays two wide across the file; one wide writes nothing for it. */
+    @Test
+    void keepsTheWidthAcrossARoundTripAndWritesNoneForOneWide()
+    {
+        final QuantumMirror before = new QuantumMirror("hall", new MirrorBlock("world", 1, 2, 3),
+            new MirrorPoint("world", 1.01, 1, 3.5, 180f, 0f)).withWidth(2);
+
+        final QuantumMirror after = MirrorYamlManager.readMirror("hall", MirrorYamlManager.writeMirror(before));
+
+        assertEquals(2, after.width());
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+            .containsKey("Width"));
     }
 
     @Test
@@ -299,10 +325,10 @@ class MirrorYamlManagerTest
     }
 
     /**
-     * The two settings are written only when they are not the default.
+     * The settings are written only when they are not the default.
      *
      * <p>So a server full of ordinary mirrors has a file that reads the way it always did,
-     * rather than one where every entry has grown two lines that say nothing.
+     * rather than one where every entry has grown lines that say nothing.
      */
     @Test
     void writesNothingExtraForAnOrdinaryMirror()
@@ -332,18 +358,43 @@ class MirrorYamlManagerTest
             "an unreadable colour costs its own square and no more");
     }
 
+    /**
+     * A file from before {@code mode} went still reads, and its Mode line is dropped on the next save.
+     *
+     * <p>Dynamic mirrors re-read the far side on approach; that is gone, so the line means
+     * nothing now and a mirror that had it is an ordinary mirror.
+     */
     @Test
-    void treatsAnUnreadableDisplayOrModeAsTheDefault()
+    void ignoresAModeLineFromAnOlderFileAndDropsItOnSave()
     {
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("Banner", "world:1:2:3");
-        map.put("Display", "sideways");
-        map.put("Mode", "interpretive");
+        map.put("Mode", "dynamic");
 
         final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
 
-        assertNotNull(mirror, "a typo in the cosmetics must not cost a working mirror");
-        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
-        assertEquals(MirrorMode.STATIC, mirror.mode());
+        assertNotNull(mirror, "an older file's mirror is still a mirror");
+        assertFalse(MirrorYamlManager.writeMirror(mirror).containsKey("Mode"),
+            "and nothing writes the line back");
+    }
+
+    /**
+     * A file from before {@code display} went still reads, and its Display line is dropped on the next save.
+     *
+     * <p>Every mirror is a view now, so the line means nothing and a mirror that had it is an
+     * ordinary mirror.
+     */
+    @Test
+    void ignoresADisplayLineFromAnOlderFileAndDropsItOnSave()
+    {
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+        map.put("Display", "proximity");
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertNotNull(mirror, "an older file's mirror is still a mirror");
+        assertFalse(MirrorYamlManager.writeMirror(mirror).containsKey("Display"),
+            "and nothing writes the line back");
     }
 }

@@ -2,1559 +2,251 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.6.0 (unreleased)
+One line an entry, under the subsystem it belongs to: what changed, and what an operator or
+a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
+it explains, and a release nobody can scroll through is a release nobody reads.
+
+## 1.6.0 (2026-09-16)
+
+Sixteen commits' notes had been written into 1.5.0's section as though they had shipped in it, and
+they are here instead.
+
+**Upgrading: nothing to do, with five things worth knowing.**
+
+- Files move themselves on the first startup. Gate shapes go from `GateShapes/` to `shapes/gate/`,
+  and your gates, rings and beam destinations from `WormholeXTremeDB/` into `data/`. Files are
+  moved rather than copied, a file already at the destination wins, every move is logged, and
+  nothing is deleted, so putting 1.5.0's jar back finds the old folders as they were.
+- `WormholeXTremeDB/` keeps its name, because another fork's SQLite database lives there too and
+  `/wormhole gate import` finds it by that name. Only this plugin's own files come out of it.
+- If your plugin folder is not `./plugins`, this build reads `config.yml` and the gate shapes from
+  the folder the server names, where 1.5.0 read them from a guess. A server that had quietly been
+  running on defaults will start reading the file you have been editing.
+- New defaults reach only a fresh `config.yml`. Rings now count down for 100 ticks
+  (`ring-countdown-ticks`) and rest for 600 (`ring-cooldown-ticks`); an existing file keeps 60 and
+  1200 until you change them.
+- Minecraft 26.1 and later need the server on Java 25. The plugin itself still runs on Java 17.
+
+### In this release
+
+- **[Quantum mirrors](#quantum-mirrors)** — new, and most of this release. A banner on a wall
+  gives way to the room it opens onto, and every mirror is on one network.
+- **[Stargates](#stargates)** — `gate validate`, `Even` dropped as a duplicate of `Large`, and
+  seven fixes.
+- **[Transport rings](#transport-rings)** — ceiling rings in deep rooms, and a room refused when
+  it is built rather than when somebody stands in it.
+- **[Beaming](#beaming)** — the sequence drawn as a timing strip, which found a wrong number.
+- **[Configuration and documentation](#configuration-and-documentation)** — `config.yml` written
+  in groups, the four design documents opened with summaries and cut by a fifth, and galleries
+  drawn for gates, rings, beams and the looks.
+- **[Performance](#performance)** — six things that scaled with how much exists rather than with
+  how much is happening.
+- **[Internals](#internals)** — one YAML write path and one logger where there were three of
+  each, and a long pass over the test suite.
+
+Longer explanations are not here. What a subsystem does and why it is built that way is in
+[docs/](docs/): [GATES.md](docs/GATES.md), [RINGS.md](docs/RINGS.md), [BEAMS.md](docs/BEAMS.md)
+and [MIRRORS.md](docs/MIRRORS.md), with the how-to in [docs/guide/](docs/guide/).
+
+### Quantum mirrors
+
+A fourth way to travel, and the first one you can see. Design notes in
+[docs/MIRRORS.md](docs/MIRRORS.md); how to build one in
+[docs/guide/MIRRORS.md](docs/guide/MIRRORS.md).
+
+**Added**
+
+- **A mirror opens onto where it goes.** Walk up to a wall banner, on its side, and the banner is
+  gone (on plain 1.20 it stays, in front of the view): an opening its own size shows a room in real
+  blocks, with depth as you move, reaching `mirror-view-depth` and nothing past it.
+- **Every mirror is on one network.** It shows its own room flipped until somebody right-clicks
+  it; a right-click moves it on to the next mirror, a punch goes through to that mirror's banner,
+  and it goes back to its own room once nobody is near.
+- **One mirror to a world by default** (`mirror-per-world-limit`), on solid wall a block out on
+  every side, which cannot be broken while the mirror is there.
+- **Two wall banners side by side make one mirror two wide.** Either banner answers a click and a
+  traveller lands between them.
+- **A mirror's room can end in your own fog** (`mirror-fog-at-depth`, off by default, Paper only).
+- **A capture reaches as far as the room's world sends**, so changing the depth draws more or less
+  of the same capture and never takes one again.
+- **A mirror keeps its far room inside its edges**, and nothing shows past them from an angle.
+- **A look for every biome in the game**, and twenty-three more for what a mirror is *for* —
+  `exit`, `vault`, `library` and the rest, reached only by name.
+- **A mirror can look like where it goes.** `set stamp` reads the far side and paints the banner
+  from it: the biome picks the frame, the blocks there become coarse squares.
+- **A mirror says what it is above the hotbar** while you look at it from about six blocks, along
+  with the world it opens onto (`mirror-approach-message`).
+- **`mirror debug`** says one thing a line, fits on a screen of chat with `all` for the rest, and
+  tab-completes for whoever may run it.
+- **A capture no mirror uses is deleted at startup**, and `mirror list` names each mirror's.
+- **`mirror create` says what a mirror needs**: which block of wall is missing, when the wall is a
+  block short of two, and when another mirror is near enough that neither can be drawn whole.
+- **Four mirror verbs take the banner you are looking at** when you leave the name out.
+- **Seven banner patterns came back**, including the only round one.
+
+**Changed**
+
+- **`mirror set` is the one door to what a mirror has.** The top of the command is `create`, `set`,
+  `remove` and `list`; `set [name] <stamp|start|capture> ...` holds the rest.
+- **`stamp` is about the banner and `capture` is about the room**, and nothing changes either on
+  its own. `mode` is gone with the automatic restamping it existed for.
+- **A room is streamed in a tick at a time** as a viewer comes into range, and taken back the same
+  way, so coming to a mirror no longer freezes a frame. The cap on a room sent whole is gone.
+- **A mirror on any wall reaches the full depth**, standing or walking: its room is held whole and
+  clipped to each eye.
+- **A clipped room's far part is judged for a whole cell of eyes at once**, as wide as the wall
+  allows, and stands between small steps; a slow redraw earns a rest before the next.
+- **A mirror needs a block of wall round its opening, not two**, and `create` says so when it is
+  short of two.
+- **The outer half of the wall's edge is a margin** nothing is drawn onto.
+- **`mirror-view-depth` is 160 by default**, and a room cut to fit says so in `mirror debug`.
+- **`mirror-proximity-radius` is `mirror-proximity-distance`.** An existing `config.yml` keeps its
+  value and is rewritten under the new name.
+- **A right-click never comes round to a mirror's own room.**
+- **A right-click leaves no real banner showing**, not even for a tick.
+- **`set stamp` counts the looks** once there are too many to list.
+- **Mirror messages are no longer entirely grey.**
 
-Not out yet, and still collecting. 1.5.0 was tagged on 9 September and the work carried straight
-on -- sixteen commits, whose notes were written into 1.5.0's section as though they had shipped
-in it. Two player-facing fixes and a new command among them, and none of it is in the published
-1.5.0 jar. They are here instead, and 1.5.0's notes below are back to describing what was
-actually released on the day.
+**Removed**
 
-**Upgrading:** nothing to do, with two things worth knowing.
+- **The cone walk**, and `mirror debug save` with it.
+- **Two mirror settings nothing read**: `mirror-capture-radius` and `mirror-allow-same-world`.
+- **`mirror set display`**: every mirror is a view now, so it did nothing. An old `Display` line
+  is ignored.
 
-Files move, on the first startup, without being asked. Gate shapes go from `GateShapes/` to
-`shapes/gate/`, and your gates, rings and beam destinations go from `WormholeXTremeDB/` into
-`data/`. In both cases files are moved rather than copied, a file already at the destination
-wins, every move is logged, and nothing is deleted -- so putting 1.5.0's jar back finds the old
-folders as they were. If you are far enough back to still have `GateShapes/3d/`, that hop
-happens in the same startup too.
+**Fixed**
 
-`WormholeXTremeDB/` stays where it is and keeps its name, because it is also where another
-fork's SQLite database lives and `/wormhole gate import` finds it by that name. Only this
-plugin's own files come out of it.
+- **A redraw could hang the server for fifteen seconds** while standing on a block boundary.
+- **The real banner no longer flickers on a right-click.**
+- **A block placed or broken through a mirror's view acted on the real world behind it**, unseen.
+- **Scrolling quickly between mirrors could leave part of the last room up** for a few seconds.
+- **Changing the fog setting or the depth did nothing for somebody already at a mirror** until
+  they walked away and back.
+- **A banner on a post could not be named** from right next to it, and naming one now says where
+  it has to be clicked.
+- **A linked pair of mirrors sent you straight back where you came from.**
+- **A mirror another plugin refused** looked exactly like a mirror pointing at itself.
+- **Renaming a mirror used to quietly take it apart**, losing its destination and look.
+- **A mirror onto the Nether was still dressed as somebody's living room.**
 
-And if your plugin folder is not `./plugins` -- a start script that changes directory first, or a
-launcher that puts plugins somewhere else -- this build reads `config.yml` and the gate shapes
-from the folder the server names, where 1.5.0 read them from a guess. A server that had quietly
-been running on defaults will start reading the file you have been editing.
+### Stargates
 
-### Added
+Design notes in [docs/GATES.md](docs/GATES.md), how-to in
+[docs/guide/GATES.md](docs/guide/GATES.md).
 
-- **`create` is accepted wherever something gets registered.** Four features, four different
-  words for the same step, none of them wrong and no two of them the same:
+**Added**
 
-  ```
-  /wormhole gate complete <name>     the gate you laid out
-  /wormhole ring create              the circle of slabs you are standing in
-  /wormhole beam place set <name>    where you are standing
-  /wormhole mirror set <name>        the banner you are looking at
-  ```
+- **`/wormhole gate validate <gate>`** says what a gate is missing rather than only refusing to
+  dial, and `-all` sweeps every gate and names the ones with something wrong.
 
-  Not one of those places a block. In all four the player builds and the plugin recognises and
-  names what is already there, so the three verbs were never carrying a distinction --
-  `build`/`complete` are the 2011 original's, `create` arrived with rings, and `set` arrived with
-  beams and then mirrors. `create` is what the rest of the ecosystem uses for this shape
-  (`/mv create`, `/npc create`), and now every one of them takes it.
+**Changed**
 
-  The documented verbs do not change, and the aliases are not listed in help or offered by tab
-  completion -- the same way the flat gate commands were kept working after they moved under
-  `/wormhole gate`. Two of them have their own reason to stay the documented word: `complete` is
-  the second half of build-then-complete rather than a creation on its own, and `mirror set` also
-  moves and renames a mirror, which "create" would read wrong for.
-- **Four mirror verbs no longer need the mirror's name.** `stamp`, `display`, `mode` and `remove`
-  take the mirror on the banner you are looking at when you leave the name out:
+- **`Even` no longer ships, because `Large` is the same gate.** Nine shape files now. A server
+  that already has `Even.shape` keeps it and its gates go on being detected.
+- **`Grand`'s lower chevrons mirror its upper ones**, so the gate is no longer lopsided.
+- **Gate shapes live in `shapes/gate/`** rather than `GateShapes/`.
+- **The four-step order that decides what block a gate shows is written down once**, and every
+  caller asks the same place.
 
-  ```
-  /wormhole mirror stamp              # read the far side and paint this banner from it
-  /wormhole mirror display proximity  # this one goes dark until somebody comes close
-  /wormhole mirror remove             # give this banner back
-  ```
+**Fixed**
 
-  `link` is why. Hanging a pair derives the far side's name -- `nether` and then
-  `nether-return` -- and that derived half is exactly the one somebody stands in front of
-  wanting to restamp it or take it down, with a name nobody chose and nobody remembers. The
-  resolution is the ray search `set` and `link` already do, and then the block index, which is
-  the same lookup every right-click of a banner makes.
+- **A block could be dropped into a gate's opening and never broken out again.**
+- **A gate came back from a restart not knowing which shape it was built from**, and the next save
+  wrote the loss to disk.
+- **A gate built before its shape file gained a marker could never pick it up.**
+- **A shape that pins a material lost it after a restart.**
+- **The marker reference at the top of the shipped shape files disagreed with itself.**
+- **Regenerating a gate reattaches its dial sign** when the sign is still standing but no longer bound.
+- **An arrow between two facing gates crossed over and over**, and one that bounced off a player
+  in front of a gate was pushed on through them.
 
-  `set`, `target` and `link` keep their required names, and not for consistency's sake: `set` is
-  naming something that has no name yet, `target` is run from the arrival spot -- the one place
-  the banner is not -- and `link`'s argument is the far mirror rather than this one.
+### Transport rings
 
-  Two words had to be told apart for this. Only the real setting words are read as settings, so
-  `display museum` is still a name with the setting forgotten and still answers with the form,
-  rather than complaining that `museum` is not a way to show a mirror. `stamp` has the harder
-  case, because `stamp cavern` could name a mirror or a look: the mirror wins, since that is what
-  the word already meant, and sixty-five of the looks are biome names -- a server that names its
-  mirrors after where they go should not find `stamp nether` quietly meaning something else than
-  it did last week ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
+Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
+[docs/guide/RINGS.md](docs/guide/RINGS.md).
 
-- **The four design documents open with a summary, and are a fifth shorter.** `GATES.md`,
-  `RINGS.md`, `BEAMS.md` and `MIRRORS.md` had grown to 2,872 lines between them, which is more
-  than anybody reads to answer one question. The trim took them to 2,313 -- 2,329 once the
-  mirror command work landed on top -- and every one starts with an
-  **In short** paragraph saying what the subsystem is and which two or three decisions the rest
-  of the document is downstream of.
+**Changed**
 
-  The cut is repetition and structure rather than reasoning. Sections that were one topic split
-  across three headings are now one: beaming's hiding, invisibility and blindness are all
-  "Making somebody disappear"; its three ways of stranding a traveller are one section rather
-  than three scattered ones; mirrors' four cross-version API traps are together instead of in
-  two places; gates' timers and the redstone rule that extends them argued the same point twice
-  and now argue it once. Rings lost the most, being the longest and the most repetitive: 1,075
-  lines to 790.
+- **A ring counts down for five seconds and rests for thirty seconds**, where it was three and
+  sixty. An existing `config.yml` keeps its own values.
 
-  **What was deliberately not cut** is the part that makes these design documents rather than
-  reference: the bug behind a decision, and the thing that was tried first. Those are the
-  sentences somebody needs when they are about to change the code and do not know why it looks
-  like that. Config blocks, command listings, file layouts and the anatomy tables also stayed
-  whole -- they are short per line and looked up rather than read.
+**Fixed**
 
-  Anchors were the one real hazard, since the guides and `CAPTURES.md` link into these documents
-  by section. Every markdown link in `docs/` and the README is checked and all resolve.
-
-- **The gate gallery shows six gates, not nine files, and draws what a sign dial adds.**
-  The `SignDial` shapes are out of the gallery. Each is its twin's ring with a different
-  DHD corner -- the geometry is byte-identical -- so a row for each was the same gate drawn
-  again.
-
-  What they actually differ by is now drawn once, from `Standard` and `StandardSignDial`
-  themselves: the DHD layer of both, cropped to the corner that differs, with the added cells
-  outlined. It is three blocks. `D` is the wall sign you right-click, `RD` dials and `RA`
-  reports that the gate is open; everything else in both files is the same ring.
-
-  That drawing is the argument for [#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46)
-  in one picture. Six files encode three rings, and `Large`, `Grand` and `Massive` cannot be
-  sign gates for no reason except that nobody wrote the second file. The guide now says plainly
-  that the `SignDial` shapes work but are expected to go, and that gates already standing are
-  unaffected either way.
-
-  `GateGalleryTest` gained two tests for the new arrangement. One recomputes what the sheet
-  claims a sign dial adds, from the pair of files, so the page cannot go on making that argument
-  after the files stop supporting it -- checked by taking the `D` marker out of
-  `StandardSignDial` and watching it fail. The other guards the reason they are left out at
-  all: every `SignDial` shape must still have the plain twin the gallery shows in its place.
-  Delete or rename `Standard` and they become shapes nothing in the documentation draws,
-  silently, because the gallery would still look complete.
-
-- **The beam sequence is drawn as a timing strip, and drawing it found a wrong number.**
-  `docs/BEAMS.md` now shows every tick of a beam: the four phases as bars, the five moments
-  marked where they actually fall, and the envelope's density ramping up and the fade's ramping
-  down as the height of each tick's block.
-
-  There is nothing else a drawing could honestly say about a beam. It is particles, not blocks,
-  so there is no geometry -- no footprint, no frame, nothing a flat colour keyed to a material
-  could stand for. What it *looks* like needs the capture `docs/CAPTURES.md` already holds a
-  slot for. What it *does* is arithmetic, and arithmetic draws well.
-
-  **The phases overlap, and nothing had noticed.** The descend column starts at the teleport
-  tick, and the teleport fires 12 ticks into an 18-tick rise -- so for six ticks the origin
-  column is still climbing while the destination column is already falling. They are at
-  opposite ends of the journey, so nobody ever sees both, which is presumably why it went
-  unremarked.
-
-  It means the cycle is **52 ticks, 2.6 seconds**, not the 58 that adding 12 + 18 + 20 + 8
-  gives. `docs/CAPTURES.md` said 58, and told anybody capturing a beam to cut the clip to 2.9
-  seconds -- about a third of a second of nothing on the end. Both numbers are corrected, in
-  the shot list and in the two `ffmpeg` lines, and the document now says plainly which
-  arithmetic it had wrong and why.
-
-  That is the strip earning itself before it was even committed. The table of four durations
-  was not wrong about any phase; it simply could not show that two of them run at once, and
-  the sum looked like the answer.
-
-  `BeamGalleryTest` runs the real `BeamFrame.at()` from tick zero to finished and compares the
-  whole sequence against the line the drawing carries -- every phase boundary, every mark,
-  both density ramps, and the overlap count. Two further tests pin the properties rather than
-  the numbers: that the descend does start before the rise ends, and that the difference
-  between the sum of the phases and the real length is exactly the overlap and nothing else.
-  A third checks `CAPTURES.md` still agrees about the length, because that is the one number in
-  these documents somebody acts on with a video editor open.
-
-  Checked by making the descend wait for the rise to finish: all three fail, and all three pass
-  again on restore.
-
-- **The ring patterns, the stack and both deploys are drawn in the documentation.**
-  `docs/RINGS.md` now shows the two footprints in plan, the finished stack in elevation with a
-  player beside it for scale, a filmstrip of each deploy style frame by frame, and the transport
-  flash running through the stack.
-
-  The deploy strips are the ones worth having. "They travel further apart than they land" is
-  three sentences of prose and one glance at a picture: concurrent rings leave three half-steps
-  apart and close up from the top down as each arrives, and the two strips end in the same
-  stack while taking 11 frames and 20 to get there.
-
-  Nothing animates, and `docs/CAPTURES.md` had already made the argument against it -- three
-  ticks a ring through a four-ring stack is a fast bright flicker, an image on a page autoplays
-  forever, and the reader has no way to pause it. A filmstrip reads better anyway, because the
-  frames can be compared side by side instead of remembered.
-
-  **The test here is a different kind from the gate and mirror galleries', and had to be.**
-  Those read a resource file, so a fingerprint of the file catches a drawing that has gone
-  stale. Rings have no resource file: there are exactly two patterns, they are hardcoded, and
-  `RingPattern` argues at some length that a file format for two constant tables would be a
-  format to parse, validate, document and get wrong for nothing. So the renderer transcribes
-  the profiles and `RingAnimator`'s constants rather than reading them, and that duplication
-  would rot in the least visible direction there is -- a strip showing rings three half-steps
-  apart after the plugin moved to four still looks like a perfectly good diagram.
-
-  `RingGalleryTest` therefore runs the real animator. Each drawing carries a line saying what
-  it drew; the test rebuilds that from `RingPattern` and `RingAnimator` themselves, frame by
-  frame, and compares. It earned itself on its first run, failing on the two patterns for a
-  reason neither drawing was wrong about: Java was sorting the offsets as the strings they
-  print as, so `-1,-3` came before `-2,-2`, and Python was sorting them as numbers. Identical
-  sets of cells, two orderings, and a test that would have passed for the wrong reason if
-  either side had been written a little more loosely.
-
-  Checked further by changing `TRAVEL_GAP` and by widening the even profile, and watching the
-  right drawings fail each time with the command that redraws them.
-
-  `docs/CAPTURES.md` gained a short section saying these diagrams do not fill any of its slots.
-  A schematic says what a thing is; a capture says what it looks like, and no amount of flat
-  colour shows an event horizon's gradient. The slates stay where they are.
-
-- **The gate shapes are drawn in the documentation, idle and dialled.**
-  `docs/GATES.md` now shows each gate twice: the gate standing there, and the same gate with
-  the portal filled and the chevrons on. The pair is most of what the shape file says, and the
-  difference between them is the part prose is worst at.
-
-  It answers a question the page could not before: what does `Grand` actually look like next to
-  `Massive`? Both were a wall of text and a promise that one is larger.
-
-  A standing gate is flattened along its depth, layer 1 nearest. Taking a single layer was the
-  first attempt and it is wrong for exactly the three shapes somebody would most want to see:
-  `Grand`, `Large` and `Massive` have rings three layers thick, with the frame and chevrons in
-  layer 1 and the portal in layer 2 behind it, so either layer alone is half a gate. `Horizontal`
-  is flattened the other way, into a plan, because a gate lying in the floor seen head on is one
-  row of blocks.
-
-  Flattening hides what stands behind the frame, which on every shape includes the DHD, so the
-  table names every marker and the layer it is in. Hiding the activation switch is honest --
-  you cannot see it through obsidian either -- but a page you build from cannot stop there.
-
-  Palettes are shown as their own strip rather than crossed with the shapes. Geometry and
-  palette are independent in the plugin: any shape builds in any group, which is the whole point
-  of the split. Drawing every shape in four palettes would be four times the gallery asserting a
-  relationship that does not exist.
-
-  Flat colour keyed to each block, not Minecraft's textures. Those are Mojang's, and committing
-  them here would be redistributing their assets rather than illustrating ours; a screenshot is
-  the licensed way to show the real thing, which is what `docs/CAPTURES.md` is for. It also
-  turned out to matter that the drawings pick their own ground: obsidian is very nearly black,
-  and on the dark ground the mirror sheets use, a Standard gate is an invisible ring around a
-  visible portal -- a picture of the wrong thing entirely.
-
-  Everything between the gallery markers is written by `scripts/render_gate_sheets.py` from the
-  shape files and from `config.yml`, so neither the pictures nor the tables can drift.
-  `GateGalleryTest` holds it the way `MirrorGalleryTest` holds the mirror sheets: each drawing
-  records a fingerprint of the file it came from, and the test recomputes them. A stale gate
-  drawing is worse than a stale banner, because detection matches a shape exactly or not at all
-  -- somebody building from an out-of-date picture does not get a wrong gate, they get no gate,
-  and a page telling them it should have worked. Checked by moving a cell and by swapping a
-  palette's light block, and watching both fail with the name and the command that fixes it.
-
-  208 KB for the whole folder. Most of a shape is air, and drawing 529 cells of it one
-  rect at a time cost more than everything else in `Massive` put together; it is one rectangle
-  now.
-
-- **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
-  `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
-  type, with the biome it answers for -- or what it is for, when it answers for none -- and the
-  layers the plugin actually applies, in order.
-
-  The layer column is the point rather than a detail. The gallery is meant to be held up against
-  a banner stamped in game, and the drawings are approximations of the patterns: the curly border
-  is scallops, the charges are rough. A picture that does not quite match is as likely to be the
-  page's drawing as the plugin's stamp, so the page says so and puts the exact recipe beside it.
-  A banner that disagrees with *that* is a real disagreement.
-
-  Everything between the gallery markers is written by `scripts/render_mirror_sheets.py` from the
-  preset files -- the images and the tables both -- so neither can drift into describing a
-  library that is not there. `MirrorGalleryTest` holds it: each drawing records a fingerprint of
-  the preset it came from and the test recomputes them, so changing a base colour fails the build
-  with the name of the look and the command that fixes it. Checked by editing a preset and
-  watching it fail.
-
-  Each drawing is six times the size it is shown at, and linked to itself, so clicking one opens
-  something a pattern can actually be read off -- GitHub's sanitiser allows neither a stylesheet
-  nor a script in a document, so there is no hover-to-enlarge to be had, and a link to a vector
-  costs nothing but two numbers in the file. Hovering gives the recipe as a tooltip.
-
-  Seventy kilobytes for all eighty-eight, in a repository whose entire history packs to about
-  five megabytes. Each drawing carries its own dark ground, like every other SVG in
-  `docs/images`: GitHub renders a document on a light or a dark page depending on the reader, and
-  a white banner on a white page is not a picture of anything.
-
-- **A look for every biome in the game, and twenty-three more for what a mirror is *for*.**
-  Seventeen presets became eighty-eight.
-
-  Sixty-five of them are places, one per biome. The nine oceans used to share one banner and the
-  ten woods another, so a mirror onto a jagged peak and a mirror onto a frozen peak were the same
-  picture -- the banner told you which family you were looking at rather than where you were
-  going. `taiga` and `snowy_taiga` are now the same spruce over a different field, `warm_ocean`
-  is the only one with coral in it, and `the_void` is a black banner with a grey frame, because
-  a void world is a real place to keep an archive in.
-
-  One grammar holds them together rather than sixty-five ideas: a base colour for the ground, a
-  layer or two of what the place is made of, and a border in the family's colour. Two biomes in
-  the same family usually differ by one layer.
-
-  The other twenty-three name no biome and are reached only by `mirror stamp <name> <look>`.
-  `portal`, `spawn`, `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`,
-  `vault`, `forge`, `library`, `port` and `compass` join the five that were already there. They
-  are for what an operator wants said about a mirror when it is not where it goes -- and none of
-  them carry any behaviour, the way `private` never did. `locked` says a thing is shut; something
-  else still has to do the shutting.
-
-  `MirrorBiomeCoverageTest` holds the rule in both directions. No biome without a look is the
-  obvious half; no biome claimed by two is the half that matters, because `forBiome` returns the
-  first preset that answers and the order is load order -- so a biome named twice does not
-  conflict, it silently picks whichever file loaded first, and nothing says a word.
-
-  The biome list in that test is written out rather than read from `Biome`. CI builds against
-  1.20.4 and 1.21.10, and `Biome` is an enum on the one and registry-backed on the other, so
-  `Biome.values()` compiles here and fails there -- the same trap `PatternType` laid for the
-  stamp. It also fails in the direction that helps: when Mojang adds a biome, somebody has to
-  come and add it to the list, which is the moment to write its preset.
-- **Seven banner patterns came back, including the only round one.** The shipped library could
-  use 34 of the game's 43 patterns. It can now use 41.
-
-  The seven were never missing. Mojang *renamed* them at 1.21 -- `CIRCLE_MIDDLE` to `CIRCLE`,
-  `STRIPE_SMALL` to `SMALL_STRIPES`, and the four `_MIRROR` ones -- so every supported server has
-  all seven and they disagree only about what to call them. A preset file can spell a thing one
-  way, so naming either spelling lost that layer on half the supported range, with a FINE line
-  nobody reads to explain it.
-
-  `PatternAliases` maps the fourteen spellings to each other and the stamp asks for the other one
-  when the first misses. Only after: a server that has the name a preset used never pays for it.
-
-  The pairs came from vanilla's own identifiers rather than from how alike the names look, and
-  one of them needed it. 1.20's `DIAGONAL_LEFT_MIRROR` carries the id `lud`, which 1.21 spells
-  `DIAGONAL_UP_LEFT` -- while `DIAGONAL_LEFT` is a different pattern (`ld`) sitting one letter
-  away. Pairing by name would have drawn the wrong half of the banner on one version and the
-  right half on the other, and there is a test asserting the two stay distinct.
-
-  What it buys: `CIRCLE` and `RHOMBUS` are the only round and diamond shapes in the game, and
-  without them every look was bands and triangles. `portal` -- a lit ring on a dark field -- is
-  the first look here that reads as a thing seen through rather than as scenery. `windswept_savanna`
-  leans the way the wind does, which needed the mirrored diagonal. `FLOW` and `GUSTER` are still
-  out of reach and no table can help: 1.20 does not have that artwork under any name.
-
-- **Seven more looks a mirror's banner can wear, and no biome left without one.** Ten shipped;
-  there are seventeen.
-
-  Two of them are places the ten missed. `sparse_jungle` gets one tree where the woodland look
-  has a row of them, and `pale_garden` a pale trunk in grey fog. That biome exists only from
-  1.21.4 on, so on an older server the file loads and simply never wins, which is the same
-  non-event as any preset naming a biome the server has not heard of. With those two there is
-  no biome left in the game that falls through to the generic look.
-
-  They are new files rather than two lines added to `forest.mirror`, and that is the difference
-  between shipping and not shipping: the restore only writes out presets that are *missing*, so
-  a biome added to a preset an operator already has on disk would reach a fresh install and
-  never reach anybody upgrading. As its own file, `sparse_jungle` arrives on the next startup.
-
-  The other five are not places at all. `plain`, `hub`, `warning`, `private` and `arcane` name
-  no biome, so nothing picks them automatically and `mirror stamp <name> <look>` is the only
-  way to get one. They are for what you want said about a mirror when it is not where it goes:
-  the middle of a network, one that only runs one way, one that is not for general use. `plain`
-  is the quiet one -- a colour and a border and no charge -- for when the sampled look is wrong
-  and the build would rather the banner said nothing. None of the five carry any behaviour;
-  `private` is a bar painted across a banner, not a permission node.
-
-  The shipped files are now held by a test to the 34 pattern names that exist on every supported
-  version. `PatternType` renamed seven constants between 1.20 and 1.21 and gained two, and a
-  preset naming one of those stamps correctly on the version it was written on while quietly
-  losing that layer on the other half of the range -- nothing logs loudly enough to connect the
-  two. It is also exactly what a design transcribed out of one of the banner galleries does,
-  since those publish in Mojang's pattern ids on whatever version the site happens to run
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- **Mirrors can go dark until you walk up to them, and keep themselves current.** Two settings,
-  independent of each other:
-
-  `/wormhole mirror display <name> proximity` makes a mirror appear off until somebody is within
-  `mirror-proximity-radius` blocks. Nothing is taken off the banner to do it -- the block in the
-  world stays stamped, and the *blank* is what gets sent to people too far away. That is the
-  whole reason it works this way round: banner patterns are vanilla data, so disabling this
-  plugin leaves a corridor of stamped banners rather than a row of plain white cloth. The
-  per-player call it needs arrived in 1.20.1, so on plain 1.20 the mirror simply stays visible.
-
-  `/wormhole mirror mode <name> dynamic` re-reads the far side when somebody walks up, at most
-  once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
-  it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
-  affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-- **A mirror says what it is when you look at it.** A stamped banner looks like scenery, and a
-  corridor of them looks like decoration -- nothing about one said it was a door until somebody
-  happened to right-click it, which players do to signs and not to wall hangings. Look at a
-  mirror that goes somewhere, from about six blocks, and it names itself above the hotbar along
-  with the world on the far side, which is the one thing you cannot see from in front of it. It
-  stays while you keep looking, so it is on screen at the moment you decide to click.
-
-  Above the hotbar rather than in chat, like the transport rings: it replaces itself and then
-  goes, instead of leaving a line behind for every banner you walked past. Looking at one rather
-  than standing near it, because a corridor puts you in range of several at once and they would
-  take turns in the one action bar slot -- your crosshair picks exactly one. Only mirrors that
-  actually go somewhere say anything, since announcing a half-built one would be nagging about
-  unfinished work at whoever glanced at it. `mirror-approach-message: false` turns it off
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- **Clicking a mirror that goes nowhere now says how to point it.** "This mirror does not open
-  onto anywhere yet" was true and useless, and it was said at the one moment somebody had
-  demonstrated they wanted that banner to work and was standing in front of it. It names the
-  mirror and offers both routes -- `mirror link <name>` for a banner at the far end, and
-  `mirror target <name>` for arriving somewhere with no banner at all -- with the name filled in
-  so the line can be typed as it stands. Only to somebody who could run them; a visitor gets the
-  plain sentence rather than commands they have no permission for
-  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-- **`mirror link <other>` joins the banner you are looking at to an existing mirror, both ways.**
-  Two commands for a working pair: name the first banner, walk to the other world, look at a
-  banner there and join it. It used to take two names and point only the first at the second,
-  which meant the return banner did nothing at all when clicked -- and the argument order is
-  invisible once you have walked away from the banner. The joined side is named for you, or
-  named by you with a second argument. `target` is still the one-way form, and still the only
-  way to open onto a world you would rather not put a banner in
-  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-- **You arrive at the far banner itself**, rather than a block in front of it -- standing where
-  somebody who had just touched it would be, facing the way it faces. The block in front is one
-  the builder did not choose, and can be a wall, a drop or the far side of a doorway; the
-  banner's own block is the one place somebody deliberately put something, and a banner is
-  passable so a player can stand in it
-  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-
-- **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to
-  travel. Nothing to build -- one banner, wall-mounted or freestanding. One-way by design and
-  cross-world by default, so a mirror can open onto an archived world without anything being
-  added to it. `/wormhole mirror set|target|link|stamp|remove|list`
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- **A mirror can look like where it goes.** `/wormhole mirror stamp <name>` reads the far side
-  and stamps the banner with what it found: the biome there picks the frame, and the three
-  commonest block colours around the arrival point become coarse squares under it. If the
-  destination is indoors -- more than half the sampled blocks solid -- the biome is beside the
-  point, so the room reads by its contents instead and the commonest block in it becomes the
-  cloth. A library comes back the brown of its shelves; a lava field comes back orange whatever
-  biome it sits in.
-
-  Except where being enclosed is not news. The Nether is solid rock with a ceiling on it and a
-  cave is a cave, so both read as enclosed for every mirror ever pointed at them -- which meant
-  a Nether mirror could never wear the Nether's look. A preset says `Sheltered=true` to keep its
-  own; `nether` and `cavern` do.
-
-  Not a window, and a banner cannot be made into one: six flat patterns over a dyed base is the
-  whole canvas. It is an impression, and it is a snapshot -- taken when you stamp and not
-  again, the same bargain `link` already makes.
-
-  Ten looks ship, in plain text files in `shapes/mirror/` beside the gate shapes, and
-  `stamp <name> <look>` applies one by hand with nothing sampled. Edit one and it stays edited,
-  delete one and it comes back, add your own and `stamp` offers it. Format and reasoning in
-  [docs/MIRRORS.md](docs/MIRRORS.md)
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- `/wormhole gate validate <gate>` says what a gate is missing -- how many frame blocks are gone,
-  and whether the dial sign is still a sign -- rather than only refusing to dial and logging
-  about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
-  something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
-
-### Fixed
-
-- **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:
-  `NoClassDefFoundError: .../MirrorPackets` thrown out of `onDisable`, from the call that gives
-  proximity mirrors their look back.
-
-  The cause is ordinary operator practice. Copy a new jar over a running server and then restart
-  it -- which is what most people do -- and the plugin classloader goes on reading the file it
-  opened at startup. Any class it had not needed yet is gone by the time the server stops.
-  `MirrorPackets` loads only when a proximity mirror actually hides or reveals, so whether it
-  was already in memory came down to whether anybody walked past one that session. Hence
-  "occasionally".
-
-  `NoClassDefFoundError` is an `Error`, the restore was wrapped in `catch (Exception)`, and so
-  the throw left `onDisable` at its first statement. Everything below was skipped: the
-  configuration, every gate, the rings, the beam destinations and the mirrors, none of them
-  written to disk. A cosmetic step nobody would miss was quietly costing the save that everybody
-  would.
-
-  Every catch in the shutdown path now reaches past `Exception` the way `disableEconomyQuietly`
-  already did, and a source-scanning test holds the rule -- bounded to the shutdown path, since
-  the startup methods below it catch `Exception` on purpose and a startup failure happens while
-  the jar is still whole. The test checks the region contains the steps it should before
-  concluding anything from it: two markers and a substring are a fragile way to point at code,
-  and a scan that silently shrank to nothing would pass forever.
-
-  Worth saying plainly: copying a jar over a running server is not a supported thing to do to
-  any plugin, and this fix does not make it one. It makes this plugin fail the way it should
-  when you do -- noisily, and after saving.
-
-- **A banner on a post could not be named, from right next to it.** `/wormhole mirror set` and
-  `/wormhole mirror link` answered "Look at the banner you want to use, within six blocks" to
-  somebody standing in front of one.
-
-  Both find the banner with `getTargetBlockExact`, which ray-traces against block shapes, and a
-  freestanding banner is a thin post -- close up, the ray can pass the shape entirely. On a wall
-  banner the miss is invisible: the wall behind it gets hit instead, so the command says "that
-  is a stone" and the player aims again. On a post in the open there is nothing behind it, the
-  ray hits nothing at all, and the answer is a refusal that describes exactly what the player is
-  already doing.
-
-  It now falls back to `getLineOfSight`, which steps through the blocks a ray passes through
-  rather than their shapes, so the banner's own block is in the list either way. The aimed-at
-  block still wins when it is itself a banner -- in a corridor of them, the one you are pointing
-  at is the one you mean.
-
-  That fixed one miss and not the other, which only came out on the next banner: "I have to aim
-  at the base of it to work... otherwise it goes through the banner". A standing banner occupies
-  one block and is drawn about two tall, so its cloth -- the part anybody actually looks at --
-  hangs in the block above, where there is nothing to hit. No pass over the blocks the ray
-  crossed could ever find it, because the banner is not on the ray at all. So the block *under*
-  each one on the ray is asked too, and only for standing banners: a wall banner is drawn inside
-  its own block, and the same rule there would let somebody name one by aiming at the wall above
-  it.
-- **Naming a banner on a post now says where it has to be clicked.** The same two-blocks-tall
-  drawing that hid a standing banner from `set` also means only its base can be right-clicked to
-  travel: a click at the cloth passes through and reaches this plugin as no event at all, so
-  there is no later moment at which it could explain itself.
-
-  `set` and `link` say it when one becomes a mirror, to somebody standing in front of the banner
-  they just named, and say nothing for a wall banner -- which is drawn inside its own block and
-  works anywhere on it.
-
-  Not a refusal: a banner on a post in the middle of a room is most of what a museum corridor is
-  made of. Making the cloth genuinely clickable needs a hitbox up there -- an `interaction`
-  entity per standing mirror -- which is a feature with an entity lifecycle attached, and is not
-  this.
-- **A linked pair of mirrors sent you straight back where you came from.** Click the return
-  banner, arrive in the other world, and be returned to the banner you started at inside a
-  second -- which reads as a mirror that opens onto itself. Reported as "clicking the return
-  mirror just takes me back to it instead of the one in world", on a pair `/wormhole mirror
-  list` showed bound correctly to each other.
-
-  The teleport was never the problem. A mirror arrives a player at the destination banner's
-  own block -- deliberately, because that is the one spot a builder guaranteed is clear -- so
-  they land inside or directly under the far banner with it filling the screen. A right-click
-  still being delivered when they get there, from a held button or the client resolving the
-  interaction again at the new position, lands on that banner and fires it. Two bound mirrors
-  make that a round trip.
-
-  The log that found it, from a diagnostic build, is the whole story in four lines: the trip
-  out accepted at `-107,109,-22` in `world`, and in the same second a fresh click on
-  `world:-108:110:-23` -- the far banner -- travelling back.
-
-  A mirror now ignores the player it has just carried, for two seconds. Not only the banner
-  they arrived at: the same click can be re-resolved against whatever banner is now in front
-  of them, which on a corridor of them need not be the one they came out of. It is armed only
-  once a teleport has actually been accepted, so a trip another plugin refused does not also
-  cost the player a wait. The first ignored click says why, and repeats say nothing -- one held
-  button would otherwise write a column of the same line, which is the chat-spam failure this
-  project already fixed for a player holding forward against a locked gate.
-
-  I spent a while certain this was Multiverse cancelling the teleport, and it was not; the
-  fix below is what proved it wasn't, by making a refusal say so and then not saying so.
-- **A mirror another plugin refused looked exactly like a mirror pointing at itself.** Cancel a
-  `PlayerTeleportEvent` and the player stays precisely where they were -- and where they were is
-  the banner they just clicked. `MirrorInteraction` threw away the boolean `Player.teleport`
-  returns, so a refused trip said nothing at all. Reported as a linked pair where clicking the
-  return banner "just takes me back to it instead of the one in world", with both ends listed
-  correctly by `/wormhole mirror list`.
-
-  The usual canceller is a world-access plugin. Multiverse intercepts other plugins' teleports
-  by default and applies `enforce-access` to them, so a player without `multiverse.access.<world>`
-  is turned back by a rule this plugin never sees; a land-claim plugin does the same thing for
-  its own reasons.
-
-  A refusal now names the world and says who tends to be behind it. That is as far as this
-  plugin can go -- it cannot overrule another plugin's cancel, and should not try -- but "you
-  are not allowed into `world`" is an answer somebody can act on, where silence is not.
 - **A ceiling ring in a room deeper than four blocks fired over and over and took nobody.**
-  The volume that arms a ring and the volume that decides who rides it were worked out two
-  different ways. `RingIndex` armed a ceiling ring over `max-ceiling-drop + 2` layers -- twelve
-  by default -- through `Ring.volumeDepth`. `RingCycle` looked for passengers over the raw
-  `ring.reach`, four layers, with no ceiling adjustment at all.
+- **A room that could never work is refused when the ring is laid**, not when somebody stands in
+  it.
 
-  So in any room deeper than the reach, somebody standing on the floor under a ceiling ring was
-  inside the arming volume and outside the carrying one. The rings lit, rose, swapped nobody
-  and sank. And a cycle that carries nobody is deliberately owed no cooldown -- there was no
-  arrival to guard against -- so it re-armed on the spot, with the same person still standing
-  in the same place, and went again. Reported from a room with a seven-block ceiling as rings
-  that keep powering up and down.
+### Beaming
 
-  `RingCycle` now asks `Ring.volumeDepth` the same question the index does. That method existed
-  for exactly this and had one caller; `triggerVolumeBlocks`'s own doc even states the failure
-  mode -- "a floor further below the ring than the reach means people standing on it are not in
-  the volume and will not travel."
+Design notes in [docs/BEAMS.md](docs/BEAMS.md), how-to in
+[docs/guide/BEAMS.md](docs/guide/BEAMS.md).
 
-  Thirty `RingCycleTest` tests could not have caught it: their fake world matches a volume to a
-  ring by x and z and ignores y entirely, which is fine for the swap-and-restore behaviour they
-  were written for and blind to any question about depth. The new test carries somebody
-  standing seven blocks under a ceiling ring, which fails against the old code.
-- **A room that could never work is now refused when the ring is laid, not when somebody
-  stands in it.** The survey already knew how to say "that ceiling is too far above its floor";
-  it just never ran until a traveller arrived. By then the builder has walked away and paired
-  both ends, and what the next person sees is rings misbehaving rather than a room that was
-  never going to work.
+**Added**
 
-  `/wormhole ring create` now runs the same survey before it accepts a circle, and says which
-  of the five things is wrong with the numbers filled in -- "more than 10 blocks above its
-  floor", not "too high".
+- **The beam sequence is drawn as a timing strip in the documentation**, and drawing it found a
+  number that disagreed with the code.
 
-  Writing that turned up a second thing. `RingCreationTest`'s mock world had never stubbed
-  `getMinHeight`, `getMaxHeight` or `isPassable`, so Mockito was answering 0, 0 and false: a
-  world zero blocks tall made of solid rock. Nothing had asked before. Five tests failed the
-  moment creation started surveying, and the honest fix was to give that world a real height
-  range, air you can walk through and a floor under the pad, rather than to loosen the check.
-- **The startup banner tore itself apart on some consoles and not others.** The gate ring was
-  drawn with five glyphs out of the Block Elements range, and they did not all belong to the
-  same East-Asian-Width class. `▄`, `▀` and `▌` are Ambiguous; `▐` and `░` are Narrow.
+### Configuration and documentation
 
-  A terminal set to render Ambiguous characters double-width -- a toggle in PuTTY, Windows
-  Terminal, konsole, iTerm2 and tmux, and the default under a CJK locale -- widened three of the
-  five and left the other two alone. The arcs went from six columns to ten while the middle row
-  went from seven to eight, so the ring sheared open and the version and host labels stopped
-  lining up with each other. Same jar, same server: whether you saw it depended on a setting in
-  your terminal, which is exactly why it looked intermittent.
+**Added**
 
-  The two Narrow glyphs are gone. `▐` is now `█` and `░` is now `▒`, both Ambiguous and both in
-  CP437 like the rest, so every cell in the drawing stretches together and a wide terminal
-  simply gets a fatter ring instead of a broken one.
+- **The gate shapes are drawn in the documentation, idle and dialled** — six gates rather than
+  nine files, with what a sign dial adds drawn once.
+- **The ring patterns, the stack and both deploys are drawn** in the documentation.
+- **The ninety looks are drawn**, with the recipe beside each.
 
-  The other half of it was never about width. None of those glyphs exist in CP1252 or Latin-1,
-  so a server whose console is piped through a hosting panel printed a row of `?` where the ring
-  should be -- the old class comment predicted this ("shows replacement marks rather than
-  failing") and left it there. The banner now asks the console's charset whether it can encode
-  the drawing, and where it cannot, draws this instead:
+**Changed**
 
-  ```
-    ,-.
-   ( o )    Wormhole X-Treme v1.6.0
-    `-'     Running on Paper
-  ```
-
-  Both drawings pad out to the same column, so the two labels line up whichever one you get.
-
-  Nothing in `java.lang.Character` exposes East-Asian width, so the test that holds this carries
-  the Unicode 15.1 classification as data and fails on any glyph not on the list -- Narrow, or
-  merely never checked. A drawing is worth a guard when the thing that breaks it is a setting on
-  someone else's machine.
-- **Renaming a mirror used to quietly take it apart.** `mirror set <newname>`, looking at a
-  banner that was already a mirror, looked the name up by the *new* name, found nothing, and
-  built a mirror from scratch. Three things went missing on the way -- where it went, what it
-  looked like, and whether it hid itself until somebody came close -- and the old name stayed in
-  the registry beside the new one, both claiming the same banner.
-
-  The reply was the unhelpful part. It said "It goes nowhere yet", which reads as a next step
-  rather than as a warning that the mirror you had just finished pointing and stamping has been
-  undone.
-
-  Clearing up the leftover made it worse. Removing a mirror took its banner out of the block
-  index without checking whether that banner was still somebody else's, so
-  `mirror remove <oldname>` unhooked the *surviving* mirror: it kept its name, still listed, and
-  did nothing at all when clicked. That guard is fixed too, which also covers a hand-edited
-  `mirror.yml` holding two entries on one banner.
-
-  `set` now works out what you meant from what already exists. A name it knows moves that mirror
-  to this banner; a banner it knows renames the mirror on it; neither makes a new one. All of
-  them carry the whole mirror forward rather than rebuilding it, so moving a stamped mirror to a
-  new banner keeps its look as well -- which it also used to lose. The one case it will not
-  guess at is a name belonging to a mirror elsewhere on a banner that is already a different
-  mirror: either reading strands one of them, so it names both and changes nothing
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- **A mirror onto the Nether was still dressed as somebody's living room.** The rule that says
-  some places are enclosed by their nature -- the Nether is rock with a roof on it, a cave is a
-  cave, and a preset marks itself `Sheltered=true` -- had been applied to only one of the four
-  decisions that ask whether the far side is enclosed. So the banner could pick the Nether's
-  frame and then lose the red it exists to be, replaced by whatever netherrack averaged to in
-  that sample; and `/wormhole mirror stamp` kept its own second copy of the frame rule without
-  the flag at all, which meant stamping a Nether mirror by hand dressed it as a room while the
-  same mirror in `dynamic` mode corrected itself the next time somebody walked up to it. One
-  banner, two appearances, depending on which code touched it last. All four questions now go
-  through one place ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- A block could be dropped into a gate's opening and then never broken out again
-  ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
-- The marker reference at the top of the shipped shape files said different things in
-  different files: the `[C]` chevron marker was documented in one of the eleven, and
-  `StandardSignDial.shape` told you to use a shape retired two releases ago
-  ([#233](https://github.com/khanjal/Wormhole-X-Treme/issues/233)).
-- Gate shapes and `config.yml` were looked for in the working directory rather than the folder
-  the server names, so a server whose plugin folder is not `./plugins` read half its files from
-  one tree and half from another, silently
-  ([#245](https://github.com/khanjal/Wormhole-X-Treme/issues/245)).
-- A gate came back from a restart not knowing which shape it was built from, and the next
-  save wrote `GateShape: Standard` over whatever it really was
-  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42)).
-- A gate built before its shape file gained a marker could never pick it up. `/wormhole gate
-  regenerate <gate>` now re-reads the shape and moves the gate's redstone hookup, iris lever,
-  dial sign and name sign to where the file says they go today
-  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42),
-  [#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
-- A shape that pins a material lost it after a restart. `HorizontalSignDial` sets
-  `IRIS_MATERIAL=GLASS` because you look down through that gate, and a loaded gate resolved
-  its iris through the palette instead.
-
-### Changed
-
-- **`Even` no longer ships, because `Large` is the same gate.** Drawing both for the gallery put
-  them side by side for the first time: an eight-wide ring and a ten-wide one, the same octagon,
-  the same three-layer taper, the same seven chevrons, the same woosh. Two files, one gate, and
-  nothing for a server owner to choose between except two blocks of width.
-
-  `Even.shape` and `EvenSignDial.shape` are deleted, and with them the gallery rows, the entry in
-  the shipped-defaults list and `EvenGateShapeTest`. Nine shape files ship now -- six rings and
-  three sign-dial twins -- and `docs/GATES.md`, `docs/guide/GATES.md` and the tests that count
-  them say nine.
-
-  **A server with an `Even` gate standing keeps it.** Shapes load from
-  `plugins/WormholeXTreme/shapes/gate/`, and the shipped copies are only written out when that
-  folder does not already have them, so an existing install keeps the `Even.shape` it has and its
-  gates go on being detected. What changes is that a new install no longer gets the file, and a
-  folder emptied on purpose will not have it restored.
-
-- **`Grand`'s lower chevrons mirror its upper ones.** The upper diagonals are six-block wedges
-  cut into the bevel; the lower ones were four-block dabs two rows further round, in a place the
-  upper pair has no counterpart for. Nothing was wrong with either on its own, which is why it
-  lasted: a 22-wide ring is two screens of grid in an editor and the two halves are eighteen rows
-  apart. Flattened into one drawing they sit next to each other, and the gate is visibly lopsided.
-
-  The lower wedges are the upper ones reflected about the ring's horizontal axis now, so `Grand`
-  is symmetric top to bottom apart from the top chevron -- the same asymmetry `Standard` has, and
-  for the same reason: neither has a chevron at the bottom.
-
-  `:N` moved one cell along the wall on layer 3, out of the new lower-left wedge and onto the
-  cell beside it, which is where `Standard` keeps its own. A gate already built records its name
-  block on the gate rather than reading it back from the shape, so nothing standing is affected.
-
-  `ChevronSymmetryTest` is what stops it coming back. Nothing in the shape format asks for any
-  of this -- a `:L#n` marker is legal on any frame cell, so a ring with its chevrons scattered
-  parses and dials exactly like one placed with care, and the only thing that ever noticed was
-  somebody standing in front of the gate. The test recomputes the arrangement from the shipped
-  files: every upright ring mirrors left to right outright, and mirrors top to bottom apart from
-  the chevron at the top, which the foot of a ring has nothing to answer with. `Massive` carries
-  a bottom chevron and so mirrors outright; both arrangements pass and nothing else does. Run
-  against the old `Grand` it fails naming all eight cells of the top chevron and all four
-  diagonals, which is exactly the defect. `Minimal` and `Horizontal` are left out and the test
-  says why: two blocks wide with one chevron has no axes to be symmetric about, and a gate lying
-  flat in the floor has depth where an upright one has height.
-
-  **One narrow compatibility note.** A chevron cell may be built from the palette's `chevron`
-  material as well as the frame material, and only the `Standard` palette names one
-  (`REDSTONE_LAMP`). A `Grand` gate built in obsidian with lamps in the *old* lower chevron
-  positions would no longer match; lamps in the new positions, or plain obsidian throughout,
-  are unaffected.
-
-- **The README is a front page again.** It had grown to 1,703 lines, one section per feature as
-  each one landed, until nobody was going to read it to find out what the plugin does. It linked
-  `docs/MIRRORS.md` only from the contents list at the top, where it was easy to miss.
-
-  It is 116 lines now: a table of the four ways to travel, what the plugin does, a quick start for
-  each, compatibility, and where to read more. The how-to moved into a server owner's guide in
-  `docs/guide/` -- one page for running a server, one each for gates, rings, beaming and mirrors --
-  with a link at the top of every page to the design notes that explain the same subsystem.
-
-  About a third was cut on the way over rather than moved. What went was upgrade history written
-  as current instructions ("never actually gated before this release", "fix applied in this
-  branch"), the same redstone rule stated three times, and reasoning the design docs already make.
-  The version-range reasoning went to `docs/DEVELOPMENT.md`, since only somebody building the
-  plugin needs it. `docs/USER_GUIDE.md` became the guide's index, `docs/guide/README.md`. The README's mirror section
-  still said seventeen looks ship; the guide says eighty-eight.
-- **`mirror stamp` counts the looks once there are too many to list.** Two messages named every
-  loaded look: the usage line, and the refusal you get for naming one that does not exist. That
-  was a reasonable thing to do at ten looks and stopped being one at seventeen -- 130 characters
-  of names, plus the message around them, is four wrapped lines of chat.
-
-  Both now list the looks while the names come to 80 characters or less, and otherwise say how
-  many there are and to press tab. The count rather than a bare `<look>` on purpose -- "17 looks
-  to choose from" says there is a real list to go and find, where `<look>` alone reads as a
-  free-form argument you are expected to invent a value for. Tab completion was always the thing
-  that actually offered the names, and still is.
-
-  One threshold for both, because they ask the same question and a player who saw the names in
-  one message and a count in the other would have no way to work out why.
-
-  Nothing changes for an operator with a handful of looks in `shapes/mirror/`, which is the
-  case the listing was written for and where it is still the friendlier answer
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- **Mirror messages are no longer entirely grey.** Every line a mirror sent arrived in one
-  colour, so a sentence carrying a command to type, the name of a mirror and the name of a world
-  gave you no way to tell which was which without reading around them. Commands are now white,
-  names -- mirrors, worlds, looks -- are aqua, and the prose stays grey. The colours are the
-  ones this plugin already uses to tell you how to finish a stargate, on purpose: somebody who
-  has learned that white means "type this" at a gate should not have to learn it again at a
-  banner. A dye named in a `stamp` message is written in something close to that dye, since
-  "mostly red" is easier to believe when it is red
-  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
-- Gate shapes live in the plugin's `shapes/gate/` folder rather than `GateShapes/`, so
-  mirrors have somewhere to go when they arrive. Your shapes are moved there on first
-  startup, from either previous layout, and nothing is deleted
-  ([#246](https://github.com/khanjal/Wormhole-X-Treme/issues/246)).
-- Gates, rings and beam destinations live in the plugin's `data/` folder rather than sharing
-  `WormholeXTremeDB/` with another fork's database. Yours are moved on first startup; the
-  database stays where it is, so `/wormhole gate import` still finds it
-  ([#247](https://github.com/khanjal/Wormhole-X-Treme/issues/247)).
+- **`config.yml` is written in groups**, ten of them under `# --- Transport rings ---` banners,
+  with each setting's comment cut to a sentence or two. 256 lines from 361, same 82 settings. A
+  file you already have keeps its own layout; the grouped one is what a fresh install writes.
+- **The four design documents open with a summary and are a fifth shorter.**
+- **The README is a front page again**, with the how-to moved into `docs/guide/`.
+- **Supported through Minecraft 26.2**: CI now also builds and tests against 1.21.11, 26.1.2
+  and 26.2, and against Paper's API as well as Spigot's. Servers on 26.1 or later need Java 25.
 
 ### Performance
 
-A pass over what this plugin costs a busy server. Nothing here changes what it does; all of it
-changes how much it costs to do it, and every item was chosen for scaling badly rather than for
-being slow in isolation — a thing that costs a little per gate, per block update or per player
-move is the thing that hurts once a server has thousands of the first and hundreds of the last.
-
-**Two per-second sweeps scaled with how many gates exist, not how many are open.** The loose-
-entity sweep and the projectile tracker's "is anything open" check both walked every gate on the
-server. On a world with three thousand built gates and two wormholes open, that was three
-thousand checks a second to do two gates' worth of work. Both now read the open-gate set the
-plugin already maintains, so their cost tracks how much travelling is happening rather than how
-much has ever been built. The README already described the sweep as looking "only at gates that
-are currently open"; that is now what it does rather than what it worked out.
-
-**The block index no longer allocates to answer a question.** `getGateFromBlock` is the
-most-called method in the plugin — every player move, every vehicle move, every tracked
-projectile every tick — and `isBlockInGate` is reached from `BlockPhysicsEvent`, which a server
-raises for every water flow, every falling block and every redstone update in a loaded world.
-Both were keyed on `Location`, so both built a `Location` to use as a key and threw it away
-again. They are now keyed by world and then by a packed block position, the way the ring index
-already was; the packing moved to a shared `BlockKey` rather than being written twice. The same
-change to a gate's own portal-block set removes another allocation from the same paths, and the
-gate spatial index stopped building a `world:x:z` string per lookup.
-
-**A gate deleted while its wormhole was open never left the open set.** Nothing on the removal
-path cleared it, so it stayed for the life of the server — and the ambient hum, the portal
-redraw on every player's chunk crossing and the entity sweep all walk exactly that set. A
-deleted gate went on humming and drawing a portal onto clients. With the sweep change above it
-would have gone on collecting entities to send somewhere too, which is how this was found.
-
-**Six static maps kept every player who had ever left.** They are keyed by `Player` rather than
-by id, and nothing removed from them on logout, so a server accumulated one Player object — and
-with it an entity, an inventory and a world reference — for everyone who had ever half-built a
-gate, activated one, chosen a build shape, travelled through a wormhole or armed a refresh. That
-is the leak that matters on a large server, because it grows with how many people have ever
-played rather than with how many are playing. Nothing observable is taken away: Bukkit issues a
-fresh Player object on the next login, so a stale entry could never have been matched to its
-owner again.
-
-**Asking which chunk a block is in was loading that chunk.** `scheduleChunkLoad` and
-`scheduleChunkUnload` both started with `Block.getChunk()`, which loads the chunk if the server
-does not have it — so by the time `isChunkLoaded` was consulted the answer was always yes. The
-guard was unreachable and the work happened anyway, outside the branch that existed to decide
-whether it should. The unload path was the worse of the two: it pulled back a chunk the server
-had already released, purely so it could ask for it to be released again. Both now shift the
-block's own coordinates, which is what the move path already does for the same reason.
-
-**Three log lines on hot paths were built whether or not anyone was listening.** The one that
-mattered was `getGateFromBlock`'s miss branch — the path taken by nearly every call — which
-concatenated a `Location` into a string on every block a player walked over. The hit branch had
-been guarded; the miss branch had not.
-
-Two dead maps went with this. `isBlockInGate` consulted a pair of "blocks in an active
-animation" maps that nothing has ever written to, so the second lookup on the plugin's hottest
-path was a permanently empty map being asked, forever.
-
-**A second pass found four more of the same shape.** Every fire, fire-tick and lava damage
-event asked which gate was closest by walking — and sorting — every gate on the server, to
-answer a question about anything within four blocks; it now does the local lookup the
-block-ignite guard beside it already did. Every explosion asked the index twice about each of
-its blocks, and a single charge can list hundreds. Two places asked "is any gate dialled into
-this one" by copying and sorting the whole gate list, one of them on every block boundary
-somebody crossed while standing in an arrival gate; both now walk the open gates, which is the
-only place the answer can be.
-
-Underneath the first of those, the distance measurement had no idea what a world was. It
-compared three coordinates and nothing else, so a gate standing at the same x/y/z in the Nether
-measured as zero blocks from somebody in the Overworld — and what reads it is the guard that
-stops a lava gate setting fire to what is beside it. That guard could fire on the wrong side of
-a portal. Fixed, and it is now the cheapest possible answer for a gate that is somewhere else
-entirely. It also stopped calling `Math.pow(x, 2)` three times per gate block to square a
-number.
-
-**Deliberately not changed:** the ring check on the player move path still runs on every move
-event rather than only on block boundaries. A ring has to re-arm for somebody who stayed inside
-it after a trip, and that player crosses no block boundaries — guarding it would have been a
-small win in exchange for a documented behaviour. It early-outs on servers with no rings instead.
-
-### Under the hood
-
-- Three copies of the YAML write path, and three "is there a plugin to log through" checks that
-  did not agree, became one of each. Two of the three managers had been silently dropping the
-  messages that say a gate or a ring would not save
-  ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
-- Reflective field access in the tests: 139 sites across 87 files down to 8 across 7. Unchecked
-  casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
-  nobody read, which took ten class-level warning suppressions off the classes they were hiding
-  real findings in.
-- The four-step order that decides what block a gate shows -- per-gate override, then the
-  shape's own declaration, then the palette, then the shape default -- is written down once
-  rather than in each of the five accessors, and the two materials that deliberately skip a
-  step say so ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
-- The release workflow can be rehearsed without publishing, so it is no longer first run in
-  anger on the day of a release, and the workflow actions moved onto the Node 24 line.
-
-<details>
-<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
-
-### A fourth way to travel, and the first one you can see (#22)
-
-A quantum mirror is a banner. Right-click it and you are somewhere else.
-
-That is the whole build. No ring of blocks, no pad to pair, no dialling -- which is the point:
-a corridor lined with one banner per archived world is practical in a way a corridor of gates
-is not. Gates, rings and beaming are all invisible or abstract by design, and this is the one
-a player can walk up to and recognise.
-
-**One-way, deliberately.** A mirror sends you to a place, and that place does not know a mirror
-points at it. A return trip is a second mirror at the far end, bound home. This is what lets a
-mirror open onto a world you would rather not build in at all -- an archived snapshot needs
-nothing added to it to be somewhere a mirror can reach, which is exactly the case #22 was filed
-for.
-
-That also settled what a destination *is*. Binding mirrors to each other reads better -- step
-through one, come out of the other -- but it makes a banner on the far side mandatory, which is
-the requirement one-way exists to avoid. So a destination is a plain point. `mirror link` gets
-the ergonomics back without the cost: it works out the spot in front of a target banner once
-and stores an ordinary point, so nothing downstream knows a second mirror was ever involved.
-Worth knowing that it is a snapshot rather than a subscription -- move the target banner and
-the first mirror still opens onto where it used to be.
-
-**Cross-world by default, and it refuses otherwise.** This is the opposite polarity to gates,
-where `same-world-only` lets an admin restrict travel and defaults to not restricting. A mirror
-is the bridge *between* two worlds; that is what separates it from a beam place, which is how
-you name a point in the world you are already in. `mirror-allow-same-world` relaxes it for an
-admin who wants one anyway. One world can still hold any number of mirrors, each onto a
-different world -- the rule is about a single mirror's own two ends.
-
-Binding is two steps, which differs from what the issue describes and has to. You must be
-looking at the banner to say which one it is, and standing at the arrival spot to say where it
-goes, and no single command can be in both places. The cross-world refusal therefore lands at
-`target`/`link` time rather than at `set` time: a mirror named but not yet pointed has only one
-world, so there is nothing yet to compare.
-
-**The click path was the part that needed care.** It runs on every right-click of every block
-on the server. The first version asked the registry straight away, which meant building a key,
-which meant `getWorld()` on the block -- and `InteractLoggingCostTest`, which exists to fail
-when that path touches the world, duly failed. The block's own type is checked first now,
-against a set of banner materials built once at class-init. Derived from `Material.values()` by
-name rather than listed out, because sixteen colours times two families is precisely the list
-that gets written down as fourteen entries; and not `Tag.BANNERS`, which is a registry lookup
-at a point in startup this project has been bitten at before.
-
-Both banner families work. A wall banner is `Directional` and faces one of four cardinals, a
-freestanding one is `Rotatable` and faces one of sixteen, and there is no interface in common --
-reading only the first works on every banner on a wall and fails silently on every banner on a
-post, which is most of a museum corridor.
-
-Thirty-one tests. The two mutations that matter both land: recognising only `WALL_BANNER` turns
-the freestanding test red, and removing the type gate turns *two* tests red -- one of them the
-project's own hot-path guard. That second one is worth noting, because dropping the gate leaves
-mirrors working perfectly; only a cost test can defend it.
-
-Mirrors are their own registry and their own file, `data/mirror.yml`, the way gates, rings and
-beam are each their own. Not an entry bolted onto beaming -- #22 is emphatic that a mirror is
-not beaming wearing a banner as a costume, and the only things reused are the plumbing beaming
-already proved: the shape of a named point that resolves a world by name, and
-`WorldUtils.findSafePlayerLocation` for the arrival.
-
-Opening onto another *server* is [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257),
-deliberately separate. The short version of why: `/server` is the proxy's own command, so it
-needs no proxy code here at all -- but a server destination cannot name an arrival point, and
-that is a real loss rather than a detail.
-
-### Looking through the mirror (#22)
-
-The question the cosmetics grew out of: can a mirror show what is on the other side?
-
-Not literally, and that is settled by the canvas rather than by effort. A banner is a dyed base
-plus at most six flat patterns in sixteen colours, and nothing in Bukkit renders a view onto
-one. A real window means a map in an item frame or a display entity -- a different block, a
-render budget per viewer, and a question about refresh rate. Worth its own issue; not worth
-bolting onto a banner.
-
-What a banner can carry is an impression, and an impression is enough. `mirror stamp <name>`
-with no look named goes and reads the destination, and reduces it to two things. The biome at
-the arrival point picks the preset -- the base colour and the frame. Then the blocks in a
-13x7x13 box around the point are counted, mapped to the nearest dye colour, and the three
-commonest become coarse squares laid *under* that frame. The squares are the low-resolution
-part on purpose: three blocks of colour inside a border read as things seen through a doorway,
-where a blend of the same three reads as mud.
-
-**Indoors is the case that breaks the biome half**, and it is a common one -- a mirror into a
-library, a vault, a mineshaft. The biome there describes the ground the roof happens to stand
-on, which is not what anyone standing in the room would say about it. So the sampler also
-reports whether the place is enclosed, at better than half the sampled blocks solid, and when
-it is, the frame comes from `indoors.mirror` and the commonest block in the room becomes the
-cloth rather than a square on it. A library comes back the brown of its shelves with the grey
-of its walls beside them.
-
-Sampled once, at stamp time, and never again. Re-reading on every click would load a distant
-chunk on a click, and -- the stronger reason -- a banner that changed on its own would be worse
-to build with. A look an operator chose should stay chosen.
-
-**Two version traps, both found by checking the jars rather than by remembering.** They are
-the same trap twice, and both compile cleanly here and fail only on a server nobody tested on.
-`PatternType` is an enum through 1.20.6 and an interface from 1.21, so `PatternType.valueOf`
-compiled against this plugin's 1.20.4 target emits a class-method reference the JVM refuses
-against an interface -- `IncompatibleClassChangeError` on every server from 1.21 up.
-`Registry.BANNER_PATTERN` has the opposite problem: absent on 1.20. Reflection is the one route
-across the whole range, paid once per pattern name. `Biome` does the same thing at 1.21.4, so
-its name is read through `Keyed`, an interface throughout -- the key is the lower-case of the
-old enum name, which is exactly how the preset files spell it.
-
-A third in the same family, which the plugin has met before: `Material.isAir()` stopped being a
-switch at 1.20.6 and now goes through the live block registry. Harmless at stamp time, but it
-is the mechanism that once made `Material.isBlock()` throw when this plugin called it too early
-in startup, so the sampler compares names instead -- a few hundred times per stamp, and no
-registry needed to answer.
-
-**Reflection was only half of the `PatternType` fix, and the version matrix found the other
-half.** Three of the seven rows failed, and they were the right three. Going through reflection
-avoids the class-method reference the JVM refuses, but from 1.21 on `PatternType`'s own static
-initialiser builds its constants out of `Registry`, which needs a running server: the first
-attempt to resolve a pattern throws `ExceptionInInitializerError` and every attempt after it
-throws `NoClassDefFoundError`. Both are Errors, and the catch listed only exceptions, so both
-left a command handler by way of something nobody declared. A stamp run before the banner
-registry was ready threw rather than skipping the layer it could not build -- and "this server
-cannot tell me" is the same answer to the caller as "this server does not have it". Caught as
-`LinkageError` now, and the null it produces is cached, because a class whose initialiser has
-failed once is unusable for the life of the JVM.
-
-Two more came out of review. Preset load order was whatever `listFiles` returned -- roughly
-alphabetical on NTFS, hash order on ext4 -- while the registry's own javadoc claimed the order
-was kept and `forBiome` used it to decide which of two presets claiming one biome answers. It
-is sorted by file name now, so the same server restored onto a different filesystem resolves
-the tie the same way. And the sampler read `oy-2` to `oy+4` whatever world it was in: near
-bedrock or the build limit that is a throw on some servers, and on the ones that answer "air"
-instead it is worse than a throw, because the air counts in the sample but not toward the solid
-share -- a sealed cave two blocks off bedrock would have reported a quarter of its sample as
-empty sky, read as outdoors, and picked a biome frame instead of reading the room by its
-contents.
-
-The palette that turns a block into a colour matches on the material's **name**, not on
-`Material` constants, which is the only approach that survives the version range without a
-table per version -- and it keeps working when a new wood is added, because the new block is
-called what its family is called. The cost is that substrings collide, and the collisions are
-the whole test class: `AIR` is inside `OAK_STAIRS`, `LIGHT` inside `LIGHTNING_ROD`, `STONE`
-inside half the block names in the game. The first draft matched the ignore list by `contains`
-and would have dropped every wooden staircase in every castle out of every sample.
-
-Ten looks ship as plain text in `shapes/mirror/`, restored and reloaded exactly the way gate
-shapes are. Only the 34 pattern names present on every supported version are used in them, and
-a preset naming one this server lacks loses that layer with a log line rather than the file.
-Nine mutations were run to check the tests bite: laying the frame under the squares instead of
-over, making everywhere count as indoors, letting air count as solid, ordering the colours
-rarest-first, matching the ignore list loosely. Each one turns its own test red.
-
-### The material resolution order is written down once (#45)
-
-Five accessors -- portal, iris, light, sign, frame -- each wrote out the same four-step chain:
-a per-gate override an admin set, then a material the shape names in its own file, then the
-gate's palette, then the shape's default. Stated five times, so changing the order meant five
-edits and a divergence between two of them would be invisible.
-
-They go through one `resolveMaterial` now, with each material a row in a `MaterialRole` enum.
-
-**This did not make the file shorter.** It is 43 lines longer: five short if-chains become an
-enum, a helper and five delegates. The gain is not line count, it is that the order exists in
-one place and that the two materials which do *not* follow it stop being invisible. Both were
-previously things you noticed only by reading all five accessors and spotting what was missing
-from two of them; they are documented rows now:
-
-- **Sign** has no per-gate override, because no such field has ever existed. Shape then palette.
-- **Frame** never lets the shape's declaration outrank the palette, and
-  `hasExplicitStructureMaterial()` is deliberately not called even though it exists. The frame
-  is not a styling choice the shape gets to state -- it is what the player actually built the
-  gate out of, and that is what chose the palette. Preferring the shape's declaration reports
-  `OBSIDIAN` for a gate made of lapis, and `StargateAnimator` uses this value to rebuild
-  chevrons after the lighting animation. The shape is still the last resort for a gate with no
-  palette at all, the same as for every other material; only the step that would put it ahead
-  of the palette is skipped.
-
-Chevrons stay their own function. That one answers null when neither shape nor palette names a
-material, and detection has to ask it before there is a gate to ask -- a different contract, and
-folding it in would have meant giving the shared helper a nullable mode for one caller.
-
-The refactor also found an untested rule, which is the part worth keeping whatever anyone
-thinks of the enum. Swapping the first two steps -- letting a shape's declaration outrank an
-admin's per-gate override -- left the entire suite green. Every existing test set an override on a
-shape that named nothing, so the two orderings were indistinguishable. In game that is an admin
-giving one gate a particular iris, on a gate whose shape asks for glass, and the gate keeping
-the glass with no error. `aPerGateOverrideBeatsAShapeThatNamesTheMaterialItself` now fails
-against that swap.
-
-The frame asymmetry was already guarded: making it consult the shape declaration fails
-`frameMaterialFollowsThePaletteNotTheShapeDeclaration` with `expected LAPIS_BLOCK but was
-OBSIDIAN`, which is the bug its comment describes, reproduced exactly.
-### The shape files stopped disagreeing with each other about what the markers mean (#233)
-
-Every shipped `.shape` file opens with the same commented reference block -- what `[S]`, `[P]`,
-`:A`, `:IA`, `[RD]` and the rest mean. It is copied into all eleven rather than living anywhere
-central, and it is what a shape author actually reads, because it is in the file they opened to
-copy from.
-
-Eleven hand-maintained copies is eleven chances to drift, and two of them had.
-
-`[C]`, the chevron marker, was documented in `Standard.shape` and in none of the other ten. It
-is a real marker -- chevron material, distinct from `[S]` so chevrons are visible before they
-light, and meaning exactly `[S]` where no chevron material is set -- but no shipped shape uses
-it in its grid, so the documentation *is* the feature as far as an author is concerned. Ten of
-the eleven files somebody might copy from did not mention it exists.
-
-`StandardSignDial.shape` told the reader to "use MinimalSignDialRedstone if you want redstone
-target cycling as well". That shape was retired when redstone stopped being a shape choice and
-every sign gate gained it, so the sentence named a file that is not shipped and described a step
-nobody needs. The paragraph around it is still right and stayed: `[RD]` and `[RS]` adjacent
-would have one player's dust working the other, which is why this shape carries no `[RS]`. Only
-the advice changed, to what actually works now -- copy the shape and put an `[RS]` somewhere not
-adjacent to the `[RD]`.
-
-Fixing the two drifts by hand would leave eleven copies free to drift again, which the issue
-called the real defect. So there are four tests: every shipped shape defines the same marker set,
-every one defines every marker the plugin understands, every one explains `[C]`, and none
-names a shape that is not shipped. They read the files
-rather than the parsed shapes, because the drift is in the comments and a parser never looks at
-those.
-
-All four were checked by putting each defect back. Removing `[C]` from one file turns two of
-them red, naming the file and the missing marker; writing `MinimalSignDialRedstone` back in
-turns the name check red and prints the eleven shapes that do ship; deleting an `[RA]`
-definition turns the marker checks red, which an earlier version of the pattern missed
-entirely because it matched single-letter markers only. The count of files read is
-asserted too -- a glob that quietly matched nothing would otherwise let them all pass while
-checking no files at all.
-
-The question the issue raised underneath -- whether the block should be generated at build time
-from one source, or trimmed to a pointer at `docs/GATES.md` -- is left open on purpose. The
-block being present is most of what makes these files self-documenting to someone who has never
-read the docs, and a pointer is worth less than the thing. The tests mean a future drift is
-caught either way.
-
-### Our data left the folder it was sharing with another fork's database (#247)
-
-```
-<plugin folder>/
-├── data/                         ours
-│   ├── gates/<name>.yml
-│   ├── rings/<world>.yml
-│   └── beam.yml
-└── WormholeXTremeDB/             theirs, read by the importer, never written
-    └── WormholeXTreme.sqlite
-```
-
-`WormholeXTremeDB` is the folder every build descended from the 2011 original keeps its SQLite
-database in, and `/wormhole gate import` finds it by that name. This fork does not use that
-database -- it stores a file per gate -- but it had been keeping those files, and the rings and
-the beam destinations, in the same folder. So one directory was both the import source from
-other forks and this fork's live storage, and nothing about the layout said which was which.
-`LegacyDatabaseImporter`'s own class comment had been saying so for a while: "because the two
-use the same folder, with their old data sitting right next to the new empty one".
-
-The costs were real rather than tidiness. The README told operators to back gates up by copying
-the folder, which swept up a stale foreign database that would then be offered for import again
-on restore. And the state "I have imported" and "I have not" looked nearly identical on disk.
-
-**The obvious implementation is the wrong one.** Renaming `WormholeXTremeDB` to `data` would
-carry the foreign database along, and the importer looks for it by name in the folder other
-forks write it to -- so someone who had not yet imported would find the offer had quietly
-stopped appearing, with their old server's gates sitting in a file the plugin no longer reads.
-The migration therefore moves a known list -- `gates/`, `rings/`, `beam.yml` -- and steps over
-everything else, including files it has never heard of, which belong to whoever put them there.
-
-Nothing is deleted and nothing is overwritten. A file already in `data/` wins, because that is
-the one being loaded. A move that fails is named in the log rather than passed over: the file is
-still in the old folder, the recovery is to move it by hand, and that is only possible if the
-log says which one. It runs in `onEnable` before `loadStargates`, because reading the stores
-before moving them would find nothing and load an empty server.
-
-`DataLayout` came out of the same work. The folder name was written out in four separate files,
-so moving it meant four edits and one missed edit meant gates read from one folder and written
-to another. It is one line now, and the class doubles as the one place that answers what the
-plugin folder contains -- which is the shape [#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)'s
-`YamlStore` and #245's `PluginDirectory` were already heading towards.
-
-Fourteen tests, and the mutation checking earned its place twice over. Widening the migratable
-list so it carries the database turns four of them red, which is the property that matters most
-here. But removing the "a file already there wins" guard turned *nothing* red at first --
-`File.renameTo` overwrites an existing destination on POSIX and refuses on Windows, so on a
-Windows machine deleting that guard changed nothing a content assertion could see. The test had
-quietly become a test of the filesystem. It now also asserts the reported outcome -- keeping an
-existing copy is neither a move nor a failure -- which fails on either platform, and the comment
-above it says why so nobody simplifies the assertions away again.
-
-### Gate shapes moved to `shapes/gate/` (#246)
-
-```
-<plugin folder>/GateShapes/  ->  <plugin folder>/shapes/gate/
-```
-
-(`plugins/WormholeXTreme/` on a stock install, but the entry above this one is precisely about
-that not being safe to assume.)
-
-The old name was fine while gates were the only thing with shapes. [#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
-adds quantum mirrors, and a mirror is also a built construct that a `.shape` file can describe
--- so it would have had to go either into a folder named `GateShapes` alongside the gates, or
-into a second top-level `MirrorShapes` beside it, and that second choice repeats itself again
-for whatever comes after. Splitting by what the shape describes costs one folder level now and
-nothing later.
-
-This does look like the reverse of flattening `3d/` and `2d/` away, so it is worth saying why
-it is not. Those divided one kind of shape by an attribute of its geometry, which meant a
-lookup had to know which of two folders a gate shape was in -- genuinely worse than one folder.
-`gate/` and `mirror/` divide shapes by what they are for, and they are read by different
-subsystems that never look in each other's folder. One flat namespace is right for a set of
-interchangeable things and wrong for two sets that are not.
-
-**Nothing is lost on upgrade, from either of the two previous layouts.** Both migrations run on
-startup, chained, so a server old enough to still have `GateShapes/3d/` makes both hops at once:
-
-```
-GateShapes/3d/*.shape ─┐
-GateShapes/2d/*.shape ─┴─> GateShapes/*.shape ─> shapes/gate/*.shape
-```
-
-The rules are the ones the earlier lift established. Files are moved rather than copied; a file
-already at the destination wins, because that is the one that has been loading; every move is
-logged; nothing is deleted, so putting an older jar back still finds the old folder intact. An
-operator who migrated long ago has an empty `GateShapes` folder, and that case is checked for
-first -- it creates no directories and logs nothing, on every startup for ever.
-
-The shipped shapes moved inside the jar too, `/GateShapes/` to `/shapes/gate/`. Leaving the jar
-disagreeing with the disk would have been a trap for the next person, at the cost of ten test
-files that named the resource path -- worth paying once.
-
-Nine tests in `ShapeFolderMigrationTest`, mutation-checked: dropping the chained `3d`/`2d` hop
-turns two of them red, which is the case that would otherwise have stranded the oldest servers'
-shapes one folder short of where they are now read.
-
-One test caught the move on its own without being asked to. `DataFoldersFollowTheServerTest`,
-added a few entries above for a different reason, asserts every store lands under the folder
-the server names -- so it failed the moment `shapeDirectory()` changed, reporting the old path
-against the new one. That is what that test was for.
-
-### One write path and one logger, where there were three of each (#45)
-
-Gates, rings and beam destinations each carried their own copy of the same YAML write: the
-same `DumperOptions`, a temp file beside the target, `Files.move(..., ATOMIC_MOVE)`. Three
-copies of a write path is three places for a storage bug to be fixed in two of. They go through
-`utils/YamlStore` now, which throws rather than logging, so each manager keeps its own wording
-for a failed write.
-
-The logging was the half that had actually gone wrong. Each manager also had its own "is there
-a plugin to log through" check, and they did not agree:
-
-| | With no plugin |
-| --- | --- |
-| `BeamYamlManager` | fell back to `java.util.logging` |
-| `RingYamlManager` | returned, silently |
-| `StargateYamlManager` | returned, silently |
-
-Which messages those are is what makes it worth more than a tidy-up. They are the ones saying a
-ring file would not write, or a gate could not be saved -- so two of the three managers dropped
-exactly the messages that only ever exist because something had already gone wrong. It also
-meant the same storage failure was observable in one manager's tests and unobservable in
-another's, so a test there could pass by waiting for a message that was never coming.
-
-`utils/PluginLog` falls back, which is the behaviour worth keeping, and all three now use it.
-
-One thing came along on the way. `saveStargate`'s FINE line built `"Saved gate to YAML: "` plus
-an absolute path with no `isLoggable` guard, and `onDisable` calls it once per gate on every
-shutdown -- so a server with dozens of gates did that concatenation dozens of times per restart
-to throw every result away. `prettyLog` takes a `String`, so the guard has to be at the call
-site. That is the third time this exact shape has turned up in this codebase.
-
-Ten tests, mutation-checked: `PluginLog` put back to dropping the message silently turns two of
-them red, and `YamlStore` switched to inline flow style turns another red, reporting the
-`{World: overworld, X: 1.5}` it would have written into a file server owners hand-edit.
-
-PMD caught two dead `java.nio.file.Files` imports the extraction left behind, which a
-hand-rolled check for unused imports had missed -- `listFiles` and a fully-qualified
-`java.nio.file.Files.deleteIfExists` both look like uses of the import to a regex, and neither
-is one.
-
-Nothing about the files on disk changes. Same format, same names, same places.
-
-### Half the files were found by asking the server, half by guessing (#245)
-
-Six stores sit in this plugin's folder: gates, rings, beam destinations, the shapes they are
-built from, `config.yml`, and the SQLite database the importer reads. Four of them found that
-folder by asking Bukkit. Two did not.
-
-```java
-// StargateShapeRegistry, before
-return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes");
-```
-
-That is not the plugin folder. It is whatever directory the JVM started in, with `plugins/`
-stuck on the front. On a stock install the two are the same folder, which is why this sat here
-for as long as it did. They stop being the same the moment a start script changes directory
-first, or a launcher points its plugins folder somewhere else.
-
-What makes it worth fixing is that the disagreement is silent. Nothing throws and nothing is
-logged. Gates load from the real folder and name the shapes they were built from; shapes load
-from a folder that turns out to be empty, so `restoreMissingDefaults` writes eleven fresh
-copies into the wrong tree and every gate built from a custom shape stops being detectable.
-`config.yml` splits the same way, and the server quietly runs on defaults with the admin's real
-file sitting unopened somewhere else.
-
-The fix is one resolver, `utils/PluginDirectory`, and all six stores go through it. Making it
-six rather than two was the point: the guarded plugin-then-relative-path idiom was already
-copied four times, and adding two more copies would have left the next store free to guess
-again. #45 proposes a `YamlStore` that collapses three of these managers; the directory half of
-that job is done here, so what is left there is the writing and the logging.
-
-The relative path survives as a fallback rather than an alternative: it runs only if a path is
-resolved before the plugin exists, which on a live server never happens.
-
-An earlier draft of this entry, and of two comments in the code, said the fallback was there
-because `JavaPlugin.getDataFolder()` is `final` and so cannot be stubbed. Half right. It is
-`final` -- `javap` on the API jar confirms it -- but this suite runs on Mockito's inline mock
-maker, which stubs final methods perfectly well, and the tests added here stub that exact one.
-Copilot caught the contradiction: the claim was sitting a few lines above tests doing the thing
-it called impossible. The package-private `File`-taking overloads these resolvers carry are
-explained by something simpler anyway -- pointing a test at a temporary directory beats
-standing up a plugin to ask, and running the real one would write into the project.
-
-Nothing moves on disk. This is where the files are looked for, not where they are kept.
-
-Ten new tests across three classes, and they were checked the way this project has taken to
-checking: the resolver was mutated to always take the fallback branch, and `shapeDirectory()`
-was put back to the literal above. Three of the four resolver tests went red, and so did the
-shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` where the
-server had named a temporary directory. The fourth resolver test covers the fallback branch
-itself and correctly stayed green under that mutation.
-
-### Nothing builds in the gate opening, and nothing is stuck there either (#243)
-
-Two halves of one bug, and they had to be fixed together.
-
-The plugin had no `BlockPlaceEvent` handler at all. Not a weak one -- none. So the ring of a
-gate that was not open was as buildable as ordinary air, and a player could drop cobblestone
-straight into the circle.
-
-Breaking it out again was refused. A portal cell is indexed to its gate in `allGateBlocks`
-exactly as the frame is, so the break came back as "This block is part of the registered gate
-`<name>`. Run `/wormhole remove <name>` ...". On a survival server `onBlockDamage` stopped the
-first swing before that even, for anyone without the DAMAGE node. Place allowed, break refused,
-in a gate the player very often had no permission to remove either -- so an admin's only
-recourse was to tear the gate down and rebuild it.
-
-`onBlockPlace` now refuses placement in a gate's portal cells and says why, rather than letting
-the block vanish with no explanation. It refuses on the portal block list, not on the gate
-index: a gate indexes its frame, its DHD and the redstone cells an admin is expected to wire by
-hand, and refusing on the index would have stopped that wiring -- the same mistake that made
-redstone unremovable earlier in this file.
-
-The break turns on the fact that a portal is never a real block. `fillGateInterior` leaves AIR
-on the server whether the gate is open or shut, because the portal is drawn in each nearby
-client and a traveller standing in a lava one should not burn. So anything solid found in a
-portal cell was put there by a player, and is theirs to take back out.
-
-The exception is a closed iris, which occupies the very same cells and, unlike the portal, is
-real blocks -- `fillGateIris` places them precisely so nobody can walk through a sealed gate.
-Reading "solid block in a portal cell" as "somebody's stray block" without checking
-`isGateIrisActive` would have handed anyone a pickaxe key to a closed iris. That check is what
-separates the two.
-
-`onBlockDamage` had to learn the same distinction. The first version only changed
-`onBlockBreak`, which on a survival server would have been no fix at all: the damage handler
-cancels the first swing on any indexed block for a player without the DAMAGE node, so the break
-the plugin now allows could never have been started. The test for it is what surfaced that; it
-is in the suite as `hittingAStrayBlockInTheOpeningIsNotStoppedByTheDamageCheck`.
-
-Nine tests in `GatePortalInteriorBuildTest`, four of which fail against the old behaviour --
-confirmed by putting the bug back. The other five pin what did not change: the frame stays
-protected from both breaking and hitting, a closed iris stays protected, and placement outside
-the opening is left alone.
-
-### `/wormhole gate validate`, the third of the four things #54 asked for
-
-"A gate taken apart by WorldEdit now says so", earlier in this file, covers the first two: a
-dial refuses a target with missing frame blocks, and a redrawn dial sign logs when the sign
-itself is gone. Both fire only when something happens to the gate -- a click, a dial. Neither
-helps an admin who wants to ask the question directly, about a gate nobody has approached
-since whatever broke it.
-
-`gate validate <gate>` asks `GateIntegrity` the same thing dialling already asks, and says the
-answer out loud instead of only refusing or logging: how many frame blocks are missing, and
-whether the dial sign is still a sign. `gate validate -all` sweeps every gate and names only
-the ones with something wrong, the same restraint `gate regenerate -all` uses -- a server with
-hundreds of gates and one broken one should not scroll past hundreds of "fine" lines to find
-it.
-
-`GateIntegrity` gained one method for this, `isDialSignMissing`, asked from outside rather than
-only inline in `updateDialSign`. It is guarded the same way `missingStructureBlocks` already
-is: only in a chunk already loaded, so asking on a gate nobody has visited in a while never
-loads a chunk just to answer it, and a gate that genuinely cannot be checked reads as fine
-rather than broken.
-
-Reattaching an unbound sign on `regenerate` is still open -- item 2 of #54 -- and still waits
-on what #42 settles about that command; it needs a decision about `regenerate`'s own shape that
-this did not.
-
-### Installing the plugin singleton, seventy-eight times over
-
-Almost everything in this plugin reaches the running instance through
-`WormholeXTreme.getThisPlugin()`, and almost nothing works without one. So a test that
-exercises any of it has to put an instance there first and take it away afterwards, and the
-only way in is a private static field.
-
-Seventy-eight test classes were doing that for themselves, in a hundred and fifteen places, by
-the same three lines of reflection each time -- 102 of the 139 reflective field accesses in
-the whole test tree, all reaching for the same field.
-
-`PluginTestSupport.install()` and `remove()` are those three lines with a name on them. A setup
-that ran to four lines of `getDeclaredField`, `setAccessible` and `set` is one line that says
-what it is doing, and the suite lost 250 lines net.
-
-Two things came out of doing it rather than reading it. `remove()` puts back whatever was
-there before the matching install, instead of writing null: two classes were already careful
-enough to do that by hand, and everywhere else it comes to the same thing, because a class
-that cleans up leaves null behind for the next one anyway. And three classes did not fit the
-pattern at all -- one wrapped the reflection in a helper that swallowed the checked exception,
-one saved and restored around a single test, one handed the `Field` object itself to its call
-sites to reset in a `finally`. Those were done by hand, and the sweep was written to report
-what it could not match rather than guess at it.
-
-PMD found the rest: forty-four `java.lang.reflect.Field` imports the change orphaned, plus a
-helper that no longer had callers and an import that only its javadoc had been using.
-
-The other idiom was pointing one gate at another, fifteen times across nine classes, and it
-turned out not to need reflection at all. `Stargate.setGateTarget` exists; it is
-package-private because only dialling and shutdown have any business setting a target, and
-both do a good deal else besides -- chevrons, portal blocks, the far end's state. A public
-setter would invite a gate that looks dialled and is not. The tests were not in that package,
-so they went around the modifier rather than through it.
-
-`StargateTestSupport` is in the package, so it calls the setter. No reflection, which means a
-rename is a compile error rather than a test that fails somewhere else much later. It lives
-there for the same reason `ConfigTestSupport` lives in the config package: the thing it needs
-is package-private and it is only for tests.
-
-Reflective access across the tests: 139 sites in 87 files down to 8 in 7. Two of the eight are
-the helper itself. The rest are one-offs reaching for something no other test wants.
-
-### Nine unchecked casts in the tests, and three different reasons for them
-
-`YamlMaps` took the production count from thirteen to one. The tests kept theirs, and had
-quietly grown back to nine. Reading them turned out to be three separate problems wearing the
-same annotation.
-
-**Two were reimplementing a helper that already exists.** `ConfigManagerTest` reached into
-`ConfigManager`'s settings map by reflection to clear it between tests -- which is what
-`ConfigTestSupport.clear()` in the same package does, and what `ConfigLoadTest` already calls.
-The reflective version also wrapped both blocks in `catch (Exception) { // ignore }`, so
-renaming that field would not have failed the build or the test: it would have stopped
-isolating them and said nothing. That is the sort of thing that surfaces later as two tests
-that pass alone and fail together.
-
-**Two were an old Mockito idiom.** `ArgumentCaptor.forClass(Supplier.class)` can only hand
-back a raw captor, so a generic one needed a cast to say what it really held. Mockito added
-`ArgumentCaptor.captor()` in 5.7 for exactly this, and it infers the type from the variable.
-The other twenty-eight `forClass` calls in the tree capture non-generic types and are right as
-they are.
-
-**Five were the same three lines of reflection.** Get a declared field, make it accessible,
-cast what comes back. All five reach for static state that outlives a test -- who was recently
-teleported, which ring pairs are mid-cycle -- and clear it, because the scheduled tasks that
-would normally empty those never run under a mock scheduler. `PrivateStatics.of` does it once
-now, and infers the type from where the result is going, so the call sites have no cast in
-them at all.
-
-That last one is a trade rather than a fix, and the class says so. Reflection is not
-compile-checked, so a renamed field breaks at run time instead of build time. The alternative
-is production API that exists only so tests can undo themselves, which is worse. What it does
-fix is the failing loudly part: it throws rather than shrugging.
-
-Nine to one, and the one that is left is the cast reflection cannot avoid.
-
-The same three lines going the other way -- writing a field rather than reading one -- carried
-no cast and so no suppression, but sat in `VehicleGateEntryTest` and `RingTransitStartTest` as
-two more private helpers doing the identical thing. Those are `PrivateStatics.set` now.
-
-Counting the rest of them first is what stopped that going further. There are 139 reflective
-field accesses across 87 test files, and 102 of them reach for the same field: the
-`WormholeXTreme.thisPlugin` singleton, installed as a mock in setup and put back in teardown.
-That is one idiom repeated eighty-odd times, and it wants a helper that names what it is for
-rather than a generic field-setter. It is left alone here deliberately -- a sweep of eighty
-test files is its own change, with its own reasons to be careful.
-
-### Thirty-four command helpers that returned true and nothing else
-
-Ten command classes carried a class-level `@SuppressWarnings("java:S3516")` -- methods should
-not invariantly return the same value -- under one comment saying that Bukkit fixes the
-signature and `true` means handled.
-
-That is true of `execute` and `onCommand`. It was not true of the private helpers behind them,
-which returned `true` for exactly one reason: so the caller could write `return helper(...)` on
-one line. The boolean carried nothing, and the rule was right about every one of them.
-
-The plan had been to move the ten annotations onto the methods that needed them. Counting
-first is what killed that: twenty-eight methods needed one, so precision alone would have
-nearly tripled the count. Voiding the helpers instead removes them from the rule's reach.
-
-It does not reduce the count. Ten before, ten after -- the win is entirely in what is no
-longer hidden, and in thirty-four methods that stopped claiming to return something.
-
-The helpers are void now, and `return helper(...)` is `helper(...); return true;` at the
-caller -- a line longer, and saying what actually happens rather than dressing it as a value.
-Ten suppressions are left, each on a method, each on something Bukkit or a functional
-interface genuinely forces.
-
-The size was a surprise partway in. The first count of twenty-one was wrong because the
-helpers call each other: `place` ends with `return listPlaces(...)`, and `edit` ends with
-`return applyEdit(...)`, which dispatches to eight setters that end with `return saved(...)`.
-Voiding one means voiding the chain, and the closure is thirty-four.
-
-`CustomCommand` ends with no suppression at all. `Compass` keeps one, and where it belongs
-took pushing the branch to find out. Its class-level annotation had been covering a finding
-nobody had seen: the anonymous `Callable<Boolean>` that `runCommandSafe` takes. Sonar follows
-calls, so a `call()` whose every branch ends in one of three always-true helpers is as
-invariant as one that says `return true` outright. Reading the rule rather than running it had
-said otherwise, twice. It is annotated on the `call()` now, which is the thing it is about.
-
-The count is the least of it. Twenty-seven methods stop being invisible to the rule.
-`isOrdinaryCompass`, `isPendingRefresh`, `isOldGroupName`, `hasDefaultSnapshotOverrides`,
-`isField` and `touchesGate` are real predicates, and a class-level annotation was silencing
-every one of them in order to quiet the helpers sitting alongside.
-
-Three tests failed on the first attempt and were right to. Dropping the `return` from
-`return saved(...)` inside a method that is now void does not just discard a value, it removes
-the control flow -- `allowOrDeny` fell through and saved the world twice.
-
-Four assertions in `RingPairingTest` turned out to be asserting nothing.
-`assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
-three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
-though it succeeded. Each already asserted what mattered on the following line.
-
-### A gate forgot its shape overnight, and the next save wrote the loss to disk (#42)
-
-The shape name has been written into every gate file for as long as gate files have existed,
-and nothing ever read it back. `Stargate`'s constructor installs a placeholder shape, and that
-placeholder calls itself `Standard`, so every gate that came off disk reported itself as a
-Standard gate whatever it had really been built from.
-
-That would be merely wrong if it stopped at reporting. It did not: the save path wrote
-`getGateShape().getShapeName()`, which for a loaded gate was the placeholder's name. So one
-restart and one ordinary save -- and a shutdown is enough -- rewrote `GateShape: Standard` over
-the real name in the file. The name was the only record of what the gate was, and afterwards
-there was nothing left to say what it had been. On a server with custom shapes that is
-unrecoverable by hand.
-
-A gate now resolves its recorded name through the shape registry on load, which is safe because
-shapes are read in `onLoad` and gates in `onEnable`. A name the folder cannot resolve -- an
-admin renaming a shape file, or moving one aside for an afternoon -- is *kept* rather than
-replaced, with a warning saying so: the recorded name is still true even when the shape it names
-is not there, and writing `Standard` over it would destroy the only thing that could put it
-back. That also fixes a pinned material quietly going missing, because `IRIS_MATERIAL=GLASS` in
-`HorizontalSignDial` lives on the shape object rather than on the name.
-
-### Re-deriving a gate whose shape file changed under it (#42, #54)
-
-A gate records where its markers are once, at detection, and never looks at the shape again.
-That was fine until a shape file gained a marker: #28 added `[RD]` and `[RA]` to two shipped
-shapes, and every gate already standing kept the empty marker set it had been detected with. No
-amount of wiring will fire such a gate. `setupRedstone` places blocks at positions that are
-already known and derives none, and `regenerate` guarded that call with `isGateRedstonePowered()`
--- which is false on exactly the gates that need fixing.
-
-Detection already knows how to work the markers out, and the gate stores both of its inputs: the
-block the player clicked, and the way it faces. Handing those back to `checkStargate` with the
-shape *as it is now* reproduces the original detection against today's file. `/wormhole gate
-regenerate <gate>` does that first, then places blocks as before, and names each marker it moved.
-
-Two lines are drawn deliberately. Only the furniture is copied -- the three redstone markers,
-the iris lever, the dial sign, the name sign holder -- not the frame, the portal, the animation
-waves or the arrival point: rewriting those is what `/wormhole gate refresh` is for, and that is
-a player standing at one gate asking for it. And a marker is only ever added or moved, never
-cleared, so a shape that has *lost* a marker leaves the block standing rather than taking it up
-under an admin who only asked for a regenerate. What moved is reported, and that decision is
-left to whoever reads it.
-
-The gate is also never lifted before it is replaced. `[RA]` is an output -- it is what a gate
-powers while it is open -- so taking the redstone up and putting a fresh unpowered marker back
-would have cut whatever the gate was driving, mid-wormhole, on any open gate. There is a test
-pinning that it does not.
-
-</details>
+A pass over what this plugin costs a busy server. Nothing here changes what it does; every item
+was chosen for scaling with how much exists rather than with how much is happening.
+
+- **Two per-second sweeps scaled with how many gates exist, not how many are open.** Both read the
+  open-gate set now.
+- **The block index no longer allocates to answer a question.** `getGateFromBlock` and
+  `isBlockInGate` are keyed by world and a packed block position rather than by `Location`.
+- **A gate deleted while its wormhole was open never left the open set.**
+- **Six static maps kept every player who had ever left.**
+- **Asking which chunk a block is in was loading that chunk.**
+- **Three log lines on hot paths were built whether or not anyone was listening.**
+
+### Internals
+
+- **One YAML write path and one logger**, where gates, rings and beam destinations each carried
+  their own copy and three "is there a plugin to log through" checks disagreed.
+- **Gates, rings and beam destinations live in `data/`** rather than sharing a folder with another
+  fork's database.
+- **Every store is found by asking the server for the plugin's folder**, where half were found
+  that way and half by guessing at the working directory.
+- **The plugin singleton is installed in one place**, where seventy-eight tests each did it
+  themselves.
+- **Thirty-four command helpers that returned `true` and nothing else** return `void`, and ten
+  class-level `@SuppressWarnings` went with them.
+- **Nine unchecked casts in the tests** are gone, and reflective field access went from 139 sites
+  across 87 files to 8 across 7.
+- **`MirrorWindows` is being taken apart.** `MirrorSight`, `MirrorFace`, `MirrorWindowState` and
+  `MirrorDrawing` are out of it; 2,449 lines from 2,786.
+- **Forty Sonar findings on the mirror code are cleared**, including two typed as bugs that
+  were not: a null check read across two contracts, and an exact integer subtraction.
+- **The release workflow can be rehearsed without publishing.**
+- **Nothing marked for removal in newer Bukkit is called directly.** An arrow through a gate
+  keeps its weapon from 1.21, and its knockback and crossbow flag before.
+
+**Fixed**
+
+- **A tidy-up that failed on shutdown took every save with it.**
+- **The startup banner tore itself apart on some consoles and not others.**
+- **Gate shapes and `config.yml` were looked for in the working directory** rather than the folder
+  the server names.
 
 ## 1.5.0 (2026-09-09)
 
@@ -5422,774 +4114,8 @@ release is 1.1.0, and much of the storage work below was removed again there.
 - Improved startup diagnostics and storage initialization logging.
 - Fixed a number of persistence and teleport UX issues (teleport bounce mitigation and gate activation mapping fixes).
 
-## 0.854 (5/17/11 @ 16:13 PST)
-
-- Updated chunk (un)loading to happen when gate (de)activates and when dial lever state
-  changes happen.
-
-- Fixed iris levers not being added properly with 2d gates. (Oops, guess that code WAS needed)
-
-- Fixed IndexOutOfBoundsException on 3d gate shapes without lighting blocks.
-
-- Hamfisted fix for signs not updating. Now we nuke the sign and build it from scratch every
-  time a gate sign is toggled. Causes a flash, but... who cares. It works EVERY time now.
-
-## 0.853 (5/13/11 @ 23:05 PST)
-
-- Fix for /dial gates breaking when a user who doesn't have dialer permission hit the lever.
-
-- Switched to getTypeId() from getType(), hopefully this works around the getType() == Air bug
-  that might be lingering. (doubt it :| )
-
-## 0.852 (5/12/11 @ 07:55 PST)
-
-- Added support for upcoming Permissions 3.0.x release.
-
-- Fixed a NPE in 2d shape code dealing with light block positions.
-
-- Added soft dependencies to plugin.yml.
-
-- Minor log format changes for readability.
-
-## 0.851 (5/10/11 @ 21:56 PST)
-
-- Complete revamp of how we handle permissions checks. Lots more case statements, lots less
-  if/else if. Much better. This is what enums are for.
-
-- Added new gate use cooldowns. This feature will only work on complex permissions enabled
-  servers. There are three groups you can assign a player to; 'wormhole.cooldown.groupone',
-  'wormhole.cooldown.grouptwo', and 'wormhole.cooldown.groupthree'. If you have an '*' on any
-  user/group, remember to '-wormhole.cooldown.groupone' etc. There is a new command to
-  enable, disable, and modify cooldowns; 'wormhole cooldown [true|false|group] <time>', valid
-  groups being 'one', 'two', and 'three', valid time being between 15 and 3600 seconds. There
-  are also Settings.txt options for all of these new settings. Cooldowns are set when a player
-  enters a stargate, not when they /dial. Cooldowns are removed via timer events, and even if
-  the timer event fails, we do a fall back calculation when a player enters a stargate, and gets
-  denied access.
-
-- Added new gate build count restrictions. This feature will only work on complex permissions
-  enabled servers. There are three groups you can assign a player to; 'wormhole.build.groupone',
-  'wormhole.build.grouptwo', and 'wormhole.build.groupthree'. If you have an '*' on any
-  user/group, remember to '-wormhole.build.groupone' etc. There is a new command to enable,
-  disable, and modify build count restrictions; 'wormhole restrict [true|false|group] <count>',
-  valid groups being 'one', 'two', and 'three', valid count being between 1 and 200. There are
-  also Settings.txt options for all of these new settings.
-
-- Updated the stargate sign dial sign reset code to be more reliable at causing the client to
-  notice update changes.
-
-- Added a thrown exception during stargate 3d shape parsing if the shape doesn't have an exit
-  point. We depend on this location for pretty much everything. If it isn't there, really bad
-  bad bad things happen.
-
-- Now we have more than just Standard as our default shape. We extract Standard,
-  StandardSignDial, Minimal, and MinimalSignDial to the gateShape folder if it is missing shapes.
-
-- Now we don't toggle stargate signs when we start.
-
-## 0.850 (5/5/11 @ 16:15 PST)
-
-- iConomy support removed. I will not depend on plugins that decide to change their
-  package name 5 major versions in and basically give everyone who depended on the
-  package location the middle finger.
-
-- 3d Gate shapes now implemented.
-
-- Custom gate settings now in place (read: per gate material settings).
-  This included the re-addition of the portalmaterial and irismaterial commands.
-  lightmaterial, redstone, wooshdepth, and custom commands newly added.
-
-- Massive internal overhaul, refactorings, cleanups, general goodness and bugfixes.
-
-- Added support for Wormhole X-Treme Worlds. This allows Wormhole X-Treme to offload its
-  chunk loading and world loading to WXW, for worlds that exist in WXW. Requires user to
-  change Settings.txt option WORLDS_SUPPORT_ENABLED from false to true. This option requires
-  Wormhole X-Treme Worlds v0.5 to be installed, and preferably configured for every existing
-  world populated with stargates. If this option is set to true but WXW is not v0.5 (or not
-  installed), WX will not load its stargates from its database.
-
-- Removed many superfluous chunk load requests. Added graceful chunk unload queue when we
-  are done with a chunk.
-
-- Bumped supported version of permissions to include the 2.7 tree.
-
-- Updated help text for new/modified commands.
-
-- Added backwards compatibility, for those users who just don't want to upgrade to 3d shapes.
-
-- Added loads of failsafe settings, for when users don't have any shapes installed, but have
-  stargates already.
-
-- wxidc now only works on non-sign powered gates which have iris activation blocks set.
-
-## 0.833 (4/9/11 @ 23:36 PST)
-
-- Fixed iConomy double(or many many more) charging issue. Tried to do something awesome,
-  turned out to be a bad idea. We'll revisit these kind of changes when 3d shapes are in
-  and I can do some major refactoring and method merges/splits.
-
-- Bumped supported version of permissions to include the 2.6 tree.
-
-- Merged some of the sign click schedule related methods. Should make sign click messages
-  more reliable.
-
-## 0.832 (4/5/11 @ 15:04 PST)
-
-- Fixed NPE during database creation. Whoops, missing null-checks.
-
-## 0.831 (4/4/11 @ 23:13 PST)
-
-- Fixed erroneous messages sent when a plugin is attached to already and WXT receives
-  a plugin event for it. Cosmetic bug, fixed.
-
-## 0.830 (4/4/11 @ 01:12 PST)
-
-- Water now will not flow over Stargate anythings. No more broken levers and magic
-  blocks of water floating in their place.
-
-- Buckets now will no longer work with stargate anythings. No free water and lava.
-
-- Minor optimizations and code cleanups.
-
-- PORTAL_MATERIAL, IRIS_MATERIAL, STARGATE_MATERIAL, ACTIVE_MATERIAL are all part of gate shape now.
-    - All configuration values associated with these are gone now.
-    - Gate shapes without these default to
-      PORTAL_MATERIAL = STATIONARY_WATER
-      IRIS_MATERIAL = STONE
-      STARGATE_MATERIAL = OBSIDIAN
-      ACTIVE_MATERIAL = GLOWSTONE
-    - Updated default gate shapes that come in the zip to include these new values.
-    - See gate shape files for more details
-    - Known bug: If you teleport from a gate with portal type lava, to a gate
-      that is NOT lava, you will be burned once you reach the other side.
-
-- Removed version 1 DB conversion because new design doesn't allow for it anymore.
-    - For users this means if you are upgrading from version 0.3 or less to this
-      version you will need to remake your gates.
-
-- Fixed NPE in onPlayerInteract caused by event not reporting the block the interact
-  event was associated with.
-
-- Logic tweak in the find safe teleport code. Should be *safererer*
-
-- Sign powered stargates now can only target other sign powered stargates.
-
-- Fixed so that when coming from a lava portal stargate to a non-lava portal stargate
-  fire damage is canceled still. No more nasty fire after a teleport.
-
-- Added the logic back in to stop people from randomly teleporting when next to the lever
-  of an active gate. The side effect is, when block.getType() fails, gates don't work.
-  Its one or the other.
-
-- Fixed /wxcomplete permission deny issue with stargates on public networks.
-
-- Added ICONOMY_OWNER_EXEMPT option to Settings.txt with a default value of true. When
-  true this option disables the charging of gate owners for using their own gates.
-
-## 0.821 (3/30/11 @ 17:42 PST)
-
-- Update version of iConomy we build against and test for.
-
-- Fix NPE in old non-shape based gates.
-
-- Added custom StargateTeleportEvent for MinecartMania as we nuke the minecarts before
-  teleporting them.
-
-- Refactored package to com.wormhole_xtreme.wormhole in anticipation of adding more
-  stargate related projects.
-
-## 0.820 (3/29/11 @ 17:31 PST)
-
-- Initial support for CraftBukkit Build 600.
-
-- Got rid of the stupid double error that people got by not reading the readme. Now when
-  we parse settings.txt, if the value is integer for the iconomy settings, we change it
-  to a double by simply dropping a .0 at the end of it. Problem solved.
-
-- Lots of optimizations to the distance finding method we were using. Also fixes to the
-  gate shape parsing code. (Thanks lirelent)
-
-- Overhaul of the way we handle permissions internally. More unified approach to the
-  actual permissions checks.
-
-- Gate block protection should now be compatible with plugins like mcMMO. "Should" being
-  the operating word.
-
-- Levers now properly move when used and toggle on and off when stargate
-  and iris are activated.
-  
-- All Permissions deny events now log at Level.FINE. Got permissions problems with WXT?
-  Now see what is happening.
-  
-- Optimized fire protection. Now we use timer events that go off 2 seconds after gates 
-  close. This way we don't have to listen for fire type events 24/7. :)
-  
-- Fixed teleportation dropping people into very unsafe locations. Now we scan for safe
-  place to drop people, if we can't find one we drop the player in front of the DHD. 
-  This will also FIX wormholes by setting the stored teleport location to the new clean
-  and safe location. 
-  
-- We now support using the help plugin along with WXT. 
-
-- We now have settings.txt options to hard disable support of iConomy, Permissions, and
-  the help plugin. No longer do we log a warning when unable to find the plugin we depend
-  on. We log at INFO. :P
-  
-- Buttons are no longer really used. If a button exists on a stargate, it will be replaced
-  with a shiny new lever on the first use. 
-
-- Lava stargates are *really* safe to use now. For trees even.
-
-- A whole host of debugging information has been added at Level.FINE. If you can trigger
-  a bug reliably, set yourself to fine and provide the server.log details surrounding the
-  bug. Not recomended for production servers as well... its exceissive.
-  
-- the '/wormhole regenerate' command is partially added. Will regenerate missing activation
-  and iris levers.
-  
-- Minecarts work across chunks and worlds now! If you run into a location where it doesn't work,
-  use the wormhole in both directions to correct the wormhole, then try again. :)
-
-## 0.812 (3/23/11 @ 15:17 PST)
-
-- /wxgo now works properly when traversing world bounderies. First we quickly pop into
-  the default spawn location for the target world, then from there we go to our final
-  destination. It is a hack, but it is a working hack. :)
-  
-- methodized the code to find closest stargates, and find distance from closest stargate
-  blocks as well as the math to find distance.
-  
-- Updated block ignition events to only use proximity style checks. Block ignition event
-  cancellation radius increased to active stargate woosh depth or 4 blocks, which ever is 
-  further.
-  
-- Updated '/wxcompass' to use new FindClosestStargate method.
-
-- Updated onEntityDamage to use only proximity style checks. On active gates a bubble of 
-  no fire damage of either woosh_depth or 4 blocks, which ever is larger, is created. On
-  closed gates a bubble of 2 blocks is created to stop fire ticks occuring right as a 
-  gate closes. Stopped caring about potential drowning in stargate. If user decides they
-  want to stand in the wrong side of a gate till they drown, that is their choice. 
-  
-- Re-added missing CONSTRUCT_NAME_TAKEN error string in ConfigManager. This stops an NPE
-  in 'wxcomplete'.
-  
-- Added support for tkelly's Help plugin. Will generate proper config based on permissions
-  type (simple or complex) or lack of permissions plugin altogether. 
-
-- Refactored the heck out of iConomy and Permissions support. Own classes in a new package
-  to go along with the Help support. Methodized a bunch of useful functions. Less
-  duplicated code.
-  
-- Added some log output for 'wxforce'. Should help combat abuse.
-
-- Ops are now always able to use 'wxremove'.
-
-- The '/wormhole simple' command now refreshes Help entries to the proper permissions after
-  being set.
-
-## 0.811 (3/21/11 @ 20:27 PST)
-
-- Came up with a proximity based check for stargates in the lava & fire event
-  cancellation code. Now only 1 block radius around active lava portals
-  gets its lava & fire events cancelled. STATIONARY_LAVA is safe for players
-  to use in portals now. For reals.
-  
-- Version 4.5 of iConomy is now supported and verified as working.
-
-- Now we actually check for Iris on gate use while in minecart...
-
-- Back to the good ol kick the player out of the cart and stuff them through
-  the stargate method. Doing a bit of a hackish teleport when going between 
-  worlds as well. We tp to spawn, then instantly to destination. This is only
-  when starting the tp while in minecart. If minecart is empty and passing
-  into a stargate that will traverse worlds, we kick the minecart back. Otherwise
-  it will dissapear into the void. 
-  
-- Now we cancel block ignite events on a proximity basis, same way we cancel 
-  fire and lava events on player. No more trees bursting into flames near a stargate.
- 
-
-## 0.810 (3/20/11 @ 00:18 PST)
-
-- Broke '/wxcompass' out into its own class. Removed '/wormhole compass'.
-
-- Broke '/wxcomplete' out into its own class. Removed '/wormhole complete'.
-
-- Broke '/wxidc' out into its own class.
-
-- Broke '/wxremove' out into its own class. Removed '/wormhole remove'. 
-  Fixed so it toggles iris to off state before removing gates with iris 
-  active.
-  
-- Broke '/wxlist' out into its own class. Added no permissions error message.
-  Removed from '/wormhole' command.
-
-- Added command '/wxgo' and broke it out into its own class. Added no permissions 
-  error message. Removed from '/wormhole' command.
-
-- Broke '/dial' out into its own class.
-
-- Broke '/wxbuild' out into its own class. 
-
-- Broke '/wormhole' out into its own class.
-
-- Added another message for active gates. Now it will say either remote activated, or 
-  activated by someone else already. 
-
-- Added SIMPLE_PERMISSIONS config option. The default value of 'false' makes permissions
-  node settings use complex mode. While the setting of true sets the plugin to check for 
-  extremely simplified permissions. Permission node details can be found in the README.
-  
-- Refactored the WXForce class to Force. Hopefully this shuts MSSE up. ^^;
-
-- Moved a bunch of the initial loading out of onEnable and into onLoad. 
-  Now we use onEnable only for events that should only happen at plugin Enable.
-  
-- Updated '/wormhole' command to have more descriptive errors and built in help. 
-  Updated help information for this command as well. Command now has unified messaging
-  string headers. Added new 'simple' option to enabling simple permissions while the game
-  is live. Requires the user to have proper permissions node for configuration in target
-  mode. Removed a bunch of duplicated permissions checks. Only one check is needed at 
-  beginning of command call now. 
-  
-- Revamped readme to reflect important recent plugin package changes.
-
-- Fire damage, combustion damage, and drown events now canceled in stargate. Now LAVA is 
-  really a valid portal material. 
-  
-- Creeper explosions are now canceled when they would cause damage to stargates. This will
-  stop signs and buttons from being destroyed during that mad dash to/from a stargate. ^^
-  
-
-## 0.801 (3/15/11 @ 22:33 PST)
-
-- Update to the way data is pushed to signs in gate destruction and creation.
-  Causes signs to update visually more reliably.
-  
-- Removed NPE during removal of sign gate if current sign gate's target doesn't
-  have a gate target. 
-  
-- Initial addition of '/wxforce <gate|drop>' command, used to globally close all 
-  gates and/or drop all irises temporarily (until they are dialed again). 
-  Uses the 'wormhole.config' or 'wormhole.remove.all' permission nodes.
-  
-- Fixed '/wxremove' so that the permissions check doesn't fall through to the built
-  in permissions check. :|
-  
-- Fixed permissions surrounding gate networks and WORMHOLE_USE_IS_TELEPORT
-
-## 0.800 (3/9/11 @ 23:33 PST)
-
-- Added pretty format messages! [dh/gyoza]
-
-- Revamped the wormhole list and how it displays items. 
-
-- Wormhole use cost of 0.0 no longer tells users that they were charged 0.0 when 
-  using a gate. Also no longer bothers doing the iConomy calls with a 0.0 value.
-  
-- /wxbuild (/wormhole build) no longer blindly calls for permissions. This removes
-  an NPE.
-  
-- /wxcompass (/wormhole compass) now has a permissions node. 'wormhole.use.compass'.
-  Ops also can use the compass by default.
-
-- New config value "WORMHOLE_USE_IS_TELEPORT"
-    * Default is false (which doesn't change anything) (wormhole.use means a user
-      can activate a gate, but others can still teleport form an active gate)
-    * If set to true then users without wormhole.use will be unable to activate
-      a gate OR TELEPORT from a gate.
-
-- Fixed the gate active but no teleport bug (for real). 
-
-- Fixed Iris to auto-open when dialing out. 
-    * Dial gates iris will stay closed until actually connected.
-
-- /wxcomplete properly checks for 'wormhole.network.build.NETNAME' permissions, 
-  if permissions are enabled. 
-
-- /dial now checks for 'wormhole.network.use.NETNAME' permissions if permissions 
-    are enabled. The network 'Public' is always assumed to be just that. Public.
-  
-- /dial now properly kills timers associated with start gate when failing a dial.
-  Instead of just the lights going out, and everything waiting for timers to finish.
-
-- /wormhole go now has the permissions node 'wormhole.go'
-
-- Check for WORMHOLE_USE_IS_TELEPORT in conjunction with 'wormhole.network.use.*'
-  permissions node to disallow users who don't meet permissions requirements.
-
-- Check for 'wormhole.network.use.*' permissions node on stargate activation 
-  button/lever toggle.
-  
-- LAPIS_BLOCK is now an allowed Iris material.
-
-- Properly tag gate sign dial signs with network gate was on at removal/break time.
-
-- New command "/wxidc <gatename> <optional_set_idc>". The set can be "-clear" which 
-  will clear the IDC. This command is available to OPs, wormhole.config, the console, 
-  and the owner of the gate.
-
-## 0.755 (3/4/11 @ 16:51 PST)
-
-- Added /wxbuild, /wxlist, and /wxremove commands as short form of their /wormhole 
-  counterparts.
-  
-- Added /wxcompass and /wxcomplete.
-
-- /wormhole complete and /wxcomplete optional arguments require key=value
-  * To add IDC you do idc=<value>
-  * To add a network you would do net=<value>
-  * Example: /wxcomplete MyGate idc=Haha net=Awesome
-
-- Fixed bug in database code which was pushing data to wrong fields.
-
-- Minor rework in PlayerListener code pretaining to players entering stargates.
-
-- No longer scream about iConomy 4.2 or 4.3 being unsupported.
-
-- No longer scream about Permissions 2.5.x being unsupported.
-
-- Reduced potential thread safety issue when accessing Iconomy.
-
-- Lots of logging added at Level.FINE and Level.FINEST for stargate operations. 
-  Most useful for debugging.
-  
-- Closed a potential file descriptor leak in configuration code.
-
-## 0.754 (3/3/11 @ 00:54 PST)
-
-- Iris activation levers are now destroyed when a stargate is removed. Also if
-  anything is in the iris activation lever block location when creating an 
-  ICD protected gate it will be destroyed properly before lever is placed.
-  
-- We now properly destroy all name signs before replacing them with new name sign.
-  Was not checking before causing a NPE. 
-
-- Fixed '/wormhole build <gateshape>' to use the proper argument for <gateshape>
-  This of course means that users with 'wormhole.build' permissions can use 
-  '/wormhole build <gateshape>' after building a DHD, and press the button to 
-  instantly generate a StarGate in the shape specified.
-  
-- Levers got the same treatment as signs now. No more wacky floating levers on
-  idc enabled gates. Lever creation code broken out into own method. Stargate
-  regeneration command is going to use this.
-
-## 0.753 (3/2/11 @ 19:27 PST)
-
-- Fixed Gate Sign placement. Now no longer at right angles to the gatesign block.
-
-- Updated serverListener onPluginEnabled checks for iConomy and Permissions to
-  only go off if the plugin is not already bound to. No more multiple
-  notifications about attaching to Permissions. Also fixed a minor casting issue
-  in the Permissions plugins attach section of onPluginEnabled. No more casting 
-  error.
-  
-- Error messages for onEnable checks for iConomy and Permissions should be a bit 
-  useful now as we may have been loaded before Permissions.
-
-## 0.752 (2/28/11 @ 20:57 PST)
-
-- Initial iConomy 4.1 Support 
-
-- Initial Permissions 2.5 Support (should just be drop in)
-
-- Fixed Stargate destruction detection. Removed blockDamageEvent detection and
-  added blockBreakEvent detection in its place.
-
-- Removed dead/unused code.
-
-## 0.751 (2/25/11 @ 07:53 PST)
-
-- Initial support for iconomy 3.0
-
-## 0.750 (2/22/11 @ 22:19 PST)
-
-- Major refactoring and package name changes.
-
-- Initial support for minecraft 1.3.
-
- 
-## 0.741 (2/21/11 @ 21:48 PST)
-
-- Stopped using playerListener for commands. Use the new onCommand structure. 
-  This puts us as fully onCommand compliant for when they decide to put nags 
-  about how horrible the coders are who are using the examples previously given 
-  to them by bukkit. ^^
-  
-- Bumped up our BLOCK_PHYSICS and BLOCK_FLOW priorities to Highest. When other 
-  plugins cancel these for us really bad things happen. (NPE)
-  Bumped our PLAYER_MOVE up to High. Once again, other plugins canceling these 
-  events causes us to break in most interesting ways. (NPE)
-  
-- Stopped listening on PLAYER_QUIT. We never did anything with it anyways. 
-  No need to hold the resources.
-  
-- getLogLevel() added to ConfigManager for getting Log Level from the config. 
-  getLevel() added to Settings for pulling the Level data from the ConfigKeys.
-
-## 0.740 (2/21/11 @ 05:45 PST)
-
-- Initial revamp of config system. Now with 100% less chances of a dereference 
-  based NPE. EVERYTHING is checked for a null. Hard coded defaults. Will update
-  this to use the defaults used to generate default conf file next config push.
-  
-- Minor logic changes in block listener code.
-
-- Fixed sign not being breakable? Again?
-
-- Broke DeleteBlocks() out into DeleteGateBlocks(), DeletePortalBlocks(), 
-  DeleteNameBlock(), and DeleteTeleportSignBlock(). Allows use of these 
-  functions in other commands individually.
-  
-- Added DeleteNameSign() for deleting the name sign. This gets called when using
-  "/wormhole remove" and when destroying the gate by hand. No more magic free 
-  signs when destroying stargates. Still no cure for free signs when destroying
-  just the Name sign.
-  
-- DeleteTeleportSign() and ResetTeleportSign() added. Delete nukes the sign 
-  altogether. Reset sets the name on it back to the old name of the Stargate and
-  wipes all other lines of text. No more gates accidentally named -gatename-.
-
-## 0.736 (2/20/11 @ 03:20 MST)
-- Added configurable WOOSH_DEPTH for custom gate shapes.
-- Updated to work properly with latest bukkit onEntityDamage changes.
-- Stargates should no longer linger in half living states after a server shutdown while stargates are active.
-  On onDisable we close all gates properly. onEnable we check and close gates again, just in case.
-- Woosh Depth changes require user to remove one stargate and re-add it to set the woosh_depth properly. Any attempt to start up a stargate
-  before doing this will cause a NPE. Also recommended users update their .shape files with 'WOOSH_DEPTH=3', or something similar, before doing this 
-  (or conversely, remove their GateShapes folder).
-- Fixed stray permission 'wormhole.use' which was causing problems. Permission was broken into two permissions few releases back. 
-  'wormhole.use.dialer' and 'wormhole.use.sign' or 'wormhole.use.*' Also made it so players without 'wormhole.use.sign' can not change
-  wormhole sign destinations.
-
-## 0.735 (2/19/11 @ 03:40 PST)
-- Modified Standard.shape to have 7 chevrons that light up.
-- Modified shape parsing code to support an [O:E:L:S] block in the gate design.
-- Rewrote logger setup. Now there is a config option for LOG_LEVEL. Uses Java logging.Level log levels.
-  Only directly effects the server log file. Allows for some extra debugging of gate shapes. Defaults to INFO. 
-  Directly effects the minimum level of logging in Bukkit, which at current is set to 'null'. Should have no effect on
-  anything else. This is only able to be set at startup time.
-- Updated gate destruction mechanics so if the gate is in a lit state but not portaling when it is destroyed, it flips back to
-  an off visual state and disables all times associated with the gate. The act of turning off the lighting means that if the block
-  that was destroyed was a lit block, it will be replaced with the initial material.
-- DHD no longer lights up thus allowing the DHD to be properly destroyed allowing for one way gates.
-- General code cleanups.
-- Updated gate splash effect to use whatever PORTAL_MATERIAL is set to. Beware with STATIONARY_LAVA. It is LAVA. It hurts. BAD. Like REALLY BAD.
-  BURNS BURNS BURNS. You have been WARNED. 
-- Consider this build a Beta? 
-
-## 0.730 (2/16/11 @ 20:40 MST)
-- Added custom gate shapes!
-      After starting server there should be a new directory and file plugins/WormholeXTreme/GateShapes/Standard.shape
-      You can look in that file to see how to make custom gates.
-- Flipping the Iris switch on a gate that is locked but not active will no longer create a false event horizon.
-- The DHD on outbound dialing non-signed gates activates and deactivates properly with lightstone block effect and proper messages again.
-  No more instant re-activating, must DHD must be deactivated first (or time out) before reactivation. 
-- Small code cleanups and dead code removal (or commenting)
-- Added '/wormhole irismaterial' command and associated it with the 'wormhole.config' permission.
-  Valid materials are: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK. This is a global command. 
-- Fixed gate light deactivation in conjunction with the inactive timer and the /dial command.
-- Added 'wormhole.list' permissions node. 
-- New gate design Minimal
-- Added initial gate shape debugging output. 
-- Added optional extra paramater to remove - /wormhole remove <name> all (the all is optional)
-        If 'all' is specified at the end, the remove will also remove all blocks associated with the gate (other than the DHD)
-
-## 0.727 (2/16/11 @ 13:39 PST)
-- Made gate connection logic a bit more reliable with regards to scheduling system.
-  Gates Now will never open in a half working state. If one doesn't open, neither will stay open.
-  If scheduling for timed gate closings fails, try again, if that fails cry in the log and don't open 
-  infinite time wormhole.
-- Fixed iris causing inability to use a gate due to lack of wormhole event horizon (water) which is 
-  destroyed by the iris closing/open
-- Unstable wormholes event horizons are contained by Titanium/Trinium iris. (No splash/woosh through iris)
-- Iris material now user configurable via Settings.txt. Defaults to STONE.
-- Iris now unable to be broken, even if player is able to destroy wormhole. Use the lever to remove the iris.
-  This stops accidental stargate breaking.
-- Stargate will now deactivate and drain if it is active when any of its blocks are destroyed. This should stop the flooding issue.
-In Progress/Partially working:
-- Debug logs have been added for the gate scheduling system and will be added for most major break points. 
-  Logs will take configuration setting allowing user to set the level of logging from the config file.
-  Currently prettyLog only understands info, warning, and critical. Any call to it for anything else 
-  like using 0 or 4 or 400 will result in an info log.
-- Changed permissions for wormhole use and removal:
-    Note : this means that you *MUST* change permissions or it won't work!
-    wormhole.use.sign - lets a user use sign gates.
-    wormhole.use.dialer - lets a user use /dial gates
-    wormhole.remove.own - lets a user remove a gate that they own.
-    wormhole.remove.all - lets a user remove any gate
-- Woosh has been added back into the plugin
-    There is a new configuration value that lets you disable this if desired.    
-
-## 0.726 (2/15/11 @ 05:40 PST)
-- Log output has been totally revamped. Now it should be easier to tell what we are doing in the logs.
-- Fixed the ability to use the craftbukkit /reload command without giving an NPE.
-- Removed a few potential file descriptor, memory, and database performance leaks.
-
-## 0.725 (2/13/11 @ 21:15 MST)
-- Iris and IDC is now completed for non-sign gates!
-- When completing the gate you use /wormhole complete <name> <idc> to set the iris deactivation code.
-- A lever will appear below the activation button.
-- Pressing the lever will toggle the Iris on and off.
-- When the Iris is active people will be unable to come through the gate!
-- When dialing a remote gate you can optionally type "/dial <name> <idc>" if the IDC is correct you will deactivate the remote iris.
-- Gates will not light up when active.
-- Using double quotes in commands now works!
-	Examples:
-	/wormhole complete "A Fun Gate"
-	/dial "A Fun Gate"
-	/wormhole remove "A Fun Gate"
-
-## 0.71 (2/12/11 @ 22:42 MST)
-- Fixed an error message to be more specific (when trying to dial from an activated gate).
-- Fixed problems with TickNextTick exception (needed to use sync instead of async).
-- This may cause more issues though until the underlying issue is fixed in bukkit.
-- This should be *more* stable than what was done before, but isn't guaranteed to be 100% perfect.
-  Edit: Looks like the fix has been pulled into the repo - just need the next build and we should be good!
-- Hitting the activate button again after you have previously hit it, but before you dial something will now 'deactivate' the gate.
-- Due to these big issues the handling of double quotes in names has been pushed off for another day or two, sorry for everyone with that issue!
-
-## 0.70 (2/12/11 @ 04:10 MST)
-- Fixed multi-worlds!!!! GO AND EXPLORE THE MULTIVERSE!
-- TIMEOUT_SHUTDOWN now works properly. Feel free to set this to something other than 0!!
-- Gates now have owners
-- First thing I am doing with owners is allowing owners to charge a percent of the iConomy cost
-- After running this new version once you will see a new configuration value available.
-- Settings are no longer overwritten on version upgrade 
-- Logging is now done properly thanks to Alron @ github.
-- There are some other small fixes I just don't remember them all right now.
-
-## 0.67 (2/7/11 @ 18:57 MST)
-- Version 0.66 is dumb, so I had to fix it up.
-- Fixed the saving bug.
-- Fixed the "gate timed out" message from repeating. FINALLY!!!
-- You really want to get this version. It is much better than 65 and 66
-
-## 0.66 (2/7/11 @ 15:31 MST)
-- It just isn't a release without a bug....
-- This release fixes a small bug from the last release where wormholes fail to save properly after shutting down the server.
-- You DO NOT WANT TO UPGRADE TO THIS!!!!
-
-## 0.65 (2/7/11 @ 12:10 MST)
-- Wormhole now supports multiple worlds! (and works for the newest bukkit builds). Requires craftbukkit version 271+
-- Wormhole sign targets are now stored across restarts
-  This means that if you target a gate at a gate via the sign, then destroy the sign, the gate will always target the last targetted gate (Across restarts!)
-- Wormholes that are active on server restart will remain active when restarted.
-- IDC(Iris Deactivation Code)s now work! (only for non-sign gates)
-  When creating a gate you can type /wormhole create <name> <idc>
-  To dial a gate with an IDC you type /dial <name> <idc>
-  Currently if there is an IDC set it will always be active (later you will be able to disable).
-- Network can now be specified for a sign gate!
-  When creating a signed gate the first line is the gate name, the second is the network name.
-  If nothing is put in second line gates will default to the "Public" network.
-  The sign will only cycle through gates with the same network !
-
-## 0.62 (2/5/11 @ 10:37 MST)
-- Fixed being unable to dial after newly creating a non-sign gate.
-
-## 0.61 (2/4/11 @ 15:41 MST)
-- Stupid copy/paste on an error loading iConomy fixed.
-
-## 0.60 (2/4/11 @ 15:02 MST)
-- Added configuration file
-  Restart the server once and the file will be created, including your old settings.
-  Changes to configuration require restart to go into effect (of course)
-  Any changes made while the server is running will be written to the file on shutdown.
-- Improved performance over previous fix for CraftBukkit.
-- Fixed a few small issues
-- Sign dialer should now be set and no longer have "No Other Gates" after a restart.
-- Chunks should now be saved when server is shutdown 
-- Download for jar file is now available at GitHub as per requested by several users.
-  This is the jar file only!
-- iConomy support!!!!
-  Configuration file will have the values for this:
-  Use cost: how much it costs to use a wormhole (cost to actually teleport, activating the gate is free. This should stop people from running into a gate someone else opened.)
-  Build cost: How much it costs to build a wormhole.
-  Ops Exempt: if set to true Ops will not be charged to use/build gates.
-  I can add/change configurations as needed, but hopefully this is a good start.
-
-## 0.59 (2/2/11 @ 00:07 MST)
-- Quick patch to fix the issues with the newest version of CraftBukkit (231)
-
-## 0.55 (2/1/11 @ 13:10 MST)
-- Fixed some debug messages that shouldn't have been left in.
-- Added /wormhole compass (Make compass point to nearest wormhole)
-  Typing again will recalculate nearest wormhole.
-In Progess:
-- iConomy will be the next release, I just needed to remove those debug messages.
-
-## 0.51 (1/31/11 @ 11:22 MST)
-- Fixed the spamming of timeout message.
-- Added config "/wormhole activate_timeout" to change the default timeout after activating a wormhole before it dials.
-- Changed config name of timeout "/wormhole timeout" to "/wormhole shutdown_timeout"
-  So now there is the activation timeout (activate_timeout) and the timeout after dialing when the gate needs to shutdown (/wormhole shutdown_timeout).
-  Default value for shutdown_timeout is now 0 to reduce the instances of people falling through the earth.
-- Added an OP only command (to go along with listing, you probably want to be able to see where the gate actually is)
-  /wormhole go <NAME>
-  This will instantly teleport you to the gate so know where it is.
-  This was actually in 0.39 but I have been including the source in the JAR now and you can see my source at GitHub
-  Feel free to comment and suggest changes in code if you want to.
-  Feel free to also make changes on your own and send them to me via GitHub - I will integrate the changes if I like them!
-
-## 0.50 (1/30/11)
-- Minecarts now can go through wormholes.
-  If a player is in the cart they will go through the gate but will not be in the cart when they arrive at the other side
-  I would not recommend riding carts through the gate yet until I can figure out how to keep the player in the cart on the other side. Sometimes riding a cart through the gate results in weird behavior.
-- Activated but not dialed gates now timeout after 60 seconds
-- Fixed a bug with portal material of WATER (it can only be STATIONARY_WATER)
-  It will automatically update any WATER to STATIONARY_WATER.
-  I only added the STATIONARY_LAVA as a material on a whim - but when I found out people actually wanted to use it I tried to stop the damage but was unable.
-  For now STATIONARY_LAVA is probably not your best option if you want to actually use the wormholes.
-- Added command /wormhole list for Ops only. Lists all stargates on your server.
-- Fixed a bug with portals being created out of thin air when you hit a button.
-- Portals are now required to have AIR blocks for all blocks inside the gate when constructing.
-- Possibly fixed issues with linux and DB
-  changed the sql connection string to ./plugins/WormholeXTremeDB from plugins/WormholeXTremeDB
-- I can't seem to find any issues with the newest craftbukkit (187)
-Open issues:
-- DHDs can't be repaired after removing a button/dialing sign on a sign-dialing gate (workaround is to /wormhole remove and then add the button/sign, and then it will function correctly.)
-
-## 0.39 (1/27/11)
-Added support for the Permissions plugin.
-Without the plugin it defaults to the previous permission settings.
-Changing the built in permissions will not change the Permissions plugin at all.
-Permission nodes are as follows:
-wormhole.use - Able to use wormholes
-wormhole.build - Able to build new wormholes
-wormhole.remove - Able to remove wormholes
-wormhole.config - Able to configure settings like material and timeout. (By default Ops will be able to do this as well)
-Fixed the weird names on the signs issue.
-Part of fixing the falling through the world is pre-loading chunks
-You will need bukkit v157 or newer!
-Fixed a bug stopping the PORTAL material from working (Thanks Dinnerbone)
-/wormhole timeout 0 should help STOP falling through the world.
-I have tried to fix the point where you teleport when making a new gate. Hopefully this fixes it it.
-Existing gates SHOULD start to work again unless you are really unlucky. If a gate just refuses to put you in the right place, a /wormhole remove <name> and then just add it again and it should be fine!
-
-## 0.32 (1/26/11)
-Again fixing small issue stopping gates from being built.
-
-## 0.31 (1/26/11)
-Forgot to change one last reference to /stargate (as all commands are now /wormhole)
-
-## 0.3 (1/26/11)
-Name change to "WORMHOLE EXTREME"!!!
-To successfully use this rename and already had "Stargates" you will need to
-Rename the "StargatesDB" and all files inside it to "WormholeXTremeDB"
-Delete the old Stargates.jar
-Fixed sign scrolling again.
-Breaking the DHD will not remove the gate - it just makes it unable to dial out
-Replacing the DHD will re-enable dialing.
-Permissions are now fully working and stored
-Use /wormhole perms for more detail
-Configuration options are now available
-/wormhole timeout (3-60) : # seconds to timeout wormhole
-/wormhole material <MATERIAL> : Gets or sets your portal material (air, water, lava, etc)
-Possible performance improvement using ConcurrentHashMap instead of locking and using HashMap.
-Iris is still in progress 
-
-## Notes
-
-- This changelog is concise; include more details per commit when preparing releases.
-
+## 0.x (2011, upstream)
+
+The original plugin's releases, from January to May 2011, are in
+[CHANGELOG-0.x.md](CHANGELOG-0.x.md). They are kept verbatim: they are somebody else's release notes
+and the record of where this fork came from.

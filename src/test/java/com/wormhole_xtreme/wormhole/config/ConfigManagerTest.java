@@ -35,6 +35,21 @@ class ConfigManagerTest
         assertEquals(300, ConfigManager.getMaxOpenSeconds(), "max open seconds default");
     }
 
+    /**
+     * A mirror's room is drawn to the server's usual view distance unless told otherwise.
+     *
+     * <p>"Should we increase the distance?" Ten chunks: past it the client shows nothing, so
+     * nothing of this world appears through the mirror. Both the getter's fallback and the
+     * default written to config.yml, so a fresh server and a half-written file agree.
+     */
+    @Test
+    void aMirrorsRoomIsDrawnToTenChunksByDefault()
+    {
+        assertEquals(160, ConfigManager.getMirrorViewDepth(), "the getter's fallback");
+        ConfigTestSupport.loadDefaults();
+        assertEquals(160, ConfigManager.getMirrorViewDepth(), "and the default setting");
+    }
+
     /** A configured setting is read back rather than the default. */
     @Test
     void aConfiguredSettingIsReadBackInsteadOfTheDefault()

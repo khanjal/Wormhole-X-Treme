@@ -21,6 +21,8 @@ import org.bukkit.event.EventHandler;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -260,8 +262,24 @@ class WormholeXTremeBlockListener implements Listener
     public void onBlockBreak(final BlockBreakEvent event)
     {
         final Block block = event.getBlock();
-        final Stargate stargate = StargateManager.getGateFromBlock(block);
         final Player player = event.getPlayer();
+        // What they broke is drawn over by a mirror's view: the real block behind is not theirs to touch.
+        if (MirrorWindows.drew(player, block))
+        {
+            event.setCancelled(true);
+            MirrorWindows.resend(player, block, null);
+            return;
+        }
+        // Punching a mirror is how you go through it, so one never breaks; mirror remove takes it down.
+        if (MirrorPlacement.isProtected(block))
+        {
+            event.setCancelled(true);
+            // Above the hotbar: a player holding the button down would otherwise fill their chat.
+            com.wormhole_xtreme.wormhole.utils.ActionBar.send(player,
+                "§3:: That is part of a mirror. /wormhole mirror remove takes one down.");
+            return;
+        }
+        final Stargate stargate = StargateManager.getGateFromBlock(block);
         if ((stargate != null) && handleBlockBreak(player, stargate, block))
         {
             event.setCancelled(true);
@@ -339,8 +357,15 @@ class WormholeXTremeBlockListener implements Listener
     public void onBlockPlace(final BlockPlaceEvent event)
     {
         final Block block = event.getBlockPlaced();
-        final Stargate stargate = StargateManager.getGateFromBlock(block);
         final Player player = event.getPlayer();
+        // Into a spot drawn over by a mirror's view: it would be built unseen behind the view.
+        if (MirrorWindows.drew(player, block))
+        {
+            event.setCancelled(true);
+            MirrorWindows.resend(player, block, null);
+            return;
+        }
+        final Stargate stargate = StargateManager.getGateFromBlock(block);
         if ((stargate != null) && isPortalInterior(stargate, block) && !mayBuildInOpening(player, stargate))
         {
             event.setCancelled(true);
@@ -376,6 +401,12 @@ class WormholeXTremeBlockListener implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onBlockDamage(final BlockDamageEvent event)
     {
+        // Not even started: a punch on a mirror is a trip, and an instant break would lose the banner.
+        if (MirrorWindows.drew(event.getPlayer(), event.getBlock()) || MirrorPlacement.isProtected(event.getBlock()))
+        {
+            event.setCancelled(true);
+            return;
+        }
         final Stargate stargate = StargateManager.getGateFromBlock(event.getBlock());
         final Player player = event.getPlayer();
         // A stray block in the ring is not the gate's, so DAMAGE does not gate it -- and

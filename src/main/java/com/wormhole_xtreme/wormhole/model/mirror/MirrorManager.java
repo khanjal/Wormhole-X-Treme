@@ -61,11 +61,19 @@ public final class MirrorManager
             return;
         }
         final QuantumMirror replaced = BY_NAME.put(key(mirror.name()), mirror);
-        if ((replaced != null) && !replaced.banner().equals(mirror.banner()))
+        if (replaced != null)
         {
-            BY_BLOCK.remove(replaced.banner());
+            // Every banner it had and no longer has: a mirror two wide made one wide, or moved.
+            for (final MirrorBlock old : replaced.banners())
+            {
+                if (!mirror.banners().contains(old))
+                {
+                    BY_BLOCK.remove(old);
+                }
+            }
         }
-        BY_BLOCK.put(mirror.banner(), mirror);
+        // Each of its banners answers a click, which for a pair is either of the two.
+        mirror.banners().forEach(block -> BY_BLOCK.put(block, mirror));
     }
 
     /**
@@ -111,7 +119,7 @@ public final class MirrorManager
             // state this class will produce, but a hand-edited mirror.yml can hold one, and
             // clearing the index unconditionally then unhooks the survivor: it keeps its name
             // and its entry, shows up in "mirror list", and does nothing when clicked.
-            BY_BLOCK.remove(removed.banner(), removed);
+            removed.banners().forEach(block -> BY_BLOCK.remove(block, removed));
         }
         return removed;
     }

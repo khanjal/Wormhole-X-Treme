@@ -72,13 +72,24 @@ public final class CommandHandlerUtils
      */
     public static boolean lacksConfigPermission(final CommandSender sender)
     {
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (!hasConfigPermission(sender))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         return false;
+    }
+
+    /**
+     * The same question asked without answering the sender, for offering a verb as they type.
+     *
+     * @param sender
+     *            whoever is typing, or null where there is nobody to ask about
+     * @return true unless a player lacks {@code wormhole.config}
+     */
+    public static boolean hasConfigPermission(final CommandSender sender)
+    {
+        return !(sender instanceof Player player) || WXPermissions.checkWXPermissions(player, PermissionType.CONFIG);
     }
 
     public static void setGateCustomAll(final Stargate stargate, final boolean customEnabled)

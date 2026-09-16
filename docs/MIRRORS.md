@@ -4,43 +4,94 @@ Why quantum mirrors are built the way they are. The [mirror guide](guide/MIRRORS
 they do. Gates have [GATES.md](GATES.md), rings have [RINGS.md](RINGS.md), beaming has
 [BEAMS.md](BEAMS.md).
 
-**In short.** A mirror is a banner you click to be somewhere else — no structure, no pair, no
-address, no network, no state, which is why a corridor of mirrors is practical in a way a
-corridor of gates is not. Most of the work here is in two places: making a banner *look* like
-where it goes, using nothing but vanilla dye and patterns; and surviving Bukkit APIs that
-changed kind three times across the versions this plugin supports.
+**In short.** A mirror is a banner on a wall, and every mirror is on one network. It shows its
+own room until somebody right-clicks it; a right-click moves it on to the next mirror, and a
+punch goes there. There is no structure to build, no pair to keep in step and no address to
+dial — which is why a door in every world is practical in a way a gate in every world is not.
 
 | | Stargate | Ring | Mirror |
 |---|---|---|---|
-| What it is | A built structure | A pad in a floor | One banner |
-| Activation | Dial, button, redstone | Walk into it | Right-click it |
-| Direction | One way per dial | Both ends fire | One way, always |
-| Range | Cross-world, config permitting | Same world, always | Cross-world by default |
-| Appearance | Permanent structure | Invisible until it fires | A banner, and one you can stamp |
+| What it is | A built structure | A pad in a floor | One wall banner |
+| Activation | Dial, button, redstone | Walk into it | Right-click to choose, punch to go |
+| Direction | One way per dial | Both ends fire | Any mirror to any other |
+| Range | Cross-world, config permitting | Same world, always | Cross-world, one mirror per world by default |
+| Appearance | Permanent structure | Invisible until it fires | Its room, reflected, or the room of the mirror chosen |
 
 ## Contents
 
-- [Looking through it](#looking-through-it) · [Static and dynamic](#static-and-dynamic)
-- [Always and proximity](#always-and-proximity)
+- [The network](#the-network)
+- [The banner's look](#the-banners-look) · [A snapshot, not a subscription](#a-snapshot-not-a-subscription)
+- [The sweep](#the-sweep)
 - [Saying what it is](#saying-what-it-is)
-- [The preset files](#the-preset-files) · [The library at a glance](#the-library-at-a-glance)
-- [What ships](#what-ships)
+- [The preset files](#the-preset-files) · [The library at a glance](#the-library-at-a-glance) · [What ships](#what-ships)
 - [Version traps](#version-traps)
 - [Which banner you are looking at](#which-banner-you-are-looking-at)
-- [Arriving in the banner](#arriving-in-the-banner)
+- [Arriving, and the bounce that cost](#arriving-and-the-bounce-that-cost)
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
+- [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
 - [What was considered and not done](#what-was-considered-and-not-done)
+## The network
 
-## Looking through it
+**Nothing is pointed by hand.** Mirrors began as one-way points: `mirror link` joined two banners
+by writing each one's arrival into the other, and named the second `<other>-return`. A linked pair
+was two points that happened to face each other, so moving a banner stranded the far end, a mirror
+showing another's room showed it through the name somebody had typed, and "the mirror name plus
+-return just is weird". A mirror stores one point now — its own room — and which mirror it opens
+onto is a choice made at it, in memory.
 
-The question this feature exists to answer: can a mirror show what is on the other side?
+**Its own room** is the block in front of the banner, level with the bottom of the opening, facing
+out: where anybody coming through it lands, and where its capture is taken from. One capture serves
+both jobs. A mirror nobody has turned on shows it flipped across the wall — a step to the right
+behind the wall shows a step to the right in front of it, and blocks are flipped with
+`BlockData.mirror` rather than turned, so a staircase keeps its side — and every other mirror that
+chooses it shows the same capture turned to face the viewer, the way a window would.
 
-Not literally. A banner is a dyed base plus at most six flat patterns, in sixteen colours, and
-nothing in Bukkit can render a view onto one. A live window needs a map in an item frame or a
-display entity — a different block, a different feature, a different cost.
+**A right-click walks a fixed list:** the mirror's start, if it has one, then every other mirror by
+name, then round to the start again — never its own room, which is what it shows when nobody has
+turned it on and what walking away turns it back to. The start exists for a mirror in an archived world, whose
+first right-click should open onto the main world. A player alone at a mirror can click through the
+list as fast as they like; with somebody else at it, a choice holds three seconds before it can
+change, so nobody is swapped out from under a trip they were about to take. Only the main hand's
+half of a click counts, or one press would skip a mirror, and the view is redrawn at once rather
+than on the next sweep. When nobody is near a mirror any more it is off again, showing its own room.
 
-What a banner *can* carry is an impression, and an impression turns out to be enough. A stamped
-mirror goes and looks at its own destination and reduces what it finds to two things:
+**A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its
+opening ignore a punch and survive an explosion, and `mirror remove` is how one comes down.
+
+**A wall, a block out in every direction.** A mirror draws its room behind the wall it hangs on,
+and only the wall hides that room from anywhere but the opening. A banner on a post showed the room
+past its edges however the view was trimmed, so a mirror is a wall banner with solid wall a block
+out on every side of its opening, and `create` refuses anything else by the block to fill. Two was
+the rule while a drawn block at the edge held until half of it was past the opening; with the hold
+at 15% one block hides what a trimmed view draws, so two is advice — `create` names the block short
+of it — rather than a refusal. What a wall's width buys is tolerance for movement between redraws,
+not depth: a stale drawn block's landing on the wall shifts by about as far as the eye moved,
+whatever the block's depth, and only the inner half of a wall block with open air past it counts
+as hiding anything. So the far part of a clipped room is judged for every eye within a cell half a
+block narrower than the wall, up to four blocks, and again once the eye leaves it: half a block
+behind a one-block wall, four behind a wall five wide. See [the far edge of the room](#the-far-edge-of-the-room).
+
+**One to a world**, by default (`mirror-per-world-limit`): a mirror is the door into its world, and
+the list a right-click walks stays short while each world has one.
+
+**One banner wide, or two.** Two wall banners side by side, facing the same way, are one mirror —
+for a doorway an even number of blocks across. The pair is held by its left banner looking at the
+wall, and the second is found from the way the mirror faces, so the width is all that is saved. Its
+room is a hair inside the left banner's column, between the two, since that column is the one its
+view is measured from. A room is captured through a hole three wide: a mirror two wide sees one
+column more than a room's own opening, on whichever side its view turns that column to — a turned
+view and a reflection turn it opposite ways — so one capture serves either width, looking in either
+way.
+
+## The banner's look
+
+Up close a mirror shows a room, drawn in real blocks behind its wall, and nothing on the banner
+matters. From further than `mirror-proximity-distance`, from behind, and before a room is captured,
+the banner is what shows — so a corridor of mirrors still reads as a row of doors.
+
+A banner is a dyed base plus at most six flat patterns, in sixteen colours, and what it can carry
+is an impression. A plain white banner made a mirror gets the `mirror` look. Stamped without a
+named look, a mirror looks at its own room and reduces what it finds to two things:
 
 - **Where it is.** The biome at the arrival point picks the preset — the base colour, and the
   border and shapes that frame everything else. The Nether reads as black and rising flame; an
@@ -66,102 +117,96 @@ as "the banner doesn't look right", and quite right too. A preset says `Sheltere
 "this kind of place is enclosed anyway" and keeps its own look.
 
 That flag was added to the choice of frame and to nothing else, which fixed a third of the
-problem and left it looking fixed. Being enclosed drives four decisions — the frame, whether the
-commonest block replaces the cloth colour, whether that block also gets a square, and the
-sentence the command prints — and `mirror stamp` kept a *second copy* of the frame rule without
-the flag, so stamping by hand dressed a Nether mirror as a room while a dynamic one corrected
-itself on the next approach. One banner, two appearances, depending which code touched it last.
-All four now ask `MirrorPreset.readsAsARoom(view)`, the one place that knows the difference
-between somewhere enclosed and somewhere that is a room.
+problem and left it looking fixed. Being enclosed drives three decisions — the frame, whether
+the commonest block replaces the cloth colour, and whether that block also gets a square — and
+a fourth in the sentence the command prints. A mirror onto the Nether went on losing its red to
+whatever netherrack averaged to, and `mirror stamp` kept a *second copy* of the frame rule
+without the flag, so stamping by hand dressed a Nether mirror as a room while the sweep's own
+re-read (dynamic mode, since retired) corrected it on the next approach. One banner, two
+appearances, depending on which code touched it last.
 
-### Static and dynamic
+All four now ask `MirrorPreset.readsAsARoom(view)`, which is the one place that knows the
+difference between somewhere enclosed and somewhere that is a room. If you add a preset for a
+place that is enclosed by its nature, `Sheltered=true` is the whole of what you have to say.
 
-A **static** mirror is sampled once, when stamped, and never again. Re-reading the far side on
-every click would load a distant chunk on a click — and, the stronger reason, a banner that
-changed on its own would be worse to build with. A look an operator chose should stay chosen.
-Rebuild the far side and it still shows the old place until somebody stamps it again: the same
-bargain `mirror link` already makes, a snapshot rather than a subscription.
+### A snapshot, not a subscription
 
-A **dynamic** mirror re-reads, but only when somebody walks up to it and only after
-`mirror-dynamic-resample-seconds` since the last read. That is what makes it affordable: a
-mirror nobody visits is never sampled, and a player pacing in front of one gets the same answer
-until the interval is up. One that has never been stamped takes its first look on the first
-approach, or `mode dynamic` would describe something only `stamp` could start.
+A mirror is sampled once, when it is stamped, and never again. Two reasons, and the second is
+the stronger one:
 
-**This is independent of `display`, and genuinely so** — for a while it was not, which is worth
-recording because the mistake is easy to make again. The sweep visited only proximity mirrors
-and gave up entirely on a server without per-player block updates, so `always` plus `dynamic`
-never re-read anything and `dynamic` did nothing at all on 1.20. The two are separate because
-their costs are separate: hiding needs a packet per player and therefore a server that can send
-one, while re-reading writes to the banner everybody already sees.
+- Re-reading the far side on every click would mean loading a distant chunk on a click.
+- A banner that changed on its own would be worse to build with. A look an operator chose
+  should stay chosen.
 
-The re-read look is kept in memory and written to the banner but not saved to `mirror.yml` on
-every approach — a busy corridor would be a stream of file writes, and a dynamic mirror re-reads
-on the next approach anyway. The worst a restart costs is one sample.
+Rebuild the room and the banner still shows the old one until somebody stamps it again, and the
+room people see through the opening is the capture as it was taken until somebody runs
+`mirror set capture`. The same bargain twice, and each is its own command on purpose: `stamp`
+used to retake the capture as a side effect, so a command about the banner changed the view.
 
-## Always and proximity
+There was a **dynamic** mode for a while, which re-read the far side when somebody walked up,
+throttled by `mirror-dynamic-resample-seconds`, and wrote what it saw to the banner. It went
+with the network: "we shouldn't update the banner automatically. It should be an understood
+command." A `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next
+save; the setting is gone from `config.yml`.
 
-A corridor of lit banners is a corridor of lit banners. `mirror display <name> proximity` makes
-one go dark until somebody comes within `mirror-proximity-radius` blocks.
+## The sweep
 
-The design follows from a single fact: **banner patterns are vanilla data.** Disable this
-plugin and a stamped banner is still a stamped banner. So the world's block keeps the look
-always, whatever `display` says, and what a proximity mirror does is send the *blank* to players
-who are too far away, taking that illusion back when they come close.
+One task on a timer offers every mirror to the windows, so the order of its checks is the design.
+Before anything touches a block it has ruled out mirrors going nowhere, worlds that are not
+loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
+load one.
 
-The other way round would have been easier — keep the world's block blank, send the look to
-whoever is near, and any chunk resend self-heals to what a distant player should see anyway. It
-was rejected because it makes this plugin the only thing standing between an operator and a
-corridor of plain white cloth. Two consequences fall out, and the sweep carries both: being far
-away is not a state that arranges itself, so everyone is sent the blank once and only crossings
-after that; and the illusion is handed back on disable, or whoever was standing far off keeps a
-blanked banner until something resends that chunk, which looks exactly like the plugin having
-eaten their banners.
-
-**`Player.sendBlockUpdate` does not exist on plain 1.20** — present from 1.20.1 on, checked
-against the jars for all seven versions the matrix builds. There, a proximity mirror simply
-stays visible: a cosmetic loss on the oldest supported server rather than a mirror that never
-shows anything, and the setting starts working when the server is upgraded. It is reached
-reflectively, because calling it directly would compile against the 1.20.4 target and throw
-`NoSuchMethodError` at the moment a player walks down a corridor.
-
-The sweep runs on a timer for the life of the server, so the order of its checks is the design:
-before anything touches a block it has ruled out mirrors it has no reason to visit, worlds that
-are not loaded, and chunks that are not loaded — the chunk check coming before `getBlockAt`,
-which would load one. There are two reasons to visit a mirror and both are narrow, so a server
-whose mirrors are all ordinary does no work beyond walking the list. That was briefly untrue:
-when a mirror first learned to name itself it did so on approach, which meant a distance check
-per player per mirror. Moving the announcement to the player's own line of sight took the cost
-away with it.
+Until 1.6.0 a mirror also had a `display` setting: `proximity` sent a blank banner to players too
+far away and gave the stamped one back on approach. Every mirror is a view now, and hiding only
+reached a mirror that was not being drawn, so the setting did nothing anybody could see. A
+`Display` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
 
 ## Saying what it is
 
-A stamped banner looks like scenery, and a corridor of them looks like decoration. Nothing said
-one was a door until somebody happened to right-click it — a thing players do to signs and not
-to wall hangings. So a mirror that goes somewhere names itself to whoever is looking at it, from
-about six blocks:
+A stamped banner looks like scenery, and a corridor of them looks like decoration. Nothing about
+one said it was a door until somebody happened to right-click it, which is a thing players do to
+signs and not to wall hangings.
+
+So a mirror names itself to whoever is looking at it, from about six blocks, and says what a click
+will do:
 
 ```
-:: museum -- click to travel to nether.
+:: museum -- right-click to choose a mirror.
+:: museum -- punch to travel to hub, right-click for another.
 ```
 
 **Above the hotbar, not in chat**, using the same call the rings use: it replaces itself and
 then goes, where chat would leave a line behind for every banner walked past.
 
-**Looking at, not standing near.** This began the other way, sent once on crossing into the
-radius, which is how rings announce themselves — right for a ring, because walking in starts
-something. A mirror is looked at, considered, then clicked, and an action bar line fades after
-about three seconds, so the message had come and gone by the moment it was wanted. Re-sending to
-everyone in range is worse than it sounds: a corridor puts a player within eight blocks of
-several mirrors, which would take turns in the one action bar slot, flickering once a sweep.
-Looking at one picks exactly one, because a player has a single target block and there is
-nothing to arbitrate. It is also cheaper — asking each player what they are looking at is one
-question however many mirrors there are, and no question at all in a world with none.
+**Above the hotbar, not in chat.** The same call the transport rings use. It replaces itself and
+then goes, where chat would leave a line behind for every banner walked past — a corridor would
+cost a player their whole chat window to walk down.
 
-**Only a mirror with a destination.** An unpointed one is a banner somebody is halfway through
-setting up. It carries the plugin's `::` header itself, unlike everything else a mirror says,
-because the action-bar path does not go through the call that prefixes it — and a bare line
-above the hotbar on a server running several plugins is one the player cannot act on.
+**Looking at, not standing near.** This began the other way: sent once, on crossing into the
+proximity distance, which is how the rings announce themselves. For a ring that is right, because
+walking in starts something. A mirror is not started by arriving at it — it is looked at,
+considered, and then clicked — and an action bar line fades after about three seconds, so the
+message had come and gone by the moment it was wanted. You were told there was a door while
+walking towards it, and told nothing while stood in front of it deciding.
+
+Re-sending to everyone in range is worse than it sounds: a corridor puts a player within range
+of several mirrors at once, and they would take turns in the one action bar slot,
+flickering once a sweep. Looking at one picks exactly one, because a player has a single target
+block and there is nothing to arbitrate. The line is re-sent every sweep for as long as they
+keep looking, which is what a steady line means when the bar fades on its own.
+
+It also made the plugin cheaper. Asking every mirror who is near it is a distance check per
+player per mirror; asking each player what they are looking at is one question regardless of how
+many mirrors there are, and no question at all in a world that has none.
+
+**What a click will do, not just what it is.** A mirror showing its own room says to right-click
+it; one that has been turned on says where a punch goes. A mirror with no room — one saved before
+the network — says nothing, since clicking it already says what to do, to the one person who asked.
+
+It carries the plugin's `::` header itself, unlike everything else a mirror says, because the
+action-bar path does not go through the call that prefixes it. Without that, a line appearing
+above the hotbar on a server running several plugins is a line the player cannot act on — they
+have no idea what put it there.
 
 ## The preset files
 
@@ -181,7 +226,7 @@ Layer=BLACK BORDER
 
 | Key | What it is |
 | --- | --- |
-| `Name` | What `mirror stamp` calls it. Defaults to the file name. |
+| `Name` | What `mirror set stamp` calls it. Defaults to the file name. |
 | `Base` | The banner's own colour, one of the sixteen `DyeColor` names. Required. |
 | `Biome` | Biomes this preset answers for, comma-separated. May repeat. Optional. |
 | `Layer` | `COLOUR PATTERN`, laid on in order. May repeat. Optional. |
@@ -198,10 +243,13 @@ from the end rather than refused.
 
 ### The library at a glance
 
-Eighty-eight looks is more than anybody wants to open one file at a time. The name beside each
-is what `mirror stamp <name> <look>` takes; the column beside that is the biome it answers for,
-or what the look is for when it answers for none. **Click a banner to see it large** — each
-drawing is six times the size shown here. Hovering gives the recipe as a tooltip.
+Ninety looks is more than anybody wants to open one file at a time. The name beside each
+one is what `mirror set <name> stamp <look>` takes; the column beside that is the biome it answers
+for, or what the look is for when it answers for none.
+
+**Click a banner to see it large** — each drawing is six times the size it is shown at here, so
+opening the file gives you something you can actually read a pattern off. Hovering gives you the
+recipe as a tooltip, which is the same thing the last column says.
 
 <!-- gallery:start -->
 
@@ -287,6 +335,7 @@ drawing is six times the size shown here. Hovering gives the recipe as a tooltip
 |---|---|---|---|
 | <a href="images/mirrors/dripstone_caves.svg" title="GRAY base + BROWN triangles_top + BROWN triangles_bottom + GRAY border"><img src="images/mirrors/dripstone_caves.svg" width="26" alt="the dripstone_caves look"></a> | `dripstone_caves` | `DRIPSTONE_CAVES` | `GRAY` base + `BROWN triangles_top` + `BROWN triangles_bottom` + `GRAY border` |
 | <a href="images/mirrors/lush_caves.svg" title="GREEN base + LIME curly_border + GRAY triangles_top + GREEN border"><img src="images/mirrors/lush_caves.svg" width="26" alt="the lush_caves look"></a> | `lush_caves` | `LUSH_CAVES` | `GREEN` base + `LIME curly_border` + `GRAY triangles_top` + `GREEN border` |
+| <a href="images/mirrors/sulfur_caves.svg" title="YELLOW base + RED triangles_bottom + ORANGE triangles_top + GRAY border"><img src="images/mirrors/sulfur_caves.svg" width="26" alt="the sulfur_caves look"></a> | `sulfur_caves` | `SULFUR_CAVES` | `YELLOW` base + `RED triangles_bottom` + `ORANGE triangles_top` + `GRAY border` |
 | <a href="images/mirrors/deep_dark.svg" title="BLACK base + CYAN circle + BLACK rhombus + CYAN small_stripes + BLACK border"><img src="images/mirrors/deep_dark.svg" width="26" alt="the deep_dark look"></a> | `deep_dark` | `DEEP_DARK` | `BLACK` base + `CYAN circle` + `BLACK rhombus` + `CYAN small_stripes` + `BLACK border` |
 
 #### The Nether
@@ -314,6 +363,7 @@ drawing is six times the size shown here. Hovering gives the recipe as a tooltip
 
 | | Look | For | Layers, in order |
 |---|---|---|---|
+| <a href="images/mirrors/mirror.svg" title="LIGHT_BLUE base + WHITE stripe_downleft + LIGHT_GRAY gradient + GRAY border"><img src="images/mirrors/mirror.svg" width="26" alt="the mirror look"></a> | `mirror` | what a plain white banner becomes when it is made a mirror | `LIGHT_BLUE` base + `WHITE stripe_downleft` + `LIGHT_GRAY gradient` + `GRAY border` |
 | <a href="images/mirrors/overworld.svg" title="GREEN base + LIGHT_BLUE half_horizontal + GREEN triangles_bottom + GREEN border"><img src="images/mirrors/overworld.svg" width="26" alt="the overworld look"></a> | `overworld` | fallback, for a biome nothing names | `GREEN` base + `LIGHT_BLUE half_horizontal` + `GREEN triangles_bottom` + `GREEN border` |
 | <a href="images/mirrors/indoors.svg" title="BROWN base + BLACK stripe_top + BLACK border"><img src="images/mirrors/indoors.svg" width="26" alt="the indoors look"></a> | `indoors` | a far side that turned out to be a room | `BROWN` base + `BLACK stripe_top` + `BLACK border` |
 | <a href="images/mirrors/cavern.svg" title="GRAY base + BLACK triangles_top + BLACK triangles_bottom + GRAY border"><img src="images/mirrors/cavern.svg" width="26" alt="the cavern look"></a> | `cavern` | generic underground | `GRAY` base + `BLACK triangles_top` + `BLACK triangles_bottom` + `GRAY border` |
@@ -357,15 +407,15 @@ with *that* is a real disagreement worth reporting.
 
 ### What ships
 
-Eighty-eight files in two groups, and the difference between them is the `Biome` line.
+Ninety files, in two groups, and the difference between them is the `Biome` line.
 
-**Sixty-five places, one per biome.** Every biome has a look of its own, down to the nine oceans
+**Sixty-six places, one per biome.** Every biome has a look of its own, down to the nine oceans
 and the ten woods that used to share one between them: a mirror onto a jagged peak and one onto
 a frozen peak are different places, and a banner saying "mountain" for both told you which
 family you were looking at rather than where you were going.
 
-The grammar is the same throughout, so sixty-five looks read as one library rather than
-sixty-five ideas — a base colour for the ground, one or two layers of what the place is made of,
+The grammar is the same throughout, so sixty-six looks read as one library rather than
+sixty-six ideas — a base colour for the ground, one or two layers of what the place is made of,
 and a border in the family's colour: green for growing things, blue for water, grey for stone,
 black for the Nether and the End. What separates two biomes in the same family is usually one
 layer.
@@ -373,18 +423,23 @@ layer.
 `MirrorBiomeCoverageTest` holds the rule in both directions: no biome without a look, and no
 biome claimed by two. The second matters more than it sounds, because `forBiome` returns the
 first preset that answers and the order is load order — a biome named twice does not conflict,
-it silently picks whichever file loaded first. Some name biomes a given server has never heard
-of; `pale_garden` exists only from 1.21.4, and a 1.20 server simply never matches it.
+it silently picks whichever file loaded first.
 
-**Twenty-three looks name no biome at all**, so nothing picks them automatically and
-`mirror stamp <name> <look>` is the only way to get one. They are for what an operator wants
-said about a mirror when it is not where it goes: the middle of a network, the way out, one not
-for general use, one leading somewhere worth thinking about first. `overworld`, `indoors` and
-`cavern` are the three the plugin asks for by name rather than the operator.
+Some name biomes a given server has never heard of. `pale_garden` exists only from 1.21.4 on and
+`sulfur_caves` only from 26.2, and an older server simply never matches them — the file loads, it
+just never wins.
 
-**None of them carry any behaviour.** `private` is a bar painted across a banner and not a
-permission; a mirror wearing `warning` is exactly as dangerous as it was before it was stamped;
-`locked` says a thing is shut, and something else has to do the shutting.
+**Twenty-four looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
+`exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
+`library`, `port` and `compass` name no biome at all, so nothing picks them automatically and
+`mirror set <name> stamp <look>` is the only way to get one. They are for what an operator wants
+said about a mirror when it is not where it goes: the middle of a network, the way out, one that
+is not for general use, one that leads somewhere worth thinking about first.
+
+`mirror`, `overworld`, `indoors` and `cavern` are the four the plugin asks for by name rather than
+the operator — what a plain white banner becomes when it is made a mirror, the fallback for a
+biome nothing names, the answer for a far side that turned out to be a room, and a generic
+underground.
 
 ## Version traps
 
@@ -433,71 +488,55 @@ galleries publish in Mojang's pattern ids on whatever version the site runs.
 
 ## Which banner you are looking at
 
-`set` and `link` both have to turn "the banner in front of me" into a block, and one ray cast is
-not enough to do it. `stamp`, `display`, `mode` and `remove` do too, when no name is given:
-the same search, and then the block index answers which mirror it is.
+`create` has to turn "the banner in front of me" into a block, and one ray cast is not enough to
+do it. `start`, `stamp`, `capture` and `remove` do too, when no name is given: the same
+search, and then the block index answers which mirror it is.
 
-Those four take a name **or** the banner you are facing. The reason is `link`'s derived name.
-Hanging a pair writes `nether-return` for the far side — a name nobody chose and nobody will
-remember — and the far side is exactly the half somebody stands in front of wanting to restamp
-it or take it down. `set`, `target` and `link` keep required names: `set` is naming a thing that
-has no name, `target` is run from the arrival spot, which is the one place the banner is not,
-and `link`'s argument is the far mirror rather than this one.
+Those take a name **or** the banner you are facing, because the mirror somebody wants to change is
+usually the one they are standing in front of. `create` keeps its required name: it is naming a
+thing that has no name yet.
 
-Two words have to be told apart for that to work. `display proximity` is a setting with no name;
-`display museum proximity` is both. Only the real setting words — `always`, `proximity`,
-`static`, `dynamic` — are read that way, so `display museum` is still a name with the setting
-forgotten and still answers with the form, rather than complaining that `museum` is not a way to
-show a mirror. `stamp` has the harder version of the same question, because `stamp cavern` could
-be a mirror or a look: a mirror wins, since that is what the word meant before the name became
-optional, and a server whose mirror and look share a name should not find the command changing
-under it.
+Two words have to be told apart for that to work. `start hub` is a setting with no name;
+`start museum hub` is both, so one word alone is the start. `stamp` has the harder version of the
+same question, because `stamp cavern` could be a mirror or a look: a mirror wins, since that is
+what the word meant before the name became optional, and a server whose mirror and look share a
+name should not find the command changing under it.
 
-`getTargetBlockExact` traces against block *shapes*, and a freestanding banner is a thin post,
-so from close up the ray passes it by. Against a wall that goes unnoticed — the wall behind is
-hit and the player aims again — but on a post in the open the ray hits nothing and the refusal
-reads "look at a banner within six blocks" to somebody doing exactly that. So the aimed-at block
-is tried first and `getLineOfSight` is the fallback, stepping through the blocks a ray crosses
-rather than their shapes. Order matters: in a corridor the one being pointed at wins over the
+`getTargetBlockExact` traces against block shapes, and a banner is a thin one: from close up the
+ray can pass it by and hit the wall behind, and the command would say "that is a stone" to
+somebody aiming at a banner. So the aimed-at block is tried first, and `getLineOfSight` is the
+fallback — it steps through the blocks a ray crosses rather than their shapes, which is what makes
+a thin one findable. Order matters: in a corridor of banners the one being pointed at wins over the
 nearest one crossed.
 
-Even that is not enough. A standing banner occupies one block and is drawn about two tall, so
-the cloth hangs in the block *above*, where there is nothing to hit — aiming at the obvious part
-sends the ray straight through. No amount of searching the crossed blocks helps, because the
-banner is not one of them, so the block *under* each is asked as a last pass. For standing
-banners only: a wall banner is drawn inside its own block, and applying the rule to both
-families would let somebody name a wall banner by aiming at the wall above it.
+Banners on posts needed more — their cloth hangs in the block above, where there is nothing to hit
+— and the search still looks one block down for one, but only so `create` can find it to refuse
+it. A mirror hangs on a wall now, and a wall banner is drawn inside its own block and clicked
+anywhere on it.
 
-**Travelling has the same problem and cannot be fixed the same way.** `set` runs once and can
-afford a ray cast; the interact handler runs on every right-click of every block on the server,
-and the block it is handed for a click at the cloth is whatever was behind the banner.
-Recovering the aim there would mean a ray cast per click, which is the cost
-`InteractLoggingCostTest` exists to prevent. So a banner on a post is clicked at its base, and
-`set` and `link` say so at the moment one becomes a mirror — the only moment available, since a
-click at the cloth reaches the plugin as no event at all. Making the cloth genuinely clickable
-means giving it a hitbox, an `interaction` entity per standing mirror, which is a feature with
-an entity lifecycle attached and belongs in its own issue.
+Clicks cannot afford a search at all. The interact handler runs on every click of every block on
+the server, so it asks the block it is handed and nothing more — which is the cost
+`InteractLoggingCostTest` exists to keep down. A click on a mirror's opening reaches it as a click
+on the wall behind, and the handler answers that from the viewer's own drawing rather than a ray.
 
-## Arriving in the banner
+## Arriving, and the bounce that cost
 
-Arrival is the destination banner's own block: a banner is passable, and it is the one spot in
-the room a builder deliberately left clear. The cost of that only showed up on a linked pair.
+A traveller lands in the chosen mirror's room: the banner's own column, in front of the wall,
+level with the bottom of its opening and facing out into the room. That spot is the same one the
+room's capture is taken from, so where you land is where the view you stepped through was looking
+from. A mirror needs a wall two blocks deep all round, which is also what makes that spot one a
+builder left clear; the safe-location search the gates and beams use corrects it all the same.
 
-A player lands inside or directly under the far banner with it filling their view. A right-click
-still being delivered when they get there — a held button, or the client resolving the
-interaction again at the new position — lands on that banner and fires it. With both ends bound
-to each other that is a round trip in under a second, and what the player sees is a mirror that
+Landing there puts the far mirror right in front of the player. A punch still being delivered
+when they get there — a held button, or the client resolving the click again at the new position
+— lands on that mirror and sends them straight back, and what the player sees is a mirror that
 returned them to where they started.
 
 So `MirrorSettle` shuts mirrors for two seconds for the player one has just carried. Every
-mirror, not only the banner they arrived at: the same click can be re-resolved against whatever
-is now in front of them. It is armed on an accepted teleport only — a refused trip must not also
-cost a wait — and the explanation is said once per arrival rather than once per repeat.
-
-Moving arrival back out in front of the banner would also have stopped it, and would have
-brought back every reason it stopped being the block in front: one block of clearance the
-builder did not choose is one block that can be a wall, a drop, a fence, or the far side of a
-doorway.
+mirror, not only the one they arrived at: the same click can be re-resolved against whatever is
+now in front of them. It is armed on an accepted teleport only — a refused trip must not also cost
+a wait — and the explanation is said once per arrival rather than once per repeat, above the
+hotbar.
 
 ## When another plugin refuses the trip
 
@@ -514,16 +553,206 @@ Nothing here tries to overrule the cancel. The mechanic is a banner somebody cli
 permission system, and a plugin whose whole job is deciding who may enter a world should win
 that argument. The bug was never that it won, only that nobody said so.
 
+## The far edge of the room
+
+The one problem this design keeps coming back to, and the record of every answer tried, so that
+the next attempt starts from here rather than from the beginning.
+
+### What a mirror is trying to do
+
+Walk up to a wall banner and see the far room drawn in real blocks behind the wall, with depth and
+parallax, out to a depth — and nothing of this world past it. Coming to the mirror, moving in front
+of it and leaving should not stutter. That is the whole of it, and every part of it has been had
+at some point; the trouble is having all of it at once.
+
+### Three facts every attempt runs into
+
+1. **A client draws every chunk it holds, in every direction.** Nothing in Bukkit stops it
+   rendering past a distance one way. The one thing that does is Paper's per-player send view
+   distance, which stops it in every direction at once, a ring of chunks at a time.
+2. **A view is block changes sent to one player, and the client re-meshes every chunk section a
+   batch touches.** The cost is per batch and per section, not per block: one large batch is a
+   freeze, and many small ones are a stutter.
+3. **Through a one-by-two opening, parallax is keyhole parallax.** From a block away, a step
+   sideways swings the far end of the view by as many blocks as the room is deep. A view that is
+   right for one eye is wrong for the next, and at 160 nearly all of a room's far part changes
+   with every step. A wall's width does not change this: what a wider wall buys is tolerance for
+   movement between redraws, since a stale block's landing on the wall shifts by about as far as
+   the eye moved, whatever the block's depth. It never buys depth.
+
+Two things follow. At 160 — ten chunks, as far as a server usually sends — nothing stands past
+the room at all, so the only reason to lower the depth is the cost of the third fact. And a room
+sent once, whole, has no cost per step, but it has to be hidden from everywhere but the opening,
+which needs wall out to the proximity distance on every side of it and no other mirror within
+twice the depth. A museum's row of alcoves qualifies for neither.
+
+### Tried, and why not
+
+In the order they were tried. The commit is where the reasoning is written out in full.
+
+- **A barrier block in front of the opening**, to keep viewers a block back where the cone is
+  narrower (`503ed45`). Awkward to walk up to, and it only moved the cut; it did not remove it.
+- **A budget-limited cone walk**, the reach growing back by the cube root of the room while you
+  stood still (`726835b`, `2e43167`). A view that was shallower up close and while walking, so
+  "blocks came and went as a viewer walked". Retired with the cone walk itself (`afffee0`).
+- **A painted shell past the radius**, each shell block painted with what its line of sight meets
+  further on, or with sky (`9059fcc`). "I don't like the fake sky/ground in the distance." Unlit
+  sky colour behind a dark wall read as water, and a glass wall painted as glass showed this
+  world through it.
+- **A fog shell**, one block thick, white by day and black by night (`4662cc3`). "You can see it
+  being made like a circle, and it's distracting"; "let's not do that weird shell thing".
+- **Nothing past the depth, with the depth at the render distance** (`db30c76`, `55f05a2`).
+  Correct and clean: nothing of this world shows, because the client has nothing to show there.
+  But a clipped room's far part changed thousands of blocks a step, and "it was real laggy" at
+  160 and fine at 60. Softened since — the far part stands between small steps and a slow redraw
+  earns a rest (`d594907`), rooms over 20,000 blocks were clipped rather than sent at once
+  (`2bfd70a`, undone by streaming, below), and the far part is judged for a whole cell of eyes at
+  once, as wide as the wall allows (the fat eye, below) — and a deep clipped mirror behind a thin wall still stutters on the
+  move. This is where it stands.
+- **The depth lowered, and a flat wall of the sky's colour a block past it** (`524cc24`). "It
+  brings too much attention to the issue." Taken back in #282, with the box-shaped room that
+  existed only so the wall could be flat.
+- **Carving this world to air past the depth.** Never built: hundreds of thousands of blocks,
+  which is the same re-meshing that made 160 laggy in the first place.
+- **Blindness or darkness on the viewer.** Never built: both dim the whole screen, not the far
+  end of a view.
+- **Depth keyed to the wall's width.** No mechanism, by the third fact. What the idea did yield
+  is the far part's cell: half a block behind a one-block wall, a block behind anything wider
+  (#282), and then the fat eye (#283).
+- **A capture radius setting** (`mirror-capture-radius`, retired in `f1675c5`). Lowering it only
+  made the view stop at the capture's edge. A capture reaches the render limit on its own now,
+  whatever the depth, and the depth draws part of it (#282).
+
+### Built: the fat eye
+
+A clipped room's far part is judged for every eye in a cell at once rather than for the one eye
+that happens to be there (#283). The cell is half a block narrower than the wall, up to four
+blocks; the far part is judged from the cell's middle, with each block's landing on the wall
+widened by half the cell on every side, which is as far as it moves for any eye in the cell. A
+block seen through the opening from anywhere in the cell is drawn, and lands from everywhere in
+it where the wall hides it — the wall is at least the cell wide by construction, since only the
+inner half of its outermost ring counts. Near and far are split from the same point, so a block
+cannot change sides as the eye moves within the cell and go unjudged by both.
+
+The same blocks are sent per block travelled, in a fraction of the batches, and the client
+re-meshes each far chunk section a fraction as often: nothing gained behind a one-block wall,
+where the cell is the same half block it was, and a quarter of the batches behind a wall five
+wide. `mirror debug` says the cell and the wall for each clipped mirror. Not measured on a
+server yet; the test surface is `MirrorWindowsTest`'s three `behindA...Wall` tests.
+
+### Built: streaming
+
+A redraw sends 2,500 blocks and books the rest a tick apart, nearest the eye first and within
+that a chunk section at a time, so the client re-meshes each section once and no frame waits for
+all of them. What a viewer is owed is worked out afresh on every redraw against what they were
+actually sent, so a step mid-stream never leaves a stale block behind; a view lasts until the last
+of the room has gone back. The 20,000-block cap on a room sent whole is gone with it, and a walled
+mirror at 160 costs nothing per step.
+
+Crossing into a new chunk sends again only what was drawn in the chunks the client is newly
+handed — the shorter of the server's view distance and the client's, a chunk over for the edge —
+where it used to send the whole view. A server that reports no reach falls back to all of it, and
+the half-minute resend stands behind both. `mirror debug` says `still to send` while a stream is
+going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
+`aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `MirrorWindowsTest`.
+
+### Built: the far edge in the client's own fog
+
+`mirror-fog-at-depth`, off by default and Paper only. A viewer being drawn a room has
+`Player.setSendViewDistance` set to the room's depth in chunks and a chunk over for the edge, and
+it is put back the moment they are no longer being drawn one. The far edge is then the client's
+own fog rather than anything this plugin drew, which is what the sky wall was faking, and it
+costs no blocks at all.
+
+Off by default because it is a radius round the player and not a direction: it pulls the fog in
+every way they look, not only through the opening. And it does nothing at the default depth, where
+the room already reaches about as far as a server sends — the number asked for has to be lower
+than what the client is being sent, or there is nothing to gain. Lower `mirror-view-depth` first,
+then turn it on.
+
+Giving it back is the whole of the difficulty. A view ends in four places — the eye moving to a
+world with no window in it, a redraw finding nothing left to draw, and either half of the stream
+that takes a room back — so all four go through one `endView`. Restoring only where a redraw
+finds nothing looked right and left a viewer who walked away narrowed for the rest of their
+session.
+
+The rule that settles the rest: a narrowed send distance is the player's own, not the world's
+and not the view's. So it is handed back on shutdown wherever they are standing, outside the
+check that guards sending blocks to a viewer still in the drawing's world; and what is
+remembered is dropped whenever a view ends, player or no player, since a viewer who logged out
+mid-view would otherwise be recorded as narrowed for the life of the server and be skipped if
+they came back on the same id. The tests are
+`aViewerDrawnARoomHasTheirFogPulledInAndPutBack`,
+`stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
+`aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
+
+On Spigot `MirrorFog.available()` is false and nothing happens: this world shows past the room,
+which is what it did before. The setting is read all the same, so a server that moves to Paper
+gets it without editing anything.
+
+What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
+1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11, 26.1.2 and 26.2, and Paper
+1.20.4, the one Paper jar cached here at the time:
+
+- `Player.setSendViewDistance(int)`, with `setViewDistance`, `setSimulationDistance` and
+  `setNoTickViewDistance`, and the same four on `World`: Paper 1.20.4 has them all, and no
+  Spigot jar in the range has any of them. Paper only, then, and Purpur's by inheritance.
+  Whether an earlier Paper has them was not checked; 1.20.4 is the only Paper jar here.
+- `World.getViewDistance()` and `getSimulationDistance()`, and the same on `Bukkit`: every
+  Spigot jar from 1.20 on. A capture's reach is read from the first already.
+- `Player.getClientViewDistance()`: every Spigot jar from 1.20 on. What the client asked for,
+  which is not what the server sends.
+- `Player.setWorldBorder(WorldBorder)` and `Bukkit.createWorldBorder()`: every Spigot jar
+  from 1.20 on, not the late addition it was taken for. A border of the player's own, which
+  the client draws as it draws the world's edge — a red wall, square, and a wall rather than a
+  fog: another shell by other means, and not on the list for the same reason.
+- `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
+  int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
+
+### What is left to try
+
+Each of these is a real lever, and none is free. The first is the one to build next.
+
+1. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
+   its whole plane; what stops each alcove's mirror being drawn whole is the neighbour rule (two
+   whole rooms would fill the same space behind the wall) and the cap. But a viewer in one alcove
+   cannot see the next alcove's opening past the divider, and a view already draws only the
+   windows the eye has a clear line to. Judge the overlap against the windows a viewer can see
+   rather than every mirror within twice the depth, stream the rooms in and out (built, above), and the
+   museum's mirrors draw once each and cost nothing per step. The wall-plane rule still asks for
+   wall to the proximity distance above and below, which a low hall does not have; the honest
+   test there is whether the space behind the wall can be seen from anywhere a viewer can stand,
+   which is the next item.
+2. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
+   in the proximity zone — seen only through the opening, or hidden by real solid blocks anywhere
+   along the line — and draw exactly those, whole, with no per-step work at all. Many eyes times
+   many blocks, so off the main thread and once a minute at most. The most general answer, the
+   most work, and unproven.
+
+What is not on the list: another shell, wall or painting past the depth. Three have been tried
+and each drew the eye to the very edge it was there to hide.
+
 ## What was considered and not done
 
-**A real window** — a map in an item frame, rendered from the far side. The only thing that
-would genuinely be a window, and a different feature: a different block, a render budget per
-viewer, and a question about how often it refreshes. Worth its own issue, not worth bolting onto
-a banner.
+**A map in an item frame**, rendered from the far side, was the first idea for a window. It was
+overtaken by drawing the room in real blocks sent to each viewer, which has depth and costs what
+its surfaces cost.
 
-**Sampling the exact blocks in front of the banner.** A mirror's destination is a point, not a
-facing, so "in front of" has no meaning there — and a 13×7×13 box around the arrival point is
-what a player standing there would see anyway.
+**Mirrors on posts.** A banner standing in the open showed its room past its edges however the
+view was trimmed, and a thin frame round a wall banner did little better. A mirror needs a wall
+now; the drawing code for standing banners is still there, and goes once its tests are moved onto
+wall banners.
 
-**Colour-averaging into a gradient.** Two colours blended are muddier than two side by side, and
-the whole point is to be readable at a glance down a corridor.
+**Pairs and `-return` names.** Linking two banners wrote a point into each; moving either stranded
+the other, and the second banner's name was one nobody chose. The network replaced it: one room per
+mirror, and the choice of where to open made at the mirror.
+
+**Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
+of it, flipped, would need a copy of each that moves with them — entities, sent per viewer — and is
+its own piece of work, alongside showing the players and creatures in another mirror's room.
+
+**Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
+**Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
+
+**Colour-averaging a banner into a gradient.** Two colours blended are muddier than two colours
+side by side, and the whole point is to be readable at a glance down a corridor.

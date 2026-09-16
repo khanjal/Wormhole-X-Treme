@@ -10,11 +10,11 @@
 [![Security](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating)](https://sonarcloud.io/summary/overall/?id=khanjal_Wormhole-X-Treme)
 
 [![Release](https://img.shields.io/github/v/release/khanjal/Wormhole-X-Treme?label=release&logo=github)](https://github.com/khanjal/Wormhole-X-Treme/releases/latest)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%201.21.10-brightgreen)](#compatibility)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%2026.2-brightgreen)](#compatibility)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=blue)](LICENSE)
 
-Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 1.21.10.
+Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.2.
 
 Four ways to get somewhere, each a different trade between what you build and what you get:
 
@@ -23,7 +23,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 | **[Stargates](docs/guide/GATES.md)** | A frame of blocks | Dial by button, sign, redstone or `/dial` | Any gate, across worlds |
 | **[Transport rings](docs/guide/RINGS.md)** | A circle of slabs, in pairs | Walk into it | Its partner, same world |
 | **[Beaming](docs/guide/BEAMS.md)** | Nothing | `/wormhole beam to <name>` | A saved point, anywhere |
-| **[Quantum mirrors](docs/guide/MIRRORS.md)** | One banner | Right-click it | Another world, one way |
+| **[Quantum mirrors](docs/guide/MIRRORS.md)** | One wall banner | Right-click to choose, punch to go | Any other mirror, across worlds |
 
 ## Features
 
@@ -32,7 +32,8 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Configured in-game** — `/wormhole config` changes any setting on the spot, with no reload.
 - **Eleven gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file.
-- **Mirrors that look like where they go** — a banner reads its destination and paints itself.
+- **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
+  right-click it and it shows another world's.
 - **Every sound is a setting**, resource pack sounds included.
 - **Works with or without a permissions plugin**, and charges through Vault only if you want it to.
 - **Events for other plugins** to watch or cancel travel — see [docs/API.md](docs/API.md).
@@ -53,16 +54,17 @@ else in the same world. [More](docs/guide/RINGS.md#building-a-ring-pair)
 **Beaming** — `/wormhole beam place set home` where you stand, `/wormhole beam to home` from
 anywhere. [More](docs/guide/BEAMS.md)
 
-**A mirror** — look at a banner and `/wormhole mirror set nether`, then look at a banner in
-another world and `/wormhole mirror link nether`. [More](docs/guide/MIRRORS.md#setting-one-up)
+**A mirror** — hang a banner on a wall, look at it and `/wormhole mirror create home`. Do the same
+in another world; right-click a mirror to choose where it opens onto, and punch it to go through.
+[More](docs/guide/MIRRORS.md#setting-one-up)
 
 ## Compatibility
 
 | | |
 |---|---|
-| Minecraft | 1.20 – 1.21.10, built and tested against seven versions across that range |
+| Minecraft | 1.20 – 26.2, built and tested against ten versions across that range |
 | Servers | Spigot, Paper and CraftBukkit. Purpur best effort. Not Folia. |
-| Java | 17 or later. Minecraft 1.20.5+ itself needs Java 21. |
+| Java | 17 or later. Minecraft 1.20.5+ itself needs Java 21, and 26.1+ needs Java 25. |
 
 CI proves it compiles and passes its tests on each version, not that it has been played on each
 one. [Details](docs/guide/SERVER.md#compatibility)
