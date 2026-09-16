@@ -40,8 +40,8 @@ mvn pmd:pmd -Dformat=csv
 ## Minecraft versions
 
 The supported range is 1.20 through 26.2. The floor was found by building against every
-published `spigot-api`; the top is the newest stable release. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which gate detection
-switches on and 1.19.4 lacks.
+published `spigot-api`; the top is the newest stable release. The floor is
+`Material.CALIBRATED_SCULK_SENSOR`, which gate detection switches on and 1.19.4 lacks.
 
 The plugin compiles against the **oldest** API it supports, not the newest. A plugin built
 against an old API runs on newer servers; one built against a new API can call something an
