@@ -1845,16 +1845,14 @@ public final class MirrorWindows
     private static Map<Long, BlockData> fixedToByVolume(final MirrorWindowState window, final int depth, final long now,
         final int most)
     {
-        final Volume volume = new Volume(window, depth, now);
+        final Volume volume = new Volume(window, depth, now, most);
         for (int layer = 1; layer < depth; layer++)
         {
             final double wide = Math.sqrt(volume.reach - ((double) layer * layer));
             for (int across = (int) Math.floor(volume.centreAcross - wide);
                 across <= (int) Math.ceil(volume.centreAcross + wide); across++)
             {
-                volume.column(layer, across, wide);
-                // A column at a time: the view only grows, so one over is over at the column's end.
-                if (volume.view.size() > most)
+                if (volume.overInColumn(layer, across, wide))
                 {
                     return TOO_MANY;
                 }
@@ -1878,10 +1876,12 @@ public final class MirrorWindows
         private final BlockData air = Bukkit.createBlockData(Material.AIR);
         private final double reach;
         private final long now;
+        private final int most;
         private final Map<Long, BlockData> view = new HashMap<>();
 
-        Volume(final MirrorWindowState window, final int depth, final long now)
+        Volume(final MirrorWindowState window, final int depth, final long now, final int most)
         {
+            this.most = most;
             this.window = window;
             final MirrorWindow shape = window.shape;
             this.here = window.banner.getWorld();
@@ -1896,8 +1896,13 @@ public final class MirrorWindows
             this.now = now;
         }
 
-        /** Every block of one column of a layer that is inside the depth. */
-        void column(final int layer, final int across, final double wide)
+        /**
+         * Adds every block of one column of a layer that is inside the depth, stopping as soon as
+         * the view holds more than its limit.
+         *
+         * @return true if it does
+         */
+        boolean overInColumn(final int layer, final int across, final double wide)
         {
             final int along = baseAlong + (sign * layer);
             final double offAcross = (across + 0.5) - centreAcross;
@@ -1905,21 +1910,27 @@ public final class MirrorWindows
             for (int y = Math.max(min, (int) Math.floor(centre[1] - wide)); y <= yTo; y++)
             {
                 final double offY = (y + 0.5) - centre[1];
-                if ((((double) layer * layer) + (offAcross * offAcross) + (offY * offY)) < reach)
+                if (((((double) layer * layer) + (offAcross * offAcross) + (offY * offY)) < reach)
+                    && block(alongX ? along : across, y, alongX ? across : along))
                 {
-                    block(alongX ? along : across, y, alongX ? across : along);
+                    return true;
                 }
             }
+            return false;
         }
 
-        /** The far side's block here where it is not air, and air where the real block is not empty. */
-        private void block(final int x, final int y, final int z)
+        /**
+         * Adds the far side's block here where it is not air, and air where the real block is not empty.
+         *
+         * @return true if the view then holds more than its limit
+         */
+        private boolean block(final int x, final int y, final int z)
         {
             final MirrorCapture capture = window.capture;
             final Spot at = window.shape.farOf(x, y, z);
             if (!capture.contains(at.x(), at.y(), at.z()))
             {
-                return;
+                return false;
             }
             if (!capture.isAir(at.x(), at.y(), at.z()))
             {
@@ -1929,6 +1940,7 @@ public final class MirrorWindows
             {
                 view.put(key(x, y, z), air);
             }
+            return view.size() > most;
         }
     }
 
