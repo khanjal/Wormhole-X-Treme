@@ -146,11 +146,27 @@ public final class FreyaCompanion
         cat.setPersistent(false);
         cat.setRemoveWhenFarAway(false);
 
-        // Hidden by default covers players who join later, which a per-observer hide does not.
+        reveal(cat, owner);
+    }
+
+    /**
+     * Hides her from everyone and shows her to her owner, from whatever state she was in.
+     *
+     * <p>Hidden by default covers players who join later, which a per-observer hide does not.
+     * The hide before the show clears a stale exception, so the show always sends her again.
+     *
+     * @param cat
+     *            the companion
+     * @param owner
+     *            the one player who may see her
+     */
+    static void reveal(final Cat cat, final Player owner)
+    {
         cat.setVisibleByDefault(false);
         final Plugin plugin = WormholeXTreme.getThisPlugin();
         if (plugin != null)
         {
+            owner.hideEntity(plugin, cat);
             owner.showEntity(plugin, cat);
         }
     }
@@ -201,10 +217,17 @@ public final class FreyaCompanion
         final Cat before = LIVE.get(owner.getUniqueId());
         if (PluginLog.isLoggable(Level.FINE))
         {
-            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": " + describe(before, owner.getLocation()));
+            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": " + describe(before, owner));
         }
         if (!isLeftBehind(before, owner.getLocation()))
         {
+            // Carried to another world she can arrive visible by default again, which with the
+            // owner's exception still in place shows her to everyone except them.
+            if (before.isVisibleByDefault() || !owner.canSee(before))
+            {
+                PluginLog.log(Level.FINE, "Companion for " + owner.getName() + " was not hidden right; showing her to them again");
+                reveal(before, owner);
+            }
             return false;
         }
         if ((before != null) && PluginLog.isLoggable(Level.FINE))
@@ -219,21 +242,23 @@ public final class FreyaCompanion
      *
      * @param cat
      *            the tracked companion, or null
-     * @param owner
-     *            where her owner is
+     * @param player
+     *            her owner
      * @return a one-line summary
      */
-    private static String describe(final Cat cat, final Location owner)
+    private static String describe(final Cat cat, final Player player)
     {
         if (cat == null)
         {
             return "none out";
         }
+        final Location owner = player.getLocation();
         final Location at = cat.getLocation();
         final String world = ((at == null) || (at.getWorld() == null)) ? "?" : at.getWorld().getName();
         final boolean together = (at != null) && (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
         return "in " + world + (together ? " " + Math.round(Math.sqrt(at.distanceSquared(owner))) + " blocks away" : ", another world")
-            + ", valid " + cat.isValid() + ", dead " + cat.isDead();
+            + ", valid " + cat.isValid() + ", dead " + cat.isDead()
+            + ", visible by default " + cat.isVisibleByDefault() + ", owner sees her " + player.canSee(cat);
     }
 
     /**

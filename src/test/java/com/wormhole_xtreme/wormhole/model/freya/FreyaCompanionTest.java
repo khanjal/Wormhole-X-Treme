@@ -472,4 +472,46 @@ class FreyaCompanionTest
 
         verify(spawn, never()).setCancelled(false);
     }
+
+    /**
+     * A companion carried to another world is shown to her owner again.
+     *
+     * <p>In play she arrived beside her owner, valid and alive, and was invisible to them: the
+     * copy made in the new world came back visible by default while the owner's exception stayed,
+     * which inverts to everyone but the owner seeing her.
+     */
+    @Test
+    void catchingUpShowsHerAgainWhenATripLeftHerVisibleToTheWrongPeople()
+    {
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(cat.isVisibleByDefault()).thenReturn(true);
+        when(owner.canSee(cat)).thenReturn(false);
+
+        assertFalse(FreyaCompanion.catchUp(owner), "she is beside them, so she is not re-summoned");
+
+        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(cat, owner);
+        order.verify(cat).setVisibleByDefault(false);
+        order.verify(owner).hideEntity(plugin, cat);
+        order.verify(owner).showEntity(plugin, cat);
+        verify(owner, times(2)).showEntity(plugin, cat);
+    }
+
+    @Test
+    void catchingUpLeavesACompanionAlreadyShownRightAlone()
+    {
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(cat.isVisibleByDefault()).thenReturn(false);
+        when(owner.canSee(cat)).thenReturn(true);
+
+        FreyaCompanion.catchUp(owner);
+
+        verify(owner, times(1)).showEntity(plugin, cat);
+    }
 }
+
