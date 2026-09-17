@@ -52,6 +52,8 @@ class MirrorCapturesTest
     private World far;
     /** A torch on the sand three blocks ahead of the arrival point, or null for none. */
     private BlockData torch;
+    /** Every column, as "x,z", whose blocks a capture has read. */
+    private final java.util.Set<String> columnsRead = new java.util.HashSet<>();
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
@@ -96,6 +98,7 @@ class MirrorCapturesTest
                 final int lx = invocation.getArgument(0);
                 final int y = invocation.getArgument(1);
                 final int lz = invocation.getArgument(2);
+                columnsRead.add(((chunkX * 16) + lx) + "," + ((chunkZ * 16) + lz));
                 if ((torch != null) && (chunkX == 6) && (chunkZ == -2) && (lx == 4) && (y == 70) && (lz == 14))
                 {
                     return torch;
@@ -170,6 +173,33 @@ class MirrorCapturesTest
             "nothing seen in the column at its near corner, one layer behind the arrival: one below the box");
         assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
         assertTrue(capture.isAir(100, 69, -2), "and so is past the depth and margin");
+    }
+
+    /**
+     * Every column of the box is read, and none of the chunk around it.
+     *
+     * <p>The box's edges fall inside chunks, not on their boundaries: x 82..118 is from two blocks
+     * into chunk 5 to six into chunk 7. A column dropped at an edge is a strip of the far side
+     * missing from every view.
+     */
+    @Test
+    void everyColumnOfTheBoxIsReadAndNoneOutsideIt()
+    {
+        withServer(() ->
+        {
+            MirrorCaptures.request(mirror);
+            MirrorCaptures.step(6);
+        });
+
+        final java.util.Set<String> box = new java.util.HashSet<>();
+        for (int x = 82; x <= 118; x++)
+        {
+            for (int z = -22; z <= -3; z++)
+            {
+                box.add(x + "," + z);
+            }
+        }
+        assertEquals(box, columnsRead);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -183,6 +184,35 @@ class MirrorCommandTest
         assertTrue(lines.stream().anyMatch(line -> line.contains(
             "view: " + MirrorText.VALUE_COLOUR + "you are looking into no window")), "your view: " + lines);
         assertTrue(lines.stream().anyMatch(line -> line.contains("debug museum -all")), "and how to see the rest: " + lines);
+    }
+
+    /**
+     * debug -off turns views off for the sender and -on back on, and -full draws one mirror whole;
+     * each says what it did.
+     */
+    @Test
+    void debugOffOnAndFullDoWhatTheySay()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        try
+        {
+            run(player, "mirror", "debug", "-off");
+            assertTrue(com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.isBlind(player), "off");
+            verify(player).sendMessage(contains("Views are off for you"));
+
+            run(player, "mirror", "debug", "-on");
+            assertFalse(com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.isBlind(player), "back on");
+            verify(player).sendMessage(contains("Views are back on for you"));
+
+            run(player, "mirror", "debug", "museum", "-full");
+            verify(player).sendMessage(contains("is drawn whole and without limits for you"));
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, false);
+        }
     }
 
     /**
