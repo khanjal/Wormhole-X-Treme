@@ -239,6 +239,15 @@ pick a build up again after a relog. Only a button or lever on the side of a blo
 floor has no facing a DHD could have. Nothing is saved: previews end with the session, and the
 button in the world is the anchor.
 
+`-place` checks every block before it writes one, so a refusal leaves the world as it was: the frame
+material has to be one detection can find, every chunk loaded and inside the border, and no block
+the gate or its opening needs may hold something else or belong to a gate or ring. A block already
+right is kept, so a half-built gate is finished rather than rebuilt. It writes the preview's own
+`blockDataFor`, frame first and the button last, then finds the gate with `checkStargate` from that
+button and hands it to `GateInteractionHandler.offerNewGate`, the same step a pressed button takes,
+so naming, the `BUILD` permission and removing the preview are not a second path. Protection plugins
+are not asked yet: the node is admin-level, and region support is #240.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".

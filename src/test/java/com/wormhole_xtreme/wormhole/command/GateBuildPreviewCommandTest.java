@@ -241,7 +241,7 @@ class GateBuildPreviewCommandTest
         }
         verify(player).sendMessage(saying("Cleared 3 previews."));
         verify(player).sendMessage(saying("No shape called clear."));
-        verify(player).sendMessage(saying("No option -bogus. Try -clear -activate -iris -material -materials -guide -layer -chevrons -dhd"));
+        verify(player).sendMessage(saying("No option -bogus. Try -clear -activate -iris -material -materials -guide -layer -chevrons -dhd -place"));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -399,6 +399,36 @@ class GateBuildPreviewCommandTest
         return block;
     }
 
+    /** -place needs its own node on top of the preview node, and hands a placed gate on as a pressed button does. */
+    @Test
+    void placeNeedsItsNodeAndHandsTheGateOnToBeNamed()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        when(gate.getGateShape()).thenReturn(standard);
+        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
+            MockedStatic<com.wormhole_xtreme.wormhole.GateInteractionHandler> handler =
+                mockStatic(com.wormhole_xtreme.wormhole.GateInteractionHandler.class))
+        {
+            previews.when(() -> GatePreviews.place(player)).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.IN_THE_WAY, List.of("stone at 1 2 3", "4 more"), null, null),
+                new GatePreviews.Placed(GatePreviews.Outcome.PLACED, List.of(), gate, button));
+
+            run("gate", "build", "-place");
+            previews.verify(() -> GatePreviews.place(any()), never());
+            verify(player).sendMessage(saying("You lack the permissions"));
+
+            when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
+            run("gate", "build", "-place");
+            run("gate", "build", "-PLACE");
+
+            handler.verify(() -> com.wormhole_xtreme.wormhole.GateInteractionHandler.offerNewGate(player, button, gate));
+        }
+        verify(player).sendMessage(saying("Nothing placed. In the way: stone at 1 2 3, 4 more. -guide marks them."));
+        verify(player).sendMessage(saying("Placed Standard."));
+    }
+
     /** -material names what it takes when given something else, and refuses a block that does not exist. */
     @Test
     void materialSaysWhatItTakes()
@@ -437,7 +467,7 @@ class GateBuildPreviewCommandTest
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
-            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd")));
+            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd", "-place")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
             .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })

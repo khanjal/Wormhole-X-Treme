@@ -84,6 +84,8 @@ class GatePreviewsTest
     private final List<Long> dialDelays = new ArrayList<>();
     /** What stands in the world, by x, y and z; air everywhere else. */
     private final Map<List<Integer>, Material> standing = new HashMap<>();
+    /** Where a block was written, in order. */
+    private final List<List<Integer>> written = new ArrayList<>();
     private final long[] now = { 1_000_000L };
     private Stargate3DShape standard;
     private final RecordingCreation creation = new RecordingCreation(type ->
@@ -116,10 +118,26 @@ class GatePreviewsTest
         {
             final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
             when(block.getBlockData()).thenAnswer(read -> data.computeIfAbsent(Material.AIR, m -> mock(BlockData.class)));
-            when(block.getType()).thenReturn(standing.get(List.of(inv.getArgument(0), inv.getArgument(1),
-                inv.getArgument(2))));
+            final List<Integer> at = List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2));
+            when(block.getType()).thenReturn(standing.get(at));
+            Mockito.doAnswer(set ->
+            {
+                written.add(at);
+                data.forEach((material, shown) ->
+                {
+                    if (shown == set.getArgument(0))
+                    {
+                        standing.put(at, material);
+                    }
+                });
+                return null;
+            }).when(block).setBlockData(any(BlockData.class), Mockito.anyBoolean());
             return block;
         });
+        final org.bukkit.WorldBorder border = mock(org.bukkit.WorldBorder.class);
+        when(border.isInside(any(Location.class))).thenReturn(true);
+        when(world.getWorldBorder()).thenReturn(border);
+        GatePreviews.occupied = (w, x, y, z) -> false;
         HiddenEntities.creationWith(creation);
 
         owner = mock(Player.class);
@@ -144,6 +162,7 @@ class GatePreviewsTest
     void tearDown() throws Exception
     {
         GatePreviews.clear();
+        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(null);
         HiddenEntities.creationWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
@@ -151,7 +170,7 @@ class GatePreviewsTest
 
     private static Directional buttonData()
     {
-        final Directional data = mock(Directional.class);
+        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
         when(data.getFaces()).thenReturn(Set.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST));
         return data;
     }
@@ -980,5 +999,177 @@ class GatePreviewsTest
 
         assertEquals(1, GatePreviews.clearAll(owner));
         verify(owner, times(takenBackByTheWoosh + 21 + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /** Obsidian frames are one a gate can be found by, as a server's Standard group makes them. */
+    private static void obsidianFramesAreFindable()
+    {
+        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Standard", Map.of("structure", "OBSIDIAN")));
+    }
+
+    private final List<Object[]> detected = new ArrayList<>();
+
+    private com.wormhole_xtreme.wormhole.model.Stargate detectsAGate()
+    {
+        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        GatePreviews.detector = (button, facing, shape) ->
+        {
+            detected.add(new Object[] { button, facing, shape });
+            return gate;
+        };
+        return gate;
+    }
+
+    /**
+     * -place builds the frame and then the button, turned to face the builder and hung on the wall,
+     * leaves the opening empty, and finds the gate from that button facing that way.
+     */
+    @Test
+    void placingBuildsTheFrameThenTheButtonAndFindsTheGateFromIt()
+    {
+        obsidianFramesAreFindable();
+        final com.wormhole_xtreme.wormhole.model.Stargate gate = detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+        final Cell buttonCell = cells.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
+        GatePreviews.show(owner, standard, null);
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner);
+
+        assertEquals(GatePreviews.Outcome.PLACED, placed.outcome());
+        assertEquals(cells.stream().map(c -> List.of(c.x(), c.y(), c.z())).toList(), written,
+            "every block, frame first and the button last");
+        for (final Cell cell : cells)
+        {
+            assertEquals((cell.part() == Part.BUTTON) ? Material.STONE_BUTTON : Material.OBSIDIAN,
+                standing.get(List.of(cell.x(), cell.y(), cell.z())), cell.toString());
+        }
+        final org.bukkit.block.data.type.Switch button = (org.bukkit.block.data.type.Switch) data.get(Material.STONE_BUTTON);
+        verify(button).setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        verify(button, Mockito.atLeastOnce()).setFacing(BlockFace.SOUTH);
+        assertEquals(1, detected.size());
+        final org.bukkit.block.Block pressed = (org.bukkit.block.Block) detected.get(0)[0];
+        assertEquals(placed.button(), pressed);
+        assertEquals(BlockFace.SOUTH, detected.get(0)[1]);
+        assertEquals(standard, detected.get(0)[2]);
+        assertEquals(gate, placed.gate());
+        verify(pressed, Mockito.atLeastOnce()).setBlockData(data.get(Material.STONE_BUTTON), false);
+    }
+
+    /** A block already right is left standing, so a half-built gate is finished rather than rebuilt. */
+    @Test
+    void placingKeepsBlocksAlreadyRight()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+        place(cells.get(0), Material.OBSIDIAN);
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Outcome.PLACED, GatePreviews.place(owner).outcome());
+
+        final List<Integer> kept = List.of(cells.get(0).x(), cells.get(0).y(), cells.get(0).z());
+        assertFalse(written.contains(kept));
+        assertEquals(cells.size() - 1, written.size());
+    }
+
+    /** A sign-dial shape's sign is left for the builder to write the gate's name on. */
+    @Test
+    void placingLeavesTheDialSignToTheBuilder() throws Exception
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final Stargate3DShape signDial = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/StandardSignDial.shape")).toArray(new String[0]));
+        final Cell sign = GateBlueprint.of(signDial, GateBlueprint.inFrontOf(signDial, 0, 64, 0, BlockFace.NORTH))
+            .stream().filter(c -> c.part() == Part.DIAL_SIGN).findFirst().orElseThrow();
+        GatePreviews.show(owner, signDial, null);
+
+        assertEquals(GatePreviews.Outcome.PLACED, GatePreviews.place(owner).outcome());
+
+        assertFalse(written.isEmpty());
+        assertFalse(written.contains(List.of(sign.x(), sign.y(), sign.z())));
+    }
+
+    /**
+     * Anything in the way, a wrong block in the frame or anything in the opening, refuses the whole
+     * gate before a block is placed, naming five and counting the rest.
+     */
+    @Test
+    void anythingInTheWayRefusesItAllAndNamesWhat()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+        final List<Cell> opening = GateBlueprint.openingOf(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0,
+            BlockFace.NORTH));
+        GatePreviews.show(owner, standard, null);
+        place(cells.get(0), Material.STONE);
+        for (int i = 0; i < 6; i++)
+        {
+            place(opening.get(i), Material.DIRT);
+        }
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner);
+
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, placed.outcome());
+        assertEquals(6, placed.inTheWay().size());
+        assertEquals("stone at " + cells.get(0).x() + " " + cells.get(0).y() + " " + cells.get(0).z(),
+            placed.inTheWay().get(0));
+        assertTrue(placed.inTheWay().get(1).startsWith("dirt at "));
+        assertEquals("2 more", placed.inTheWay().get(5));
+        assertTrue(written.isEmpty(), "nothing placed");
+        assertTrue(detected.isEmpty());
+    }
+
+    /** A block a gate or ring already owns is in the way, even where it is air. */
+    @Test
+    void aBlockAGateOrRingOwnsIsInTheWay()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final Cell owned = GateBlueprint.openingOf(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0,
+            BlockFace.NORTH)).get(2);
+        GatePreviews.occupied = (w, x, y, z) -> (x == owned.x()) && (y == owned.y()) && (z == owned.z());
+        GatePreviews.show(owner, standard, null);
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner);
+
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, placed.outcome());
+        assertEquals(List.of("a gate or ring at " + owned.x() + " " + owned.y() + " " + owned.z()), placed.inTheWay());
+        assertTrue(written.isEmpty());
+    }
+
+    /**
+     * Nothing is placed for a frame no group would find, a gate reaching into an unloaded chunk or past
+     * the world border, or a preview nobody is looking at; a gate placed but not found says so.
+     */
+    @Test
+    void placingIsRefusedBeforeAnythingIsWrittenWhenItCannotWork()
+    {
+        detectsAGate();
+        obsidianFramesAreFindable();
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK);
+        assertEquals(GatePreviews.Outcome.NOT_FINDABLE, GatePreviews.place(owner).outcome());
+        GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.OBSIDIAN);
+
+        final org.bukkit.WorldBorder border = world.getWorldBorder();
+        when(border.isInside(any(Location.class))).thenReturn(false);
+        assertEquals(GatePreviews.Outcome.OUTSIDE_BORDER, GatePreviews.place(owner).outcome());
+        when(border.isInside(any(Location.class))).thenReturn(true);
+
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        assertEquals(GatePreviews.Outcome.NOT_LOADED, GatePreviews.place(owner).outcome());
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+
+        standAt(0.5, 1.5, 0f);
+        assertEquals(GatePreviews.Outcome.NOT_LOOKING, GatePreviews.place(owner).outcome());
+        assertTrue(written.isEmpty());
+        assertTrue(detected.isEmpty());
+
+        standAt(0.5, 0.5, 180f);
+        GatePreviews.detector = (button, facing, shape) -> null;
+        assertEquals(GatePreviews.Outcome.NOT_FOUND, GatePreviews.place(owner).outcome());
+        assertFalse(written.isEmpty(), "placed, then not found");
     }
 }

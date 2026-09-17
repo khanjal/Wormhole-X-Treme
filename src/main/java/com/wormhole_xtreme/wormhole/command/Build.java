@@ -21,6 +21,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.GateInteractionHandler;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
@@ -38,8 +39,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 /**
  * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
  * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
- * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide} and
- * {@code -layer [<n>|-next|-all]}.
+ * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide},
+ * {@code -layer [<n>|-next|-all]} and {@code -place}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -80,9 +81,12 @@ public class Build implements CommandExecutor
     /** After {@link #LAYER}: one more layer, or all again after the last. */
     public static final String NEXT = "-next";
 
+    /** Builds the preview for real, with {@code wormhole.build.preview.place}. */
+    public static final String PLACE = "-place";
+
     /** Every option, in the order they are offered. */
     public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
-        CHEVRONS, DHD);
+        CHEVRONS, DHD, PLACE);
 
     private static final String USAGE = "Usage: ";
 
@@ -197,7 +201,7 @@ public class Build implements CommandExecutor
             clear(player, args);
             return;
         }
-        if (!mayPreview)
+        if (!mayPreview || (PLACE.equals(option) && !PreviewPermissions.mayPlace(player)))
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
@@ -211,6 +215,7 @@ public class Build implements CommandExecutor
             case GUIDE -> GatePreviews.guide(player);
             case MATERIALS -> listMaterials(player);
             case LAYER -> layers(player, args);
+            case PLACE -> place(player);
             default -> material(player, args);
         };
         if (done != null)
@@ -241,6 +246,33 @@ public class Build implements CommandExecutor
         }
         final Material block = Material.matchMaterial(args[2]);
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
+    }
+
+    /** {@code -place}; null once it has answered itself. */
+    private static GatePreviews.Control place(final Player player)
+    {
+        final GatePreviews.Placed placed = GatePreviews.place(player);
+        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
+        switch (placed.outcome())
+        {
+            case NOT_LOOKING -> {
+                return GatePreviews.Control.NOT_LOOKING;
+            }
+            case NOT_FINDABLE -> player.sendMessage(error + "No material group uses that frame block, so the gate "
+                + "would not be found. Nothing placed.");
+            case NOT_LOADED -> player.sendMessage(error + "Part of it is in an unloaded chunk. Move closer. Nothing placed.");
+            case OUTSIDE_BORDER -> player.sendMessage(error + "Part of it is outside the world border. Nothing placed.");
+            case IN_THE_WAY -> player.sendMessage(error + "Nothing placed. In the way: "
+                + bad(String.join(", ", placed.inTheWay())) + ". " + command(GUIDE) + " marks them.");
+            case NOT_FOUND -> player.sendMessage(error + "Placed, but no gate was found in it. " + command(GUIDE)
+                + " shows what is wrong.");
+            case PLACED -> {
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + good("Placed " + placed.gate().getGateShape().getShapeName() + "."));
+                GateInteractionHandler.offerNewGate(player, placed.button(), placed.gate());
+            }
+        }
+        return null;
     }
 
     /** {@code -layer [<n>|-next|-all]}; null once it has answered itself. */
