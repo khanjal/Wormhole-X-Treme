@@ -312,7 +312,7 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(contains("Standard takes:"));
         verify(player).sendMessage(contains("18 obsidian, 4 still to place"));
         verify(player).sendMessage(contains("1 button or lever, all in place"));
-        verify(player).sendMessage(contains("and 2 blocks cleared from its opening"));
+        verify(player).sendMessage(contains("and 2 blocks to clear from its opening"));
         verify(player).sendMessage(contains("No material group has a gold_block frame"));
         verify(player).sendMessage(contains("Look at one of your previews first."));
     }
