@@ -261,7 +261,12 @@ jobs:
           fi
           status=PENDING
           for attempt in $(seq 1 60); do
-            status=$(curl -sf -u "$SONAR_TOKEN:" "$task_url" | jq -r .task.status)
+            if ! task=$(curl -sf -u "$SONAR_TOKEN:" "$task_url"); then
+              # A blip in SonarCloud's API is retried; an answer that never comes fails below.
+              sleep 5
+              continue
+            fi
+            status=$(echo "$task" | jq -r .task.status 2>/dev/null || echo UNREADABLE)
             case "$status" in
               SUCCESS) break ;;
               FAILED|CANCELED) echo "::error::SonarCloud analysis $status"; exit 1 ;;
@@ -272,14 +277,21 @@ jobs:
             echo "::error::SonarCloud analysis did not finish in five minutes"
             exit 1
           fi
-          issues=$(curl -sf -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=$PR&resolved=false&ps=100")
+          if ! issues=$(curl -sf -u "$SONAR_TOKEN:" \
+            "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=$PR&resolved=false&ps=500") \
+            || ! echo "$issues" | jq -e .total >/dev/null 2>&1; then
+            echo "::error::Could not read this pull request's findings from SonarCloud"
+            exit 1
+          fi
           # Workflow commands need %, CR and LF escaped, and : and , as well inside a property.
           echo "$issues" | jq -r '
             def data: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
             def prop: data | gsub(":"; "%3A") | gsub(","; "%2C");
             .issues[] | "::error file=\(.component | sub("^[^:]*:"; "") | prop),line=\(.line // 1),title=\("Sonar " + .rule | prop)::\(.message | data)"'
           total=$(echo "$issues" | jq .total)
+          if [ "$total" -gt 500 ]; then
+            echo "::warning::Only the first 500 of $total findings are annotated"
+          fi
           if [ "$total" -gt 0 ]; then
             echo "::error::$total open Sonar finding(s) on this pull request. Fix them before merging."
             exit 1
