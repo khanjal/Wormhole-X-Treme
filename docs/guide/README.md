@@ -16,10 +16,8 @@ These pages say what things do. Why they work that way is in the design notes be
 
 ## What it looks like
 
-The slots below are waiting on real captures from a server. Each placeholder names the shot it
-is holding open, how long it should run and what the finished file is called;
-[CAPTURES.md](../CAPTURES.md) has the shot list, the tick arithmetic behind each length, and the
-ffmpeg commands.
+Three captures from a server; the rest, and how they were shot, are in
+[CAPTURES.md](../CAPTURES.md).
 
 **A finished gate.** All six shipped shapes, built and idle, from one camera position.
 

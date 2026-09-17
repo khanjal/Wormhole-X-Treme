@@ -12,13 +12,8 @@ built** (the whole animation is drawn to clients), **the swap is one instant** (
 read once, atomically), and **abort is confined to the countdown** (so the moving half of the
 cycle can never be interrupted).
 
-| | Stargate | Ring |
-|---|---|---|
-| What it is | A built structure | Two pads, invisible when idle |
-| Unit | One gate, dialled to another | A permanent pair |
-| Activation | Dial, button, redstone | Walking into either end |
-| Direction | One way per dial | Both ends fire together |
-| Range | Cross-world, config permitting | Same world, always |
+Against a gate: no structure, a fixed pair rather than an address, both ends fire together, and
+same world only. The README has the four ways to travel side by side.
 
 ## Contents
 
@@ -191,7 +186,7 @@ exercised in one direction only. An empty committed cycle is legal and expected.
 
 **Countdown length is a constraint, not a preference.** Getting clear of a ring is around four
 blocks from the middle, close to a second at walking pace, and the abort window is only real
-because the countdown comfortably exceeds that. `rings.countdown` defaults to 100 ticks and is
+because the countdown comfortably exceeds that. `ring-countdown-ticks` defaults to 100 ticks and is
 floored at 30; below that, rings begin taking people who were only walking past.
 
 ## Trigger and re-arm
@@ -252,8 +247,8 @@ protecting everything else would mean the pattern never appearing.
 | | Default | Constraint | Shown |
 |---|---|---|---|
 | Ring | the slab it was laid in | **Must be a slab** (`minecraft:slabs`) | The travelling rings, during deploy and retract |
-| Light | `rings.default-light-material` | Any placeable block | The pad, from the countdown until the rings are home |
-| Flash | `rings.default-flash-material` | Any placeable block | A ring, as the transport light passes through it |
+| Light | `ring-default-light` | Any placeable block | The pad, from the countdown until the rings are home |
+| Flash | `ring-default-flash` | Any placeable block | A ring, as the transport light passes through it |
 
 **The pad light and the transport flash are separate** because they are separate moments. They
 start matched, so an untouched ring reads as one effect rather than two, and setting them apart
@@ -305,7 +300,7 @@ interiors, so a blocked pair's answer is trusted for a second before the world i
 **A refused ring shows itself.** An idle ring is invisible, which is the point of it, and that
 works against a player the moment one turns them away: they are told it is recharging while
 standing on ground that looks like every other patch of ground. So a refusal briefly lights the
-pattern for that one player, sent only to them and taken back after `rings.outline-ticks`.
+pattern for that one player, sent only to them and taken back after `ring-outline-ticks`.
 Nothing is written to the world.
 
 Shown for any refusal that leaves the pad dark — recharging, and an end that is built in or has
@@ -405,7 +400,7 @@ stopped highest, every ring after it would descend through where it had already 
 The drop is measured when a cycle engages, not when the ring is built, because floors change. Two
 limits come with it: **at least four blocks** from ceiling to floor, derived rather than chosen,
 since the plane has to be at least level with the top of the finished stack; and **at most
-`rings.max-ceiling-drop`**, ten by default, past which the ring is over a shaft rather than a
+`ring-max-ceiling-drop`**, ten by default, past which the ring is over a shaft rather than a
 room.
 
 ## Rings are drawn, not built
@@ -463,7 +458,7 @@ the next emerge.
 
 The **stored** value stays `CONCURRENT` or `SEQUENTIAL`, because that names what the setting
 actually does — how many rings are in the air at once — and stays true whatever the tick rate is.
-Naming it by speed would claim the same ground as `rings.deploy-ticks`: `slow` with
+Naming it by speed would claim the same ground as `ring-deploy-ticks`: `slow` with
 `deploy-ticks: 1` is not slow. The two differ *only* in when a ring leaves the plane, so this is
 one number rather than two animations, and style belongs to the **end** like the materials, since
 nobody watches both at once.
@@ -590,7 +585,7 @@ Three knobs solving three different problems. The count is the least important.
 nothing to look up — the index is chunk-bucketed, so it is one hash hit per block crossing
 regardless. What breaks is two footprints touching: a player between them is inside two trigger
 volumes, and two animations write the same blocks and restore each other's originals. So overlap
-of footprint *or* interior is refused outright at create, with `rings.min-separation` on top.
+of footprint *or* interior is refused outright at create, with `ring-min-separation` on top.
 
 **Distance is not a technical cost; unloaded chunks are.** A 20,000-block teleport costs the same
 as a 20-block one. The actual failure is the far end sitting in an unloaded chunk when the cycle
@@ -598,74 +593,30 @@ fires, so the partner's chunks are force-loaded for the duration of the transit,
 removal on retract so nothing outlives the cycle that requested it.
 
 **The reach limit is a design choice, not a technical one**, and it is two numbers because the
-two axes are different questions. `rings.max-link-distance` is 256 blocks on the ground —
+two axes are different questions. `ring-max-link-distance` is 256 blocks on the ground —
 comfortably a whole base and nowhere near town to town — which stops rings becoming the answer to
-everything. `rings.max-link-height` is 384, the full height of the world, because going straight
+everything. `ring-max-link-height` is 384, the full height of the world, because going straight
 down is exactly what rings are *for*. Either set to `0` lifts that limit. **Quota** is
-`rings.max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
+`ring-max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
 ## Config
 
-```yaml
-rings:
-  countdown: 100             # ticks; floored at 30, see the countdown section
-  cycle-cooldown: 600        # ticks, per pair
-  deploy-ticks: 2            # ticks between animation frames
-  settle-ticks: 20           # stack stands still this long before the teleport
-  hold-ticks: 20             # and this long after the light finishes, before retracting
-  flash-ticks: 3             # how long each ring stays lit as the light passes
-
-  outline-on-refusal: true   # light the pattern for somebody a ring turns away
-  outline-ticks: 40          # and for how long
-  lights-linger-ticks: 20    # pad stays lit this long after the last ring is home
-
-  sounds-enabled: true       # whether rings make any noise at all
-  sound-volume: 1.0          # also the audible range: 1.0 carries about sixteen blocks
-  sound-open: block.beacon.activate
-  sound-ring: block.piston.extend
-  sound-flash: block.beacon.power_select
-  sound-close: block.beacon.deactivate
-  sound-refused: block.note_block.bass
-
-  max-pairs-per-player: 10
-  min-separation: 8          # blocks, centre to centre
-  max-link-distance: 256     # on the ground; 16 chunks. 0 = unlimited
-  max-link-height: 384       # in height; the full world. 0 = unlimited
-  max-ceiling-drop: 10       # how far a ceiling ring will look for its floor
-  reach: 4                   # block layers of passenger volume, from the ring plane
-
-  default-ring-material: SMOOTH_STONE_SLAB   # fallback only; not what reset goes back to
-  default-light-material: REDSTONE_LAMP
-  default-flash-material: REDSTONE_LAMP      # set it apart to make the transport its own moment
-  default-access: PRIVATE    # what a newly built pair starts as
-  default-style: CONCURRENT  # or SEQUENTIAL; how the stack comes out
-```
+Every ring setting is a flat `ring-` key in `config.yml`, listed with its default in the
+[ring guide](guide/RINGS.md#ring-settings). Three are worth a note here: `ring-countdown-ticks`
+is floored at 30 for the reason under [the cycle](#the-cycle); `ring-max-link-distance` and
+`ring-max-link-height` are two numbers because the two axes are different questions, under
+[limits](#limits); and `ring-default-material` is a fallback only, never what `reset` goes back
+to, under [names, removal and reset](#names-removal-and-reset).
 
 ## Commands and permissions
 
-```
-/wormhole ring create                     build the pad you are standing in; twice to pair
-/wormhole ring cancel                     discard a pending first endpoint
-/wormhole ring list                       your pairs, by name where set
-/wormhole ring remove [id]                remove both ends
-/wormhole ring edit <field> <value>       edit the ring you are standing in
-/wormhole ring edit <id> <field> <value>  edit both ends of that pair
-/wormhole ring allow <player> [id]        let somebody use it
-/wormhole ring deny <player> [id]         stop them
-/wormhole ring owner <player> [id]        hand the pair to somebody else
-
-  fields:  ring <material>    the travelling slabs; must be a slab           per end
-           light <material>   the countdown lights                           per end
-           built <material>   the slab `reset` restores to; must be a slab   per end
-           name <text>        what this end is called                        per end
-           access public|private                                             per pair
-           style fast|slow                                                   per end
-```
+The verbs, the `edit` fields and the four nodes are listed in the [ring guide](guide/RINGS.md)
+and the [server guide](guide/SERVER.md#permissions). The decisions behind them:
 
 **Everything adjustable lives under one `edit` verb** rather than a subcommand per field. Gates
 grew a separate top-level command for each, which is four registry entries, four usage strings
 and four completers saying the same thing four ways; `edit` stays one entry however many fields
-rings end up with. (Gates have since caught up: see [GATES.md](GATES.md#commands).)
+rings end up with. Gates have since caught up.
 
 **Whether an id is given selects the scope**, and it reads the way people work: you are usually
 standing in the ring you want to change, so the id is omitted and only that end changes. Naming a
@@ -679,17 +630,10 @@ the server and listing none.
 `Built:` value does not work, because the plugin resaves every ring from memory on shutdown, so
 an on-disk edit is overwritten before it is ever read back.
 
-```
-wormhole.ring.build       create and pair rings                  default: op
-wormhole.ring.use         travel by a ring you are allowed on    default: true
-wormhole.ring.admin       use and manage any pair                default: op
-wormhole.ring.unlimited   bypass the per-player quota            default: op
-```
-
-Checked by `RingPermissions`, not by `WXPermissions`: the gate class is built around gates — its
-checks take a `Stargate`, consult its network, and fall through owner and network rules that mean
-nothing here. Being named on a private pair's allow list lets somebody **travel** by it, not
-recolour, rename, give away or delete it.
+**Rings have their own permission class**, `RingPermissions`, not `WXPermissions`: the gate class
+is built around gates — its checks take a `Stargate`, consult its network, and fall through owner
+and network rules that mean nothing here. Being named on a private pair's allow list lets somebody
+**travel** by it, not recolour, rename, give away or delete it.
 
 **Handing a pair over** with `/wormhole ring owner` checks the quota **against the recipient**,
 because a transfer that skipped it would let anyone past their limit by having a friend build the
@@ -739,6 +683,7 @@ events/RingTravelEvent.java        cancellable, once per travelling player
 model/ring/RingTransit.java        driving a cycle on the server clock
 model/ring/RingYamlManager.java    load and save world files
 model/ring/BukkitRingWorld.java    the one point of contact with a real world
+model/ring/BukkitGround.java
 model/ring/BukkitRingPassenger.java
 model/ring/BukkitBlockProbe.java
 command/handlers/RingCommand.java

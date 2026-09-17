@@ -1,18 +1,13 @@
-# Wormhole X-Treme — developer guide
+# Plugin API
 
 For plugins that want to hook into gates and rings: watch a trip, stop one, or read where
-somebody is going. Everything a server owner needs is in the [guide](guide/README.md); this is
-the other audience.
+somebody is going. Everything a server owner needs is in the [guide](guide/README.md); how each
+subsystem is put together is in [GATES.md](GATES.md), [RINGS.md](RINGS.md), [BEAMS.md](BEAMS.md)
+and [MIRRORS.md](MIRRORS.md).
 
-Requires **Java 17** and Minecraft **1.20 through 26.2**. The plugin is compiled against
-the oldest supported API, so anything documented here works across that whole range.
-
-## Contents
-
-- [Depending on the plugin](#depending-on-the-plugin)
-- [Events](#events)
-- [Notes on the internals](#notes-on-the-internals)
-- [Contributing](#contributing)
+The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.2**. It is compiled against
+the oldest supported API, so everything here works across that whole range. Beaming and mirrors
+raise no events yet.
 
 ## Depending on the plugin
 
@@ -23,31 +18,24 @@ Add the jar to your build however you normally would, and declare the dependency
 depend: [WormholeXTreme]
 ```
 
-Use `softdepend` instead if your plugin should still load when Wormhole X-Treme is absent —
-then guard your listener registration on the plugin being present.
-
-They are ordinary Bukkit events: register a `Listener`, annotate with `@EventHandler`, and
-set `ignoreCancelled = true` if you only care about trips nobody else has already stopped.
-
-Every event lives in `com.wormhole_xtreme.wormhole.events`.
-
-Before 1.3.0 that was not quite true: `StargateMinecartTeleportEvent` sat alone in
-`...wormhole.event`, singular. It has moved to join the others. If you wrote against it
-before, that import needs the plural now — the only breaking change in this release, and one
-worth taking while the number of people affected is countable.
+Use `softdepend` instead if your plugin should still load when Wormhole X-Treme is absent, and
+guard your listener registration on the plugin being present.
 
 ## Events
 
-Gate lifecycle is published as Bukkit events, so another plugin can react without this one
-knowing it exists.
+Every event lives in `com.wormhole_xtreme.wormhole.events`. They are ordinary Bukkit events:
+register a `Listener`, annotate with `@EventHandler`, and set `ignoreCancelled = true` if you
+only care about trips nobody else has already stopped.
 
-| Event | Fired |
-| --- | --- |
-| `StargateCreatedEvent` | after a gate is built, named, registered and saved |
-| `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
-| `StargatePlayerTravelEvent` | before a player travels, and **cancellable** |
-| `RingTravelEvent` | before a player is carried by transport rings, and **cancellable** |
-| `StargateMinecartTeleportEvent` | after a minecart has crossed, carrying the old cart and the new |
+| Event | Fired | Cancellable |
+| --- | --- | --- |
+| `StargateCreatedEvent` | after a gate is built, named, registered and saved | no |
+| `StargateRemovedEvent` | while a gate is being removed, before it is torn down | no |
+| `StargatePlayerTravelEvent` | before a player travels through a gate | **yes** |
+| `RingTravelEvent` | before a player is carried by transport rings | **yes** |
+| `StargateMinecartTeleportEvent` | after a minecart has crossed a gate | no |
+
+### Gate lifecycle
 
 ```java
 @EventHandler
@@ -59,54 +47,23 @@ public void onGateCreated(final StargateCreatedEvent event)
 ```
 
 `getStargate()` gives the gate itself. `getBuilder()` and `getRemover()` give the player
-responsible, and are **null** when the gate was not created or removed by one — check before
-using them.
+responsible, and are **null** when the gate was not created or removed by one.
 
-The removal event fires *before* teardown, so the gate can still be read: name, owner,
-network, blocks and teleport location are all still populated, which is what a listener
-cleaning up its own records needs.
+The removal event fires *before* teardown, so the gate can still be read: name, owner, network,
+blocks and teleport location are all still populated, which is what a listener cleaning up its
+own records needs. Refreshing a gate does **not** raise a removal: a refresh re-detects the
+geometry of a gate that is not going away, so listeners are not told to discard what they know.
 
-`StargateMinecartTeleportEvent` is the odd one out in more than its package. A minecart does
-not survive a gate: it is removed and a fresh one spawned at the far end, so anything holding
-a reference to the old cart needs telling. `getOldMinecart()` and `getNewMinecart()` are that
-telling. It fires after the swap and is not cancellable — by then the trip has happened.
+Neither lifecycle event is cancellable; both are sent after the decision has been made and, for
+creation, after the gate is already on disk. To prevent a gate being built, deny `wormhole.build`
+rather than listening for it.
 
-The lifecycle events are not cancellable. Both are sent after the decision has been made
-and, for creation, after the gate is already on disk. To prevent a gate being built, deny
-`wormhole.build` rather than listening for it.
-
-### Rings
-
-`RingTravelEvent` fires once per travelling player, after both ends of the pair have been
-read and before either has been written — so a listener always sees the whole trip as it was
-before any of it happened, never a half-finished one with the people from one end already
-standing in the other.
-
-Cancelling takes that player out of the trip and leaves everybody else in it: the rings still
-fire, and they stay put while the others go. There is no way to cancel a whole cycle, because
-by that point the rings are up and coming down again regardless.
-
-It fires only for players. Mobs, items and vehicles ride along as cargo and raise nothing, so
-cancelling stops a person and not the world around them.
-
-```java
-@EventHandler
-public void onRingTravel(final RingTravelEvent event)
-{
-    if (combatTag.isTagged(event.getPlayer()))
-    {
-        event.setCancelled(true);
-        event.getPlayer().sendMessage("Not while you are in combat.");
-    }
-}
-```
-
-### Watching and stopping travel
+### Gate travel
 
 `StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
-iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is
-the gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact
-spot the player would land.
+iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is the
+gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact spot
+the player would land.
 
 ```java
 @EventHandler
@@ -119,42 +76,42 @@ public void onTravel(final StargatePlayerTravelEvent event)
 }
 ```
 
-It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It
-does not fire for the vehicle itself, nor for anything travelling on its own, so cancelling
-stops the player rather than the world around them.
+It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It does
+not fire for the vehicle itself, nor for anything travelling on its own, so cancelling stops the
+player rather than the world around them.
 
-A cancelled traveller is held, not moved. If they were walking in they are kept out; if they
-were already standing in the portal they stay free to walk away. Refusing every move of
-someone already inside would leave them unable to leave the ring at all.
+A cancelled traveller is held, not moved. If they were walking in they are kept out; if they were
+already standing in the portal they stay free to walk away, since refusing every move of someone
+already inside would leave them unable to leave the ring at all. A listener that throws does not
+stop travel: another plugin failing is not a decision to strand somebody halfway into a wormhole.
 
-A listener that throws does not stop travel. Another plugin failing is not a decision to
-strand somebody halfway into a wormhole.
+### Minecarts
 
-Refreshing a gate does **not** raise a removal. A refresh deregisters the gate and registers
-it again with freshly detected geometry, which is not the gate going away, so a listener is
-not told to discard what it knows about it.
+A minecart does not survive a gate: it is removed and a fresh one spawned at the far end, so
+anything holding a reference to the old cart needs telling. `StargateMinecartTeleportEvent`
+carries `getOldMinecart()` and `getNewMinecart()`. It fires after the swap and is not cancellable
+— by then the trip has happened.
 
-## Notes on the internals
+### Rings
 
-How each subsystem is put together, and why, is written up separately:
-**[GATES.md](GATES.md)**, **[RINGS.md](RINGS.md)** and **[BEAMS.md](BEAMS.md)**. A few
-conventions worth knowing before you read any of them:
+`RingTravelEvent` fires once per travelling player, after both ends of the pair have been read
+and before either has been written — so a listener always sees the whole trip as it was before
+any of it happened, never a half-finished one with the people from one end already standing in
+the other.
 
-- `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every
-  wood, stone and Nether variant, so nothing tests for those block types one at a time.
-- Air is tested with `MaterialUtils.isAirMaterial(Material)`, never `== Material.AIR`, so
-  `CAVE_AIR` and `VOID_AIR` count. It compares the three constants rather than calling
-  `Material.isAir()`, which goes through `org.bukkit.Registry` from 1.20.6 on and needs a
-  running server.
-- A gate's sign material comes from its shape's `SIGN_MATERIAL=` key, read off the shape
-  object; nothing hardcodes `OAK_WALL_SIGN`.
-- Gates are stored one YAML file each by `StargateYamlManager`; ring pairs are stored one
-  file per world by `RingYamlManager`. There is no database backend. A legacy SQLite database
-  from an older Wormhole X-Treme is imported by `LegacyDatabaseImporter`, which announces
-  itself at startup and runs from `/wormhole gate import`.
+Cancelling takes that player out of the trip and leaves everybody else in it: the rings still
+fire, and they stay put while the others go. There is no way to cancel a whole cycle, because by
+that point the rings are up and coming down again regardless. It fires only for players; mobs,
+items and vehicles ride along as cargo and raise nothing.
 
-## Contributing
-
-Submit PRs against the `main` branch. Keep changes modular and add unit or integration tests
-where possible — the suite runs on every supported Minecraft version in CI, so anything that
-only works on one of them will be caught there.
+```java
+@EventHandler
+public void onRingTravel(final RingTravelEvent event)
+{
+    if (combatTag.isTagged(event.getPlayer()))
+    {
+        event.setCancelled(true);
+        event.getPlayer().sendMessage("Not while you are in combat.");
+    }
+}
+```

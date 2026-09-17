@@ -52,6 +52,13 @@ option only with a dash, and no name may start with one. Scripts and command blo
   WebP over APNG, which measured the largest of the three.
 - **`CAPTURES.md` has the checklist for recording**: world and client settings, stills, 60fps
   video, and a WebP encode in place of the APNG one.
+- **The docs are shorter, and say each thing once.** Commands, settings and permission nodes
+  live in `docs/guide/` only; the design notes point there instead of repeating them, and the
+  four-way comparison of gates, rings, beams and mirrors is in the README alone. `docs/RINGS.md`
+  now names the flat `ring-*` settings that exist rather than a `rings:` block that does not;
+  `guide/SERVER.md` names `timeout-shutdown` rather than the old command. The mirror guide is
+  rewritten around what a mirror shows, and gains a settings table. `API.md` is events only, with
+  the coding conventions moved to `DEVELOPMENT.md`. Notes about what a page used to say are gone.
 
 ### Internals
 

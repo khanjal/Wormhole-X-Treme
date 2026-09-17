@@ -376,9 +376,6 @@ General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
 
-The kawoosh default changed in 1.5.0. A `config.yml` that already has the old value keeps it —
-set `gate-sound-kawoosh`, or delete the line to have it rewritten.
-
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that
 is felt as a stumble on landing.

@@ -4,18 +4,10 @@ A ring is an invisible pad set into a floor or ceiling. Walk in, it counts down,
 both ends swaps in the same instant. Why they work the way they do is in the design notes,
 [docs/RINGS.md](../RINGS.md).
 
-| | Stargate | Ring |
-|---|---|---|
-| Addressing | Dial any gate by name | Fixed pair |
-| Orientation | Vertical | Floor or ceiling |
-| Activation | Button, then `/dial`; or button or redstone on a dial sign | Walk into it |
-| Direction | One way per dial | Both ends fire together |
-| Appearance | Permanent structure | Invisible until it fires |
-| Range | Cross-world, config permitting | Same world |
-
-Two people at opposite ends swap places in one trip. Rings reach 256 blocks across but the full
-height of the world, because going straight down — a mine to the hall above it — is what they are
-for.
+Unlike a gate, a ring is a fixed pair: it is not dialled, it lies in a floor or ceiling rather
+than standing up, both ends fire together, and it stays in one world. Two people at opposite ends
+swap places in one trip. Rings reach 256 blocks across but the full height of the world, because
+going straight down — a mine to the hall above it — is what they are for.
 
 ## Contents
 
@@ -23,7 +15,6 @@ for.
 - [Using rings](#using-rings)
 - [Ring settings](#ring-settings)
 - [Editing a pair](#editing-a-pair)
-- [Permissions](#permissions)
 - [Sounds](#sounds)
 
 ## Building a ring pair
@@ -118,6 +109,7 @@ edits both.
 | `ring` | per end | Any slab, including one a data pack adds |
 | `light` | per end | The pad while the ring works; completion suggests blocks that look like lights |
 | `flash` | per end | The light running through the stack |
+| `built` | per end | The slab `reset` goes back to; must be a slab |
 | `name` | per end | Free text; stand in the ring you mean |
 | `access` | per pair | `public` or `private` |
 | `style` | per end | `fast` sends several rings up together, `slow` one at a time |
@@ -131,16 +123,9 @@ off. `ring deny <player>` takes that back, and `ring owner <player>` hands the p
 
 Other ring commands: `ring list`, `ring remove [id]`, `ring cancel`.
 
-## Permissions
-
-| Node | Default | Allows |
-|---|---|---|
-| `wormhole.ring.build` | op | Creating and pairing rings |
-| `wormhole.ring.use` | true | Travelling by a ring you are allowed on |
-| `wormhole.ring.admin` | op | Using and managing any pair |
-| `wormhole.ring.unlimited` | op | Owning more pairs than the quota |
-
-Being on an allow list lets somebody travel, not recolour, rename, give away or delete the pair.
+Who may build, use and manage rings is set by the four `wormhole.ring.*` nodes in the
+[server guide](SERVER.md#permissions). Being on an allow list lets somebody travel, not recolour,
+rename, give away or delete the pair.
 
 ## Sounds
 
