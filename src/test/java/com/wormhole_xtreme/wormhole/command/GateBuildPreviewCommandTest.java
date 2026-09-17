@@ -234,7 +234,7 @@ class GateBuildPreviewCommandTest
         }
         verify(player).sendMessage(contains("Cleared 3 previews."));
         verify(player).sendMessage(contains("Invalid shape: clear"));
-        verify(player).sendMessage(contains("No such option: -bogus. Try -clear, -activate, -iris, -material, -chevrons, -dhd."));
+        verify(player).sendMessage(contains("No such option: -bogus. Try -clear, -activate, -iris, -material, -materials, -guide, -chevrons, -dhd."));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -262,6 +262,7 @@ class GateBuildPreviewCommandTest
             previews.when(() -> GatePreviews.iris(player)).thenReturn(GatePreviews.Control.IRIS_CLOSED);
             previews.when(() -> GatePreviews.toggleDhd(player)).thenReturn(GatePreviews.Control.DHD_HIDDEN);
             previews.when(() -> GatePreviews.toggleChevrons(player)).thenReturn(GatePreviews.Control.CHEVRONS_PLAIN);
+            previews.when(() -> GatePreviews.guide(player)).thenReturn(GatePreviews.Control.GUIDE_ON);
             previews.when(() -> GatePreviews.material(any(Player.class), any(MaterialGroup.class)))
                 .thenReturn(GatePreviews.Control.CHANGED);
             previews.when(() -> GatePreviews.material(any(Player.class), any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class),
@@ -271,6 +272,7 @@ class GateBuildPreviewCommandTest
             run("gate", "build", "-IRIS");
             run("gate", "build", "-dhd");
             run("gate", "build", "-chevrons");
+            run("gate", "build", "-guide");
             run("gate", "build", "-material", "atlantis");
             run("gate", "build", "-material", "frame", "gold_block");
 
@@ -283,7 +285,35 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(contains("Iris closed."));
         verify(player).sendMessage(contains("DHD hidden."));
         verify(player).sendMessage(contains("Chevrons drawn as frame"));
+        verify(player).sendMessage(contains("Guide on"));
         verify(player).sendMessage(contains("Materials changed."));
+        verify(player).sendMessage(contains("Look at one of your previews first."));
+    }
+
+    /**
+     * -materials lists each material with what is left of it, says what is in the opening, and warns
+     * when no group would find a gate built in that frame.
+     */
+    @Test
+    void materialsListsWhatIsLeftAndWarnsOfAFrameNoGroupFinds()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.materials(player)).thenReturn(
+                new GatePreviews.Materials("Standard", List.of(new com.wormhole_xtreme.wormhole.model.preview.BuildGuide.Need(
+                    "obsidian", 18, 4), new com.wormhole_xtreme.wormhole.model.preview.BuildGuide.Need("button or lever", 1, 0)),
+                    2, false, org.bukkit.Material.GOLD_BLOCK),
+                (GatePreviews.Materials) null);
+
+            run("gate", "build", "-materials");
+            run("gate", "build", "-MATERIALS");
+        }
+        verify(player).sendMessage(contains("Standard takes:"));
+        verify(player).sendMessage(contains("18 obsidian, 4 still to place"));
+        verify(player).sendMessage(contains("1 button or lever, all in place"));
+        verify(player).sendMessage(contains("and 2 blocks to clear from its opening"));
+        verify(player).sendMessage(contains("No material group has a gold_block frame"));
         verify(player).sendMessage(contains("Look at one of your previews first."));
     }
 
@@ -325,7 +355,7 @@ class GateBuildPreviewCommandTest
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
-            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-chevrons", "-dhd")));
+            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-chevrons", "-dhd")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
             .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })

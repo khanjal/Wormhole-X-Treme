@@ -19,13 +19,14 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 
 /**
  * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
- * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd} and
- * {@code -material <group>|<role> <block>}.
+ * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
+ * {@code -material <group>|<role> <block>}, {@code -materials} and {@code -guide}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -54,8 +55,15 @@ public class Build implements CommandExecutor
     /** Redresses the preview in a group, or changes one of its materials. */
     public static final String MATERIAL = "-material";
 
+    /** Lists what the preview takes to build, and what of it is still to place. */
+    public static final String MATERIALS = "-materials";
+
+    /** Marks on the preview what is still to place and what is wrong, or stops. */
+    public static final String GUIDE = "-guide";
+
     /** Every option, in the order they are offered. */
-    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, CHEVRONS, DHD);
+    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, CHEVRONS,
+        DHD);
 
     private static void doBuild(final Player player, final String[] args)
     {
@@ -152,6 +160,8 @@ public class Build implements CommandExecutor
             case IRIS -> GatePreviews.iris(player);
             case DHD -> GatePreviews.toggleDhd(player);
             case CHEVRONS -> GatePreviews.toggleChevrons(player);
+            case GUIDE -> GatePreviews.guide(player);
+            case MATERIALS -> listMaterials(player);
             default -> material(player, args);
         };
         if (done != null)
@@ -184,6 +194,34 @@ public class Build implements CommandExecutor
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
     }
 
+    /** {@code -materials}; null once it has answered itself. */
+    private static GatePreviews.Control listMaterials(final Player player)
+    {
+        final GatePreviews.Materials list = GatePreviews.materials(player);
+        if (list == null)
+        {
+            return GatePreviews.Control.NOT_LOOKING;
+        }
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        player.sendMessage(header + list.shape() + " takes:");
+        for (final BuildGuide.Need need : list.needs())
+        {
+            player.sendMessage(header + "  " + need.count() + " " + need.name()
+                + ((need.toPlace() == 0) ? ", all in place" : ", " + need.toPlace() + " still to place"));
+        }
+        if (list.blocked() > 0)
+        {
+            player.sendMessage(header + "  and " + list.blocked() + " block" + ((list.blocked() == 1) ? "" : "s")
+                + " to clear from its opening");
+        }
+        if (!list.detectable())
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No material group has a "
+                + list.frame().name().toLowerCase(Locale.ROOT) + " frame, so a gate built like this will not be found.");
+        }
+        return null;
+    }
+
     private static void tell(final Player player, final GatePreviews.Control done)
     {
         final boolean refused = switch (done)
@@ -206,6 +244,9 @@ public class Build implements CommandExecutor
             case CHEVRONS_PLAIN -> "Chevrons drawn as frame, as a gate built without chevron blocks. " + CHEVRONS
                 + " again shows them.";
             case CHEVRONS_SHOWN -> "Chevrons drawn in their own material.";
+            case GUIDE_ON -> "Guide on: blocks still to place are drawn small, wrong blocks glow red, and placed "
+                + "blocks disappear. " + GUIDE + " again turns it off.";
+            case GUIDE_OFF -> "Guide off.";
         };
         player.sendMessage((refused ? ConfigManager.MessageStrings.ERROR_HEADER : ConfigManager.MessageStrings.NORMAL_HEADER)
             .toString() + text);

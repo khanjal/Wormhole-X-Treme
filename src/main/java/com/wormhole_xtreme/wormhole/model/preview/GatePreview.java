@@ -40,6 +40,8 @@ final class GatePreview
     private final List<BlockDisplay> displays;
     /** In step with {@link #opening}; null wherever the opening is empty. */
     private final List<BlockDisplay> openingDisplays;
+    /** In step with {@link #opening}; the guide's marks where something is in the way. */
+    private final List<BlockDisplay> blockedDisplays;
     private final int lastWave;
     private final int lastWoosh;
     private final int minX;
@@ -57,6 +59,9 @@ final class GatePreview
     private boolean irisClosed;
     private boolean dhdHidden;
     private boolean plainChevrons;
+    private boolean guide;
+    private boolean finished;
+    private boolean recheckQueued;
     private long expiresAt;
     private long lastPressed;
 
@@ -72,6 +77,7 @@ final class GatePreview
         this.woosh = List.copyOf(woosh);
         this.displays = new ArrayList<>(Collections.nCopies(cells.size(), (BlockDisplay) null));
         this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
+        this.blockedDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         lastWave = cells.stream().mapToInt(Cell::wave).max().orElse(0);
         lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
@@ -164,6 +170,49 @@ final class GatePreview
     List<BlockDisplay> openingDisplays()
     {
         return openingDisplays;
+    }
+
+    List<BlockDisplay> blockedDisplays()
+    {
+        return blockedDisplays;
+    }
+
+    boolean guide()
+    {
+        return guide;
+    }
+
+    void guide(final boolean on)
+    {
+        guide = on;
+    }
+
+    /** @return whether the owner has been told the build is finished since it last was not */
+    boolean finished()
+    {
+        return finished;
+    }
+
+    void finished(final boolean told)
+    {
+        finished = told;
+    }
+
+    boolean recheckQueued()
+    {
+        return recheckQueued;
+    }
+
+    void recheckQueued(final boolean queued)
+    {
+        recheckQueued = queued;
+    }
+
+    /** @return whether a block is inside this preview's bounds */
+    boolean contains(final World at, final int x, final int y, final int z)
+    {
+        return world.equals(at) && (x >= minX) && (x <= maxX) && (y >= minY) && (y <= maxY) && (z >= minZ)
+            && (z <= maxZ);
     }
 
     /** @return every block this preview may show at once: its frame, and its opening filled */
@@ -345,6 +394,7 @@ final class GatePreview
         stopDialling();
         clear(displays);
         clear(openingDisplays);
+        clear(blockedDisplays);
         removeButton();
     }
 

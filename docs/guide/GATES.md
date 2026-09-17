@@ -55,6 +55,13 @@ Look at a preview and these change it, for you alone:
 | `gate build -material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
 | `gate build -chevrons` | Draws a group's chevron blocks as frame, since they are optional; lit chevrons then show the light material |
 | `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
+| `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
+| `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
+
+With `-guide` on you are told once every block is in place; press the button to check the gate.
+A block is judged the way the gate is found: a chevron may be the frame or the group's chevron
+block, and the DHD takes any button or a lever. The dial sign of a `SignDial` shape is optional.
+Once a real button stands on the preview's, clicking it presses the real one.
 
 Sounds play to you alone. The wormhole and its kawoosh are sent to you as blocks, the way a real
 gate draws them, since a display cannot show water; walk into one and your client treats it as

@@ -3,8 +3,10 @@ package com.wormhole_xtreme.wormhole.model.preview;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -20,11 +22,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -35,10 +39,13 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -75,6 +82,8 @@ class GatePreviewsTest
     private Runnable dialStep;
     private BukkitTask dialTask;
     private final List<Long> dialDelays = new ArrayList<>();
+    /** What stands in the world, by x, y and z; air everywhere else. */
+    private final Map<List<Integer>, Material> standing = new HashMap<>();
     private final long[] now = { 1_000_000L };
     private Stargate3DShape standard;
     private final RecordingCreation creation = new RecordingCreation(type ->
@@ -103,9 +112,14 @@ class GatePreviewsTest
 
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        final org.bukkit.block.Block air = mock(org.bukkit.block.Block.class);
-        when(air.getBlockData()).thenAnswer(inv -> data.computeIfAbsent(Material.AIR, m -> mock(BlockData.class)));
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv ->
+        {
+            final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+            when(block.getBlockData()).thenAnswer(read -> data.computeIfAbsent(Material.AIR, m -> mock(BlockData.class)));
+            when(block.getType()).thenReturn(standing.get(List.of(inv.getArgument(0), inv.getArgument(1),
+                inv.getArgument(2))));
+            return block;
+        });
         HiddenEntities.creationWith(creation);
 
         owner = mock(Player.class);
@@ -490,10 +504,225 @@ class GatePreviewsTest
         verify(owner, times(sentBack)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
 
+        final long reads = readsOfTheWorld();
+
         assertEquals(1, GatePreviews.clearAll(owner));
 
         verify(owner, times(sentBack)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
-        verify(world, times(sentBack)).getBlockAt(anyInt(), anyInt(), anyInt());
+        assertEquals(reads, readsOfTheWorld(), "nothing read, so nothing loaded");
+    }
+
+    private long readsOfTheWorld()
+    {
+        return Mockito.mockingDetails(world).getInvocations().stream()
+            .filter(call -> "getBlockAt".equals(call.getMethod().getName())).count();
+    }
+
+    private void place(final Cell cell, final Material material)
+    {
+        standing.put(List.of(cell.x(), cell.y(), cell.z()), material);
+    }
+
+    private static float scaleOf(final BlockDisplay display)
+    {
+        final ArgumentCaptor<Transformation> drawn = ArgumentCaptor.forClass(Transformation.class);
+        verify(display, Mockito.atLeastOnce()).setTransformation(drawn.capture());
+        return drawn.getValue().getScale().x();
+    }
+
+    /**
+     * The guide takes a correctly placed block's display away, draws a block still to place small, and
+     * outlines a wrong one in red; turned off, it draws the whole gate again.
+     */
+    @Test
+    void theGuideDrawsWhatIsLeftSmallWhatIsWrongInRedAndNothingOverWhatIsDone()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay done = spawned.get(0);
+        final BlockDisplay wrong = spawned.get(1);
+        final BlockDisplay left = spawned.get(2);
+        place(cells.get(0), Material.OBSIDIAN);
+        place(cells.get(1), Material.DIRT);
+
+        assertEquals(GatePreviews.Control.GUIDE_ON, GatePreviews.guide(owner));
+
+        verify(done).remove();
+        assertEquals(1.02f, scaleOf(wrong), 1e-6f);
+        verify(wrong).setGlowing(true);
+        verify(wrong).setGlowColorOverride(Color.RED);
+        assertEquals(0.5f, scaleOf(left), 1e-6f);
+        verify(left, never()).setGlowing(true);
+        assertEquals(STANDARD_BLOCKS, spawned.size(), "nothing new drawn");
+
+        assertEquals(GatePreviews.Control.GUIDE_OFF, GatePreviews.guide(owner));
+
+        assertEquals(STANDARD_BLOCKS + 1, spawned.size(), "the placed block's display back");
+        assertEquals(1.0f, scaleOf(wrong), 1e-6f);
+        final InOrder glow = inOrder(wrong);
+        glow.verify(wrong).setGlowing(true);
+        glow.verify(wrong).setGlowing(false);
+        assertEquals(1.0f, scaleOf(left), 1e-6f);
+    }
+
+    /** With the guide on, a block in the opening is marked in red glass, and the mark goes once it is cleared. */
+    @Test
+    void theGuideMarksABlockInTheOpeningUntilItIsCleared()
+    {
+        GatePreviews.show(owner, standard, null);
+        final Cell inTheWay = GateBlueprint.openingOf(standard,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(0);
+        place(inTheWay, Material.COBBLESTONE);
+
+        GatePreviews.guide(owner);
+
+        assertEquals(new Location(world, inTheWay.x(), inTheWay.y(), inTheWay.z()),
+            creation.places.get(creation.places.size() - 1));
+        final BlockDisplay mark = spawned.get(spawned.size() - 1);
+        verify(mark).setBlock(data.get(Material.RED_STAINED_GLASS));
+        verify(mark).setGlowing(true);
+
+        standing.clear();
+        GatePreviews.tick();
+
+        verify(mark).remove();
+    }
+
+    /** Once every block is in place and the opening clear, the builder is told, once. */
+    @Test
+    void theBuilderIsToldOnceWhenEveryBlockIsInPlace()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.guide(owner);
+        for (final Cell cell : cells)
+        {
+            place(cell, (cell.part() == Part.BUTTON) ? Material.OAK_BUTTON : Material.OBSIDIAN);
+        }
+        final Cell last = cells.get(0);
+        standing.remove(List.of(last.x(), last.y(), last.z()));
+        GatePreviews.tick();
+        verify(owner, never()).sendMessage(contains("is in place"));
+
+        final Cell inTheWay = GateBlueprint.openingOf(standard,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(5);
+        place(inTheWay, Material.DIRT);
+        place(last, Material.OBSIDIAN);
+        GatePreviews.tick();
+        verify(owner, never()).sendMessage(contains("is in place"));
+
+        standing.remove(List.of(inTheWay.x(), inTheWay.y(), inTheWay.z()));
+        GatePreviews.tick();
+        GatePreviews.tick();
+
+        verify(owner, times(1)).sendMessage(contains("Every block of Standard is in place"));
+        assertTrue(spawned.stream().allMatch(display -> Mockito.mockingDetails(display).getInvocations().stream()
+            .anyMatch(call -> "remove".equals(call.getMethod().getName()))), "and nothing is drawn over the gate");
+    }
+
+    /** A dial sign is not needed for the gate to be found, so the build is finished without one. */
+    @Test
+    void aSignDialGateIsFinishedWithoutItsSign() throws Exception
+    {
+        final Stargate3DShape signDial = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/StandardSignDial.shape")).toArray(new String[0]));
+        final List<Cell> cells = GateBlueprint.of(signDial, GateBlueprint.inFrontOf(signDial, 0, 64, 0, BlockFace.NORTH));
+        assertTrue(cells.stream().anyMatch(cell -> cell.part() == Part.DIAL_SIGN));
+        GatePreviews.show(owner, signDial, null);
+        for (final Cell cell : cells)
+        {
+            if (cell.part() != Part.DIAL_SIGN)
+            {
+                place(cell, (cell.part() == Part.BUTTON) ? Material.LEVER : Material.OBSIDIAN);
+            }
+        }
+
+        GatePreviews.guide(owner);
+
+        verify(owner).sendMessage(contains("Every block of StandardSignDial is in place"));
+    }
+
+    /**
+     * A block placed or broken inside a preview redraws it on the next tick, once however many change
+     * in that tick; one outside it redraws nothing.
+     */
+    @Test
+    void aChangedBlockRedrawsThePreviewItStandsInOnTheNextTick()
+    {
+        final Cell first = standardLookingNorth().get(0);
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.guide(owner);
+        dialDelays.clear();
+
+        GatePreviews.blockChanged(world, first.x() + 50, first.y(), first.z());
+        assertTrue(dialDelays.isEmpty(), "outside the preview");
+
+        place(first, Material.OBSIDIAN);
+        GatePreviews.blockChanged(world, first.x(), first.y(), first.z());
+        GatePreviews.blockChanged(world, first.x(), first.y(), first.z());
+        assertEquals(List.of(1L), dialDelays);
+        verify(spawned.get(0), never()).remove();
+
+        dialStep.run();
+
+        verify(spawned.get(0)).remove();
+        GatePreviews.blockChanged(world, first.x(), first.y(), first.z());
+        assertEquals(List.of(1L, 1L), dialDelays, "and the next change is seen");
+    }
+
+    /** A redraw queued for a preview cleared before it runs draws nothing back. */
+    @Test
+    void aRedrawForAClearedPreviewDrawsNothing()
+    {
+        final Cell first = standardLookingNorth().get(0);
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.blockChanged(world, first.x(), first.y(), first.z());
+        GatePreviews.clearAll(owner);
+        final int drawn = spawned.size();
+
+        dialStep.run();
+
+        assertEquals(drawn, spawned.size());
+    }
+
+    /** A real button on the preview's takes clicks: the preview's own box goes, guide or not. */
+    @Test
+    void aRealButtonOnThePreviewsTakesTheClicks()
+    {
+        final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
+            .orElseThrow();
+        GatePreviews.show(owner, standard, null);
+        assertEquals(1, buttons.size());
+
+        place(button, Material.STONE_BUTTON);
+        GatePreviews.blockChanged(world, button.x(), button.y(), button.z());
+        dialStep.run();
+
+        verify(buttons.get(0)).remove();
+        assertEquals(1, buttons.size(), "and none put back");
+    }
+
+    /** -materials counts what the preview takes, what is left to place, and what is in its opening. */
+    @Test
+    void theMaterialsListCountsWhatIsLeft()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        place(cells.get(0), Material.OBSIDIAN);
+        place(cells.get(1), Material.OBSIDIAN);
+        place(GateBlueprint.openingOf(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(3),
+            Material.DIRT);
+
+        final GatePreviews.Materials list = GatePreviews.materials(owner);
+
+        assertEquals("Standard", list.shape());
+        assertEquals(List.of(new BuildGuide.Need("obsidian", STANDARD_BLOCKS - 1, STANDARD_BLOCKS - 3),
+            new BuildGuide.Need("button or lever", 1, 1)), list.needs());
+        assertEquals(1, list.blocked());
+        assertEquals(Material.OBSIDIAN, list.frame());
+
+        standAt(0.5, 1.5, 0f);
+        assertNull(GatePreviews.materials(owner), "looking away");
     }
 
     /** Right-clicking the preview's button dials it; a second click inside the same moment is the same click. */

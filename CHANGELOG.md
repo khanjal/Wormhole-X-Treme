@@ -29,6 +29,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **A preview can be dialled, given an iris and redressed** while you look at it: `gate build`
   `-activate` (or right-click its button), `-iris`, `-material <group>|<role> <block>`, `-chevrons`
   to draw chevron blocks as frame, and `-dhd` to hide the DHD for a picture.
+- **`gate build -materials` lists what a preview takes, and `-guide` marks what is left to build**:
+  blocks to place drawn small, wrong ones outlined in red, placed ones gone.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
