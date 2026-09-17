@@ -29,8 +29,8 @@ Version=2
 #           In this example the switch will face towards where layer 3 would be (if there was a 3rd layer) 
 #    :D = Block the sign dialer hangs from. Only 1 per gate!
 #           The only restriction is that the block that faces it must be "I" (so nothing is in the way)
-#           This block is not required, so shapes with this block can be either type. (sign or dial)
-#           Without this block a gateshape can only be /dial gate.
+#           This block is not required. A gate with a sign hung here dials what the sign shows
+#           when its button is pressed. Without one, the button lights the gate and waits for /dial.
 #    :IA = Iris Activation Switch - Not required unless you want to be able to place an Iris on the gate.
 #
 #    IA, D, N, and A cannot be the same block, and none of those can contain W
