@@ -32,11 +32,13 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 class RingPetEscortTest
 {
+    private BukkitScheduler scheduler;
+
     @BeforeEach
     void setUp() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
-        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
     }
@@ -55,12 +57,13 @@ class RingPetEscortTest
         final Player owner = mock(Player.class);
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());
         when(owner.getName()).thenReturn("traveller");
-        when(owner.getLocation()).thenReturn(new Location(world, 0.5, 64.0, 0.5));
+        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(owner, new Location(world, 0.5, 64.0, 0.5));
         final Wolf wolf = mock(Wolf.class);
         when(wolf.isTamed()).thenReturn(true);
         when(wolf.getOwner()).thenReturn(owner);
         when(wolf.getUniqueId()).thenReturn(UUID.randomUUID());
         when(wolf.teleport(any(Location.class))).thenReturn(true);
+        when(wolf.getLocation()).thenReturn(new Location(world, 0.5, 64.0, 4.5));
         when(owner.getNearbyEntities(anyDouble(), anyDouble(), anyDouble())).thenReturn(List.of(wolf));
         final Ring far = mock(Ring.class);
         when(far.getAnchorX()).thenReturn(200);
@@ -69,6 +72,7 @@ class RingPetEscortTest
         when(far.getName()).thenReturn("far");
 
         new BukkitRingWorld(world, null).deliver(new BukkitRingPassenger(owner), far);
+        com.wormhole_xtreme.wormhole.PetTestSupport.runEscorts(scheduler);
 
         final ArgumentCaptor<Location> landed = ArgumentCaptor.forClass(Location.class);
         verify(wolf).teleport(landed.capture());

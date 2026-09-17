@@ -204,7 +204,7 @@ public final class MirrorInteraction
             sayRefused(player, target);
             return;
         }
-        com.wormhole_xtreme.wormhole.PetEscort.bring(pets, arrival);
+        com.wormhole_xtreme.wormhole.PetEscort.follow(pets, player);
         com.wormhole_xtreme.wormhole.utils.PluginLog.log(java.util.logging.Level.FINE, "Mirror "
             + MirrorText.quoted(target.name()) + " took " + player.getName() + " to " + target.destination().worldName());
         // Only on a trip that actually happened. The far banner is now in front of them, and

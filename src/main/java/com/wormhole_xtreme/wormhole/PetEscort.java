@@ -20,13 +20,16 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * Brings a player's pets along when a gate, ring, beam or mirror moves them.
  *
  * <p>Vanilla pets follow their owner only by walking or a short hop within one world, so every
- * transport left them behind. Each transport gathers before moving its traveller and brings the
- * pets after, since once the owner has gone there is nothing left to measure the pets against.
+ * transport left them behind. Each transport gathers before moving its traveller, since once the
+ * owner has gone there is nothing left to measure the pets against, and they follow a moment later.
  */
 public final class PetEscort
 {
     /** Vanilla teleports a following pet to its owner from 12 blocks, so nearer is following. */
     static final double REACH = 12.0;
+
+    /** A second: long enough for a rider to be re-seated and a client to load a world it moved to. */
+    public static final long FOLLOW_DELAY_TICKS = 20L;
 
     private PetEscort() {}
 
@@ -136,16 +139,40 @@ public final class PetEscort
     }
 
     /**
-     * Sends gathered pets to where their owner arrived.
+     * Sends gathered pets after their owner, a moment after the trip.
+     *
+     * <p>Not in the same tick. A mounted or vehicle rider is re-seated at the far end ticks later,
+     * a refused trip leaves the owner where they were, and a client that has just changed world
+     * drops an entity sent before it has loaded, which in play left a pet beside its owner on
+     * the server and invisible to them. After the delay the owner is wherever they really are.
      *
      * @param pets
      *            what {@link #gather(Player)} found before the trip
-     * @param arrival
-     *            where the owner now stands
+     * @param owner
+     *            the traveller
+     */
+    public static void follow(final List<Entity> pets, final Player owner)
+    {
+        if (pets.isEmpty() || (owner == null) || (WormholeXTreme.getScheduler() == null))
+        {
+            return;
+        }
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            () -> bring(pets, owner), FOLLOW_DELAY_TICKS);
+    }
+
+    /**
+     * Sends gathered pets to where their owner now is.
+     *
+     * @param pets
+     *            what {@link #gather(Player)} found before the trip
+     * @param owner
+     *            the traveller, by now arrived or not
      * @return how many made it
      */
-    public static int bring(final List<Entity> pets, final Location arrival)
+    static int bring(final List<Entity> pets, final Player owner)
     {
+        final Location arrival = owner.isOnline() ? owner.getLocation() : null;
         if ((arrival == null) || (arrival.getWorld() == null))
         {
             return 0;
@@ -155,6 +182,11 @@ public final class PetEscort
         {
             try
             {
+                // Told to sit in the meantime, or still beside an owner whose trip was refused.
+                if (!follows(pet, owner.getUniqueId()) || !apart(pet.getLocation(), arrival))
+                {
+                    continue;
+                }
                 if (!pet.teleport(arrival))
                 {
                     PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + " to " + arrival.getWorld().getName()
@@ -174,5 +206,23 @@ public final class PetEscort
             }
         }
         return brought;
+    }
+
+    /**
+     * Whether a pet is out of following range of its owner.
+     *
+     * @param pet
+     *            where the pet is
+     * @param owner
+     *            where the owner is
+     * @return true if another world or beyond {@link #REACH}
+     */
+    static boolean apart(final Location pet, final Location owner)
+    {
+        if ((pet == null) || (pet.getWorld() == null) || !pet.getWorld().equals(owner.getWorld()))
+        {
+            return true;
+        }
+        return pet.distanceSquared(owner) > (REACH * REACH);
     }
 }

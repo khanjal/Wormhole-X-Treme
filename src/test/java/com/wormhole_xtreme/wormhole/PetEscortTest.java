@@ -59,6 +59,9 @@ class PetEscortTest
     @AfterEach
     void tearDown() throws Exception
     {
+        // Static, and emptied by a scheduled task a mocked scheduler never runs.
+        final java.util.Set<UUID> marked = PrivateStatics.of(WormholeXTremeVehicleListener.class, "recentlyTeleported");
+        marked.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
@@ -160,13 +163,41 @@ class PetEscortTest
         assertTrue(PetEscort.gather(owner).isEmpty());
     }
 
-    @Test
-    void bringingSendsEachPetToTheArrivalAndMarksItArrived()
+    /**
+     * Where the owner stands once they have arrived.
+     *
+     * @param where
+     *            the arrival
+     */
+    private void ownerNowAt(final Location where)
     {
-        final Wolf wolf = wolfOf(owner);
-        final Location arrival = new Location(mock(World.class), 100.5, 64.0, -20.5);
+        when(owner.isOnline()).thenReturn(true);
+        when(owner.getLocation()).thenReturn(where);
+    }
 
-        assertEquals(1, PetEscort.bring(List.of(wolf), arrival));
+    /**
+     * A pet standing somewhere.
+     *
+     * @param pet
+     *            the pet
+     * @param where
+     *            where it stands
+     * @return the pet
+     */
+    private static Wolf at(final Wolf pet, final Location where)
+    {
+        when(pet.getLocation()).thenReturn(where);
+        return pet;
+    }
+
+    @Test
+    void bringingSendsEachPetToWhereTheOwnerNowIsAndMarksItArrived()
+    {
+        final Location arrival = new Location(mock(World.class), 100.5, 64.0, -20.5);
+        ownerNowAt(arrival);
+        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+
+        assertEquals(1, PetEscort.bring(List.of(wolf), owner));
 
         verify(wolf).teleport(arrival);
         verify(wolf).setFallDistance(0f);
@@ -175,23 +206,67 @@ class PetEscortTest
     }
 
     @Test
+    void aPetStillBesideAnOwnerWhoseTripWasRefusedStays()
+    {
+        final World here = mock(World.class);
+        ownerNowAt(new Location(here, 0.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(here, 3.5, 64.0, 0.5));
+
+        assertEquals(0, PetEscort.bring(List.of(wolf), owner));
+        verify(wolf, never()).teleport(any(Location.class));
+    }
+
+    @Test
+    void aPetToldToSitBeforeItFollowedStays()
+    {
+        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        when(wolf.isSitting()).thenReturn(true);
+
+        assertEquals(0, PetEscort.bring(List.of(wolf), owner),
+            "sitting in the second before it follows still means stay");
+    }
+
+    @Test
     void aPetThatWillNotMoveDoesNotStopTheRest()
     {
-        final Wolf stuck = wolfOf(owner);
+        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
+        final Wolf stuck = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
         when(stuck.teleport(any(Location.class))).thenThrow(new IllegalStateException("refused"));
-        final Wolf free = wolfOf(owner);
+        final Wolf free = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
         final List<Entity> pets = List.of(stuck, free);
 
-        assertEquals(1, PetEscort.bring(pets, new Location(mock(World.class), 0.0, 64.0, 0.0)));
+        assertEquals(1, PetEscort.bring(pets, owner));
         verify(free).teleport(any(Location.class));
     }
 
     @Test
-    void anArrivalWithNoWorldBringsNobody()
+    void anOwnerWhoHasLeftTheServerBringsNobody()
     {
+        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        when(owner.isOnline()).thenReturn(false);
+
+        assertEquals(0, PetEscort.bring(List.of(wolf), owner));
+        verify(wolf, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * Pets follow a moment after the trip, not in the same tick.
+     *
+     * <p>A pet sent to a client still switching worlds was on the server beside its owner and
+     * invisible to them; and a mounted or vehicle rider is re-seated at the far end ticks later.
+     */
+    @Test
+    void followingWaitsBeforeBringing() throws Exception
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
         final Wolf wolf = wolfOf(owner);
 
-        assertEquals(0, PetEscort.bring(List.of(wolf), new Location(null, 0.0, 64.0, 0.0)));
+        PetEscort.follow(List.of(wolf), owner);
+
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
+            org.mockito.ArgumentMatchers.eq(PetEscort.FOLLOW_DELAY_TICKS));
         verify(wolf, never()).teleport(any(Location.class));
     }
 }

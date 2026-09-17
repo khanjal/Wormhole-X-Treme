@@ -52,6 +52,7 @@ class PlayerTravelEventTest
     private Player player;
     private Stargate origin;
     private Stargate destination;
+    private org.bukkit.scheduler.BukkitScheduler scheduler;
 
     private static final int BX = 10, BY = 64, BZ = 20;
 
@@ -62,8 +63,7 @@ class PlayerTravelEventTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
-        final org.bukkit.scheduler.BukkitScheduler scheduler =
-            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
 
@@ -176,11 +176,15 @@ class PlayerTravelEventTest
     void aFollowingPetGoesThroughTheGateWithItsOwner()
     {
         final org.bukkit.entity.Wolf wolf = PetEscortTest.wolfOf(player);
+        when(wolf.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ - 3.5));
+        PetTestSupport.standsWhereTeleported(player, new Location(world, BX + 0.5, BY, BZ - 1.5));
         when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
             org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
             .thenReturn(List.of(wolf));
 
         walkIn();
+        verify(wolf, never()).teleport(any(Location.class));
+        PetTestSupport.runEscorts(scheduler);
 
         final org.mockito.ArgumentCaptor<Location> landed = org.mockito.ArgumentCaptor.forClass(Location.class);
         verify(wolf).teleport(landed.capture());

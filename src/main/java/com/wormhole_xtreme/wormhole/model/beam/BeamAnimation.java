@@ -377,7 +377,7 @@ public final class BeamAnimation
                 // after the player's own teleport rather than before so that the re-seat is
                 // a short hop at the destination rather than a cross-world one.
                 mount.carry(player, destination);
-                com.wormhole_xtreme.wormhole.PetEscort.bring(pets, destination);
+                com.wormhole_xtreme.wormhole.PetEscort.follow(pets, player);
                 // The traveller is physically at the destination from this tick on -- the
                 // descend column is still only starting to fall around them, but nothing
                 // stops their own eyes from seeing straight through it to the terrain

@@ -335,7 +335,10 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
             child.teleport(arrival);
         }
         reseat(parents, children);
-        com.wormhole_xtreme.wormhole.PetEscort.bring(pets, arrival);
+        if (entity instanceof Player owner)
+        {
+            com.wormhole_xtreme.wormhole.PetEscort.follow(pets, owner);
+        }
 
         // After the teleport, so it lands on a client that is already looking at the far end.
         if (entity instanceof Player traveller)

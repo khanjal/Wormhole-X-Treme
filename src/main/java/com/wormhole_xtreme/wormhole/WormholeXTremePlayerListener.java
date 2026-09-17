@@ -718,7 +718,7 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
 
-        PetEscort.bring(pets, safeTarget);
+        PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
         scheduleArrivalSettle(player, target, vehiclePathUsed);
 

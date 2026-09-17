@@ -316,19 +316,22 @@ class MirrorInteractionTest
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
             new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        when(player.teleport(any(Location.class))).thenReturn(true);
+        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(player, new Location(world, 5.5, 64.0, 1.5));
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         com.wormhole_xtreme.wormhole.PluginTestSupport.scheduler(scheduler);
         final org.bukkit.entity.Wolf wolf = mock(org.bukkit.entity.Wolf.class);
         when(wolf.isTamed()).thenReturn(true);
         when(wolf.getOwner()).thenReturn(player);
         when(wolf.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(wolf.teleport(any(Location.class))).thenReturn(true);
+        when(wolf.getLocation()).thenReturn(new Location(world, 7.5, 64.0, 1.5));
         when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
             org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
             .thenReturn(List.of(wolf));
         try
         {
             travelTo(here, "museum_world");
+            com.wormhole_xtreme.wormhole.PetTestSupport.runEscorts(scheduler);
         }
         finally
         {
