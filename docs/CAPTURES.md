@@ -151,52 +151,45 @@ flicker, and an infinite strobe on a documentation page is genuinely unpleasant 
 Keep loops short. For the flash specifically, consider a still frame that links through to the
 animation rather than embedding it to run forever.
 
-## The placeholders
+## What was shot, and where it landed
 
-Every slot listed above currently holds a slate: `docs/images/capture-*.svg`, a dark tile naming
-the shot, its length and the filename that should replace it. They are deliberately plain. A
-placeholder that looks finished is worse than no placeholder, because a reader takes it for the
-real thing -- which is exactly the trap `gate-placeholder.svg` fell into, and the reason the
-project logo was not reused here despite being the obvious thing to hand.
+Every slot this document was written for is filled. The slates -- `docs/images/capture-*.svg`,
+dark tiles naming a shot and its length -- have been deleted along with
+`gate-placeholder.png` and `gate-placeholder.svg` before them.
 
-To replace one:
+| Capture | File | Appears in |
+|---|---|---|
+| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [GATES.md](GATES.md#animation), [guide/README.md](guide/README.md) |
+| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [GATES.md](GATES.md#shapes), [guide/README.md](guide/README.md) |
+| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [GATES.md](GATES.md#shapes) |
+| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [GATES.md](GATES.md#palettes-are-separate-from-shapes), [GATES.md](GATES.md#the-iris) |
+| A ring pair's whole cycle | `rings/ring-cycle.webp` | [RINGS.md](RINGS.md#animation), [guide/README.md](guide/README.md) |
+| A traveller leaving in a column of light | `beams/beam-up.webp` | [BEAMS.md](BEAMS.md#the-sequence) |
+| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| A mirror repainting itself | `mirrors/mirror-look.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#its-look) |
+| A mirror's view shifting as you move | `mirrors/mirror-effects.webp` | listing art; not embedded |
 
-1. Capture and convert, writing to the target filename in the table above.
-2. Update the `![](...)` reference in the document from `capture-<id>.svg` to the new file.
-3. Delete the slate.
-4. Check the committed file is under 800 KB.
+**Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
+-- you vanish six steps into a twelve-tick envelop, long before there is time to reach the far
+end -- so it needs a second player at the destination. And the *iris turning somebody back* was
+dropped rather than shot: the palette sheet already shows the iris closed in all four palettes,
+which is what the section is actually about.
 
-The slates are a few kilobytes each, so leaving some in place indefinitely costs nothing.
-
-## Where the slots are
-
-| Document | Slots |
-|---|---|
-| [guide/README.md](guide/README.md) | A built gate, dial and kawoosh, ring countdown and deploy |
-| [GATES.md](GATES.md) | Dial and kawoosh (Animation), iris (The iris) |
-| [RINGS.md](RINGS.md) | Countdown and deploy, flash and retract (Animation, The transport flash) |
-| [BEAMS.md](BEAMS.md) | A whole beam cycle (The sequence) |
-
-`gate-placeholder.png` (a single transparent pixel) and `gate-placeholder.svg` (a grey circle
-labelled "Gate Placeholder") were the older, vaguer version of this same idea. The guide's slots
-replaced the only reference to them, so they were deleted rather than left orphaned in the
-directory.
+**The rings and the beam both needed spectator mode.** A third-person camera is pushed inside a
+deploying ring stack, so the shot cannot be framed from outside in survival or creative. In
+spectator the camera has no collision, and the 60-tick countdown is long enough to arm the ring
+and fly back out before anything rises.
 
 ## The diagrams are not these captures
 
-`docs/images/gates/`, `docs/images/rings/` and `docs/images/beams/` hold generated drawings
-— gate shapes, ring footprints, deploy filmstrips, the beam's timing — and none of them
-fills a slot above. They are schematics of
-the geometry, drawn from the plugin's own shape files and constants, and they say what a thing
-*is*. A capture says what it *looks like*, which is a different question and the one a video
-answers: flat colour keyed to a block cannot show the event horizon's gradient, the particle
-column, or the way the kawoosh reads at speed.
+`docs/images/gates/`, `docs/images/rings/` and `docs/images/beams/` also hold generated drawings
+-- gate shapes, ring footprints, deploy filmstrips, the beam's timing. They are schematics of the
+geometry, drawn from the plugin's own shape files and constants, and they say what a thing *is*.
+A capture says what it *looks like*, which is a different question: flat colour keyed to a block
+cannot show the event horizon's gradient, the particle column, or the way the kawoosh reads at
+speed. Several sections now carry both, and that is the intent rather than duplication.
 
 The two are also licensed differently, which is worth keeping straight. The diagrams are ours,
 drawn from our files. A capture is a screenshot or a recording of Minecraft, which is Mojang's
-to permit and which their terms do permit — while the game's *textures* are not ours to
-redistribute, which is precisely why the diagrams are flat colour rather than the real
-artwork.
-
-So the slates stay where they are. A slot with a slate in it is still waiting for a capture,
-whatever diagrams have appeared elsewhere in the same document.
+to permit and which their terms do permit -- while the game's *textures* are not ours to
+redistribute, which is precisely why the diagrams are flat colour rather than the real artwork.

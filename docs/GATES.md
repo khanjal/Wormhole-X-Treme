@@ -387,7 +387,10 @@ unrelated second gate was switched off early.
 
 ## The iris
 
-![Iris turning somebody back](images/capture-gate-iris.svg)
+![The iris closed, in each of the four palettes](images/gates/standard-palettes-iris.png)
+
+Each palette closes its own block, which is why the iris is a fifth material rather than one
+shared shield.
 
 The iris is a shield, and unlike the portal it is **real blocks** — it has to stop things, and a
 drawing cannot. Opening it on an active gate returns the interior to air with the portal drawn
@@ -421,7 +424,10 @@ solid than the real one, so it is only sent where the eye is in open air.
 
 ## Animation
 
-![Dial and kawoosh](images/capture-gate-dial.svg)
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](images/gates/gate-dial.webp)
+
+A `Standard` gate, slowed to five quarters of real time. The frame count is shape-dependent, so
+a `Grand` runs visibly longer than this.
 
 **Chevrons light one at a time**, in `:L#n` order, over the activation sequence. A shape with
 three lighting steps climbs the same distance as one with seven, in bigger steps.
