@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Cat;
@@ -19,12 +20,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * The companion: a real, tamed cat that only her owner's client is shown.
  *
- * <p>Following is vanilla tamed-cat AI, so there is no repeating task. Vanilla never follows
- * across worlds or very far, so {@link #catchUp(Player)} re-summons her after her owner travels.
+ * <p>Following is vanilla tamed-cat AI, and she travels by gate, ring, beam or mirror the way
+ * any pet does, through {@link com.wormhole_xtreme.wormhole.PetEscort}. {@link #catchUp(Player)}
+ * re-summons her only when that failed, and logs it, so a transport that drops pets shows up.
  * She is kept away while her owner sleeps or is hunted, so she gives no advantage a real cat would.
  */
 public final class FreyaCompanion
@@ -190,9 +193,14 @@ public final class FreyaCompanion
         {
             return false;
         }
-        if (!isLeftBehind(LIVE.get(owner.getUniqueId()), owner.getLocation()))
+        final Cat before = LIVE.get(owner.getUniqueId());
+        if (!isLeftBehind(before, owner.getLocation()))
         {
             return false;
+        }
+        if ((before != null) && PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Re-summoned " + owner.getName() + "'s companion; she did not travel with them.");
         }
         return spawnFor(owner) != null;
     }

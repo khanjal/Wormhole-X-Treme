@@ -870,6 +870,14 @@ class WormholeXTremeVehicleListener implements Listener
         faceTheWayItIsGoing(safeTarget, newSpeed, st.getGateTarget().getGateFacing());
         if (veh != null)
         {
+            final List<Entity> pets = new java.util.ArrayList<>();
+            for (final Entity passenger : passengers)
+            {
+                if (passenger instanceof Player rider)
+                {
+                    pets.addAll(PetEscort.gather(rider));
+                }
+            }
             markVehicleRecentlyTeleported(veh.getUniqueId());
             if (passengers.isEmpty())
             {
@@ -884,6 +892,7 @@ class WormholeXTremeVehicleListener implements Listener
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
                 teleportOccupiedVehicle(veh, safeTarget, newSpeed);
             }
+            PetEscort.bring(pets, safeTarget);
         }
 
         if (ConfigManager.getTimeoutShutdown() == 0)

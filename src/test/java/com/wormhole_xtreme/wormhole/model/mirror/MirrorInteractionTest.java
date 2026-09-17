@@ -311,6 +311,36 @@ class MirrorInteractionTest
      * straight back where it started.
      */
     @Test
+    void aFollowingPetGoesThroughTheMirrorWithItsOwner() throws Exception
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
+            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
+        when(player.teleport(any(Location.class))).thenReturn(true);
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        com.wormhole_xtreme.wormhole.PluginTestSupport.scheduler(scheduler);
+        final org.bukkit.entity.Wolf wolf = mock(org.bukkit.entity.Wolf.class);
+        when(wolf.isTamed()).thenReturn(true);
+        when(wolf.getOwner()).thenReturn(player);
+        when(wolf.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
+            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+            .thenReturn(List.of(wolf));
+        try
+        {
+            travelTo(here, "museum_world");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.PluginTestSupport.scheduler(null);
+        }
+
+        final ArgumentCaptor<Location> owner = ArgumentCaptor.forClass(Location.class);
+        verify(player).teleport(owner.capture());
+        verify(wolf).teleport(owner.getValue());
+    }
+
+    @Test
     void theOffHandHalfOfARightClickDoesNothing()
     {
         final Block here = block(Material.WHITE_WALL_BANNER, 5);

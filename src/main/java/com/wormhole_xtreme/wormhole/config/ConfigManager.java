@@ -53,6 +53,9 @@ public class ConfigManager
         /** Restrict teleportation to same-world gates only. */
         SAME_WORLD_ONLY,
 
+        /** Whether a player's following pets travel with them by gate, ring, beam or mirror. */
+        PETS_FOLLOW_OWNER,
+
         /** The LOG LEVEL. */
         LOG_LEVEL,
         /** Tick interval for periodic non-player entity gate scan. */
@@ -1435,6 +1438,17 @@ public class ConfigManager
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
         return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));
+    }
+
+    /**
+     * Whether a player's following pets travel with them.
+     *
+     * @return true unless the setting turns it off
+     */
+    public static boolean isPetsFollowOwner()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PETS_FOLLOW_OWNER);
+        return (s == null) || s.getBooleanValue();
     }
 
     /**

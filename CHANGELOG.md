@@ -21,6 +21,12 @@ option only with a dash, and no name may start with one. Scripts and command blo
 | `mirror debug [name] all\|full\|on\|off` | `mirror debug [name] -all\|-full\|-on\|-off` |
 | `beam admin cost <name> default` | `beam admin cost <name> -default` |
 
+### Travel
+
+- **A player's pets travel with them** by gate, ring, beam or mirror: tamed wolves, cats and parrots
+  within 12 blocks that are not sitting. Sit a pet to leave it behind; `pets-follow-owner: false`
+  turns this off.
+
 ### Stargates
 
 - **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the

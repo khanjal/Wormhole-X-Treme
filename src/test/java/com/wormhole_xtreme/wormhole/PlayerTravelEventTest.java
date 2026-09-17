@@ -173,6 +173,41 @@ class PlayerTravelEventTest
     }
 
     @Test
+    void aFollowingPetGoesThroughTheGateWithItsOwner()
+    {
+        final org.bukkit.entity.Wolf wolf = PetEscortTest.wolfOf(player);
+        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
+            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+            .thenReturn(List.of(wolf));
+
+        walkIn();
+
+        final org.mockito.ArgumentCaptor<Location> landed = org.mockito.ArgumentCaptor.forClass(Location.class);
+        verify(wolf).teleport(landed.capture());
+        assertEquals(500.0, landed.getValue().getX(), 1.0, "at the far gate, not left at the near one");
+    }
+
+    @Test
+    void aCancelledTripLeavesThePetsWhereTheyAre()
+    {
+        final org.bukkit.entity.Wolf wolf = PetEscortTest.wolfOf(player);
+        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
+            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+            .thenReturn(List.of(wolf));
+        GateEvents.setDispatcherForTest(event ->
+        {
+            if (event instanceof org.bukkit.event.Cancellable cancellable)
+            {
+                cancellable.setCancelled(true);
+            }
+        });
+
+        walkIn();
+
+        verify(wolf, never()).teleport(any(Location.class));
+    }
+
+    @Test
     void cancellingStopsThePlayerBeingMoved()
     {
         GateEvents.setDispatcherForTest(e ->

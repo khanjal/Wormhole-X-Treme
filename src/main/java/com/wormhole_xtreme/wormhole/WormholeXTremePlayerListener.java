@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -691,6 +692,8 @@ class WormholeXTremePlayerListener implements Listener
         {
             return false;
         }
+        // Read while the player still stands at the origin; the event changes below move it.
+        final List<Entity> pets = PetEscort.gather(player);
         // For every other flow, mark the event position to the safe target and continue.
         event.setFrom(safeTarget);
         event.setTo(safeTarget);
@@ -715,6 +718,7 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
 
+        PetEscort.bring(pets, safeTarget);
         markTripTaken(player, stargate);
         scheduleArrivalSettle(player, target, vehiclePathUsed);
 

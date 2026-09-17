@@ -325,6 +325,9 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         final List<Entity> parents = new ArrayList<>();
         final List<Entity> children = new ArrayList<>();
         com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
+        // A pet standing in the ring is already cargo; this brings the ones following from outside it.
+        final List<Entity> pets = (entity instanceof Player owner)
+            ? com.wormhole_xtreme.wormhole.PetEscort.gather(owner) : List.of();
 
         entity.teleport(arrival);
         for (final Entity child : children)
@@ -332,6 +335,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
             child.teleport(arrival);
         }
         reseat(parents, children);
+        com.wormhole_xtreme.wormhole.PetEscort.bring(pets, arrival);
 
         // After the teleport, so it lands on a client that is already looking at the far end.
         if (entity instanceof Player traveller)
