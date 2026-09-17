@@ -258,7 +258,8 @@ public final class FreyaCompanion
         final boolean together = (at != null) && (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
         return "in " + world + (together ? " " + Math.round(Math.sqrt(at.distanceSquared(owner))) + " blocks away" : ", another world")
             + ", valid " + cat.isValid() + ", dead " + cat.isDead()
-            + ", visible by default " + cat.isVisibleByDefault() + ", owner sees her " + player.canSee(cat);
+            + ", visible by default " + cat.isVisibleByDefault() + ", owner sees her " + player.canSee(cat)
+            + ", sent to owner " + sentTo(cat, player);
     }
 
     /**
@@ -285,6 +286,54 @@ public final class FreyaCompanion
         }
         return !Objects.equals(at.getWorld(), owner.getWorld())
             || (at.distanceSquared(owner) > LEFT_BEHIND_DISTANCE_SQUARED);
+    }
+
+    /**
+     * Sends her to her owner's client again, once it has finished loading a world it just moved to.
+     *
+     * <p>A companion carried across in the same tick as her owner can be tracked by the server as
+     * visible to them yet never reach their client, which is still switching worlds.
+     *
+     * @param owner
+     *            the owner who changed world a moment ago
+     * @return true if she was re-sent
+     */
+    public static boolean resend(final Player owner)
+    {
+        final Cat cat = (owner == null) ? null : LIVE.get(owner.getUniqueId());
+        if ((cat == null) || isLeftBehind(cat, owner.getLocation()))
+        {
+            return false;
+        }
+        if (PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Re-sending companion to " + owner.getName() + ": " + describe(cat, owner));
+        }
+        reveal(cat, owner);
+        return true;
+    }
+
+    /**
+     * Whether Paper reports this entity as sent to the player's client, looked up by reflection
+     * because {@code getTrackedBy} is Paper API and absent from the 1.20 Spigot API.
+     *
+     * @param cat
+     *            the companion
+     * @param player
+     *            her owner
+     * @return "true", "false", or "unknown" where the server cannot say
+     */
+    static String sentTo(final Cat cat, final Player player)
+    {
+        try
+        {
+            final Object tracked = cat.getClass().getMethod("getTrackedBy").invoke(cat);
+            return (tracked instanceof Collection<?> players) ? String.valueOf(players.contains(player)) : "unknown";
+        }
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
+        {
+            return "unknown";
+        }
     }
 
     /**

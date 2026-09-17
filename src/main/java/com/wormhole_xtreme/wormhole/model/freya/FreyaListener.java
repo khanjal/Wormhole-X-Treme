@@ -35,6 +35,9 @@ public class FreyaListener implements Listener
     /** How often to look again whether a hunt is over: five seconds. */
     private static final long HUNT_CHECK_TICKS = 100L;
 
+    /** Long enough for a client to finish loading the world it has just been sent to. */
+    private static final long RESEND_AFTER_WORLD_CHANGE_TICKS = 20L;
+
     @EventHandler
     public void onJoin(final PlayerJoinEvent event)
     {
@@ -63,6 +66,17 @@ public class FreyaListener implements Listener
     public void onChangedWorld(final PlayerChangedWorldEvent event)
     {
         catchUpNextTick(event.getPlayer());
+        final Player player = event.getPlayer();
+        if (FreyaPreferences.isEnabled(player.getUniqueId()))
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+            {
+                if (player.isOnline())
+                {
+                    FreyaCompanion.resend(player);
+                }
+            }, RESEND_AFTER_WORLD_CHANGE_TICKS);
+        }
     }
 
     @EventHandler

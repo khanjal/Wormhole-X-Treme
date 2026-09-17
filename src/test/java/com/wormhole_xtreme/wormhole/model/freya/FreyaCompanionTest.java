@@ -513,5 +513,33 @@ class FreyaCompanionTest
 
         verify(owner, times(1)).showEntity(plugin, cat);
     }
+
+    /**
+     * After a world change she is sent to her owner again, even when the server says they see her.
+     *
+     * <p>In play the log read "visible by default false, owner sees her true", 0 blocks away,
+     * and the owner still saw nothing: the server's state was right and the client never got her.
+     */
+    @Test
+    void resendingHidesAndShowsHerToHerOwnerEvenWhenTheServerSaysTheySeeHer()
+    {
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(owner.canSee(cat)).thenReturn(true);
+
+        assertTrue(FreyaCompanion.resend(owner));
+
+        verify(owner, times(2)).hideEntity(plugin, cat);
+        verify(owner, times(2)).showEntity(plugin, cat);
+    }
+
+    @Test
+    void resendingDoesNothingWithoutACompanionBesideThem()
+    {
+        final Player owner = playerWith(OWNER, liveCat());
+
+        assertFalse(FreyaCompanion.resend(owner), "nothing is out to send");
+    }
 }
 
