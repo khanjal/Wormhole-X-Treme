@@ -15,7 +15,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * {@code Large.shape}, {@code Grand.shape} and {@code Massive.shape} -- three big, hand-built
- * gates, each deeper than Standard's.
+ * gates.
  *
  * <p>All three were hand-authored outside this codebase and needed real fixes before they
  * were safe to ship: {@code Grand} had three rows one cell short of its declared width (a
@@ -29,10 +29,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  * future edit to any of the three has to own up to reintroducing that shape, rather than just
  * changing behaviour quietly.
  *
- * <p>{@code Large} originally shipped with Standard's exact proportions (one-layer ring, three
- * woosh steps), just wider. It was reworked to match {@code Grand}'s three-layer ring -- a
- * front bezel, the real portal ring, and a second lit ring -- with four woosh steps behind it,
- * proportionally deeper than {@code Grand}'s three for a ring this much narrower.
+ * <p>{@code Large} is Standard's even-width counterpart: a one-layer ring, ten wide, with four
+ * woosh steps behind it. It spent a while with {@code Grand}'s three-layer ring and went back.
  */
 class BigGateShapeTest
 {
@@ -104,9 +102,14 @@ class BigGateShapeTest
         }
     }
 
+    /**
+     * Every chevron lights in order with no gap. {@code Grand} has an eighth at the bottom: its chevrons
+     * stand 45 degrees apart, and the seven left the bottom one empty.
+     */
     @Test
-    void allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
+    void allThreeLightTheirChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
     {
+        final java.util.Map<String, Integer> chevrons = java.util.Map.of("Large", 7, "Grand", 8, "Massive", 7);
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);
@@ -125,15 +128,19 @@ class BigGateShapeTest
                     }
                 }
             }
-            assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7), orders,
-                name + ": expected exactly light orders 1-7, matching Standard's convention, got " + orders);
+            final java.util.Set<Integer> expected = new java.util.TreeSet<Integer>();
+            for (int i = 1; i <= chevrons.get(name); i++)
+            {
+                expected.add(i);
+            }
+            assertEquals(expected, orders, name + ": expected light orders 1-" + chevrons.get(name) + ", got " + orders);
         }
     }
 
     @Test
     void allThreeWooshEveryStepWithNoGapOrDuplicateInTheOrder() throws Exception
     {
-        // The sibling of allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder above --
+        // The sibling of allThreeLightTheirChevronsWithNoGapOrDuplicateInTheOrder above --
         // written checking this specifically because a gate reported not animating at all
         // (no lighting, no woosh, straight to the open portal) turned out, once checked, to
         // have nothing wrong with its parsed woosh orders: this passes for all three,

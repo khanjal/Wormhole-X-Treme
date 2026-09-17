@@ -14,22 +14,5 @@ These pages say what things do. Why they work that way is in the design notes be
 [GATES.md](../GATES.md), [RINGS.md](../RINGS.md), [BEAMS.md](../BEAMS.md) and
 [MIRRORS.md](../MIRRORS.md). Plugin authors want [API.md](../API.md).
 
-## What it looks like
-
-The slots below are waiting on real captures from a server. Each placeholder names the shot it
-is holding open, how long it should run and what the finished file is called;
-[CAPTURES.md](../CAPTURES.md) has the shot list, the tick arithmetic behind each length, and the
-ffmpeg commands.
-
-**A finished gate.** Its sign, its DHD, and the shape of the thing.
-
-![A built gate](../images/capture-gate-anatomy.svg)
-
-**Dialling.** Chevrons light in sequence, then the horizon erupts and settles.
-
-![Dial and kawoosh](../images/capture-gate-dial.svg)
-
-**Transport rings.** The pad lights, counts down, and four rings rise around whoever is standing
-on it.
-
-![Ring countdown and deploy](../images/capture-ring-deploy.svg)
+Each page shows its subsystem in game; how those captures were shot is in
+[CAPTURES.md](../CAPTURES.md).

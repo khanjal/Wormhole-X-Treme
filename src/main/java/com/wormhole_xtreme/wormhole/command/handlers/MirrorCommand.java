@@ -295,26 +295,14 @@ public class MirrorCommand implements SubCommand
         final MirrorBlock here = MirrorBlock.of(block);
         final QuantumMirror byThatName = MirrorManager.byName(name);
         final QuantumMirror onThisBanner = MirrorManager.at(here);
-        if ((byThatName != null) && (onThisBanner != null)
-            && !byThatName.name().equalsIgnoreCase(onThisBanner.name()))
+        if (alreadyNamed(sender, name, byThatName, onThisBanner))
         {
-            say(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
-                + ", and " + MirrorText.quoted(name) + " is a mirror somewhere else.");
-            say(sender, "Renaming this one would leave that one on no banner. Remove one of"
-                + " them first.");
-            return;
-        }
-        if ((byThatName != null) && (onThisBanner != null))
-        {
-            say(sender, MIRROR_IS + MirrorText.quoted(onThisBanner.name()) + " is already this"
-                + " banner. Nothing to do.");
             return;
         }
         // A second wall banner beside this one, facing the same way, makes the pair one mirror two wide,
         // held by the left banner of the two, looking at the wall.
         final Block partner = (onThisBanner == null) ? partnerOf(block) : null;
-        final Block left = ((partner != null) && isRightOf(partner, block)) ? block : partner;
-        final Block base = (partner == null) ? block : left;
+        final Block base = leftOf(block, partner);
         final int width = (partner == null) ? 1 : 2;
         // Renaming the mirror a banner already is changes nothing about where it hangs.
         final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(base, name, width) : null;
@@ -328,17 +316,63 @@ public class MirrorCommand implements SubCommand
             (onThisBanner != null) ? onThisBanner.banner() : MirrorBlock.of(base));
         if ((byThatName == null) && (onThisBanner == null))
         {
-            dressPlainBanner(block, name);
-            if (partner != null)
-            {
-                dressPlainBanner(partner, name);
-            }
+            dressPlainBanners(block, partner, name);
         }
-        // Its own room, which it shows as a reflection and where anybody coming through lands.
-        // The capture of it is taken by the next sweep.
+        if (onThisBanner == null)
+        {
+            giveRoom(sender, name, base, width);
+        }
+    }
+
+    /**
+     * Says so when the name and the banner are both mirrors already, which leaves nothing to do.
+     *
+     * @return true if they were
+     */
+    private static boolean alreadyNamed(final CommandSender sender, final String name,
+        final QuantumMirror byThatName, final QuantumMirror onThisBanner)
+    {
+        if ((byThatName == null) || (onThisBanner == null))
+        {
+            return false;
+        }
+        if (!byThatName.name().equalsIgnoreCase(onThisBanner.name()))
+        {
+            say(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
+                + ", and " + MirrorText.quoted(name) + " is a mirror somewhere else.");
+            say(sender, "Renaming this one would leave that one on no banner. Remove one of"
+                + " them first.");
+            return true;
+        }
+        say(sender, MIRROR_IS + MirrorText.quoted(onThisBanner.name()) + " is already this"
+            + " banner. Nothing to do.");
+        return true;
+    }
+
+    /** The left banner of a pair, looking at the wall, which holds the mirror; the banner itself without one. */
+    private static Block leftOf(final Block block, final Block partner)
+    {
+        return ((partner == null) || isRightOf(partner, block)) ? block : partner;
+    }
+
+    private static void dressPlainBanners(final Block block, final Block partner, final String name)
+    {
+        dressPlainBanner(block, name);
+        if (partner != null)
+        {
+            dressPlainBanner(partner, name);
+        }
+    }
+
+    /**
+     * Gives a new mirror its own room, which it shows as a reflection and where anybody coming
+     * through lands. The capture of it is taken by the next sweep.
+     */
+    private static void giveRoom(final CommandSender sender, final String name, final Block base, final int width)
+    {
         final QuantumMirror made = MirrorManager.byName(name);
         final MirrorPoint room = MirrorNetwork.roomOf(base, width);
-        if ((onThisBanner == null) && (made != null) && (room != null))
+        if ((made != null) && (room != null))
         {
             MirrorManager.add(made.withDestination(room).withWidth(width));
             MirrorYamlManager.saveAll();
@@ -1178,13 +1212,7 @@ public class MirrorCommand implements SubCommand
         final String last = (args.length > 2) ? args[args.length - 1].toLowerCase(java.util.Locale.ROOT) : "";
         if ("-off".equals(last) || "-on".equals(last))
         {
-            final Player player = asPlayer(sender);
-            if (player != null)
-            {
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, "-off".equals(last));
-                say(sender, "-off".equals(last) ? "Views are off for you: mirrors are banners, and the world is as it is. "
-                    + "mirror debug -on turns them back on." : "Views are back on for you, as everyone sees them.");
-            }
+            blind(sender, "-off".equals(last));
             return;
         }
         final boolean full = "-full".equals(last);
@@ -1200,14 +1228,7 @@ public class MirrorCommand implements SubCommand
         }
         if (full)
         {
-            final Player player = asPlayer(sender);
-            if (player != null)
-            {
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.full(player, mirror.name());
-                say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
-                    + "everything its capture holds, through the opening, past the edges and into the ground. "
-                    + "mirror debug -on stops that.");
-            }
+            drawWhole(sender, mirror);
             return;
         }
         if (!all)
@@ -1225,6 +1246,31 @@ public class MirrorCommand implements SubCommand
             final org.bukkit.Location eye = player.getEyeLocation();
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
+        }
+    }
+
+    /** {@code debug -off} and {@code -on}: views off for the sender, or back on. */
+    private static void blind(final CommandSender sender, final boolean off)
+    {
+        final Player player = asPlayer(sender);
+        if (player != null)
+        {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, off);
+            say(sender, off ? "Views are off for you: mirrors are banners, and the world is as it is. "
+                + "mirror debug -on turns them back on." : "Views are back on for you, as everyone sees them.");
+        }
+    }
+
+    /** {@code debug <name> -full}: that mirror drawn whole for the sender. */
+    private static void drawWhole(final CommandSender sender, final QuantumMirror mirror)
+    {
+        final Player player = asPlayer(sender);
+        if (player != null)
+        {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.full(player, mirror.name());
+            say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
+                + "everything its capture holds, through the opening, past the edges and into the ground. "
+                + "mirror debug -on stops that.");
         }
     }
 

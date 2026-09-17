@@ -5,8 +5,8 @@ hand-authored -- written as markup, shape by shape, rather than image-generated 
 Claude Code rather than by a designer, so that a real graphic artist has something concrete to
 react to rather than a paragraph of description. [TRADEMARK.md](../TRADEMARK.md) explains why that
 provenance matters to the licence. This file exists so the *meaning* survives a redraw -- an artist
-should feel free to throw away every curve in it, as long as what comes back still says the
-same three things.
+should feel free to throw away every curve in it, as long as what comes back still does the
+same job.
 
 Replacing it is tracked in
 [issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187), which also records the
@@ -16,8 +16,8 @@ current drawing's known weaknesses so nobody has to rediscover them.
 
 ## What the mark has to say
 
-The plugin is three subsystems, and the mark carries one visual element for each. That mapping
-is the part worth keeping.
+The plugin is four subsystems. The mark carries one visual element for three of them, and the
+fourth is the open question below. That mapping is the part worth keeping.
 
 | Element | Subsystem | Why it is in there |
 |---|---|---|
@@ -25,22 +25,20 @@ is the part worth keeping.
 | Column of light | **Beams** | `/wormhole beam` sends a player up a column of light. See [BEAMS.md](BEAMS.md). |
 | Stack of four rings | **Rings** | Transport rings rise around a traveller and settle as a stack. Four of them, identical, a block apart, in stone grey -- which is what the plugin actually draws. See [RINGS.md](RINGS.md). |
 
-### The fourth one, which does not exist yet
+### The fourth one, which the mark does not carry
 
-There is no mirror in the mark, because there is no mirror in the plugin. But a **quantum
-mirror** is a planned fourth way to travel -- [issue #22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
--- a clickable banner that sends somebody straight to its pair, with no dial, no command and no
-structure to walk into.
-
-That is worth knowing before redrawing anything, because it is the one change that could break
-the composition. Three ideas already crowd one small circle. A fourth would have to either
+**Quantum mirrors** — a banner on a wall that shows the room it opens onto, see
+[MIRRORS.md](MIRRORS.md) — are the fourth way to travel, and the mark still shows three. Whether
+it should carry a fourth is the one decision that could break the composition. Three ideas already crowd one small circle. A fourth would have to either
 displace one of them, or force the admission that the mark cannot carry a complete inventory of
 features and should stop trying -- which is very likely the right answer, and is a decision better
 made deliberately than discovered later.
 
-The issue also notes that a mirror has to be *recognisable on sight*, the way a ring and chevrons
-read as "stargate". Whatever visual language it ends up with is worth designing alongside the
-logo rather than after it.
+It is also the hardest of the four to draw. A ring with chevrons reads as "stargate" at a glance,
+a column of light reads as a beam, and four stacked ellipses read as rings. A banner that
+reflects has no obvious silhouette at 32px, and finding one is real design work rather than a
+detail to be handled on the way past. An artist who wants to argue that the mark should carry
+fewer things rather than more will get no resistance here.
 
 ## The parts, as currently drawn
 
@@ -143,12 +141,6 @@ Two things follow for anybody redrawing the mark:
   existed, and GPL grants are irrevocable, so anybody who took a copy in that window holds a
   GPL-3.0 licence to that version. A replacement starts clean from its first commit.
 
-**Related, and unrelated to the logo:** the repository's own licence files were tidied in the
-same pass. The full GPL-3.0 text was present all along as `gpl.txt`, a name GitHub's licence
-detector does not recognise, while `LICENSE.txt` held only the sixteen-line copyright notice --
-so GitHub reported the licence as `NOASSERTION` and the README's badge was hand-written. The
-text is now `LICENSE` and the notice is `NOTICE.txt`.
-
 ## What is open
 
 Everything below is a decision made to get *something* on the page, not a position worth
@@ -157,7 +149,8 @@ defending:
 - Chevron count, shape and whether they protrude past the band. Nine is the franchise number;
   it is not load-bearing here.
 - Whether the beam and the rings both belong in the mark, or whether one of them should live
-  only in a larger banner version. Three ideas in one small circle is a lot.
+  only in a larger banner version. Three ideas in one small circle is a lot, and mirrors now
+  make a fourth candidate rather than a hypothetical one.
 - The wordmark. It is currently set in a system font stack (`Segoe UI`, falling back to Arial),
   which means it renders differently on different machines. A real typeface, or lettering drawn
   as paths, would fix that.

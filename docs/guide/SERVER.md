@@ -59,10 +59,8 @@ its tests pass against each API — not that a gate behaves correctly in game.
 The jar is Java 17 bytecode. **Minecraft 1.20.5 and later need the server on Java 21, and 26.1
 and later on Java 25** — that is the server's requirement, not this plugin's.
 
-One Spigot API move is worth knowing about: `EntityDismountEvent` changed package at 1.20.4.
-The plugin carries a listener for each and registers whichever the server can load. A server
-with neither loses the ability to stop a rider dismounting mid-transit, and says so in the log.
-How the version range is built and tested is in [DEVELOPMENT.md](../DEVELOPMENT.md#minecraft-versions).
+How the version range is built and tested is in
+[DEVELOPMENT.md](../DEVELOPMENT.md#minecraft-versions).
 
 ## Configuration
 
@@ -90,12 +88,14 @@ command, or edit the file with the server stopped.
 
 ### Keeping gates from staying open
 
-`shutdown_timeout` closes a wormhole a set time after it is dialled, and dialling restarts that
-timer. `max-open-seconds` (default 300, `0` to disable) caps the total time a wormhole may stay
-open, measured from when it first formed and **not** reset by re-dialling.
+| Setting | Default | What it does |
+|---|---|---|
+| `timeout-activate` | 30 | Seconds a lit gate waits for a destination before giving up |
+| `timeout-shutdown` | 38 | Seconds an open wormhole stays open after it was last dialled; re-dialling restarts it. `0` keeps it open until something goes through |
+| `max-open-seconds` | 300 | Longest a wormhole may stay open at all, from when it first formed, however often it is re-dialled. `0` to disable |
 
-That cap matters for anything that re-dials on a schedule, and for `shutdown_timeout: 0`, which
-means "stay open until something goes through" and could otherwise leave a gate open forever.
+The cap is what stops anything that re-dials on a schedule, or a `timeout-shutdown` of `0`, from
+holding a gate open forever.
 
 ### What this costs a busy server
 
@@ -257,10 +257,8 @@ install or configure. Gates are one file each; rings are one file per world, and
 will not parse is logged and skipped while the rest of the world loads.
 
 Older builds kept these files in `WormholeXTremeDB/`. They are moved into `data/` on the first
-startup after upgrading, and nothing is deleted.
-
-Earlier versions also offered HSQLDB and SQLite backends; both are gone. If you are coming from
-an install that used one, migrate with a build from before their removal, or rebuild the gates.
+startup after upgrading, and nothing is deleted. The HSQLDB and SQLite backends of earlier
+versions are gone; a SQLite database from another fork is read by `gate import`, below.
 
 ## Coming from another Wormhole X-Treme
 
@@ -299,9 +297,8 @@ Beaming has its own cost settings; see [Beam settings](BEAMS.md#settings).
 
 - **Gates gone after a restart** — check `plugins/WormholeXTreme/data/gates/` for their files,
   and the log for storage errors.
-- **A `?` where an accented character was** in a gate name, owner or iris code — a pre-1.5.0 bug
-  on servers whose locale is not UTF-8. 1.5.0 writes UTF-8 everywhere but cannot recover a
-  character that never reached the file: rebuild the gate under the right name, or set the iris
-  code again.
+- **A `?` where an accented character was** in a gate name, owner or iris code — written by a
+  build before 1.5.0 on a server whose locale is not UTF-8. The character never reached the
+  file, so rebuild the gate under the right name, or set the iris code again.
 - **A gate that stopped responding after WorldEdit** — `/wormhole gate validate <gate|-all>`
   reports what is missing. See [Gate commands](GATES.md#commands).

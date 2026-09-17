@@ -90,6 +90,8 @@ Gates work in the Nether and the End.
 
 `/dial` finishes a dial the button started; it cannot start one on its own.
 
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
+
 A dial is refused when the target's iris is closed, the target is already active, or another
 gate already points at it. `/wormhole gate force <gate>` dials past those.
 
@@ -108,6 +110,12 @@ plugins/WormholeXTreme/shapes/mirror/    the looks a mirror's banner can wear
 Nine shape files ship, but they are six gates. `Minimal`, `Standard`, `Large`, `Grand`,
 `Massive` and `Horizontal` are the rings; the three `SignDial` files are three of those
 rings again with a dial sign on the DHD instead of a plain button.
+
+![The six shipped shapes, built, from one camera position](../images/gates/gate-shapes.png)
+
+`Horizontal` lies flat and is dropped into rather than walked through:
+
+![A Horizontal gate, idle and dialled](../images/gates/gate-horizontal.png)
 
 All six are drawn, idle and dialled, in
 [the shape gallery](../GATES.md#the-shapes-that-ship) — worth a look before laying out a gate
@@ -148,6 +156,10 @@ group is accepted.
 ## Material groups
 
 A gate's **shape** is its geometry; its **material group** is what that geometry is built from.
+The same `Standard` gate in the four groups that ship:
+
+![The four palettes on a Standard gate](../images/gates/standard-palettes.png)
+
 Groups live in `config.yml`, and the first is the default. A `config.yml` with no
 `gate-material-groups` section is given the four example groups (Standard, Atlantis, Universe
 and MilkyWay) at startup; a section you have written is left as it is:
@@ -262,6 +274,8 @@ Signs repaint when next written — a dial sign on the next click, a name sign o
 An iris closes over a gate to block travel. Anyone walking into a gate whose far end has its iris
 closed is bounced back with "Remote Iris is locked!".
 
+![The iris closed, in each of the four palettes](../images/gates/standard-palettes-iris.png)
+
 - Build from a shape with an `:IA` marker (most have one). The plugin places the iris lever there.
 - Set an iris deactivation code so callers can open it remotely:
   - `gate complete <name> idc=<code>` when building, or
@@ -302,16 +316,14 @@ the frame refuses a pickaxe.
 
 ### Where the markers are
 
-On `StandardSignDial`:
+The DHD corner of `Standard` beside `StandardSignDial`, seen face-on:
 
-```
-   y=2   .  .  R          #  gate frame block   .  leave empty
-   y=1   .  A  D          A  activation block   D  dial sign holder
-   y=0   V  #  #          R  [RD]  dial       -> redstone dust
-                          V  [RA]  gate open  -> lever
-```
+![A plain DHD and a sign dial, side by side](../images/gates/dhd.svg)
 
-The frame block under the activation block carries the iris lever, on its face toward the player.
+`A` is the activation block the button goes on and `IA`, under it, carries the iris lever on its
+face toward the player. The sign dial adds `D`, the block the dial sign hangs on, and the two
+redstone cells: `RD` two blocks up, where the dust goes, and `RA` on the ground row, where the
+lever goes. Both sheets are drawn by `scripts/render_gate_sheets.py` from the shape files.
 
 - **`MinimalSignDial`** — `[RD]` on top of the activation block; `[RA]` on the ground row at the
   foot of the pillar.
@@ -429,9 +441,6 @@ General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-
-The kawoosh default changed in 1.5.0. A `config.yml` that already has the old value keeps it —
-set `gate-sound-kawoosh`, or delete the line to have it rewritten.
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that

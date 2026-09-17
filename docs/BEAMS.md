@@ -10,14 +10,8 @@ every decision below comes from one of three things: making a person appear to d
 column of light, keeping them from getting stuck if anything goes wrong, and keeping the
 arithmetic that drives it somewhere a test can reach.
 
-| | Stargate | Ring | Beam |
-|---|---|---|---|
-| What exists in the world | A built frame | Two invisible pads | Nothing |
-| Unit | One gate, dialled to another | A permanent pair | A single point |
-| Started by | Button, sign, redstone, `/dial` | Walking into it | A command |
-| Direction | One way per dial | Both ends together | One way, no return |
-| Range | Cross-world, config permitting | Same world, always | Cross-world, always |
-| Who can go | Network and node | Owner and allow list | Public list, or your own places |
+Against the other two: nothing exists in the world, a single point rather than a pair or an
+address, one way with no return, cross-world always. The README has the four side by side.
 
 ## Contents
 
@@ -30,7 +24,7 @@ arithmetic that drives it somewhere a test can reach.
 - [Nothing can strand a traveller](#nothing-can-strand-a-traveller)
 - [The pure half and the dull half](#the-pure-half-and-the-dull-half)
 - [Cost and cooldown](#cost-and-cooldown)
-- [Sound](#sound) · [Permissions](#permissions) · [Commands](#commands) · [Config](#config)
+- [Sound](#sound) · [Permissions](#permissions) · [Commands and config](#commands-and-config)
 - [Layout](#layout) · [What the tests guard](#what-the-tests-guard)
 
 ## Destinations and storage
@@ -83,7 +77,13 @@ loaded says so, rather than loading a world because somebody typed a name.
 
 ## The sequence
 
-![A whole beam cycle](images/capture-beam-cycle.svg)
+![A traveller leaving in a column of light](images/beams/beam-up.webp)
+
+**This is the departure only** — the glow gathering, the traveller vanishing, and the column
+rising away. The arrival half is not captured yet, and cannot be filmed by the traveller: you
+vanish six steps into a twelve-tick envelope, long before there is time to reach the far end and
+watch. It needs a second player at the destination. Until then the phase table below is the
+record of what the other half does.
 
 Four phases, matched beat for beat against the reference footage: a glow gathers and appears to
 absorb the traveller; they and the light leave in a column; the column arrives at the far end
@@ -264,84 +264,36 @@ beaming rather than reused from the gate strings, whose wording names a stargate
 ## Sound
 
 A power-up as the sequence begins, a departure where the traveller leaves, an arrival where they
-land.
-
-| Setting | Default |
-|---|---|
-| `beam-sound-charge` | `block.respawn_anchor.charge` |
-| `beam-sound-depart` | `entity.enderman.teleport` |
-| `beam-sound-arrive` | `entity.shulker.teleport` |
-
-Read live, so an admin can retune or silence beaming without a restart. The defaults are
-deliberately distinct from the ring palette so the two mechanics do not sound alike, and taken
-from vanilla's own teleport sounds so nothing had to be invented. Played through the shared
-`Sounds` helper, which never throws — a sound is not worth failing a beam over.
+land; the names and defaults are in the [beaming guide](guide/BEAMS.md#sounds). Read live, so an
+admin can retune or silence beaming without a restart. The defaults are deliberately distinct
+from the ring palette so the two mechanics do not sound alike, and taken from vanilla's own
+teleport sounds so nothing had to be invented. Played through the shared `Sounds` helper, which
+never throws — a sound is not worth failing a beam over.
 
 ## Permissions
 
-Four nodes, checked by `BeamPermissions` rather than `WXPermissions` — the same separation rings
-make, and for the same reason.
-
-```
-wormhole.beam.use             travel to a public destination or your own place   default: true
-wormhole.beam.place           create and manage your own places                  default: true
-wormhole.beam.admin           manage public destinations; bypass cost/cooldown   default: op
-wormhole.beam.admin.teleport  beam anybody to a player or to raw coordinates     default: op
-```
+Four nodes, listed in the [server guide](guide/SERVER.md#permissions) and checked by
+`BeamPermissions` rather than `WXPermissions` — the same separation rings make, and for the same
+reason.
 
 **`admin.teleport` is deliberately not implied by `admin`.** Curating a destination list and
 relocating any player at will are different orders of power. The check takes a `CommandSender`
 rather than a `Player`, because `admin goto` and `admin send` have to work from console and
 command blocks.
 
-## Commands
+## Commands and config
 
-```
-/wormhole beam to <name>                  travel; your own places first, then public
-/wormhole beam list                       list public destinations
-/wormhole beam place list                 list your own places
-/wormhole beam place set <name>           save your current location as a place
-/wormhole beam place remove <name>        remove one of your own places
-/wormhole beam admin set <name>           register a public destination where you stand
-/wormhole beam admin remove <name>        remove a public destination
-/wormhole beam admin cost <name> <amount> what it costs to use
-/wormhole beam admin cost <name> -default clear the override; use the configured default
-/wormhole beam admin goto <player|destination|x y z [world]>
-/wormhole beam admin send <target> <player|destination|x y z [world]>
-```
+The verbs and the settings are in the [beaming guide](guide/BEAMS.md). Two decisions behind them:
 
 **Travel goes through one verb, `to`.** It used to take a bare name, which sat in the same
 argument slot as `list`, `admin` and `place` and read as one more subcommand rather than as the
-thing you are travelling to.
+thing you are travelling to. `goto` and `send` are the one place a non-player sender is accepted:
+console and command blocks have no location to beam *from*, so only `send` makes sense for either.
 
-`goto` and `send` are the one place a non-player sender is accepted. Console and command blocks
-have no location to beam *from*, so only `send` makes sense for either.
-
-## Config
-
-```yaml
-beam-envelop-ticks: 12       # glow gathers at body height
-beam-vanish-at-step: 6       # how far into the envelope the traveller vanishes
-beam-rise-ticks: 18          # column rises and departs
-beam-teleport-at-step: 12    # how far into the rise the real teleport fires
-beam-descend-ticks: 20       # column arrives and settles
-beam-fade-ticks: 8           # column collapses once the traveller is deposited
-
-beam-sounds-enabled: true
-beam-sound-volume: 1.0
-beam-sound-charge: block.respawn_anchor.charge
-beam-sound-depart: entity.enderman.teleport
-beam-sound-arrive: entity.shulker.teleport
-
-beam-use-cooldown-enabled: false
-beam-use-cooldown-seconds: 120
-beam-economy-use-cost: 0     # 0 = free; a public destination may override it
-```
-
-The two `at-step` settings are clamped strictly inside the phases they sit in — see
-[Nothing can strand a traveller](#nothing-can-strand-a-traveller). These values are what the
-plugin falls back to when a setting is absent, so a config that has never mentioned beaming
-still gets the tuned sequence.
+**The two `-at-step` settings are clamped strictly inside the phases they sit in**, for the
+reason under [nothing can strand a traveller](#nothing-can-strand-a-traveller). The defaults are
+what the plugin falls back to when a setting is absent, so a config that has never mentioned
+beaming still gets the tuned sequence.
 
 ## Layout
 
