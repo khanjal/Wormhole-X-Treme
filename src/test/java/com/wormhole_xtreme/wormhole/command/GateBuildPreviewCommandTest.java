@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -348,15 +349,15 @@ class GateBuildPreviewCommandTest
             run("gate", "build", "-layer", "0");
             run("gate", "build", "-layer", "top");
 
-            previews.verify(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER), org.mockito.Mockito.times(2));
+            previews.verify(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER), times(2));
             previews.verify(() -> GatePreviews.layers(eq(player), org.mockito.ArgumentMatchers.intThat(n -> n < -1)),
                 never());
         }
-        verify(player, org.mockito.Mockito.times(2)).sendMessage(saying("Showing layer 1 of 4."));
+        verify(player, times(2)).sendMessage(saying("Showing layer 1 of 4."));
         verify(player).sendMessage(saying("Showing layer 1-3 of 4."));
         verify(player).sendMessage(saying("It has only 4 layers."));
         verify(player).sendMessage(saying("Showing all 4 layers."));
-        verify(player, org.mockito.Mockito.times(2)).sendMessage(saying("-layer [number|-next|-all]"));
+        verify(player, times(2)).sendMessage(saying("-layer [number|-next|-all]"));
         assertEquals(List.of("-next", "-all"),
             SubCommands.find("gate").completeArgs(player, new String[] { "gate", "build", "-layer", "" }));
     }

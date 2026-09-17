@@ -84,6 +84,8 @@ public class Build implements CommandExecutor
     public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
         CHEVRONS, DHD);
 
+    private static final String USAGE = "Usage: ";
+
     /** How far away a placed DHD button can be looked at to stand a preview on it. */
     private static final int DHD_REACH = 6;
 
@@ -102,7 +104,7 @@ public class Build implements CommandExecutor
         if (args.length > 2)
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Usage: " + command("/wormhole gate build <shape> [group]"));
+                + USAGE + command("/wormhole gate build <shape> [group]"));
             return;
         }
         if (!StargateHelper.isStargateShape(args[0]))
@@ -233,7 +235,7 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            player.sendMessage(error + "Usage: " + command(MATERIAL + " <group>") + " or "
+            player.sendMessage(error + USAGE + command(MATERIAL + " <group>") + " or "
                 + command(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
             return null;
         }
@@ -248,7 +250,7 @@ public class Build implements CommandExecutor
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            player.sendMessage(error + "Usage: " + command(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
+            player.sendMessage(error + USAGE + command(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
             return null;
         }
         final GatePreviews.Layers layers = GatePreviews.layers(player, asked);
