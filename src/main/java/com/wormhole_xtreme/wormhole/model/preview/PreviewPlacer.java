@@ -105,8 +105,9 @@ final class PreviewPlacer
     }
 
     /**
-     * Whether a block can stay as it is: what detection takes there, and for the button, one that hangs
-     * on the wall facing the builder, as a placed one would.
+     * Whether a block can stay as it is: what detection takes there, and in the button's place a button
+     * or lever hung on the wall facing the builder, as a placed button would be. A lever is a DHD as
+     * much as a button is; the plugin swaps one for the other itself.
      */
     private static boolean alreadyRight(final GatePreview preview, final Cell cell, final Block block)
     {
