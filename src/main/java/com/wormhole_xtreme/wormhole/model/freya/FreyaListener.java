@@ -2,11 +2,13 @@ package com.wormhole_xtreme.wormhole.model.freya;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Cat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
@@ -67,6 +69,22 @@ public class FreyaListener implements Listener
     public void onRespawn(final PlayerRespawnEvent event)
     {
         catchUpNextTick(event.getPlayer());
+    }
+
+    /**
+     * Lets her own spawn through a region or plugin that refuses mob spawns, WorldGuard's
+     * block-plugin-spawning among them; nobody else can see or touch her.
+     *
+     * @param event
+     *            the spawn
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onSpawn(final CreatureSpawnEvent event)
+    {
+        if (FreyaCompanion.isBeingSummoned() && (event.getEntity() instanceof Cat))
+        {
+            event.setCancelled(false);
+        }
     }
 
     /**

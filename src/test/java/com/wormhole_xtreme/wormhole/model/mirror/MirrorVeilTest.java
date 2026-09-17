@@ -49,6 +49,7 @@ class MirrorVeilTest
     {
         final World world = mock(World.class);
         final Cat freya = mock(Cat.class);
+        when(freya.isValid()).thenReturn(true);
         when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(freya);
         final Player owner = mock(Player.class);
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());

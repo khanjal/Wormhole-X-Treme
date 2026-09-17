@@ -190,7 +190,9 @@ class FreyaCommandTest
         final Player player = player();
         final World world = mock(World.class);
         when(player.getLocation()).thenReturn(new Location(world, 0.0, 64.0, 0.0));
-        when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(mock(Cat.class));
+        final Cat cat = mock(Cat.class);
+        when(cat.isValid()).thenReturn(true);
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(cat);
 
         command.execute(player, new String[] { "freya", "on" });
 

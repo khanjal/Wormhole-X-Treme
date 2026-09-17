@@ -56,6 +56,9 @@ public final class FreyaCompanion
     /** Covers both halves of a double chest from its clicked half. */
     private static final double CHEST_REACH_SQUARED = 2.5 * 2.5;
 
+    /** True only while she is being placed, so her own spawn event can be told apart. */
+    private static boolean summoning;
+
     private FreyaCompanion() {}
 
     /**
@@ -82,7 +85,21 @@ public final class FreyaCompanion
 
         try
         {
-            final Cat cat = at.getWorld().spawn(at, Cat.class);
+            final Cat cat;
+            summoning = true;
+            try
+            {
+                cat = at.getWorld().spawn(at, Cat.class);
+            }
+            finally
+            {
+                summoning = false;
+            }
+            // A cancelled spawn hands back a cat that never entered the world.
+            if ((cat == null) || !cat.isValid())
+            {
+                return null;
+            }
             settle(cat, owner);
             LIVE.put(owner.getUniqueId(), cat);
             return cat;
@@ -124,6 +141,16 @@ public final class FreyaCompanion
         {
             owner.showEntity(plugin, cat);
         }
+    }
+
+    /**
+     * Whether the spawn now happening is a companion being summoned.
+     *
+     * @return true only inside {@link #spawnFor(Player)}'s own spawn call
+     */
+    public static boolean isBeingSummoned()
+    {
+        return summoning;
     }
 
     /**

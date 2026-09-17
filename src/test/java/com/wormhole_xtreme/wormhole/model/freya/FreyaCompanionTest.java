@@ -27,6 +27,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -102,22 +103,29 @@ class FreyaCompanionTest
      */
     private static Cat catAt(final Location where)
     {
+        final Cat cat = liveCat();
+        when(cat.getLocation()).thenReturn(where);
+        return cat;
+    }
+
+    /** @return a cat that made it into the world; a bare mock reads as a refused spawn */
+    private static Cat liveCat()
+    {
         final Cat cat = mock(Cat.class);
         when(cat.isValid()).thenReturn(true);
-        when(cat.getLocation()).thenReturn(where);
         return cat;
     }
 
     @Test
     void askingTwiceReplacesTheCatRatherThanAddingASecond()
     {
-        final Cat first = mock(Cat.class);
+        final Cat first = liveCat();
         final Player player = playerWith(OWNER, first);
 
         FreyaCompanion.spawnFor(player);
         assertEquals(1, FreyaCompanion.liveCount(), "one ask, one cat");
 
-        final Cat second = mock(Cat.class);
+        final Cat second = liveCat();
         when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(second);
         FreyaCompanion.spawnFor(player);
 
@@ -129,9 +137,9 @@ class FreyaCompanionTest
     @Test
     void twoPlayersEachGetTheirOwn()
     {
-        final Player one = playerWith(OWNER, mock(Cat.class));
+        final Player one = playerWith(OWNER, liveCat());
         FreyaCompanion.spawnFor(one);
-        final Player two = playerWith(OTHER, mock(Cat.class));
+        final Player two = playerWith(OTHER, liveCat());
         FreyaCompanion.spawnFor(two);
 
         assertEquals(2, FreyaCompanion.liveCount(), "one each, not one between them");
@@ -140,7 +148,7 @@ class FreyaCompanionTest
     @Test
     void sheIsMarkedNotToPersistSoNoWorldEverStoresHer()
     {
-        final Cat cat = mock(Cat.class);
+        final Cat cat = liveCat();
         FreyaCompanion.spawnFor(playerWith(OWNER, cat));
 
         verify(cat).setPersistent(false);
@@ -155,7 +163,7 @@ class FreyaCompanionTest
     @Test
     void sheIsHiddenFromEveryoneAndShownOnlyToHerOwner()
     {
-        final Cat cat = mock(Cat.class);
+        final Cat cat = liveCat();
         final Player owner = playerWith(OWNER, cat);
 
         FreyaCompanion.spawnFor(owner);
@@ -167,7 +175,7 @@ class FreyaCompanionTest
     @Test
     void leavingTakesHerWithThem()
     {
-        final Cat cat = mock(Cat.class);
+        final Cat cat = liveCat();
         FreyaCompanion.spawnFor(playerWith(OWNER, cat));
 
         assertTrue(FreyaCompanion.removeFor(OWNER), "there was one to remove");
@@ -191,9 +199,9 @@ class FreyaCompanionTest
     @Test
     void onlyTheTrackedCatsCountAsCompanions()
     {
-        final Cat hers = mock(Cat.class);
+        final Cat hers = liveCat();
         FreyaCompanion.spawnFor(playerWith(OWNER, hers));
-        final Cat someoneElsesPet = mock(Cat.class);
+        final Cat someoneElsesPet = liveCat();
 
         assertTrue(FreyaCompanion.isCompanion(hers), "the one we spawned is ours");
         assertFalse(FreyaCompanion.isCompanion(someoneElsesPet),
@@ -203,9 +211,9 @@ class FreyaCompanionTest
     @Test
     void shuttingDownTakesEveryCompanionAway()
     {
-        final Cat one = mock(Cat.class);
+        final Cat one = liveCat();
         FreyaCompanion.spawnFor(playerWith(OWNER, one));
-        final Cat two = mock(Cat.class);
+        final Cat two = liveCat();
         FreyaCompanion.spawnFor(playerWith(OTHER, two));
 
         FreyaCompanion.removeAll();
@@ -236,7 +244,7 @@ class FreyaCompanionTest
     @Test
     void aCatThatIsNoLongerValidHasBeenLeftBehind()
     {
-        final Cat gone = mock(Cat.class);
+        final Cat gone = liveCat();
         when(gone.isValid()).thenReturn(false);
 
         assertTrue(FreyaCompanion.isLeftBehind(gone, new Location(world, 1.0, 64.0, 1.0)),
@@ -260,7 +268,7 @@ class FreyaCompanionTest
         final Player owner = playerWith(OWNER, before);
         FreyaCompanion.spawnFor(owner);
 
-        final Cat after = mock(Cat.class);
+        final Cat after = liveCat();
         when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(after);
 
         assertTrue(FreyaCompanion.catchUp(owner), "she was in another world, so she comes back");
@@ -272,7 +280,7 @@ class FreyaCompanionTest
     @Test
     void catchingUpDoesNothingForAPlayerWhoHasHerTurnedOff()
     {
-        final Player owner = playerWith(OWNER, mock(Cat.class));
+        final Player owner = playerWith(OWNER, liveCat());
 
         assertFalse(FreyaCompanion.catchUp(owner),
             "a teleport must never hand a cat to somebody who did not ask for one");
@@ -297,7 +305,7 @@ class FreyaCompanionTest
     void sheIsAwayWhileHerOwnerSleepsSoThereIsNoMorningGift()
     {
         FreyaPreferences.setEnabled(OWNER, true);
-        final Cat cat = mock(Cat.class);
+        final Cat cat = liveCat();
         final Player owner = playerWith(OWNER, cat);
         FreyaCompanion.spawnFor(owner);
 
@@ -316,7 +324,7 @@ class FreyaCompanionTest
     void sheIsAwayWhileACreeperOrPhantomHuntsHerOwner()
     {
         FreyaPreferences.setEnabled(OWNER, true);
-        final Cat cat = mock(Cat.class);
+        final Cat cat = liveCat();
         final Player owner = playerWith(OWNER, cat);
         FreyaCompanion.spawnFor(owner);
 
@@ -332,7 +340,7 @@ class FreyaCompanionTest
     void theHuntEndsOnlyWhenNothingNearbyStillTargetsHerOwner()
     {
         FreyaPreferences.setEnabled(OWNER, true);
-        final Player owner = playerWith(OWNER, mock(Cat.class));
+        final Player owner = playerWith(OWNER, liveCat());
         when(owner.isOnline()).thenReturn(true);
         final Creeper creeper = mock(Creeper.class);
         when(creeper.getTarget()).thenReturn(owner);
@@ -392,5 +400,48 @@ class FreyaCompanionTest
 
         assertFalse(FreyaCompanion.isAway(OWNER),
             "a player who quit in bed would otherwise never see her again");
+    }
+
+    @Test
+    void aRefusedSpawnIsNotTrackedAsACatThatIsNotThere()
+    {
+        final Cat refused = mock(Cat.class);
+        when(refused.isValid()).thenReturn(false);
+
+        assertNull(FreyaCompanion.spawnFor(playerWith(OWNER, refused)),
+            "the command would otherwise say she came when nothing is in the world");
+        assertEquals(0, FreyaCompanion.liveCount(), "and catch-up can still try again later");
+    }
+
+    @Test
+    void herSpawnIsLetThroughWhenAnotherPluginCancelsIt()
+    {
+        final FreyaListener listener = new FreyaListener();
+        final Cat cat = liveCat();
+        final CreatureSpawnEvent spawn = mock(CreatureSpawnEvent.class);
+        when(spawn.getEntity()).thenReturn(cat);
+        final Player owner = playerWith(OWNER, cat);
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenAnswer(call ->
+        {
+            listener.onSpawn(spawn);
+            return cat;
+        });
+
+        FreyaCompanion.spawnFor(owner);
+
+        verify(spawn).setCancelled(false);
+        assertFalse(FreyaCompanion.isBeingSummoned(), "the window closes once she is placed");
+    }
+
+    @Test
+    void anOrdinaryCatSpawnIsLeftToTheOtherPlugins()
+    {
+        final Cat stray = liveCat();
+        final CreatureSpawnEvent spawn = mock(CreatureSpawnEvent.class);
+        when(spawn.getEntity()).thenReturn(stray);
+
+        new FreyaListener().onSpawn(spawn);
+
+        verify(spawn, never()).setCancelled(false);
     }
 }
