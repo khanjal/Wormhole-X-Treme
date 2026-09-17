@@ -27,6 +27,8 @@ public class FreyaCommand implements SubCommand
     private static final String ON = "on";
     private static final String OFF = "off";
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -49,7 +51,8 @@ public class FreyaCommand implements SubCommand
 
         if (wanted)
         {
-            return welcome(player);
+            welcome(player);
+            return true;
         }
         FreyaCompanion.removeFor(player.getUniqueId());
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "She curls up somewhere else.");
@@ -85,26 +88,24 @@ public class FreyaCommand implements SubCommand
      *
      * @param player
      *            her owner
-     * @return true, always: the command was understood either way
      */
-    private static boolean welcome(final Player player)
+    private static void welcome(final Player player)
     {
         if (FreyaCompanion.isAway(player.getUniqueId()))
         {
             // Asleep or hunted: the listener brings her once that is over.
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "She will be along soon.");
-            return true;
+            return;
         }
         if (FreyaCompanion.spawnFor(player) == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "She did not come. Try again somewhere else.");
-            return true;
+            return;
         }
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + FreyaCompanion.NAME + " pads over and sits down beside you.");
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + ChatColor.ITALIC + FreyaCompanion.YEARS);
-        return true;
     }
 }

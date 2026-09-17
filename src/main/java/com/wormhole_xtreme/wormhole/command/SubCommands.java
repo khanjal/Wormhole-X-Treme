@@ -35,6 +35,7 @@ public final class SubCommands
     private static final String OWNER = "owner";
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
+    private static final String FREYA = "freya";
 
     /**
      * Supplies tab-completion candidates for a subcommand's arguments.
@@ -293,15 +294,15 @@ public final class SubCommands
         // Hidden below, so it never reaches help or tab completion. Self-permissioned so the
         // dispatcher does not put it behind wormhole.config, which would make an easter egg
         // that only operators could find.
-        register("freya", aliases(), "/wormhole freya [on|off]",
+        register(FREYA, aliases(), "/wormhole freya [on|off]",
             new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
 
         hide("list", BUILD, "complete", REMOVE, REGENERATE, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict", "freya");
+            "cooldown", "restrict", FREYA);
 
-        selfPermissioned("beam", "ring", "go", "list", "compass", "freya");
+        selfPermissioned("beam", "ring", "go", "list", "compass", FREYA);
     }
 
     /**
