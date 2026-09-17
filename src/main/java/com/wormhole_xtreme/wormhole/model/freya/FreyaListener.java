@@ -88,6 +88,21 @@ public class FreyaListener implements Listener
     }
 
     /**
+     * Notes whether her spawn still ended cancelled, so a refusal is not tracked as a cat.
+     *
+     * @param event
+     *            the spawn, after every other listener
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onSpawnSettled(final CreatureSpawnEvent event)
+    {
+        if (event.getEntity() instanceof Cat)
+        {
+            FreyaCompanion.summonSettled(event.isCancelled());
+        }
+    }
+
+    /**
      * Refuses all damage; setInvulnerable does not stop a creative-mode player, who could not
      * even see her.
      *

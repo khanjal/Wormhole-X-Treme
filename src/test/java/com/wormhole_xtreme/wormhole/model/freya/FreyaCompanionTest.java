@@ -108,11 +108,12 @@ class FreyaCompanionTest
         return cat;
     }
 
-    /** @return a cat that made it into the world; a bare mock reads as a refused spawn */
+    /** @return a cat that is in the world and not dead */
     private static Cat liveCat()
     {
         final Cat cat = mock(Cat.class);
         when(cat.isValid()).thenReturn(true);
+        when(cat.isDead()).thenReturn(false);
         return cat;
     }
 
@@ -242,10 +243,11 @@ class FreyaCompanionTest
     }
 
     @Test
-    void aCatThatIsNoLongerValidHasBeenLeftBehind()
+    void aCatThatHasBeenDiscardedHasBeenLeftBehind()
     {
         final Cat gone = liveCat();
         when(gone.isValid()).thenReturn(false);
+        when(gone.isDead()).thenReturn(true);
 
         assertTrue(FreyaCompanion.isLeftBehind(gone, new Location(world, 1.0, 64.0, 1.0)),
             "a non-persistent cat is discarded when her chunk unloads, leaving a dead reference");
@@ -405,12 +407,38 @@ class FreyaCompanionTest
     @Test
     void aRefusedSpawnIsNotTrackedAsACatThatIsNotThere()
     {
+        final FreyaListener listener = new FreyaListener();
         final Cat refused = mock(Cat.class);
-        when(refused.isValid()).thenReturn(false);
+        final CreatureSpawnEvent spawn = mock(CreatureSpawnEvent.class);
+        when(spawn.getEntity()).thenReturn(refused);
+        when(spawn.isCancelled()).thenReturn(true);
+        final Player owner = playerWith(OWNER, refused);
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenAnswer(call ->
+        {
+            listener.onSpawnSettled(spawn);
+            return refused;
+        });
 
-        assertNull(FreyaCompanion.spawnFor(playerWith(OWNER, refused)),
+        assertNull(FreyaCompanion.spawnFor(owner),
             "the command would otherwise say she came when nothing is in the world");
         assertEquals(0, FreyaCompanion.liveCount(), "and catch-up can still try again later");
+        verify(refused).remove();
+    }
+
+    @Test
+    void aCatPlacedBeforeHerChunkTracksEntitiesIsStillKept()
+    {
+        final Cat pending = mock(Cat.class);
+        when(pending.isValid()).thenReturn(false);
+        when(pending.isDead()).thenReturn(false);
+        when(pending.getLocation()).thenReturn(new Location(world, 1.0, 64.0, 1.0));
+
+        assertEquals(pending, FreyaCompanion.spawnFor(playerWith(OWNER, pending)),
+            "straight after a cross-world trip a placed cat is not valid yet; dropping her then "
+                + "lost her and left an unsettled, visible cat behind");
+        verify(pending).setVisibleByDefault(false);
+        assertFalse(FreyaCompanion.isLeftBehind(pending, new Location(world, 1.0, 64.0, 1.0)),
+            "and the second catch-up of the same trip must not replace her");
     }
 
     @Test

@@ -59,6 +59,9 @@ public final class FreyaCompanion
     /** True only while she is being placed, so her own spawn event can be told apart. */
     private static boolean summoning;
 
+    /** Whether her spawn event finished cancelled, which only something past HIGHEST can do. */
+    private static boolean summonRefused;
+
     private FreyaCompanion() {}
 
     /**
@@ -87,6 +90,7 @@ public final class FreyaCompanion
         {
             final Cat cat;
             summoning = true;
+            summonRefused = false;
             try
             {
                 cat = at.getWorld().spawn(at, Cat.class);
@@ -95,9 +99,14 @@ public final class FreyaCompanion
             {
                 summoning = false;
             }
-            // A cancelled spawn hands back a cat that never entered the world.
-            if ((cat == null) || !cat.isValid())
+            if (cat == null)
             {
+                return null;
+            }
+            // Read from the event, not isValid: after a cross-world trip she is not valid for a few ticks.
+            if (summonRefused)
+            {
+                cat.remove();
                 return null;
             }
             settle(cat, owner);
@@ -154,6 +163,20 @@ public final class FreyaCompanion
     }
 
     /**
+     * Records how her spawn event finished.
+     *
+     * @param cancelled
+     *            whether it ended cancelled after every listener had run
+     */
+    public static void summonSettled(final boolean cancelled)
+    {
+        if (summoning)
+        {
+            summonRefused = cancelled;
+        }
+    }
+
+    /**
      * Brings a player's companion back beside them if she has been left behind.
      *
      * @param owner
@@ -185,8 +208,9 @@ public final class FreyaCompanion
      */
     static boolean isLeftBehind(final Cat cat, final Location owner)
     {
-        // A non-persistent cat is dropped, not saved, when her chunk unloads behind a teleport.
-        if ((cat == null) || !cat.isValid())
+        // A non-persistent cat is discarded when her chunk unloads. Not isValid: one just placed
+        // in a chunk that is not yet tracking entities is invalid, but she is on her way.
+        if ((cat == null) || cat.isDead())
         {
             return true;
         }
