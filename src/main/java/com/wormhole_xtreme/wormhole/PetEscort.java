@@ -180,32 +180,52 @@ public final class PetEscort
         int brought = 0;
         for (final Entity pet : pets)
         {
-            try
+            if (bringOne(pet, owner.getUniqueId(), arrival))
             {
-                // Told to sit in the meantime, or still beside an owner whose trip was refused.
-                if (!follows(pet, owner.getUniqueId()) || !apart(pet.getLocation(), arrival))
-                {
-                    continue;
-                }
-                if (!pet.teleport(arrival))
-                {
-                    PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + " to " + arrival.getWorld().getName()
-                        + ": the teleport was refused (valid " + pet.isValid() + ")");
-                    continue;
-                }
-                // Landing next to a gate must not count as walking into it.
-                WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(pet.getUniqueId());
-                pet.setVelocity(new Vector());
-                pet.setFallDistance(0);
                 brought++;
-            }
-            catch (final RuntimeException e)
-            {
-                // Refused by another plugin, or gone mid-trip; the others still come.
-                PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + ": " + e);
             }
         }
         return brought;
+    }
+
+    /**
+     * Sends one pet to its owner, unless it no longer needs or wants to come.
+     *
+     * @param pet
+     *            the pet
+     * @param ownerId
+     *            its owner
+     * @param arrival
+     *            where the owner now is
+     * @return true if it was brought
+     */
+    private static boolean bringOne(final Entity pet, final UUID ownerId, final Location arrival)
+    {
+        try
+        {
+            // Told to sit in the meantime, or still beside an owner whose trip was refused.
+            if (!follows(pet, ownerId) || !apart(pet.getLocation(), arrival))
+            {
+                return false;
+            }
+            if (!pet.teleport(arrival))
+            {
+                PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + " to " + arrival.getWorld().getName()
+                    + ": the teleport was refused (valid " + pet.isValid() + ")");
+                return false;
+            }
+            // Landing next to a gate must not count as walking into it.
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(pet.getUniqueId());
+            pet.setVelocity(new Vector());
+            pet.setFallDistance(0);
+            return true;
+        }
+        catch (final RuntimeException e)
+        {
+            // Refused by another plugin, or gone mid-trip; the others still come.
+            PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + ": " + e);
+            return false;
+        }
     }
 
     /**

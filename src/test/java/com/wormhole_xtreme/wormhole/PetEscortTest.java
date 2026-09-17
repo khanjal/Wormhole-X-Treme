@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,11 +46,13 @@ class PetEscortTest
     private static final UUID OWNER = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
 
     private Player owner;
+    private WormholeXTreme plugin;
 
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
@@ -268,5 +273,59 @@ class PetEscortTest
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
             org.mockito.ArgumentMatchers.eq(PetEscort.FOLLOW_DELAY_TICKS));
         verify(wolf, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * With detail logging on, each of the owner's own pets that stays says why.
+     *
+     * <p>These lines are how a server owner testing a transport tells "the escort never saw my
+     * dog" from "it saw her sitting", so each reason has to reach the log.
+     */
+    @Test
+    void withDetailLoggingEachOwnPetThatStaysSaysWhy()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        final Wolf sitting = wolfOf(owner);
+        when(sitting.isSitting()).thenReturn(true);
+        final Wolf riding = wolfOf(owner);
+        when(riding.isInsideVehicle()).thenReturn(true);
+        final Wolf dead = wolfOf(owner);
+        when(dead.isDead()).thenReturn(true);
+        final Horse horse = mock(Horse.class);
+        when(horse.isTamed()).thenReturn(true);
+        when(horse.getOwner()).thenReturn(owner);
+        final Zombie zombie = mock(Zombie.class);
+        when(owner.getNearbyEntities(anyDouble(), anyDouble(), anyDouble()))
+            .thenReturn(List.of(sitting, riding, dead, horse, zombie));
+
+        assertTrue(PetEscort.gather(owner).isEmpty());
+
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: sitting"));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: riding something"));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: dead"));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: not a following pet"));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Pets travelling with"));
+    }
+
+    @Test
+    void aLookupThatFailsLeavesEveryPetBehindAndSaysSo()
+    {
+        when(owner.getNearbyEntities(anyDouble(), anyDouble(), anyDouble()))
+            .thenThrow(new IllegalStateException("off the main thread"));
+
+        assertTrue(PetEscort.gather(owner).isEmpty(), "the owner's own trip must still go ahead");
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Could not look for"),
+            nullable(Throwable.class));
+    }
+
+    @Test
+    void aRefusedTeleportIsNotCountedAndIsLogged()
+    {
+        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        when(wolf.teleport(any(Location.class))).thenReturn(false);
+
+        assertEquals(0, PetEscort.bring(List.of(wolf), owner));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("the teleport was refused"));
     }
 }

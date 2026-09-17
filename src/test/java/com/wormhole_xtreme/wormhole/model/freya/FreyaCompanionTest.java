@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -541,5 +542,56 @@ class FreyaCompanionTest
 
         assertFalse(FreyaCompanion.resend(owner), "nothing is out to send");
     }
-}
 
+    /**
+     * With detail logging on, the check says where she is and how she is shown.
+     *
+     * <p>That line is what told a lost packet apart from a lost cat in play: world, distance,
+     * validity, and both visibility flags.
+     */
+    @Test
+    void withDetailLoggingTheCheckDescribesWhereSheIsAndHowSheIsShown()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.spawnFor(owner);
+
+        FreyaCompanion.catchUp(owner);
+        FreyaCompanion.resend(owner);
+
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Companion check for owner: in "));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Re-sending companion to owner"));
+    }
+
+    @Test
+    void withDetailLoggingACheckOnAnOwnerInBedSaysSheIsAway()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Player owner = playerWith(OWNER, liveCat());
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.ownerSleeps(OWNER);
+
+        assertFalse(FreyaCompanion.catchUp(owner));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("away while they sleep"));
+    }
+
+    @Test
+    void withDetailLoggingAReSummonSaysSheDidNotTravel()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat before = catAt(new Location(mock(World.class), 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, before);
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.spawnFor(owner);
+        final Cat after = liveCat();
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(after);
+
+        assertTrue(FreyaCompanion.catchUp(owner));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("did not travel with them"));
+    }
+}
