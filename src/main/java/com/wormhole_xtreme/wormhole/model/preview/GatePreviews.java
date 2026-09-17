@@ -137,6 +137,24 @@ public final class GatePreviews
     public record Materials(String shape, List<BuildGuide.Need> needs, int blocked, boolean detectable,
         Material frame) {}
 
+    /**
+     * Which layers of the preview looked at are shown.
+     *
+     * @param shown
+     *            how many, from the first; 0 for all of them
+     * @param of
+     *            how many layers have something built in them
+     * @param valid
+     *            false if the layer asked for is not one of them, and nothing changed
+     */
+    public record Layers(int shown, int of, boolean valid) {}
+
+    /** Asks {@link #layers} for the next layer, or all of them again after the last. */
+    public static final int NEXT_LAYER = -1;
+
+    /** Asks {@link #layers} for every layer. */
+    public static final int ALL_LAYERS = 0;
+
     /** Runs a step of a dial later; tests step a dial by hand instead. */
     interface Later
     {
@@ -165,16 +183,45 @@ public final class GatePreviews
      */
     public static Shown show(final Player owner, final Stargate3DShape shape, final MaterialGroup group)
     {
+        final Location at = owner.getLocation();
+        return stand(owner, shape, group, at.getWorld(), GateBlueprint.inFrontOf(shape, at.getBlockX(), at.getBlockY(),
+            at.getBlockZ(), GateBlueprint.facingOf(at.getYaw())));
+    }
+
+    /**
+     * Shows a shape built to a DHD button or lever already placed, standing where a gate detected from
+     * it would, so a build can be picked up again.
+     *
+     * @param owner
+     *            who sees it
+     * @param shape
+     *            the shape
+     * @param group
+     *            its material group, or null for the shape's own materials
+     * @param dhd
+     *            the button or lever
+     * @param facing
+     *            the way it faces, away from the block it hangs on
+     * @return what happened
+     */
+    public static Shown showOn(final Player owner, final Stargate3DShape shape, final MaterialGroup group,
+        final org.bukkit.block.Block dhd, final org.bukkit.block.BlockFace facing)
+    {
+        final GateGrid grid = GateGrid.fromActivationHolder(shape, dhd.getX() - facing.getModX(), dhd.getY(),
+            dhd.getZ() - facing.getModZ(), facing);
+        return stand(owner, shape, group, dhd.getWorld(), grid);
+    }
+
+    private static Shown stand(final Player owner, final Stargate3DShape shape, final MaterialGroup group,
+        final World world, final GateGrid grid)
+    {
         // Asking counts as using build commands even when this one cannot be shown.
         touch(owner.getUniqueId());
-        final Location at = owner.getLocation();
-        final GateGrid grid = GateBlueprint.inFrontOf(shape, at.getBlockX(), at.getBlockY(), at.getBlockZ(),
-            GateBlueprint.facingOf(at.getYaw()));
         if (grid == null)
         {
             return Shown.NO_DHD;
         }
-        final GatePreview preview = new GatePreview(at.getWorld(), shape, grid, Palette.of(shape, group),
+        final GatePreview preview = new GatePreview(world, shape, grid, Palette.of(shape, group),
             GateBlueprint.of(shape, grid), GateBlueprint.openingOf(shape, grid), GateBlueprint.wooshOf(shape, grid));
         if ((blocksShown() + preview.size()) > ConfigManager.getGatePreviewMaxBlocks())
         {
@@ -367,6 +414,41 @@ public final class GatePreviews
         preview.finished(false);
         draw(owner, preview);
         return preview.guide() ? Control.GUIDE_ON : Control.GUIDE_OFF;
+    }
+
+    /**
+     * Shows the preview a player is looking at a layer at a time: the layers up to one, the next, or all
+     * of them.
+     *
+     * @param owner
+     *            whose preview
+     * @param layers
+     *            how many layers to show from the first, {@link #NEXT_LAYER} or {@link #ALL_LAYERS}
+     * @return which are shown, or null if they are not looking at one of their previews
+     */
+    public static Layers layers(final Player owner, final int layers)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        if (preview == null)
+        {
+            return null;
+        }
+        final int of = preview.layerCount();
+        if (layers > of)
+        {
+            return new Layers(preview.layersShown(), of, false);
+        }
+        if (layers == NEXT_LAYER)
+        {
+            preview.layersShown((preview.layersShown() >= of) ? ALL_LAYERS : preview.layersShown() + 1);
+        }
+        else
+        {
+            preview.layersShown(Math.max(ALL_LAYERS, layers));
+        }
+        draw(owner, preview);
+        return new Layers(preview.layersShown(), of, true);
     }
 
     /**
@@ -802,8 +884,8 @@ public final class GatePreviews
         {
             if (built && clear && !preview.finished())
             {
-                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Every block of "
-                    + preview.shape().getShapeName() + " is in place. Press its button to check it.");
+                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + PreviewText.good(preview.shape().getShapeName() + " is built!") + " Press its button to check it.");
             }
             preview.finished(built && clear);
         }
@@ -892,7 +974,7 @@ public final class GatePreviews
     {
         final Cell cell = preview.buttonCell();
         // A real button there is pressed to find the gate, so the box must not take its clicks.
-        if ((cell == null) || preview.dhdHidden()
+        if ((cell == null) || !preview.showing(cell)
             || (BuildGuide.of(cell, preview.palette(), typeAt(preview.world(), cell)) == BuildGuide.State.PLACED))
         {
             preview.removeButton();

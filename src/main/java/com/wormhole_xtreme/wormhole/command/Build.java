@@ -1,11 +1,21 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.bad;
+import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.command;
+import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.commands;
+import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.good;
+import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.name;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.FaceAttachable;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,11 +32,14 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
+import com.wormhole_xtreme.wormhole.model.preview.PreviewText;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
  * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
- * {@code -material <group>|<role> <block>}, {@code -materials} and {@code -guide}.
+ * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide} and
+ * {@code -layer [<n>|-next|-all]}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -61,9 +74,20 @@ public class Build implements CommandExecutor
     /** Marks on the preview what is still to place and what is wrong, or stops. */
     public static final String GUIDE = "-guide";
 
+    /** Shows the preview's layers up to one, the next, or all. */
+    public static final String LAYER = "-layer";
+
+    /** After {@link #LAYER}: one more layer, or all again after the last. */
+    public static final String NEXT = "-next";
+
     /** Every option, in the order they are offered. */
-    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, CHEVRONS,
-        DHD);
+    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
+        CHEVRONS, DHD);
+
+    private static final String USAGE = "Usage: ";
+
+    /** How far away a placed DHD button can be looked at to stand a preview on it. */
+    private static final int DHD_REACH = 6;
 
     private static void doBuild(final Player player, final String[] args)
     {
@@ -80,12 +104,13 @@ public class Build implements CommandExecutor
         if (args.length > 2)
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Usage: /wormhole gate build <shape> [group]");
+                + USAGE + command("/wormhole gate build <shape> [group]"));
             return;
         }
         if (!StargateHelper.isStargateShape(args[0]))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shape: " + args[0]);
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No shape called " + name(args[0])
+                + ".");
             return;
         }
         final StargateShape shape = StargateHelper.getStargateShape(args[0]);
@@ -95,8 +120,8 @@ public class Build implements CommandExecutor
             group = MaterialGroupRegistry.getGroup(args[1]);
             if ((group == null) || !shape.acceptsMaterialGroup(group.getName()))
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + args[0]
-                    + " is not built in a group called " + args[1] + ". Try one of: " + groupsFor(shape) + ".");
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + name(args[0])
+                    + " has no group " + name(args[1]) + ". Try " + groupsFor(shape) + ".");
                 return;
             }
         }
@@ -107,8 +132,8 @@ public class Build implements CommandExecutor
         StargateManager.addPlayerBuilderShape(player, shape);
         if (!mayPreview || !(shape instanceof Stargate3DShape shape3d))
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Press the button on your new DHD to check it against the shape " + args[0] + ".");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Building " + name(args[0])
+                + ". Press the button on its DHD when it is done.");
             return;
         }
         preview(player, shape3d, group);
@@ -117,21 +142,44 @@ public class Build implements CommandExecutor
     private static void preview(final Player player, final Stargate3DShape shape, final MaterialGroup group)
     {
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
-        switch (GatePreviews.show(player, shape, group))
+        final Block looked = player.getTargetBlockExact(DHD_REACH);
+        final BlockFace dhdFacing = (looked == null) ? null : wallFacing(looked);
+        final GatePreviews.Shown shown = (dhdFacing == null) ? GatePreviews.show(player, shape, group)
+            : GatePreviews.showOn(player, shape, group, looked, dhdFacing);
+        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
+        switch (shown)
         {
-            case SHOWN -> player.sendMessage(header + "Previewing " + shape.getShapeName()
-                + ((group == null) ? "" : " in " + group.getName())
-                + ". Right-click its button to dial it. Build it where it stands, then place a real button where "
-                + "its button is and press that. Look at it and use " + String.join(", ", OPTIONS) + ".");
-            case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
-                    ? "Previews are turned off on this server (gate-preview-max-blocks is 0). "
-                        + "The shape is still chosen."
-                    : "That would show more than " + ConfigManager.getGatePreviewMaxBlocks()
-                        + " preview blocks on the server. The shape is still chosen; clear a preview to show it."));
-            case NO_DHD -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + shape.getShapeName() + " has no DHD to stand it by, so it cannot be previewed.");
+            case SHOWN ->
+            {
+                player.sendMessage(header + "Previewing " + name(shape.getShapeName())
+                    + ((group == null) ? "" : " in " + name(group.getName()))
+                    + ((dhdFacing == null) ? ". Build inside it, then press a real button on its DHD."
+                        : " on your DHD. Finish it, then press the button."));
+                player.sendMessage(header + "Look at it and use " + commands(OPTIONS));
+            }
+            case OVER_LIMIT -> player.sendMessage(error + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
+                ? "Previews are off on this server."
+                : "Too many preview blocks on the server. Clear one with " + command(CLEAR) + "."));
+            case NO_DHD -> player.sendMessage(error + name(shape.getShapeName()) + " has no DHD, so it cannot be previewed.");
         }
+    }
+
+    /**
+     * The way a button or lever on the side of a block faces, as a DHD's does.
+     *
+     * @param block
+     *            what the player looks at
+     * @return its facing, or null for anything else, or one on a floor or ceiling
+     */
+    static BlockFace wallFacing(final Block block)
+    {
+        final Material type = block.getType();
+        final boolean dhdSwitch = MaterialUtils.isButton(type) || (type == Material.LEVER);
+        return (dhdSwitch && (block.getBlockData() instanceof FaceAttachable attached)
+            && (attached.getAttachedFace() == FaceAttachable.AttachedFace.WALL)
+            && (block.getBlockData() instanceof Directional directional))
+            ? directional.getFacing()
+            : null;
     }
 
     /** Runs an option on the preview the player looks at. */
@@ -140,8 +188,8 @@ public class Build implements CommandExecutor
         final String option = args[0].toLowerCase(Locale.ROOT);
         if (!OPTIONS.contains(option))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No such option: " + args[0]
-                + ". Try " + String.join(", ", OPTIONS) + ".");
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No option "
+                + command(args[0]) + ". Try " + commands(OPTIONS));
             return;
         }
         if (CLEAR.equals(option))
@@ -162,6 +210,7 @@ public class Build implements CommandExecutor
             case CHEVRONS -> GatePreviews.toggleChevrons(player);
             case GUIDE -> GatePreviews.guide(player);
             case MATERIALS -> listMaterials(player);
+            case LAYER -> layers(player, args);
             default -> material(player, args);
         };
         if (done != null)
@@ -174,7 +223,7 @@ public class Build implements CommandExecutor
     private static GatePreviews.Control material(final Player player, final String[] args)
     {
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
-        final String roles = Arrays.stream(Role.values()).map(Role::word).collect(Collectors.joining("|"));
+        final String roles = Arrays.stream(Role.values()).map(Role::word).collect(Collectors.joining(", "));
         if (args.length == 2)
         {
             final MaterialGroup group = MaterialGroupRegistry.getGroup(args[1]);
@@ -186,12 +235,67 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            player.sendMessage(error + "Usage: /wormhole gate build " + MATERIAL + " <group>, or " + MATERIAL
-                + " <" + roles + "> <block>");
+            player.sendMessage(error + USAGE + command(MATERIAL + " <group>") + " or "
+                + command(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
             return null;
         }
         final Material block = Material.matchMaterial(args[2]);
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
+    }
+
+    /** {@code -layer [<n>|-next|-all]}; null once it has answered itself. */
+    private static GatePreviews.Control layers(final Player player, final String[] args)
+    {
+        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
+        final int asked = layerAsked(args);
+        if (asked < GatePreviews.NEXT_LAYER)
+        {
+            player.sendMessage(error + USAGE + command(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
+            return null;
+        }
+        final GatePreviews.Layers layers = GatePreviews.layers(player, asked);
+        if (layers == null)
+        {
+            return GatePreviews.Control.NOT_LOOKING;
+        }
+        if (!layers.valid())
+        {
+            player.sendMessage(error + "It has only " + layers.of() + " layer" + ((layers.of() == 1) ? "" : "s") + ".");
+        }
+        else if (layers.shown() == GatePreviews.ALL_LAYERS)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing all " + layers.of()
+                + " layers.");
+        }
+        else
+        {
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing layer "
+                + ((layers.shown() == 1) ? "1" : "1-" + layers.shown()) + " of " + layers.of() + ". "
+                + command(LAYER) + " for the next.");
+        }
+        return null;
+    }
+
+    /** What {@code -layer} asked for, or less than {@link GatePreviews#NEXT_LAYER} if it makes no sense. */
+    private static int layerAsked(final String[] args)
+    {
+        if ((args.length == 1) || NEXT.equalsIgnoreCase(args[1]))
+        {
+            return GatePreviews.NEXT_LAYER;
+        }
+        if (ALL.equalsIgnoreCase(args[1]))
+        {
+            return GatePreviews.ALL_LAYERS;
+        }
+        try
+        {
+            final int n = Integer.parseInt(args[1]);
+            return (n >= 1) ? n : Integer.MIN_VALUE;
+        }
+        catch (final NumberFormatException notANumber)
+        {
+            return Integer.MIN_VALUE;
+        }
     }
 
     /** {@code -materials}; null once it has answered itself. */
@@ -203,21 +307,21 @@ public class Build implements CommandExecutor
             return GatePreviews.Control.NOT_LOOKING;
         }
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
-        player.sendMessage(header + list.shape() + " takes:");
+        player.sendMessage(header + name(list.shape()) + " needs:");
         for (final BuildGuide.Need need : list.needs())
         {
-            player.sendMessage(header + "  " + need.count() + " " + need.name()
-                + ((need.toPlace() == 0) ? ", all in place" : ", " + need.toPlace() + " still to place"));
+            player.sendMessage(header + "  " + need.count() + " " + PreviewText.material(need.name()) + " - "
+                + ((need.toPlace() == 0) ? good("done") : need.toPlace() + " left"));
         }
         if (list.blocked() > 0)
         {
-            player.sendMessage(header + "  and " + list.blocked() + " block" + ((list.blocked() == 1) ? "" : "s")
-                + " to clear from its opening");
+            player.sendMessage(header + "  " + bad(list.blocked() + " in the way") + " in the opening");
         }
         if (!list.detectable())
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No material group has a "
-                + list.frame().name().toLowerCase(Locale.ROOT) + " frame, so a gate built like this will not be found.");
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No material group uses "
+                + PreviewText.material(list.frame().name().toLowerCase(Locale.ROOT))
+                + " for a frame, so this gate would not be found.");
         }
         return null;
     }
@@ -232,20 +336,19 @@ public class Build implements CommandExecutor
         final String text = switch (done)
         {
             case NOT_LOOKING -> "Look at one of your previews first.";
-            case DIALLING -> "Dialling. " + ACTIVATE + " again, or its button, shuts it down.";
+            case DIALLING -> "Dialling. " + command(ACTIVATE) + " again shuts it down.";
             case SHUT_DOWN -> "Shut down.";
-            case IRIS_CLOSED -> "Iris closed. " + IRIS + " again opens it.";
+            case IRIS_CLOSED -> "Iris closed. " + command(IRIS) + " opens it.";
             case IRIS_OPENED -> "Iris open.";
             case CHANGED -> "Materials changed.";
-            case NOT_A_BLOCK -> "That is not a block that can be shown.";
-            case NOT_IN_GROUP -> "This shape is not built in that group.";
-            case DHD_HIDDEN -> "DHD hidden. " + DHD + " again shows it.";
+            case NOT_A_BLOCK -> "That is not a block.";
+            case NOT_IN_GROUP -> "This shape cannot use that group.";
+            case DHD_HIDDEN -> "DHD hidden. " + command(DHD) + " shows it.";
             case DHD_SHOWN -> "DHD shown.";
-            case CHEVRONS_PLAIN -> "Chevrons drawn as frame, as a gate built without chevron blocks. " + CHEVRONS
-                + " again shows them.";
-            case CHEVRONS_SHOWN -> "Chevrons drawn in their own material.";
-            case GUIDE_ON -> "Guide on: blocks still to place are drawn small, wrong blocks glow red, and placed "
-                + "blocks disappear. " + GUIDE + " again turns it off.";
+            case CHEVRONS_PLAIN -> "Chevrons shown as frame. " + command(CHEVRONS) + " undoes it.";
+            case CHEVRONS_SHOWN -> "Chevrons shown.";
+            case GUIDE_ON -> "Guide on: small = to place, " + bad("red") + " = wrong, gone = done. " + command(GUIDE)
+                + " turns it off.";
             case GUIDE_OFF -> "Guide off.";
         };
         player.sendMessage((refused ? ConfigManager.MessageStrings.ERROR_HEADER : ConfigManager.MessageStrings.NORMAL_HEADER)
@@ -263,12 +366,11 @@ public class Build implements CommandExecutor
         }
         if (GatePreviews.clearLookedAt(player))
         {
-            player.sendMessage(header + "Cleared that preview. " + GatePreviews.countOf(player.getUniqueId())
-                + " left.");
+            player.sendMessage(header + "Cleared. " + GatePreviews.countOf(player.getUniqueId()) + " left.");
             return;
         }
         player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Look at the preview to clear, or use /wormhole gate build " + CLEAR + " " + ALL + ".");
+            + "Look at a preview to clear it, or use " + command(CLEAR + " " + ALL) + ".");
     }
 
     /** The group names a shape may be built in, for an error message. */
@@ -278,6 +380,7 @@ public class Build implements CommandExecutor
             .map(MaterialGroup::getName)
             .filter(shape::acceptsMaterialGroup)
             .sorted(String.CASE_INSENSITIVE_ORDER)
+            .map(PreviewText::name)
             .collect(Collectors.joining(", "));
     }
 

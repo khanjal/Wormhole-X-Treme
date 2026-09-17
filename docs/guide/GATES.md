@@ -57,6 +57,11 @@ Look at a preview and these change it, for you alone:
 | `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
 | `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
 | `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
+| `gate build -layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
+
+**Picking a build back up.** Look at the button or lever on a DHD you have already placed and run
+`gate build <shape> [group]`: the preview stands on that DHD, where the gate will be found, rather
+than in front of you.
 
 With `-guide` on you are told once every block is in place; press the button to check the gate.
 A block is judged the way the gate is found: a chevron may be the frame or the group's chevron

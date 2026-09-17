@@ -231,6 +231,14 @@ block is really there; the five-second tick catches everything else, pistons and
 included. Once a real button stands on the preview's button cell, the `Interaction` box goes, or it
 would take the click meant for the real button and dial the preview instead.
 
+Each blueprint cell carries its shape layer, so `-layer` hides cells past a layer the way `-dhd`
+hides the DHD's: the display and, with the DHD's layer hidden, the button's box. A preview stood on
+a placed button takes its grid from `GateGrid.fromActivationHolder` with that button's facing,
+exactly as detection does when the button is pressed, which is what makes it the right place to
+pick a build up again after a relog. Only a button or lever on the side of a block counts; one on a
+floor has no facing a DHD could have. Nothing is saved: previews end with the session, and the
+button in the world is the anchor.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".

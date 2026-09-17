@@ -380,6 +380,10 @@ public final class SubCommands
         {
             return prefixed(args[3], Build.ALL);
         }
+        if (Build.LAYER.equalsIgnoreCase(args[2]))
+        {
+            return prefixed(args[3], Build.NEXT, Build.ALL);
+        }
         if (args[2].startsWith("-"))
         {
             return none();
