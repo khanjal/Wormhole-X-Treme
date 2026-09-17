@@ -61,18 +61,6 @@
 				<version>3.3.0</version>
 				<configuration>
 					<useModulePath>false</useModulePath>
-					<!-- One forked JVM runs the whole suite, and it had grown enough to exhaust
-					     whatever heap the runner's memory implied: GateBlueprintTest died on
-					     "Java heap space" with every test passing, on some CI machines and not
-					     others. An explicit ceiling makes that independent of the runner. The
-					     dump is here so that a recurrence says what filled the heap instead of
-					     needing this diagnosed from a log again.
-
-					     @{argLine} is late replacement, not a literal: JaCoCo's prepare-agent
-					     sets the argLine property, and surefire reads it from there. Writing
-					     -Xmx on its own would replace the agent rather than join it, and
-					     coverage would silently report zero. -->
-					<argLine>@{argLine} -Xmx2g -XX:+HeapDumpOnOutOfMemoryError</argLine>
 				</configuration>
 			</plugin>
 
