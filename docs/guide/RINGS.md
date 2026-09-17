@@ -23,22 +23,13 @@ Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do the 
 in the same world and the two are paired. Only then are the slabs consumed and the floors put back
 as they looked.
 
-```
-ODD — 7 across, 16 slabs          EVEN — 6 across, 12 slabs
+| Odd — 7 across, 16 slabs | Even — 6 across, 12 slabs |
+|:---:|:---:|
+| <a href="../images/rings/pattern-odd.svg"><img src="../images/rings/pattern-odd.svg" width="196" alt="the odd ring pattern in plan"></a> | <a href="../images/rings/pattern-even.svg"><img src="../images/rings/pattern-even.svg" width="168" alt="the even ring pattern in plan"></a> |
 
-    . . # # # . .                     . . # # . .
-    . # : : : # .                     . # : : # .
-    # : : : : : #                     # : + : : #
-    # : : + : : #                     # : : : : #
-    # : : : : : #                     . # : : # .
-    . # : : : # .                     . . # # . .
-    . . # # # . .
-
-  # = lay a slab    : = stand anywhere in here    + = anchor
-```
-
-Both are [drawn to scale](../RINGS.md#patterns) in the design notes, along with
-[what the deploy looks like frame by frame](../RINGS.md#what-that-looks-like).
+Grey is where you lay a slab; blue is where you stand; the outlined cell is the ring's centre.
+[What the deploy looks like frame by frame](../RINGS.md#what-that-looks-like) is in the design
+notes.
 
 - **Only the ring**, not a filled disc.
 - **One kind of slab.** It becomes the ring's material — deepslate slabs rise as deepslate.
