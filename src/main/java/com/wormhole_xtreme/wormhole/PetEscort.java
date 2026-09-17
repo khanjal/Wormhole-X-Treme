@@ -96,11 +96,11 @@ public final class PetEscort
             return;
         }
         final String why;
-        if (!(entity instanceof Sittable))
+        if (!(entity instanceof Sittable sittable))
         {
             why = "not a following pet";
         }
-        else if (((Sittable) entity).isSitting())
+        else if (sittable.isSitting())
         {
             why = "sitting";
         }
