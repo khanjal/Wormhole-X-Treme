@@ -10,6 +10,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -21,7 +22,10 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -31,6 +35,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -60,6 +65,15 @@ public final class GatePreviews
 
     /** The size of what the preview's button answers clicks on. */
     private static final float BUTTON_SIZE = 0.6f;
+
+    /** How big the guide draws a block still to place. */
+    private static final float MISSING_SCALE = 0.5f;
+
+    /** How big the guide draws its outline over a wrong block, just clear of the block's faces. */
+    private static final float WRONG_SCALE = 1.02f;
+
+    /** What the guide marks a block in the opening with. */
+    private static final Material IN_THE_WAY = Material.RED_STAINED_GLASS;
 
     /** What happened when a preview was asked for. */
     public enum Shown
@@ -98,8 +112,30 @@ public final class GatePreviews
         /** The chevrons are drawn as frame, the way a gate built without chevron blocks looks. */
         CHEVRONS_PLAIN,
         /** The chevrons are drawn in the chevron material again. */
-        CHEVRONS_SHOWN
+        CHEVRONS_SHOWN,
+        /** The preview marks what is still to place and what is wrong. */
+        GUIDE_ON,
+        /** The preview shows the whole gate again. */
+        GUIDE_OFF
     }
+
+    /**
+     * What the preview looked at takes to build.
+     *
+     * @param shape
+     *            its shape's name
+     * @param needs
+     *            each material, with how many are still to place
+     * @param blocked
+     *            how many blocks stand in its opening
+     * @param detectable
+     *            whether any shape or material group builds a frame from its frame material, without
+     *            which a gate built to it is never found
+     * @param frame
+     *            its frame material
+     */
+    public record Materials(String shape, List<BuildGuide.Need> needs, int blocked, boolean detectable,
+        Material frame) {}
 
     /** Runs a step of a dial later; tests step a dial by hand instead. */
     interface Later
@@ -308,6 +344,89 @@ public final class GatePreviews
         preview.plainChevrons(!preview.plainChevrons());
         restyle(preview);
         return preview.plainChevrons() ? Control.CHEVRONS_PLAIN : Control.CHEVRONS_SHOWN;
+    }
+
+    /**
+     * Turns the build guide on the preview a player is looking at on or off. With it on, a block still
+     * to place is drawn small, a wrong block is outlined in red, a placed block is not drawn, and
+     * anything in the opening is marked.
+     *
+     * @param owner
+     *            whose preview
+     * @return what happened
+     */
+    public static Control guide(final Player owner)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        if (preview == null)
+        {
+            return Control.NOT_LOOKING;
+        }
+        preview.guide(!preview.guide());
+        preview.finished(false);
+        draw(owner, preview);
+        return preview.guide() ? Control.GUIDE_ON : Control.GUIDE_OFF;
+    }
+
+    /**
+     * Counts what the preview a player is looking at takes to build, and what of it is in place.
+     *
+     * @param owner
+     *            whose preview
+     * @return the count, or null if they are not looking at one of their previews
+     */
+    public static Materials materials(final Player owner)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        if (preview == null)
+        {
+            return null;
+        }
+        final List<BuildGuide.Need> needs = BuildGuide.needs(preview.cells(), preview.palette(),
+            preview.drawnPalette(), cell -> typeAt(preview.world(), cell));
+        final int blocked = (int) preview.opening().stream()
+            .filter(cell -> BuildGuide.blocksOpening(typeAt(preview.world(), cell))).count();
+        final Material frame = preview.palette().structure();
+        return new Materials(preview.shape().getShapeName(), needs, blocked,
+            StargateHelper.isPossibleGateFrameMaterial(frame), frame);
+    }
+
+    /**
+     * Redraws, on the next tick, every preview a changed block stands in: the guide judges it again,
+     * and a real button placed on the preview's takes clicks from the preview's own.
+     *
+     * @param world
+     *            the block's world
+     * @param x
+     *            its x
+     * @param y
+     *            its y
+     * @param z
+     *            its z
+     */
+    public static void blockChanged(final World world, final int x, final int y, final int z)
+    {
+        PREVIEWS.forEach((id, mine) -> mine.forEach(preview ->
+        {
+            if (!preview.recheckQueued() && preview.contains(world, x, y, z))
+            {
+                preview.recheckQueued(true);
+                later.after(1L, () -> recheck(id, preview));
+            }
+        }));
+    }
+
+    private static void recheck(final UUID id, final GatePreview preview)
+    {
+        preview.recheckQueued(false);
+        final Player owner = online.apply(id);
+        if ((owner != null) && PREVIEWS.getOrDefault(id, List.of()).contains(preview)
+            && preview.world().equals(owner.getWorld()))
+        {
+            draw(owner, preview);
+        }
     }
 
     /**
@@ -677,15 +796,16 @@ public final class GatePreviews
     private static void draw(final Player owner, final GatePreview preview)
     {
         final World world = preview.world();
-        for (int i = 0; i < preview.cells().size(); i++)
+        final boolean built = drawFrame(owner, preview);
+        final boolean clear = drawInTheWay(owner, preview);
+        if (preview.guide())
         {
-            final Cell cell = preview.cells().get(i);
-            if (!preview.showing(cell))
+            if (built && clear && !preview.finished())
             {
-                GatePreview.removeAt(preview.displays(), i);
-                continue;
+                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Every block of "
+                    + preview.shape().getShapeName() + " is in place. Press its button to check it.");
             }
-            spawnMissing(owner, preview.displays(), i, world, cell, dataFor(preview, cell));
+            preview.finished(built && clear);
         }
         for (int i = 0; i < preview.opening().size(); i++)
         {
@@ -701,6 +821,54 @@ public final class GatePreviews
             send(owner, preview, preview.opening());
         }
         drawButton(owner, preview);
+    }
+
+    /**
+     * Draws the frame, DHD and sign as the guide says, or whole without it.
+     *
+     * @return whether every block the gate is found by is in place
+     */
+    private static boolean drawFrame(final Player owner, final GatePreview preview)
+    {
+        boolean built = true;
+        for (int i = 0; i < preview.cells().size(); i++)
+        {
+            final Cell cell = preview.cells().get(i);
+            final BuildGuide.State state = preview.guide() ? guideState(preview, cell) : null;
+            // The dial sign is optional: a gate is found without one.
+            built &= (state == BuildGuide.State.PLACED) || (cell.part() == Part.DIAL_SIGN);
+            if (!preview.showing(cell) || (state == BuildGuide.State.PLACED))
+            {
+                GatePreview.removeAt(preview.displays(), i);
+                continue;
+            }
+            spawnMissing(owner, preview.displays(), i, preview.world(), cell, dataFor(preview, cell));
+            styleForGuide(preview.displays().get(i), state);
+        }
+        return built;
+    }
+
+    /**
+     * Marks, with the guide on, whatever stands in the opening.
+     *
+     * @return whether the opening is clear
+     */
+    private static boolean drawInTheWay(final Player owner, final GatePreview preview)
+    {
+        boolean clear = true;
+        for (int i = 0; i < preview.opening().size(); i++)
+        {
+            final Cell cell = preview.opening().get(i);
+            if (!preview.guide() || !BuildGuide.blocksOpening(typeAt(preview.world(), cell)))
+            {
+                GatePreview.removeAt(preview.blockedDisplays(), i);
+                continue;
+            }
+            clear = false;
+            spawnMissing(owner, preview.blockedDisplays(), i, preview.world(), cell, blockData.apply(IN_THE_WAY));
+            styleForGuide(preview.blockedDisplays().get(i), BuildGuide.State.WRONG);
+        }
+        return clear;
     }
 
     private static void spawnMissing(final Player owner, final List<BlockDisplay> shown, final int i,
@@ -723,7 +891,9 @@ public final class GatePreviews
     private static void drawButton(final Player owner, final GatePreview preview)
     {
         final Cell cell = preview.buttonCell();
-        if ((cell == null) || preview.dhdHidden())
+        // A real button there is pressed to find the gate, so the box must not take its clicks.
+        if ((cell == null) || preview.dhdHidden()
+            || (BuildGuide.of(cell, preview.palette(), typeAt(preview.world(), cell)) == BuildGuide.State.PLACED))
         {
             preview.removeButton();
             return;
@@ -742,6 +912,46 @@ public final class GatePreviews
                 box.setInteractionHeight(BUTTON_SIZE);
                 box.setResponsive(true);
             }));
+    }
+
+    /** How a cell compares with the world, or null where its chunk is not loaded to read. */
+    private static BuildGuide.State guideState(final GatePreview preview, final Cell cell)
+    {
+        return preview.world().isChunkLoaded(cell.x() >> 4, cell.z() >> 4)
+            ? BuildGuide.of(cell, preview.palette(), typeAt(preview.world(), cell))
+            : null;
+    }
+
+    /** What stands at a cell, or null where its chunk is not loaded, so nothing is loaded to find out. */
+    private static Material typeAt(final World world, final Cell cell)
+    {
+        return world.isChunkLoaded(cell.x() >> 4, cell.z() >> 4)
+            ? world.getBlockAt(cell.x(), cell.y(), cell.z()).getType()
+            : null;
+    }
+
+    /** Draws a display small for a block still to place, outlined in red over a wrong one, and whole otherwise. */
+    static void styleForGuide(final BlockDisplay display, final BuildGuide.State state)
+    {
+        if (display == null)
+        {
+            return;
+        }
+        final float scale;
+        if (state == BuildGuide.State.MISSING)
+        {
+            scale = MISSING_SCALE;
+        }
+        else
+        {
+            scale = (state == BuildGuide.State.WRONG) ? WRONG_SCALE : 1.0f;
+        }
+        final float offset = (1.0f - scale) / 2.0f;
+        display.setTransformation(new Transformation(new Vector3f(offset, offset, offset), new AxisAngle4f(),
+            new Vector3f(scale, scale, scale), new AxisAngle4f()));
+        final boolean wrong = state == BuildGuide.State.WRONG;
+        display.setGlowing(wrong);
+        display.setGlowColorOverride(wrong ? Color.RED : null);
     }
 
     /** Sets every standing display to what its cell should show now. */

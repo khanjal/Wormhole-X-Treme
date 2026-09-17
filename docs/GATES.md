@@ -222,6 +222,15 @@ clear, timeout and disable. The button is an `Interaction` entity over the butto
 cell, since a display cannot be clicked. The block limit counts the opening as well as the frame,
 so dialling or closing the iris never takes the server past it.
 
+The build guide is `BuildGuide`, which judges a block by detection's own rules rather than by the
+material the preview draws: a lit chevron accepts the frame or the chevron block, `[C]` only the
+chevron block, the DHD any button or a lever, and the dial sign is not needed. A guide that asked
+for exactly the drawn block would call a finished gate unfinished. It reads the world only in loaded
+chunks. A placed or broken block inside a preview queues one redraw for the next tick, when the
+block is really there; the five-second tick catches everything else, pistons and explosions
+included. Once a real button stands on the preview's button cell, the `Interaction` box goes, or it
+would take the click meant for the real button and dial the preview instead.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".
