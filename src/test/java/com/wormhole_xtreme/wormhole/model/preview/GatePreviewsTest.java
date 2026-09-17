@@ -149,8 +149,9 @@ class GatePreviewsTest
 
         GatePreviews.clock = () -> now[0];
         GatePreviews.online = id -> owner;
+        // Buttons and levers share Switch data, as on a server.
         GatePreviews.blockData = material -> data.computeIfAbsent(material,
-            m -> (m == Material.STONE_BUTTON) ? buttonData() : mock(BlockData.class));
+            m -> ((m == Material.STONE_BUTTON) || (m == Material.LEVER)) ? buttonData() : mock(BlockData.class));
         GatePreviews.later = (ticks, step) ->
         {
             dialStep = step;
@@ -1074,11 +1075,11 @@ class GatePreviewsTest
     }
 
     /**
-     * A button already on the wall facing the builder stays; a lever, or a button on the floor or facing
-     * away, is replaced by the wall button a placed gate has.
+     * A button or lever already on the wall facing the builder stays; one facing away or on the floor is
+     * replaced by the wall button a placed gate has.
      */
     @Test
-    void placingKeepsOnlyAButtonHungTheWayItWouldHangOne()
+    void placingKeepsOnlyASwitchHungTheWayAButtonWouldHang()
     {
         obsidianFramesAreFindable();
         detectsAGate();
@@ -1104,11 +1105,22 @@ class GatePreviewsTest
         assertTrue(written.contains(at), "one facing away is replaced");
 
         written.clear();
+        final org.bukkit.block.data.type.Switch lever = (org.bukkit.block.data.type.Switch) GatePreviews.blockData
+            .apply(Material.LEVER);
+        when(lever.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        when(lever.getFacing()).thenReturn(BlockFace.SOUTH);
         GatePreviews.clearAll(owner);
         place(buttonCell, Material.LEVER);
         GatePreviews.show(owner, standard, null);
         GatePreviews.place(owner);
-        assertTrue(written.contains(at), "a lever, which is not hung that way, is replaced");
+        assertFalse(written.contains(at), "a lever on the wall facing the builder stays too");
+
+        when(lever.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.FLOOR);
+        GatePreviews.clearAll(owner);
+        place(buttonCell, Material.LEVER);
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.place(owner);
+        assertTrue(written.contains(at), "one on the floor is replaced");
         assertEquals(Material.STONE_BUTTON, standing.get(at));
     }
 
