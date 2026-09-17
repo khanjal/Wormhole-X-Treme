@@ -617,8 +617,8 @@ public final class MirrorCaptures
             maxY = box[4];
             maxZ = box[5];
             builder = new MirrorCapture.Builder(far.getName(),
-                far.getEnvironment() == World.Environment.NORMAL, minX, minY, minZ,
-                (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1,
+                far.getEnvironment() == World.Environment.NORMAL,
+                new MirrorCapture.Box(minX, minY, minZ, (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1),
                 Bukkit.createBlockData(Material.AIR));
             for (int chunkX = minX >> 4; chunkX <= (maxX >> 4); chunkX++)
             {
@@ -687,39 +687,37 @@ public final class MirrorCaptures
             }
         }
 
+        /** Copies the chunk's columns that fall inside the box. */
         private void copy(final ChunkSnapshot snapshot, final int baseX, final int baseZ)
         {
-            for (int lx = 0; lx < 16; lx++)
+            final int lastX = Math.min(15, maxX - baseX);
+            final int lastZ = Math.min(15, maxZ - baseZ);
+            for (int lx = Math.max(0, minX - baseX); lx <= lastX; lx++)
             {
-                final int x = baseX + lx;
-                if ((x < minX) || (x > maxX))
+                for (int lz = Math.max(0, minZ - baseZ); lz <= lastZ; lz++)
                 {
-                    continue;
+                    copyColumn(snapshot, baseX + lx, baseZ + lz, lx, lz);
                 }
-                for (int lz = 0; lz < 16; lz++)
+            }
+        }
+
+        private void copyColumn(final ChunkSnapshot snapshot, final int x, final int z, final int lx, final int lz)
+        {
+            // Nothing above the column's highest block but air, which needs no writing.
+            final int top = Math.min(maxY, highest(far, snapshot, x, z, lx, lz));
+            for (int y = minY; y <= top; y++)
+            {
+                if (noting)
                 {
-                    final int z = baseZ + lz;
-                    if ((z < minZ) || (z > maxZ))
+                    final BlockData data = snapshot.getBlockData(lx, y, lz);
+                    if (!isAir(data))
                     {
-                        continue;
+                        builder.note(x, y, z, data);
                     }
-                    // Nothing above the column's highest block but air, which needs no writing.
-                    final int top = Math.min(maxY, highest(far, snapshot, x, z, lx, lz));
-                    for (int y = minY; y <= top; y++)
-                    {
-                        if (noting)
-                        {
-                            final BlockData data = snapshot.getBlockData(lx, y, lz);
-                            if (!isAir(data))
-                            {
-                                builder.note(x, y, z, data);
-                            }
-                        }
-                        else if (builder.wanted(x, y, z))
-                        {
-                            builder.put(x, y, z, snapshot.getBlockData(lx, y, lz));
-                        }
-                    }
+                }
+                else if (builder.wanted(x, y, z))
+                {
+                    builder.put(x, y, z, snapshot.getBlockData(lx, y, lz));
                 }
             }
         }
@@ -742,9 +740,8 @@ public final class MirrorCaptures
                 }
             }
             final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
-            final int arrivalX = (int) Math.floor(destination.x());
-            final int arrivalY = (int) Math.floor(destination.y());
-            final int arrivalZ = (int) Math.floor(destination.z());
+            final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),
+                (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z());
             final int depth = reach(far);
             final int floor = ConfigManager.getMirrorViewDepth();
             reachAsked = depth;
@@ -753,8 +750,7 @@ public final class MirrorCaptures
             // nothing here reads the world again.
             final Runnable work = () ->
             {
-                reachKept = builder.keepOnlySeenWithin(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth,
-                    floor, MOST_KEPT);
+                reachKept = builder.keepOnlySeenWithin(arrival, depth, floor, MOST_KEPT);
                 builder.prune();
             };
             final Runnable again = () ->

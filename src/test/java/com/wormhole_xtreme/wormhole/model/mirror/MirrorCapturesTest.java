@@ -52,6 +52,8 @@ class MirrorCapturesTest
     private World far;
     /** A torch on the sand three blocks ahead of the arrival point, or null for none. */
     private BlockData torch;
+    /** Every column, as "x,z", whose blocks a capture has read. */
+    private final java.util.Set<String> columnsRead = new java.util.HashSet<>();
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
@@ -96,6 +98,7 @@ class MirrorCapturesTest
                 final int lx = invocation.getArgument(0);
                 final int y = invocation.getArgument(1);
                 final int lz = invocation.getArgument(2);
+                columnsRead.add(((chunkX * 16) + lx) + "," + ((chunkZ * 16) + lz));
                 if ((torch != null) && (chunkX == 6) && (chunkZ == -2) && (lx == 4) && (y == 70) && (lz == 14))
                 {
                     return torch;
@@ -170,6 +173,33 @@ class MirrorCapturesTest
             "nothing seen in the column at its near corner, one layer behind the arrival: one below the box");
         assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
         assertTrue(capture.isAir(100, 69, -2), "and so is past the depth and margin");
+    }
+
+    /**
+     * Every column of the box is read, and none of the chunk around it.
+     *
+     * <p>The box's edges fall inside chunks, not on their boundaries: x 82..118 is from two blocks
+     * into chunk 5 to six into chunk 7. A column dropped at an edge is a strip of the far side
+     * missing from every view.
+     */
+    @Test
+    void everyColumnOfTheBoxIsReadAndNoneOutsideIt()
+    {
+        withServer(() ->
+        {
+            MirrorCaptures.request(mirror);
+            MirrorCaptures.step(6);
+        });
+
+        final java.util.Set<String> box = new java.util.HashSet<>();
+        for (int x = 82; x <= 118; x++)
+        {
+            for (int z = -22; z <= -3; z++)
+            {
+                box.add(x + "," + z);
+            }
+        }
+        assertEquals(box, columnsRead);
     }
 
     /**
@@ -360,10 +390,10 @@ class MirrorCapturesTest
     {
         // The configured radius is 16, the depth 32, so the capture is taken 16 deep: a box from
         // x 82..118, y 52..88, z -22..-3 for this mirror, facing south.
-        final MirrorCapture fits = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
-        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, 83, 52, -22, 36, 37, 20, air).build();
-        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 19, air).build();
-        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, 82, 53, -22, 37, 36, 20, air).build();
+        final MirrorCapture fits = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
+        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(83, 52, -22, 36, 37, 20), air).build();
+        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 19), air).build();
+        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 53, -22, 37, 36, 20), air).build();
 
         withServer(() ->
         {
@@ -417,9 +447,9 @@ class MirrorCapturesTest
     {
         when(far.getViewDistance()).thenReturn(6);
         // To a depth of 16 alone, as the old rule took it: x 82..118, y 52..88, z -22..-3.
-        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
+        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
         // To the reach of 96: x 2..198, y -28..168, z -22..77.
-        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, 2, -28, -22, 197, 197, 100, air).build();
+        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(2, -28, -22, 197, 197, 100), air).build();
 
         withServer(() ->
         {
