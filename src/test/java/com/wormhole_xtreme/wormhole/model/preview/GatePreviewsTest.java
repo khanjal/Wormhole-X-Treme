@@ -563,6 +563,23 @@ class GatePreviewsTest
         assertEquals(Material.GOLD_BLOCK, GatePreviews.of(owner.getUniqueId()).get(0).palette().structure());
     }
 
+    /** Changing the portal material of an open preview sends its owner the wormhole in the new one. */
+    @Test
+    void anOpenPreviewShowsANewPortalMaterialAtOnce()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        assertEquals(GatePreviews.Control.CHANGED,
+            GatePreviews.material(owner, GateBlueprint.Role.PORTAL, Material.LAVA));
+
+        verify(owner, times(STANDARD_OPENING)).sendBlockChange(any(Location.class), eq(data.get(Material.LAVA)));
+    }
+
     /** -dhd hides the DHD and its button for a picture of the ring alone, and shows them again. */
     @Test
     void theDhdHidesForAPictureOfTheRingAndComesBack()

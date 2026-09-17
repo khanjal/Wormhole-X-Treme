@@ -236,6 +236,7 @@ public final class GatePreviews
         }
         preview.palette(Palette.of(preview.shape(), group));
         restyle(preview);
+        draw(owner, preview);
         return Control.CHANGED;
     }
 
@@ -264,6 +265,7 @@ public final class GatePreviews
         }
         preview.palette(preview.palette().with(role, material));
         restyle(preview);
+        draw(owner, preview);
         return Control.CHANGED;
     }
 
