@@ -261,6 +261,7 @@ class MirrorStampTest
     /** The patterns the banner was given. */
     private List<Pattern> captured()
     {
+        // There is no List<Pattern>.class, so the captor has to be made from the raw List.
         @SuppressWarnings("unchecked")
         final ArgumentCaptor<List<Pattern>> captor = ArgumentCaptor.forClass(List.class);
         verify(banner).setPatterns(captor.capture());

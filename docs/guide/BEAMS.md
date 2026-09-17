@@ -5,6 +5,8 @@ somebody stood on once. You go there with a command, a column of light takes you
 back is another beam. Why it works the way it does is in the design notes,
 [docs/BEAMS.md](../BEAMS.md).
 
+![A traveller leaving in a column of light](../images/beams/beam-up.webp)
+
 - **Public destinations** are curated by staff and reachable by anyone.
 - **Places** are private — each player has their own.
 
@@ -37,6 +39,11 @@ you are put on the nearest safe spot. Only public destinations can have their ow
 Permissions are listed under [Permissions](SERVER.md#permissions).
 
 ## Settings
+
+The six timings, tick by tick; the descend column starts at the teleport, so the whole trip is
+52 ticks rather than the 58 the phases add up to.
+
+![The beam sequence, tick by tick](../images/beams/timing.svg)
 
 | Setting | Default | What it does |
 |---|---|---|

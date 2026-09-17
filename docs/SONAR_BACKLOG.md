@@ -1,9 +1,12 @@
 # SonarCloud backlog - Wormhole-X-Treme
 
-Snapshot of `main` at `ecb9f0f` (PR #206), analysed 2026-09-08.
-Regenerate with the queries at the bottom rather than hand-editing the counts.
+A record of the 2026-09 SonarCloud campaign, as `main` stood at `ecb9f0f` (PR #206) on
+2026-09-08. The counts below are that snapshot, not the present: findings accrue with every
+merge, and CI now fails a pull request that carries any. Regenerate with the queries at the
+bottom rather than hand-editing the counts; `.claude/skills/sonar-check/` is how a change is
+checked before pushing.
 
-**The backlog is empty.** Zero open issues. The last three were design questions rather than
+**The backlog was empty at the snapshot.** Zero open issues. The last three were design questions rather than
 defects, held open on purpose until someone decided them, and they were decided: see
 [The three that were left](#the-three-that-were-left). This file is now a record of what the
 campaign did and what is worth carrying into the next one.

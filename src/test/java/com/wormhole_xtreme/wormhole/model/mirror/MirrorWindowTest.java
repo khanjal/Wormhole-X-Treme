@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -220,13 +221,13 @@ class MirrorWindowTest
         final List<Spot> open = List.of(new Spot(0, 63, 1), new Spot(0, 64, 1));
 
         final double[] behind = window.projected(0.5, 64.0, -3.0, 0, 63, 4);
-        assertTrue((behind != null) && window.overlaps(behind, open));
+        assertTrue((behind != MirrorWindow.UNSEEN) && window.overlaps(behind, open));
 
         final double[] offToTheSide = window.projected(0.5, 64.0, -3.0, 12, 63, 2);
-        assertTrue((offToTheSide != null) && !window.overlaps(offToTheSide, open),
+        assertTrue((offToTheSide != MirrorWindow.UNSEEN) && !window.overlaps(offToTheSide, open),
             "behind the wall, but not through the opening from there");
 
-        assertNull(window.projected(0.5, 64.0, 6.0, 0, 63, 3),
+        assertSame(MirrorWindow.UNSEEN, window.projected(0.5, 64.0, 6.0, 0, 63, 3),
             "from behind the wall nothing is behind the opening");
     }
 
@@ -271,10 +272,10 @@ class MirrorWindowTest
         final MirrorWindow window = northFacing(0.0f);
 
         final double[] shadow = window.shadow(0.5, 64.0, -3.0, 2, 63, -2);
-        assertTrue((shadow != null) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
+        assertTrue((shadow != MirrorWindow.UNSEEN) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
             "off to the right and magnified: " + java.util.Arrays.toString(shadow));
-        assertNull(window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
-        assertNull(window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
+        assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
+        assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
     }
 
     @Test

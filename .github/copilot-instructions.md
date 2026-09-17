@@ -6,7 +6,7 @@ Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimension
 One jar supports **Minecraft 1.20 through 26.2**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
-- **Java 17**, Maven with `maven-shade-plugin` (shaded JAR includes `snakeyaml` and `sqlite-jdbc`)
+- **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles no third-party dependencies: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
 - Build command: `mvn -o -q package -DskipTests` → produces `target/WormholeXTreme-<version>.jar`, versioned from the pom
 - Test command: `mvn -o test` — JUnit 5 + Mockito, no live server needed
 - Deploy by copying the JAR to `plugins/` on the server
@@ -120,7 +120,9 @@ All scheduled tasks run on the main server thread (sync). Do not use async tasks
 ### What NOT To Do
 - Do not turn a scheduled task into a lambda — see the `Runnable` note above. Lambdas and method
   references are fine everywhere else.
-- Do not add `@SuppressWarnings` without a specific reason.
+- Do not add `@SuppressWarnings` without a specific reason, written as a comment directly above
+  it (or in the class Javadoc for a class-level one). Update the table in
+  `docs/DEVELOPMENT.md` when you add or remove one.
 - Do not call `Thread.sleep()` or any blocking operation on the main thread.
 - Do not use NMS (net.minecraft.server) reflection unless all other options are exhausted and the approach is clearly documented.
 - Do not add unnecessary abstractions or helper classes for one-off operations.

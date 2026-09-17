@@ -265,24 +265,25 @@ public final class MirrorNetwork
         final double reach = ConfigManager.getMirrorProximityDistance();
         for (final Player player : world.getPlayers())
         {
-            if (player.equals(except))
-            {
-                continue;
-            }
-            final Location at = player.getLocation();
-            if (at == null)
-            {
-                continue;
-            }
-            final double dx = at.getX() - (banner.x() + 0.5);
-            final double dy = at.getY() - banner.y();
-            final double dz = at.getZ() - (banner.z() + 0.5);
-            if (((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach))
+            if (!player.equals(except) && within(player.getLocation(), banner, reach))
             {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Whether a place is within a distance of a banner; never for no place. */
+    private static boolean within(final Location at, final MirrorBlock banner, final double reach)
+    {
+        if (at == null)
+        {
+            return false;
+        }
+        final double dx = at.getX() - (banner.x() + 0.5);
+        final double dy = at.getY() - banner.y();
+        final double dz = at.getZ() - (banner.z() + 0.5);
+        return ((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach);
     }
 
     /**

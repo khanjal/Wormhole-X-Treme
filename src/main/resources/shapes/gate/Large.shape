@@ -29,8 +29,8 @@ Version=2
 #           In this example the switch will face towards where layer 3 would be (if there was a 3rd layer)
 #    :D = Block the sign dialer hangs from. Only 1 per gate!
 #           The only restriction is that the block that faces it must be "I" (so nothing is in the way)
-#           This block is not required, so shapes with this block can be either type. (sign or dial)
-#           Without this block a gateshape can only be /dial gate.
+#           This block is not required. A gate with a sign hung here dials what the sign shows
+#           when its button is pressed. Without one, the button lights the gate and waits for /dial.
 #    :IA = Iris Activation Switch - Not required unless you want to be able to place an Iris on the gate.
 #
 #    IA, D, N, and A cannot be the same block, and none of those can contain W
@@ -57,78 +57,62 @@ Version=2
 #    [RA] = Redstone gate Activated block. This block will provide redstone charge when the gate is activated.
 #           This block should be on top of a [S] block.
 
-# The ring is three layers deep, the same shape Grand.shape uses: a front bezel (this layer)
-# carrying every chevron light with a hollow interior, the real portal ring one layer behind it
-# (Layer#2, plain frame, no lights, where :EP actually sits), and a second lit ring one layer
-# behind that (Layer#3, the same chevron pattern as this one, its interior doubling as the
-# first woosh step). :EM sits on Layer#4 rather than Layer#3, for the same reason it does on
-# Grand: Layer#3 still duplicates this layer's solid frame at that column, so the first layer
-# with genuinely open interior there is the one after it. Four woosh layers follow (Layer#3-6)
-# rather than Standard's three, proportionally deeper for a ring this much wider.
+# The ring is one layer deep, as Standard's is: Large is Standard's even-width counterpart, ten
+# wide, with every chevron, the name sign and :EP in the ring layer. :EM sits in the first woosh
+# layer. Four woosh layers follow (Layer#2-5) rather than Standard's three, for a ring this much
+# wider, and the DHD stands in the last of them.
 
 GateShape=
 
 Layer#1=
 [I][I][I][S][S:L#7][S:L#7][S][I][I][I]
-[I][I][S:L#3][I][I][I][I][S:L#2][I][I]
-[I][S:L#3][I][I][I][I][I][I][S:L#2][I]
-[S][I][I][I][I][I][I][I][I][S]
-[S:L#1][I][I][I][I][I][I][I][I][S:L#6]
-[S:L#1][I][I][I][I][I][I][I][I][S:L#6]
-[S][I][I][I][I][I][I][I][I][S]
-[I][S:L#4][I][I][I][I][I][I][S:L#5][I]
-[I][I][S:L#4][I][I][I][I][S:L#5][I][I]
-[I][I][I][S][S][S][S][I][I][I]
-
-Layer#2=
-[I][I][I][S][S][S][S][I][I][I]
-[I][I][S][P][P][P][P][S][I][I]
-[I][S][P][P][P][P][P][P][S][I]
+[I][I][S:L#3][P][P][P][P][S:L#2][I][I]
+[I][S:L#3][P][P][P][P][P][P][S:L#2][I]
 [S][P][P][P][P][P][P][P][P][S]
-[S][P][P][P][P][P][P][P][P][S]
-[S][P][P][P][P][P][P][P][P][S]
-[S][P][P][P][P][P][P][P][P][S]
-[I][S][P][P][P][P][P][P][S][I]
-[I][I][S][P][P][P][P][S][I][I]
+[S:L#1][P][P][P][P][P][P][P][P][S:L#6]
+[S:L#1][P][P][P][P][P][P][P][P][S:L#6]
+[S:N][P][P][P][P][P][P][P][P][S]
+[I][S:L#4][P][P][P][P][P][P][S:L#5][I]
+[I][I][S:L#4][P][P][P][P][S:L#5][I][I]
 [I][I][I][S][S:EP][S][S][I][I][I]
 
+Layer#2=
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I:W#1][I:W#1][I:W#1][I:W#1][I][I][I]
+[I][I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I][I]
+[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
+[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
+[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
+[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
+[I][I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I][I]
+[I][I][I][I:W#1][I:W#1][I:W#1][I:W#1][I][I][I]
+[I][I][I][I][I][I:EM][I][I][I][I]
+
 Layer#3=
-[I][I][I][S][S:L#7][S:L#7][S][I][I][I]
-[I][I][S:L#3][I:W#1][I:W#1][I:W#1][I:W#1][S:L#2][I][I]
-[I][S:L#3][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#2][I]
-[S][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S]
-[S:L#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#6]
-[S:L#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#6]
-[S:N][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S]
-[I][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#5][I]
-[I][I][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][S:L#5][I][I]
-[I][I][I][S][S][S][S][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
+[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
+[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
+[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
+[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
+[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
 
 Layer#4=
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
-[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
-[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
-[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
-[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
-[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I:EM][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I:W#3][I:W#3][I][I][I][I]
+[I][I][I][I][I:W#3][I:W#3][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
 
 Layer#5=
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I:W#3][I:W#3][I][I][I][I]
-[I][I][I][I][I:W#3][I:W#3][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-
-Layer#6=
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]

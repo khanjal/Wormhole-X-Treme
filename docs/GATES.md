@@ -23,7 +23,7 @@ cannot ask about.
 - [The iris](#the-iris) · [The portal is drawn, not built](#the-portal-is-drawn-not-built)
 - [Animation](#animation) · [Sound](#sound)
 - [Travelling](#travelling) · [Everything that is not a player](#everything-that-is-not-a-player)
-- [Permissions](#permissions) · [Commands](#commands) · [Config](#config)
+- [Permissions](#permissions) · [Commands and config](#commands-and-config)
 - [Layout](#layout) · [What the tests guard](#what-the-tests-guard)
 
 ## Anatomy
@@ -36,7 +36,7 @@ A gate is one `Stargate` object holding the world positions of everything the sh
 | Chevrons | `[C]` | Frame blocks built from a second material, so they read as chevrons before they light |
 | Portal | `[P]` | Air until the gate opens, then the drawn event horizon |
 | Name sign | `:N` | Always placed; shows the gate's name, network and owner |
-| Dial sign | `:D` | Optional; makes the gate sign-dialled rather than `/dial`-only |
+| Dial sign | `:D` | Optional; makes the button dial what the sign shows, rather than wait for `/dial` |
 | DHD | `:A` | The button or lever that activates it |
 | Iris lever | `:IA` | Optional; without it the gate cannot take an iris |
 | Player arrival | `:EP` | Where a traveller's feet land |
@@ -86,8 +86,8 @@ different DHD corner — the geometry is identical — and drawing them would be
 more times. What they actually differ by is [below](#what-a-sign-dial-adds).
 
 A gate that stands up is flattened along its depth, layer 1 nearest — what you see walking up to
-it, and what makes `Grand`, `Large` and `Massive` legible at all, since their rings are three
-layers thick with the frame in one and the portal behind it. `Horizontal` lies flat, so
+it, and what makes `Grand` and `Massive` legible at all, since their rings are three layers
+thick with the frame in one and the portal behind it. `Horizontal` lies flat, so
 flattening would leave a single row; it is drawn in plan instead.
 
 The lettered cells are the markers that name one block rather than collecting many. Flattening
@@ -103,14 +103,27 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 | Idle | Dialled | Shape | Grid | What it is | Markers |
 |---|---|---|---|---|---|
-| <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
+| <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 8 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
 | <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
-| <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 6 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 6), `IA` (layer 6) |
+| <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 5 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 5), `IA` (layer 5) |
 | <a href="images/gates/massive-idle.svg"><img src="images/gates/massive-idle.svg" width="104" alt="Massive, idle"></a> | <a href="images/gates/massive-dialled.svg"><img src="images/gates/massive-dialled.svg" width="104" alt="Massive, dialled"></a> | `Massive` | 23 x 23 | Twenty-three wide and fifteen deep — the largest that ships. 15 layers, woosh in 13 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 4), `EM` (layer 5), `A` (layer 9), `IA` (layer 9) |
 | <a href="images/gates/minimal-idle.svg"><img src="images/gates/minimal-idle.svg" width="104" alt="Minimal, idle"></a> | <a href="images/gates/minimal-dialled.svg"><img src="images/gates/minimal-dialled.svg" width="104" alt="Minimal, dialled"></a> | `Minimal` | 2 x 4 | One block wide — the smallest gate that works. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `A` (layer 2), `IA` (layer 2), `EM` (layer 2) |
 | <a href="images/gates/standard-idle.svg"><img src="images/gates/standard-idle.svg" width="104" alt="Standard, idle"></a> | <a href="images/gates/standard-dialled.svg"><img src="images/gates/standard-dialled.svg" width="104" alt="Standard, dialled"></a> | `Standard` | 7 x 7 | The seven-wide ring, and what most servers build. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
 
 <!-- shapes:end -->
+
+And the same six in game, in the `Standard` palette — idle, then dialled. The camera does not
+move between panels, so the size differences are honest: `Minimal` really is that small beside
+`Massive`.
+
+![The six shipped shapes, idle](images/gates/gate-shapes.png)
+
+![The six shipped shapes, dialled](images/gates/gate-shapes-active.png)
+
+`Horizontal` is the one the grid above cannot show, because it lies flat and is dropped into
+rather than walked through:
+
+![A Horizontal gate, idle and dialled](images/gates/gate-horizontal.png)
 
 ### What a sign dial adds
 
@@ -163,6 +176,20 @@ light.
 | `MilkyWay` | `DEEPSLATE` | `WATER` | `IRON_BLOCK` | `SHROOMLIGHT` | `OAK_WALL_SIGN` | *(none)* |
 
 <!-- palettes:end -->
+
+The same `Standard` gate in each of the four, in game. Only the blocks change — the shape file is
+identical across all of them.
+
+![The four palettes on a Standard gate](images/gates/standard-palettes.png)
+
+Dialled, where the chevrons are what separates them: each palette lights its own block, and a
+palette with no `chevron` key has no unlit chevron to light at all.
+
+![The four palettes, dialled](images/gates/standard-palettes-active.png)
+
+And with the iris closed, which is a fifth block per palette:
+
+![The four palettes with the iris closed](images/gates/standard-palettes-iris.png)
 
 ## Detection
 
@@ -408,7 +435,10 @@ unrelated second gate was switched off early.
 
 ## The iris
 
-![Iris turning somebody back](images/capture-gate-iris.svg)
+![The iris closed, in each of the four palettes](images/gates/standard-palettes-iris.png)
+
+Each palette closes its own block, which is why the iris is a fifth material rather than one
+shared shield.
 
 The iris is a shield, and unlike the portal it is **real blocks** — it has to stop things, and a
 drawing cannot. Opening it on an active gate returns the interior to air with the portal drawn
@@ -442,7 +472,10 @@ solid than the real one, so it is only sent where the eye is in open air.
 
 ## Animation
 
-![Dial and kawoosh](images/capture-gate-dial.svg)
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](images/gates/gate-dial.webp)
+
+A `Standard` gate, slowed to five quarters of real time. The frame count is shape-dependent, so
+a `Grand` runs visibly longer than this.
 
 **Chevrons light one at a time**, in `:L#n` order, over the activation sequence. A shape with
 three lighting steps climbs the same distance as one with seven, in bigger steps.
@@ -558,53 +591,14 @@ of its own, in order:
 network the gate is on. Holding `wormhole.use.dialer` is not admission to a private network. The
 full node list is in the [server guide](guide/SERVER.md#permissions).
 
-## Commands
+## Commands and config
 
-`/wormhole gate <verb>` is the shape people type:
-
-```
-build <shape>            start building; then click the DHD position
-complete <name> [idc=][net=]   name and register what you built
-list [network]           gates you can see
-remove <gate>            take it down
-edit <gate> <field> <value>
-regenerate <gate>|-all   redraw signs, levers and arrival points
-validate <gate>|-all     check the gate is still actually standing (#54)
-refresh                  next DHD click re-detects the geometry
-go <gate>                teleport to a gate
-force <gate>             dial past the usual refusals
-import                   pull gates out of a legacy database
-shapes [reload|validate] list, reload or check the shape files
-
-  edit fields:  portal | iris | light   materials
-                woosh                   animation depth
-                group                   palette
-                redstone                true|false
-                custom                  true|false
-                idc                     iris deactivation code
-                owner                   hand the gate over
-```
-
-Gates had fifteen top-level commands while rings had one with verbs under it; this is the gates
-catching up. Every verb hands straight off to the handler that already owned it, and the old flat
-names stay registered as hidden entries, so nothing in a command block or a script breaks.
-
-## Config
-
-```yaml
-permissions-support-disable: false
-permissions-auto-fallback: true      # simple mode when no Vault provider is found
-redstone-extend-open-time: true      # a signal pushes the shutdown back, within the maximum
-sign-dial-match-material: true
-sign-glowing-text: false
-sign-color-gate-name: DARK_AQUA      # and -network, -owner, -selected, -neighbour
-gate-material-groups:                # the palettes; first declared is the default
-```
-
-Timers and sounds are set with `/wormhole config <setting>`: `timeout-activate`,
-`timeout-shutdown`, `max-open-seconds`, `use-cooldown-enabled`, `use-cooldown-seconds`,
-`same-world-only`, `entity-scan-interval-ticks`, `gate-sounds-enabled`, `gate-sound-volume`, and
-one `gate-sound-*` key per sound.
+The verbs, the `edit` fields and the settings are in the [gate guide](guide/GATES.md#commands)
+and the [server guide](guide/SERVER.md#configuration). One decision behind them: `/wormhole gate
+<verb>` is the shape people type. Gates had fifteen top-level commands while rings had one with
+verbs under it; this is the gates catching up. Every verb hands straight off to the handler that
+already owned it, and the old flat names stay registered as hidden entries, so nothing in a
+command block or a script breaks.
 
 ## Layout
 
@@ -629,6 +623,7 @@ model/StargateYamlManager.java     one file per gate
 model/LegacyDatabaseImporter.java  pulling gates out of an old database
 logic/StargateHelper.java          detection: matching a build against every shape
 logic/ShapeFileValidator.java      checking a .shape file before it is trusted
+model/GateIntegrity.java           whether a gate is still standing, for validate
 GateEntityScanner.java             loose entities standing in an open portal
 ProjectileGateTracker.java         arrows, by the path they travelled
 WormholeXTremePlayerListener.java  the move path

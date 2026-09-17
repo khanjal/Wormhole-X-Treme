@@ -39,10 +39,15 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
   MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
+- **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
+  `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
+  already standing keep working; `gate regenerate` or `refresh` on a three-deep one no longer finds it.
 - **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
 - **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
+- **`Grand` has a bottom chevron**, lighting eighth. Existing Grand gates still match; delete
+  `shapes/gate/Grand.shape` and restart for the new one.
 
 ### Quantum mirrors
 
@@ -59,11 +64,31 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 - **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from
   `CHANGELOG-0.x.md`.
+- **The docs show the plugin in game.** Gate shapes, palettes, the dial, a ring cycle, a beam
+  departure and two mirror clips replace the capture slates, which are deleted. `CAPTURES.md` now prefers animated
+  WebP over APNG, which measured the largest of the three.
+- **`CAPTURES.md` has the checklist for recording**: world and client settings, stills, 60fps
+  video, and a WebP encode in place of the APNG one.
+- **The docs are shorter, and say each thing once.** Commands, settings and permission nodes
+  live in `docs/guide/` only; the design notes point there instead of repeating them, and the
+  four-way comparison of gates, rings, beams and mirrors is in the README alone. `docs/RINGS.md`
+  now names the flat `ring-*` settings that exist rather than a `rings:` block that does not;
+  `guide/SERVER.md` names `timeout-shutdown` rather than the old command. The mirror guide is
+  rewritten around what a mirror shows, and gains a settings table. `API.md` is events only, with
+  the coding conventions moved to `DEVELOPMENT.md`. Notes about what a page used to say are gone.
+- **The in-game captures are where a reader starts**: one per subsystem on the README, and
+  each on the guide page for what it shows, rather than on the guide's index page alone.
+- **The ring guide shows the two patterns, and the gate guide the sign-dial corner, as the
+  drawn sheets** rather than ASCII sketches; the beam guide shows the timing strip beside its
+  settings, and the ring guide the finished stack beside the headroom rule.
 
 ### Internals
 
-- **Ten of the 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror
-  redraw tests move the clock where they slept.
+- **All 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror redraw tests
+  move the clock where they slept. `MirrorCapture` takes its box and arrival as records, and keeps
+  its seen air in `MirrorSeenAir`; captures on disk are unchanged. The mirror windows say "not seen"
+  and "over budget" with named constants instead of `null`.
+- **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
 
 ## 1.6.0 (2026-09-16)
 

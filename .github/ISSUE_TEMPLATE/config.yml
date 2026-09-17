@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Setting it up, and every config option
-    url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md
+    url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/guide/SERVER.md
     about: Installing, permissions, commands, building gates and rings, sounds, troubleshooting.
   - name: Writing a plugin against this one
     url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/API.md
