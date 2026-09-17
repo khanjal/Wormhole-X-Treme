@@ -67,10 +67,10 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Internals
 
-- **Twenty-one of the 41 Sonar findings on main are cleared**, nine of them in the tests; the rest are
-  in `MirrorWindows` and `MirrorWindow`. The mirror
-  redraw tests move the clock where they slept. `MirrorCapture` takes its box and arrival as
-  records, and keeps its seen air in `MirrorSeenAir`; captures on disk are unchanged.
+- **All 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror redraw tests
+  move the clock where they slept. `MirrorCapture` takes its box and arrival as records, and keeps
+  its seen air in `MirrorSeenAir`; captures on disk are unchanged. The mirror windows say "not seen"
+  and "over budget" with named constants instead of `null`.
 - **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
 
 ## 1.6.0 (2026-09-16)

@@ -509,7 +509,7 @@ class MirrorWindowsTest
                             continue;
                         }
                         final double[] rect = shape.projected(x, 65.62, z, spot.x(), spot.y(), spot.z());
-                        if ((rect != null) && !shape.covered(rect, open, least) && shape.covered(rect, open, most))
+                        if ((rect != MirrorWindow.UNSEEN) && !shape.covered(rect, open, least) && shape.covered(rect, open, most))
                         {
                             edge[0] = spot;
                             second[0] = x;
