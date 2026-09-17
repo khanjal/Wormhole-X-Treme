@@ -15,7 +15,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * {@code Large.shape}, {@code Grand.shape} and {@code Massive.shape} -- three big, hand-built
- * gates, each deeper than Standard's.
+ * gates.
  *
  * <p>All three were hand-authored outside this codebase and needed real fixes before they
  * were safe to ship: {@code Grand} had three rows one cell short of its declared width (a
@@ -29,10 +29,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  * future edit to any of the three has to own up to reintroducing that shape, rather than just
  * changing behaviour quietly.
  *
- * <p>{@code Large} originally shipped with Standard's exact proportions (one-layer ring, three
- * woosh steps), just wider. It was reworked to match {@code Grand}'s three-layer ring -- a
- * front bezel, the real portal ring, and a second lit ring -- with four woosh steps behind it,
- * proportionally deeper than {@code Grand}'s three for a ring this much narrower.
+ * <p>{@code Large} is Standard's even-width counterpart: a one-layer ring, ten wide, with four
+ * woosh steps behind it. It spent a while with {@code Grand}'s three-layer ring and went back.
  */
 class BigGateShapeTest
 {
