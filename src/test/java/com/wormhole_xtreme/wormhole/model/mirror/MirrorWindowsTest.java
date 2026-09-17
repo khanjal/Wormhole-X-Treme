@@ -2379,6 +2379,7 @@ class MirrorWindowsTest
     }
 
     /** The block-change batches one player was sent, asserting how many. */
+    // There is no Collection<BlockState>.class, so the captor has to be made from a raw Class.
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static List<Collection<BlockState>> changesTo(final Player player, final int howMany)
     {

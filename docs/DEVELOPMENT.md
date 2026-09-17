@@ -30,6 +30,31 @@ version in CI, so anything that only works on one of them is caught there.
   quality gate also wants 80% coverage on new code, so a sweep or a rename trips that by
   construction; read the new-issue count rather than the tick.
 
+## Warning suppressions
+
+Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
+Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
+quiet one that is inconvenient. Thirty-one at present; the one naming both `unchecked` and
+`rawtypes` counts in each row:
+
+| Suppresses | Main | Tests | Why |
+|---|---|---|---|
+| `java:S3516` | 11 | – | Command handlers always return `true`, because Bukkit reads it as "handled". |
+| `java:S4144` | 5 | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
+| `java:S1168` | 3 | – | Null means something an empty result cannot; each names the caller relying on it. |
+| `java:S3077` | 3 | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
+| `unchecked` | 3 | 3 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors. |
+| `rawtypes` | – | 1 | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
+| `deprecation` | 1 | – | `getOfflinePlayer(String)` has no Spigot replacement, and a name is all the command has. |
+| `java:S6905` | 1 | – | `SELECT *` from a legacy database whose columns vary by version. |
+| `java:S1612` | – | 1 | A method reference would cast its receiver early, outside `assertThrows`. |
+
+When the table and the code disagree, recount:
+
+```bash
+grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code'
+```
+
 ## Minecraft versions
 
 The supported range is 1.20 through 26.2. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which

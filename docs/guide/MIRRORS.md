@@ -42,6 +42,11 @@ its patterns. Make a mirror in another world the same way, and the two find each
   makes the first right-click on `archive` open onto `hub`, and the next go on through the rest by
   name. `-start -none` takes the start away.
 
+![A round trip: a punch into a mirror in a library, and back from the world it opened onto](../images/mirrors/mirror-effects.webp)
+
+A whole round trip, in three seconds and without a command: a punch at a library mirror, a tower
+over an ocean at the other end, and a punch at the mirror there to come home.
+
 **The wall.** A mirror needs solid wall a block out on every side of its opening; `create` refuses
 a gap and names the block to fill. Two blocks out hides the room's edges better from an angle,
 so `create` also says which block is short of two. A banner on a post cannot be a mirror.
@@ -80,13 +85,21 @@ changes nothing.
 
 ## What you see in one
 
-![A mirror in a garden wall, opening onto a library](../images/mirrors/mirror-archway.webp)
+![One mirror showing the library it hangs in, then the garden it was pointed at](../images/mirrors/mirror-look.webp)
+
+One mirror, two rooms: the library it hangs in, then the garden a right-click pointed it at. Nothing
+was built for the second — the same banner, showing somewhere else.
 
 Come within `mirror-proximity-distance` blocks on the banner's side and the banner gives way to
 an opening its own size, showing a room in real blocks: its own, flipped as a mirror would show
 it, or the room of the mirror chosen at it. Real blocks, so the view has depth and shifts as you
 move past. Nothing in the world changes; only the players looking in are sent the view. From
 behind, a mirror is its banner. (On plain 1.20 the banner stays in front of the view.)
+
+![A mirror in a garden wall, opening onto a library](../images/mirrors/mirror-archway.webp)
+
+The clip is how you can tell it is not a picture painted on the banner: a texture would not shift
+as the camera moves past.
 
 **What it shows is a capture** — a photograph of the room, taken from where a traveller lands,
 reaching as far as that world sends and kept in `data/mirror/captures/`. A new mirror's is taken
@@ -125,8 +138,6 @@ so you see the world as it is, and `-on` puts them back. `debug` is not in the u
 tab-completes for anyone who may run it.
 
 ## Its look
-
-![A mirror repainting from its own room to the place it opens onto](../images/mirrors/mirror-look.webp)
 
 The look is what the banner shows from further than `mirror-proximity-distance`, from behind, and
 before a room is captured — so a corridor of mirrors still reads as a row of doors from the far
