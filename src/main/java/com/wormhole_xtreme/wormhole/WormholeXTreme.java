@@ -121,6 +121,7 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(entityListener, tp);
             pm.registerEvents(projectileTracker, tp);
             pm.registerEvents(beamFreezeListener, tp);
+            pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
             registerDismountListener(pm, tp);
         }
     }
@@ -241,10 +242,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
             }
-            // Companions are marked not to persist, so the world would drop them anyway.
-            // Removing them here is what makes a /reload clean rather than nearly clean:
-            // the new instance spawns its own, and without this the old ones would linger
-            // until their chunks next unloaded.
+            // Otherwise a /reload leaves old companions beside the new ones.
             try
             {
                 com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.removeAll();
@@ -498,16 +496,12 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
         }
-        // No log line on the ordinary path. The file is usually absent, loads nobody, and
-        // says nothing -- a startup message would announce an easter egg to every operator
-        // whose players have not found it.
+        // Deliberately no startup log line, which would announce the easter egg.
         try
         {
             final int companions = com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences.loadAll();
             if (companions > 0)
             {
-                // Only reached on a reload, with players already online; an ordinary start
-                // has nobody to spawn for and each player's join does it instead.
                 com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.spawnForOnline();
             }
         }

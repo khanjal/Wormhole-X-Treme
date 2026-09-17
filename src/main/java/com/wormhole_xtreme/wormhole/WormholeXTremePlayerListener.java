@@ -13,7 +13,6 @@ import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
 import org.bukkit.event.Listener;
@@ -1403,10 +1402,6 @@ class WormholeXTremePlayerListener implements Listener
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPlayer(event.getPlayer());
         com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.forgetPlayer(event.getPlayer());
         com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(event.getPlayer());
-        // The companion goes with them. She is never written to a world, so leaving her
-        // behind would strand a cat nobody can see and nobody owns.
-        com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.removeFor(
-            event.getPlayer().getUniqueId());
     }
 
     /**
@@ -1419,59 +1414,6 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerJoin(final PlayerJoinEvent event)
     {
         refreshPortalVisualsFor(event.getPlayer());
-        welcomeCompanion(event.getPlayer());
-    }
-
-    /**
-     * Gives a joining player back their companion, and hides everybody else's from them.
-     *
-     * <p>Two halves, and the second is easy to forget. Hiding is per-observer and is applied
-     * when a companion is spawned, so a player who logs in afterwards was never told about the
-     * ones already out -- without this line they would be the one person on the server who can
-     * see somebody else's cat.
-     *
-     * <p>The spawn waits a tick rather than happening inside the event, so the player's world
-     * has settled before an entity is put down next to them.
-     *
-     * @param player
-     *            the player who has just arrived
-     */
-    private static void welcomeCompanion(final Player player)
-    {
-        com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.hideOthersFrom(player);
-        if (!com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences.isEnabled(player.getUniqueId()))
-        {
-            return;
-        }
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
-        {
-            // Checked again on the other side of the tick: a player who joined and left
-            // inside it must not have a cat spawned for a world they are no longer in.
-            if (player.isOnline())
-            {
-                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.spawnFor(player);
-            }
-        }, 1L);
-    }
-
-    /**
-     * Refuses every interaction with a companion.
-     *
-     * <p>She cannot be made to sit, leashed, renamed, dyed or sheared. The point is that she
-     * follows you and nothing else -- an easter egg that can be picked up and carried around
-     * is a mechanic, and this is not meant to be one.
-     *
-     * @param event
-     *            the interaction
-     */
-    @EventHandler
-    public void onPlayerInteractEntity(final PlayerInteractEntityEvent event)
-    {
-        if (!event.isCancelled()
-            && com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(event.getRightClicked()))
-        {
-            event.setCancelled(true);
-        }
     }
 
     /**

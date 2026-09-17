@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import java.util.Locale;
 import java.util.UUID;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -12,32 +13,15 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 
 /**
- * Handler for '/wormhole freya'.
+ * Handler for '/wormhole freya', a hidden toggle for a companion only you can see.
  *
  * <p>For Freya, a black cat who was twenty years old, and who died in December 2025. She
  * followed people from room to room for two decades. This is the smallest possible version of
  * that, and it is here because somebody who worked on this plugin missed her.
- *
- * <p>The command is registered hidden: it dispatches, but it is left out of the help text and
- * out of tab completion. Nothing in the plugin advertises it. You have to already know.
- *
- * <p>It is a toggle rather than a spawner, which is the difference between an easter egg and a
- * way to fill a world with cats. Typing it twice turns her off again; {@code on} and
- * {@code off} say so explicitly for anyone who wants to be sure which way they just went. The
- * preference is the only thing that persists -- the cat is spawned fresh on every join and
- * removed on every quit, and never written to a world.
  */
 public class FreyaCommand implements SubCommand
 {
-    /**
-     * The node that can take her away.
-     *
-     * <p>Declared {@code default: true} in plugin.yml, alongside {@code wormhole.ring.use} and
-     * {@code wormhole.beam.use}. Bukkit has no such thing as a deny node -- an admin denies by
-     * negating an ordinary one -- so a permission to prevent this and a permission to allow it
-     * are the same node, and the default decides which it reads as. Everybody has her; an
-     * operator who needs to take her away from one player, or from a whole server, can.
-     */
+    /** Defaults to true in plugin.yml; negating it is how an operator takes her away. */
     public static final String PERMISSION = "wormhole.freya";
 
     private static final String ON = "on";
@@ -48,16 +32,12 @@ public class FreyaCommand implements SubCommand
     {
         if (!(sender instanceof Player player))
         {
-            // There is nobody for her to follow. Console and command blocks are told plainly
-            // rather than silently doing nothing.
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "Only a player can do that.");
             return true;
         }
 
-        // hasPermission alone, with no isOp shortcut. Everything else in this plugin ors in
-        // isOp because its nodes default to op; this one defaults to true, so or-ing isOp back
-        // in would mean an operator was the one player an admin could not take her away from.
+        // No isOp shortcut, unlike other commands: it would stop a negated node applying to ops.
         if (!player.hasPermission(PERMISSION))
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
@@ -77,12 +57,8 @@ public class FreyaCommand implements SubCommand
     }
 
     /**
-     * What the player is asking for.
-     *
-     * <p>A bare {@code /wormhole freya} flips whatever they had, which is what a one-word
-     * easter egg should do. Anything else is read as {@code off} only when it says so; an
-     * unrecognised word turns her on rather than refusing, because a refusal message is a
-     * worse thing to meet than a cat.
+     * What the player is asking for: {@code on} and {@code off} say so, and a bare or
+     * unrecognised word flips rather than being refused.
      *
      * @param args
      *            the full argument array, the subcommand at index 0
@@ -113,6 +89,12 @@ public class FreyaCommand implements SubCommand
      */
     private static boolean welcome(final Player player)
     {
+        if (FreyaCompanion.isAway(player.getUniqueId()))
+        {
+            // Asleep or hunted: the listener brings her once that is over.
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "She will be along soon.");
+            return true;
+        }
         if (FreyaCompanion.spawnFor(player) == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
@@ -121,6 +103,8 @@ public class FreyaCommand implements SubCommand
         }
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + FreyaCompanion.NAME + " pads over and sits down beside you.");
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + ChatColor.ITALIC + FreyaCompanion.YEARS);
         return true;
     }
 }

@@ -102,12 +102,7 @@ public final class DataLayout
     }
 
     /**
-     * The file recording who keeps a companion.
-     *
-     * <p>Unlike every other file named here, this one is expected to be absent. It is not
-     * created on startup and it is deleted when the last player turns their companion off, so
-     * a server where nobody has found the command has no file for anybody to find. Absent is
-     * the normal case and reads as nobody, never as an error.
+     * The file recording who keeps a companion. Normally absent, which reads as nobody.
      *
      * @return the companion file, which usually does not exist
      */

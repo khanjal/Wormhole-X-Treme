@@ -1,62 +1,65 @@
 package com.wormhole_xtreme.wormhole.model.freya;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Cat;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Mob;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
- * The companion herself: spawning her, keeping her to one per player, and taking her away
- * again.
+ * The companion: a real, tamed cat that only her owner's client is shown.
  *
- * <p>She is a real entity that the server owns, shown to exactly one client. There is no such
- * thing as a client-side entity from a server plugin -- a cat that existed only in one player's
- * game would mean building and sending entity packets, which across ten Minecraft versions in
- * one jar is the most fragile code this plugin could carry. So she is spawned normally and
- * hidden from everyone but her owner, the same {@code hideEntity} call
- * {@link com.wormhole_xtreme.wormhole.model.beam.BeamVisibility} uses to take a beam traveller
- * off other people's screens, inverted.
- *
- * <p>The following comes free with that decision. A tamed cat walks after its owner and
- * teleports to them when it falls behind, all of it vanilla mob AI, so there is no repeating
- * task here and nothing to keep in step with the player. What the flags in
- * {@link #settle(Cat, Player)} do is take away everything else a cat would otherwise do.
- *
- * <p>Two things a real entity does that no flag reaches, and they are the honest cost of the
- * choice above: creepers and phantoms avoid cats, so somebody may watch a creeper shy away from
- * what looks to them like empty air; and she counts toward the world's mob cap. One cat per
- * online player is a small price for not hand-rolling a packet protocol.
+ * <p>Following is vanilla tamed-cat AI, so there is no repeating task. Vanilla never follows
+ * across worlds or very far, so {@link #catchUp(Player)} re-summons her after her owner travels.
+ * She is kept away while her owner sleeps or is hunted, so she gives no advantage a real cat would.
  */
 public final class FreyaCompanion
 {
     /** Her name, above her head, for the one person who can see her. */
     public static final String NAME = "Freya";
 
-    /**
-     * Live companions, by the id of the player they belong to.
-     *
-     * <p>Keyed by id rather than by {@link Player}, and emptied on quit, because this plugin
-     * has already been bitten once by static maps keyed on Player objects that nothing ever
-     * removed from -- see {@code PlayerStateIsReleasedOnQuitTest}.
-     */
+    /** Shown under the summon message. */
+    public static final String YEARS = "2005 – 2025";
+
+    /** Past this, re-summon her rather than leave it to vanilla, which teleports pets from 12. */
+    private static final double LEFT_BEHIND_DISTANCE_SQUARED = 16.0 * 16.0;
+
+    /** Live companions by owner id; emptied on quit so no Player is held. */
     private static final Map<UUID, Cat> LIVE = new LinkedHashMap<>();
+
+    /** Owners in bed; she is away so no morning gift is ever given. */
+    private static final Set<UUID> ASLEEP = new HashSet<>();
+
+    /** Owners a creeper or phantom is hunting; she is away so it does not shy off. */
+    private static final Set<UUID> HUNTED = new HashSet<>();
+
+    /** How far to look for a creeper or phantom still hunting her owner. */
+    private static final double HUNT_RADIUS = 32.0;
+
+    /** Phantoms pick a target from up to 64 blocks above or below. */
+    private static final double HUNT_HEIGHT = 64.0;
+
+    /** Covers both halves of a double chest from its clicked half. */
+    private static final double CHEST_REACH_SQUARED = 2.5 * 2.5;
 
     private FreyaCompanion() {}
 
     /**
      * Spawns a companion for a player, replacing any they already have.
-     *
-     * <p>Replacing rather than adding is the whole defence against this becoming a way to fill
-     * a world with cats: however many times the command is typed, a player has one.
      *
      * @param owner
      *            who she belongs to
@@ -68,6 +71,7 @@ public final class FreyaCompanion
         {
             return null;
         }
+        // Replace, never add: this is what keeps an open command from filling a world.
         removeFor(owner.getUniqueId());
 
         final Location at = owner.getLocation();
@@ -81,23 +85,16 @@ public final class FreyaCompanion
             final Cat cat = at.getWorld().spawn(at, Cat.class);
             settle(cat, owner);
             LIVE.put(owner.getUniqueId(), cat);
-            hideFromOthers(cat, owner);
             return cat;
         }
         catch (final RuntimeException e)
         {
-            // A world that refuses the spawn is not worth a stack trace in an operator's log
-            // over a cosmetic command. The player is told nothing appeared; that is enough.
             return null;
         }
     }
 
     /**
-     * Turns a freshly spawned cat into Freya, and takes away everything else a cat does.
-     *
-     * <p>{@code setAI} is deliberately left alone. Turning it off would stop her following,
-     * which is the one behaviour worth keeping, and it would not help with the creeper quirk
-     * anyway -- that is the creeper's AI reacting to a cat being nearby, not hers.
+     * Turns a freshly spawned cat into Freya.
      *
      * @param cat
      *            the newly spawned cat
@@ -106,112 +103,215 @@ public final class FreyaCompanion
      */
     private static void settle(final Cat cat, final Player owner)
     {
-        cat.setCatType(blackVariant());
+        cat.setCatType(Cat.Type.ALL_BLACK);
         cat.setAdult();
         cat.setTamed(true);
         cat.setOwner(owner);
         cat.setCustomName(NAME);
         cat.setCustomNameVisible(true);
 
-        // Nothing may touch her, and she may touch nothing.
         cat.setInvulnerable(true);
         cat.setCollidable(false);
-        // Sound is positional and reaches everybody, so an unsilenced cat that nobody can see
-        // is a cat people can hear. This is the one flag whose absence would give her away.
+        // Sound is positional; an unsilenced cat nobody else can see is one they can hear.
         cat.setSilent(true);
-        // She is spawned on join and removed on quit, so she must never be written to the
-        // world's entity data. A server that is killed rather than stopped leaves nothing.
         cat.setPersistent(false);
         cat.setRemoveWhenFarAway(false);
+
+        // Hidden by default covers players who join later, which a per-observer hide does not.
+        cat.setVisibleByDefault(false);
+        final Plugin plugin = WormholeXTreme.getThisPlugin();
+        if (plugin != null)
+        {
+            owner.showEntity(plugin, cat);
+        }
     }
 
     /**
-     * The all-black variant.
+     * Brings a player's companion back beside them if she has been left behind.
      *
-     * <p>Its own method because it is the one line here that is sensitive to the Minecraft
-     * version. {@code Cat.Type} is an enum on the older servers this plugin supports and a
-     * registry-keyed type on the newer ones; the constant is a field access either way, which
-     * is why this compiles across the range. If a version ever moves it, this is the only
-     * place that has to change.
-     *
-     * @return the variant a black cat wears
-     */
-    private static Cat.Type blackVariant()
-    {
-        return Cat.Type.ALL_BLACK;
-    }
-
-    /**
-     * Hides a companion from every player except her owner.
-     *
-     * @param cat
-     *            the companion
      * @param owner
-     *            who may see her
+     *            the player, just arrived somewhere
+     * @return true if she was re-summoned
      */
-    private static void hideFromOthers(final Cat cat, final Player owner)
+    public static boolean catchUp(final Player owner)
     {
-        final Plugin plugin = WormholeXTreme.getThisPlugin();
-        if (plugin == null)
+        if ((owner == null) || !FreyaPreferences.isEnabled(owner.getUniqueId())
+            || isAway(owner.getUniqueId()))
         {
-            return;
+            return false;
         }
-        for (final Player observer : plugin.getServer().getOnlinePlayers())
+        if (!isLeftBehind(LIVE.get(owner.getUniqueId()), owner.getLocation()))
         {
-            if (!observer.equals(owner))
-            {
-                hide(observer, cat, plugin);
-            }
+            return false;
         }
+        return spawnFor(owner) != null;
     }
 
     /**
-     * Hides every companion that is not theirs from one player.
+     * Whether a companion is gone, in another world, or too far for vanilla following.
      *
-     * <p>Called when somebody joins. Hiding is per-observer and is applied at spawn time, so a
-     * player who logs in after a cat was spawned has not been told to hide her and would
-     * otherwise be the one person on the server who can see somebody else's.
-     *
-     * @param observer
-     *            the player who has just arrived
-     */
-    public static void hideOthersFrom(final Player observer)
-    {
-        final Plugin plugin = WormholeXTreme.getThisPlugin();
-        if ((observer == null) || (plugin == null))
-        {
-            return;
-        }
-        for (final Map.Entry<UUID, Cat> entry : LIVE.entrySet())
-        {
-            if (!entry.getKey().equals(observer.getUniqueId()))
-            {
-                hide(observer, entry.getValue(), plugin);
-            }
-        }
-    }
-
-    /**
-     * One observer, one cat. Silent on failure, matching {@code BeamVisibility}: a client that
-     * could not be told to hide one cat is not worth an exception on the main thread.
-     *
-     * @param observer
-     *            who must not see her
      * @param cat
-     *            the companion
-     * @param plugin
-     *            this plugin, which owns the hide
+     *            the tracked companion, or null
+     * @param owner
+     *            where her owner is
+     * @return true if she needs re-summoning
      */
-    private static void hide(final Player observer, final Cat cat, final Plugin plugin)
+    static boolean isLeftBehind(final Cat cat, final Location owner)
     {
-        try
+        // A non-persistent cat is dropped, not saved, when her chunk unloads behind a teleport.
+        if ((cat == null) || !cat.isValid())
         {
-            observer.hideEntity(plugin, cat);
+            return true;
         }
-        catch (final RuntimeException ignored)
+        final Location at = cat.getLocation();
+        if ((owner == null) || (at == null))
         {
-            // deliberately silent
+            return false;
         }
+        return !Objects.equals(at.getWorld(), owner.getWorld())
+            || (at.distanceSquared(owner) > LEFT_BEHIND_DISTANCE_SQUARED);
+    }
+
+    /**
+     * Whether she is staying away from her owner for now.
+     *
+     * @param ownerId
+     *            the owner
+     * @return true while they sleep or are hunted
+     */
+    public static boolean isAway(final UUID ownerId)
+    {
+        return ASLEEP.contains(ownerId) || HUNTED.contains(ownerId);
+    }
+
+    /**
+     * Sends her away while her owner sleeps, so vanilla has no cat to give a morning gift.
+     *
+     * @param ownerId
+     *            the owner getting into bed
+     */
+    public static void ownerSleeps(final UUID ownerId)
+    {
+        if (FreyaPreferences.isEnabled(ownerId))
+        {
+            ASLEEP.add(ownerId);
+            removeFor(ownerId);
+        }
+    }
+
+    /**
+     * Lets her come back once her owner is up; the caller brings her with {@link #catchUp}.
+     *
+     * @param ownerId
+     *            the owner leaving bed
+     */
+    public static void ownerWakes(final UUID ownerId)
+    {
+        ASLEEP.remove(ownerId);
+    }
+
+    /**
+     * Sends her away from an owner something hostile has started hunting.
+     *
+     * @param ownerId
+     *            the hunted owner
+     * @return true if she has only now left, so the caller should start watching for it to end
+     */
+    public static boolean ownerHunted(final UUID ownerId)
+    {
+        if (!FreyaPreferences.isEnabled(ownerId))
+        {
+            return false;
+        }
+        removeFor(ownerId);
+        return HUNTED.add(ownerId);
+    }
+
+    /**
+     * Ends a hunt once nothing nearby is still after her owner.
+     *
+     * @param owner
+     *            the owner
+     * @return true if the hunt is over and she may come back
+     */
+    public static boolean huntOver(final Player owner)
+    {
+        if (owner.isOnline() && isHunting(owner.getNearbyEntities(HUNT_RADIUS, HUNT_HEIGHT, HUNT_RADIUS), owner))
+        {
+            return false;
+        }
+        HUNTED.remove(owner.getUniqueId());
+        return true;
+    }
+
+    /**
+     * Whether any of these entities is a creeper or phantom hunting the player.
+     *
+     * @param nearby
+     *            entities around the player
+     * @param owner
+     *            the player
+     * @return true if one of them has the player as its target
+     */
+    static boolean isHunting(final Collection<Entity> nearby, final Player owner)
+    {
+        for (final Entity entity : nearby)
+        {
+            if (scaredOfCats(entity) && owner.equals(((Mob) entity).getTarget()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The mobs vanilla makes keep away from cats.
+     *
+     * @param entity
+     *            the entity
+     * @return true for a creeper or phantom
+     */
+    public static boolean scaredOfCats(final Entity entity)
+    {
+        return (entity instanceof Creeper) || (entity instanceof Phantom);
+    }
+
+    /**
+     * Stands up any companion sitting on or beside a chest, since a sitting cat keeps it shut
+     * and nobody else can see why.
+     *
+     * @param chest
+     *            the centre of the chest being opened
+     * @return how many were stood up
+     */
+    public static int standUpNear(final Location chest)
+    {
+        int stood = 0;
+        for (final Cat cat : LIVE.values())
+        {
+            final Location at = cat.getLocation();
+            if ((at != null) && Objects.equals(at.getWorld(), chest.getWorld())
+                && (at.distanceSquared(chest) <= CHEST_REACH_SQUARED))
+            {
+                cat.setSitting(false);
+                stood++;
+            }
+        }
+        return stood;
+    }
+
+    /**
+     * Forgets everything about a player who has left: her, and why she was away.
+     *
+     * @param ownerId
+     *            the player's id
+     */
+    public static void forgetOwner(final UUID ownerId)
+    {
+        removeFor(ownerId);
+        ASLEEP.remove(ownerId);
+        HUNTED.remove(ownerId);
     }
 
     /**
@@ -234,12 +334,12 @@ public final class FreyaCompanion
         }
         catch (final RuntimeException ignored)
         {
-            // Already gone, or her world is unloading. Either way she is not ours any more.
+            // already gone, or her world is unloading
         }
         return true;
     }
 
-    /** Takes every companion away. Called as the plugin stops, so none is left in a world. */
+    /** Takes every companion away, as the plugin stops. */
     public static void removeAll()
     {
         for (final UUID ownerId : new ArrayList<>(LIVE.keySet()))
@@ -249,11 +349,8 @@ public final class FreyaCompanion
     }
 
     /**
-     * Whether an entity is somebody's companion.
-     *
-     * <p>Asked by the listeners that refuse damage and interaction. Identity against the
-     * tracked cats rather than a name or type check, so a player's own black cat called Freya
-     * is still an ordinary cat they can pet.
+     * Whether an entity is somebody's companion, by identity, so a player's own cat named
+     * Freya is still an ordinary cat.
      *
      * @param entity
      *            the entity in question
@@ -274,35 +371,21 @@ public final class FreyaCompanion
     public static void forgetAll()
     {
         LIVE.clear();
+        ASLEEP.clear();
+        HUNTED.clear();
     }
 
-    /**
-     * Spawns companions for everyone already online who has one turned on.
-     *
-     * <p>Only reached on a reload, when players are on the server before the plugin starts.
-     * An ordinary start finds nobody online and spawns nothing; each player's join does it.
-     *
-     * @return how many were spawned
-     */
-    public static int spawnForOnline()
+    /** Spawns companions for players already online, which only happens on a reload. */
+    public static void spawnForOnline()
     {
         final Plugin plugin = WormholeXTreme.getThisPlugin();
         if (plugin == null)
         {
-            return 0;
+            return;
         }
-        final List<Player> waiting = new ArrayList<>();
-        for (final Player player : plugin.getServer().getOnlinePlayers())
+        for (final Player player : new ArrayList<>(plugin.getServer().getOnlinePlayers()))
         {
-            if (FreyaPreferences.isEnabled(player.getUniqueId()))
-            {
-                waiting.add(player);
-            }
+            catchUp(player);
         }
-        for (final Player player : waiting)
-        {
-            spawnFor(player);
-        }
-        return waiting.size();
     }
 }

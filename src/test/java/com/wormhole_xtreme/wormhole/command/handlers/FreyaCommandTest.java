@@ -3,13 +3,20 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.UUID;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Cat;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.SubCommands;
+import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 
 /**
@@ -175,4 +183,18 @@ class FreyaCommandTest
         assertFalse(dataFolder.toPath().resolve("data").resolve("freya.yml").toFile().exists(),
             "there is no player id to store, so nothing should have been written");
     }
+
+    @Test
+    void summoningHerRemembersHerYears()
+    {
+        final Player player = player();
+        final World world = mock(World.class);
+        when(player.getLocation()).thenReturn(new Location(world, 0.0, 64.0, 0.0));
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(mock(Cat.class));
+
+        command.execute(player, new String[] { "freya", "on" });
+
+        verify(player).sendMessage(contains(FreyaCompanion.YEARS));
+    }
 }
+
