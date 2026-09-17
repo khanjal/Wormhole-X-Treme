@@ -633,6 +633,9 @@ public final class MirrorCapture
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
             final double step = Math.tan(Math.toRadians(1.0));
+            // Filled afresh for each ray, which only reads them.
+            final double[] origin = new double[3];
+            final double[] direction = new double[3];
             // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
             // than its room's, on whichever side its view turns that column to, so a room captured
             // once serves a mirror of either width looking in either way.
@@ -647,12 +650,13 @@ public final class MirrorCapture
                         for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
                         {
                             final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
-                            ray(seen,
-                                new double[] { (exitX + ((across + sideways) * rightX)) - minX,
-                                    (from.y() + up + upward) - minY, (exitZ + ((across + sideways) * rightZ)) - minZ },
-                                new double[] { (aheadX + (sideways * rightX)) / length, upward / length,
-                                    (aheadZ + (sideways * rightZ)) / length },
-                                reach);
+                            origin[0] = (exitX + ((across + sideways) * rightX)) - minX;
+                            origin[1] = (from.y() + up + upward) - minY;
+                            origin[2] = (exitZ + ((across + sideways) * rightZ)) - minZ;
+                            direction[0] = (aheadX + (sideways * rightX)) / length;
+                            direction[1] = upward / length;
+                            direction[2] = (aheadZ + (sideways * rightZ)) / length;
+                            ray(seen, origin, direction, reach);
                         }
                     }
                 }
@@ -699,9 +703,9 @@ public final class MirrorCapture
          * Follows one ray through the box, marking what it passes, until something solid or the edge.
          *
          * @param o
-         *            where it starts, from the box's corner
+         *            where it starts, from the box's corner; not changed
          * @param d
-         *            its direction, of length one
+         *            its direction, of length one; not changed
          */
         private void ray(final BitSet seen, final double[] o, final double[] d, final double reach)
         {

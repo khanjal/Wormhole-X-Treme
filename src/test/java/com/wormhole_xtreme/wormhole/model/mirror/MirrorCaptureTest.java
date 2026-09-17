@@ -444,6 +444,7 @@ class MirrorCaptureTest
         builder.put(0, 0, 0, glass);
         builder.put(2, 0, 0, glass);
         builder.clear(0, 0, 0);
+        // Refused: a cleared block is a far banner's, and stays air whatever the second pass reads there.
         builder.put(0, 0, 0, stone);
 
         final MirrorCapture capture = builder.build();
