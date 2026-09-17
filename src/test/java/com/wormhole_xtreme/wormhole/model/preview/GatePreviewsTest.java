@@ -1351,7 +1351,8 @@ class GatePreviewsTest
     void aViewerInAnotherWorldIsShownItOnArriving()
     {
         final Player alex = onlineHere("Alex");
-        when(alex.getWorld()).thenReturn(mock(World.class));
+        final World elsewhere = mock(World.class);
+        when(alex.getWorld()).thenReturn(elsewhere);
         GatePreviews.show(owner, standard, null);
 
         GatePreviews.share(owner, alex);
