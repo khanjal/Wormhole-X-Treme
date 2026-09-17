@@ -189,8 +189,9 @@ class FreyaListenerTest
         herOut();
         final EntityDamageEvent hers = mock(EntityDamageEvent.class);
         when(hers.getEntity()).thenReturn(cat);
+        final Cat otherCat = mock(Cat.class);
         final EntityDamageEvent stray = mock(EntityDamageEvent.class);
-        when(stray.getEntity()).thenReturn(mock(Cat.class));
+        when(stray.getEntity()).thenReturn(otherCat);
 
         listener.onDamage(hers);
         listener.onDamage(stray);
@@ -234,8 +235,9 @@ class FreyaListenerTest
     void aZombieHuntingHerOwnerChangesNothing()
     {
         herOut();
+        final Zombie zombie = mock(Zombie.class);
         final EntityTargetLivingEntityEvent target = mock(EntityTargetLivingEntityEvent.class);
-        when(target.getEntity()).thenReturn(mock(Zombie.class));
+        when(target.getEntity()).thenReturn(zombie);
         when(target.getTarget()).thenReturn(owner);
 
         listener.onTarget(target);

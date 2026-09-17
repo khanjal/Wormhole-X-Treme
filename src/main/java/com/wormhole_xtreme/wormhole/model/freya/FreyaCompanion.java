@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Cat;
@@ -59,8 +60,11 @@ public final class FreyaCompanion
     /** True only while she is being placed, so her own spawn event can be told apart. */
     private static boolean summoning;
 
-    /** Whether her spawn event finished cancelled, which only something past HIGHEST can do. */
-    private static boolean summonRefused;
+    /**
+     * Whether her spawn event finished cancelled, which only something past HIGHEST can do. Set by
+     * the listener during the spawn call, where a plain field reads to analysis as never changing.
+     */
+    private static final AtomicBoolean SUMMON_REFUSED = new AtomicBoolean();
 
     private FreyaCompanion() {}
 
@@ -90,7 +94,7 @@ public final class FreyaCompanion
         {
             final Cat cat;
             summoning = true;
-            summonRefused = false;
+            SUMMON_REFUSED.set(false);
             try
             {
                 cat = at.getWorld().spawn(at, Cat.class);
@@ -100,7 +104,7 @@ public final class FreyaCompanion
                 summoning = false;
             }
             // Read from the event, not isValid: after a cross-world trip she is not valid for a few ticks.
-            if (summonRefused)
+            if (SUMMON_REFUSED.get())
             {
                 cat.remove();
                 return null;
@@ -168,7 +172,7 @@ public final class FreyaCompanion
     {
         if (summoning)
         {
-            summonRefused = cancelled;
+            SUMMON_REFUSED.set(cancelled);
         }
     }
 
