@@ -2284,7 +2284,7 @@ class MirrorWindowsTest
         final int y = (int) Math.floor(at.y());
         final int z = (int) Math.floor(at.z());
         final MirrorCapture.Builder builder = new MirrorCapture.Builder(at.worldName(), true,
-            x - 40, y - 16, z - 40, 81, 81, 81, air);
+            new MirrorCapture.Box(x - 40, y - 16, z - 40, 81, 81, 81), air);
         builder.fillBelow(surface, ground);
         return builder;
     }

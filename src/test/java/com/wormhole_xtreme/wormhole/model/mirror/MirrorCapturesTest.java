@@ -360,10 +360,10 @@ class MirrorCapturesTest
     {
         // The configured radius is 16, the depth 32, so the capture is taken 16 deep: a box from
         // x 82..118, y 52..88, z -22..-3 for this mirror, facing south.
-        final MirrorCapture fits = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
-        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, 83, 52, -22, 36, 37, 20, air).build();
-        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 19, air).build();
-        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, 82, 53, -22, 37, 36, 20, air).build();
+        final MirrorCapture fits = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
+        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(83, 52, -22, 36, 37, 20), air).build();
+        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 19), air).build();
+        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 53, -22, 37, 36, 20), air).build();
 
         withServer(() ->
         {
@@ -417,9 +417,9 @@ class MirrorCapturesTest
     {
         when(far.getViewDistance()).thenReturn(6);
         // To a depth of 16 alone, as the old rule took it: x 82..118, y 52..88, z -22..-3.
-        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
+        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
         // To the reach of 96: x 2..198, y -28..168, z -22..77.
-        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, 2, -28, -22, 197, 197, 100, air).build();
+        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(2, -28, -22, 197, 197, 100), air).build();
 
         withServer(() ->
         {
