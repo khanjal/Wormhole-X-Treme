@@ -14,20 +14,5 @@ These pages say what things do. Why they work that way is in the design notes be
 [GATES.md](../GATES.md), [RINGS.md](../RINGS.md), [BEAMS.md](../BEAMS.md) and
 [MIRRORS.md](../MIRRORS.md). Plugin authors want [API.md](../API.md).
 
-## What it looks like
-
-Three captures from a server; the rest, and how they were shot, are in
+Each page shows its subsystem in game; how those captures were shot is in
 [CAPTURES.md](../CAPTURES.md).
-
-**A finished gate.** All six shipped shapes, built and idle, from one camera position.
-
-![The six shipped shapes, built](../images/gates/gate-shapes.png)
-
-**Dialling.** Chevrons light in sequence, then the horizon erupts and settles.
-
-![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
-
-**Transport rings.** The pad lights, counts down, and four rings rise around whoever is standing
-on it.
-
-![A ring pair firing: the stack rises, the light runs through it, the rings come home](../images/rings/ring-cycle.webp)

@@ -41,6 +41,8 @@ Gates work in the Nether and the End.
 
 `/dial` finishes a dial the button started; it cannot start one on its own.
 
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
+
 A dial is refused when the target's iris is closed, the target is already active, or another
 gate already points at it. `/wormhole gate force <gate>` dials past those.
 
@@ -59,6 +61,12 @@ plugins/WormholeXTreme/shapes/mirror/    the looks a mirror's banner can wear
 Nine shape files ship, but they are six gates. `Minimal`, `Standard`, `Large`, `Grand`,
 `Massive` and `Horizontal` are the rings; the three `SignDial` files are three of those
 rings again with a dial sign on the DHD instead of a plain button.
+
+![The six shipped shapes, built, from one camera position](../images/gates/gate-shapes.png)
+
+`Horizontal` lies flat and is dropped into rather than walked through:
+
+![A Horizontal gate, idle and dialled](../images/gates/gate-horizontal.png)
 
 All six are drawn, idle and dialled, in
 [the shape gallery](../GATES.md#the-shapes-that-ship) — worth a look before laying out a gate
@@ -99,6 +107,10 @@ group is accepted.
 ## Material groups
 
 A gate's **shape** is its geometry; its **material group** is what that geometry is built from.
+The same `Standard` gate in the four groups that ship:
+
+![The four palettes on a Standard gate](../images/gates/standard-palettes.png)
+
 Groups live in `config.yml`, and the first is the default:
 
 ```yaml
@@ -210,6 +222,8 @@ Signs repaint when next written — a dial sign on the next click, a name sign o
 
 An iris closes over a gate to block travel. Anyone walking into a gate whose far end has its iris
 closed is bounced back with "Remote Iris is locked!".
+
+![The iris closed, in each of the four palettes](../images/gates/standard-palettes-iris.png)
 
 - Build from a shape with an `:IA` marker (most have one). The plugin places the iris lever there.
 - Set an iris deactivation code so callers can open it remotely:

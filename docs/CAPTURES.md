@@ -179,13 +179,13 @@ animation rather than embedding it to run forever.
 
 | Capture | File | Appears in |
 |---|---|---|
-| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [GATES.md](GATES.md#animation), [guide/README.md](guide/README.md) |
-| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [GATES.md](GATES.md#shapes), [guide/README.md](guide/README.md) |
-| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [GATES.md](GATES.md#shapes) |
-| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [GATES.md](GATES.md#palettes-are-separate-from-shapes), [GATES.md](GATES.md#the-iris) |
-| A ring pair's whole cycle | `rings/ring-cycle.webp` | [RINGS.md](RINGS.md#animation), [guide/README.md](guide/README.md) |
-| A traveller leaving in a column of light | `beams/beam-up.webp` | [BEAMS.md](BEAMS.md#the-sequence) |
-| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](../README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
+| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
+| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
+| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [guide/GATES.md](guide/GATES.md#material-groups), [GATES.md](GATES.md#palettes-are-separate-from-shapes) |
+| A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](../README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |
+| A traveller leaving in a column of light | `beams/beam-up.webp` | [README](../README.md), [guide/BEAMS.md](guide/BEAMS.md), [BEAMS.md](BEAMS.md#the-sequence) |
+| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 | A mirror repainting itself | `mirrors/mirror-look.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#its-look) |
 | A mirror's view shifting as you move | `mirrors/mirror-effects.webp` | listing art; not embedded |
 

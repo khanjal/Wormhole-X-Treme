@@ -59,6 +59,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
   `guide/SERVER.md` names `timeout-shutdown` rather than the old command. The mirror guide is
   rewritten around what a mirror shows, and gains a settings table. `API.md` is events only, with
   the coding conventions moved to `DEVELOPMENT.md`. Notes about what a page used to say are gone.
+- **The in-game captures are where a reader starts**: one per subsystem on the README, and
+  each on the guide page for what it shows, rather than on the guide's index page alone.
 
 ### Internals
 

@@ -58,6 +58,8 @@ Walk in. The floor opens along the ring's pattern and counts down; step clear be
 it stands down. Then four rings rise, the light runs through them, and you are at the other end. A
 **ceiling ring**'s rings fall to the floor instead, so you stand inside them.
 
+![A ring pair firing: the stack rises, the light runs through it, the rings come home](../images/rings/ring-cycle.webp)
+
 - **Everything in the ring travels** — players, mobs, items, vehicles. Only players are checked for
   access. Ride in on a horse and you arrive still on it.
 - **It refuses if the inside is not fit to arrive in**: every square must be clear, with solid

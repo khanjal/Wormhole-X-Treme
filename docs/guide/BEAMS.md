@@ -5,6 +5,8 @@ somebody stood on once. You go there with a command, a column of light takes you
 back is another beam. Why it works the way it does is in the design notes,
 [docs/BEAMS.md](../BEAMS.md).
 
+![A traveller leaving in a column of light](../images/beams/beam-up.webp)
+
 - **Public destinations** are curated by staff and reachable by anyone.
 - **Places** are private — each player has their own.
 
