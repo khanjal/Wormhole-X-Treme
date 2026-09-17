@@ -30,7 +30,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
 - **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
-- **`Grand` has a bottom chevron**, lighting eighth. Existing Grand gates still match.
+- **`Grand` has a bottom chevron**, lighting eighth. Existing Grand gates still match; delete
+  `shapes/gate/Grand.shape` and restart for the new one.
 
 ### Quantum mirrors
 
