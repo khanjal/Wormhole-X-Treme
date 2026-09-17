@@ -238,7 +238,10 @@ class MirrorNetworkTest
         assertEquals("No other mirrors found.", MirrorNetwork.scroll(archive, false), "there is no mirror called hub");
     }
 
-    /** Somebody is near a mirror inside the proximity distance, and not past it; the clicker does not count. */
+    /**
+     * Somebody is near a mirror inside the proximity distance, and not past it; the clicker does
+     * not count, and neither does a player with no location.
+     */
     @Test
     void whoIsNearIsMeasuredFromTheBannerAndLeavesOutTheClicker()
     {
@@ -247,7 +250,8 @@ class MirrorNetworkTest
         when(clicker.getLocation()).thenReturn(new Location(world, 10.5, 63, 12.5));
         final Player far = mock(Player.class);
         when(far.getLocation()).thenReturn(new Location(world, 10.5, 63, 40.5));
-        when(world.getPlayers()).thenReturn(List.of(clicker, far));
+        final Player nowhere = mock(Player.class);
+        when(world.getPlayers()).thenReturn(List.of(nowhere, clicker, far));
         final MirrorBlock banner = new MirrorBlock("world", 10, 64, 10);
 
         assertFalse(MirrorNetwork.anybodyNear(world, banner, clicker), "thirty blocks away is not at it");
