@@ -8,7 +8,7 @@ both ends swaps in the same instant. Why they work the way they do is in the des
 |---|---|---|
 | Addressing | Dial any gate by name | Fixed pair |
 | Orientation | Vertical | Floor or ceiling |
-| Activation | Button, sign, redstone, `/dial` | Walk into it |
+| Activation | Button, then `/dial`; or button or redstone on a dial sign | Walk into it |
 | Direction | One way per dial | Both ends fire together |
 | Appearance | Permanent structure | Invisible until it fires |
 | Range | Cross-world, config permitting | Same world |

@@ -20,7 +20,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 | | What you build | How you use it | Where it goes |
 |---|---|---|---|
-| **[Stargates](docs/guide/GATES.md)** | A frame of blocks | Dial by button, sign, redstone or `/dial` | Any gate, across worlds |
+| **[Stargates](docs/guide/GATES.md)** | A frame of blocks | Press the button, then `/dial`; or fit a dial sign, and a button or redstone dials it | Any gate, across worlds |
 | **[Transport rings](docs/guide/RINGS.md)** | A circle of slabs, in pairs | Walk into it | Its partner, same world |
 | **[Beaming](docs/guide/BEAMS.md)** | Nothing | `/wormhole beam to <name>` | A saved point, anywhere |
 | **[Quantum mirrors](docs/guide/MIRRORS.md)** | One wall banner | Right-click to choose, punch to go | Any other mirror, across worlds |

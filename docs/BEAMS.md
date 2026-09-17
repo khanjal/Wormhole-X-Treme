@@ -14,7 +14,7 @@ arithmetic that drives it somewhere a test can reach.
 |---|---|---|---|
 | What exists in the world | A built frame | Two invisible pads | Nothing |
 | Unit | One gate, dialled to another | A permanent pair | A single point |
-| Started by | Button, sign, redstone, `/dial` | Walking into it | A command |
+| Started by | Button, then `/dial`; or button or redstone on a dial sign | Walking into it | A command |
 | Direction | One way per dial | Both ends together | One way, no return |
 | Range | Cross-world, config permitting | Same world, always | Cross-world, always |
 | Who can go | Network and node | Owner and allow list | Public list, or your own places |

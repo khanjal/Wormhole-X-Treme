@@ -36,7 +36,7 @@ A gate is one `Stargate` object holding the world positions of everything the sh
 | Chevrons | `[C]` | Frame blocks built from a second material, so they read as chevrons before they light |
 | Portal | `[P]` | Air until the gate opens, then the drawn event horizon |
 | Name sign | `:N` | Always placed; shows the gate's name, network and owner |
-| Dial sign | `:D` | Optional; makes the gate sign-dialled rather than `/dial`-only |
+| Dial sign | `:D` | Optional; makes the button dial what the sign shows, rather than wait for `/dial` |
 | DHD | `:A` | The button or lever that activates it |
 | Iris lever | `:IA` | Optional; without it the gate cannot take an iris |
 | Player arrival | `:EP` | Where a traveller's feet land |
