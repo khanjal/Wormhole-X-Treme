@@ -254,7 +254,11 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           # The scan is processed after upload; its findings are not there to read until it is done.
-          task_url=$(sed -n 's/^ceTaskUrl=//p' target/sonar/report-task.txt)
+          task_url=$(sed -n 's/^ceTaskUrl=//p' target/sonar/report-task.txt 2>/dev/null)
+          if [ -z "$task_url" ]; then
+            echo "::error::No ceTaskUrl in target/sonar/report-task.txt; the scanner's report is missing or has changed format"
+            exit 1
+          fi
           status=PENDING
           for attempt in $(seq 1 60); do
             status=$(curl -sf -u "$SONAR_TOKEN:" "$task_url" | jq -r .task.status)
@@ -270,7 +274,11 @@ jobs:
           fi
           issues=$(curl -sf -u "$SONAR_TOKEN:" \
             "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=$PR&resolved=false&ps=100")
-          echo "$issues" | jq -r '.issues[] | "::error file=\(.component | sub("^[^:]*:"; "")),line=\(.line // 1),title=Sonar \(.rule | gsub(":"; "%3A"))::\(.message | gsub("%"; "%25"))"'
+          # Workflow commands need %, CR and LF escaped, and : and , as well inside a property.
+          echo "$issues" | jq -r '
+            def data: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
+            def prop: data | gsub(":"; "%3A") | gsub(","; "%2C");
+            .issues[] | "::error file=\(.component | sub("^[^:]*:"; "") | prop),line=\(.line // 1),title=\("Sonar " + .rule | prop)::\(.message | data)"'
           total=$(echo "$issues" | jq .total)
           if [ "$total" -gt 0 ]; then
             echo "::error::$total open Sonar finding(s) on this pull request. Fix them before merging."
