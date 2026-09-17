@@ -10,6 +10,7 @@ import org.bukkit.World;
 import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.FaceAttachable;
 
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
@@ -90,8 +91,7 @@ final class PreviewPlacer
             {
                 button = block;
             }
-            if ((cell.part() != Part.DIAL_SIGN)
-                && (BuildGuide.of(cell, preview.palette(), block.getType()) != BuildGuide.State.PLACED))
+            if ((cell.part() != Part.DIAL_SIGN) && !alreadyRight(preview, cell, block))
             {
                 final BlockData data = GatePreviews.blockDataFor(preview, cell);
                 if (data instanceof FaceAttachable attached)
@@ -102,6 +102,22 @@ final class PreviewPlacer
             }
         }
         return button;
+    }
+
+    /**
+     * Whether a block can stay as it is: what detection takes there, and for the button, one that hangs
+     * on the wall facing the builder, as a placed one would.
+     */
+    private static boolean alreadyRight(final GatePreview preview, final Cell cell, final Block block)
+    {
+        if (BuildGuide.of(cell, preview.palette(), block.getType()) != BuildGuide.State.PLACED)
+        {
+            return false;
+        }
+        final BlockData data = block.getBlockData();
+        return (cell.part() != Part.BUTTON)
+            || ((data instanceof FaceAttachable attached) && (attached.getAttachedFace() == FaceAttachable.AttachedFace.WALL)
+                && (data instanceof Directional directional) && (directional.getFacing() == preview.grid().facing()));
     }
 
     /** Every block the gate needs that holds something else, and every one a gate or ring owns. */

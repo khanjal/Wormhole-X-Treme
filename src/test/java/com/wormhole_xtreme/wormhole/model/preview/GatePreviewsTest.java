@@ -117,7 +117,9 @@ class GatePreviewsTest
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv ->
         {
             final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
-            when(block.getBlockData()).thenAnswer(read -> data.computeIfAbsent(Material.AIR, m -> mock(BlockData.class)));
+            when(block.getBlockData()).thenAnswer(read -> GatePreviews.blockData.apply(
+                (standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2))) == null) ? Material.AIR
+                    : standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)))));
             final List<Integer> at = List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2));
             when(block.getType()).thenReturn(standing.get(at));
             Mockito.doAnswer(set ->
@@ -1030,7 +1032,6 @@ class GatePreviewsTest
         obsidianFramesAreFindable();
         final com.wormhole_xtreme.wormhole.model.Stargate gate = detectsAGate();
         final List<Cell> cells = standardLookingNorth();
-        final Cell buttonCell = cells.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
         GatePreviews.show(owner, standard, null);
 
         final GatePreviews.Placed placed = GatePreviews.place(owner);
@@ -1070,6 +1071,45 @@ class GatePreviewsTest
         final List<Integer> kept = List.of(cells.get(0).x(), cells.get(0).y(), cells.get(0).z());
         assertFalse(written.contains(kept));
         assertEquals(cells.size() - 1, written.size());
+    }
+
+    /**
+     * A button already on the wall facing the builder stays; a lever, or a button on the floor or facing
+     * away, is replaced by the wall button a placed gate has.
+     */
+    @Test
+    void placingKeepsOnlyAButtonHungTheWayItWouldHangOne()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final Cell buttonCell = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
+            .orElseThrow();
+        final List<Integer> at = List.of(buttonCell.x(), buttonCell.y(), buttonCell.z());
+        final org.bukkit.block.data.type.Switch hung = (org.bukkit.block.data.type.Switch) buttonData();
+        when(hung.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        when(hung.getFacing()).thenReturn(BlockFace.SOUTH);
+        data.put(Material.OAK_BUTTON, hung);
+        place(buttonCell, Material.OAK_BUTTON);
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.place(owner);
+        assertFalse(written.contains(at), "a wall button facing the builder stays");
+
+        written.clear();
+        when(hung.getFacing()).thenReturn(BlockFace.NORTH);
+        GatePreviews.clearAll(owner);
+        place(buttonCell, Material.OAK_BUTTON);
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.place(owner);
+        assertTrue(written.contains(at), "one facing away is replaced");
+
+        written.clear();
+        GatePreviews.clearAll(owner);
+        place(buttonCell, Material.LEVER);
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.place(owner);
+        assertTrue(written.contains(at), "a lever, which is not hung that way, is replaced");
+        assertEquals(Material.STONE_BUTTON, standing.get(at));
     }
 
     /** A sign-dial shape's sign is left for the builder to write the gate's name on. */

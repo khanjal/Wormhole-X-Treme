@@ -35,8 +35,8 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * and keeping them apart means a change to how a gate is dialled cannot disturb how someone
  * travels through one.
  *
- * <p>Static throughout, and package-private but for {@link #offerNewGate}, which
- * {@code gate build -place} shares with a pressed button. The listener still owns the
+ * <p>Static throughout. The class is public for {@link #offerNewGate} alone, which
+ * {@code gate build -place} shares with a pressed button; everything else stays package-private. The listener still owns the
  * {@code @EventHandler} and calls in here.
  */
 public final class GateInteractionHandler
@@ -162,7 +162,8 @@ public final class GateInteractionHandler
             }
             return false;
         }
-        return offerNewGate(player, clickedBlock, newGate);
+        offerNewGate(player, clickedBlock, newGate);
+        return true;
     }
 
     /**
@@ -175,9 +176,8 @@ public final class GateInteractionHandler
      *            its DHD button or lever
      * @param newGate
      *            the gate detection found
-     * @return true, the button's click being spent either way
      */
-    public static boolean offerNewGate(final Player player, final Block button, final Stargate newGate)
+    public static void offerNewGate(final Player player, final Block button, final Stargate newGate)
     {
         // The frame now stands where a preview of it was drawn.
         GatePreviews.builtAt(button.getWorld(), button.getX(), button.getY(), button.getZ());
@@ -190,12 +190,11 @@ public final class GateInteractionHandler
             }
             StargateManager.removeIncompleteStargate(player);
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
+            return;
         }
 
         StargateManager.addIncompleteStargate(player, newGate);
         announceValidDesign(player, newGate);
-        return true;
     }
 
     /**
