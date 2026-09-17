@@ -6,7 +6,7 @@ Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimension
 One jar supports **Minecraft 1.20 through 26.2**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
-- **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles nothing: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
+- **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles no third-party dependencies: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
 - Build command: `mvn -o -q package -DskipTests` → produces `target/WormholeXTreme-<version>.jar`, versioned from the pom
 - Test command: `mvn -o test` — JUnit 5 + Mockito, no live server needed
 - Deploy by copying the JAR to `plugins/` on the server
