@@ -194,6 +194,10 @@ public final class FreyaCompanion
             return false;
         }
         final Cat before = LIVE.get(owner.getUniqueId());
+        if (PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": " + describe(before, owner.getLocation()));
+        }
         if (!isLeftBehind(before, owner.getLocation()))
         {
             return false;
@@ -203,6 +207,28 @@ public final class FreyaCompanion
             PluginLog.log(Level.FINE, "Re-summoned " + owner.getName() + "'s companion; she did not travel with them.");
         }
         return spawnFor(owner) != null;
+    }
+
+    /**
+     * Where a companion stands relative to her owner, for the log.
+     *
+     * @param cat
+     *            the tracked companion, or null
+     * @param owner
+     *            where her owner is
+     * @return a one-line summary
+     */
+    private static String describe(final Cat cat, final Location owner)
+    {
+        if (cat == null)
+        {
+            return "none out";
+        }
+        final Location at = cat.getLocation();
+        final String world = ((at == null) || (at.getWorld() == null)) ? "?" : at.getWorld().getName();
+        final boolean together = (at != null) && (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
+        return "in " + world + (together ? " " + Math.round(Math.sqrt(at.distanceSquared(owner))) + " blocks away" : ", another world")
+            + ", valid " + cat.isValid() + ", dead " + cat.isDead();
     }
 
     /**

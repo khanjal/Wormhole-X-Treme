@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.entity.AnimalTamer;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * Brings a player's pets along when a gate, ring, beam or mirror moves them.
@@ -42,6 +44,7 @@ public final class PetEscort
             return List.of();
         }
         final List<Entity> pets = new ArrayList<>();
+        final boolean explain = PluginLog.isLoggable(Level.FINE);
         try
         {
             for (final Entity entity : owner.getNearbyEntities(REACH, REACH, REACH))
@@ -50,6 +53,10 @@ public final class PetEscort
                 {
                     pets.add(entity);
                 }
+                else if (explain)
+                {
+                    explainLeftBehind(entity, owner);
+                }
             }
         }
         catch (final RuntimeException e)
@@ -57,7 +64,46 @@ public final class PetEscort
             // A pet left behind is not worth failing the owner's own trip over.
             return List.of();
         }
+        if (explain)
+        {
+            PluginLog.log(Level.FINE, "Pets travelling with " + owner.getName() + ": " + pets.size());
+        }
         return pets;
+    }
+
+    /**
+     * Says why one of the owner's own pets is not coming, for whoever is testing a transport.
+     *
+     * @param entity
+     *            an entity near the owner that is not travelling
+     * @param owner
+     *            the traveller
+     */
+    private static void explainLeftBehind(final Entity entity, final Player owner)
+    {
+        if (!(entity instanceof Tameable pet) || (pet.getOwner() == null)
+            || !owner.getUniqueId().equals(pet.getOwner().getUniqueId()))
+        {
+            return;
+        }
+        final String why;
+        if (!(entity instanceof Sittable))
+        {
+            why = "not a following pet";
+        }
+        else if (((Sittable) entity).isSitting())
+        {
+            why = "sitting";
+        }
+        else if (entity.isInsideVehicle())
+        {
+            why = "riding something";
+        }
+        else
+        {
+            why = "dead";
+        }
+        PluginLog.log(Level.FINE, owner.getName() + "'s " + entity.getType() + " stays behind: " + why);
     }
 
     /**
@@ -105,6 +151,8 @@ public final class PetEscort
             {
                 if (!pet.teleport(arrival))
                 {
+                    PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + " to " + arrival.getWorld().getName()
+                        + ": the teleport was refused (valid " + pet.isValid() + ")");
                     continue;
                 }
                 // Landing next to a gate must not count as walking into it.
@@ -116,6 +164,7 @@ public final class PetEscort
             catch (final RuntimeException e)
             {
                 // Refused by another plugin, or gone mid-trip; the others still come.
+                PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + ": " + e);
             }
         }
         return brought;
