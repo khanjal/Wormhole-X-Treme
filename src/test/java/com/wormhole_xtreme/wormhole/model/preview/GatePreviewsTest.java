@@ -84,6 +84,8 @@ class GatePreviewsTest
     private final List<Long> dialDelays = new ArrayList<>();
     /** What stands in the world, by x, y and z; air everywhere else. */
     private final Map<List<Integer>, Material> standing = new HashMap<>();
+    /** Players online besides the owner. */
+    private final Map<UUID, Player> others = new HashMap<>();
     /** Where a block was written, in order. */
     private final List<List<Integer>> written = new ArrayList<>();
     private final long[] now = { 1_000_000L };
@@ -148,7 +150,7 @@ class GatePreviewsTest
         standAt(0.5, 0.5, 180f);
 
         GatePreviews.clock = () -> now[0];
-        GatePreviews.online = id -> owner;
+        GatePreviews.online = id -> id.equals(owner.getUniqueId()) ? owner : others.get(id);
         GatePreviews.blockData = material -> data.computeIfAbsent(material,
             m -> (m == Material.STONE_BUTTON) ? buttonData() : mock(BlockData.class));
         GatePreviews.later = (ticks, step) ->
@@ -1211,5 +1213,173 @@ class GatePreviewsTest
         GatePreviews.detector = (button, facing, shape) -> null;
         assertEquals(GatePreviews.Outcome.NOT_FOUND, GatePreviews.place(owner).outcome());
         assertFalse(written.isEmpty(), "placed, then not found");
+    }
+
+    /** A player online in the preview's world, besides its owner. */
+    private Player onlineHere(final String name)
+    {
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getName()).thenReturn(name);
+        when(player.getWorld()).thenReturn(world);
+        others.put(player.getUniqueId(), player);
+        return player;
+    }
+
+    /**
+     * Sharing shows every display to that player, but not the button, which only the owner presses;
+     * sharing again hides them all.
+     */
+    @Test
+    void sharingShowsThePreviewToThatPlayerAndSharingAgainHidesIt()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Shared.SHARED, GatePreviews.share(owner, alex));
+
+        assertEquals(STANDARD_BLOCKS, spawned.size());
+        spawned.forEach(display -> verify(alex).showEntity(plugin, display));
+        verify(alex, never()).showEntity(plugin, buttons.get(0));
+        assertEquals(new GatePreviews.Audience(false, List.of("Alex")), GatePreviews.audience(owner));
+
+        assertEquals(GatePreviews.Shared.UNSHARED, GatePreviews.share(owner, alex));
+
+        spawned.forEach(display -> verify(alex).hideEntity(plugin, display));
+        assertEquals(new GatePreviews.Audience(false, List.of()), GatePreviews.audience(owner));
+        assertEquals(GatePreviews.Shared.SELF, GatePreviews.share(owner, owner));
+        standAt(0.5, 1.5, 0f);
+        assertEquals(GatePreviews.Shared.NOT_LOOKING, GatePreviews.share(owner, alex));
+        assertNull(GatePreviews.audience(owner));
+    }
+
+    /** A display drawn after sharing, here the closed iris, is shown to the viewer as well. */
+    @Test
+    void aDisplayDrawnLaterIsShownToViewersToo()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        final int before = spawned.size();
+
+        GatePreviews.iris(owner);
+
+        assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size());
+        spawned.subList(before, spawned.size()).forEach(display -> verify(alex).showEntity(plugin, display));
+    }
+
+    /**
+     * A viewer is sent the kawoosh and the wormhole as its owner is, is sent the open wormhole on
+     * joining late, and has it taken back when the owner shuts it down or stops sharing.
+     */
+    @Test
+    void viewersAreSentTheWormholeAndHaveItTakenBack()
+    {
+        final Player alex = onlineHere("Alex");
+        final Player sam = onlineHere("Sam");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        verify(alex, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+
+        GatePreviews.share(owner, sam);
+        verify(sam, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+
+        GatePreviews.share(owner, sam);
+        verify(sam, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+
+        GatePreviews.activate(owner);
+        verify(alex, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(sam, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /**
+     * Shared with everyone, a preview is shown to whoever is in its world, including anyone arriving
+     * later, and stops being counted for anyone who leaves; sharing again hides it from them.
+     */
+    @Test
+    void sharedWithEveryoneItReachesWhoeverIsInTheWorld()
+    {
+        final Player alex = onlineHere("Alex");
+        final Player sam = onlineHere("Sam");
+        when(world.getPlayers()).thenReturn(List.of(owner, alex));
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Shared.SHARED_ALL, GatePreviews.shareAll(owner));
+        spawned.forEach(display -> verify(alex).showEntity(plugin, display));
+        verify(sam, never()).showEntity(any(), any());
+        assertEquals(new GatePreviews.Audience(true, List.of()), GatePreviews.audience(owner));
+
+        when(world.getPlayers()).thenReturn(List.of(owner, alex, sam));
+        GatePreviews.tick();
+        spawned.forEach(display -> verify(sam).showEntity(plugin, display));
+
+        final World elsewhere = mock(World.class);
+        when(sam.getWorld()).thenReturn(elsewhere);
+        when(world.getPlayers()).thenReturn(List.of(owner, alex));
+        GatePreviews.tick();
+        when(sam.getWorld()).thenReturn(world);
+        when(world.getPlayers()).thenReturn(List.of(owner, alex, sam));
+        GatePreviews.tick();
+        spawned.forEach(display -> verify(sam, times(2)).showEntity(plugin, display));
+
+        assertEquals(GatePreviews.Shared.UNSHARED_ALL, GatePreviews.shareAll(owner));
+        spawned.forEach(display -> verify(alex).hideEntity(plugin, display));
+        spawned.forEach(display -> verify(sam).hideEntity(plugin, display));
+        verify(owner, never()).hideEntity(any(), any());
+        spawned.forEach(display -> verify(owner, times(1)).showEntity(plugin, display));
+    }
+
+    /** A player shared with while in another world is shown the preview once they arrive in its world. */
+    @Test
+    void aViewerInAnotherWorldIsShownItOnArriving()
+    {
+        final Player alex = onlineHere("Alex");
+        when(alex.getWorld()).thenReturn(mock(World.class));
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.share(owner, alex);
+        verify(alex, never()).showEntity(any(), any());
+
+        when(alex.getWorld()).thenReturn(world);
+        GatePreviews.tick();
+
+        spawned.forEach(display -> verify(alex).showEntity(plugin, display));
+    }
+
+    /** A viewer who relogs has forgotten what they were shown, so the next tick shows it again. */
+    @Test
+    void aViewerWhoRelogsIsShownItAgain()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+
+        GatePreviews.forget(alex.getUniqueId());
+        GatePreviews.tick();
+
+        spawned.forEach(display -> verify(alex, times(2)).showEntity(plugin, display));
+    }
+
+    /** An owner who leaves takes their open wormhole back from viewers as well. */
+    @Test
+    void anOwnerLeavingTakesTheWormholeBackFromViewers()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        GatePreviews.forget(owner.getUniqueId());
+
+        verify(alex, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
     }
 }

@@ -3,8 +3,12 @@ package com.wormhole_xtreme.wormhole.model.preview;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
@@ -36,6 +40,10 @@ final class GatePreview
     private final List<Cell> woosh;
     /** Where a fake block has been sent to the owner, so it can be taken back. */
     private final Set<Long> sent = new HashSet<>();
+    /** Who the owner has shared it with, by id, with the name they had then. */
+    private final Map<UUID, String> sharedWith = new LinkedHashMap<>();
+    /** Who besides the owner is being shown it now. */
+    private final Set<UUID> shownTo = new LinkedHashSet<>();
     /** In step with {@link #cells}; null where a display has not been, or could not be, spawned. */
     private final List<BlockDisplay> displays;
     /** In step with {@link #opening}; null wherever the opening is empty. */
@@ -62,6 +70,7 @@ final class GatePreview
     private boolean dhdHidden;
     private boolean plainChevrons;
     private boolean guide;
+    private boolean sharedWithAll;
     /** How many built layers are shown, from the first; 0 shows them all. */
     private int layersShown;
     private boolean finished;
@@ -180,6 +189,37 @@ final class GatePreview
     List<BlockDisplay> blockedDisplays()
     {
         return blockedDisplays;
+    }
+
+    Map<UUID, String> sharedWith()
+    {
+        return sharedWith;
+    }
+
+    Set<UUID> shownTo()
+    {
+        return shownTo;
+    }
+
+    boolean sharedWithAll()
+    {
+        return sharedWithAll;
+    }
+
+    void sharedWithAll(final boolean everyone)
+    {
+        sharedWithAll = everyone;
+    }
+
+    /** @return every block display standing now: frame, iris and the guide's marks */
+    List<BlockDisplay> standingDisplays()
+    {
+        final List<BlockDisplay> all = new ArrayList<>();
+        for (final List<BlockDisplay> shown : List.of(displays, openingDisplays, blockedDisplays))
+        {
+            shown.stream().filter(java.util.Objects::nonNull).forEach(all::add);
+        }
+        return all;
     }
 
     boolean guide()

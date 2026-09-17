@@ -58,6 +58,7 @@ Look at a preview and these change it, for you alone:
 | `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
 | `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
 | `gate build -layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
+| `gate build -share [<player>\|-all]` | Shows it to a player, or with `-all` to everyone in its world, including anyone who arrives later; again stops. With `wormhole.build.preview.share`. They see it change, dial and guide as you do, and hear it, but only you can change it or press its button. Alone, `-share` says who sees it. |
 | `gate build -place` | Builds it for real, with `wormhole.build.preview.place`: frame, chevrons, DHD and a button, in the materials it shows. Then name it with `/wormhole gate complete`, as if you had pressed the button. Nothing is placed if a block is in the way (the first five are named), part of it belongs to another gate or ring, is unloaded or past the world border, or no material group uses its frame block. A dial sign is left for you to write. |
 
 **Picking a build back up.** Look at the button or lever on a DHD you have already placed and run
