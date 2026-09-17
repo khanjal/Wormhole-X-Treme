@@ -265,16 +265,14 @@ the frame refuses a pickaxe.
 
 ### Where the markers are
 
-On `StandardSignDial`:
+The DHD corner of `Standard` beside `StandardSignDial`, seen face-on:
 
-```
-   y=2   .  .  R          #  gate frame block   .  leave empty
-   y=1   .  A  D          A  activation block   D  dial sign holder
-   y=0   V  #  #          R  [RD]  dial       -> redstone dust
-                          V  [RA]  gate open  -> lever
-```
+![A plain DHD and a sign dial, side by side](../images/gates/dhd.svg)
 
-The frame block under the activation block carries the iris lever, on its face toward the player.
+`A` is the activation block the button goes on and `IA`, under it, carries the iris lever on its
+face toward the player. The sign dial adds `D`, the block the dial sign hangs on, and the two
+redstone cells: `RD` two blocks up, where the dust goes, and `RA` on the ground row, where the
+lever goes. Both sheets are drawn by `scripts/render_gate_sheets.py` from the shape files.
 
 - **`MinimalSignDial`** — `[RD]` on top of the activation block; `[RA]` on the ground row at the
   foot of the pillar.

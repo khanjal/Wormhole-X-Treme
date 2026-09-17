@@ -61,7 +61,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
   the coding conventions moved to `DEVELOPMENT.md`. Notes about what a page used to say are gone.
 - **The in-game captures are where a reader starts**: one per subsystem on the README, and
   each on the guide page for what it shows, rather than on the guide's index page alone.
-- **The ring guide shows the two patterns as the drawn plans** rather than an ASCII sketch.
+- **The ring guide shows the two patterns, and the gate guide the sign-dial corner, as the
+  drawn sheets** rather than ASCII sketches.
 
 ### Internals
 
