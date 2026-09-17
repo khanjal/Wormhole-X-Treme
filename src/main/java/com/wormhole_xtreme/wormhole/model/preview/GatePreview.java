@@ -2,46 +2,78 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Interaction;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 
 /**
- * One shape shown full size to the player who asked for it.
+ * One shape shown full size to the player who asked for it, and what it is doing.
  *
  * <p>Holds its blueprint as well as its displays, so a display the server dropped with its chunk
- * can be put back when the chunk returns.
+ * can be put back when the chunk returns, and so a change of material or state can be drawn
+ * again from what each cell should now show.
  */
 final class GatePreview
 {
     private final World world;
+    private final Stargate3DShape shape;
     private final GateGrid grid;
-    private final Palette palette;
     private final List<Cell> cells;
+    private final List<Cell> opening;
+    private final List<Cell> woosh;
+    /** Where a fake block has been sent to the owner, so it can be taken back. */
+    private final Set<Long> sent = new HashSet<>();
     /** In step with {@link #cells}; null where a display has not been, or could not be, spawned. */
     private final List<BlockDisplay> displays;
+    /** In step with {@link #opening}; null wherever the opening is empty. */
+    private final List<BlockDisplay> openingDisplays;
+    private final int lastWave;
+    private final int lastWoosh;
     private final int minX;
     private final int minY;
     private final int minZ;
     private final int maxX;
     private final int maxY;
     private final int maxZ;
+    private Palette palette;
+    private Interaction button;
+    private BukkitTask dialling;
+    private int litWaves;
+    private int wooshStage;
+    private boolean open;
+    private boolean irisClosed;
+    private boolean dhdHidden;
+    private boolean plainChevrons;
     private long expiresAt;
+    private long lastPressed;
 
-    GatePreview(final World world, final GateGrid grid, final Palette palette, final List<Cell> cells)
+    GatePreview(final World world, final Stargate3DShape shape, final GateGrid grid, final Palette palette,
+        final List<Cell> cells, final List<Cell> opening, final List<Cell> woosh)
     {
         this.world = world;
+        this.shape = shape;
         this.grid = grid;
         this.palette = palette;
         this.cells = List.copyOf(cells);
+        this.opening = List.copyOf(opening);
+        this.woosh = List.copyOf(woosh);
         this.displays = new ArrayList<>(Collections.nCopies(cells.size(), (BlockDisplay) null));
+        this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
+        lastWave = cells.stream().mapToInt(Cell::wave).max().orElse(0);
+        lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
         minY = cells.stream().mapToInt(Cell::y).min().orElse(0);
         minZ = cells.stream().mapToInt(Cell::z).min().orElse(0);
@@ -55,6 +87,11 @@ final class GatePreview
         return world;
     }
 
+    Stargate3DShape shape()
+    {
+        return shape;
+    }
+
     GateGrid grid()
     {
         return grid;
@@ -65,14 +102,150 @@ final class GatePreview
         return palette;
     }
 
+    /** @return the palette as drawn: without chevron blocks while those are hidden */
+    Palette drawnPalette()
+    {
+        return plainChevrons ? palette.with(Role.CHEVRON, null) : palette;
+    }
+
+    void palette(final Palette changed)
+    {
+        palette = changed;
+    }
+
     List<Cell> cells()
     {
         return cells;
     }
 
+    List<Cell> opening()
+    {
+        return opening;
+    }
+
+    List<Cell> woosh()
+    {
+        return woosh;
+    }
+
+    /** @return the last step of the kawoosh, 0 for a shape without one */
+    int lastWoosh()
+    {
+        return lastWoosh;
+    }
+
+    int wooshStage()
+    {
+        return wooshStage;
+    }
+
+    void wooshStage(final int stage)
+    {
+        wooshStage = stage;
+    }
+
+    /** @return the positions a fake block has been sent to, packed as {@link #key} */
+    Set<Long> sent()
+    {
+        return sent;
+    }
+
+    /** @return one number for a block position */
+    static long key(final Cell cell)
+    {
+        return ((cell.x() & 0x3FFFFFFL) << 38) | ((cell.z() & 0x3FFFFFFL) << 12) | (cell.y() & 0xFFFL);
+    }
+
     List<BlockDisplay> displays()
     {
         return displays;
+    }
+
+    List<BlockDisplay> openingDisplays()
+    {
+        return openingDisplays;
+    }
+
+    /** @return every block this preview may show at once: its frame, and its opening filled */
+    int size()
+    {
+        return cells.size() + opening.size();
+    }
+
+    /** @return the last chevron wave, 0 for a shape without chevrons */
+    int lastWave()
+    {
+        return lastWave;
+    }
+
+    Interaction button()
+    {
+        return button;
+    }
+
+    void button(final Interaction entity)
+    {
+        button = entity;
+    }
+
+    BukkitTask dialling()
+    {
+        return dialling;
+    }
+
+    void dialling(final BukkitTask task)
+    {
+        dialling = task;
+    }
+
+    int litWaves()
+    {
+        return litWaves;
+    }
+
+    void litWaves(final int waves)
+    {
+        litWaves = waves;
+    }
+
+    boolean open()
+    {
+        return open;
+    }
+
+    void open(final boolean wormhole)
+    {
+        open = wormhole;
+    }
+
+    boolean irisClosed()
+    {
+        return irisClosed;
+    }
+
+    void irisClosed(final boolean closed)
+    {
+        irisClosed = closed;
+    }
+
+    boolean plainChevrons()
+    {
+        return plainChevrons;
+    }
+
+    void plainChevrons(final boolean plain)
+    {
+        plainChevrons = plain;
+    }
+
+    boolean dhdHidden()
+    {
+        return dhdHidden;
+    }
+
+    void dhdHidden(final boolean hidden)
+    {
+        dhdHidden = hidden;
     }
 
     long expiresAt()
@@ -85,6 +258,28 @@ final class GatePreview
         expiresAt = when;
     }
 
+    long lastPressed()
+    {
+        return lastPressed;
+    }
+
+    void lastPressed(final long when)
+    {
+        lastPressed = when;
+    }
+
+    /** @return whether a frame cell should be shown at all */
+    boolean showing(final Cell cell)
+    {
+        return !(cell.dhd() && dhdHidden);
+    }
+
+    /** @return whether the opening's displays stand: they are the iris; the wormhole is sent as blocks */
+    boolean openingFilled()
+    {
+        return irisClosed;
+    }
+
     /**
      * Whether this preview's button is at a block, where a gate built to it is pressed.
      *
@@ -94,6 +289,12 @@ final class GatePreview
     {
         return world.equals(at) && cells.stream()
             .anyMatch(c -> (c.part() == Part.BUTTON) && (c.x() == x) && (c.y() == y) && (c.z() == z));
+    }
+
+    /** @return the button cell, or null for a shape without one */
+    Cell buttonCell()
+    {
+        return cells.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElse(null);
     }
 
     /**
@@ -138,17 +339,48 @@ final class GatePreview
         return near;
     }
 
-    /** Removes every display this preview spawned. */
+    /** Stops any dialling, and removes every entity this preview spawned. */
     void remove()
     {
-        for (int i = 0; i < displays.size(); i++)
+        stopDialling();
+        clear(displays);
+        clear(openingDisplays);
+        removeButton();
+    }
+
+    void stopDialling()
+    {
+        if (dialling != null)
         {
-            final BlockDisplay display = displays.get(i);
-            if (display != null)
-            {
-                display.remove();
-                displays.set(i, null);
-            }
+            dialling.cancel();
+            dialling = null;
+        }
+    }
+
+    void removeButton()
+    {
+        if (button != null)
+        {
+            button.remove();
+            button = null;
+        }
+    }
+
+    static void clear(final List<BlockDisplay> shown)
+    {
+        for (int i = 0; i < shown.size(); i++)
+        {
+            removeAt(shown, i);
+        }
+    }
+
+    static void removeAt(final List<BlockDisplay> shown, final int i)
+    {
+        final BlockDisplay display = shown.get(i);
+        if (display != null)
+        {
+            display.remove();
+            shown.set(i, null);
         }
     }
 }

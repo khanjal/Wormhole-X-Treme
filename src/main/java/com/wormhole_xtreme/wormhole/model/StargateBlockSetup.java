@@ -941,14 +941,7 @@ class StargateBlockSetup
     static BlockData litChevron(final Material standing, final Material chevronMaterial,
         final BlockData fixtureOn, final BlockData lightData)
     {
-        // fixtureOn being null covers both "this gate has no chevron material" and "it has one
-        // but the block cannot be switched on" -- a gold-block chevron drawn as itself would
-        // simply never appear to light, so those fall back to the light material.
-        if ((fixtureOn != null) && (standing == chevronMaterial))
-        {
-            return fixtureOn;
-        }
-        return lightData;
+        return MaterialUtils.litChevron(standing, chevronMaterial, fixtureOn, lightData);
     }
 
     /**

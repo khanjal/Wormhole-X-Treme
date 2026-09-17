@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.logic;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -19,7 +20,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  *
  * <p>Only what the builder puts down: the frame, the chevrons, the DHD's button and a sign-dial
  * shape's sign. The name sign, iris lever and redstone come from the plugin when the gate is
- * completed, and the opening is air until it is dialled.
+ * completed. The opening is listed apart, since it is air until the gate is dialled.
  */
 public final class GateBlueprint
 {
@@ -33,7 +34,9 @@ public final class GateBlueprint
         /** The button on the DHD, in front of its activation block. */
         BUTTON,
         /** The dial sign, in front of its holder. */
-        DIAL_SIGN
+        DIAL_SIGN,
+        /** A cell of the opening, where the wormhole or the iris stands. */
+        PORTAL
     }
 
     /**
@@ -49,8 +52,46 @@ public final class GateBlueprint
      *            what it is
      * @param wave
      *            the chevron wave that lights it, or 0 for a block that does not light
+     * @param dhd
+     *            whether it belongs to the DHD rather than the ring
      */
-    public record Cell(int x, int y, int z, Part part, int wave) {}
+    public record Cell(int x, int y, int z, Part part, int wave, boolean dhd)
+    {
+        /** A cell of the ring. */
+        public Cell(final int x, final int y, final int z, final Part part, final int wave)
+        {
+            this(x, y, z, part, wave, false);
+        }
+    }
+
+    /** What one material of a gate is for, as {@code gate build -material} names it. */
+    public enum Role
+    {
+        FRAME, CHEVRON, LIGHT, PORTAL, IRIS, SIGN;
+
+        /** @return the word a player types for it */
+        public String word()
+        {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        /**
+         * @param word
+         *            what was typed
+         * @return the role, or null for any other word
+         */
+        public static Role named(final String word)
+        {
+            for (final Role role : values())
+            {
+                if (role.word().equalsIgnoreCase(word))
+                {
+                    return role;
+                }
+            }
+            return null;
+        }
+    }
 
     /**
      * The materials a blueprint is drawn in.
@@ -59,10 +100,17 @@ public final class GateBlueprint
      *            the frame
      * @param chevron
      *            the chevrons, or null where the gate has none and they are frame
+     * @param light
+     *            what a lit chevron shows when it has no lit form of its own
+     * @param portal
+     *            the open wormhole
+     * @param iris
+     *            the closed iris
      * @param sign
      *            the dial sign
      */
-    public record Palette(Material structure, Material chevron, Material sign)
+    public record Palette(Material structure, Material chevron, Material light, Material portal, Material iris,
+        Material sign)
     {
         /**
          * The materials a gate of this shape and group is built from, resolved the way a
@@ -80,13 +128,34 @@ public final class GateBlueprint
             gate.setGateShape(shape);
             gate.setGateMaterialGroup(group);
             return new Palette(gate.getEffectiveStructureMaterial(), gate.getEffectiveChevronMaterial(),
+                gate.getEffectiveLightMaterial(), gate.getEffectivePortalMaterial(), gate.getEffectiveIrisMaterial(),
                 gate.getEffectiveSignMaterial());
+        }
+
+        /**
+         * @param role
+         *            which material
+         * @param material
+         *            what it becomes
+         * @return this palette with that one material changed
+         */
+        public Palette with(final Role role, final Material material)
+        {
+            return switch (role)
+            {
+                case FRAME -> new Palette(material, chevron, light, portal, iris, sign);
+                case CHEVRON -> new Palette(structure, material, light, portal, iris, sign);
+                case LIGHT -> new Palette(structure, chevron, material, portal, iris, sign);
+                case PORTAL -> new Palette(structure, chevron, light, material, iris, sign);
+                case IRIS -> new Palette(structure, chevron, light, portal, material, sign);
+                case SIGN -> new Palette(structure, chevron, light, portal, iris, material);
+            };
         }
 
         /**
          * @param cell
          *            a blueprint cell
-         * @return what that cell is built from
+         * @return what that cell is built from; an opening cell shows the wormhole
          */
         public Material materialOf(final Cell cell)
         {
@@ -96,6 +165,7 @@ public final class GateBlueprint
                 case CHEVRON -> (chevron != null) ? chevron : structure;
                 case BUTTON -> Material.STONE_BUTTON;
                 case DIAL_SIGN -> sign;
+                case PORTAL -> portal;
             };
         }
     }
@@ -160,6 +230,10 @@ public final class GateBlueprint
     /**
      * Every block a builder places for a shape standing on a grid.
      *
+     * <p>A frame block in a layer with no opening and no chevron in it is the DHD's, as are the
+     * button and the dial sign. Where the DHD shares a layer with the ring, as a horizontal gate's
+     * does, only the button and sign are counted, so hiding the DHD never opens a hole in the ring.
+     *
      * @param shape
      *            the shape
      * @param grid
@@ -179,8 +253,9 @@ public final class GateBlueprint
                 continue;
             }
             final Map<Long, Integer> waves = wavesOf(layer);
-            addAll(cells, grid, layerIdx, layer.getLayerBlockPositions(), Part.FRAME, waves);
-            addAll(cells, grid, layerIdx, layer.getLayerChevronPositions(), Part.CHEVRON, waves);
+            final boolean dhdLayer = waves.isEmpty() && layer.getLayerPortalPositions().isEmpty();
+            addAll(cells, grid, layerIdx, layer.getLayerBlockPositions(), Part.FRAME, waves, dhdLayer);
+            addAll(cells, grid, layerIdx, layer.getLayerChevronPositions(), Part.CHEVRON, waves, dhdLayer);
             if (layerIdx == shape.getShapeActivationLayer())
             {
                 addInFront(fronts, grid, layerIdx, layer.getLayerActivationPosition(), Part.BUTTON);
@@ -188,6 +263,67 @@ public final class GateBlueprint
             addInFront(fronts, grid, layerIdx, layer.getLayerDialSignPosition(), Part.DIAL_SIGN);
         }
         cells.addAll(fronts);
+        return cells;
+    }
+
+    /**
+     * The cells of a shape's opening, where the wormhole and the iris are drawn.
+     *
+     * @param shape
+     *            the shape
+     * @param grid
+     *            where it stands
+     * @return the opening's cells
+     */
+    public static List<Cell> openingOf(final Stargate3DShape shape, final GateGrid grid)
+    {
+        final List<Cell> cells = new ArrayList<>();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            if (layer != null)
+            {
+                addAll(cells, grid, layerIdx, layer.getLayerPortalPositions(), Part.PORTAL, Map.of(), false);
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * The cells the kawoosh reaches, each carrying the step of the woosh it shows at.
+     *
+     * @param shape
+     *            the shape
+     * @param grid
+     *            where it stands
+     * @return the woosh's cells, in step order within each layer
+     */
+    public static List<Cell> wooshOf(final Stargate3DShape shape, final GateGrid grid)
+    {
+        final List<Cell> cells = new ArrayList<>();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            final List<List<Integer[]>> steps = (layer == null) ? null : layer.getLayerWooshPositions();
+            if (steps == null)
+            {
+                continue;
+            }
+            for (int step = 1; step < steps.size(); step++)
+            {
+                if (steps.get(step) == null)
+                {
+                    continue;
+                }
+                for (final Integer[] pos : steps.get(step))
+                {
+                    cells.add(new Cell(grid.x(layerIdx, pos[2]), grid.y(pos[1]), grid.z(layerIdx, pos[2]), Part.PORTAL,
+                        step, false));
+                }
+            }
+        }
         return cells;
     }
 
@@ -230,14 +366,14 @@ public final class GateBlueprint
     }
 
     private static void addAll(final List<Cell> cells, final GateGrid grid, final int layerIdx,
-        final List<Integer[]> positions, final Part part, final Map<Long, Integer> waves)
+        final List<Integer[]> positions, final Part part, final Map<Long, Integer> waves, final boolean dhd)
     {
         for (final Integer[] pos : positions)
         {
             final int row = pos[1].intValue();
             final int col = pos[2].intValue();
             cells.add(new Cell(grid.x(layerIdx, col), grid.y(row), grid.z(layerIdx, col), part,
-                waves.getOrDefault(StargateHelper.cellKey(pos), 0)));
+                waves.getOrDefault(StargateHelper.cellKey(pos), 0), dhd));
         }
     }
 
@@ -250,6 +386,6 @@ public final class GateBlueprint
         }
         final BlockFace facing = grid.facing();
         cells.add(new Cell(grid.x(layerIdx, pos[2]) + facing.getModX(), grid.y(pos[1]),
-            grid.z(layerIdx, pos[2]) + facing.getModZ(), part, 0));
+            grid.z(layerIdx, pos[2]) + facing.getModZ(), part, 0, true));
     }
 }

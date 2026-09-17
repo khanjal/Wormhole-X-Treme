@@ -32,7 +32,7 @@ public final class GateSounds
      * outward, which is the sound a gate opening is supposed to be. Below the pitch floor
      * this would flatten out silently, so it stays comfortably above it.
      */
-    private static final float KAWOOSH_PITCH = 0.7f;
+    public static final float KAWOOSH_PITCH = 0.7f;
 
     /** Static helpers only. */
     private GateSounds()
@@ -84,7 +84,7 @@ public final class GateSounds
      *            how many steps the sequence has
      * @return the pitch
      */
-    static float chevronPitch(final int iteration, final int total)
+    public static float chevronPitch(final int iteration, final int total)
     {
         if (total <= 1)
         {

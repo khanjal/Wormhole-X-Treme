@@ -109,7 +109,7 @@ class GateMovementOwnershipTest
         assertTrue(GateEntityScanner.shouldSendThrough(item), "an item in an open gate is sent through");
 
         for (final Class<? extends Entity> type : java.util.Arrays.asList(org.bukkit.entity.BlockDisplay.class,
-            org.bukkit.entity.TextDisplay.class, org.bukkit.entity.ItemDisplay.class))
+            org.bukkit.entity.TextDisplay.class, org.bukkit.entity.ItemDisplay.class, org.bukkit.entity.Interaction.class))
         {
             assertFalse(GateEntityScanner.shouldSendThrough(mockOf(type)), type.getSimpleName() + " stays put");
         }

@@ -264,8 +264,8 @@ class GateBlueprintTest
     {
         final Cell lit = new Cell(0, 0, 0, Part.FRAME, 3);
         final Cell plain = new Cell(0, 0, 0, Part.FRAME, 0);
-        final Palette withChevrons = new Palette(Material.OBSIDIAN, Material.REDSTONE_LAMP, Material.OAK_WALL_SIGN);
-        final Palette without = new Palette(Material.OBSIDIAN, null, Material.OAK_WALL_SIGN);
+        final Palette withChevrons = new Palette(Material.OBSIDIAN, Material.REDSTONE_LAMP, Material.GLOWSTONE, Material.WATER, Material.STONE, Material.OAK_WALL_SIGN);
+        final Palette without = new Palette(Material.OBSIDIAN, null, Material.GLOWSTONE, Material.WATER, Material.STONE, Material.OAK_WALL_SIGN);
 
         assertEquals(Material.REDSTONE_LAMP, withChevrons.materialOf(lit));
         assertEquals(Material.OBSIDIAN, withChevrons.materialOf(plain));
@@ -284,5 +284,54 @@ class GateBlueprintTest
         assertEquals(BlockFace.NORTH, GateBlueprint.facingOf(-180f));
         assertEquals(BlockFace.EAST, GateBlueprint.facingOf(-90f));
         assertEquals(BlockFace.EAST, GateBlueprint.facingOf(270f));
+    }
+
+    /**
+     * The DHD is the button, the sign, and frame cells in layers with no opening and no chevron.
+     *
+     * <p>Standard's DHD stands apart, so all of it hides. Horizontal's DHD blocks are part of its
+     * ring's edge, so only the button counts, and hiding the DHD leaves no hole in the ring.
+     */
+    @Test
+    void theDhdIsWhatStandsApartFromTheRing() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final List<Cell> cells = GateBlueprint.of(s, GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.NORTH));
+        assertEquals(3, cells.stream().filter(Cell::dhd).count(), "its block, the lever's block, and the button");
+        assertTrue(cells.stream().filter(c -> c.wave() > 0).noneMatch(Cell::dhd), "no chevron is the DHD's");
+
+        final Stargate3DShape flat = shape("Horizontal");
+        final List<Cell> flatCells = GateBlueprint.of(flat, GateBlueprint.inFrontOf(flat, 0, 64, 0, BlockFace.NORTH));
+        assertEquals(List.of(Part.BUTTON), flatCells.stream().filter(Cell::dhd).map(Cell::part).toList());
+    }
+
+    /** The opening is listed apart from what a builder places, one cell for each [P]. */
+    @Test
+    void theOpeningIsListedApart() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final GateGrid grid = GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.NORTH);
+
+        final List<Cell> opening = GateBlueprint.openingOf(s, grid);
+
+        assertEquals(21, opening.size());
+        assertTrue(opening.stream().allMatch(c -> c.part() == Part.PORTAL));
+        assertTrue(GateBlueprint.of(s, grid).stream().noneMatch(c -> c.part() == Part.PORTAL));
+        assertEquals(Material.WATER, Palette.of(s, null).materialOf(opening.get(0)));
+    }
+
+    /** One role of a palette changes, and the rest stay as they were. */
+    @Test
+    void aPaletteChangesOneRoleAtATime()
+    {
+        final Palette palette = new Palette(Material.OBSIDIAN, null, Material.GLOWSTONE, Material.WATER,
+            Material.STONE, Material.OAK_WALL_SIGN);
+
+        final Palette gold = palette.with(GateBlueprint.Role.FRAME, Material.GOLD_BLOCK);
+
+        assertEquals(Material.GOLD_BLOCK, gold.structure());
+        assertEquals(palette.with(GateBlueprint.Role.FRAME, Material.OBSIDIAN), palette);
+        assertEquals(Material.IRON_BLOCK, palette.with(GateBlueprint.Role.IRIS, Material.IRON_BLOCK).iris());
+        assertEquals(GateBlueprint.Role.CHEVRON, GateBlueprint.Role.named("Chevron"));
     }
 }

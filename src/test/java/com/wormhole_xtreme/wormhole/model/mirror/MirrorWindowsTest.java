@@ -1600,8 +1600,11 @@ class MirrorWindowsTest
         final Entity display = mock(org.bukkit.entity.BlockDisplay.class);
         when(display.getUniqueId()).thenReturn(UUID.randomUUID());
         when(display.getLocation()).thenReturn(new Location(world, 10.0, 63.0, 14.0));
+        final Entity box = mock(org.bukkit.entity.Interaction.class);
+        when(box.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(box.getLocation()).thenReturn(new Location(world, 10.5, 63.2, 14.5));
         when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble()))
-            .thenReturn(List.of(stand, display));
+            .thenReturn(List.of(stand, display, box));
 
         withServer(() ->
         {
@@ -1613,6 +1616,7 @@ class MirrorWindowsTest
 
         verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(display));
         verify(viewer, never()).showEntity(any(), org.mockito.ArgumentMatchers.eq(display));
+        verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(box));
     }
 
     @Test

@@ -234,7 +234,7 @@ class GateBuildPreviewCommandTest
         }
         verify(player).sendMessage(contains("Cleared 3 previews."));
         verify(player).sendMessage(contains("Invalid shape: clear"));
-        verify(player).sendMessage(contains("No such option: -bogus. Try -clear or -clear -all."));
+        verify(player).sendMessage(contains("No such option: -bogus. Try -clear, -activate, -iris, -material, -chevrons, -dhd."));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -249,5 +249,88 @@ class GateBuildPreviewCommandTest
         assertEquals(List.of("Atlantis", "Standard"),
             gate.completeArgs(player, new String[] { "gate", "build", "Standard", "" }));
         assertEquals(List.of("Atlantis"), gate.completeArgs(player, new String[] { "gate", "build", "Standard", "a" }));
+    }
+
+    /** Each option reaches its control on the preview looked at, and says what it did. */
+    @Test
+    void theOptionsReachTheirControls()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.activate(player)).thenReturn(GatePreviews.Control.DIALLING);
+            previews.when(() -> GatePreviews.iris(player)).thenReturn(GatePreviews.Control.IRIS_CLOSED);
+            previews.when(() -> GatePreviews.toggleDhd(player)).thenReturn(GatePreviews.Control.DHD_HIDDEN);
+            previews.when(() -> GatePreviews.toggleChevrons(player)).thenReturn(GatePreviews.Control.CHEVRONS_PLAIN);
+            previews.when(() -> GatePreviews.material(any(Player.class), any(MaterialGroup.class)))
+                .thenReturn(GatePreviews.Control.CHANGED);
+            previews.when(() -> GatePreviews.material(any(Player.class), any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class),
+                any(org.bukkit.Material.class))).thenReturn(GatePreviews.Control.NOT_LOOKING);
+
+            run("gate", "build", "-activate");
+            run("gate", "build", "-IRIS");
+            run("gate", "build", "-dhd");
+            run("gate", "build", "-chevrons");
+            run("gate", "build", "-material", "atlantis");
+            run("gate", "build", "-material", "frame", "gold_block");
+
+            previews.verify(() -> GatePreviews.material(eq(player),
+                argThat((MaterialGroup group) -> "Atlantis".equals(group.getName()))));
+            previews.verify(() -> GatePreviews.material(player, com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.FRAME,
+                org.bukkit.Material.GOLD_BLOCK));
+        }
+        verify(player).sendMessage(contains("Dialling."));
+        verify(player).sendMessage(contains("Iris closed."));
+        verify(player).sendMessage(contains("DHD hidden."));
+        verify(player).sendMessage(contains("Chevrons drawn as frame"));
+        verify(player).sendMessage(contains("Materials changed."));
+        verify(player).sendMessage(contains("Look at one of your previews first."));
+    }
+
+    /** -material names what it takes when given something else, and refuses a block that does not exist. */
+    @Test
+    void materialSaysWhatItTakes()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            run("gate", "build", "-material", "sparkly");
+            run("gate", "build", "-material", "frame", "unobtainium");
+
+            previews.verify(() -> GatePreviews.material(any(Player.class),
+                any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class), any(org.bukkit.Material.class)), never());
+        }
+        verify(player).sendMessage(contains("-material <frame|chevron|light|portal|iris|sign> <block>"));
+        verify(player).sendMessage(contains("That is not a block that can be shown."));
+    }
+
+    /** The controls are the preview node's; an admin without it may clear, and nothing else. */
+    @Test
+    void theControlsNeedThePreviewNode()
+    {
+        when(player.hasPermission("wormhole.config")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            run("gate", "build", "-activate");
+
+            previews.verify(() -> GatePreviews.activate(any()), never());
+        }
+        verify(player).sendMessage(contains(NO_PERMISSION));
+    }
+
+    /** Completion offers the options, the groups and roles after -material, and blocks after a role. */
+    @Test
+    void completionOffersTheOptionsAndWhatMaterialTakes()
+    {
+        final SubCommands.Entry gate = SubCommands.find("gate");
+
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
+            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-chevrons", "-dhd")));
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
+            .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })
+            .contains("gold_block"));
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "" }).isEmpty(),
+            "every block at once is not a list anybody reads");
     }
 }
