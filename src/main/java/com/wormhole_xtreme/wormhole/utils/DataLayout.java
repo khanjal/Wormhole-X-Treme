@@ -23,6 +23,7 @@ import java.io.File;
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
+ * │   ├── freya.yml              who keeps a companion; absent when nobody does
  * │   └── mirror/
  * │       └── captures/*.view    one photograph of a far side per destination
  * └── WormholeXTremeDB/
@@ -98,6 +99,21 @@ public final class DataLayout
     public static File beamFile()
     {
         return new File(data(), "beam.yml");
+    }
+
+    /**
+     * The file recording who keeps a companion.
+     *
+     * <p>Unlike every other file named here, this one is expected to be absent. It is not
+     * created on startup and it is deleted when the last player turns their companion off, so
+     * a server where nobody has found the command has no file for anybody to find. Absent is
+     * the normal case and reads as nobody, never as an error.
+     *
+     * @return the companion file, which usually does not exist
+     */
+    public static File freyaFile()
+    {
+        return new File(data(), "freya.yml");
     }
 
     /**

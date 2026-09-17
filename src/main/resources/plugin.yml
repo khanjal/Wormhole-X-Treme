@@ -83,3 +83,6 @@ permissions:
   wormhole.go:
     description: Allow teleporting to gates via command.
     default: false
+  wormhole.freya:
+    description: Allow using hidden cosmetic commands.
+    default: true

@@ -289,12 +289,19 @@ public final class SubCommands
                         .toArray(new String[0]));
             });
 
+        // --- Not advertised ---------------------------------------------------
+        // Hidden below, so it never reaches help or tab completion. Self-permissioned so the
+        // dispatcher does not put it behind wormhole.config, which would make an easter egg
+        // that only operators could find.
+        register("freya", aliases(), "/wormhole freya [on|off]",
+            new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
+
         hide("list", BUILD, "complete", REMOVE, REGENERATE, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict");
+            "cooldown", "restrict", "freya");
 
-        selfPermissioned("beam", "ring", "go", "list", "compass");
+        selfPermissioned("beam", "ring", "go", "list", "compass", "freya");
     }
 
     /**

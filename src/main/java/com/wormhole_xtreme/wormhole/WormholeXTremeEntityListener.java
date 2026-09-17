@@ -101,6 +101,15 @@ class WormholeXTremeEntityListener implements Listener
     @EventHandler
     public void onEntityDamage(final EntityDamageEvent event)
     {
+        // Nothing hurts a companion. setInvulnerable already refuses almost everything, but
+        // not a player in creative mode, and a cat only her owner can see being killed by
+        // somebody who cannot see her is the one death worth ruling out entirely.
+        if (!event.isCancelled()
+            && com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(event.getEntity()))
+        {
+            event.setCancelled(true);
+            return;
+        }
         if ( !event.isCancelled()
             && (event.getCause().equals(DamageCause.FIRE)
                 || event.getCause().equals(DamageCause.FIRE_TICK)
