@@ -42,7 +42,8 @@ its button.
 - **They go on their own** when you log out or change world, when a gate is found where one
   stood, and after `gate-preview-minutes` (default 10) without a `gate build` command.
 - **`gate-preview-max-blocks`** (default 5000) caps the blocks every preview on the server shows
-  between them, its opening included. Each block is an entity. `0` turns previews off.
+  between them, its opening included. Each block is a display entity, except the open wormhole,
+  which is sent to the owner as fake blocks. `0` turns previews off.
 
 Look at a preview and these change it, for you alone:
 

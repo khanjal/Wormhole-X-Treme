@@ -422,7 +422,8 @@ public final class SubCommands
             return none();
         }
         return prefixed(args[4], java.util.Arrays.stream(org.bukkit.Material.values())
-            .filter(material -> !material.name().startsWith("LEGACY_"))
+            .filter(material -> !material.name().startsWith("LEGACY_")
+                && com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
             .map(material -> material.name().toLowerCase(Locale.ROOT)).toArray(String[]::new));
     }
 

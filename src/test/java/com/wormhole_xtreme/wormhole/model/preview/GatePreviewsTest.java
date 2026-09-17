@@ -19,7 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +71,7 @@ class GatePreviewsTest
     private Player owner;
     private final List<BlockDisplay> spawned = new ArrayList<>();
     private final List<Interaction> buttons = new ArrayList<>();
-    private final Map<Material, BlockData> data = new HashMap<>();
+    private final Map<Material, BlockData> data = new EnumMap<>(Material.class);
     private Runnable dialStep;
     private BukkitTask dialTask;
     private final List<Long> dialDelays = new ArrayList<>();
@@ -456,6 +456,44 @@ class GatePreviewsTest
 
         verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
         ringDisplaysOfWave(1).forEach(d -> verify(d, org.mockito.Mockito.atLeast(2)).setBlock(data.get(Material.OBSIDIAN)));
+    }
+
+    /** A gate found where an open preview stood takes back the wormhole it sent its owner. */
+    @Test
+    void aGateBuiltWhereAnOpenPreviewStoodTakesBackItsWormhole()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
+            .orElseThrow();
+
+        GatePreviews.builtAt(world, button.x(), button.y(), button.z());
+
+        verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /** Clearing an open preview whose chunk has unloaded sends nothing back, and loads nothing to do it. */
+    @Test
+    void clearingAnOpenPreviewInAnUnloadedChunkLeavesTheChunkAlone()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        final int sentBack = (21 + 13 + 5);
+        verify(owner, times(sentBack)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+
+        assertEquals(1, GatePreviews.clearAll(owner));
+
+        verify(owner, times(sentBack)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(world, times(sentBack)).getBlockAt(anyInt(), anyInt(), anyInt());
     }
 
     /** Right-clicking the preview's button dials it; a second click inside the same moment is the same click. */

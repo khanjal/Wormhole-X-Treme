@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.bukkit.entity.Interaction;
@@ -50,7 +51,7 @@ class PreviewButtonClickTest
             listener.onPlayerInteractEntity(main);
             previews.verify(() -> GatePreviews.pressed(player, box));
         }
-        org.mockito.Mockito.verify(main).setCancelled(true);
-        org.mockito.Mockito.verify(off, never()).setCancelled(true);
+        verify(main).setCancelled(true);
+        verify(off, never()).setCancelled(true);
     }
 }

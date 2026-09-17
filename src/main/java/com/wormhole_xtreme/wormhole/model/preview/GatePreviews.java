@@ -395,12 +395,14 @@ public final class GatePreviews
         final Iterator<Map.Entry<UUID, List<GatePreview>>> owners = PREVIEWS.entrySet().iterator();
         while (owners.hasNext())
         {
-            final List<GatePreview> mine = owners.next().getValue();
+            final Map.Entry<UUID, List<GatePreview>> entry = owners.next();
+            final List<GatePreview> mine = entry.getValue();
             mine.removeIf(preview ->
             {
                 final boolean built = preview.hasButtonAt(world, x, y, z);
                 if (built)
                 {
+                    takeBackAll(online.apply(entry.getKey()), preview);
                     preview.remove();
                 }
                 return built;
@@ -589,12 +591,16 @@ public final class GatePreviews
         }
     }
 
-    /** Shows the owner what really stands at cells a fake block was sent to. */
+    /**
+     * Shows the owner what really stands at cells a fake block was sent to. An unloaded chunk is left
+     * alone: the client gets it afresh when it loads.
+     */
     private static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
         for (final Cell cell : cells)
         {
-            if (preview.sent().remove(GatePreview.key(cell)))
+            if (preview.sent().remove(GatePreview.key(cell))
+                && preview.world().isChunkLoaded(cell.x() >> 4, cell.z() >> 4))
             {
                 owner.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()),
                     preview.world().getBlockAt(cell.x(), cell.y(), cell.z()).getBlockData());
