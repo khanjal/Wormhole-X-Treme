@@ -308,7 +308,7 @@ public class Build implements CommandExecutor
         if (list.blocked() > 0)
         {
             player.sendMessage(header + "  and " + list.blocked() + " block" + ((list.blocked() == 1) ? "" : "s")
-                + " cleared from its opening");
+                + " to clear from its opening");
         }
         if (!list.detectable())
         {
