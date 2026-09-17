@@ -67,7 +67,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Internals
 
-- **Seventeen of the 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror
+- **Twenty-one of the 41 Sonar findings on main are cleared**, nine of them in the tests; the rest are
+  in `MirrorWindows` and `MirrorWindow`. The mirror
   redraw tests move the clock where they slept. `MirrorCapture` takes its box and arrival as
   records, and keeps its seen air in `MirrorSeenAir`; captures on disk are unchanged.
 - **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
