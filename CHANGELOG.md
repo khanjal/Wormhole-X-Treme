@@ -47,6 +47,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 - **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from
   `CHANGELOG-0.x.md`.
+- **The docs show the plugin in game.** Gate shapes, palettes, the dial, a ring cycle, a beam
+  departure and two mirror clips replace the capture slates, which are deleted. `CAPTURES.md` now prefers animated
+  WebP over APNG, which measured the largest of the three.
 
 ### Internals
 

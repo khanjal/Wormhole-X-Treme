@@ -76,6 +76,24 @@ symbol, and one was fixable in a line.
 - Use anonymous `Runnable` classes for scheduled tasks, not lambdas -- they reschedule themselves and mutate retry state through the array-holder idiom. Lambdas and method references are used freely elsewhere (tab completion, `computeIfAbsent` suppliers, `FilenameFilter`). See `.github/copilot-instructions.md` for the full convention.
 - Use `WormholeXTreme.getThisPlugin().prettyLog(Level, String)` for logging. The three-argument overload adds the plugin version to the tag and is for startup and shutdown lines only; never pass it `false`.
 
+## Writing conventions
+- **British spelling, in prose and in player-facing text.** `dialled`, `dialling`, `colour`,
+  `traveller`, `centre`, `behaviour`, `licence`, `recognise`, `grey`. This is settled -- the
+  repository is already consistent (`dialled` outnumbers `dialed` roughly twenty to one) and
+  converting it was considered and rejected, because a large share of the words that look
+  convertible are not prose at all. Do not "correct" them.
+- **Three kinds of exception, which are not dialect choices and must stay exactly as they are:**
+  - **Bukkit's API.** `setCancelled`, `isCancelled` and `Cancellable` are interface members this
+    plugin overrides. They cannot change, so British spelling is forced on the code regardless
+    of what the prose does.
+  - **Anything persisted or typed.** `Colours` is a key in saved mirror YAML, `colour` is a
+    subcommand argument, and the gate gallery writes `*-dialled.svg`. Renaming any of these
+    breaks live servers, saved data, or command blocks, so they are spelling-frozen.
+  - **Attributes defined by a spec.** SVG and CSS use `fill`, `stop-color`, `color`. American
+    by specification; not ours to spell.
+- **`CHANGELOG-ORIGINAL-2011.md`, `LICENSE` and `gpl.txt` are verbatim.** Historical record and
+  licence text written by other people. Never reflow, respell or tidy them.
+
 ## Submitting changes
 - Create feature branches from `main`, and open a PR. Nothing is committed to `main` directly, including small fixes.
 - Run tests locally and ensure build passes before creating PR.

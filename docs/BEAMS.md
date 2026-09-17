@@ -14,7 +14,7 @@ arithmetic that drives it somewhere a test can reach.
 |---|---|---|---|
 | What exists in the world | A built frame | Two invisible pads | Nothing |
 | Unit | One gate, dialled to another | A permanent pair | A single point |
-| Started by | Button, sign, redstone, `/dial` | Walking into it | A command |
+| Started by | Button, then `/dial`; or button or redstone on a dial sign | Walking into it | A command |
 | Direction | One way per dial | Both ends together | One way, no return |
 | Range | Cross-world, config permitting | Same world, always | Cross-world, always |
 | Who can go | Network and node | Owner and allow list | Public list, or your own places |
@@ -83,7 +83,13 @@ loaded says so, rather than loading a world because somebody typed a name.
 
 ## The sequence
 
-![A whole beam cycle](images/capture-beam-cycle.svg)
+![A traveller leaving in a column of light](images/beams/beam-up.webp)
+
+**This is the departure only** — the glow gathering, the traveller vanishing, and the column
+rising away. The arrival half is not captured yet, and cannot be filmed by the traveller: you
+vanish six steps into a twelve-tick envelope, long before there is time to reach the far end and
+watch. It needs a second player at the destination. Until then the phase table below is the
+record of what the other half does.
 
 Four phases, matched beat for beat against the reference footage: a glow gathers and appears to
 absorb the traveller; they and the light leave in a column; the column arrives at the far end
