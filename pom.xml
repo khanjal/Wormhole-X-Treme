@@ -61,6 +61,29 @@
 				<version>3.3.0</version>
 				<configuration>
 					<useModulePath>false</useModulePath>
+					<!-- One forked JVM runs every test class, so its memory cost is the whole
+					     suite's, and that had grown to where the runner decided the outcome:
+					     GateBlueprintTest died on "Java heap space" with every test passing, on
+					     some CI machines and not others, and on identical trees from one run to
+					     the next. Nothing set a heap, so the fork took the JVM default of a
+					     quarter of the machine's RAM, about 4 GB on these 16 GB runners.
+
+					     6 GB because it has to be above that default to be an increase at all.
+					     A first attempt at 2 GB was below it and made CI worse. This is capacity
+					     rather than a runaway: at the 4 GB default most jobs passed, which no
+					     amount of heap would have done had something been allocating without
+					     bound.
+
+					     The dump is what turns a recurrence into evidence. If the real story is
+					     something accumulating across the run rather than a suite that simply
+					     needs this much, the next failure names what filled the heap instead of
+					     leaving it to be inferred from a log.
+
+					     @{argLine} is late replacement, not a literal: JaCoCo's prepare-agent
+					     publishes its agent in the argLine property and surefire reads it from
+					     there. Writing -Xmx on its own would replace the agent rather than join
+					     it, and coverage would silently report zero. -->
+					<argLine>@{argLine} -Xmx6g -XX:+HeapDumpOnOutOfMemoryError</argLine>
 				</configuration>
 			</plugin>
 
