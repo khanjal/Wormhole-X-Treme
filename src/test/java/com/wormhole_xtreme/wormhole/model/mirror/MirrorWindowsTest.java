@@ -814,6 +814,45 @@ class MirrorWindowsTest
     }
 
     /**
+     * A far part that stands is still drawn: the step that reuses it takes none of it back.
+     *
+     * <p>What stands is the far blocks kept when it was last judged, and a step inside the cell
+     * draws them again without projecting them. Kept wrong -- the near blocks in their place --
+     * the far part would vanish from the view on every step that does not judge it, and come back
+     * on the next that does.
+     */
+    @Test
+    void aFarPartThatStandsIsStillDrawnOnTheStepThatReusesIt()
+    {
+        MirrorWindows.nearDistance = 8.0;
+        gap = new Spot(13, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final int[] projected = new int[2];
+        final int[] drawn = new int[2];
+
+        withServer(() ->
+        {
+            // The first drawing judges the far part; a step inside the cell reuses it.
+            MirrorProximity.tick();
+            projected[0] = projectedByTheLastRedraw(viewer);
+            drawn[0] = drawnCount(viewer);
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            projected[1] = projectedByTheLastRedraw(viewer);
+            drawn[1] = drawnCount(viewer);
+        });
+
+        assertTrue(projected[0] > (2 * projected[1]),
+            "the step reuses the far part rather than judging it again: " + projected[0] + " then " + projected[1]);
+        assertTrue(drawn[0] > 1000, "the first drawing reaches the far part: " + drawn[0]);
+        assertTrue(drawn[1] > ((drawn[0] * 9) / 10),
+            "and the step still draws it: " + drawn[0] + " then " + drawn[1]);
+    }
+
+    /**
      * Behind a wide wall the far part stands across several blocks of movement, and is judged for
      * every eye in the cell at once.
      *
