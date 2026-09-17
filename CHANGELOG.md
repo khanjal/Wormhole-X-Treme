@@ -57,6 +57,7 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 - **Ten of the 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror
   redraw tests move the clock where they slept.
+- **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
 
 ## 1.6.0 (2026-09-16)
 
