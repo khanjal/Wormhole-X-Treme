@@ -4,18 +4,10 @@ A ring is an invisible pad set into a floor or ceiling. Walk in, it counts down,
 both ends swaps in the same instant. Why they work the way they do is in the design notes,
 [docs/RINGS.md](../RINGS.md).
 
-| | Stargate | Ring |
-|---|---|---|
-| Addressing | Dial any gate by name | Fixed pair |
-| Orientation | Vertical | Floor or ceiling |
-| Activation | Button, then `/dial`; or button or redstone on a dial sign | Walk into it |
-| Direction | One way per dial | Both ends fire together |
-| Appearance | Permanent structure | Invisible until it fires |
-| Range | Cross-world, config permitting | Same world |
-
-Two people at opposite ends swap places in one trip. Rings reach 256 blocks across but the full
-height of the world, because going straight down — a mine to the hall above it — is what they are
-for.
+Unlike a gate, a ring is a fixed pair: it is not dialled, it lies in a floor or ceiling rather
+than standing up, both ends fire together, and it stays in one world. Two people at opposite ends
+swap places in one trip. Rings reach 256 blocks across but the full height of the world, because
+going straight down — a mine to the hall above it — is what they are for.
 
 ## Contents
 
@@ -23,7 +15,6 @@ for.
 - [Using rings](#using-rings)
 - [Ring settings](#ring-settings)
 - [Editing a pair](#editing-a-pair)
-- [Permissions](#permissions)
 - [Sounds](#sounds)
 
 ## Building a ring pair
@@ -32,31 +23,24 @@ Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do the 
 in the same world and the two are paired. Only then are the slabs consumed and the floors put back
 as they looked.
 
-```
-ODD — 7 across, 16 slabs          EVEN — 6 across, 12 slabs
+| Odd — 7 across, 16 slabs | Even — 6 across, 12 slabs |
+|:---:|:---:|
+| <a href="../images/rings/pattern-odd.svg"><img src="../images/rings/pattern-odd.svg" width="196" alt="the odd ring pattern in plan"></a> | <a href="../images/rings/pattern-even.svg"><img src="../images/rings/pattern-even.svg" width="168" alt="the even ring pattern in plan"></a> |
 
-    . . # # # . .                     . . # # . .
-    . # : : : # .                     . # : : # .
-    # : : : : : #                     # : + : : #
-    # : : + : : #                     # : : : : #
-    # : : : : : #                     . # : : # .
-    . # : : : # .                     . . # # . .
-    . . # # # . .
-
-  # = lay a slab    : = stand anywhere in here    + = anchor
-```
-
-Both are [drawn to scale](../RINGS.md#patterns) in the design notes, along with
-[what the deploy looks like frame by frame](../RINGS.md#what-that-looks-like).
+Grey is where you lay a slab; blue is where you stand; the outlined cell is the ring's centre.
+[What the deploy looks like frame by frame](../RINGS.md#what-that-looks-like) is in the design
+notes.
 
 - **Only the ring**, not a filled disc.
 - **One kind of slab.** It becomes the ring's material — deepslate slabs rise as deepslate.
 - **All facing the same way.** Bottom slabs on a floor make a floor ring; top slabs under a ceiling
   make a ceiling ring. Double slabs are refused.
-- **Four blocks of headroom** above a floor ring.
+- **Four blocks of headroom** above a floor ring: the finished stack stands that tall.
 - **A ceiling ring needs a room four to ten blocks tall**, since its rings fall to the floor.
 - Not overlapping another ring or a gate, and within 256 blocks across and 384 in height of its
   partner.
+
+<img src="../images/rings/stack.svg" width="252" alt="the finished ring stack in elevation">
 
 A refusal says exactly what is wrong. `/wormhole ring cancel` abandons a half-built pair and gives
 its slabs back; `/wormhole ring remove` lays both circles back out so a pair can be moved.
@@ -66,6 +50,8 @@ its slabs back; `/wormhole ring remove` lays both circles back out so a pair can
 Walk in. The floor opens along the ring's pattern and counts down; step clear before it commits and
 it stands down. Then four rings rise, the light runs through them, and you are at the other end. A
 **ceiling ring**'s rings fall to the floor instead, so you stand inside them.
+
+![A ring pair firing: the stack rises, the light runs through it, the rings come home](../images/rings/ring-cycle.webp)
 
 - **Everything in the ring travels** — players, mobs, items, vehicles. Only players are checked for
   access. Ride in on a horse and you arrive still on it.
@@ -118,6 +104,7 @@ edits both.
 | `ring` | per end | Any slab, including one a data pack adds |
 | `light` | per end | The pad while the ring works; completion suggests blocks that look like lights |
 | `flash` | per end | The light running through the stack |
+| `built` | per end | The slab `reset` goes back to; must be a slab |
 | `name` | per end | Free text; stand in the ring you mean |
 | `access` | per pair | `public` or `private` |
 | `style` | per end | `fast` sends several rings up together, `slow` one at a time |
@@ -131,16 +118,9 @@ off. `ring deny <player>` takes that back, and `ring owner <player>` hands the p
 
 Other ring commands: `ring list`, `ring remove [id]`, `ring cancel`.
 
-## Permissions
-
-| Node | Default | Allows |
-|---|---|---|
-| `wormhole.ring.build` | op | Creating and pairing rings |
-| `wormhole.ring.use` | true | Travelling by a ring you are allowed on |
-| `wormhole.ring.admin` | op | Using and managing any pair |
-| `wormhole.ring.unlimited` | op | Owning more pairs than the quota |
-
-Being on an allow list lets somebody travel, not recolour, rename, give away or delete the pair.
+Who may build, use and manage rings is set by the four `wormhole.ring.*` nodes in the
+[server guide](SERVER.md#permissions). Being on an allow list lets somebody travel, not recolour,
+rename, give away or delete the pair.
 
 ## Sounds
 

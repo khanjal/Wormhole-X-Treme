@@ -20,9 +20,7 @@ listing has the same constraint: SpigotMC's `[IMG]` takes an image, not a video.
 **Prefer animated WebP.** It is 24-bit, like APNG, so the event horizon's gradient and the beam
 column's falloff do not posterise the way they do in GIF's 256-colour palette -- and unlike APNG
 it compresses between frames properly. GitHub renders it; so does every browser since about 2020.
-
-**This advice used to say APNG, and that was wrong.** Measured on the real ring and mirror
-captures, for the same clip and the same source footage:
+Measured on the real ring and mirror captures, for the same clip and the same source footage:
 
 | Format | Size | Resolution |
 |---|---|---|
@@ -30,9 +28,8 @@ captures, for the same clip and the same source footage:
 | GIF, 64-colour palette | 827 KB | 520px |
 | APNG | 2876 KB | 480px |
 
-APNG is the largest by a wide margin, not the smallest. ffmpeg's APNG encoder stores whole
-frames, and hand-assembling one from a shared palette in Pillow did not close the gap. The order
-that actually holds for this footage is **WebP, then GIF, then APNG.**
+APNG is the largest by a wide margin: ffmpeg's APNG encoder stores whole frames, and
+hand-assembling one from a shared palette in Pillow did not close the gap.
 
 Encode with `-c:v libwebp_anim -lossless 0 -q:v 55` (`-q:v` around 55-60 is the sweet spot),
 and keep GIF in reserve only if something downstream refuses WebP.
@@ -66,32 +63,26 @@ Every duration below is derived from the plugin's own constants. Where a shot is
 about five seconds, it is listed already split -- a single loop covering a whole ring cycle would
 be too heavy and too slow to read.
 
-| Shot | Length | Where the number comes from | File |
-|---|---|---|---|
-| A built gate | still | -- | `gate-anatomy.png` |
-| Dial and kawoosh | see below | `WOOSH_TICKS = 3`, `LIGHT_TICKS = 2` per step in the `.shape` file | `gate-dial.png` |
-| Iris turning somebody back | ~2s | -- | `gate-iris.png` |
-| Ring countdown and deploy | 4.5s | `RING_COUNTDOWN_TICKS` 60, deploy at `RING_DEPLOY_TICKS` 2 a frame | `ring-deploy.png` |
-| Flash, hold and retract | 3.5s | flash `RING_FLASH_TICKS` 3 x 4 rings, `RING_HOLD_TICKS` 20, `RING_LIGHTS_LINGER_TICKS` 20 | `ring-flash.png` |
-| A whole beam cycle | 2.6s | 52 ticks — the phases overlap, see below | `beam-cycle.png` |
+| Shot | Length | Where the number comes from |
+|---|---|---|
+| A built gate | still | -- |
+| Dial and kawoosh | shape-dependent | `WOOSH_TICKS = 3`, `LIGHT_TICKS = 2` per step in the `.shape` file |
+| Ring countdown and deploy | 5s countdown, then ~1.5s | `ring-countdown-ticks` (100 by default), then a frame every `ring-deploy-ticks` (2) |
+| Flash, hold and retract | ~3.5s | `ring-flash-ticks` 3 x 4 rings, `ring-hold-ticks` 20, `ring-lights-linger-ticks` 20 |
+| A whole beam cycle | 2.6s | 52 ticks — the phases overlap, see below |
 
 Twenty ticks is one second.
 
 **The beam is the easy one.** Its entire cycle -- envelop, rise, descend, fade -- runs 52
 ticks, so the whole thing fits one short loop with nothing cut. Record it in third person (F5)
-or the traveller, who is the subject, is not in frame.
+or the traveller, who is the subject, is not in frame. Adding the four phase durations gives 58,
+but the descend column starts at the *teleport* tick, 12 ticks into an 18-tick rise, so six ticks
+run at both ends at once. The strip in [BEAMS.md](BEAMS.md#the-phases-overlap) shows it, and
+`BeamGalleryTest` holds this document's 2.6s against `BeamFrame` itself.
 
-**Fifty-two, not the fifty-eight this table used to say.** Adding the four durations together
-gives 58, and that is the one piece of arithmetic this document had wrong: the phases do not
-simply follow one another. The descend column starts at the *teleport* tick, which is 12 ticks
-into an 18-tick rise, so six ticks run at both ends at once and the sequence finishes six ticks
-earlier than the sum. The strip in [BEAMS.md](BEAMS.md#the-phases-overlap) shows it, and
-`BeamGalleryTest` holds the number against `BeamFrame` itself. A clip cut to 2.9s would have
-carried about a third of a second of nothing on the end.
-
-**The ring cycle is the awkward one.** End to end it is around nine and a half seconds, most of
-which is a 60-tick countdown where very little moves. Cut it in two and trim most of the
-countdown: keep just enough to establish that the pad lit and a wait began.
+**The ring cycle is the awkward one.** End to end it is over ten seconds, most of it a
+countdown where very little moves. Cut it in two and trim most of the countdown: keep just
+enough to establish that the pad lit and a wait began.
 
 **The gate is shape-dependent.** Both animation steps are per-frame delays rather than totals,
 and the number of frames comes from the shape's woosh depth and light layers, so a `Grand` gate
@@ -186,19 +177,15 @@ animation rather than embedding it to run forever.
 
 ## What was shot, and where it landed
 
-Every slot this document was written for is filled. The slates -- `docs/images/capture-*.svg`,
-dark tiles naming a shot and its length -- have been deleted along with
-`gate-placeholder.png` and `gate-placeholder.svg` before them.
-
 | Capture | File | Appears in |
 |---|---|---|
-| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [GATES.md](GATES.md#animation), [guide/README.md](guide/README.md) |
-| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [GATES.md](GATES.md#shapes), [guide/README.md](guide/README.md) |
-| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [GATES.md](GATES.md#shapes) |
-| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [GATES.md](GATES.md#palettes-are-separate-from-shapes), [GATES.md](GATES.md#the-iris) |
-| A ring pair's whole cycle | `rings/ring-cycle.webp` | [RINGS.md](RINGS.md#animation), [guide/README.md](guide/README.md) |
-| A traveller leaving in a column of light | `beams/beam-up.webp` | [BEAMS.md](BEAMS.md#the-sequence) |
-| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](../README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
+| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
+| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
+| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [guide/GATES.md](guide/GATES.md#material-groups), [GATES.md](GATES.md#palettes-are-separate-from-shapes) |
+| A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](../README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |
+| A traveller leaving in a column of light | `beams/beam-up.webp` | [README](../README.md), [guide/BEAMS.md](guide/BEAMS.md), [BEAMS.md](BEAMS.md#the-sequence) |
+| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 | A mirror repainting itself | `mirrors/mirror-look.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#its-look) |
 | A mirror's view shifting as you move | `mirrors/mirror-effects.webp` | listing art; not embedded |
 
@@ -210,8 +197,8 @@ which is what the section is actually about.
 
 **The rings and the beam both needed spectator mode.** A third-person camera is pushed inside a
 deploying ring stack, so the shot cannot be framed from outside in survival or creative. In
-spectator the camera has no collision, and the 60-tick countdown is long enough to arm the ring
-and fly back out before anything rises.
+spectator the camera has no collision, and the countdown is long enough to arm the ring and fly
+back out before anything rises.
 
 ## The diagrams are not these captures
 

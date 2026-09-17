@@ -23,7 +23,7 @@ cannot ask about.
 - [The iris](#the-iris) · [The portal is drawn, not built](#the-portal-is-drawn-not-built)
 - [Animation](#animation) · [Sound](#sound)
 - [Travelling](#travelling) · [Everything that is not a player](#everything-that-is-not-a-player)
-- [Permissions](#permissions) · [Commands](#commands) · [Config](#config)
+- [Permissions](#permissions) · [Commands and config](#commands-and-config)
 - [Layout](#layout) · [What the tests guard](#what-the-tests-guard)
 
 ## Anatomy
@@ -543,53 +543,14 @@ of its own, in order:
 network the gate is on. Holding `wormhole.use.dialer` is not admission to a private network. The
 full node list is in the [server guide](guide/SERVER.md#permissions).
 
-## Commands
+## Commands and config
 
-`/wormhole gate <verb>` is the shape people type:
-
-```
-build <shape>            start building; then click the DHD position
-complete <name> [idc=][net=]   name and register what you built
-list [network]           gates you can see
-remove <gate>            take it down
-edit <gate> <field> <value>
-regenerate <gate>|-all   redraw signs, levers and arrival points
-validate <gate>|-all     check the gate is still actually standing (#54)
-refresh                  next DHD click re-detects the geometry
-go <gate>                teleport to a gate
-force <gate>             dial past the usual refusals
-import                   pull gates out of a legacy database
-shapes [reload|validate] list, reload or check the shape files
-
-  edit fields:  portal | iris | light   materials
-                woosh                   animation depth
-                group                   palette
-                redstone                true|false
-                custom                  true|false
-                idc                     iris deactivation code
-                owner                   hand the gate over
-```
-
-Gates had fifteen top-level commands while rings had one with verbs under it; this is the gates
-catching up. Every verb hands straight off to the handler that already owned it, and the old flat
-names stay registered as hidden entries, so nothing in a command block or a script breaks.
-
-## Config
-
-```yaml
-permissions-support-disable: false
-permissions-auto-fallback: true      # simple mode when no Vault provider is found
-redstone-extend-open-time: true      # a signal pushes the shutdown back, within the maximum
-sign-dial-match-material: true
-sign-glowing-text: false
-sign-color-gate-name: DARK_AQUA      # and -network, -owner, -selected, -neighbour
-gate-material-groups:                # the palettes; first declared is the default
-```
-
-Timers and sounds are set with `/wormhole config <setting>`: `timeout-activate`,
-`timeout-shutdown`, `max-open-seconds`, `use-cooldown-enabled`, `use-cooldown-seconds`,
-`same-world-only`, `entity-scan-interval-ticks`, `gate-sounds-enabled`, `gate-sound-volume`, and
-one `gate-sound-*` key per sound.
+The verbs, the `edit` fields and the settings are in the [gate guide](guide/GATES.md#commands)
+and the [server guide](guide/SERVER.md#configuration). One decision behind them: `/wormhole gate
+<verb>` is the shape people type. Gates had fifteen top-level commands while rings had one with
+verbs under it; this is the gates catching up. Every verb hands straight off to the handler that
+already owned it, and the old flat names stay registered as hidden entries, so nothing in a
+command block or a script breaks.
 
 ## Layout
 
@@ -614,6 +575,7 @@ model/StargateYamlManager.java     one file per gate
 model/LegacyDatabaseImporter.java  pulling gates out of an old database
 logic/StargateHelper.java          detection: matching a build against every shape
 logic/ShapeFileValidator.java      checking a .shape file before it is trusted
+model/GateIntegrity.java           whether a gate is still standing, for validate
 GateEntityScanner.java             loose entities standing in an open portal
 ProjectileGateTracker.java         arrows, by the path they travelled
 WormholeXTremePlayerListener.java  the move path

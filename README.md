@@ -25,12 +25,18 @@ Four ways to get somewhere, each a different trade between what you build and wh
 | **[Beaming](docs/guide/BEAMS.md)** | Nothing | `/wormhole beam to <name>` | A saved point, anywhere |
 | **[Quantum mirrors](docs/guide/MIRRORS.md)** | One wall banner | Right-click to choose, punch to go | Any other mirror, across worlds |
 
+| A gate dialling | A ring pair firing |
+|:---:|:---:|
+| ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](docs/images/gates/gate-dial.webp) | ![A ring pair firing: the stack rises, the light runs through it, the rings come home](docs/images/rings/ring-cycle.webp) |
+| **A traveller beaming out** | **A mirror opening onto another world** |
+| ![A traveller leaving in a column of light](docs/images/beams/beam-up.webp) | ![A mirror in a garden wall, opening onto a library](docs/images/mirrors/mirror-archway.webp) |
+
 ## Features
 
 - **Everything travels** — minecarts and boats with their passengers, horses with their riders,
   arrows and ender pearls mid-flight, and mobs and items that wander into an open gate.
 - **Configured in-game** — `/wormhole config` changes any setting on the spot, with no reload.
-- **Eleven gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
+- **Six gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file.
 - **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
   right-click it and it shows another world's.
@@ -85,7 +91,7 @@ one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Building from source
 
-JDK 17 and Maven 3.6+.
+JDK 17 and Maven 3.8+.
 
 ```bash
 mvn -DskipTests package

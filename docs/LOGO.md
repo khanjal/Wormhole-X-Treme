@@ -27,17 +27,9 @@ fourth is the open question below. That mapping is the part worth keeping.
 
 ### The fourth one, which the mark does not carry
 
-**Quantum mirrors shipped.** [Issue #22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
-is done, so the plugin now has four ways to travel and the mark still shows three. This section
-used to describe a mirror as a planned feature; it is not one any more.
-
-A mirror is a banner on a wall. Nothing is built -- no frame, no pad, no partner. It shows its own
-room until somebody right-clicks it, a right-click walks the other mirrors on the network, and a
-punch goes to the one showing. It can also be made to look like where it goes: there are 90 looks
-in the library, biomes and places both. See [MIRRORS.md](MIRRORS.md).
-
-So the question this section used to defer is now live, and it is the one decision that could
-break the composition. Three ideas already crowd one small circle. A fourth would have to either
+**Quantum mirrors** — a banner on a wall that shows the room it opens onto, see
+[MIRRORS.md](MIRRORS.md) — are the fourth way to travel, and the mark still shows three. Whether
+it should carry a fourth is the one decision that could break the composition. Three ideas already crowd one small circle. A fourth would have to either
 displace one of them, or force the admission that the mark cannot carry a complete inventory of
 features and should stop trying -- which is very likely the right answer, and is a decision better
 made deliberately than discovered later.
@@ -148,12 +140,6 @@ Two things follow for anybody redrawing the mark:
 - **The current files are not fully covered.** They were committed under GPL-3.0 before the policy
   existed, and GPL grants are irrevocable, so anybody who took a copy in that window holds a
   GPL-3.0 licence to that version. A replacement starts clean from its first commit.
-
-**Related, and unrelated to the logo:** the repository's own licence files were tidied in the
-same pass. The full GPL-3.0 text was present all along as `gpl.txt`, a name GitHub's licence
-detector does not recognise, while `LICENSE.txt` held only the sixteen-line copyright notice --
-so GitHub reported the licence as `NOASSERTION` and the README's badge was hand-written. The
-text is now `LICENSE` and the notice is `NOTICE.txt`.
 
 ## What is open
 

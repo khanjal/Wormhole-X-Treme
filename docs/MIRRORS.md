@@ -9,14 +9,6 @@ own room until somebody right-clicks it; a right-click moves it on to the next m
 punch goes there. There is no structure to build, no pair to keep in step and no address to
 dial — which is why a door in every world is practical in a way a gate in every world is not.
 
-| | Stargate | Ring | Mirror |
-|---|---|---|---|
-| What it is | A built structure | A pad in a floor | One wall banner |
-| Activation | Dial, button, redstone | Walk into it | Right-click to choose, punch to go |
-| Direction | One way per dial | Both ends fire | Any mirror to any other |
-| Range | Cross-world, config permitting | Same world, always | Cross-world, one mirror per world by default |
-| Appearance | Permanent structure | Invisible until it fires | Its room, reflected, or the room of the mirror chosen |
-
 ## Contents
 
 - [The network](#the-network)
@@ -30,6 +22,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
 - [What was considered and not done](#what-was-considered-and-not-done)
+
 ## The network
 
 **Nothing is pointed by hand.** Mirrors began as one-way points: `mirror link` joined two banners
@@ -143,11 +136,9 @@ room people see through the opening is the capture as it was taken until somebod
 `mirror set -capture`. The same bargain twice, and each is its own command on purpose: `stamp`
 used to retake the capture as a side effect, so a command about the banner changed the view.
 
-There was a **dynamic** mode for a while, which re-read the far side when somebody walked up,
-throttled by `mirror-dynamic-resample-seconds`, and wrote what it saw to the banner. It went
-with the network: "we shouldn't update the banner automatically. It should be an understood
-command." A `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next
-save; the setting is gone from `config.yml`.
+A **dynamic** mode that re-read the far side on approach and repainted the banner was tried and
+dropped: "we shouldn't update the banner automatically. It should be an understood command." A
+`Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
 
 ## The sweep
 
@@ -156,10 +147,9 @@ Before anything touches a block it has ruled out mirrors going nowhere, worlds t
 loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
 load one.
 
-Until 1.6.0 a mirror also had a `display` setting: `proximity` sent a blank banner to players too
-far away and gave the stamped one back on approach. Every mirror is a view now, and hiding only
-reached a mirror that was not being drawn, so the setting did nothing anybody could see. A
-`Display` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
+A `Display` line in an older `mirror.yml` — a per-mirror `proximity` setting that hid the banner
+from far away, made pointless once every mirror became a view — is read and ignored, and dropped
+on the next save.
 
 ## Saying what it is
 
@@ -174,9 +164,6 @@ will do:
 :: museum -- right-click to choose a mirror.
 :: museum -- punch to travel to hub, right-click for another.
 ```
-
-**Above the hotbar, not in chat**, using the same call the rings use: it replaces itself and
-then goes, where chat would leave a line behind for every banner walked past.
 
 **Above the hotbar, not in chat.** The same call the transport rings use. It replaces itself and
 then goes, where chat would leave a line behind for every banner walked past — a corridor would
