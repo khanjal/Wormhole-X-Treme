@@ -63,6 +63,12 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /** The most of a drawn block's outline that may land beside the opening, in open air. */
     private static final double MOST_BESIDE = 0.05;
 
+    /** What {@link #projected} and {@link #shadow} give for a block with no outline on the face from that eye. */
+    static final double[] UNSEEN = {};
+
+    /** What a {@link Cover} gives for a block of the face that hides none of what lands on it. */
+    static final double[] HIDES_NOTHING = {};
+
     /**
      * A block position, or a one-block step along the ground when {@code y} is zero.
      *
@@ -104,7 +110,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
          *            the block's y
          * @return the part of the block, as {@code {acrossMin, acrossMax, yMin, yMax}} in face
          *         coordinates, on which a drawn block cannot be seen anywhere it should not be;
-         *         or null for none of it
+         *         or {@link MirrorWindow#HIDES_NOTHING} for none of it
          */
         double[] clear(int across, int y);
     }
@@ -426,7 +432,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * @param z
      *            the block, z
      * @return {@code {acrossMin, acrossMax, yMin, yMax}} on the face, measured along it in world
-     *         coordinates; or null if the block is not behind the face from that eye
+     *         coordinates; or {@link #UNSEEN} if the block is not behind the face from that eye
      */
     double[] projected(final double eyeX, final double eyeY, final double eyeZ, final int x,
         final int y, final int z)
@@ -447,7 +453,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             // Not further from the eye than the face, on the same side: not behind the opening.
             if ((scale <= 0.0) || (scale > 1.0))
             {
-                return null;
+                return UNSEEN;
             }
             final double across = eyeAcross + (scale * ((alongX ? cornerZ : cornerX) - eyeAcross));
             final double up = eyeY + (scale * (cornerY - eyeY));
@@ -554,7 +560,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     boolean covered(final double[] rect, final Face face, final double mostBeside)
     {
         return covered(rect,
-            (Cover) (across, y) -> face.clear(across, y) ? new double[] { across, across + 1.0, y, y + 1.0 } : null,
+            (Cover) (across, y) -> face.clear(across, y) ? new double[] { across, across + 1.0, y, y + 1.0 } : HIDES_NOTHING,
             mostBeside);
     }
 
@@ -587,7 +593,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             for (int y = yFrom; y <= yTo; y++)
             {
                 final double[] part = cover.clear(across, y);
-                if (part != null)
+                if (part != HIDES_NOTHING)
                 {
                     clear += Math.max(0.0, Math.min(rect[1], part[1]) - Math.max(rect[0], part[0]))
                         * Math.max(0.0, Math.min(rect[3], part[3]) - Math.max(rect[2], part[2]));
@@ -616,8 +622,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            the block, y
      * @param z
      *            the block, z
-     * @return {@code {acrossMin, acrossMax, yMin, yMax}} on the face; or null if the block is
-     *         not wholly between the eye and the face
+     * @return {@code {acrossMin, acrossMax, yMin, yMax}} on the face; or {@link #UNSEEN} if the
+     *         block is not wholly between the eye and the face
      */
     double[] shadow(final double eyeX, final double eyeY, final double eyeZ, final int x,
         final int y, final int z)
@@ -638,7 +644,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             if ((depth * reach <= 0.0) || (Math.abs(depth) > Math.abs(reach))
                 || (Math.abs(depth) < 0.05))
             {
-                return null;
+                return UNSEEN;
             }
             final double scale = reach / depth;
             final double across = eyeAcross + (scale * ((alongX ? cornerZ : cornerX) - eyeAcross));
