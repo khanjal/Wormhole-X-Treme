@@ -602,20 +602,20 @@ class GatePreviewsTest
         final Cell last = cells.get(0);
         standing.remove(List.of(last.x(), last.y(), last.z()));
         GatePreviews.tick();
-        verify(owner, never()).sendMessage(contains("is in place"));
+        verify(owner, never()).sendMessage(contains("is built!"));
 
         final Cell inTheWay = GateBlueprint.openingOf(standard,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(5);
         place(inTheWay, Material.DIRT);
         place(last, Material.OBSIDIAN);
         GatePreviews.tick();
-        verify(owner, never()).sendMessage(contains("is in place"));
+        verify(owner, never()).sendMessage(contains("is built!"));
 
         standing.remove(List.of(inTheWay.x(), inTheWay.y(), inTheWay.z()));
         GatePreviews.tick();
         GatePreviews.tick();
 
-        verify(owner, times(1)).sendMessage(contains("Every block of Standard is in place"));
+        verify(owner, times(1)).sendMessage(contains("Standard is built!"));
         assertTrue(spawned.stream().allMatch(display -> Mockito.mockingDetails(display).getInvocations().stream()
             .anyMatch(call -> "remove".equals(call.getMethod().getName()))), "and nothing is drawn over the gate");
     }
@@ -639,7 +639,7 @@ class GatePreviewsTest
 
         GatePreviews.guide(owner);
 
-        verify(owner).sendMessage(contains("Every block of StandardSignDial is in place"));
+        verify(owner).sendMessage(contains("StandardSignDial is built!"));
     }
 
     /**

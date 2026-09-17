@@ -884,8 +884,8 @@ public final class GatePreviews
         {
             if (built && clear && !preview.finished())
             {
-                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Every block of "
-                    + preview.shape().getShapeName() + " is in place. Press its button to check it.");
+                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + PreviewText.good(preview.shape().getShapeName() + " is built!") + " Press its button to check it.");
             }
             preview.finished(built && clear);
         }
