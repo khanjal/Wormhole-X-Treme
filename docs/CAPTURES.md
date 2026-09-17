@@ -97,29 +97,59 @@ countdown: keep just enough to establish that the pad lit and a wait began.
 and the number of frames comes from the shape's woosh depth and light layers, so a `Grand` gate
 runs visibly longer than a `Standard` one. Record generously, trim to the settle.
 
-## Setting up so takes match
+## Before recording anything
 
-Lighting that shifts between takes is the fastest way to end up with a set of clips that plainly
-were not shot together.
+None of this can be fixed afterwards, and a set of shots that plainly were not taken together is
+a reshoot.
+
+**In the world:**
 
 ```
 /time set noon
 /gamerule doDaylightCycle false
 /weather clear
+/gamerule doMobSpawning false
 ```
 
-Then, in the client: F1 to hide the HUD, particles on All, brightness up, and a modest render
-distance so the background is quiet.
+A shifting sun lights every shot differently, and one wandering creeper is a reshoot.
+
+**In the client:**
+
+- **F1**, so no HUD. A hotbar in one shot and not the next ruins a set.
+- **One FOV, one render distance, one GUI scale and one resolution** across everything. FOV 70
+  unless there is a reason, and a modest render distance so the background is quiet.
+- **Particles on All.** The kawoosh, the beam column and the ring flash are particles.
+- **Shaders and resource packs all on or all off**, not some.
 
 **Do not move the camera.** This matters twice over. It makes the animation the only moving thing
 in frame, which is what the reader should be looking at; and because most of the frame is then
 identical between frames, the encoded file is a fraction of the size. A slow pan can be the
 difference between 400 KB and four megabytes.
 
+## Stills
+
+Capture at 1920x1080. Gate shapes are compared by silhouette, so shoot them **straight on**, from
+far enough back that perspective is not bowing the frame, and crop in afterwards.
+
+Build gates without a dial sign, so there is no sign in frame. Do not break the sign off a built
+gate to clear the shot: that leaves a registered gate missing one of its parts
+([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)), and it refuses to dial.
+
+Keep the camera in the same spot between shapes, and stand in frame for scale. `Minimal` next to
+`Massive` means nothing without something to measure them by.
+
+Angle the shot instead where depth is the subject. A kawoosh shot flat on reads as a disc.
+
 ## Recording and converting
 
-Record to MP4 with OBS at 30 or 60fps in a small window -- 960x540 is plenty. Never record
-straight to GIF.
+- **Record at 60fps, not 30.** Minecraft runs at 20 ticks a second and every length above is a
+  tick count, so 60 decimates to 20 exactly three to one -- one frame per tick, no judder. 30 to
+  20 is three to two, and it shows in a loop.
+- **Cap the in-game framerate at 60** rather than unlimited, so the source is steady.
+- **Keep takes to 10-15 seconds.** Long files are slow to move around, and there is nothing in
+  the extra footage.
+- **MP4.** Never record straight to GIF. Steam's background recordings are chunked DASH
+  fragments; use its export, not the recording folder.
 
 ffmpeg does the conversion. It is not installed by default:
 
@@ -127,17 +157,20 @@ ffmpeg does the conversion. It is not installed by default:
 winget install Gyan.FFmpeg
 ```
 
-APNG, trimming to the exact cycle with `-ss` (start) and `-t` (duration):
+Animated WebP, trimming to the exact cycle with `-ss` (start) and `-t` (duration):
 
 ```
-ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos" -plays 0 -f apng docs/images/beam-cycle.png
+ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=720:-1:flags=lanczos" -c:v libwebp_anim -lossless 0 -q:v 55 -loop 0 docs/images/beams/beam-up.webp
 ```
 
-GIF, which needs a two-pass palette or it looks like 1998:
+GIF, only if something refuses WebP. It needs a two-pass palette or it looks like 1998:
 
 ```
-ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" -loop 0 docs/images/beam-cycle.gif
+ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=520:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" -loop 0 beam-up.gif
 ```
+
+Raw captures stay out of the repository. Keep them outside the checkout, or in a folder
+`.git/info/exclude` names, so a broad `git add` cannot sweep a 60 MB MP4 into history.
 
 Drop `fps` to 15 or `scale` to 480 if a clip comes out over budget. Losing frames is much less
 noticeable than losing colours.
