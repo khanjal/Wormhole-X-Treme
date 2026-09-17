@@ -1542,6 +1542,11 @@ public class ConfigManager
             return parsed.getRefusal();
         }
         setting.setValue(parsed.getValue());
+        if (setting.getName() == ConfigKeys.LOG_LEVEL)
+        {
+            // Read once at startup otherwise, so the change would wait for a restart.
+            com.wormhole_xtreme.wormhole.WormholeXTreme.applyLogLevel(getLogLevel());
+        }
         Configuration.persistCurrentConfiguration(SECTION);
         return setting.getName().name() + " is now " + parsed.getValue() + ".";
     }

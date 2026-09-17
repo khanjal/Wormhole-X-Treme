@@ -21,6 +21,11 @@ option only with a dash, and no name may start with one. Scripts and command blo
 | `mirror debug [name] all\|full\|on\|off` | `mirror debug [name] -all\|-full\|-on\|-off` |
 | `beam admin cost <name> default` | `beam admin cost <name> -default` |
 
+### Server
+
+- **`log-level` below `INFO` now reaches the console**, as lines marked `[FINE]`; the console drops
+  anything lower, so these never showed before. `/wormhole config log-level` takes effect at once.
+
 ### Travel
 
 - **A player's pets travel with them** by gate, ring, beam or mirror: tamed wolves, cats and parrots
