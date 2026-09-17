@@ -334,7 +334,8 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static void logCrossing(final PlayerMoveEvent event, final Player player)
     {
-        if (!WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        // FINER, not FINE: one line per block walked would bury every other FINE line.
+        if (!WormholeXTreme.getThisPlugin().isLoggable(Level.FINER))
         {
             return;
         }
@@ -344,7 +345,7 @@ class WormholeXTremePlayerListener implements Listener
             final Location to = event.getTo();
             final Block fromBlock = from.getWorld().getBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
             final Block toBlock = to.getWorld().getBlockAt(to.getBlockX(), to.getBlockY(), to.getBlockZ());
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINER, "PlayerMove: " + player.getName()
                 + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + to.getY());
         }
         // Diagnostics only, and on the move path, so never let it disturb the event.
