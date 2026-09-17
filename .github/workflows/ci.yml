@@ -196,9 +196,8 @@ jobs:
     # running it and swallowing the failure: a job that always passes because it never
     # analysed anything is indistinguishable at a glance from one that works, which is worse
     # than having no job at all. Anything that runs here is expected to succeed, so a failure
-    # is a real one and is allowed to fail the build. That is about the analysis being
-    # uploaded at all -- code quality itself is not blocking yet, since no quality gate is
-    # waited on until there is a baseline worth judging against.
+    # is a real one and is allowed to fail the build. On a pull request, so does any open
+    # Sonar finding; see the last step.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
@@ -244,3 +243,37 @@ jobs:
           -Dsonar.organization=ironraptor
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+      # A pull request fails while it has any open Sonar finding. The quality gate only weighs
+      # coverage, which most pull requests miss, so its red went unread and 1.6.0 left 41
+      # findings behind (#311). Main's older findings are not counted: only the pull request's.
+      - name: Fail on new Sonar findings
+        if: github.event_name == 'pull_request'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # The scan is processed after upload; its findings are not there to read until it is done.
+          task_url=$(sed -n 's/^ceTaskUrl=//p' target/sonar/report-task.txt)
+          status=PENDING
+          for attempt in $(seq 1 60); do
+            status=$(curl -sf -u "$SONAR_TOKEN:" "$task_url" | jq -r .task.status)
+            case "$status" in
+              SUCCESS) break ;;
+              FAILED|CANCELED) echo "::error::SonarCloud analysis $status"; exit 1 ;;
+            esac
+            sleep 5
+          done
+          if [ "$status" != SUCCESS ]; then
+            echo "::error::SonarCloud analysis did not finish in five minutes"
+            exit 1
+          fi
+          issues=$(curl -sf -u "$SONAR_TOKEN:" \
+            "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=$PR&resolved=false&ps=100")
+          echo "$issues" | jq -r '.issues[] | "::error file=\(.component | sub("^[^:]*:"; "")),line=\(.line // 1),title=Sonar \(.rule | gsub(":"; "%3A"))::\(.message | gsub("%"; "%25"))"'
+          total=$(echo "$issues" | jq .total)
+          if [ "$total" -gt 0 ]; then
+            echo "::error::$total open Sonar finding(s) on this pull request. Fix them before merging."
+            exit 1
+          fi
+          echo "No open Sonar findings on this pull request."
