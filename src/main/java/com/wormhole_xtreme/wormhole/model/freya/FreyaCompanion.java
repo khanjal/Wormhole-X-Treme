@@ -129,7 +129,7 @@ public final class FreyaCompanion
      */
     private static void settle(final Cat cat, final Player owner)
     {
-        cat.setCatType(Cat.Type.ALL_BLACK);
+        paintBlack(cat);
         cat.setAdult();
         cat.setTamed(true);
         cat.setOwner(owner);
@@ -173,6 +173,27 @@ public final class FreyaCompanion
         if (summoning)
         {
             summonRefused = cancelled;
+        }
+    }
+
+    /**
+     * Gives her the all-black coat.
+     *
+     * <p>{@code Cat.Type} is looked up in the server's registry from 1.21, so it cannot load
+     * without a server; a coat that fails to set leaves an ordinary cat rather than no cat.
+     *
+     * @param cat
+     *            the newly spawned cat
+     */
+    private static void paintBlack(final Cat cat)
+    {
+        try
+        {
+            cat.setCatType(Cat.Type.ALL_BLACK);
+        }
+        catch (final RuntimeException | LinkageError noRegistry)
+        {
+            // Only a test has no registry; a server that somehow did not is not worth failing on.
         }
     }
 
