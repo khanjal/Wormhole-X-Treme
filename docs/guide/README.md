@@ -27,7 +27,7 @@ ffmpeg commands.
 
 **Dialling.** Chevrons light in sequence, then the horizon erupts and settles.
 
-![Dial and kawoosh](../images/capture-gate-dial.svg)
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
 **Transport rings.** The pad lights, counts down, and four rings rise around whoever is standing
 on it.

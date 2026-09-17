@@ -112,6 +112,19 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 <!-- shapes:end -->
 
+And the same six in game, in the `Standard` palette — idle, then dialled. The camera does not
+move between panels, so the size differences are honest: `Minimal` really is that small beside
+`Massive`.
+
+![The six shipped shapes, idle](images/gates/gate-shapes.png)
+
+![The six shipped shapes, dialled](images/gates/gate-shapes-active.png)
+
+`Horizontal` is the one the grid above cannot show, because it lies flat and is dropped into
+rather than walked through:
+
+![A Horizontal gate, idle and dialled](images/gates/gate-horizontal.png)
+
 ### What a sign dial adds
 
 ![A plain DHD and a sign dial, side by side](images/gates/dhd.svg)
@@ -163,6 +176,20 @@ light.
 | `MilkyWay` | `DEEPSLATE` | `WATER` | `IRON_BLOCK` | `SHROOMLIGHT` | `OAK_WALL_SIGN` | *(none)* |
 
 <!-- palettes:end -->
+
+The same `Standard` gate in each of the four, in game. Only the blocks change — the shape file is
+identical across all of them.
+
+![The four palettes on a Standard gate](images/gates/standard-palettes.png)
+
+Dialled, where the chevrons are what separates them: each palette lights its own block, and a
+palette with no `chevron` key has no unlit chevron to light at all.
+
+![The four palettes, dialled](images/gates/standard-palettes-active.png)
+
+And with the iris closed, which is a fifth block per palette:
+
+![The four palettes with the iris closed](images/gates/standard-palettes-iris.png)
 
 ## Detection
 

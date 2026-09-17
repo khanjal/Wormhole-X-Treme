@@ -117,6 +117,11 @@ nothing.
 
 ## What you see in one
 
+![A mirror in a garden wall, opening onto a library](../images/mirrors/mirror-archway.webp)
+
+The opening is real blocks, not a picture painted on the banner, and the clip is how you can tell:
+the view through it shifts as the camera moves past. A texture would not do that.
+
 Walk up to a mirror, on the banner's side and within `mirror-proximity-distance` blocks, and the banner
 is gone: an opening its own size, one wide and two tall, running down from where it hangs, shows a
 room — its own, flipped across the wall as a mirror would show it and with nobody in it, or the room
@@ -180,6 +185,11 @@ more than a quarter of the server's time however close you stand.
   turns views off for you, so you see the world as it is; `mirror debug -on` puts either back.
 
 ## Its look
+
+![A mirror repainting from its own room to the place it opens onto](../images/mirrors/mirror-look.webp)
+
+One mirror, two destinations: it shows the library it hangs in, then the garden it was pointed at.
+Nothing was rebuilt between the two — the banner read where it goes and painted itself.
 
 A plain white banner made a mirror gets the `mirror` look: pale glass, a glint and a frame. A banner
 you patterned first keeps its patterns. The look is what you see from further than

@@ -432,7 +432,10 @@ nobody can stand on a rising ring or be shoved by one.
 
 ## Animation
 
-![Ring countdown and deploy](images/capture-ring-deploy.svg)
+![A ring pair firing: the stack rises, the light runs through it, the rings come home](images/rings/ring-cycle.webp)
+
+One take of the whole cycle, slowed to five quarters of real time, with the countdown trimmed.
+What follows is the arithmetic behind what the clip shows.
 
 Four rings end up **half a block of clear air apart** — one block centre to centre, since a slab
 is half a block thick — with the lowest hanging half a block clear of the floor. They settle at
@@ -507,7 +510,9 @@ animations.
 
 ## The transport flash
 
-![Flash, hold and retract](images/capture-ring-flash.svg)
+The flash is the second half of [the clip above](#animation) — this section is the reading behind
+it. It is deliberately not embedded twice: the sweep is a fast, bright, repeating flicker, and one
+looping copy of it on a page is enough.
 
 With the stack up and still, the light runs through it one ring at a time — **twice, once each
 side of the transport.** Then the rings stand a beat and come home.

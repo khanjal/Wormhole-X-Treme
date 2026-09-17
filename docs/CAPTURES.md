@@ -9,19 +9,33 @@ This document is how to produce those loops so they are consistent with each oth
 to live in the repository, and cut to the right length. The lengths are not guesses: every
 animation in the plugin is driven by a tick constant, so the correct clip length is arithmetic.
 
-## Format: APNG, with GIF as the fallback
+## Format: animated WebP, with GIF as the fallback
 
 In a Markdown file in this repository, only `![](...)` images animate. A `<video>` tag is
 stripped by GitHub's sanitiser. Video files do play when uploaded through the GitHub web
 interface -- an issue, a pull request, a release -- so that is a good home for long or
-high-quality captures, but it cannot be relied on for a document in the repository.
+high-quality captures, but it cannot be relied on for a document in the repository. A store
+listing has the same constraint: SpigotMC's `[IMG]` takes an image, not a video.
 
-**Prefer APNG.** It is 24-bit, so the event horizon's gradient and the beam column's falloff do
-not posterise the way they do in GIF's 256-colour palette, and for this kind of footage it is
-frequently the smaller of the two. GitHub renders it. Give it a `.png` extension and it behaves
-like any other image.
+**Prefer animated WebP.** It is 24-bit, like APNG, so the event horizon's gradient and the beam
+column's falloff do not posterise the way they do in GIF's 256-colour palette -- and unlike APNG
+it compresses between frames properly. GitHub renders it; so does every browser since about 2020.
 
-Fall back to GIF only if something in the toolchain refuses APNG.
+**This advice used to say APNG, and that was wrong.** Measured on the real ring and mirror
+captures, for the same clip and the same source footage:
+
+| Format | Size | Resolution |
+|---|---|---|
+| Animated WebP | **255 KB** | 720px |
+| GIF, 64-colour palette | 827 KB | 520px |
+| APNG | 2876 KB | 480px |
+
+APNG is the largest by a wide margin, not the smallest. ffmpeg's APNG encoder stores whole
+frames, and hand-assembling one from a shared palette in Pillow did not close the gap. The order
+that actually holds for this footage is **WebP, then GIF, then APNG.**
+
+Encode with `-c:v libwebp_anim -lossless 0 -q:v 55` (`-q:v` around 55-60 is the sweet spot),
+and keep GIF in reserve only if something downstream refuses WebP.
 
 ## Weight budget
 
@@ -29,12 +43,22 @@ This repository's entire history is about **5.6 MiB packed**. One careless five-
 roughly doubles that, permanently -- git keeps every blob it has ever seen, and everyone who
 clones pays for it forever.
 
-So: **nothing committed here should exceed about 800 KB**, which is comfortable for a
-three-second clip at 640px and 20fps. If a capture will not fit, it is too long, too large, or
-the camera moved.
+So: **nothing committed here should exceed about 800 KB**, which in WebP is comfortable for a
+three-to-four-second clip at 720px and 20fps. If a capture will not fit, it is too long, too
+large, or the camera moved.
+
+**A locked camera is worth more than any encoder setting.** Measured on two takes of the same
+ring cycle: the first drifted slightly, and cost 1040 KB for 2.7 spliced seconds at 440px. The
+second was locked -- frame-to-frame motion of 0.007 against 0.05 -- and gave the full 2.8-second
+cycle, uncut, at 520px, for 827 KB. Every format wins when most of the frame is identical to the
+one before it, and none of them can rescue a shot where nothing holds still. A five-second clip
+with the camera panning throughout came to 3-5 MB as a GIF and 1.8 MB even as H.264; the same
+duration locked off is a few hundred KB.
 
 For full-quality or long-form captures, attach the MP4 to a GitHub release instead. Those live on
-GitHub's CDN and cost the repository nothing.
+GitHub's CDN and cost the repository nothing. Note that anything shot to show *parallax* -- a
+mirror's view shifting as you move past it -- needs the camera to move by definition, so those
+clips are expensive and belong either in a release or trimmed hard.
 
 ## The shot list
 
