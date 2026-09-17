@@ -188,9 +188,14 @@ public final class FreyaCompanion
      */
     public static boolean catchUp(final Player owner)
     {
-        if ((owner == null) || !FreyaPreferences.isEnabled(owner.getUniqueId())
-            || isAway(owner.getUniqueId()))
+        if ((owner == null) || !FreyaPreferences.isEnabled(owner.getUniqueId()))
         {
+            return false;
+        }
+        if (isAway(owner.getUniqueId()))
+        {
+            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": away while they "
+                + (ASLEEP.contains(owner.getUniqueId()) ? "sleep" : "are hunted"));
             return false;
         }
         final Cat before = LIVE.get(owner.getUniqueId());

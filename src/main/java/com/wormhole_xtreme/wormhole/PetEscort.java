@@ -39,8 +39,13 @@ public final class PetEscort
      */
     public static List<Entity> gather(final Player owner)
     {
-        if ((owner == null) || !ConfigManager.isPetsFollowOwner())
+        if (owner == null)
         {
+            return List.of();
+        }
+        if (!ConfigManager.isPetsFollowOwner())
+        {
+            PluginLog.log(Level.FINE, "Pets stay behind: pets-follow-owner is off");
             return List.of();
         }
         final List<Entity> pets = new ArrayList<>();
@@ -62,6 +67,7 @@ public final class PetEscort
         catch (final RuntimeException e)
         {
             // A pet left behind is not worth failing the owner's own trip over.
+            PluginLog.log(Level.FINE, "Could not look for " + owner.getName() + "'s pets", e);
             return List.of();
         }
         if (explain)
