@@ -9,19 +9,33 @@ This document is how to produce those loops so they are consistent with each oth
 to live in the repository, and cut to the right length. The lengths are not guesses: every
 animation in the plugin is driven by a tick constant, so the correct clip length is arithmetic.
 
-## Format: APNG, with GIF as the fallback
+## Format: animated WebP, with GIF as the fallback
 
 In a Markdown file in this repository, only `![](...)` images animate. A `<video>` tag is
 stripped by GitHub's sanitiser. Video files do play when uploaded through the GitHub web
 interface -- an issue, a pull request, a release -- so that is a good home for long or
-high-quality captures, but it cannot be relied on for a document in the repository.
+high-quality captures, but it cannot be relied on for a document in the repository. A store
+listing has the same constraint: SpigotMC's `[IMG]` takes an image, not a video.
 
-**Prefer APNG.** It is 24-bit, so the event horizon's gradient and the beam column's falloff do
-not posterise the way they do in GIF's 256-colour palette, and for this kind of footage it is
-frequently the smaller of the two. GitHub renders it. Give it a `.png` extension and it behaves
-like any other image.
+**Prefer animated WebP.** It is 24-bit, like APNG, so the event horizon's gradient and the beam
+column's falloff do not posterise the way they do in GIF's 256-colour palette -- and unlike APNG
+it compresses between frames properly. GitHub renders it; so does every browser since about 2020.
 
-Fall back to GIF only if something in the toolchain refuses APNG.
+**This advice used to say APNG, and that was wrong.** Measured on the real ring and mirror
+captures, for the same clip and the same source footage:
+
+| Format | Size | Resolution |
+|---|---|---|
+| Animated WebP | **255 KB** | 720px |
+| GIF, 64-colour palette | 827 KB | 520px |
+| APNG | 2876 KB | 480px |
+
+APNG is the largest by a wide margin, not the smallest. ffmpeg's APNG encoder stores whole
+frames, and hand-assembling one from a shared palette in Pillow did not close the gap. The order
+that actually holds for this footage is **WebP, then GIF, then APNG.**
+
+Encode with `-c:v libwebp_anim -lossless 0 -q:v 55` (`-q:v` around 55-60 is the sweet spot),
+and keep GIF in reserve only if something downstream refuses WebP.
 
 ## Weight budget
 
@@ -29,12 +43,22 @@ This repository's entire history is about **5.6 MiB packed**. One careless five-
 roughly doubles that, permanently -- git keeps every blob it has ever seen, and everyone who
 clones pays for it forever.
 
-So: **nothing committed here should exceed about 800 KB**, which is comfortable for a
-three-second clip at 640px and 20fps. If a capture will not fit, it is too long, too large, or
-the camera moved.
+So: **nothing committed here should exceed about 800 KB**, which in WebP is comfortable for a
+three-to-four-second clip at 720px and 20fps. If a capture will not fit, it is too long, too
+large, or the camera moved.
+
+**A locked camera is worth more than any encoder setting.** Measured on two takes of the same
+ring cycle: the first drifted slightly, and cost 1040 KB for 2.7 spliced seconds at 440px. The
+second was locked -- frame-to-frame motion of 0.007 against 0.05 -- and gave the full 2.8-second
+cycle, uncut, at 520px, for 827 KB. Every format wins when most of the frame is identical to the
+one before it, and none of them can rescue a shot where nothing holds still. A five-second clip
+with the camera panning throughout came to 3-5 MB as a GIF and 1.8 MB even as H.264; the same
+duration locked off is a few hundred KB.
 
 For full-quality or long-form captures, attach the MP4 to a GitHub release instead. Those live on
-GitHub's CDN and cost the repository nothing.
+GitHub's CDN and cost the repository nothing. Note that anything shot to show *parallax* -- a
+mirror's view shifting as you move past it -- needs the camera to move by definition, so those
+clips are expensive and belong either in a release or trimmed hard.
 
 ## The shot list
 
@@ -127,52 +151,45 @@ flicker, and an infinite strobe on a documentation page is genuinely unpleasant 
 Keep loops short. For the flash specifically, consider a still frame that links through to the
 animation rather than embedding it to run forever.
 
-## The placeholders
+## What was shot, and where it landed
 
-Every slot listed above currently holds a slate: `docs/images/capture-*.svg`, a dark tile naming
-the shot, its length and the filename that should replace it. They are deliberately plain. A
-placeholder that looks finished is worse than no placeholder, because a reader takes it for the
-real thing -- which is exactly the trap `gate-placeholder.svg` fell into, and the reason the
-project logo was not reused here despite being the obvious thing to hand.
+Every slot this document was written for is filled. The slates -- `docs/images/capture-*.svg`,
+dark tiles naming a shot and its length -- have been deleted along with
+`gate-placeholder.png` and `gate-placeholder.svg` before them.
 
-To replace one:
+| Capture | File | Appears in |
+|---|---|---|
+| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [GATES.md](GATES.md#animation), [guide/README.md](guide/README.md) |
+| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [GATES.md](GATES.md#shapes), [guide/README.md](guide/README.md) |
+| `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [GATES.md](GATES.md#shapes) |
+| The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [GATES.md](GATES.md#palettes-are-separate-from-shapes), [GATES.md](GATES.md#the-iris) |
+| A ring pair's whole cycle | `rings/ring-cycle.webp` | [RINGS.md](RINGS.md#animation), [guide/README.md](guide/README.md) |
+| A traveller leaving in a column of light | `beams/beam-up.webp` | [BEAMS.md](BEAMS.md#the-sequence) |
+| A mirror opening onto another world | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| A mirror repainting itself | `mirrors/mirror-look.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#its-look) |
+| A mirror's view shifting as you move | `mirrors/mirror-effects.webp` | listing art; not embedded |
 
-1. Capture and convert, writing to the target filename in the table above.
-2. Update the `![](...)` reference in the document from `capture-<id>.svg` to the new file.
-3. Delete the slate.
-4. Check the committed file is under 800 KB.
+**Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
+-- you vanish six steps into a twelve-tick envelope, long before there is time to reach the far
+end -- so it needs a second player at the destination. And the *iris turning somebody back* was
+dropped rather than shot: the palette sheet already shows the iris closed in all four palettes,
+which is what the section is actually about.
 
-The slates are a few kilobytes each, so leaving some in place indefinitely costs nothing.
-
-## Where the slots are
-
-| Document | Slots |
-|---|---|
-| [guide/README.md](guide/README.md) | A built gate, dial and kawoosh, ring countdown and deploy |
-| [GATES.md](GATES.md) | Dial and kawoosh (Animation), iris (The iris) |
-| [RINGS.md](RINGS.md) | Countdown and deploy, flash and retract (Animation, The transport flash) |
-| [BEAMS.md](BEAMS.md) | A whole beam cycle (The sequence) |
-
-`gate-placeholder.png` (a single transparent pixel) and `gate-placeholder.svg` (a grey circle
-labelled "Gate Placeholder") were the older, vaguer version of this same idea. The guide's slots
-replaced the only reference to them, so they were deleted rather than left orphaned in the
-directory.
+**The rings and the beam both needed spectator mode.** A third-person camera is pushed inside a
+deploying ring stack, so the shot cannot be framed from outside in survival or creative. In
+spectator the camera has no collision, and the 60-tick countdown is long enough to arm the ring
+and fly back out before anything rises.
 
 ## The diagrams are not these captures
 
-`docs/images/gates/`, `docs/images/rings/` and `docs/images/beams/` hold generated drawings
-— gate shapes, ring footprints, deploy filmstrips, the beam's timing — and none of them
-fills a slot above. They are schematics of
-the geometry, drawn from the plugin's own shape files and constants, and they say what a thing
-*is*. A capture says what it *looks like*, which is a different question and the one a video
-answers: flat colour keyed to a block cannot show the event horizon's gradient, the particle
-column, or the way the kawoosh reads at speed.
+`docs/images/gates/`, `docs/images/rings/` and `docs/images/beams/` also hold generated drawings
+-- gate shapes, ring footprints, deploy filmstrips, the beam's timing. They are schematics of the
+geometry, drawn from the plugin's own shape files and constants, and they say what a thing *is*.
+A capture says what it *looks like*, which is a different question: flat colour keyed to a block
+cannot show the event horizon's gradient, the particle column, or the way the kawoosh reads at
+speed. Several sections now carry both, and that is the intent rather than duplication.
 
 The two are also licensed differently, which is worth keeping straight. The diagrams are ours,
 drawn from our files. A capture is a screenshot or a recording of Minecraft, which is Mojang's
-to permit and which their terms do permit — while the game's *textures* are not ours to
-redistribute, which is precisely why the diagrams are flat colour rather than the real
-artwork.
-
-So the slates stay where they are. A slot with a slate in it is still waiting for a capture,
-whatever diagrams have appeared elsewhere in the same document.
+to permit and which their terms do permit -- while the game's *textures* are not ours to
+redistribute, which is precisely why the diagrams are flat colour rather than the real artwork.

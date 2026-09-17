@@ -36,7 +36,7 @@ A gate is one `Stargate` object holding the world positions of everything the sh
 | Chevrons | `[C]` | Frame blocks built from a second material, so they read as chevrons before they light |
 | Portal | `[P]` | Air until the gate opens, then the drawn event horizon |
 | Name sign | `:N` | Always placed; shows the gate's name, network and owner |
-| Dial sign | `:D` | Optional; makes the gate sign-dialled rather than `/dial`-only |
+| Dial sign | `:D` | Optional; makes the button dial what the sign shows, rather than wait for `/dial` |
 | DHD | `:A` | The button or lever that activates it |
 | Iris lever | `:IA` | Optional; without it the gate cannot take an iris |
 | Player arrival | `:EP` | Where a traveller's feet land |
@@ -112,6 +112,19 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 <!-- shapes:end -->
 
+And the same six in game, in the `Standard` palette — idle, then dialled. The camera does not
+move between panels, so the size differences are honest: `Minimal` really is that small beside
+`Massive`.
+
+![The six shipped shapes, idle](images/gates/gate-shapes.png)
+
+![The six shipped shapes, dialled](images/gates/gate-shapes-active.png)
+
+`Horizontal` is the one the grid above cannot show, because it lies flat and is dropped into
+rather than walked through:
+
+![A Horizontal gate, idle and dialled](images/gates/gate-horizontal.png)
+
 ### What a sign dial adds
 
 ![A plain DHD and a sign dial, side by side](images/gates/dhd.svg)
@@ -163,6 +176,20 @@ light.
 | `MilkyWay` | `DEEPSLATE` | `WATER` | `IRON_BLOCK` | `SHROOMLIGHT` | `OAK_WALL_SIGN` | *(none)* |
 
 <!-- palettes:end -->
+
+The same `Standard` gate in each of the four, in game. Only the blocks change — the shape file is
+identical across all of them.
+
+![The four palettes on a Standard gate](images/gates/standard-palettes.png)
+
+Dialled, where the chevrons are what separates them: each palette lights its own block, and a
+palette with no `chevron` key has no unlit chevron to light at all.
+
+![The four palettes, dialled](images/gates/standard-palettes-active.png)
+
+And with the iris closed, which is a fifth block per palette:
+
+![The four palettes with the iris closed](images/gates/standard-palettes-iris.png)
 
 ## Detection
 
@@ -360,7 +387,10 @@ unrelated second gate was switched off early.
 
 ## The iris
 
-![Iris turning somebody back](images/capture-gate-iris.svg)
+![The iris closed, in each of the four palettes](images/gates/standard-palettes-iris.png)
+
+Each palette closes its own block, which is why the iris is a fifth material rather than one
+shared shield.
 
 The iris is a shield, and unlike the portal it is **real blocks** — it has to stop things, and a
 drawing cannot. Opening it on an active gate returns the interior to air with the portal drawn
@@ -394,7 +424,10 @@ solid than the real one, so it is only sent where the eye is in open air.
 
 ## Animation
 
-![Dial and kawoosh](images/capture-gate-dial.svg)
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](images/gates/gate-dial.webp)
+
+A `Standard` gate, slowed to five quarters of real time. The frame count is shape-dependent, so
+a `Grand` runs visibly longer than this.
 
 **Chevrons light one at a time**, in `:L#n` order, over the activation sequence. A shape with
 three lighting steps climbs the same distance as one with seven, in bigger steps.

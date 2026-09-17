@@ -21,15 +21,15 @@ is holding open, how long it should run and what the finished file is called;
 [CAPTURES.md](../CAPTURES.md) has the shot list, the tick arithmetic behind each length, and the
 ffmpeg commands.
 
-**A finished gate.** Its sign, its DHD, and the shape of the thing.
+**A finished gate.** All six shipped shapes, built and idle, from one camera position.
 
-![A built gate](../images/capture-gate-anatomy.svg)
+![The six shipped shapes, built](../images/gates/gate-shapes.png)
 
 **Dialling.** Chevrons light in sequence, then the horizon erupts and settles.
 
-![Dial and kawoosh](../images/capture-gate-dial.svg)
+![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
 **Transport rings.** The pad lights, counts down, and four rings rise around whoever is standing
 on it.
 
-![Ring countdown and deploy](../images/capture-ring-deploy.svg)
+![A ring pair firing: the stack rises, the light runs through it, the rings come home](../images/rings/ring-cycle.webp)
