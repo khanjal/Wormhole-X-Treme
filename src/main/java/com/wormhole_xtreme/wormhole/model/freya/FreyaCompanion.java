@@ -102,10 +102,6 @@ public final class FreyaCompanion
             {
                 summoning = false;
             }
-            if (cat == null)
-            {
-                return null;
-            }
             // Read from the event, not isValid: after a cross-world trip she is not valid for a few ticks.
             if (summonRefused)
             {

@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.freya;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -130,7 +131,7 @@ public final class FreyaPreferences
     {
         final File target = DataLayout.freyaFile();
         // An undeletable file is emptied instead, or the last id would load again next start.
-        if (ENABLED.isEmpty() && (!target.exists() || target.delete()))
+        if (ENABLED.isEmpty() && deleted(target))
         {
             return;
         }
@@ -157,6 +158,27 @@ public final class FreyaPreferences
         catch (final IOException e)
         {
             PluginLog.log(Level.WARNING, "Failed to write companion file: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Removes the file, if it is there.
+     *
+     * @param target
+     *            the companion file
+     * @return true if it is gone, false if it could not be removed
+     */
+    private static boolean deleted(final File target)
+    {
+        try
+        {
+            Files.deleteIfExists(target.toPath());
+            return true;
+        }
+        catch (final IOException e)
+        {
+            PluginLog.log(Level.FINE, "Could not remove the companion file; emptying it instead", e);
+            return false;
         }
     }
 
