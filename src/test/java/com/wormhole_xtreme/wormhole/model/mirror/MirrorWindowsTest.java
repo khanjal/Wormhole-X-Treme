@@ -405,6 +405,47 @@ class MirrorWindowsTest
     }
 
     /**
+     * In front of a mirror in a wall, a move that leaves the eye where it was does not look for
+     * windows again.
+     *
+     * <p>A player turning their head moves without going anywhere, many times a second. The view
+     * of a walled mirror is the same from every eye, so a move is judged unchanged without being
+     * redrawn, and the eye it was judged at is kept so the next move to the same place is turned
+     * away before any of that: looking for the windows a player sees casts a line to every opening.
+     */
+    @Test
+    void inFrontOfAWalledMirrorTurningOnTheSpotDoesNotLookForWindowsAgain()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final long[] looks = new long[3];
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
+            looks[0] = looksForWindows(viewer);
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
+            looks[1] = looksForWindows(viewer);
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 10.4));
+            looks[2] = looksForWindows(viewer);
+        });
+
+        assertEquals(looks[0], looks[1], "the same place again: not looked for");
+        assertTrue(looks[2] > looks[1], "somewhere new is: " + looks[1] + " then " + looks[2]);
+    }
+
+    /** How many times the windows a viewer sees have been looked for, which starts from where they stand. */
+    private static long looksForWindows(final Player viewer)
+    {
+        return mockingDetails(viewer).getInvocations().stream()
+            .filter(call -> "getLocation".equals(call.getMethod().getName())).count();
+    }
+
+    /**
      * A far side turned round is drawn with its blocks turned too, each state turned once.
      *
      * <p>"The glass panes aren't connecting." A pane's connections are compass directions; the
@@ -704,6 +745,60 @@ class MirrorWindowsTest
             + mockingDetails(second).getInvocations().stream()
                 .filter(call -> "sendBlockChanges".equals(call.getMethod().getName())).count();
         assertEquals(1, sent, "the first viewer drawn, the second kept waiting");
+    }
+
+    /**
+     * A viewer who moves while the server's share of work is spent is drawn from there once there
+     * is room, without moving again.
+     *
+     * <p>The move is kept and a catch-up booked. Without it, a viewer who stepped in front of a
+     * mirror during a busy second and then stood still kept the view from where they had been
+     * until the next sweep, or the next time they moved. A gap in the wall, so the view depends on
+     * the eye.
+     */
+    @Test
+    void aMoveWhileTheShareIsSpentIsDrawnOnceThereIsRoom() throws Exception
+    {
+        gap = new Spot(16, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final String[] from = new String[3];
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                from[0] = drawnFrom(viewer);
+                MirrorWindows.workPerSecond = 1;
+                clock[0] += 200L;
+                MirrorWindows.moved(viewer, new Location(world, 13.5, 64.0, 7.5));
+                from[1] = drawnFrom(viewer);
+                MirrorWindows.workPerSecond = Integer.MAX_VALUE;
+                runBooked(scheduler);
+                from[2] = drawnFrom(viewer);
+            });
+
+            assertEquals("10,65,7", from[0]);
+            assertEquals(from[0], from[1], "no work to spare: kept as drawn");
+            assertEquals("13,65,7", from[2], "then drawn from where they moved to");
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /** Where a viewer's last redraw was drawn from, off the debug line. */
+    private static String drawnFrom(final Player viewer)
+    {
+        return MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain)
+            .filter(line -> line.startsWith("drawn from: ")).findFirst().orElseThrow()
+            .substring("drawn from: ".length());
     }
 
     /**
@@ -1156,6 +1251,28 @@ class MirrorWindowsTest
     @Test
     void aRoomCutToFitUnderTheCapSaysSo()
     {
+        MirrorWindows.mostFixed = 100;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
+            && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
+    }
+
+    /**
+     * A room from a capture taken on a server is cut to fit under the cap too.
+     *
+     * <p>A capture keeps only what could be seen, and its room is built by walking what it kept
+     * rather than the volume; the test above builds from a capture that holds everything. Uncut,
+     * a room past the cap is held whole however many blocks it is.
+     */
+    @Test
+    void aRoomFromAPrunedCaptureIsCutToFitUnderTheCapToo()
+    {
+        MirrorCaptures.install(arrival, prunedGroundBelow(arrival, 70, farOneBlock));
         MirrorWindows.mostFixed = 100;
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
