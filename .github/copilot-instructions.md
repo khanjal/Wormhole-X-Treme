@@ -120,7 +120,9 @@ All scheduled tasks run on the main server thread (sync). Do not use async tasks
 ### What NOT To Do
 - Do not turn a scheduled task into a lambda — see the `Runnable` note above. Lambdas and method
   references are fine everywhere else.
-- Do not add `@SuppressWarnings` without a specific reason.
+- Do not add `@SuppressWarnings` without a specific reason, written as a comment directly above
+  it (or in the class Javadoc for a class-level one). Update the table in
+  `docs/DEVELOPMENT.md` when you add or remove one.
 - Do not call `Thread.sleep()` or any blocking operation on the main thread.
 - Do not use NMS (net.minecraft.server) reflection unless all other options are exhausted and the approach is clearly documented.
 - Do not add unnecessary abstractions or helper classes for one-off operations.
