@@ -35,10 +35,12 @@ notes.
 - **One kind of slab.** It becomes the ring's material — deepslate slabs rise as deepslate.
 - **All facing the same way.** Bottom slabs on a floor make a floor ring; top slabs under a ceiling
   make a ceiling ring. Double slabs are refused.
-- **Four blocks of headroom** above a floor ring.
+- **Four blocks of headroom** above a floor ring: the finished stack stands that tall.
 - **A ceiling ring needs a room four to ten blocks tall**, since its rings fall to the floor.
 - Not overlapping another ring or a gate, and within 256 blocks across and 384 in height of its
   partner.
+
+<img src="../images/rings/stack.svg" width="252" alt="the finished ring stack in elevation">
 
 A refusal says exactly what is wrong. `/wormhole ring cancel` abandons a half-built pair and gives
 its slabs back; `/wormhole ring remove` lays both circles back out so a pair can be moved.

@@ -40,6 +40,11 @@ Permissions are listed under [Permissions](SERVER.md#permissions).
 
 ## Settings
 
+The six timings, tick by tick; the descend column starts at the teleport, so the whole trip is
+52 ticks rather than the 58 the phases add up to.
+
+![The beam sequence, tick by tick](../images/beams/timing.svg)
+
 | Setting | Default | What it does |
 |---|---|---|
 | `beam-envelop-ticks` | 12 | How long the glow gathers. You can still move during this. |
