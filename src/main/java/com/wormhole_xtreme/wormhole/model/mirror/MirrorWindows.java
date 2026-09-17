@@ -1928,7 +1928,7 @@ public final class MirrorWindows
             + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
-            if (entity instanceof Player)
+            if (!veilable(entity))
             {
                 continue;
             }
@@ -1956,6 +1956,22 @@ public final class MirrorWindows
                 }
             }
         }
+    }
+
+    /**
+     * Whether a mirror may hide this entity from a viewer.
+     *
+     * <p>Not a player, which would drop off the tab list. Not a companion either: she is hidden
+     * by default, so a hide takes her from her owner and the later show hands her to a stranger.
+     *
+     * @param entity
+     *            an entity near the viewer
+     * @return true if a mirror may veil it
+     */
+    static boolean veilable(final Entity entity)
+    {
+        return !(entity instanceof Player)
+            && !com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(entity);
     }
 
     /** Hides from a viewer what is now inside their view, and shows again what no longer is. */
