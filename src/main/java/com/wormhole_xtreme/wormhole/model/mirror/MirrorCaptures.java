@@ -617,8 +617,8 @@ public final class MirrorCaptures
             maxY = box[4];
             maxZ = box[5];
             builder = new MirrorCapture.Builder(far.getName(),
-                far.getEnvironment() == World.Environment.NORMAL, minX, minY, minZ,
-                (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1,
+                far.getEnvironment() == World.Environment.NORMAL,
+                new MirrorCapture.Box(minX, minY, minZ, (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1),
                 Bukkit.createBlockData(Material.AIR));
             for (int chunkX = minX >> 4; chunkX <= (maxX >> 4); chunkX++)
             {
@@ -742,9 +742,8 @@ public final class MirrorCaptures
                 }
             }
             final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
-            final int arrivalX = (int) Math.floor(destination.x());
-            final int arrivalY = (int) Math.floor(destination.y());
-            final int arrivalZ = (int) Math.floor(destination.z());
+            final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),
+                (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z());
             final int depth = reach(far);
             final int floor = ConfigManager.getMirrorViewDepth();
             reachAsked = depth;
@@ -753,8 +752,7 @@ public final class MirrorCaptures
             // nothing here reads the world again.
             final Runnable work = () ->
             {
-                reachKept = builder.keepOnlySeenWithin(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth,
-                    floor, MOST_KEPT);
+                reachKept = builder.keepOnlySeenWithin(arrival, depth, floor, MOST_KEPT);
                 builder.prune();
             };
             final Runnable again = () ->

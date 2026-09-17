@@ -80,44 +80,28 @@ public final class MirrorCapture
     private final long[] columns;
     /** The highest such block in each, as an offset from the box's floor, in step. */
     private final short[] tops;
-    /**
-     * Every column with air that can be seen, as {@code (dx << 20) | dz}, ascending; the air in
-     * a column is a few runs, and a desert at the render distance is a hundred thousand columns
-     * rather than tens of millions of blocks of air.
-     */
-    private final long[] airColumns;
-    /** Where each column's runs start in {@link #airFrom} and {@link #airTo}, with one past the end last. */
-    private final int[] airFirst;
-    /** Each run's first y, as an offset from the box's floor. */
-    private final short[] airFrom;
-    /** Each run's last y, likewise. */
-    private final short[] airTo;
+    /** The air that can be seen, which has no entries. */
+    private final MirrorSeenAir air;
     private BlockData standIn;
 
-    private MirrorCapture(final String worldName, final boolean hasSky, final boolean complete,
-        final int minX, final int minY, final int minZ, final int sizeX, final int sizeY, final int sizeZ,
-        final long takenAt, final String[] names, final BlockData[] states, final long[] cells,
-        final short[] values, final long[] airColumns, final int[] airFirst, final short[] airFrom,
-        final short[] airTo)
+    private MirrorCapture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
+        final long takenAt, final Blocks blocks, final MirrorSeenAir air)
     {
-        this.airColumns = airColumns;
-        this.airFirst = airFirst;
-        this.airFrom = airFrom;
-        this.airTo = airTo;
+        this.air = air;
         this.worldName = worldName;
         this.hasSky = hasSky;
         this.complete = complete;
-        this.minX = minX;
-        this.minY = minY;
-        this.minZ = minZ;
-        this.sizeX = sizeX;
-        this.sizeY = sizeY;
-        this.sizeZ = sizeZ;
+        this.minX = box.minX();
+        this.minY = box.minY();
+        this.minZ = box.minZ();
+        this.sizeX = box.sizeX();
+        this.sizeY = box.sizeY();
+        this.sizeZ = box.sizeZ();
         this.takenAt = takenAt;
-        this.names = names;
-        this.states = states;
-        this.cells = cells;
-        this.values = values;
+        this.names = blocks.names;
+        this.states = blocks.states;
+        this.cells = blocks.cells;
+        this.values = blocks.values;
         // The highest block that is not air in each column, which the drawing skips sky above.
         final Map<Long, Integer> highest = new HashMap<>();
         for (int i = 0; i < cells.length; i++)
@@ -141,6 +125,61 @@ public final class MirrorCapture
     private static long cell(final int dx, final int dy, final int dz)
     {
         return (((long) dx) << 40) | (((long) dz) << 20) | dy;
+    }
+
+    /**
+     * The box a capture covers.
+     *
+     * @param minX
+     *            its lowest x
+     * @param minY
+     *            its lowest y
+     * @param minZ
+     *            its lowest z
+     * @param sizeX
+     *            blocks along x
+     * @param sizeY
+     *            blocks along y
+     * @param sizeZ
+     *            blocks along z
+     */
+    public record Box(int minX, int minY, int minZ, int sizeX, int sizeY, int sizeZ)
+    {
+    }
+
+    /**
+     * Where a traveller arrives, which the opening's bottom row shows, and the way they face.
+     *
+     * @param x
+     *            the block arrived in
+     * @param y
+     *            its y
+     * @param z
+     *            its z
+     * @param aheadX
+     *            one step the way a traveller faces on arrival, x
+     * @param aheadZ
+     *            the same, z
+     */
+    public record Arrival(int x, int y, int z, int aheadX, int aheadZ)
+    {
+    }
+
+    /** The palette and the entries that index into it, as a capture is made from them. */
+    private static final class Blocks
+    {
+        private final String[] names;
+        private final BlockData[] states;
+        private final long[] cells;
+        private final short[] values;
+
+        Blocks(final String[] names, final BlockData[] states, final long[] cells, final short[] values)
+        {
+            this.names = names;
+            this.states = states;
+            this.cells = cells;
+            this.values = values;
+        }
     }
 
     /**
@@ -196,34 +235,22 @@ public final class MirrorCapture
          *            the far world
          * @param hasSky
          *            whether the far world has a sky
-         * @param minX
-         *            the box's lowest x
-         * @param minY
-         *            the box's lowest y
-         * @param minZ
-         *            the box's lowest z
-         * @param sizeX
-         *            blocks along x
-         * @param sizeY
-         *            blocks along y
-         * @param sizeZ
-         *            blocks along z
+         * @param box
+         *            the blocks it covers
          * @param air
          *            what air is, which becomes index 0; null before the server can make block
          *            data, in which case it is made from its name the first time it is needed
          */
-        public Builder(final String worldName, final boolean hasSky, final int minX,
-            final int minY, final int minZ, final int sizeX, final int sizeY, final int sizeZ,
-            final BlockData air)
+        public Builder(final String worldName, final boolean hasSky, final Box box, final BlockData air)
         {
             this.worldName = worldName;
             this.hasSky = hasSky;
-            this.minX = minX;
-            this.minY = minY;
-            this.minZ = minZ;
-            this.sizeX = sizeX;
-            this.sizeY = sizeY;
-            this.sizeZ = sizeZ;
+            this.minX = box.minX();
+            this.minY = box.minY();
+            this.minZ = box.minZ();
+            this.sizeX = box.sizeX();
+            this.sizeY = box.sizeY();
+            this.sizeZ = box.sizeZ();
             final int volume = sizeX * sizeY * sizeZ;
             this.filled = new BitSet(volume);
             this.solid = new BitSet(volume);
@@ -424,25 +451,7 @@ public final class MirrorCapture
          */
         public void prune()
         {
-            final BitSet open = new BitSet(filled.size());
-            for (int dx = 1; dx < (sizeX - 1); dx++)
-            {
-                for (int dz = 1; dz < (sizeZ - 1); dz++)
-                {
-                    for (int dy = 1; dy < (sizeY - 1); dy++)
-                    {
-                        final int at = offset(dx, dy, dz, sizeY, sizeZ);
-                        if (!solid.get(at) || !solid.get(at - 1) || !solid.get(at + 1)
-                            || !solid.get(offset(dx - 1, dy, dz, sizeY, sizeZ))
-                            || !solid.get(offset(dx + 1, dy, dz, sizeY, sizeZ))
-                            || !solid.get(offset(dx, dy, dz - 1, sizeY, sizeZ))
-                            || !solid.get(offset(dx, dy, dz + 1, sizeY, sizeZ)))
-                        {
-                            open.set(at);
-                        }
-                    }
-                }
-            }
+            final BitSet open = withAnOpenFace();
             final BitSet keep = (kept == null) ? all() : kept;
             for (int dx = 1; dx < (sizeX - 1); dx++)
             {
@@ -464,6 +473,31 @@ public final class MirrorCapture
             }
             kept = keep;
             complete = false;
+        }
+
+        /** Every block inside the box's edge that is not solid or has a neighbour that is not. */
+        private BitSet withAnOpenFace()
+        {
+            final BitSet open = new BitSet(filled.size());
+            for (int dx = 1; dx < (sizeX - 1); dx++)
+            {
+                for (int dz = 1; dz < (sizeZ - 1); dz++)
+                {
+                    for (int dy = 1; dy < (sizeY - 1); dy++)
+                    {
+                        final int at = offset(dx, dy, dz, sizeY, sizeZ);
+                        if (!solid.get(at) || !solid.get(at - 1) || !solid.get(at + 1)
+                            || !solid.get(offset(dx - 1, dy, dz, sizeY, sizeZ))
+                            || !solid.get(offset(dx + 1, dy, dz, sizeY, sizeZ))
+                            || !solid.get(offset(dx, dy, dz - 1, sizeY, sizeZ))
+                            || !solid.get(offset(dx, dy, dz + 1, sizeY, sizeZ)))
+                        {
+                            open.set(at);
+                        }
+                    }
+                }
+            }
+            return open;
         }
 
         private BitSet all()
@@ -499,16 +533,8 @@ public final class MirrorCapture
          * Never short of {@code floor}, the view depth: a view drawn past its capture would run
          * out of room, so a room that is still too big at the depth is kept as it is.
          *
-         * @param arrivalX
-         *            the block a traveller arrives in
-         * @param arrivalY
-         *            its y
-         * @param arrivalZ
-         *            its z
-         * @param aheadX
-         *            one step the way a traveller faces on arrival, x
-         * @param aheadZ
-         *            the same, z
+         * @param from
+         *            where a traveller arrives, and the way they face
          * @param reach
          *            how far to see, to begin with
          * @param floor
@@ -517,16 +543,15 @@ public final class MirrorCapture
          *            how many blocks that are not air may be kept
          * @return how far this ended up seeing
          */
-        public int keepOnlySeenWithin(final int arrivalX, final int arrivalY, final int arrivalZ,
-            final int aheadX, final int aheadZ, final int reach, final int floor, final int budget)
+        public int keepOnlySeenWithin(final Arrival from, final int reach, final int floor, final int budget)
         {
             int to = reach;
-            keepOnlySeen(arrivalX, arrivalY, arrivalZ, aheadX, aheadZ, to);
+            keepOnlySeen(from, to);
             while ((keptCount() > budget) && (to > floor))
             {
                 // A shorter pass keeps a subset of the last: what a ray sees to 24 it saw to 32.
                 to = Math.max(floor, (to * 3) / 4);
-                keepOnlySeen(arrivalX, arrivalY, arrivalZ, aheadX, aheadZ, to);
+                keepOnlySeen(from, to);
             }
             return to;
         }
@@ -548,59 +573,15 @@ public final class MirrorCapture
          * far hill, for nothing. Lava ends a ray as stone does, and water ends one after
          * {@link #WATER_SIGHT} blocks of it, which is about where the game's own fog would.
          *
-         * @param arrivalX
-         *            the block a traveller arrives in, which the opening's bottom row shows
-         * @param arrivalY
-         *            its y
-         * @param arrivalZ
-         *            its z
-         * @param aheadX
-         *            one step the way a traveller faces on arrival, x
-         * @param aheadZ
-         *            the same, z
+         * @param from
+         *            where a traveller arrives, and the way they face
          * @param depth
          *            how far from the opening a view reaches
          */
-        public void keepOnlySeen(final int arrivalX, final int arrivalY, final int arrivalZ,
-            final int aheadX, final int aheadZ, final int depth)
+        public void keepOnlySeen(final Arrival from, final int depth)
         {
-            final int volume = sizeX * sizeY * sizeZ;
-            final BitSet seen = new BitSet(volume);
-            // The opening is a hole a block wide, two tall and a block deep, through the wall.
-            // A line of sight goes in at its front and out at its back, so what can be seen is
-            // bounded by the hole's own shape: nothing steeper than a block sideways or two up
-            // per block in. The back of the hole is the back of the block behind the arrival
-            // block, which is where the rays start; the front is a block further back.
-            // A hair inside the arrival block, whichever way it faces. On the boundary itself a ray
-            // facing north or west starts in the block behind, which for a mirror is its wall: every
-            // ray stopped where it began, and the capture kept nothing.
-            final double exitX = (arrivalX + 0.5) - ((0.5 - 1.0e-6) * aheadX);
-            final double exitZ = (arrivalZ + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
-            final int rightX = -aheadZ;
-            final int rightZ = aheadX;
-            final double reach = depth + 2.0;
-            final double step = Math.tan(Math.toRadians(1.0));
-            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
-            // than its room's, on whichever side its view turns that column to, so a room captured
-            // once serves a mirror of either width looking in either way.
-            for (int column = -4; column <= 4; column++)
-            {
-                final double across = column * 0.35;
-                for (double up = 0.1; up < 2.0; up += 0.2)
-                {
-                    // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
-                    {
-                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
-                        {
-                            final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
-                            ray(seen, exitX + ((across + sideways) * rightX), arrivalY + up + upward,
-                                exitZ + ((across + sideways) * rightZ), (aheadX + (sideways * rightX)) / length,
-                                upward / length, (aheadZ + (sideways * rightZ)) / length, reach);
-                        }
-                    }
-                }
-            }
+            final BitSet seen = new BitSet(sizeX * sizeY * sizeZ);
+            castRays(seen, from, depth + 2.0);
             // A block beside anything seen that can be seen through -- air, glass, a fence, water
             // -- has a face a viewer can see; the stone behind a fence and under a glass pane
             // were dropped when only air counted.
@@ -632,6 +613,50 @@ public final class MirrorCapture
             // Seen air is kept, so a view knows to carve the real world there.
             seenAir = (BitSet) seen.clone();
             seenAir.andNot(filled);
+        }
+
+        /** Marks what every ray through the opening passes, out to {@code reach}. */
+        private void castRays(final BitSet seen, final Arrival from, final double reach)
+        {
+            // The opening is a hole a block wide, two tall and a block deep, through the wall.
+            // A line of sight goes in at its front and out at its back, so what can be seen is
+            // bounded by the hole's own shape: nothing steeper than a block sideways or two up
+            // per block in. The back of the hole is the back of the block behind the arrival
+            // block, which is where the rays start; the front is a block further back.
+            // A hair inside the arrival block, whichever way it faces. On the boundary itself a ray
+            // facing north or west starts in the block behind, which for a mirror is its wall: every
+            // ray stopped where it began, and the capture kept nothing.
+            final int aheadX = from.aheadX();
+            final int aheadZ = from.aheadZ();
+            final double exitX = (from.x() + 0.5) - ((0.5 - 1.0e-6) * aheadX);
+            final double exitZ = (from.z() + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
+            final int rightX = -aheadZ;
+            final int rightZ = aheadX;
+            final double step = Math.tan(Math.toRadians(1.0));
+            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
+            // than its room's, on whichever side its view turns that column to, so a room captured
+            // once serves a mirror of either width looking in either way.
+            for (int column = -4; column <= 4; column++)
+            {
+                final double across = column * 0.35;
+                for (double up = 0.1; up < 2.0; up += 0.2)
+                {
+                    // From this point at the front of the hole, every direction out of its back.
+                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
+                    {
+                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
+                        {
+                            final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
+                            ray(seen,
+                                new double[] { (exitX + ((across + sideways) * rightX)) - minX,
+                                    (from.y() + up + upward) - minY, (exitZ + ((across + sideways) * rightZ)) - minZ },
+                                new double[] { (aheadX + (sideways * rightX)) / length, upward / length,
+                                    (aheadZ + (sideways * rightZ)) / length },
+                                reach);
+                        }
+                    }
+                }
+            }
         }
 
         /** Keeps the six blocks round one, where they are not air. */
@@ -670,12 +695,16 @@ public final class MirrorCapture
             return (tMax[1] < tMax[2]) ? 1 : 2;
         }
 
-        /** Follows one ray through the box, marking what it passes, until something solid or the edge. */
-        private void ray(final BitSet seen, final double ox, final double oy, final double oz,
-            final double dx, final double dy, final double dz, final double reach)
+        /**
+         * Follows one ray through the box, marking what it passes, until something solid or the edge.
+         *
+         * @param o
+         *            where it starts, from the box's corner
+         * @param d
+         *            its direction, of length one
+         */
+        private void ray(final BitSet seen, final double[] o, final double[] d, final double reach)
         {
-            final double[] o = { ox - minX, oy - minY, oz - minZ };
-            final double[] d = { dx, dy, dz };
             final int[] c = { (int) Math.floor(o[0]), (int) Math.floor(o[1]), (int) Math.floor(o[2]) };
             final int[] size = { sizeX, sizeY, sizeZ };
             final int[] stepOf = new int[3];
@@ -713,8 +742,43 @@ public final class MirrorCapture
         public MirrorCapture build()
         {
             // Sorted by position, the last word on each block winning: a block put and then
-            // cleared is air, and a block put twice is what it was put as last. Blocks put in
-            // order -- a fill, or a photograph column by column -- need no sorting.
+            // cleared is air, and a block put twice is what it was put as last.
+            final int[] byCell = byCell();
+            final long[] outCells = new long[count];
+            final short[] outValues = new short[count];
+            int out = 0;
+            for (int i = 0; i < count; i++)
+            {
+                final int which = byCell[i];
+                final long cell = cells[which];
+                if ((kept != null) && !kept.get(offsetOf(cell)))
+                {
+                    continue;
+                }
+                if ((out > 0) && (outCells[out - 1] == cell))
+                {
+                    outValues[out - 1] = values[which];
+                }
+                else
+                {
+                    outCells[out] = cell;
+                    outValues[out] = values[which];
+                    out++;
+                }
+            }
+            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
+                System.currentTimeMillis(),
+                new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
+                    Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
+                MirrorSeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
+        }
+
+        /**
+         * Every entry's index in order of position, entries for one block in the order they came.
+         * Blocks put in order -- a fill, or a photograph column by column -- need no sorting.
+         */
+        private int[] byCell()
+        {
             boolean ordered = true;
             for (int i = 1; ordered && (i < count); i++)
             {
@@ -738,81 +802,7 @@ public final class MirrorCapture
                     byCell[i] = boxed[i];
                 }
             }
-            final long[] outCells = new long[count];
-            final short[] outValues = new short[count];
-            int out = 0;
-            for (int i = 0; i < count; i++)
-            {
-                final int which = byCell[i];
-                final long cell = cells[which];
-                if ((kept != null) && !kept.get(offsetOf(cell)))
-                {
-                    continue;
-                }
-                if ((out > 0) && (outCells[out - 1] == cell))
-                {
-                    outValues[out - 1] = values[which];
-                }
-                else
-                {
-                    outCells[out] = cell;
-                    outValues[out] = values[which];
-                    out++;
-                }
-            }
-            // Seen air, a column at a time, as runs of y.
-            final List<Long> airColumns = new ArrayList<>();
-            final List<Integer> airFirst = new ArrayList<>();
-            final List<Short> airFrom = new ArrayList<>();
-            final List<Short> airTo = new ArrayList<>();
-            if (seenAir != null)
-            {
-                for (int dx = 0; dx < sizeX; dx++)
-                {
-                    for (int dz = 0; dz < sizeZ; dz++)
-                    {
-                        final int column = offset(dx, 0, dz, sizeY, sizeZ);
-                        int runFrom = -1;
-                        boolean any = false;
-                        for (int dy = 0; dy <= sizeY; dy++)
-                        {
-                            final boolean air = (dy < sizeY) && seenAir.get(column + dy) && !cleared.get(column + dy);
-                            if (air && (runFrom < 0))
-                            {
-                                runFrom = dy;
-                            }
-                            else if (!air && (runFrom >= 0))
-                            {
-                                if (!any)
-                                {
-                                    airColumns.add((((long) dx) << 20) | dz);
-                                    airFirst.add(airFrom.size());
-                                    any = true;
-                                }
-                                airFrom.add((short) runFrom);
-                                airTo.add((short) (dy - 1));
-                                runFrom = -1;
-                            }
-                        }
-                    }
-                }
-            }
-            airFirst.add(airFrom.size());
-            return new MirrorCapture(worldName, hasSky, complete, minX, minY, minZ, sizeX, sizeY, sizeZ,
-                System.currentTimeMillis(), names.toArray(new String[0]),
-                states.toArray(new BlockData[0]), Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out),
-                airColumns.stream().mapToLong(Long::longValue).toArray(),
-                airFirst.stream().mapToInt(Integer::intValue).toArray(), shorts(airFrom), shorts(airTo));
-        }
-
-        static short[] shorts(final List<Short> list)
-        {
-            final short[] array = new short[list.size()];
-            for (int i = 0; i < array.length; i++)
-            {
-                array[i] = list.get(i);
-            }
-            return array;
+            return byCell;
         }
 
         private int offsetOf(final long cell)
@@ -873,31 +863,13 @@ public final class MirrorCapture
     /** @return how many blocks of air that can be seen it keeps */
     public int seenAir()
     {
-        int air = 0;
-        for (int i = 0; i < airFrom.length; i++)
-        {
-            air += (airTo[i] - airFrom[i]) + 1;
-        }
-        return air;
+        return air.count();
     }
 
     /** Whether a block inside the box is air that can be seen, by the column runs. */
     private boolean seenAirAt(final int x, final int y, final int z)
     {
-        final int column = Arrays.binarySearch(airColumns, (((long) (x - minX)) << 20) | (z - minZ));
-        if (column < 0)
-        {
-            return false;
-        }
-        final int dy = y - minY;
-        for (int run = airFirst[column]; run < airFirst[column + 1]; run++)
-        {
-            if ((dy >= airFrom[run]) && (dy <= airTo[run]))
-            {
-                return true;
-            }
-        }
-        return false;
+        return air.has(x - minX, y - minY, z - minZ);
     }
 
     /**
@@ -1066,18 +1038,7 @@ public final class MirrorCapture
             kept.at(minX + (int) (cell >>> 40), minY + (int) (cell & 0xFFFFF), minZ + (int) ((cell >>> 20) & 0xFFFFF),
                 values[i] == 0);
         }
-        for (int column = 0; column < airColumns.length; column++)
-        {
-            final int x = minX + (int) (airColumns[column] >>> 20);
-            final int z = minZ + (int) (airColumns[column] & 0xFFFFF);
-            for (int run = airFirst[column]; run < airFirst[column + 1]; run++)
-            {
-                for (int dy = airFrom[run]; dy <= airTo[run]; dy++)
-                {
-                    kept.at(x, minY + dy, z, true);
-                }
-            }
-        }
+        air.forEach(minX, minY, minZ, kept);
     }
 
     /**
@@ -1122,17 +1083,7 @@ public final class MirrorCapture
                 out.writeLong(cells[i]);
                 out.writeShort(values[i]);
             }
-            out.writeInt(airColumns.length);
-            for (int column = 0; column < airColumns.length; column++)
-            {
-                out.writeLong(airColumns[column]);
-                out.writeInt(airFirst[column + 1] - airFirst[column]);
-                for (int run = airFirst[column]; run < airFirst[column + 1]; run++)
-                {
-                    out.writeShort(airFrom[run]);
-                    out.writeShort(airTo[run]);
-                }
-            }
+            air.write(out);
         }
         Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
@@ -1204,34 +1155,9 @@ public final class MirrorCapture
                     throw new IOException(file + " is out of order");
                 }
             }
-            final int airColumnCount = in.readInt();
-            if ((airColumnCount < 0) || (airColumnCount > (sizeX * sizeZ)))
-            {
-                throw new IOException(file + " has an impossible number of columns");
-            }
-            final long[] airColumns = new long[airColumnCount];
-            final int[] airFirst = new int[airColumnCount + 1];
-            final List<Short> from = new ArrayList<>();
-            final List<Short> to = new ArrayList<>();
-            for (int column = 0; column < airColumnCount; column++)
-            {
-                airColumns[column] = in.readLong();
-                airFirst[column] = from.size();
-                final int runs = in.readInt();
-                if ((runs < 0) || (runs > sizeY))
-                {
-                    throw new IOException(file + " has an impossible number of runs");
-                }
-                for (int run = 0; run < runs; run++)
-                {
-                    from.add(in.readShort());
-                    to.add(in.readShort());
-                }
-            }
-            airFirst[airColumnCount] = from.size();
-            return new MirrorCapture(worldName, hasSky, complete, minX, minY, minZ, sizeX, sizeY, sizeZ,
-                takenAt, names, new BlockData[count], cells, values, airColumns, airFirst,
-                Builder.shorts(from), Builder.shorts(to));
+            final MirrorSeenAir air = MirrorSeenAir.read(in, file, sizeX, sizeY, sizeZ);
+            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
+                takenAt, new Blocks(names, new BlockData[count], cells, values), air);
         }
     }
 
