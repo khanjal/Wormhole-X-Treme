@@ -87,7 +87,7 @@ loaded says so, rather than loading a world because somebody typed a name.
 
 **This is the departure only** — the glow gathering, the traveller vanishing, and the column
 rising away. The arrival half is not captured yet, and cannot be filmed by the traveller: you
-vanish six steps into a twelve-tick envelop, long before there is time to reach the far end and
+vanish six steps into a twelve-tick envelope, long before there is time to reach the far end and
 watch. It needs a second player at the destination. Until then the phase table below is the
 record of what the other half does.
 

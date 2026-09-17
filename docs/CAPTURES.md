@@ -170,7 +170,7 @@ dark tiles naming a shot and its length -- have been deleted along with
 | A mirror's view shifting as you move | `mirrors/mirror-effects.webp` | listing art; not embedded |
 
 **Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
--- you vanish six steps into a twelve-tick envelop, long before there is time to reach the far
+-- you vanish six steps into a twelve-tick envelope, long before there is time to reach the far
 end -- so it needs a second player at the destination. And the *iris turning somebody back* was
 dropped rather than shot: the palette sheet already shows the iris closed in all four palettes,
 which is what the section is actually about.
