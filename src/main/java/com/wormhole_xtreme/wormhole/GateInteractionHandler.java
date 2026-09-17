@@ -35,10 +35,11 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * and keeping them apart means a change to how a gate is dialled cannot disturb how someone
  * travels through one.
  *
- * <p>Package-private and static throughout, exactly as it was when it lived in the listener.
- * The listener still owns the {@code @EventHandler} and calls in here.
+ * <p>Static throughout. The class is public for {@link #offerNewGate} alone, which
+ * {@code gate build -place} shares with a pressed button; everything else stays package-private. The listener still owns the
+ * {@code @EventHandler} and calls in here.
  */
-final class GateInteractionHandler
+public final class GateInteractionHandler
 {
     /** Static helpers only. */
     private GateInteractionHandler()
@@ -161,8 +162,25 @@ final class GateInteractionHandler
             }
             return false;
         }
+        offerNewGate(player, clickedBlock, newGate);
+        return true;
+    }
+
+    /**
+     * Holds a gate just found for its builder to name with {@code /wormhole gate complete}, if they
+     * may build it.
+     *
+     * @param player
+     *            who built it
+     * @param button
+     *            its DHD button or lever
+     * @param newGate
+     *            the gate detection found
+     */
+    public static void offerNewGate(final Player player, final Block button, final Stargate newGate)
+    {
         // The frame now stands where a preview of it was drawn.
-        GatePreviews.builtAt(clickedBlock.getWorld(), clickedBlock.getX(), clickedBlock.getY(), clickedBlock.getZ());
+        GatePreviews.builtAt(button.getWorld(), button.getX(), button.getY(), button.getZ());
 
         if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
         {
@@ -172,12 +190,11 @@ final class GateInteractionHandler
             }
             StargateManager.removeIncompleteStargate(player);
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
+            return;
         }
 
         StargateManager.addIncompleteStargate(player, newGate);
         announceValidDesign(player, newGate);
-        return true;
     }
 
     /**

@@ -155,6 +155,53 @@ public final class GatePreviews
     /** Asks {@link #layers} for every layer. */
     public static final int ALL_LAYERS = 0;
 
+    /** What became of {@code gate build -place}. */
+    public enum Outcome
+    {
+        /** The player is not looking at one of their previews. */
+        NOT_LOOKING,
+        /** No material group builds a frame from its frame material, so the gate would not be found. */
+        NOT_FINDABLE,
+        /** Part of it is in a chunk that is not loaded. */
+        NOT_LOADED,
+        /** Part of it is outside the world border. */
+        OUTSIDE_BORDER,
+        /** Something stands where it would go, and nothing was placed. */
+        IN_THE_WAY,
+        /** Its blocks were placed, but detection did not find a gate in them. */
+        NOT_FOUND,
+        /** Its blocks were placed and the gate found. */
+        PLACED
+    }
+
+    /**
+     * What {@code gate build -place} did.
+     *
+     * @param outcome
+     *            what became of it
+     * @param inTheWay
+     *            what stands in its way, as "block at x y z", when that is why
+     * @param gate
+     *            the gate found, when placed
+     * @param button
+     *            its DHD button, when placed
+     */
+    public record Placed(Outcome outcome, List<String> inTheWay, com.wormhole_xtreme.wormhole.model.Stargate gate,
+        org.bukkit.block.Block button) {}
+
+    /** Finds the gate a DHD button belongs to; tests stand in for detection. */
+    interface Detector
+    {
+        com.wormhole_xtreme.wormhole.model.Stargate find(org.bukkit.block.Block button, org.bukkit.block.BlockFace facing,
+            Stargate3DShape shape);
+    }
+
+    /** Whether a block belongs to a gate or ring already there; tests stand in for the indexes. */
+    interface Occupied
+    {
+        boolean at(World world, int x, int y, int z);
+    }
+
     /** Runs a step of a dial later; tests step a dial by hand instead. */
     interface Later
     {
@@ -165,6 +212,8 @@ public final class GatePreviews
     static Function<Material, BlockData> blockData = Bukkit::createBlockData;
     static Function<UUID, Player> online = Bukkit::getPlayer;
     static Later later = GatePreviews::schedule;
+    static Detector detector = StargateHelper::checkStargate;
+    static Occupied occupied = PreviewPlacer::occupied;
 
     private static final Map<UUID, List<GatePreview>> PREVIEWS = new HashMap<>();
 
@@ -452,6 +501,23 @@ public final class GatePreviews
     }
 
     /**
+     * Builds the preview a player is looking at for real: its frame, chevrons, DHD and button, in the
+     * materials it shows, then finds the gate the way a pressed button does. Nothing is placed if any
+     * block it needs is taken, belongs to a gate or ring, or cannot be reached.
+     *
+     * @param owner
+     *            whose preview
+     * @return what happened
+     */
+    public static Placed place(final Player owner)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        return (preview == null) ? new Placed(Outcome.NOT_LOOKING, List.of(), null, null)
+            : PreviewPlacer.place(preview);
+    }
+
+    /**
      * Counts what the preview a player is looking at takes to build, and what of it is in place.
      *
      * @param owner
@@ -692,6 +758,8 @@ public final class GatePreviews
         blockData = Bukkit::createBlockData;
         online = Bukkit::getPlayer;
         later = GatePreviews::schedule;
+        detector = StargateHelper::checkStargate;
+        occupied = PreviewPlacer::occupied;
     }
 
     /**

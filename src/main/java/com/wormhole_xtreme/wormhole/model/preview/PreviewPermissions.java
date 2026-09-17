@@ -11,6 +11,9 @@ public final class PreviewPermissions
     /** Showing a shape in front of you under {@code /wormhole gate build}. */
     public static final String PREVIEW = "wormhole.build.preview";
 
+    /** Turning a preview into a real gate with {@code gate build -place}. */
+    public static final String PLACE = "wormhole.build.preview.place";
+
     private PreviewPermissions() {}
 
     /**
@@ -24,5 +27,17 @@ public final class PreviewPermissions
     public static boolean mayPreview(final CommandSender sender)
     {
         return (sender instanceof Player player) && (player.isOp() || player.hasPermission(PREVIEW));
+    }
+
+    /**
+     * Whether a sender may turn a preview into a real gate.
+     *
+     * @param sender
+     *            whoever typed the command
+     * @return true for an operator or a player holding the node
+     */
+    public static boolean mayPlace(final CommandSender sender)
+    {
+        return (sender instanceof Player player) && (player.isOp() || player.hasPermission(PLACE));
     }
 }
