@@ -54,13 +54,21 @@ public final class GateBlueprint
      *            the chevron wave that lights it, or 0 for a block that does not light
      * @param dhd
      *            whether it belongs to the DHD rather than the ring
+     * @param layer
+     *            the shape layer it is built in, from 1, or 0 where that is not known
      */
-    public record Cell(int x, int y, int z, Part part, int wave, boolean dhd)
+    public record Cell(int x, int y, int z, Part part, int wave, boolean dhd, int layer)
     {
-        /** A cell of the ring. */
+        /** A cell of the ring, in no particular layer. */
         public Cell(final int x, final int y, final int z, final Part part, final int wave)
         {
-            this(x, y, z, part, wave, false);
+            this(x, y, z, part, wave, false, 0);
+        }
+
+        /** A cell in no particular layer. */
+        public Cell(final int x, final int y, final int z, final Part part, final int wave, final boolean dhd)
+        {
+            this(x, y, z, part, wave, dhd, 0);
         }
     }
 
@@ -320,7 +328,7 @@ public final class GateBlueprint
                 for (final Integer[] pos : steps.get(step))
                 {
                     cells.add(new Cell(grid.x(layerIdx, pos[2]), grid.y(pos[1]), grid.z(layerIdx, pos[2]), Part.PORTAL,
-                        step, false));
+                        step, false, layerIdx));
                 }
             }
         }
@@ -373,7 +381,7 @@ public final class GateBlueprint
             final int row = pos[1].intValue();
             final int col = pos[2].intValue();
             cells.add(new Cell(grid.x(layerIdx, col), grid.y(row), grid.z(layerIdx, col), part,
-                waves.getOrDefault(StargateHelper.cellKey(pos), 0), dhd));
+                waves.getOrDefault(StargateHelper.cellKey(pos), 0), dhd, layerIdx));
         }
     }
 
@@ -386,6 +394,6 @@ public final class GateBlueprint
         }
         final BlockFace facing = grid.facing();
         cells.add(new Cell(grid.x(layerIdx, pos[2]) + facing.getModX(), grid.y(pos[1]),
-            grid.z(layerIdx, pos[2]) + facing.getModZ(), part, 0, true));
+            grid.z(layerIdx, pos[2]) + facing.getModZ(), part, 0, true, layerIdx));
     }
 }

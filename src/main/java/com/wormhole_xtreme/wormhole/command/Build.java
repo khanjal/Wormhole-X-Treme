@@ -6,6 +6,10 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.FaceAttachable;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,11 +26,13 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
  * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
- * {@code -material <group>|<role> <block>}, {@code -materials} and {@code -guide}.
+ * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide} and
+ * {@code -layer [<n>|-next|-all]}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -61,9 +67,18 @@ public class Build implements CommandExecutor
     /** Marks on the preview what is still to place and what is wrong, or stops. */
     public static final String GUIDE = "-guide";
 
+    /** Shows the preview's layers up to one, the next, or all. */
+    public static final String LAYER = "-layer";
+
+    /** After {@link #LAYER}: one more layer, or all again after the last. */
+    public static final String NEXT = "-next";
+
     /** Every option, in the order they are offered. */
-    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, CHEVRONS,
-        DHD);
+    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
+        CHEVRONS, DHD);
+
+    /** How far away a placed DHD button can be looked at to stand a preview on it. */
+    private static final int DHD_REACH = 6;
 
     private static void doBuild(final Player player, final String[] args)
     {
@@ -117,12 +132,19 @@ public class Build implements CommandExecutor
     private static void preview(final Player player, final Stargate3DShape shape, final MaterialGroup group)
     {
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
-        switch (GatePreviews.show(player, shape, group))
+        final Block looked = player.getTargetBlockExact(DHD_REACH);
+        final BlockFace dhdFacing = (looked == null) ? null : wallFacing(looked);
+        final GatePreviews.Shown shown = (dhdFacing == null) ? GatePreviews.show(player, shape, group)
+            : GatePreviews.showOn(player, shape, group, looked, dhdFacing);
+        switch (shown)
         {
             case SHOWN -> player.sendMessage(header + "Previewing " + shape.getShapeName()
                 + ((group == null) ? "" : " in " + group.getName())
-                + ". Right-click its button to dial it. Build it where it stands, then place a real button where "
-                + "its button is and press that. Look at it and use " + String.join(", ", OPTIONS) + ".");
+                + ((dhdFacing == null)
+                    ? ". Right-click its button to dial it. Build it where it stands, then place a real button where "
+                        + "its button is and press that."
+                    : " on the DHD you are looking at. Finish building it, then press that button.")
+                + " Look at it and use " + String.join(", ", OPTIONS) + ".");
             case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
                     ? "Previews are turned off on this server (gate-preview-max-blocks is 0). "
@@ -132,6 +154,24 @@ public class Build implements CommandExecutor
             case NO_DHD -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + shape.getShapeName() + " has no DHD to stand it by, so it cannot be previewed.");
         }
+    }
+
+    /**
+     * The way a button or lever on the side of a block faces, as a DHD's does.
+     *
+     * @param block
+     *            what the player looks at
+     * @return its facing, or null for anything else, or one on a floor or ceiling
+     */
+    static BlockFace wallFacing(final Block block)
+    {
+        final Material type = block.getType();
+        final boolean dhdSwitch = MaterialUtils.isButton(type) || (type == Material.LEVER);
+        return (dhdSwitch && (block.getBlockData() instanceof FaceAttachable attached)
+            && (attached.getAttachedFace() == FaceAttachable.AttachedFace.WALL)
+            && (block.getBlockData() instanceof Directional directional))
+            ? directional.getFacing()
+            : null;
     }
 
     /** Runs an option on the preview the player looks at. */
@@ -162,6 +202,7 @@ public class Build implements CommandExecutor
             case CHEVRONS -> GatePreviews.toggleChevrons(player);
             case GUIDE -> GatePreviews.guide(player);
             case MATERIALS -> listMaterials(player);
+            case LAYER -> layers(player, args);
             default -> material(player, args);
         };
         if (done != null)
@@ -192,6 +233,61 @@ public class Build implements CommandExecutor
         }
         final Material block = Material.matchMaterial(args[2]);
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
+    }
+
+    /** {@code -layer [<n>|-next|-all]}; null once it has answered itself. */
+    private static GatePreviews.Control layers(final Player player, final String[] args)
+    {
+        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
+        final int asked = layerAsked(args);
+        if (asked < GatePreviews.NEXT_LAYER)
+        {
+            player.sendMessage(error + "Usage: /wormhole gate build " + LAYER + " [<number>|" + NEXT + "|" + ALL + "]");
+            return null;
+        }
+        final GatePreviews.Layers layers = GatePreviews.layers(player, asked);
+        if (layers == null)
+        {
+            return GatePreviews.Control.NOT_LOOKING;
+        }
+        if (!layers.valid())
+        {
+            player.sendMessage(error + "It has " + layers.of() + " layer" + ((layers.of() == 1) ? "" : "s") + ".");
+        }
+        else if (layers.shown() == GatePreviews.ALL_LAYERS)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing all " + layers.of()
+                + " layers.");
+        }
+        else
+        {
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing "
+                + ((layers.shown() == 1) ? "layer 1" : "layers 1 to " + layers.shown()) + " of " + layers.of()
+                + ". " + LAYER + " again shows the next.");
+        }
+        return null;
+    }
+
+    /** What {@code -layer} asked for, or less than {@link GatePreviews#NEXT_LAYER} if it makes no sense. */
+    private static int layerAsked(final String[] args)
+    {
+        if ((args.length == 1) || NEXT.equalsIgnoreCase(args[1]))
+        {
+            return GatePreviews.NEXT_LAYER;
+        }
+        if (ALL.equalsIgnoreCase(args[1]))
+        {
+            return GatePreviews.ALL_LAYERS;
+        }
+        try
+        {
+            final int n = Integer.parseInt(args[1]);
+            return (n >= 1) ? n : Integer.MIN_VALUE;
+        }
+        catch (final NumberFormatException notANumber)
+        {
+            return Integer.MIN_VALUE;
+        }
     }
 
     /** {@code -materials}; null once it has answered itself. */

@@ -234,7 +234,7 @@ class GateBuildPreviewCommandTest
         }
         verify(player).sendMessage(contains("Cleared 3 previews."));
         verify(player).sendMessage(contains("Invalid shape: clear"));
-        verify(player).sendMessage(contains("No such option: -bogus. Try -clear, -activate, -iris, -material, -materials, -guide, -chevrons, -dhd."));
+        verify(player).sendMessage(contains("No such option: -bogus. Try -clear, -activate, -iris, -material, -materials, -guide, -layer, -chevrons, -dhd."));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -317,6 +317,78 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(contains("Look at one of your previews first."));
     }
 
+    /** -layer takes a number, -next or -all, and says which layers are shown. */
+    @Test
+    void layerTakesANumberNextOrAll()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER))
+                .thenReturn(new GatePreviews.Layers(1, 4, true));
+            previews.when(() -> GatePreviews.layers(player, 3)).thenReturn(new GatePreviews.Layers(3, 4, true));
+            previews.when(() -> GatePreviews.layers(player, 9)).thenReturn(new GatePreviews.Layers(3, 4, false));
+            previews.when(() -> GatePreviews.layers(player, GatePreviews.ALL_LAYERS))
+                .thenReturn(new GatePreviews.Layers(0, 4, true));
+
+            run("gate", "build", "-layer");
+            run("gate", "build", "-layer", "-NEXT");
+            run("gate", "build", "-layer", "3");
+            run("gate", "build", "-layer", "9");
+            run("gate", "build", "-layer", "-all");
+            run("gate", "build", "-layer", "0");
+            run("gate", "build", "-layer", "top");
+
+            previews.verify(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER), org.mockito.Mockito.times(2));
+            previews.verify(() -> GatePreviews.layers(eq(player), org.mockito.ArgumentMatchers.intThat(n -> n < -1)),
+                never());
+        }
+        verify(player, org.mockito.Mockito.times(2)).sendMessage(contains("Showing layer 1 of 4."));
+        verify(player).sendMessage(contains("Showing layers 1 to 3 of 4."));
+        verify(player).sendMessage(contains("It has 4 layers."));
+        verify(player).sendMessage(contains("Showing all 4 layers."));
+        verify(player, org.mockito.Mockito.times(2)).sendMessage(contains("-layer [<number>|-next|-all]"));
+        assertEquals(List.of("-next", "-all"),
+            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "build", "-layer", "" }));
+    }
+
+    /**
+     * Looking at a button on the side of a block stands the preview on it, as the DHD; one on a floor,
+     * or no button, stands it in front of the player as usual.
+     */
+    @Test
+    void lookingAtAPlacedDhdButtonStandsThePreviewOnIt()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        final org.bukkit.block.Block onWall = button(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        final org.bukkit.block.Block onFloor = button(org.bukkit.block.data.FaceAttachable.AttachedFace.FLOOR);
+        when(player.getTargetBlockExact(6)).thenReturn(onWall, onFloor);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.showOn(any(), any(), any(), any(), any())).thenReturn(GatePreviews.Shown.SHOWN);
+            previews.when(() -> GatePreviews.show(any(), any(), any())).thenReturn(GatePreviews.Shown.SHOWN);
+
+            run("gate", "build", "Standard");
+            run("gate", "build", "Standard");
+
+            previews.verify(() -> GatePreviews.showOn(eq(player), eq(standard), any(MaterialGroup.class), eq(onWall),
+                eq(org.bukkit.block.BlockFace.EAST)));
+            previews.verify(() -> GatePreviews.show(eq(player), eq(standard), any(MaterialGroup.class)));
+        }
+        verify(player).sendMessage(contains("on the DHD you are looking at"));
+    }
+
+    private static org.bukkit.block.Block button(final org.bukkit.block.data.FaceAttachable.AttachedFace face)
+    {
+        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
+        when(data.getAttachedFace()).thenReturn(face);
+        when(data.getFacing()).thenReturn(org.bukkit.block.BlockFace.EAST);
+        when(block.getType()).thenReturn(org.bukkit.Material.OAK_BUTTON);
+        when(block.getBlockData()).thenReturn(data);
+        return block;
+    }
+
     /** -material names what it takes when given something else, and refuses a block that does not exist. */
     @Test
     void materialSaysWhatItTakes()
@@ -355,7 +427,7 @@ class GateBuildPreviewCommandTest
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
-            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-chevrons", "-dhd")));
+            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
             .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })

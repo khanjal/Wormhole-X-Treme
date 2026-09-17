@@ -809,6 +809,74 @@ class GatePreviewsTest
         verify(owner, times(STANDARD_OPENING)).sendBlockChange(any(Location.class), eq(data.get(Material.LAVA)));
     }
 
+    /**
+     * -layer shows the layers up to one: the next each time, all again after the last, or a number; a
+     * number past the last changes nothing.
+     */
+    @Test
+    void layersShowUpToOneAtATimeThenAll()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final List<Integer> built = cells.stream().map(Cell::layer).distinct().sorted().toList();
+        assertEquals(2, built.size(), "Standard: its ring, and its DHD in front");
+        GatePreviews.show(owner, standard, null);
+        final List<BlockDisplay> first = new ArrayList<>(spawned);
+
+        assertEquals(new GatePreviews.Layers(1, 2, true), GatePreviews.layers(owner, GatePreviews.NEXT_LAYER));
+
+        for (int i = 0; i < cells.size(); i++)
+        {
+            if (cells.get(i).layer() == built.get(0))
+            {
+                verify(first.get(i), never()).remove();
+            }
+            else
+            {
+                verify(first.get(i)).remove();
+            }
+        }
+        assertTrue(cells.stream().anyMatch(cell -> cell.layer() != built.get(0)), "something was hidden");
+        verify(buttons.get(0)).remove();
+
+        assertEquals(new GatePreviews.Layers(2, 2, true), GatePreviews.layers(owner, GatePreviews.NEXT_LAYER));
+        final int back = spawned.size();
+        assertTrue(back > first.size(), "the second layer drawn again");
+
+        assertEquals(new GatePreviews.Layers(2, 2, false), GatePreviews.layers(owner, 3));
+        assertEquals(back, spawned.size());
+
+        assertEquals(new GatePreviews.Layers(0, 2, true), GatePreviews.layers(owner, GatePreviews.NEXT_LAYER));
+        assertEquals(new GatePreviews.Layers(1, 2, true), GatePreviews.layers(owner, 1));
+        assertEquals(new GatePreviews.Layers(0, 2, true), GatePreviews.layers(owner, GatePreviews.ALL_LAYERS));
+
+        standAt(0.5, 1.5, 0f);
+        assertNull(GatePreviews.layers(owner, 1), "looking away");
+    }
+
+    /**
+     * A preview stood on a button already placed lands where a gate detected from that button would:
+     * the same cells as one stood in front of a player whose DHD it is.
+     */
+    @Test
+    void aPreviewOnAPlacedButtonStandsWhereTheGateWouldBeFound()
+    {
+        final List<Cell> expected = GateBlueprint.of(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.WEST));
+        final Cell buttonCell = expected.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
+        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        when(button.getWorld()).thenReturn(world);
+        when(button.getX()).thenReturn(buttonCell.x() + 30);
+        when(button.getY()).thenReturn(buttonCell.y());
+        when(button.getZ()).thenReturn(buttonCell.z());
+
+        assertEquals(GatePreviews.Shown.SHOWN, GatePreviews.showOn(owner, standard, null, button, BlockFace.EAST));
+
+        for (int i = 0; i < expected.size(); i++)
+        {
+            final Cell cell = expected.get(i);
+            assertEquals(new Location(world, cell.x() + 30, cell.y(), cell.z()), creation.places.get(i));
+        }
+    }
+
     /** -dhd hides the DHD and its button for a picture of the ring alone, and shows them again. */
     @Test
     void theDhdHidesForAPictureOfTheRingAndComesBack()

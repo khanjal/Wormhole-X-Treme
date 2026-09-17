@@ -31,6 +31,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
   to draw chevron blocks as frame, and `-dhd` to hide the DHD for a picture.
 - **`gate build -materials` lists what a preview takes, and `-guide` marks what is left to build**:
   blocks to place drawn small, wrong ones outlined in red, placed ones gone.
+- **`gate build -layer` shows a preview a layer at a time**, and `gate build <shape>` while looking at
+  a placed DHD button stands the preview on it.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,

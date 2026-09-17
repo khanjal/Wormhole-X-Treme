@@ -43,6 +43,8 @@ final class GatePreview
     /** In step with {@link #opening}; the guide's marks where something is in the way. */
     private final List<BlockDisplay> blockedDisplays;
     private final int lastWave;
+    /** The shape layers something is built in, front to back as the shape numbers them. */
+    private final List<Integer> builtLayers;
     private final int lastWoosh;
     private final int minX;
     private final int minY;
@@ -60,6 +62,8 @@ final class GatePreview
     private boolean dhdHidden;
     private boolean plainChevrons;
     private boolean guide;
+    /** How many built layers are shown, from the first; 0 shows them all. */
+    private int layersShown;
     private boolean finished;
     private boolean recheckQueued;
     private long expiresAt;
@@ -79,6 +83,7 @@ final class GatePreview
         this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         this.blockedDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         lastWave = cells.stream().mapToInt(Cell::wave).max().orElse(0);
+        builtLayers = cells.stream().map(Cell::layer).distinct().sorted().toList();
         lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
         minY = cells.stream().mapToInt(Cell::y).min().orElse(0);
@@ -320,7 +325,24 @@ final class GatePreview
     /** @return whether a frame cell should be shown at all */
     boolean showing(final Cell cell)
     {
-        return !(cell.dhd() && dhdHidden);
+        return !(cell.dhd() && dhdHidden)
+            && ((layersShown == 0) || (cell.layer() <= builtLayers.get(layersShown - 1)));
+    }
+
+    /** @return how many layers have something built in them */
+    int layerCount()
+    {
+        return builtLayers.size();
+    }
+
+    int layersShown()
+    {
+        return layersShown;
+    }
+
+    void layersShown(final int layers)
+    {
+        layersShown = layers;
     }
 
     /** @return whether the opening's displays stand: they are the iris; the wormhole is sent as blocks */

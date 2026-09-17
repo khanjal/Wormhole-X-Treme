@@ -305,6 +305,31 @@ class GateBlueprintTest
         assertEquals(List.of(Part.BUTTON), flatCells.stream().filter(Cell::dhd).map(Cell::part).toList());
     }
 
+    /**
+     * Each cell knows the shape layer it is built in: along the facing it stands that many layers from
+     * the first, and a button or sign one further, on the front of its layer's block.
+     */
+    @Test
+    void eachCellKnowsItsLayer() throws Exception
+    {
+        for (final String name : List.of("Standard", "Grand", "Massive", "StandardSignDial"))
+        {
+            final Stargate3DShape s = shape(name);
+            final GateGrid grid = GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.NORTH);
+            assertEquals(BlockFace.SOUTH, grid.facing());
+            final List<Cell> all = new java.util.ArrayList<>(GateBlueprint.of(s, grid));
+            all.addAll(GateBlueprint.openingOf(s, grid));
+            all.addAll(GateBlueprint.wooshOf(s, grid));
+            for (final Cell cell : all)
+            {
+                final boolean front = (cell.part() == Part.BUTTON) || (cell.part() == Part.DIAL_SIGN);
+                assertTrue(cell.layer() >= 1, name + " " + cell);
+                assertEquals(grid.oz() + (cell.layer() - 1) + (front ? 1 : 0), cell.z(), name + " " + cell);
+            }
+            assertTrue(all.stream().map(Cell::layer).distinct().count() > 1, name + " has more than one layer");
+        }
+    }
+
     /** The opening is listed apart from what a builder places, one cell for each [P]. */
     @Test
     void theOpeningIsListedApart() throws Exception
