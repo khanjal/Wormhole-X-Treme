@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -206,5 +207,20 @@ class GateTabCompletionTest
         final List<String> candidates = complete("gate", "validate", "");
         assertTrue(candidates.contains("alpha"), "got " + candidates);
         assertTrue(candidates.contains("-all"), "got " + candidates);
+    }
+
+    /** After a gate, {@code regenerate} offers {@code -shape}, then a shape name; {@code validate} offers neither. */
+    @Test
+    void regenerateOffersAShapeForAGateRecordedUnderTheWrongOne()
+    {
+        gateNamed("alpha");
+
+        assertTrue(complete("gate", "regenerate", "alpha", "").containsAll(List.of("-shape", "-water")));
+        assertTrue(complete("gate", "regen", "alpha", "-shape", "").contains("Standard"), "the shipped shapes are offered");
+        assertTrue(complete("gate", "validate", "alpha", "").isEmpty());
+        assertEquals(List.of("-water"), complete("gate", "regenerate", "alpha", "-shape", "Standard", ""),
+            "a flag already given is not offered again");
+        assertTrue(complete("gate", "regenerate", "").contains("-water"), "the click form takes -water too");
+        assertFalse(complete("gate", "validate", "").contains("-water"));
     }
 }

@@ -34,7 +34,7 @@ public class CommandUtilities
      * @param iris
      *            the iris
      */
-    static final void closeGate(final Stargate stargate, final boolean iris)
+    public static void closeGate(final Stargate stargate, final boolean iris)
     {
         if (stargate != null)
         {

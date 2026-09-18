@@ -41,6 +41,10 @@ instead of nulls, an edge case the original bug report didn't mention. Treat "do
 test" as answered yes by default for anything touching game logic, parsing, or storage format;
 answered no only for pure documentation or comment changes.
 
+Before a commit message or CHANGELOG entry says a test guards something, prove it with the
+`mutation-check` skill. If the change calls a Bukkit API, touches a catch block or a config
+setting, or builds an event in a test, run the `cross-version-compat` review before pushing.
+
 ## 4. Document it in this project's voice
 
 If the change is user-facing (a command, a setting, a behavior change, a fixed bug), it belongs

@@ -96,6 +96,8 @@ public class Stargate3DShape extends StargateShape
             }
         }
 
+        shapeSoundScale = soundScaleOr(shapeSoundScale, width);
+
         setShapeWooshDepth(wooshDepth > 0
             ? wooshDepth
             : 0);
@@ -222,8 +224,10 @@ public class Stargate3DShape extends StargateShape
      * An unrecognised line is ignored, which is what lets a shape file carry comments and
      * settings written for a later version of the plugin.
      */
-    private void applySetting(final String line)
+    private void applySetting(final String rawLine)
     {
+        // Shipped shapes write "LIGHT_TICKS = 2;", so spacing round '=' and a trailing ';' are dropped.
+        final String line = normaliseSetting(rawLine);
         if (applyMaterialSetting(line))
         {
             return;
@@ -244,7 +248,64 @@ public class Stargate3DShape extends StargateShape
         {
             setShapeMaterialGroups(line.split("=")[1]);
         }
+        if (line.startsWith("SOUND_SCALE=") && (line.split("=").length > 1))
+        {
+            shapeSoundScale = parseSoundScale(line.split("=")[1]);
+        }
     }
+
+    /** {@code Standard}'s width, which sounds as the configured sounds are written. */
+    static final int STANDARD_WIDTH = 7;
+
+    /** How big this gate sounds against {@code Standard}'s 1.0; its width over 7 unless the file says. */
+    private double shapeSoundScale;
+
+    /**
+     * How big this gate sounds, against {@code Standard}'s 1.0.
+     *
+     * @return {@code SOUND_SCALE} from the file, or the shape's width divided by 7, {@code Standard}'s width
+     */
+    public double getShapeSoundScale()
+    {
+        return shapeSoundScale;
+    }
+
+    /** The file's scale if it set one, otherwise the width over {@code Standard}'s. */
+    private static double soundScaleOr(final double fromFile, final int width)
+    {
+        return (fromFile > 0) ? fromFile : (width / (double) STANDARD_WIDTH);
+    }
+
+    /** A positive number, or 0 (use the width) for anything else. */
+    private static double parseSoundScale(final String value)
+    {
+        try
+        {
+            final double scale = Double.parseDouble(value.trim());
+            return (scale > 0) ? scale : 0;
+        }
+        catch (final NumberFormatException e)
+        {
+            return 0;
+        }
+    }
+
+    /**
+     * Reduces {@code KEY = value;} to {@code KEY=value}.
+     *
+     * @return the line with its first '=' unspaced and any trailing ';' removed
+     */
+    static String normaliseSetting(final String line)
+    {
+        String setting = line.trim();
+        if (setting.endsWith(";"))
+        {
+            setting = setting.substring(0, setting.length() - 1).trim();
+        }
+        return SETTING_EQUALS.matcher(setting).replaceFirst("=");
+    }
+
+    private static final java.util.regex.Pattern SETTING_EQUALS = java.util.regex.Pattern.compile("\\s*=\\s*");
 
     /** The material keys a shape file may carry, each against the setting it fills. */
     private static final java.util.Map<String, java.util.function.BiConsumer<Stargate3DShape, Material>> MATERIAL_KEYS =

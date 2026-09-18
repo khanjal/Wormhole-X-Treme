@@ -4,10 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -164,5 +168,166 @@ class ChevronLightingTest
         }
         assertEquals(0, gate.getGateLightingCurrentIteration());
         assertFalse(gate.isGateLightsActive());
+    }
+
+    private static World world(final String name)
+    {
+        final World w = mock(World.class);
+        when(w.getName()).thenReturn(name);
+        return w;
+    }
+
+    /** A gate with chevrons 1 to 8 (index 0 is the padding a shape leaves), standing in a world. */
+    private Stargate eightChevronGate(final String name, final World in)
+    {
+        final Stargate gate = gateWithLightWaves(9);
+        gate.getGateLightBlocks().set(0, null);
+        gate.setGateName(name);
+        gate.setGateWorld(in);
+        return gate;
+    }
+
+    /** A dial within one world stops at the seventh chevron; the eighth is for another world (#351). */
+    @Test
+    void aDialWithinOneWorldLightsSeven()
+    {
+        final World here = world("here");
+        final Stargate gate = eightChevronGate("alpha", here);
+        gate.setGateTarget(eightChevronGate("beta", world("here")));
+
+        assertEquals(7, StargateAnimator.lastWave(gate, gate.getGateLightBlocks()));
+    }
+
+    /** A dial to another world lights the eighth, after the top one. */
+    @Test
+    void aDialToAnotherWorldLightsTheEighthLast()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+        gate.setGateTarget(eightChevronGate("beta", world("there")));
+
+        assertEquals(8, StargateAnimator.lastWave(gate, gate.getGateLightBlocks()));
+    }
+
+    /** The far gate has no target of its own, so it finds the gate dialling it. */
+    @Test
+    void theGateBeingDialledFromAnotherWorldLightsTheEighthToo()
+    {
+        final Stargate far = eightChevronGate("far", world("there"));
+        final Stargate dialler = eightChevronGate("dialler", world("here"));
+        dialler.setGateTarget(far);
+        dialler.setGateActive(true);
+        StargateManager.registerStargate(dialler);
+        try
+        {
+            assertEquals(8, StargateAnimator.lastWave(far, far.getGateLightBlocks()));
+        }
+        finally
+        {
+            StargateManager.removeStargate(dialler);
+        }
+    }
+
+    /** Pressing the button lights every chevron at once, the eighth too; the dial picks from them. */
+    @Test
+    void pressingTheButtonLightsEveryChevronAtOnce()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            gate.lightAllChevrons();
+
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), any()), times(8));
+            sounds.verify(() -> GateSounds.activated(gate));
+        }
+        assertEquals(true, gate.isGateLightsActive());
+        assertEquals(8, StargateAnimator.lastShownWave(gate, gate.getGateLightBlocks()),
+            "a player arriving while it waits for /dial sees every chevron lit");
+    }
+
+    /** Once open within one world, a player arriving sees the seven the dial used. */
+    @Test
+    void anOpenGateShowsTheChevronsItsDialUsed()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+        gate.setGateTarget(eightChevronGate("beta", world("here")));
+        gate.setGateLightsActive(true);
+        gate.setGateActive(true);
+
+        assertEquals(7, StargateAnimator.lastShownWave(gate, gate.getGateLightBlocks()));
+    }
+
+    /**
+     * {@code /dial} on a gate lit by its button darkens it and dials the chevrons in order again,
+     * without replaying the activation sound.
+     */
+    @Test
+    void dialingAGateLitByItsButtonRelightsItInOrder()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            gate.lightAllChevrons();
+            gate.relightChevrons();
+
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), any()), times(8));
+            assertEquals(0, gate.getGateLightingCurrentIteration());
+            assertEquals(true, gate.isGateLightsActive(), "still lit, so the sequence does not restart itself");
+
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.activated(gate), times(1));
+            sounds.verify(() -> GateSounds.chevron(gate, 1, 7));
+        }
+    }
+
+    /**
+     * The last chevron holds a moment before the wormhole forms, rather than the woosh starting
+     * the very next tick: the lock should read as the end of the sequence.
+     */
+    @Test
+    void theLastChevronHoldsBeforeTheWormholeForms() throws Exception
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        final World here = world("here");
+        final Stargate gate = eightChevronGate("alpha", here);
+        gate.setGateTarget(eightChevronGate("beta", here));
+        gate.setGateActive(true);
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(6);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.locked(gate));
+        }
+
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
+            eq(Stargate.LAST_CHEVRON_PAUSE_TICKS));
+        assertEquals(0, gate.getGateLightingCurrentIteration(), "the seventh was the last");
+    }
+
+    /** A chevron before the last locks with its own sound only. */
+    @Test
+    void anEarlierChevronDoesNotLockIn()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(2);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.chevron(gate, 3, 7));
+            sounds.verify(() -> GateSounds.locked(gate), never());
+        }
     }
 }

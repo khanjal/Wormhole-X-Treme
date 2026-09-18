@@ -2,13 +2,17 @@ package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
@@ -408,5 +412,272 @@ class GateRederivationTest
         assertTrue(outcome.changes().isEmpty(),
             "nothing changed underneath this gate, so nothing should be reported as moved;"
                 + " got: " + outcome.changes());
+    }
+
+    /** Each light wave as its blocks' coordinates, in wave order, so two gates' orders compare. */
+    private static List<java.util.Set<String>> order(final Stargate gate)
+    {
+        final List<java.util.Set<String>> waves = new java.util.ArrayList<>();
+        for (final List<Location> wave : gate.getGateLightBlocks())
+        {
+            final java.util.Set<String> keys = new java.util.HashSet<>();
+            if (wave != null)
+            {
+                for (final Location l : wave)
+                {
+                    keys.add(key(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+                }
+            }
+            waves.add(keys);
+        }
+        return waves;
+    }
+
+    /** Swaps the first and last chevron, the way a shape renumbered since the gate was built leaves it. */
+    private static void swapFirstAndLast(final Stargate gate)
+    {
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        final int last = waves.size() - 1;
+        final List<Location> first = waves.get(1);
+        waves.set(1, waves.get(last));
+        waves.set(last, first);
+    }
+
+    /**
+     * A gate built before its shape was renumbered takes the shape's order (#350).
+     *
+     * <p>A gate saves its light order when it is built, and nothing re-read it, so the show's
+     * order never reached a gate already standing.
+     */
+    @Test
+    void aGateBuiltWithAnOlderLightOrderTakesTheShapesOrder() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        final List<java.util.Set<String>> shapeOrder = order(gate);
+        swapFirstAndLast(gate);
+        assertNotEquals(shapeOrder, order(gate), "the swap should have changed the order");
+
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(shapeOrder, order(gate));
+    }
+
+    /** A gate already lighting in its shape's order is reported unchanged, so it is not saved again. */
+    @Test
+    void aGateAlreadyLightingInItsShapesOrderIsUnchanged() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+
+        assertEquals(GateRederivation.LightResult.UNCHANGED, GateRederivation.rebuildLightOrder(gate));
+    }
+
+    /**
+     * Rebuilding reads no blocks, which is what lets {@code regenerate -all} run it on gates in
+     * chunks nobody has loaded.
+     */
+    @Test
+    void rebuildingTheLightOrderReadsNoBlocks() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        swapFirstAndLast(gate);
+        clearInvocations(world);
+
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+    }
+
+    /** A gate part-way through dialling keeps its lights, or the ones already drawn would be stranded. */
+    @Test
+    void aGateThatIsDiallingKeepsItsLightOrder() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        swapFirstAndLast(gate);
+        final List<java.util.Set<String>> before = order(gate);
+        gate.setGateLightsActive(true);
+
+        assertEquals(GateRederivation.LightResult.BUSY, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(before, order(gate));
+    }
+
+    /** A shape lighting blocks the gate does not have leaves the gate alone: its frame has changed. */
+    @Test
+    void aShapeThatLightsBlocksOutsideTheFrameIsRefused() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        gate.getGateStructureBlocks().clear();
+        gate.getGateLightBlocks().clear();
+
+        assertEquals(GateRederivation.LightResult.DOES_NOT_FIT, GateRederivation.rebuildLightOrder(gate));
+        assertTrue(gate.getGateLightBlocks().isEmpty());
+    }
+
+    /** Runs with every shipped gate shape loaded, the way a server has them, and puts the registry back. */
+    private static void withShippedShapes(final ThrowingRunnable body) throws Exception
+    {
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
+        final Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new HashMap<>(shapes);
+        shapes.clear();
+        try (java.util.stream.Stream<Path> files = Files.list(SHAPE_DIR))
+        {
+            for (final Path file : files.filter(f -> f.toString().endsWith(".shape")).toList())
+            {
+                final Stargate3DShape shape = new Stargate3DShape(Files.readAllLines(file).toArray(new String[0]));
+                shapes.put(shape.getShapeName(), shape);
+            }
+        }
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            shapes.clear();
+            shapes.putAll(saved);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable
+    {
+        void run() throws Exception;
+    }
+
+    /**
+     * A gate recorded under a shape it is not takes the shape its frame is.
+     *
+     * <p>The legacy importer records every gate as {@code Standard}. A {@code Massive} gate
+     * recorded that way could never be regenerated: its frame does not match {@code Standard},
+     * so its markers and its light order were left alone however often it was asked.
+     */
+    @Test
+    void aGateRecordedUnderTheWrongShapeTakesTheShapeItIs() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        gate.setGateShape(shape("Standard"));
+
+        withShippedShapes(() -> {
+            final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+            assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
+            assertEquals("Massive", gate.getGateShapeName());
+            assertTrue(outcome.changes().contains("shape (was Standard)"), "changes were: " + outcome.changes());
+        });
+        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate),
+            "with its own shape back, the light order rebuilds");
+    }
+
+    /** A frame that matches no shape at all is still left alone, with every shape to try. */
+    @Test
+    void aFrameMatchingNoShapeIsLeftAloneEvenWithEveryShapeToTry() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        knockOut(gate.getGateStructureBlocks().get(0));
+
+        withShippedShapes(() -> {
+            final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+            assertEquals(GateRederivation.Result.NOT_DETECTED, outcome.result());
+            assertEquals("Massive", gate.getGateShapeName());
+            assertTrue(outcome.changes().isEmpty());
+        });
+    }
+
+    /**
+     * A shape named for a gate it fits all but a block of is taken, and the gap is reported.
+     *
+     * <p>The case detection cannot reach: recorded as {@code Standard}, and a block short of the
+     * {@code Massive} it is, so no shape matches it whole.
+     */
+    @Test
+    void aNamedShapeTheFrameIsABlockShortOfIsTakenWithTheGapReported() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        gate.setGateShape(shape("Standard"));
+        knockOut(gate.getGateStructureBlocks().get(0));
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Massive"));
+
+        assertTrue(fit.accepted());
+        assertEquals(fit.expected() - 1, fit.present());
+        assertEquals(1, fit.gaps().size(), "gaps were: " + fit.gaps());
+        assertEquals(org.bukkit.Material.AIR, fit.gaps().get(0).found(), String.valueOf(fit.gaps().get(0)));
+        assertEquals("Massive", gate.getGateShapeName());
+    }
+
+    /** A shape named for a gate it does not fit is refused, and the gate keeps the shape it had. */
+    @Test
+    void aNamedShapeTheFrameIsNotIsRefused() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final com.wormhole_xtreme.wormhole.model.StargateShape before = gate.getGateShape();
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
+
+        assertFalse(fit.accepted());
+        assertTrue((fit.present() * 100) < (fit.expected() * GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT));
+        assertEquals("Massive", gate.getGateShapeName());
+        assertSame(before, gate.getGateShape(), "the shape the gate animates and sounds from is put back too");
+    }
+
+    /** Takes one particular block out of the world, so a test does not depend on map order. */
+    private void knockOut(final Location block)
+    {
+        assertNotNull(placed.remove(key(block.getBlockX(), block.getBlockY(), block.getBlockZ())), "no block there to take out");
+    }
+
+    /**
+     * A gate whose DHD stands two blocks further out than its shape says is still laid where its
+     * frame is: the layout follows the gate's own recorded blocks, not the button alone.
+     *
+     * <p>Found in-game on {@code Large} and {@code Grand} gates recorded as {@code Standard}:
+     * naming the right shape found 2 of 26 and 2 of 464 frame blocks, every other one AIR,
+     * because the shape was laid from the DHD and the ring was not where the DHD said.
+     */
+    @Test
+    void aGateWithItsDhdOffIsLaidWhereItsFrameIs() throws Exception
+    {
+        final Stargate gate = detected("Large");
+        final List<java.util.Set<String>> order = order(gate);
+        final Block button = gate.getGateDialLeverBlock();
+        final BlockFace out = gate.getGateFacing();
+        gate.setGateDialLeverBlock(blockAt(button.getX() + (2 * out.getModX()), button.getY(),
+            button.getZ() + (2 * out.getModZ())));
+        gate.setGateShape(shape("Standard"));
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Large"));
+
+        assertTrue(fit.accepted(), "found " + fit.present() + " of " + fit.expected());
+        assertEquals(fit.expected(), fit.present());
+        assertEquals(-2, fit.layout().along(), fit.layout().describe());
+        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(order, order(gate), "the light order is laid from the frame too");
+    }
+
+    /** A gate recorded facing the wrong way is laid by turning the facing round. */
+    @Test
+    void aGateRecordedFacingTheWrongWayIsLaidTurnedRound() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        gate.setGateFacing(WorldUtils.getInverseDirection(gate.getGateFacing()));
+
+        final GateRederivation.Layout layout = GateRederivation.layoutFor(gate, shape("Standard"));
+
+        assertTrue(layout.reversed(), layout.describe());
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
+        assertEquals(fit.expected(), fit.present());
+    }
+
+    /** A gate built as its shape says is laid exactly where its DHD puts it. */
+    @Test
+    void aGateBuiltAsItsShapeSaysIsLaidWhereItsDhdPutsIt() throws Exception
+    {
+        for (final String name : new String[] { "Standard", "Large", "Grand", "Massive", "Horizontal" })
+        {
+            placed.clear();
+            final Stargate gate = detected(name);
+            assertFalse(GateRederivation.layoutFor(gate, shape(name)).moved(), name);
+        }
     }
 }

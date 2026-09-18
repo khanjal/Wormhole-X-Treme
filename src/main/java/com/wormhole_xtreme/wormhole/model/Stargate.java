@@ -65,6 +65,15 @@ public class Stargate
 
     /** Is the stargate already lit up?. */
     private boolean gateLightsActive = false;
+
+    /** Chevrons a dial within one world lights; {@code :L#8} is for another world (#351). */
+    public static final int LOCAL_CHEVRONS = 7;
+
+    /** The chevron that locks only when the other gate is in another world. */
+    public static final int OTHER_WORLD_CHEVRON = 8;
+
+    /** How long the last chevron holds before the wormhole forms: a second, so the lock reads as one. */
+    public static final long LAST_CHEVRON_PAUSE_TICKS = 20L;
     /** Is activated through sign destination?. */
     private boolean gateSignPowered;
     /** The gate redstone powered. */
@@ -1593,6 +1602,30 @@ public class Stargate
     public boolean isGateSignPowered()
     {
         return gateSignPowered;
+    }
+
+    /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
+    public List<org.bukkit.block.Block> strandedLiquid()
+    {
+        return StargateBlockSetup.strandedLiquid(this);
+    }
+
+    /** @return how many water or lava blocks were cleared from this closed gate's opening and woosh */
+    public int clearStrandedLiquid()
+    {
+        return StargateBlockSetup.clearStrandedLiquid(this);
+    }
+
+    /** Lights every chevron at once, for a gate activated and waiting for a destination. */
+    public void lightAllChevrons()
+    {
+        StargateAnimator.lightAll(this);
+    }
+
+    /** Darkens the chevrons and relights them in order, now the destination is known. */
+    public void relightChevrons()
+    {
+        StargateAnimator.relightInOrder(this);
     }
 
     /**

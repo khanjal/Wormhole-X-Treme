@@ -109,6 +109,7 @@ class DefaultSettings
             new Setting(ConfigKeys.GATE_SOUND_VOLUME, 1.5, "How loud gate sounds are. Volume also sets audible range: 1.5 carries about twenty-four blocks.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate", "Played as a gate begins to dial.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence.", SECTION),
+            new Setting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select", "Played with the last chevron as it locks, before the wormhole forms.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed", "Played once as the wormhole establishes: the heavy splash, pitched down for size.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate, pitched down a little since it is a shield rather than a door.", SECTION),

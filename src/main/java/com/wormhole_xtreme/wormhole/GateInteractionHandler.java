@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -384,9 +383,10 @@ public final class GateInteractionHandler
     }
 
     /**
-     * Answers a click that an interactive {@code /wormhole refresh} was waiting for.
+     * Answers a click that {@code /wormhole gate regenerate} with no gate name (or
+     * {@code /wormhole refresh}) was waiting for: regenerates the gate whose DHD was clicked.
      *
-     * @return true if the click was spent on a pending refresh
+     * @return true if the click was spent on a pending regenerate
      */
     private static boolean handlePendingRefresh(final Player player, final Block clickedBlock,
                                                 final BlockFace direction)
@@ -395,122 +395,11 @@ public final class GateInteractionHandler
         {
             return false;
         }
+        final boolean clearLiquid = com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player);
         com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
-
-        final Stargate existing = StargateManager.getGateFromBlock(clickedBlock);
-        if (existing == null)
-        {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "No registered gate found at that block. Build or complete the gate first.");
-            return true;
-        }
-
-        final Detected detected = redetect(clickedBlock, direction);
-        if (detected == null)
-        {
-            // Nothing has been torn down yet, so the gate is exactly as it was.
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Gate geometry detection failed. Make sure all structure blocks are intact.");
-            return true;
-        }
-
-        // Remove the stale registration (no block destruction). Not announced: the gate is
-        // registered again immediately below, so telling listeners it was removed would have
-        // them discard their records on every refresh.
-        CommandUtilities.gateRemove(existing, false, false);
-        carryOverMetadata(existing, detected.gate());
-        com.wormhole_xtreme.wormhole.model.StargateManager.registerStargate(detected.gate());
-        com.wormhole_xtreme.wormhole.model.StargateDBManager.saveStargate(detected.gate());
-        announceRefresh(player, detected);
+        com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateClicked(player, clickedBlock,
+            direction, clearLiquid);
         return true;
-    }
-
-    /** Fresh geometry and the facing it was found from. */
-    private record Detected(Stargate gate, BlockFace facing) { }
-
-    /**
-     * Detects the gate standing at this block again, from scratch.
-     *
-     * <p>The click reports a face and it is usually the right one, but somebody refreshing a
-     * gate may well be clicking its side -- so the four horizontal facings are tried in turn
-     * rather than refusing.
-     *
-     * @param clickedBlock
-     *            the block that was clicked
-     * @param direction
-     *            the face the click reported, which may be null
-     * @return the gate and the facing it was found from, or null if nothing matched
-     */
-    private static Detected redetect(final Block clickedBlock, final BlockFace direction)
-    {
-        if (direction != null)
-        {
-            final Stargate found = StargateHelper.checkStargate(clickedBlock, direction);
-            if (found != null)
-            {
-                return new Detected(found, direction);
-            }
-        }
-        for (final BlockFace face : new BlockFace[] {
-            BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST })
-        {
-            final Stargate found = StargateHelper.checkStargate(clickedBlock, face);
-            if (found != null)
-            {
-                return new Detected(found, face);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Copies everything that belongs to the gate rather than to its blocks.
-     *
-     * <p>A refresh replaces the geometry and nothing else, so the name, owner, iris code and
-     * network have to be carried across by hand -- and it saves straight afterwards, so
-     * anything dropped here is dropped for good.
-     *
-     * @param existing
-     *            the gate as it was
-     * @param fresh
-     *            the newly detected geometry
-     */
-    private static void carryOverMetadata(final Stargate existing, final Stargate fresh)
-    {
-        final String oldName = existing.getGateName();
-        final String oldIdc = existing.getGateIrisDeactivationCode();
-        final com.wormhole_xtreme.wormhole.model.StargateNetwork oldNet = existing.getGateNetwork();
-
-        fresh.setGateName(oldName);
-        fresh.setGateOwner(existing.getGateOwner());
-        // Stored, not displayed: copying the fallback would set the owner id as this gate's
-        // display name, and the refresh saves immediately afterwards.
-        fresh.setGateOwnerName(existing.getStoredGateOwnerName());
-        fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
-        if (oldNet != null)
-        {
-            fresh.setGateNetwork(oldNet);
-            com.wormhole_xtreme.wormhole.model.StargateManager.addGateToNetwork(fresh, oldNet.getNetworkName());
-        }
-    }
-
-    /**
-     * Tells the player and the log that the refresh worked.
-     *
-     * @param player
-     *            who asked
-     * @param detected
-     *            the refreshed gate and the facing it was found from
-     */
-    private static void announceRefresh(final Player player, final Detected detected)
-    {
-        final Stargate fresh = detected.gate();
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Gate '" + fresh.getGateName() + "' refreshed successfully.");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-            "Gate '" + fresh.getGateName() + "' refreshed by " + player.getName()
-            + " facing=" + detected.facing()
-            + " tpLoc=" + fresh.getGatePlayerTeleportLocation());
     }
 
     /**
@@ -704,7 +593,7 @@ public final class GateInteractionHandler
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
-        stargate.lightStargate(true);
+        stargate.lightAllChevrons();
         return true;
     }
 

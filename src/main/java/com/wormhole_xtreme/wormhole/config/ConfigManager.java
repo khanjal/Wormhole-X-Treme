@@ -105,6 +105,7 @@ public class ConfigManager
         GATE_SOUND_VOLUME,
         GATE_SOUND_ACTIVATE,
         GATE_SOUND_CHEVRON,
+        GATE_SOUND_LOCK,
         GATE_SOUND_KAWOOSH,
         GATE_SOUND_CLOSE,
         GATE_SOUND_IRIS_CLOSE,
@@ -829,6 +830,16 @@ public class ConfigManager
     public static String getGateSoundChevron()
     {
         return soundSetting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close");
+    }
+
+    /**
+     * The sound the last chevron makes as it locks, with its own chevron sound.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundLock()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select");
     }
 
     /**

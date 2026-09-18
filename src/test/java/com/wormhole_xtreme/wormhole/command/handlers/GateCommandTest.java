@@ -81,10 +81,10 @@ class GateCommandTest
 
         verify(sender).sendMessage(contains("/wormhole gate <"));
         verify(sender).sendMessage(contains("validate"));
-        verify(sender).sendMessage(contains("regenerate"));
+        verify(sender).sendMessage(contains("regen"));
     }
 
-    /** A verb that is not one of the eleven says so, and offers the real list. */
+    /** A verb that is not one of the ten says so, and offers the real list. */
     @Test
     void anUnknownVerbNamesTheVerbsAvailable()
     {

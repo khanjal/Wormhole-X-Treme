@@ -69,7 +69,7 @@ Layer#2=
 [I][I][I][I][I][I][I]
 [I][I][I][I:W#2][I][I][I]
 [I][I][I:W#1][I:W#1][I:W#1][I][I]
-[I][S:L#5][P][P][P][S:L#2][I]
+[I][S:L#6][P][P][P][S:L#1][I]
 
 Layer#3=
 [I][I][I][I:W#3][I][I][I]
@@ -81,7 +81,7 @@ Layer#4=
 [I][I][I][I:W#3][I][I][I]
 [I][I][I:W#2][I:W#2][I:W#2][I][I]
 [I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
-[S:L#4][P][P][P:EP][P][P][S:L#6]
+[S:L#5][P][P][P:EP][P][P][S:L#2]
 
 Layer#5=
 [I][I][I][I:W#3][I][I][I]
@@ -93,7 +93,7 @@ Layer#6=
 [I][I][I][I][I][I][I]
 [I][I][I][I:W#2][I][I][I]
 [I][I][I:W#1][I:W#1][I:W#1][I][I]
-[I][S:N:L#3][P][P][P][S:L#1][I]
+[I][S:N:L#4][P][P][P][S:L#3][I]
 
 Layer#7=
 [I][I][I][I][I][I][I]
@@ -104,7 +104,7 @@ Layer#7=
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
 WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
-LIGHT_TICKS = 3;
+LIGHT_TICKS = 10;
 
 # The rest of this gate's appearance comes from its material group in config.yml, chosen
 # by the material the frame is actually built from: build this shape in obsidian for a

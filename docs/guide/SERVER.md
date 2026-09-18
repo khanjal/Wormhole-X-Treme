@@ -143,7 +143,7 @@ outranks a negated node.
 | `wormhole.build.preview.place` | op | `gate build -place`, building a preview for real |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regenerate`, `validate`, `import`, ownership. Also every `mirror` command. |
+| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 
@@ -215,7 +215,7 @@ at where you died.
 <details>
 <summary>The old flat commands still work</summary>
 
-`list`, `build`, `complete`, `remove`, `regenerate`, `refresh`, `go`, `force`, `owner`, `idc`,
+`list`, `build`, `complete`, `remove`, `regen`, `refresh`, `go`, `force`, `owner`, `idc`,
 `redstone`, `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth`,
 `shutdown_timeout`, `activate_timeout`, `cooldown` and `restrict` all still dispatch, so
 command blocks and scripts keep working. They are just no longer listed.
