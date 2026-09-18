@@ -58,8 +58,8 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 - **Chevrons lock at a pace you can follow**: half a second each on `Standard`, a little longer on
   bigger gates. A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read at last.
 - **The last chevron holds a second and locks in with its own sound** (`gate-sound-lock`).
-- **The dialling gate's inner ring turns** before each chevron locks, alternating direction; the
-  gate being dialled only lights. `gate-dial-spin: false` turns it off.
+- **The dialling gate's inner ring turns**: a light travels half the ring and lands on each
+  chevron as it locks, alternating direction. The gate being dialled only lights. `gate-dial-spin: false` turns it off.
 - **A sign dial opens at once** on both ends, with the lock-in sound and no chevron sequence.
 - **A gate sounds its size**: deeper and louder on a bigger gate, lighter on a smaller one.
   `SOUND_SCALE` in a shape sets its own.
