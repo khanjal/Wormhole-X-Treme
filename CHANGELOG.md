@@ -61,8 +61,15 @@ option only with a dash, and no name may start with one. Scripts and command blo
   sequence before any destination was chosen, and `/dial` went straight to the woosh.
 - **A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read.** Every shipped shape writes
   `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
-  default of 3. `Minimal` (1) and the `Standard`, `Large`, `Grand` and `Massive` families (2) now
-  light their chevrons faster, as their files always asked.
+  default of 3.
+- **Chevrons lock at a pace you can follow.** Read at last, the shipped values (1 to 3 ticks) lit a
+  whole dial in about a third of a second. `Standard` now takes half a second a chevron
+  (`LIGHT_TICKS = 10;`), and a bigger gate a little longer: `Large` 12, `Grand` and `Massive` 15.
+  `Minimal` is 6. Delete `shapes/gate/` and restart for the new files.
+- **The last chevron holds a second before the wormhole forms, and locks in with its own sound.**
+  The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
+  `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
+  sound. The build preview's test dial holds and locks too.
 - **`/wormhole gate regen` finds the shape a gate really is.** A gate recorded under the wrong
   shape could never be regenerated: every gate the legacy importer brought in is recorded as
   `Standard`, so a `Massive` gate came back "no longer matches Standard", markers and light order
@@ -97,6 +104,11 @@ option only with a dash, and no name may start with one. Scripts and command blo
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
   It reads no blocks, so `-all` covers gates in unloaded chunks too. A gate that is dialling or
   open, or whose frame no longer fits its shape, is left alone and counted.
+- **A gate sounds its size.** A `Massive` gate made the same sounds as a `Standard` one. Every gate
+  sound is now deeper and louder on a bigger gate, and lighter on a smaller one, scaled from the
+  shape's width: `Standard` is unchanged, and `Grand` and `Massive` reach the limits of 0.75x pitch
+  and 2x volume, which doubles their range. A shape can set its own with `SOUND_SCALE`. The build
+  preview sounds like the gate it would build.
 
 ### Quantum mirrors
 
