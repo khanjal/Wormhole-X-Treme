@@ -10,6 +10,10 @@ body:
         more than once — so knowing which server you are on is usually the fastest route to
         the cause.
 
+        Issues are public. Please do not post your server's address, or anything else you
+        would not want strangers to have; if seeing the server would help, we will arrange it
+        privately.
+
   - type: input
     id: plugin-version
     attributes:
