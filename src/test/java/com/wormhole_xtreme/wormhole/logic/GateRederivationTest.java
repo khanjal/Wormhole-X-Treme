@@ -2,13 +2,17 @@ package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
@@ -451,7 +455,7 @@ class GateRederivationTest
         final Stargate gate = detected("Standard");
         final List<java.util.Set<String>> shapeOrder = order(gate);
         swapFirstAndLast(gate);
-        assertFalse(shapeOrder.equals(order(gate)), "the swap should have changed the order");
+        assertNotEquals(shapeOrder, order(gate), "the swap should have changed the order");
 
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
         assertEquals(shapeOrder, order(gate));
@@ -475,10 +479,10 @@ class GateRederivationTest
     {
         final Stargate gate = detected("Standard");
         swapFirstAndLast(gate);
-        org.mockito.Mockito.clearInvocations(world);
+        clearInvocations(world);
 
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
-        org.mockito.Mockito.verify(world, org.mockito.Mockito.never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
     }
 
     /** A gate part-way through dialling keeps its lights, or the ones already drawn would be stranded. */

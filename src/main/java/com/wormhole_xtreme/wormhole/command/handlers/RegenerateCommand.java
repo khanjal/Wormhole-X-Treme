@@ -293,25 +293,32 @@ public class RegenerateCommand implements SubCommand
     {
         final boolean one = tally.moved == 1;
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Checked " + tally.checked + " gate" + plural(tally.checked) + ". "
+            + "Checked " + gates(tally.checked) + ". "
             + tally.moved + " arrival point" + plural(tally.moved) + " " + (one ? "was" : "were")
             + " out of place and " + (one ? "has" : "have") + " been recomputed.");
         if (tally.couldNotCompute > 0)
         {
-            sender.sendMessage(tally.couldNotCompute + " gate" + plural(tally.couldNotCompute)
+            sender.sendMessage(gates(tally.couldNotCompute)
                 + " could not be checked -- no world, no facing, or no portal blocks recorded.");
         }
         if (tally.relit > 0)
         {
-            sender.sendMessage(tally.relit + " gate" + (tally.relit == 1 ? " now lights its" : "s now light their")
-                + " chevrons in its shape's order.");
+            sender.sendMessage(gates(tally.relit) + ((tally.relit == 1)
+                ? " now lights its chevrons in its shape's order."
+                : " now light their chevrons in their shapes' order."));
         }
         if (tally.lightsLeft > 0)
         {
-            sender.sendMessage(tally.lightsLeft + " gate" + (tally.lightsLeft == 1 ? "'s" : "s'")
-                + " light order was left alone: dialling or open, or the frame no longer fits the shape."
+            sender.sendMessage(gates(tally.lightsLeft) + " kept " + ((tally.lightsLeft == 1) ? "its" : "their")
+                + " old light order: dialling or open, or the frame no longer fits the shape."
                 + " Regenerate one by name to see which.");
         }
+    }
+
+    /** "1 gate", "2 gates". */
+    private static String gates(final int n)
+    {
+        return n + " gate" + plural(n);
     }
 
     private static String plural(final int n)

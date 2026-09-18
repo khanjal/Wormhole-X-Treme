@@ -238,7 +238,7 @@ class RegenerateExecuteTest
         }
 
         verify(sender).sendMessage(contains("1 gate now lights its chevrons"));
-        verify(sender).sendMessage(contains("1 gate's light order was left alone"));
+        verify(sender).sendMessage(contains("1 gate kept its old light order"));
     }
 
     /**
