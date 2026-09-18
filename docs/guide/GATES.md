@@ -450,6 +450,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-volume` | 1.5 | Louder than rings — a gate is a landmark |
 | `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Each chevron, pitch climbing |
+| `gate-sound-lock` | `block.beacon.power_select` | With the last chevron, as it locks in, at pitch 0.8 |
 | `gate-sound-kawoosh` | `entity.player.splash.high_speed` | As the wormhole forms, at pitch 0.7 |
 | `gate-sound-ambient` | `ambient.underwater.loop` | On repeat while open, at 40% volume |
 | `gate-sound-ambient-ticks` | 70 | How often it repeats; shorter layers it |

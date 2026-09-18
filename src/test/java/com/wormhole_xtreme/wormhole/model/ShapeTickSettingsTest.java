@@ -11,6 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -25,6 +27,18 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 class ShapeTickSettingsTest
 {
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        PluginTestSupport.remove();
+    }
+
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     private static int written(final List<String> lines, final String key)
@@ -44,7 +58,6 @@ class ShapeTickSettingsTest
     @Test
     void everyShippedShapeGetsTheTicksItsFileWrites() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
         final List<Path> files;
         try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
@@ -72,5 +85,27 @@ class ShapeTickSettingsTest
         assertEquals("LIGHT_TICKS=2", Stargate3DShape.normaliseSetting("LIGHT_TICKS = 2;"));
         assertEquals("LIGHT_TICKS=2", Stargate3DShape.normaliseSetting("  LIGHT_TICKS=2  "));
         assertEquals("IRIS_MATERIAL=GLASS", Stargate3DShape.normaliseSetting("IRIS_MATERIAL =GLASS ; "));
+    }
+
+    private static int lightTicks(final String name) throws Exception
+    {
+        return new Stargate3DShape(Files.readAllLines(SHAPE_DIR.resolve(name + ".shape")).toArray(new String[0]))
+            .getShapeLightTicks();
+    }
+
+    /**
+     * A chevron locks at a pace a player can follow: half a second on {@code Standard}, and a
+     * bigger gate a little slower. They used to light 1 to 3 ticks apart, a whole dial in a
+     * third of a second.
+     */
+    @Test
+    void chevronsLockAtAFollowablePaceSlowerOnBiggerGates() throws Exception
+    {
+        assertEquals(10, lightTicks("Standard"), "half a second a chevron");
+        assertEquals(lightTicks("Standard"), lightTicks("Horizontal"), "the same size, the same pace");
+        assertTrue(lightTicks("Minimal") < lightTicks("Standard"));
+        assertTrue(lightTicks("Standard") < lightTicks("Large"));
+        assertTrue(lightTicks("Large") < lightTicks("Grand"));
+        assertEquals(lightTicks("Grand"), lightTicks("Massive"));
     }
 }

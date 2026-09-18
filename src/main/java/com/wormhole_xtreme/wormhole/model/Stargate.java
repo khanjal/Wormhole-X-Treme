@@ -71,6 +71,9 @@ public class Stargate
 
     /** The chevron that locks only when the other gate is in another world. */
     public static final int OTHER_WORLD_CHEVRON = 8;
+
+    /** How long the last chevron holds before the wormhole forms: a second, so the lock reads as one. */
+    public static final long LAST_CHEVRON_PAUSE_TICKS = 20L;
     /** Is activated through sign destination?. */
     private boolean gateSignPowered;
     /** The gate redstone powered. */
