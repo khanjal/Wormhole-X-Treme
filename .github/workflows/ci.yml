@@ -256,8 +256,12 @@ jobs:
               -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml; then
               exit 0
             fi
-            echo "::warning::SonarCloud scan attempt $attempt did not finish; retrying"
-            sleep $((attempt * 30))
+            # Not after the last one: sleeping there delays the failure by 90s and waits for a
+            # retry that never comes.
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::SonarCloud scan attempt $attempt did not finish; retrying"
+              sleep $((attempt * 30))
+            fi
           done
           echo "::error::SonarCloud scan did not finish after three attempts"
           exit 1
