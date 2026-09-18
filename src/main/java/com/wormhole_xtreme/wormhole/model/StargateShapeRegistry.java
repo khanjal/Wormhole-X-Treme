@@ -262,6 +262,7 @@ public final class StargateShapeRegistry
         {
             return;
         }
+        ShippedShapes.updateUntouched(directory);
         restoreMissingDefaults(directory);
         readShapesIn(directory);
 
@@ -317,11 +318,7 @@ public final class StargateShapeRegistry
      */
     private static void restoreMissingDefaults(final File directory)
     {
-        final String[] defaultShapeNames = {"Standard.shape", "StandardSignDial.shape", "Minimal.shape",
-            "MinimalSignDial.shape",
-            "Horizontal.shape", "HorizontalSignDial.shape",
-            "Large.shape", "Grand.shape", "Massive.shape"};
-        for (final String shape : defaultShapeNames)
+        for (final String shape : ShippedShapes.NAMES)
         {
             final File defaultShapeFile = new File(directory, shape);
             if (!defaultShapeFile.exists())

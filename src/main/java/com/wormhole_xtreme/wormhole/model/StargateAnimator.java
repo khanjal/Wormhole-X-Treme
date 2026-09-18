@@ -408,8 +408,13 @@ class StargateAnimator
             return laid.spin();
         }
         final GateRederivation.Layout layout = GateRederivation.layoutFor(gate, shape);
-        final DialSpin spin = (layout == null) ? null
+        DialSpin spin = (layout == null) ? null
             : DialSpin.of(GateBlueprint.of(shape, layout.grid()), layout.grid());
+        // A shape the gate no longer fits, such as 1.6's Large under 1.7's, would turn a ring beside it.
+        if ((spin != null) && !GateRederivation.liesOnGate(gate, spin.ring()))
+        {
+            spin = null;
+        }
         RINGS.put(gate, new LaidRing(shape, spin));
         return spin;
     }
