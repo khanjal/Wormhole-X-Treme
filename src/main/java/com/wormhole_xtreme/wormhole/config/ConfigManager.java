@@ -53,6 +53,9 @@ public class ConfigManager
         /** Restrict teleportation to same-world gates only. */
         SAME_WORLD_ONLY,
 
+        /** Whether a player's following pets travel with them by gate, ring, beam or mirror. */
+        PETS_FOLLOW_OWNER,
+
         /** The LOG LEVEL. */
         LOG_LEVEL,
         /** Tick interval for periodic non-player entity gate scan. */
@@ -1486,6 +1489,17 @@ public class ConfigManager
     }
 
     /**
+     * Whether a player's following pets travel with them.
+     *
+     * @return true unless the setting turns it off
+     */
+    public static boolean isPetsFollowOwner()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PETS_FOLLOW_OWNER);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
      * Checks if same-world-only mode is enabled.
      * When true, players may only teleport through gates whose destination is in the same world.
      * 
@@ -1576,6 +1590,11 @@ public class ConfigManager
             return parsed.getRefusal();
         }
         setting.setValue(parsed.getValue());
+        if (setting.getName() == ConfigKeys.LOG_LEVEL)
+        {
+            // Read once at startup otherwise, so the change would wait for a restart.
+            com.wormhole_xtreme.wormhole.WormholeXTreme.applyLogLevel(getLogLevel());
+        }
         Configuration.persistCurrentConfiguration(SECTION);
         return setting.getName().name() + " is now " + parsed.getValue() + ".";
     }
