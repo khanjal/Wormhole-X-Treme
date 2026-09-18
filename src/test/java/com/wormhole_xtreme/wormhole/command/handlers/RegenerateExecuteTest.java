@@ -212,7 +212,8 @@ class RegenerateExecuteTest
             assertTrue(run("regenerate", "-all"));
         }
 
-        verify(sender).sendMessage(said("could not be checked"));
+        verify(sender).sendMessage(said("had no arrival point to work out"));
+        verify(sender).sendMessage(said(": broken."));
     }
 
     /**
@@ -240,6 +241,7 @@ class RegenerateExecuteTest
 
         verify(sender).sendMessage(said("1 gate now lights its chevrons"));
         verify(sender).sendMessage(said("1 gate kept its old light order"));
+        verify(sender).sendMessage(said("dialling or open; run it again once they are shut: busy."));
     }
 
     /**
@@ -639,5 +641,27 @@ class RegenerateExecuteTest
         verify(gate).lightStargate(false);
         verify(gate).stopActivationTimer();
         verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
+    }
+
+    /** A gate whose frame no longer fits its shape is named on its own line, separate from the busy ones. */
+    @Test
+    void allNamesTheGatesWhoseFrameNoLongerFits()
+    {
+        final Stargate bent = registeredGate("bent");
+        final Stargate alsoBent = registeredGate("Abydos");
+        when(bent.recomputeGatePlayerTeleportLocation()).thenReturn(true);
+        when(alsoBent.recomputeGatePlayerTeleportLocation()).thenReturn(true);
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(any())).thenReturn(GateRederivation.LightResult.DOES_NOT_FIT);
+
+            assertTrue(run("regenerate", "-all"));
+        }
+
+        verify(sender).sendMessage(said("2 gates kept their old light order because the frame no longer fits the shape"));
+        verify(sender).sendMessage(said(": Abydos, bent."));
+        verify(sender, never()).sendMessage(said("dialling or open"));
     }
 }

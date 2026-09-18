@@ -127,6 +127,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **Regenerate's messages pick out what matters**: the gate and shape in aqua, counts and coordinates
   in white, the block found in yellow, done in green and missing in red. Everything was grey. The
   palette is #325's, now in one shared `ChatText` that the build preview's text uses too.
+- **`/wormhole gate regen -all` names the gates it left alone**, a line per reason: dialling or
+  open (run it again once they are shut), a frame that no longer fits the shape (regen each by name,
+  or with `-shape`), and no arrival point to work out. It only counted them before.
 - **`/wormhole gate regen` relights a gate's chevrons in its shape's order**, and so does
   `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
