@@ -1101,9 +1101,11 @@ class StargateBlockSetup
         final Material chevronMaterial = lit ? gate.getEffectiveChevronMaterial() : null;
         final BlockData fixtureOn = lit ? MaterialUtils.litFormOf(chevronMaterial) : null;
 
-        for (final java.util.List<Location> group : groups)
+        for (int i = 0; i < groups.size(); i++)
         {
-            if (group == null)
+            final java.util.List<Location> group = groups.get(i);
+            // The other-world chevron shows only on a link to another world, or while waiting for /dial.
+            if ((group == null) || (lit && (i > StargateAnimator.lastShownWave(gate, groups))))
             {
                 continue;
             }

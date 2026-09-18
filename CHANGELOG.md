@@ -50,9 +50,14 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
 - **Chevrons light in the show's order: down the right side, up the left, and the top one last.**
   Each shipped shape had its own order; `Grand` lit its top first. A horizontal gate's far edge is
-  its top. The bottom chevrons stay dark, as on the show, so `Grand` lights seven and `Horizontal`'s
-  DHD-row cell no longer lights. Gates already built keep the order they were built with; delete
-  the files under `shapes/gate/` and restart to get the new shapes.
+  its top. Gates already built keep the order they were built with; delete the files under
+  `shapes/gate/` and restart to get the new shapes, then `gate regenerate` the old ones.
+- **An eighth chevron locks when the other gate is in another world**, after the top one, as in
+  *The Fifth Race*. `:L#8` marks it: `Grand`'s bottom chevron and `Horizontal`'s DHD-row cell.
+  Before this, both lit on every dial, after the top one.
+- **Pressing a gate's button lights every chevron at once**, the eighth too. `/dial` then darkens
+  them and dials the ones it needs in order, with their sounds. The button used to run the whole
+  sequence before any destination was chosen, and `/dial` went straight to the woosh.
 - **A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read.** Every shipped shape writes
   `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
   default of 3. `Minimal` (1) and the `Standard`, `Large`, `Grand` and `Massive` families (2) now

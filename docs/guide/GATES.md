@@ -85,7 +85,7 @@ Gates work in the Nether and the End.
 | How | What happens |
 |---|---|
 | Click the DHD of a **sign gate** | Dials whatever the dial sign shows |
-| Click the DHD of a gate **without a sign** | Lights the chevrons and waits for `/dial <gate> [idc]` |
+| Click the DHD of a gate **without a sign** | Lights every chevron and waits for `/dial <gate> [idc]`, which dials them in order |
 | Redstone on a **sign gate** | Dials whatever the dial sign shows. See [Redstone](#redstone). |
 
 `/dial` finishes a dial the button started; it cannot start one on its own.

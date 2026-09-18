@@ -78,12 +78,20 @@ class ChevronOrderTest
         final double centre = (minCol + maxCol) / 2.0;
         final int top = lights.stream().mapToInt(l -> height(l, flat)).max().orElseThrow();
 
-        assertEquals(List.of(1, 2, 3, 4, 5, 6, 7), lights.stream().map(Light::order).distinct().sorted().toList(),
-            name + ": seven chevrons light, none of them eighth");
+        final List<Integer> orders = lights.stream().map(Light::order).distinct().sorted().toList();
+        assertEquals(List.of(1, 2, 3, 4, 5, 6, 7), orders.subList(0, Math.min(7, orders.size())),
+            name + ": seven chevrons light in a dial within one world");
+        assertTrue(orders.size() <= 8, name + ": at most an eighth, for another world");
+        if (orders.size() == 8)
+        {
+            final int bottom = lights.stream().mapToInt(l -> height(l, flat)).min().orElseThrow();
+            assertEquals(bottom, lights.stream().filter(l -> l.order() == 8).mapToInt(l -> height(l, flat)).min()
+                .orElseThrow(), name + ": the eighth chevron is at the bottom");
+        }
         assertEquals(top, highest(lights, 7, flat), name + ": the seventh chevron is the top one");
         for (final Light light : lights)
         {
-            if (light.order() == 7)
+            if (light.order() >= 7)
             {
                 continue;
             }

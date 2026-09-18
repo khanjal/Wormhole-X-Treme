@@ -704,7 +704,7 @@ public final class GateInteractionHandler
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
-        stargate.lightStargate(true);
+        stargate.lightAllChevrons();
         return true;
     }
 

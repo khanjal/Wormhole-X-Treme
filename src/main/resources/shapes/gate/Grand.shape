@@ -79,9 +79,9 @@ Layer#1=
 [I][S][S][S:L#4][I][I][I][I][I][I][I][I][I][I][I][I][I][I][S:L#3][S][S][I]
 [I][I][S][S:L#4][S:L#4][I][I][I][I][I][I][I][I][I][I][I][I][S:L#3][S:L#3][S][I][I]
 [I][I][I][S:L#4][S:L#4][S:L#4][I][I][I][I][I][I][I][I][I][I][S:L#3][S:L#3][S:L#3][I][I][I]
-[I][I][I][I][S][S][S][S][S][S][S][S][S][S][S][S][S][S][I][I][I][I]
-[I][I][I][I][I][S][S][S][S][S][S][S][S][S][S][S][S][I][I][I][I][I]
-[I][I][I][I][I][I][S][S][S][S][S][S][S][S][S][S][I][I][I][I][I][I]
+[I][I][I][I][S][S][S][S][S][S:L#8][S:L#8][S:L#8][S:L#8][S][S][S][S][S][I][I][I][I]
+[I][I][I][I][I][S][S][S][S][S][S:L#8][S:L#8][S][S][S][S][S][I][I][I][I][I]
+[I][I][I][I][I][I][S][S][S][S][S:L#8][S:L#8][S][S][S][S][I][I][I][I][I][I]
 
 
 Layer#2=
@@ -128,9 +128,9 @@ Layer#3=
 [I][S][S][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#3][S][S][I]
 [I][I][S:N][S:L#4][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#3][S:L#3][S][I][I]
 [I][I][I][S:L#4][S:L#4][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#3][S:L#3][S:L#3][I][I][I]
-[I][I][I][I][S][S][S][S][S][S][S][S][S][S][S][S][S][S][I][I][I][I]
-[I][I][I][I][I][S][S][S][S][S][S][S][S][S][S][S][S][I][I][I][I][I]
-[I][I][I][I][I][I][S][S][S][S][S][S][S][S][S][S][I][I][I][I][I][I]
+[I][I][I][I][S][S][S][S][S][S:L#8][S:L#8][S:L#8][S:L#8][S][S][S][S][S][I][I][I][I]
+[I][I][I][I][I][S][S][S][S][S][S:L#8][S:L#8][S][S][S][S][S][I][I][I][I][I]
+[I][I][I][I][I][I][S][S][S][S][S:L#8][S:L#8][S][S][S][S][I][I][I][I][I][I]
 
 Layer#4=
 [I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I][I]
