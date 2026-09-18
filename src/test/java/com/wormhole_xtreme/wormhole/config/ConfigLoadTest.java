@@ -126,6 +126,26 @@ class ConfigLoadTest
     }
 
     /**
+     * Only a top-level setting is renamed; the same key nested under a section, or in a comment,
+     * is left as the admin wrote it.
+     */
+    @Test
+    void onlyATopLevelKeyIsRenamed()
+    {
+        final List<String> out = ConfigurationYAML.renameSettingLines(List.of(
+            "mirror-proximity-radius: 11",
+            "some-section:",
+            "  mirror-proximity-radius: 4",
+            "# mirror-proximity-radius: 9"));
+
+        assertEquals(List.of(
+            "mirror-proximity-distance: 11",
+            "some-section:",
+            "  mirror-proximity-radius: 4",
+            "# mirror-proximity-radius: 9"), out);
+    }
+
+    /**
      * A key the file does not mention is added to it.
      *
      * <p>Defaulting it in memory alone would leave the admin with no way to discover the
