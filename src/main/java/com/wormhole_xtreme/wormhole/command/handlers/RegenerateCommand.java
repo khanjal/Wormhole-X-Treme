@@ -106,6 +106,11 @@ public class RegenerateCommand implements SubCommand
             sender.sendMessage(header + "Only " + counted + " at " + s.getGateName() + ", under the "
                 + GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT + "% needed, so it stays \"" + was + "\".");
         }
+        if ((fit.layout() != null) && fit.layout().moved())
+        {
+            sender.sendMessage("Laid where its own recorded frame is, not where its DHD puts it: "
+                + fit.layout().describe() + ".");
+        }
         reportGaps(sender, fit.gaps());
         return fit.accepted();
     }

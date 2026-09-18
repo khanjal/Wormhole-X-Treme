@@ -72,6 +72,12 @@ option only with a dash, and no name may start with one. Scripts and command blo
   place: recorded under the wrong shape and missing a block or two, so no shape matches it whole.
   It takes the named shape if at least 90% of that shape's frame is standing, lists what is
   missing or wrong (up to ten, then a count), and places nothing.
+- **A shape is laid where the gate's frame is, not only where its DHD says.** `Large` and `Grand`
+  gates recorded as `Standard` found 2 of 26 and 2 of 464 frame blocks when their shape was named:
+  the ring was not where the DHD put it. The shape is now tried up to six blocks along the facing
+  and three up, down or across from the DHD's layout, and facing the other way, and laid where it
+  covers most of the gate's own recorded frame. The DHD's layout wins any tie, so a gate built as
+  its shape says is laid exactly as before. Both `-shape` and the light order rebuild use it.
 - **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
   `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.

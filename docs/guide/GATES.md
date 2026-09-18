@@ -417,7 +417,10 @@ its frame does not match takes the shape it does match, and says so; one that ma
 left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
 **`-shape <shape>`**, for one named gate rather than `-all`, names the shape for a gate that matches none, such as one recorded under the
 wrong shape and missing a block or two. It takes the shape if at least 90% of its frame is
-standing, lists what is missing or wrong either way, and places nothing.
+standing, lists what is missing or wrong either way, and places nothing. The shape is laid where
+the gate's own recorded frame is: near where the DHD puts it, up to six blocks along the facing
+and three up, down or across, or facing the other way. So a gate whose DHD is a block or two off,
+or which was recorded facing backwards, still lines up. The light order is laid the same way.
 It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
 open, or the shape lights blocks its frame does not have. **`-all`** recomputes arrival points
 and the light order, and reports how many changed.

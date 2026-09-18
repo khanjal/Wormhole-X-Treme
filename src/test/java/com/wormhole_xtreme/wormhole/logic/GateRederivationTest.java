@@ -625,4 +625,78 @@ class GateRederivationTest
     {
         assertNotNull(placed.remove(key(block.getBlockX(), block.getBlockY(), block.getBlockZ())), "no block there to take out");
     }
+
+    /** The gate's light order, each wave as its block coordinates. */
+    private static List<java.util.Set<String>> lightKeys(final Stargate gate)
+    {
+        final List<java.util.Set<String>> waves = new java.util.ArrayList<>();
+        for (final List<Location> wave : gate.getGateLightBlocks())
+        {
+            final java.util.Set<String> keys = new java.util.HashSet<>();
+            if (wave != null)
+            {
+                for (final Location l : wave)
+                {
+                    keys.add(key(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+                }
+            }
+            waves.add(keys);
+        }
+        return waves;
+    }
+
+    /**
+     * A gate whose DHD stands two blocks further out than its shape says is still laid where its
+     * frame is: the layout follows the gate's own recorded blocks, not the button alone.
+     *
+     * <p>Found in-game on {@code Large} and {@code Grand} gates recorded as {@code Standard}:
+     * naming the right shape found 2 of 26 and 2 of 464 frame blocks, every other one AIR,
+     * because the shape was laid from the DHD and the ring was not where the DHD said.
+     */
+    @Test
+    void aGateWithItsDhdOffIsLaidWhereItsFrameIs() throws Exception
+    {
+        final Stargate gate = detected("Large");
+        final List<java.util.Set<String>> order = lightKeys(gate);
+        final Block button = gate.getGateDialLeverBlock();
+        final BlockFace out = gate.getGateFacing();
+        gate.setGateDialLeverBlock(blockAt(button.getX() + (2 * out.getModX()), button.getY(),
+            button.getZ() + (2 * out.getModZ())));
+        gate.setGateShape(shape("Standard"));
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Large"));
+
+        assertTrue(fit.accepted(), "found " + fit.present() + " of " + fit.expected());
+        assertEquals(fit.expected(), fit.present());
+        assertEquals(-2, fit.layout().along(), fit.layout().describe());
+        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(order, lightKeys(gate), "the light order is laid from the frame too");
+    }
+
+    /** A gate recorded facing the wrong way is laid by turning the facing round. */
+    @Test
+    void aGateRecordedFacingTheWrongWayIsLaidTurnedRound() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        gate.setGateFacing(WorldUtils.getInverseDirection(gate.getGateFacing()));
+
+        final GateRederivation.Layout layout = GateRederivation.layoutFor(gate, shape("Standard"));
+
+        assertTrue(layout.reversed(), layout.describe());
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
+        assertEquals(fit.expected(), fit.present());
+    }
+
+    /** A gate built as its shape says is laid exactly where its DHD puts it. */
+    @Test
+    void aGateBuiltAsItsShapeSaysIsLaidWhereItsDhdPutsIt() throws Exception
+    {
+        for (final String name : new String[] { "Standard", "Large", "Grand", "Massive", "Horizontal" })
+        {
+            placed.clear();
+            final Stargate gate = detected(name);
+            assertFalse(GateRederivation.layoutFor(gate, shape(name)).moved(), name);
+        }
+    }
 }

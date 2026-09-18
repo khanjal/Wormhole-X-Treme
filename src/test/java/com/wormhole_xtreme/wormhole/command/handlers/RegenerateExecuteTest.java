@@ -493,7 +493,7 @@ class RegenerateExecuteTest
                  MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
             {
                 rederive.when(() -> GateRederivation.adoptShape(any(), any()))
-                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of("1,2,3 (found AIR)")));
+                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of("1,2,3 (found AIR)"), null));
                 rederive.when(() -> GateRederivation.rederive(gate))
                     .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
                 rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
@@ -521,7 +521,7 @@ class RegenerateExecuteTest
                  MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
             {
                 rederive.when(() -> GateRederivation.adoptShape(any(), any()))
-                    .thenReturn(new GateRederivation.ShapeFit(false, 20, 100, List.of()));
+                    .thenReturn(new GateRederivation.ShapeFit(false, 20, 100, List.of(), null));
 
                 assertTrue(run("regenerate", "alpha", "-shape", "Massive"));
 
