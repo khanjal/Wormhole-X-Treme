@@ -112,6 +112,10 @@ public class ConfigManager
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
+        /** Minutes a gate build preview lasts after its owner last used a build command. */
+        GATE_PREVIEW_MINUTES,
+        /** Most blocks every gate build preview on the server may show between them. */
+        GATE_PREVIEW_MAX_BLOCKS,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -912,6 +916,26 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /**
+     * How long a gate build preview lasts once its owner stops using build commands.
+     *
+     * @return minutes, at least 1
+     */
+    public static int getGatePreviewMinutes()
+    {
+        return Math.max(1, intSetting(ConfigKeys.GATE_PREVIEW_MINUTES, 10));
+    }
+
+    /**
+     * The most blocks all gate build previews on the server may show at once.
+     *
+     * @return the block count, 0 to allow no previews
+     */
+    public static int getGatePreviewMaxBlocks()
+    {
+        return Math.max(0, intSetting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000));
     }
 
     /**

@@ -227,6 +227,54 @@ click the DHD position, and the detected result is stashed keyed by the player;
 `/wormhole gate complete <name> [idc=CODE] [net=NETWORK]` names it, registers it, places the
 name sign and lever, saves it and fires `StargateCreatedEvent`.
 
+**A build preview is the chosen shape made visible** (#303). `GateBlueprint` lists the blocks a
+builder places, positioned by `GateGrid`, the same layer/row/column mapping detection reads the
+world through, so a frame built to a preview is one detection finds; a test builds every shipped
+shape from its blueprint in all four directions and detects it. Each block is a `BlockDisplay`:
+no hitbox, so it can be walked through and built into, which fake blocks sent with
+`sendBlockChange` cannot be. `HiddenEntities` makes it unsaved and hidden by default before adding
+it to the world (`createEntity` then `addEntity`, from 1.20.2; a spawn hidden in the same tick
+before that), then shows it to its owner. The entity sweep and mirror views leave `Display`
+and `Interaction` entities alone, since moving or re-showing one would undo exactly that.
+
+A preview's controls redraw it from state rather than editing entities one by one: which chevron
+waves are lit, whether the wormhole is open or the iris closed, the palette, and whether the DHD
+and chevron blocks are shown. Each change sets every display to what its cell should now show,
+and spawns or removes the iris's and the DHD's displays to match. Dialling steps a wave every
+`LIGHT_TICKS`; the kawoosh then goes out through the shape's `W#` steps and back every
+`WOOSH_TICKS`, and the opening fills. The woosh order is `WooshSequence` and a lit chevron is
+`MaterialUtils.litChevron`, the same code a real gate dials with, so the two cannot drift apart. The wormhole is sent to the owner as fake blocks, as a real gate draws its own, because a
+block display draws no liquid; every one sent is remembered and taken back on shutdown, iris,
+clear, timeout and disable. The button is an `Interaction` entity over the button's
+cell, since a display cannot be clicked. The block limit counts the opening as well as the frame,
+so dialling or closing the iris never takes the server past it.
+
+The build guide is `BuildGuide`, which judges a block by detection's own rules rather than by the
+material the preview draws: a lit chevron accepts the frame or the chevron block, `[C]` only the
+chevron block, the DHD any button or a lever, and the dial sign is not needed. A guide that asked
+for exactly the drawn block would call a finished gate unfinished. It reads the world only in loaded
+chunks. A placed or broken block inside a preview queues one redraw for the next tick, when the
+block is really there; the five-second tick catches everything else, pistons and explosions
+included. Once a real button stands on the preview's button cell, the `Interaction` box goes, or it
+would take the click meant for the real button and dial the preview instead.
+
+Each blueprint cell carries its shape layer, so `-layer` hides cells past a layer the way `-dhd`
+hides the DHD's: the display and, with the DHD's layer hidden, the button's box. A preview stood on
+a placed button takes its grid from `GateGrid.fromActivationHolder` with that button's facing,
+exactly as detection does when the button is pressed, which is what makes it the right place to
+pick a build up again after a relog. Only a button or lever on the side of a block counts; one on a
+floor has no facing a DHD could have. Nothing is saved: previews end with the session, and the
+button in the world is the anchor.
+
+`-place` checks every block before it writes one, so a refusal leaves the world as it was: the frame
+material has to be one detection can find, every chunk loaded and inside the border, and no block
+the gate or its opening needs may hold something else or belong to a gate or ring. A block already
+right is kept, so a half-built gate is finished rather than rebuilt. It writes the preview's own
+`blockDataFor`, frame first and the button last, then finds the gate with `checkStargate` from that
+button and hands it to `GateInteractionHandler.offerNewGate`, the same step a pressed button takes,
+so naming, the `BUILD` permission and removing the preview are not a second path. Protection plugins
+are not asked yet: the node is admin-level, and region support is #240.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".

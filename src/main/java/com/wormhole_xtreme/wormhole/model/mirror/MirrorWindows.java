@@ -2037,8 +2037,9 @@ public final class MirrorWindows
     /**
      * Whether a mirror may hide this entity from a viewer.
      *
-     * <p>Not a player, which would drop off the tab list. Not a companion either: she is hidden
-     * by default, so a hide takes her from her owner and the later show hands her to a stranger.
+     * <p>Not a player, which would drop off the tab list. Not anything else that is already hidden
+     * by default for somebody: a preview's displays and their interactions, and the companion, whom
+     * a hide takes from her owner and the later show hands to a stranger.
      *
      * @param entity
      *            an entity near the viewer
@@ -2047,6 +2048,8 @@ public final class MirrorWindows
     static boolean veilable(final Entity entity)
     {
         return !(entity instanceof Player)
+            && !(entity instanceof org.bukkit.entity.Display)
+            && !(entity instanceof org.bukkit.entity.Interaction)
             && !com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(entity);
     }
 

@@ -34,6 +34,22 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Stargates
 
+- **`/wormhole gate build <shape> [group]` shows the shape full size in front of you**, seen by
+  you alone and walkable through, with the new `wormhole.build.preview` node (op by default).
+  Several can stand at once; `gate build -clear [-all]` takes them away.
+- **A preview can be dialled, given an iris and redressed** while you look at it: `gate build`
+  `-activate` (or right-click its button), `-iris`, `-material <group>|<role> <block>`, `-chevrons`
+  to draw chevron blocks as frame, and `-dhd` to hide the DHD for a picture.
+- **`gate build -materials` lists what a preview takes, and `-guide` marks what is left to build**:
+  blocks to place drawn small, wrong ones outlined in red, placed ones gone.
+- **`gate build -layer` shows a preview a layer at a time**, and `gate build <shape>` while looking at
+  a placed DHD button stands the preview on it.
+- **`gate build -place` builds a preview for real** (`wormhole.build.preview.place`, op by default),
+  refusing if anything is in the way; name it with `gate complete` as usual.
+- **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
+- **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+- **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
+  MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
 - **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
   `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
   already standing keep working; `gate regenerate` or `refresh` on a three-deep one no longer finds it.
@@ -46,6 +62,7 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Quantum mirrors
 
+- **A mirror's view no longer hides and re-shows display entities.**
 - **`/wormhole mirror set <name> -start` with no mirror after it is refused.**
 - **A mirror may no longer be named starting with `-`**; `start`, `stamp` and `capture` are
   ordinary names now.

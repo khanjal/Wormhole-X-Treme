@@ -1747,6 +1747,42 @@ class MirrorWindowsTest
         verify(viewer).showEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
     }
 
+    /**
+     * A display standing in the view is left alone, where a creature in the same place is hidden.
+     *
+     * <p>A gate build preview is displays hidden from everybody but their owner. Hiding one from a
+     * viewer and showing it again when the view ends would show it to that viewer for good.
+     */
+    @Test
+    void aDisplayInsideTheViewIsNeitherHiddenNorShown()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final Entity stand = mock(ArmorStand.class);
+        when(stand.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(stand.getLocation()).thenReturn(new Location(world, 10.5, 63.0, 14.5));
+        final Entity display = mock(org.bukkit.entity.BlockDisplay.class);
+        when(display.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(display.getLocation()).thenReturn(new Location(world, 10.0, 63.0, 14.0));
+        final Entity box = mock(org.bukkit.entity.Interaction.class);
+        when(box.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(box.getLocation()).thenReturn(new Location(world, 10.5, 63.2, 14.5));
+        when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble()))
+            .thenReturn(List.of(stand, display, box));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            verify(viewer).hideEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
+            stand(viewer, 10.5, -40.0);
+            MirrorProximity.tick();
+        });
+
+        verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(display));
+        verify(viewer, never()).showEntity(any(), org.mockito.ArgumentMatchers.eq(display));
+        verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(box));
+    }
+
     @Test
     void walkingAwayTakesTheViewBack()
     {

@@ -272,6 +272,14 @@ public class WormholeXTreme extends JavaPlugin
             }
             try
             {
+                com.wormhole_xtreme.wormhole.model.preview.GatePreviews.restoreAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.WARNING, "Failed to remove gate build previews", e);
+            }
+            try
+            {
                 // Persist current runtime configuration to YAML on shutdown
                 com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final List<Stargate> gates = StargateManager.getAllGates();
@@ -559,6 +567,9 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());
+        // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            com.wormhole_xtreme.wormhole.model.preview.GatePreviews::tick, 100L, 100L);
         // Said after gates have loaded, so it can tell an empty server from a full one.
         com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");
