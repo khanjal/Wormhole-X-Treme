@@ -131,9 +131,25 @@ public final class GateRederivation
      * @param expected
      *            frame and chevron blocks the shape has
      * @param gaps
-     *            each block that is missing or wrong, as "x,y,z (found MATERIAL)"
+     *            each block that is missing or wrong
      */
-    public record ShapeFit(boolean accepted, int present, int expected, List<String> gaps, Layout layout)
+    public record ShapeFit(boolean accepted, int present, int expected, List<Gap> gaps, Layout layout)
+    {
+    }
+
+    /**
+     * A frame block of a named shape that is not there.
+     *
+     * @param x
+     *            where it should be
+     * @param y
+     *            where it should be
+     * @param z
+     *            where it should be
+     * @param found
+     *            what stands there instead
+     */
+    public record Gap(int x, int y, int z, org.bukkit.Material found)
     {
     }
 
@@ -378,7 +394,7 @@ public final class GateRederivation
         gate.setGateShape(shape);
         final org.bukkit.Material frame = gate.getEffectiveStructureMaterial();
         final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
-        final List<String> gaps = new ArrayList<>();
+        final List<Gap> gaps = new ArrayList<>();
         int expected = 0;
         for (final GateBlueprint.Cell cell : frameCells(shape, grid))
         {
@@ -386,7 +402,7 @@ public final class GateRederivation
             final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
             if ((found != frame) && ((chevron == null) || (found != chevron)))
             {
-                gaps.add(cell.x() + "," + cell.y() + "," + cell.z() + " (found " + found + ")");
+                gaps.add(new Gap(cell.x(), cell.y(), cell.z(), found));
             }
         }
         final int present = expected - gaps.size();

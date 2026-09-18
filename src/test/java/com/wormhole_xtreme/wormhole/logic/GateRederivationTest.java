@@ -601,7 +601,7 @@ class GateRederivationTest
         assertTrue(fit.accepted());
         assertEquals(fit.expected() - 1, fit.present());
         assertEquals(1, fit.gaps().size(), "gaps were: " + fit.gaps());
-        assertTrue(fit.gaps().get(0).contains("found AIR"), fit.gaps().get(0));
+        assertEquals(org.bukkit.Material.AIR, fit.gaps().get(0).found(), String.valueOf(fit.gaps().get(0)));
         assertEquals("Massive", gate.getGateShapeName());
     }
 

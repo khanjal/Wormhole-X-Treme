@@ -78,6 +78,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
   and three up, down or across from the DHD's layout, and facing the other way, and laid where it
   covers most of the gate's own recorded frame. The DHD's layout wins any tie, so a gate built as
   its shape says is laid exactly as before. Both `-shape` and the light order rebuild use it.
+- **Regenerate's messages pick out what matters**: the gate and shape in aqua, counts and coordinates
+  in white, the block found in yellow, done in green and missing in red. Everything was grey. The
+  palette is #325's, now in one shared `ChatText` that the build preview's text uses too.
 - **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
   `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
