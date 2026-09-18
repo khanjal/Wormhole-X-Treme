@@ -54,6 +54,8 @@ class FreyaCompanionTest
 
     private WormholeXTreme plugin;
     private World world;
+    /** Held here because a Location keeps its World weakly, and a collected mock reads as unloaded. */
+    private World otherWorld;
 
     @BeforeEach
     void setUp() throws Exception
@@ -65,6 +67,7 @@ class FreyaCompanionTest
         when(plugin.getDataFolder()).thenReturn(dataFolder);
         PluginTestSupport.install(plugin);
         world = mock(World.class);
+        otherWorld = mock(World.class);
         FreyaCompanion.forgetAll();
         FreyaPreferences.clear();
     }
@@ -228,7 +231,7 @@ class FreyaCompanionTest
     @Test
     void aCatInAnotherWorldHasBeenLeftBehind()
     {
-        final Cat cat = catAt(new Location(mock(World.class), 1.0, 64.0, 1.0));
+        final Cat cat = catAt(new Location(otherWorld, 1.0, 64.0, 1.0));
 
         assertTrue(FreyaCompanion.isLeftBehind(cat, new Location(world, 1.0, 64.0, 1.0)),
             "vanilla following never crosses worlds, so a gate to another world would lose her");
@@ -267,7 +270,7 @@ class FreyaCompanionTest
     void catchingUpResummonsHerBesideAnOwnerWhoTravelled()
     {
         FreyaPreferences.setEnabled(OWNER, true);
-        final Cat before = catAt(new Location(mock(World.class), 1.0, 64.0, 1.0));
+        final Cat before = catAt(new Location(otherWorld, 1.0, 64.0, 1.0));
         final Player owner = playerWith(OWNER, before);
         FreyaCompanion.spawnFor(owner);
 
@@ -584,7 +587,7 @@ class FreyaCompanionTest
     {
         when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
         FreyaPreferences.setEnabled(OWNER, true);
-        final Cat before = catAt(new Location(mock(World.class), 1.0, 64.0, 1.0));
+        final Cat before = catAt(new Location(otherWorld, 1.0, 64.0, 1.0));
         final Player owner = playerWith(OWNER, before);
         when(owner.getName()).thenReturn("owner");
         FreyaCompanion.spawnFor(owner);
