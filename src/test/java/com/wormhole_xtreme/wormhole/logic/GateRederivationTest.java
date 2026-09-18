@@ -572,7 +572,7 @@ class GateRederivationTest
     void aFrameMatchingNoShapeIsLeftAloneEvenWithEveryShapeToTry() throws Exception
     {
         final Stargate gate = detected("Massive");
-        placed.remove(placed.keySet().iterator().next());
+        knockOut(gate.getGateStructureBlocks().get(0));
 
         withShippedShapes(() -> {
             final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
@@ -594,7 +594,7 @@ class GateRederivationTest
     {
         final Stargate gate = detected("Massive");
         gate.setGateShape(shape("Standard"));
-        placed.remove(placed.keySet().iterator().next());
+        knockOut(gate.getGateStructureBlocks().get(0));
 
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Massive"));
 
@@ -615,8 +615,14 @@ class GateRederivationTest
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
 
         assertFalse(fit.accepted());
-        assertTrue(fit.present() < (fit.expected() * GateRederivation.NAMED_SHAPE_MINIMUM));
+        assertTrue((fit.present() * 100) < (fit.expected() * GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT));
         assertEquals("Massive", gate.getGateShapeName());
         assertSame(before, gate.getGateShape(), "the shape the gate animates and sounds from is put back too");
+    }
+
+    /** Takes one particular block out of the world, so a test does not depend on map order. */
+    private void knockOut(final Location block)
+    {
+        assertNotNull(placed.remove(key(block.getBlockX(), block.getBlockY(), block.getBlockZ())), "no block there to take out");
     }
 }

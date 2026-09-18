@@ -32,6 +32,7 @@ public final class SubCommands
     private static final String BUILD = "build";
     private static final String REMOVE = "remove";
     private static final String REGENERATE = "regenerate";
+    private static final String REGEN = "regen";
     private static final String OWNER = "owner";
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
@@ -192,7 +193,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate> [-shape <shape>]",
+        register(REGENERATE, aliases(REGEN), "/wormhole regenerate <gate> [-shape <shape>] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -344,7 +345,7 @@ public final class SubCommands
         {
             return completeGateShapes(args);
         }
-        if (REGENERATE.equals(verb) || "regen".equals(verb) || "validate".equals(verb))
+        if (REGENERATE.equals(verb) || REGEN.equals(verb) || "validate".equals(verb))
         {
             // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
@@ -728,7 +729,7 @@ public final class SubCommands
         }
         // Regenerate alone takes a shape, for a gate recorded under the wrong one.
         final String verb = args[1].toLowerCase(Locale.ROOT);
-        if (!REGENERATE.equals(verb) && !"regen".equals(verb))
+        if (!REGENERATE.equals(verb) && !REGEN.equals(verb))
         {
             return none();
         }

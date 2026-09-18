@@ -89,7 +89,7 @@ public class RegenerateCommand implements SubCommand
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(s, shape);
         if (fit.expected() == 0)
         {
-            sender.sendMessage(header + s.getGateName() + " records no dial button to lay \"" + shape.getShapeName()
+            sender.sendMessage(header + s.getGateName() + " records no dial button, facing or world to lay \"" + shape.getShapeName()
                 + "\" from. Left as \"" + was + "\".");
             return false;
         }
@@ -104,7 +104,7 @@ public class RegenerateCommand implements SubCommand
         else
         {
             sender.sendMessage(header + "Only " + counted + " at " + s.getGateName() + ", under the "
-                + Math.round(GateRederivation.NAMED_SHAPE_MINIMUM * 100) + "% needed, so it stays \"" + was + "\".");
+                + GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT + "% needed, so it stays \"" + was + "\".");
         }
         reportGaps(sender, fit.gaps());
         return fit.accepted();

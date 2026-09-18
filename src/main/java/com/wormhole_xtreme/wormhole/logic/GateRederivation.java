@@ -118,8 +118,8 @@ public final class GateRederivation
     {
     }
 
-    /** The share of a named shape's frame that must be standing for a gate to take that shape. */
-    public static final double NAMED_SHAPE_MINIMUM = 0.9;
+    /** The percentage of a named shape's frame that must be standing for a gate to take that shape. */
+    public static final int NAMED_SHAPE_MINIMUM_PERCENT = 90;
 
     /**
      * How well a gate's frame fits a shape an admin named for it.
@@ -142,7 +142,7 @@ public final class GateRederivation
      * cannot place: recorded under the wrong shape and missing a block or two.
      *
      * <p>The shape is laid by the gate's stored button and facing, as detection would, and each
-     * of its frame and chevron cells is read. Nothing is placed. At {@link #NAMED_SHAPE_MINIMUM}
+     * of its frame and chevron cells is read. Nothing is placed. At {@link #NAMED_SHAPE_MINIMUM_PERCENT}
      * or more of them standing, the gate takes the shape; below that it keeps the one it had.
      *
      * @param gate
@@ -185,7 +185,8 @@ public final class GateRederivation
             }
         }
         final int present = expected - gaps.size();
-        final boolean accepted = (expected > 0) && (present >= (expected * NAMED_SHAPE_MINIMUM));
+        // Whole numbers, so exactly 90% is always enough.
+        final boolean accepted = (expected > 0) && ((present * 100) >= (expected * NAMED_SHAPE_MINIMUM_PERCENT));
         if (!accepted)
         {
             gate.setGateShape(previous);

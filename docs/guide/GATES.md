@@ -397,7 +397,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |
-| `gate regenerate <gate\|-all> [-shape <shape>]` | Recompute markers, light order and arrival point |
+| `gate regenerate <gate> [-shape <shape>]` \| `-all` | Recompute markers, light order and arrival point |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
@@ -415,7 +415,7 @@ lever and signs to match, then recomputes where travellers arrive. Use it for a 
 people at its side. Markers are only added or moved, never removed. A gate recorded under a shape
 its frame does not match takes the shape it does match, and says so; one that matches no shape is
 left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
-**`-shape <shape>`** names the shape for a gate that matches none, such as one recorded under the
+**`-shape <shape>`**, for one named gate rather than `-all`, names the shape for a gate that matches none, such as one recorded under the
 wrong shape and missing a block or two. It takes the shape if at least 90% of its frame is
 standing, lists what is missing or wrong either way, and places nothing.
 It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
