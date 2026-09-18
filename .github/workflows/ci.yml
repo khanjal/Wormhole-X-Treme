@@ -206,7 +206,7 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Build and test against Paper ${{ matrix.paper }}
+      - name: Build and test against ${{ matrix.artifact == 'purpur' && 'Purpur' || 'Paper' }} ${{ matrix.paper }}
         run: >-
           mvn --batch-mode verify ${{ matrix.profile }} -Dpaper.api.version=${{ matrix.api }}
           ${{ matrix.artifact == 'purpur' && '-Dpaper.api.group=org.purpurmc.purpur -Dpaper.api.artifact=purpur-api' || '' }}
