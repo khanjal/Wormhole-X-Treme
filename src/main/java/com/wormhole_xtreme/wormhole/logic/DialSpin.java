@@ -13,10 +13,10 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 /**
  * The inner ring turning while a gate dials, drawn as a light travelling round the frame (#357).
  *
- * <p>On a Milky Way gate the ring turns until each glyph sits under the top chevron, clockwise for
- * the first glyph, anticlockwise for the second, and so on. The frame cannot turn, so a short
- * lit segment travels half the ring instead: from the point opposite the top chevron to the top,
- * alternating direction each glyph. When it arrives, that glyph's chevron locks.
+ * <p>On a Milky Way gate the ring turns each glyph into place, clockwise for the first glyph,
+ * anticlockwise for the second, and so on. The frame cannot turn, so a short lit segment travels
+ * half the ring instead, ending on the chevron about to lock and alternating direction each glyph.
+ * When it arrives, that chevron locks, so the light is seen to land where the chevron lights.
  *
  * <p>The ring is the front layer of chevrons, nearest the DHD, ordered by angle round its centre,
  * clockwise as seen from the DHD with the top chevron at 0. A horizontal gate works the same way, its far
@@ -26,11 +26,14 @@ public final class DialSpin
 {
     private final List<Cell> ring;
     private final double[] angles;
+    /** Each chevron's angle round the ring by glyph, NaN for one not on it. */
+    private final double[] chevrons;
 
-    private DialSpin(final List<Cell> ring, final double[] angles)
+    private DialSpin(final List<Cell> ring, final double[] angles, final double[] chevrons)
     {
         this.ring = ring;
         this.angles = angles;
+        this.chevrons = chevrons;
     }
 
     /**
@@ -72,7 +75,29 @@ public final class DialSpin
         {
             angles[i] = angle(ordered.get(i), centre, up, right);
         }
-        return new DialSpin(List.copyOf(ordered), angles);
+        return new DialSpin(List.copyOf(ordered), angles, chevronAngles(ordered, angles));
+    }
+
+    /** The mean angle of each chevron's cells on the ring, taken round the circle so the top's two sides agree. */
+    private static double[] chevronAngles(final List<Cell> ring, final double[] angles)
+    {
+        final double[] sin = new double[Stargate.OTHER_WORLD_CHEVRON + 1];
+        final double[] cos = new double[sin.length];
+        for (int i = 0; i < ring.size(); i++)
+        {
+            final int wave = ring.get(i).wave();
+            if ((wave > 0) && (wave < sin.length))
+            {
+                sin[wave] += Math.sin(angles[i]);
+                cos[wave] += Math.cos(angles[i]);
+            }
+        }
+        final double[] chevrons = new double[sin.length];
+        for (int wave = 0; wave < chevrons.length; wave++)
+        {
+            chevrons[wave] = ((sin[wave] == 0) && (cos[wave] == 0)) ? Double.NaN : Math.atan2(sin[wave], cos[wave]);
+        }
+        return chevrons;
     }
 
     /** @return the ring, clockwise from the top */
@@ -94,25 +119,27 @@ public final class DialSpin
     }
 
     /**
-     * The cells a glyph's light passes, from opposite the top to the top: clockwise for odd glyphs,
-     * anticlockwise for even ones.
+     * The cells a glyph's light passes, half the ring ending on that glyph's chevron: clockwise for
+     * odd glyphs, anticlockwise for even ones. A chevron not on the ring is taken as the top.
      *
      * @param glyph
      *            which glyph, from 1
-     * @return the path, its last cell at the top
+     * @return the path, its last cell on the chevron
      */
     public List<Cell> path(final int glyph)
     {
         final int n = ring.size();
-        final int opposite = nearest(Math.PI);
-        final int top = nearest(0);
+        final double target = ((glyph > 0) && (glyph < chevrons.length) && !Double.isNaN(chevrons[glyph]))
+            ? chevrons[glyph] : 0.0;
+        final int end = nearest(target);
+        final int start = nearest(target + Math.PI);
         final int step = ((glyph % 2) == 1) ? 1 : -1;
         final List<Cell> path = new ArrayList<>();
-        int i = opposite;
+        int i = start;
         while (true)
         {
             path.add(ring.get(i));
-            if ((i == top) || (path.size() > n))
+            if ((i == end) || (path.size() > n))
             {
                 return path;
             }
