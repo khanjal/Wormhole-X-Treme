@@ -68,6 +68,11 @@ option only with a dash, and no name may start with one. Scripts and command blo
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
   It reads no blocks, so `-all` covers gates in unloaded chunks too. A gate that is dialling or
   open, or whose frame no longer fits its shape, is left alone and counted.
+- **A gate sounds its size.** A `Massive` gate made the same sounds as a `Standard` one. Every gate
+  sound is now deeper and louder on a bigger gate, and lighter on a smaller one, scaled from the
+  shape's width: `Standard` is unchanged, and `Grand` and `Massive` reach the limits of 0.75x pitch
+  and 2x volume, which doubles their range. A shape can set its own with `SOUND_SCALE`. The build
+  preview sounds like the gate it would build.
 
 ### Quantum mirrors
 
