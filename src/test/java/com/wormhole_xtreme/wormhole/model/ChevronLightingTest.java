@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -326,7 +327,7 @@ class ChevronLightingTest
             StargateAnimator.lightStargate(gate, true);
 
             sounds.verify(() -> GateSounds.chevron(gate, 3, 7));
-            sounds.verify(() -> GateSounds.locked(gate), org.mockito.Mockito.never());
+            sounds.verify(() -> GateSounds.locked(gate), never());
         }
     }
 }
