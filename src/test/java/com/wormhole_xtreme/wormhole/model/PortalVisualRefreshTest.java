@@ -202,4 +202,74 @@ class PortalVisualRefreshTest
 
         verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
+
+    /** An open gate with chevrons 1 to 8, one block each at x = 200 + n, dialled to a gate in {@code there}. */
+    private static Stargate openEightChevronGate(final World here, final World there)
+    {
+        final Stargate gate = openGateAt(here, 100, 64, 100);
+        gate.getGateLightBlocks().add(null);
+        for (int n = 1; n <= 8; n++)
+        {
+            gate.getGateLightBlocks().add(new java.util.ArrayList<>(java.util.List.of(new Location(here, 200 + n, 64, 0))));
+        }
+        final Stargate target = new Stargate();
+        target.setGateWorld(there);
+        gate.setGateTarget(target);
+        gate.setGateLightsActive(true);
+        return gate;
+    }
+
+    /** Which light blocks, by x, a player arriving by the gate is sent. */
+    private static java.util.Set<Integer> chevronsSentFor(final World here, final Stargate gate)
+    {
+        when(here.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv -> {
+            final org.bukkit.block.Block b = mock(org.bukkit.block.Block.class);
+            when(b.getLocation()).thenReturn(new Location(here, inv.getArgument(0, Integer.class),
+                inv.getArgument(1, Integer.class), inv.getArgument(2, Integer.class)));
+            return b;
+        });
+        final Player player = mock(Player.class);
+        when(player.isOnline()).thenReturn(true);
+        when(player.getLocation()).thenReturn(new Location(here, 102, 64, 100));
+        final org.mockito.ArgumentCaptor<Location> sent = org.mockito.ArgumentCaptor.forClass(Location.class);
+        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
+                 mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        {
+            StargateBlockSetup.refreshPortalVisuals(player);
+        }
+        verify(player, atLeastOnce()).sendBlockChange(sent.capture(), any());
+        final java.util.Set<Integer> xs = new java.util.TreeSet<>();
+        for (final Location l : sent.getAllValues())
+        {
+            if (l.getBlockX() > 200)
+            {
+                xs.add(l.getBlockX() - 200);
+            }
+        }
+        return xs;
+    }
+
+    /** Somebody arriving at a gate open within one world is shown the seven chevrons its dial lit. */
+    @Test
+    void aGateOpenWithinOneWorldIsShownWithSevenChevrons()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final Stargate gate = openEightChevronGate(here, here);
+
+        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7), chevronsSentFor(here, gate));
+    }
+
+    /** Open to another world, the eighth is shown too. */
+    @Test
+    void aGateOpenToAnotherWorldIsShownWithItsEighth()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final World there = mock(World.class);
+        when(there.getName()).thenReturn("there");
+        final Stargate gate = openEightChevronGate(here, there);
+
+        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here, gate));
+    }
 }

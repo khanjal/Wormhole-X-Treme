@@ -17,11 +17,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * Shipped gates light their chevrons in the show's order: down the right side, up the left, and
- * the top one last.
+ * the top one last, with an eighth at the bottom for another world.
  *
  * <p>Seen from the DHD, a cell's column counts from the right. A horizontal gate's "top" is its
- * far edge, Layer#1. {@code Massive} is left out until its layout is redrawn (#299): one of its
- * chevrons sits in two places, one of them at the top centre.
+ * far edge, Layer#1.
  */
 class ChevronOrderTest
 {
@@ -81,8 +80,7 @@ class ChevronOrderTest
         final List<Integer> orders = lights.stream().map(Light::order).distinct().sorted().toList();
         assertEquals(List.of(1, 2, 3, 4, 5, 6, 7), orders.subList(0, Math.min(7, orders.size())),
             name + ": seven chevrons light in a dial within one world");
-        assertTrue(orders.size() <= 8, name + ": at most an eighth, for another world");
-        if (orders.size() == 8)
+        assertEquals(8, orders.size(), name + ": an eighth, for another world");
         {
             final int bottom = lights.stream().mapToInt(l -> height(l, flat)).min().orElseThrow();
             assertEquals(bottom, lights.stream().filter(l -> l.order() == 8).mapToInt(l -> height(l, flat)).min()
@@ -131,7 +129,7 @@ class ChevronOrderTest
     @Test
     void standingGatesLightDownTheRightUpTheLeftAndTheTopLast() throws Exception
     {
-        for (final String name : new String[] { "Standard", "StandardSignDial", "Large", "Grand" })
+        for (final String name : new String[] { "Standard", "StandardSignDial", "Large", "Grand", "Massive" })
         {
             assertShowOrder(name, false);
         }

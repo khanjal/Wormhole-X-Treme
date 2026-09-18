@@ -53,8 +53,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
   its top. Gates already built keep the order they were built with; delete the files under
   `shapes/gate/` and restart to get the new shapes, then `gate regenerate` the old ones.
 - **An eighth chevron locks when the other gate is in another world**, after the top one, as in
-  *The Fifth Race*. `:L#8` marks it: `Grand`'s bottom chevron and `Horizontal`'s DHD-row cell.
-  Before this, both lit on every dial, after the top one.
+  *The Fifth Race*. `:L#8` marks it, at the bottom of every shipped ring gate but `Minimal`:
+  `Standard`'s arrival cell, `Large`'s bottom pair, and the bottom chevron of `Grand` and
+  `Massive`. `Massive` had one chevron numbered in two places; with an eighth, it numbers cleanly.
 - **Pressing a gate's button lights every chevron at once**, the eighth too. `/dial` then darkens
   them and dials the ones it needs in order, with their sounds. The button used to run the whole
   sequence before any destination was chosen, and `/dial` went straight to the woosh.

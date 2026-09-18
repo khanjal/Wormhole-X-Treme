@@ -234,7 +234,7 @@ class ChevronLightingTest
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
         {
-            StargateAnimator.lightAll(gate);
+            gate.lightAllChevrons();
 
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), any()), times(8));
             sounds.verify(() -> GateSounds.activated(gate));
@@ -268,8 +268,8 @@ class ChevronLightingTest
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
         {
-            StargateAnimator.lightAll(gate);
-            StargateAnimator.relightInOrder(gate);
+            gate.lightAllChevrons();
+            gate.relightChevrons();
 
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), any()), times(8));
             assertEquals(0, gate.getGateLightingCurrentIteration());
