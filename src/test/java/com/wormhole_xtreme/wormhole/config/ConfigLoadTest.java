@@ -49,6 +49,8 @@ class ConfigLoadTest
     @AfterEach
     void tearDown() throws Exception
     {
+        // A loaded config seeds the example groups, whose Standard has chevrons; later tests expect none.
+        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -198,5 +200,54 @@ class ConfigLoadTest
             ConfigurationYAML.getConfigFile("WormholeXTreme"),
             "reading config from the working directory means an admin's settings are ignored "
             + "with no error, which looks exactly like the settings not working");
+    }
+
+    private static List<String> groupNames()
+    {
+        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
+            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName).toList();
+    }
+
+    /**
+     * A config.yml with no material groups is given the example ones, once.
+     *
+     * <p>The groups the guide describes lived only in the example file inside the jar, which
+     * nothing copied out. A server's own config.yml had none, so every server had Standard alone
+     * and a lapis frame was never an Atlantis gate.
+     */
+    @Test
+    void aConfigWithNoMaterialGroupsIsGivenTheExampleOnesOnce() throws Exception
+    {
+        writeConfig("timeout-shutdown: 42\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(List.of("Standard", "Atlantis", "Universe", "MilkyWay"), groupNames());
+        assertEquals(1, configLines().stream().filter(l -> l.startsWith("gate-material-groups:")).count(),
+            "written once, and read back rather than added again");
+        assertTrue(configLines().contains("  Atlantis:"));
+        assertEquals(42, ConfigManager.getTimeoutShutdown(), "the rest of the file still reads");
+    }
+
+    /** A first run gets them too. */
+    @Test
+    void aFirstRunHasTheExampleMaterialGroups()
+    {
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertTrue(groupNames().containsAll(List.of("Standard", "Atlantis", "Universe", "MilkyWay")), "got " + groupNames());
+    }
+
+    /** A config.yml that lists its own groups keeps exactly those. */
+    @Test
+    void aConfigWithItsOwnMaterialGroupsKeepsThem() throws Exception
+    {
+        writeConfig("gate-material-groups:\n  Stone:\n    structure: STONE_BRICKS\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(List.of("Stone"), groupNames());
+        assertFalse(configLines().contains("  Atlantis:"), "nothing added to a section that is already there");
     }
 }

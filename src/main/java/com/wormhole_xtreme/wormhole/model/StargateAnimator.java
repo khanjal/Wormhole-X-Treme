@@ -60,109 +60,81 @@ class StargateAnimator
             return;
         }
 
+        // The gate keeps its place in the woosh as a step and a direction; the sequence both it and
+        // a build preview follow says what that stage draws and where it goes next.
+        final int stage = WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.isGateAnimationRemoving(),
+            waveCount);
         // Only zero at the very start of an opening, so this fires once per wormhole rather
         // than once per frame. Here rather than where the woosh is scheduled, because there
         // are two paths into that and only one into this.
-        if (!gate.isGateAnimationRemoving() && (gate.getGateAnimationStep3D() == 0))
+        if (stage == 0)
         {
             GateSounds.kawoosh(gate);
         }
 
-        final int step = gate.getGateAnimationStep3D();
-        final List<Location> wave = wooshWave(gate, step);
-        if (gate.isGateAnimationRemoving())
+        final WooshSequence.Step now = WooshSequence.at(stage, waveCount);
+        final List<Location> wave = wooshWave(gate, now.index());
+        if (wave != null)
         {
-            retractStep(gate, step, wave, wooshMaterial);
+            showWave(gate, now, wave, wooshMaterial);
         }
-        else
+
+        // Settling comes the stage after step 0 is taken back, not when the counter reaches 1:
+        // ending there skipped undrawing the shallowest step on every opening, which stayed
+        // showing as woosh material for as long as the gate was open.
+        final WooshSequence.Step next = WooshSequence.at(stage + 1, waveCount);
+        if (next.move() == WooshSequence.Move.SETTLE)
         {
-            expandStep(gate, step, wave, waveCount, wooshMaterial);
+            settleIntoOpenPortal(gate, wooshMaterial);
+            return;
         }
+        gate.setGateAnimationStep3D(next.index());
+        gate.setGateAnimationRemoving(next.move() == WooshSequence.Move.BACK);
+        scheduleNextWooshTick(gate);
     }
 
     /**
-     * Draws one wave further out and books the next tick.
+     * Draws one woosh step out, or takes it back.
      *
      * @param gate
      *            the gate
-     * @param step
-     *            the wave being drawn
+     * @param now
+     *            the stage being played
      * @param wave
-     *            its blocks, or null where the shape authored none at this depth
-     * @param waveCount
-     *            how many waves this gate has
+     *            its blocks
      * @param wooshMaterial
      *            what the woosh is drawn as
      */
-    private static void expandStep(final Stargate gate, final int step, final List<Location> wave,
-                                   final int waveCount, final Material wooshMaterial)
+    private static void showWave(final Stargate gate, final WooshSequence.Step now, final List<Location> wave,
+        final Material wooshMaterial)
     {
-        if (wave != null)
+        final boolean out = now.move() == WooshSequence.Move.OUT;
+        if (out)
         {
             // Drawn to nearby clients, not written. Nothing to remember an original for, and
             // nothing left in the world if the server stops mid-woosh.
             StargateBlockSetup.drawBlocks(gate, wave, wooshMaterial);
-            for (final Location l : wave)
-            {
-                gate.getGateAnimatedBlocks().add(
-                    gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + " Woosh Adding: " + step + " Woosh Block Size: " + wave.size());
-        }
-
-        if (waveCount == (step + 1))
-        {
-            gate.setGateAnimationRemoving(true);
         }
         else
-        {
-            gate.setGateAnimationStep3D(step + 1);
-        }
-        scheduleNextWooshTick(gate);
-    }
-
-    /**
-     * Undraws one wave and steps back, or settles when the last one is put away.
-     *
-     * @param gate
-     *            the gate
-     * @param step
-     *            the wave being undrawn
-     * @param wave
-     *            its blocks, or null where the shape authored none at this depth
-     * @param wooshMaterial
-     *            what to fill the portal with once the woosh is gone
-     */
-    private static void retractStep(final Stargate gate, final int step, final List<Location> wave,
-                                    final Material wooshMaterial)
-    {
-        if (wave != null)
         {
             // Put back by showing what is really there, which needs no original and cannot
             // get one wrong.
             StargateBlockSetup.undrawBlocks(gate, wave);
-            for (final Location l : wave)
-            {
-                gate.getGateAnimatedBlocks().remove(
-                    gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + " Woosh Removing: " + step + " Woosh Block Size: " + wave.size());
         }
-
-        if (step == 0)
+        for (final Location l : wave)
         {
-            // Checked against 0, not 1: the wave just undrawn above this tick is the one at
-            // index step3D, so ending the retraction as soon as step3D reaches 1 -- before
-            // this tick's own undraw of index 0 has even run -- skipped undrawing wave #1
-            // (the shallowest layer, right behind the portal) every single time, on every
-            // completed opening, not just an interrupted one. It stayed lit as woosh material
-            // for as long as the gate stayed open: reported as "the event horizon has an
-            // extra layer... in the gate."
-            settleIntoOpenPortal(gate, wooshMaterial);
-            return;
+            final Block block = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+            if (out)
+            {
+                gate.getGateAnimatedBlocks().add(block);
+            }
+            else
+            {
+                gate.getGateAnimatedBlocks().remove(block);
+            }
         }
-        gate.setGateAnimationStep3D(step - 1);
-        scheduleNextWooshTick(gate);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + (out ? " Woosh Adding: " : " Woosh Removing: ")
+            + now.index() + " Woosh Block Size: " + wave.size());
     }
 
     /**

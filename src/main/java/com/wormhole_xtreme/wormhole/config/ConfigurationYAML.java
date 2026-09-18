@@ -66,7 +66,7 @@ public class ConfigurationYAML
             directory.mkdir();
         }
 
-        final File cfg = new File(directory, "config.yml");
+        final File cfg = new File(directory, CONFIG_FILE);
         if (!cfg.exists())
         {
             writeFile(cfg, DefaultSettings.config);
@@ -90,9 +90,11 @@ public class ConfigurationYAML
             final List<Setting> missing = applySettings(map);
 
             // Material groups are a nested section, so they are read straight off the parsed
-            // YAML rather than through the flat Setting/ConfigKeys mechanism. A server with
-            // no such section falls back to the built-in Standard group.
-            loadMaterialGroups(map.get(MATERIAL_GROUPS_KEY));
+            // YAML rather than through the flat Setting/ConfigKeys mechanism. A file without the
+            // section is given the example groups the plugin ships.
+            final Object groups = map.containsKey(MATERIAL_GROUPS_KEY)
+                ? map.get(MATERIAL_GROUPS_KEY) : seedMaterialGroups(cfg);
+            loadMaterialGroups(groups);
 
             // A line under a setting's old name is written back under its new one, so the file
             // says what the plugin reads rather than keeping an orphan beside a new default.
@@ -224,12 +226,80 @@ public class ConfigurationYAML
         MaterialGroupRegistry.load(YamlMaps.asMap(raw));
     }
 
+    /**
+     * Writes the bundled example material groups, and the comment explaining them, onto the end
+     * of a config.yml that has no such section.
+     *
+     * @param cfg
+     *            the config file
+     * @return the parsed section, or null if the bundled config has none
+     */
+    static Object seedMaterialGroups(final File cfg)
+    {
+        final List<String> section = bundledMaterialGroups();
+        if (section.isEmpty())
+        {
+            return null;
+        }
+        try (Writer writer = new FileWriter(cfg, StandardCharsets.UTF_8, true))
+        {
+            writer.write(System.lineSeparator());
+            for (final String line : section)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+                "config.yml had no gate-material-groups, so the example groups were added to it.");
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not add the example material groups to config.yml; using them for this run only", e);
+        }
+        return YamlMaps.asMap(new Yaml().load(String.join("\n", section))).get(MATERIAL_GROUPS_KEY);
+    }
+
+    /**
+     * The material groups section of the config.yml inside the jar, with the comment above it.
+     *
+     * @return its lines, or none if it cannot be read
+     */
+    static List<String> bundledMaterialGroups()
+    {
+        try (InputStream in = ConfigurationYAML.class.getClassLoader().getResourceAsStream(CONFIG_FILE))
+        {
+            if (in == null)
+            {
+                return List.of();
+            }
+            final List<String> lines = new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+            final int key = indexOfSection(lines);
+            if (key < 0)
+            {
+                return List.of();
+            }
+            int from = key;
+            while ((from > 0) && lines.get(from - 1).startsWith("#"))
+            {
+                from--;
+            }
+            return new ArrayList<>(lines.subList(from, insertionPoint(lines, key)));
+        }
+        catch (final IOException e)
+        {
+            return List.of();
+        }
+    }
+
     /** Runs once per paragraph when a description is wrapped, so it is compiled once. */
     private static final java.util.regex.Pattern WHITESPACE =
         java.util.regex.Pattern.compile("\\s+");
 
     /** The section every Setting is filed under; the same name for all of them. */
     private static final String SETTING_SECTION = "WormholeXTreme";
+
+    /** The file this reads, in the plugin folder and inside the jar alike. */
+    private static final String CONFIG_FILE = "config.yml";
 
     /** The config.yml key holding the nested material-group definitions. */
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
@@ -415,7 +485,7 @@ public class ConfigurationYAML
      */
     static File getConfigFile(final String pluginName)
     {
-        return new File(pluginDirectory(pluginName), "config.yml");
+        return new File(pluginDirectory(pluginName), CONFIG_FILE);
     }
 
     /** Rewrites the file with every renamed setting's line under its new name. */

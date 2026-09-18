@@ -158,13 +158,13 @@ class GateTabCompletionTest
         assertTrue(complete("gate", "edit", "alpha", "redstone", "true", "").isEmpty());
     }
 
-    /** {@code build} takes a shape name in its one slot. */
+    /** {@code build} takes a shape name, then a material group, and nothing past that. */
     @Test
     void buildTakesAShapeName()
     {
         assertTrue(complete("gate", "build", "").contains("Standard"),
             "the shipped shapes are offered");
-        assertTrue(complete("gate", "build", "Standard", "").isEmpty());
+        assertTrue(complete("gate", "build", "Standard", "Standard", "").isEmpty());
     }
 
     /** {@code shapes} takes an action, then a shape name for validate. */
