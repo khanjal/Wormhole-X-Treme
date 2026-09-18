@@ -33,6 +33,9 @@ class DialRelightTest
 {
     private Stargate gate;
 
+    /** Held here: a Location keeps its world weakly, so an inline mock can be collected mid-test. */
+    private World world;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -43,7 +46,8 @@ class DialRelightTest
 
         gate = spy(new Stargate());
         gate.setGateName("alpha");
-        doReturn(new Location(mock(World.class), 0, 64, 0)).when(gate).getGatePlayerTeleportLocation();
+        world = mock(World.class);
+        doReturn(new Location(world, 0, 64, 0)).when(gate).getGatePlayerTeleportLocation();
         doNothing().when(gate).toggleDialLeverState(anyBoolean());
         doNothing().when(gate).toggleRedstoneGateActivatedPower();
         doNothing().when(gate).relightChevrons();
@@ -59,7 +63,7 @@ class DialRelightTest
 
     private void dial()
     {
-        try (MockedStatic<WorldUtils> world = mockStatic(WorldUtils.class))
+        try (MockedStatic<WorldUtils> utils = mockStatic(WorldUtils.class))
         {
             StargateDialManager.dialStargate(gate);
         }
