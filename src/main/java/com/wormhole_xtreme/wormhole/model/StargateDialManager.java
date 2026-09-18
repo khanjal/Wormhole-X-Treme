@@ -443,6 +443,20 @@ class StargateDialManager
      */
     static void dialStargate(final Stargate gate)
     {
+        dialStargate(gate, false);
+    }
+
+    /**
+     * Opens a gate's end of a wormhole.
+     *
+     * @param gate
+     *            the gate to activate
+     * @param atOnce
+     *            true for a sign dial, which opens at once: the caller lights the chevrons together
+     *            once both ends are set, instead of this running the chevron sequence
+     */
+    static void dialStargate(final Stargate gate, final boolean atOnce)
+    {
         WorldUtils.scheduleChunkLoad(gate.getGatePlayerTeleportLocation().getBlock());
         if (gate.getGateShutdownTaskId() > 0)
         {
@@ -493,6 +507,11 @@ class StargateDialManager
                 gate.toggleDialLeverState(false);
                 gate.toggleRedstoneGateActivatedPower();
                 gate.setGateRecentlyActive(false);
+            }
+            if (atOnce)
+            {
+                // Lit by the caller, once the far end is known.
+                return;
             }
             if (!gate.isGateLightsActive())
             {
@@ -629,7 +648,10 @@ class StargateDialManager
      */
     private static boolean connect(final Stargate gate, final Stargate target)
     {
-        dialStargate(gate);
+        // A sign dial opens at once: no chevron sequence, and so no dialling sounds from a gate
+        // that is already open.
+        final boolean atOnce = gate.isGateSignPowered();
+        dialStargate(gate, atOnce);
         if (!gate.isGateActive())
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
@@ -639,11 +661,20 @@ class StargateDialManager
         gate.setGateTarget(target);
         try
         {
-            target.dialStargate();
+            dialStargate(target, atOnce);
         }
         catch (final RuntimeException ignore)
         {
             // the far end failing to dial does not undo this one
+        }
+        if (atOnce)
+        {
+            // Both ends known now, so a link to another world lights its eighth.
+            StargateAnimator.openAtOnce(gate);
+            if (target.isGateActive())
+            {
+                StargateAnimator.openAtOnce(target);
+            }
         }
         return settleConnection(gate, target);
     }

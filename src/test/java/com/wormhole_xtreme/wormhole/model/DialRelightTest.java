@@ -90,4 +90,17 @@ class DialRelightTest
         verify(gate).lightStargate(true);
         verify(gate, never()).relightChevrons();
     }
+
+    /** A sign dial's gate is not put through the chevron sequence: it is lit at once by the caller. */
+    @Test
+    void aSignDialDoesNotRunTheChevronSequence()
+    {
+        try (MockedStatic<WorldUtils> utils = mockStatic(WorldUtils.class))
+        {
+            StargateDialManager.dialStargate(gate, true);
+        }
+
+        verify(gate, never()).lightStargate(true);
+        verify(gate, never()).relightChevrons();
+    }
 }

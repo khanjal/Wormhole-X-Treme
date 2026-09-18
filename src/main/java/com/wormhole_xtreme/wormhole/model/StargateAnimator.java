@@ -433,6 +433,34 @@ class StargateAnimator
     }
 
     /**
+     * Opens a gate at once, as a sign dial does: the chevrons its link needs light together with
+     * the lock-in sound, and the wormhole forms on the next tick. No chevron runs one at a time,
+     * so a gate already open plays no dialling sounds.
+     *
+     * @param gate
+     *            the gate, active and linked
+     */
+    static void openAtOnce(final Stargate gate)
+    {
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(0);
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        if (waves != null)
+        {
+            for (int step = 1; step <= lastWave(gate, waves); step++)
+            {
+                if (waves.get(step) != null)
+                {
+                    StargateBlockSetup.drawLights(gate, waves.get(step));
+                }
+            }
+        }
+        GateSounds.locked(gate);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
+    }
+
+    /**
      * Darkens the chevrons, then relights them one at a time with their sounds; the woosh
      * follows the last as usual. Used once {@code /dial} names a destination.
      *

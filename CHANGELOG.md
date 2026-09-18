@@ -73,6 +73,10 @@ option only with a dash, and no name may start with one. Scripts and command blo
   The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
   `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
   sound. The build preview's test dial holds and locks too.
+- **A sign dial opens at once, without the chevron sequence.** Since chevrons lock one at a time
+  with their sounds, a sign-dialled gate opened straight away and then played the whole dial after it
+  was already open. Both ends now light the chevrons they need together, with the lock-in sound, and
+  the wormhole forms on the next tick.
 - **A build preview's test dial shows the inner ring turning** (#357, a first try). Before each
   chevron locks, a short run of light travels half way round the frame from opposite the top
   chevron to the top, clockwise for the first glyph and anticlockwise for the next, as a Milky Way
