@@ -154,6 +154,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Documentation
 
+- **`SECURITY.md` says how to report a security problem privately**, and the issue chooser links it
+  and the maintainer's Discord. The bug template asks reporters not to post their server's address.
 - **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from
   `CHANGELOG-0.x.md`.
 - **The docs show the plugin in game.** Gate shapes, palettes, the dial, a ring cycle, a beam

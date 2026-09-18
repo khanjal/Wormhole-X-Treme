@@ -1,5 +1,11 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Talk to the maintainer on Discord
+    url: https://discord.com/users/235747179459772416
+    about: For a question that is not a bug report or a feature request. Bugs belong in an issue, where others can find them.
+  - name: Report a security problem privately
+    url: https://github.com/khanjal/Wormhole-X-Treme/security/advisories/new
+    about: Not in a public issue. See SECURITY.md.
   - name: Setting it up, and every config option
     url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/guide/SERVER.md
     about: Installing, permissions, commands, building gates and rings, sounds, troubleshooting.
