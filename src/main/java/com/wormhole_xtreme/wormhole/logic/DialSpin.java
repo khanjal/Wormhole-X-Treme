@@ -133,8 +133,9 @@ public final class DialSpin
     }
 
     /**
-     * The cells a glyph's light passes under a pattern: half the ring or a whole turn, ending on
-     * the glyph's chevron, or on the top for {@link DialSpinPattern#TOP}.
+     * The cells a glyph's light passes under a pattern, ending on the glyph's chevron, or on the
+     * top for {@link DialSpinPattern#TOP}. {@link DialSpinPattern#PEGASUS} starts from the chevron
+     * locked before it, the top for the first glyph, so its length varies from glyph to glyph.
      *
      * @param pattern
      *            how the light moves
@@ -148,8 +149,8 @@ public final class DialSpin
         return switch (pattern)
         {
             case TOP -> route(nearest(Math.PI), nearest(0.0), alternating(glyph));
-            case LAP -> route(Math.floorMod(end + alternating(glyph), ring.size()), end, alternating(glyph));
-            case PEGASUS -> route(Math.floorMod(end + 1, ring.size()), end, 1);
+            case LAP -> route(Math.floorMod(end + 1, ring.size()), end, 1);
+            case PEGASUS -> route(nearest((glyph <= 1) ? 0.0 : chevronAngle(glyph - 1)), end, -alternating(glyph));
             default -> path(glyph);
         };
     }

@@ -15,13 +15,16 @@ public enum DialSpinPattern
     /** Half the ring to the top chevron, alternating direction, as 1.7's first try did. */
     TOP,
 
-    /** A whole turn, landing on the chevron about to lock, alternating direction. */
+    /** A whole turn clockwise every glyph, landing on the chevron about to lock: round and round. */
     LAP,
 
     /** Half the ring to the chevron, filling in behind the light rather than a short run. */
     FILL,
 
-    /** Glyph-sized steps a whole turn clockwise to the chevron, as an Atlantis gate lights its glyphs. */
+    /**
+     * As an Atlantis gate dials: from the chevron last locked (the top, for the first glyph) to the
+     * next, anticlockwise first and alternating after, a glyph's width at a time.
+     */
     PEGASUS,
 
     /** No ring light; chevrons lock in order alone. */

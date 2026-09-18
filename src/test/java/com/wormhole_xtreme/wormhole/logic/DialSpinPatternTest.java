@@ -92,20 +92,48 @@ class DialSpinPatternTest
         }
     }
 
-    /** LAP and PEGASUS go the whole way round, and PEGASUS always clockwise. */
+    /** Whether a path's first quarter heads clockwise. */
+    private static boolean clockwise(final DialSpin spin, final List<Cell> path)
+    {
+        final double d = spin.angleOf(path.get(Math.max(1, path.size() / 4))) - spin.angleOf(path.get(0));
+        return Math.floorMod((long) Math.round(Math.toDegrees(d)), 360) < 180;
+    }
+
+    /** LAP goes the whole way round clockwise for every glyph: round and round. */
     @Test
-    void aLapGoesTheWholeWayRound() throws Exception
+    void aLapGoesRoundAndRound() throws Exception
     {
         for (final String name : RINGS)
         {
             final DialSpin spin = spin(name);
-            final int ring = spin.ring().size();
-            assertEquals(ring, spin.path(DialSpinPattern.LAP, 1).size(), name + " LAP");
-            assertEquals(ring, spin.path(DialSpinPattern.PEGASUS, 2).size(), name + " PEGASUS");
-            final List<Cell> pegasus = spin.path(DialSpinPattern.PEGASUS, 2);
-            final double d = spin.angleOf(pegasus.get(pegasus.size() / 4)) - spin.angleOf(pegasus.get(0));
-            assertTrue(Math.floorMod((long) Math.round(Math.toDegrees(d)), 360) < 180,
-                name + ": PEGASUS turns clockwise on an even glyph too");
+            for (int glyph = 1; glyph <= 2; glyph++)
+            {
+                final List<Cell> lap = spin.path(DialSpinPattern.LAP, glyph);
+                assertEquals(spin.ring().size(), lap.size(), name + " LAP glyph " + glyph);
+                assertTrue(clockwise(spin, lap), name + ": LAP glyph " + glyph + " turns clockwise");
+            }
+        }
+    }
+
+    /**
+     * PEGASUS goes as an Atlantis gate dials: the first glyph from the top anticlockwise, and each
+     * after from the chevron last locked, turning the other way from the one before.
+     */
+    @Test
+    void pegasusRunsFromTheLastChevronToTheNextAlternating() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name);
+            final List<Cell> first = spin.path(DialSpinPattern.PEGASUS, 1);
+            assertEquals(7, first.get(0).wave(), name + ": the first glyph starts at the top");
+            assertFalse(clockwise(spin, first), name + ": and turns anticlockwise");
+            for (int glyph = 2; glyph <= 7; glyph++)
+            {
+                final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
+                assertEquals(glyph - 1, path.get(0).wave(), name + ": glyph " + glyph + " starts at the chevron before");
+                assertEquals((glyph % 2) == 0, clockwise(spin, path), name + ": glyph " + glyph + " turns the other way");
+            }
         }
     }
 
