@@ -509,4 +509,77 @@ class GateRederivationTest
         assertEquals(GateRederivation.LightResult.DOES_NOT_FIT, GateRederivation.rebuildLightOrder(gate));
         assertTrue(gate.getGateLightBlocks().isEmpty());
     }
+
+    /** Runs with every shipped gate shape loaded, the way a server has them, and puts the registry back. */
+    private static void withShippedShapes(final ThrowingRunnable body) throws Exception
+    {
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
+        final Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new HashMap<>(shapes);
+        shapes.clear();
+        try (java.util.stream.Stream<Path> files = Files.list(SHAPE_DIR))
+        {
+            for (final Path file : files.filter(f -> f.toString().endsWith(".shape")).toList())
+            {
+                final Stargate3DShape shape = new Stargate3DShape(Files.readAllLines(file).toArray(new String[0]));
+                shapes.put(shape.getShapeName(), shape);
+            }
+        }
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            shapes.clear();
+            shapes.putAll(saved);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable
+    {
+        void run() throws Exception;
+    }
+
+    /**
+     * A gate recorded under a shape it is not takes the shape its frame is.
+     *
+     * <p>The legacy importer records every gate as {@code Standard}. A {@code Massive} gate
+     * recorded that way could never be regenerated: its frame does not match {@code Standard},
+     * so its markers and its light order were left alone however often it was asked.
+     */
+    @Test
+    void aGateRecordedUnderTheWrongShapeTakesTheShapeItIs() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        gate.setGateShape(shape("Standard"));
+
+        withShippedShapes(() -> {
+            final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+            assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
+            assertEquals("Massive", gate.getGateShapeName());
+            assertTrue(outcome.changes().contains("shape (was Standard)"), "changes were: " + outcome.changes());
+        });
+        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate),
+            "with its own shape back, the light order rebuilds");
+    }
+
+    /** A frame that matches no shape at all is still left alone, with every shape to try. */
+    @Test
+    void aFrameMatchingNoShapeIsLeftAloneEvenWithEveryShapeToTry() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        placed.remove(placed.keySet().iterator().next());
+
+        withShippedShapes(() -> {
+            final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+            assertEquals(GateRederivation.Result.NOT_DETECTED, outcome.result());
+            assertEquals("Massive", gate.getGateShapeName());
+            assertTrue(outcome.changes().isEmpty());
+        });
+    }
 }

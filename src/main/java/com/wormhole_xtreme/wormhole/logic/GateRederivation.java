@@ -46,6 +46,10 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * {@code RegenerateCommand} already. Markers are the part that a shape file changing actually
  * invalidates.
  *
+ * <p>A gate recorded under a shape its frame does not match, as the legacy importer records every
+ * gate as {@code Standard}, is detected against every shape, and takes the one it is. Its markers
+ * and its light order can only come out right from its own shape.
+ *
  * <p>And a marker is only ever added or moved, never cleared: a fresh detection that finds no
  * {@code :IA} leaves an iris lever a gate already has alone. A shape that has <em>lost</em> a
  * marker is a different question -- the block is still standing in the world, and taking it up
@@ -285,12 +289,22 @@ public final class GateRederivation
         }
         // Detection reads the world, so this needs the gate's chunk. That is acceptable
         // because regenerate is an admin naming one gate; it is why there is no -all form.
-        final Stargate fresh = StargateHelper.checkStargate(button, facing, shape);
+        Stargate fresh = StargateHelper.checkStargate(button, facing, shape);
+        final List<String> changes = new ArrayList<>();
         if (fresh == null)
         {
-            return new Outcome(Result.NOT_DETECTED, List.of());
+            // Recorded under a shape it does not match, as every gate the legacy importer brings
+            // in is recorded as Standard: take the shape the frame actually is, if any.
+            fresh = StargateHelper.checkStargate(button, facing);
+            if ((fresh == null) || !(fresh.getGateShape() instanceof Stargate3DShape))
+            {
+                return new Outcome(Result.NOT_DETECTED, List.of());
+            }
+            changes.add("shape (was " + shape.getShapeName() + ")");
+            gate.setGateShape(fresh.getGateShape());
         }
-        return new Outcome(Result.REDERIVED, copyMarkers(gate, fresh));
+        changes.addAll(copyMarkers(gate, fresh));
+        return new Outcome(Result.REDERIVED, changes);
     }
 
     /**

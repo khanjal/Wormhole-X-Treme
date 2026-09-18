@@ -412,8 +412,9 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 **`gate regenerate <gate>`** re-reads the gate's shape file and moves its redstone hookup, iris
 lever and signs to match, then recomputes where travellers arrive. Use it for a gate that lands
-people at its side. Markers are only added or moved, never removed; a gate that no longer matches
-its shape is left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
+people at its side. Markers are only added or moved, never removed. A gate recorded under a shape
+its frame does not match takes the shape it does match, and says so; one that matches no shape is
+left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
 It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
 open, or the shape lights blocks its frame does not have. **`-all`** recomputes arrival points
 and the light order, and reports how many changed.
