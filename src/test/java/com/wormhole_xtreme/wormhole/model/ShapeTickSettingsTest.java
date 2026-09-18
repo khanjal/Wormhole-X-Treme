@@ -11,6 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -25,6 +27,18 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 class ShapeTickSettingsTest
 {
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        PluginTestSupport.remove();
+    }
+
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     private static int written(final List<String> lines, final String key)
@@ -44,7 +58,6 @@ class ShapeTickSettingsTest
     @Test
     void everyShippedShapeGetsTheTicksItsFileWrites() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
         final List<Path> files;
         try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
@@ -88,7 +101,6 @@ class ShapeTickSettingsTest
     @Test
     void chevronsLockAtAFollowablePaceSlowerOnBiggerGates() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
         assertEquals(10, lightTicks("Standard"), "half a second a chevron");
         assertEquals(lightTicks("Standard"), lightTicks("Horizontal"), "the same size, the same pace");
         assertTrue(lightTicks("Minimal") < lightTicks("Standard"));
