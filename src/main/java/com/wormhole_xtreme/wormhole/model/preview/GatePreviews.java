@@ -884,6 +884,10 @@ public final class GatePreviews
             preview.litWaves(preview.litWaves() + 1);
             sound(owner, preview, ConfigManager.getGateSoundChevron(),
                 GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
+            if (preview.litWaves() == preview.lastWave())
+            {
+                sound(owner, preview, ConfigManager.getGateSoundLock(), GateSounds.LOCK_PITCH);
+            }
             restyle(preview);
             // Held after the last chevron as a real gate holds it.
             next(owner, preview, (preview.litWaves() < preview.lastWave())

@@ -66,8 +66,10 @@ option only with a dash, and no name may start with one. Scripts and command blo
   whole dial in about a third of a second. `Standard` now takes half a second a chevron
   (`LIGHT_TICKS = 10;`), and a bigger gate a little longer: `Large` 12, `Grand` and `Massive` 15.
   `Minimal` is 6. Delete `shapes/gate/` and restart for the new files.
-- **The last chevron holds a second before the wormhole forms.** The kawoosh started the tick
-  after it locked, so the lock and the opening ran together. The build preview's test dial holds too.
+- **The last chevron holds a second before the wormhole forms, and locks in with its own sound.**
+  The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
+  `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
+  sound. The build preview's test dial holds and locks too.
 - **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
   `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.

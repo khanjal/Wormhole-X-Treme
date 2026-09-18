@@ -303,10 +303,30 @@ class ChevronLightingTest
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
         {
             StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.locked(gate));
         }
 
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
             eq(Stargate.LAST_CHEVRON_PAUSE_TICKS));
         assertEquals(0, gate.getGateLightingCurrentIteration(), "the seventh was the last");
+    }
+
+    /** A chevron before the last locks with its own sound only. */
+    @Test
+    void anEarlierChevronDoesNotLockIn()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(2);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.chevron(gate, 3, 7));
+            sounds.verify(() -> GateSounds.locked(gate), org.mockito.Mockito.never());
+        }
     }
 }

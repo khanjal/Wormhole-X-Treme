@@ -114,6 +114,20 @@ public final class GateSounds
         play(gate, ConfigManager.getGateSoundKawoosh(), KAWOOSH_PITCH);
     }
 
+    /** Below the chevrons' climb, so the lock lands as the heaviest sound of the dial. */
+    public static final float LOCK_PITCH = 0.8f;
+
+    /**
+     * Plays the last chevron locking in, with its chevron sound.
+     *
+     * @param gate
+     *            the gate
+     */
+    public static void locked(final Stargate gate)
+    {
+        play(gate, ConfigManager.getGateSoundLock(), LOCK_PITCH);
+    }
+
     /**
      * Plays a wormhole closing.
      *

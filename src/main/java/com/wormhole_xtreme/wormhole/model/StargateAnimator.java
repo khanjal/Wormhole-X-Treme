@@ -328,6 +328,10 @@ class StargateAnimator
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
         GateSounds.chevron(gate, step, lastWave(gate, waves));
+        if (step == lastWave(gate, waves))
+        {
+            GateSounds.locked(gate);
+        }
     }
 
     /**
