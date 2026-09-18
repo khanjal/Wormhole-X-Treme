@@ -22,7 +22,7 @@ commands:
     aliases: [wx]
     usage: |
       /<command> <subcommand> [args]
-      Gates:  gate build|complete|list|remove|edit|regenerate|refresh|go|force
+      Gates:  gate build|complete|list|remove|edit|regen|go|force
       Rings:  ring create|cancel|list|remove|edit|allow|deny|owner
       Config: config <setting> [value]
       Other:  compass
