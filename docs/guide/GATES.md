@@ -90,6 +90,23 @@ Gates work in the Nether and the End.
 
 `/dial` finishes a dial the button started; it cannot start one on its own.
 
+**The inner ring turns while a gate dials.** Before each chevron locks, a light runs round the
+ring, and the chevron locks when it has finished. Only the gate dialling out turns; the gate
+being dialled lights its chevrons in order without it. A sign dial opens at once, so it has no
+ring turn. A build preview's test dial turns the same way. `gate-dial-spin` picks the pattern:
+
+| Pattern | Before each chevron locks |
+|---|---|
+| `chevron` *(default)* | The light runs half the ring and lands on the chevron, turning the other way each glyph |
+| `top` | Half the ring to the top chevron, turning the other way each glyph |
+| `lap` | A whole turn clockwise, landing on the chevron: round and round |
+| `fill` | As `chevron`, lighting the ring behind it as it goes |
+| `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time |
+| `none` | No ring light |
+
+The light takes the chevron's own time whatever the pattern, so no pattern makes a gate dial
+faster or slower.
+
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
 A dial is refused when the target's iris is closed, the target is already active, or another
@@ -472,7 +489,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-| `gate-dial-spin` | `true` | Show the inner ring turning: a light travels round the frame to the top chevron before each chevron locks, alternating direction, on gates and build previews alike. |
+| `gate-dial-spin` | `chevron` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `chevron`: half the ring, landing on the chevron about to lock, alternating direction. `top`: half the ring to the top chevron, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `none`: no ring light. None changes how fast a gate dials; `true` and `false` from older configs mean `chevron` and `none`. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that

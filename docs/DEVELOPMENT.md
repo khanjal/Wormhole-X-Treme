@@ -57,7 +57,7 @@ grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code'
 
 ## Minecraft versions
 
-The supported range is 1.20 through 26.2. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which
+The supported range is 1.20 through 26.3. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which
 gate detection switches on and 1.19.4 lacks; the top is the newest stable release.
 
 The plugin compiles against the **oldest** API it supports, not the newest. A plugin built
@@ -70,7 +70,7 @@ Compiling against the floor makes the compiler enforce it. That says nothing abo
 |---|---|---|
 | `pom.xml` `spigot.api.version` | `1.20.4-R0.1-SNAPSHOT` | The API this jar is compiled against. `R0.1` is Bukkit's API revision. |
 | `plugin.yml` `api-version` | `1.20` | The oldest server that will load the plugin. Major-minor only. |
-| The `server-api` matrix in `ci.yml` | `1.20` – `26.2` | What is actually built and tested against. |
+| The `server-api` matrix in `ci.yml` | `1.20` – `26.3` | What is actually built and tested against. |
 
 The compile target is 1.20.4 rather than 1.20 because `EntityDismountEvent` moved from
 `org.spigotmc.event.entity` to `org.bukkit.event.entity` there, and 1.20.4 is the only version

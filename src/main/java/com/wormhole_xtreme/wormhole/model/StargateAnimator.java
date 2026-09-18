@@ -447,7 +447,7 @@ class StargateAnimator
         final List<Location> now = new ArrayList<>();
         if (turning.tick < ticks)
         {
-            for (final GateBlueprint.Cell cell : spin.comet(glyph, turning.tick, ticks))
+            for (final GateBlueprint.Cell cell : spin.lit(ConfigManager.getGateDialSpinPattern(), glyph, turning.tick, ticks))
             {
                 now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
             }

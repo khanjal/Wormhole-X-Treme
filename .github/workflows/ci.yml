@@ -17,6 +17,10 @@ concurrency:
   group: ci-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Read-only unless a job says otherwise: nothing here writes to the repository.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build & Test (Java ${{ matrix.java }})
@@ -65,7 +69,7 @@ jobs:
   # removed something we rely on, so every supported version is built and tested here.
   # A Minecraft version is only claimed as supported in the README if it is in this list.
   server-api:
-    name: Minecraft ${{ matrix.minecraft }}
+    name: Spigot ${{ matrix.minecraft }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -106,9 +110,13 @@ jobs:
           - minecraft: "26.1.2"
             api: "26.1.2-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
-          # The newest stable release. Adds the SULFUR_CAVES biome.
+          # Adds the SULFUR_CAVES biome.
           - minecraft: "26.2"
             api: "26.2-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # The newest stable release.
+          - minecraft: "26.3"
+            api: "26.3-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
 
     steps:
@@ -121,13 +129,13 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Build and test against Minecraft ${{ matrix.minecraft }}
+      - name: Build and test against Spigot ${{ matrix.minecraft }}
         run: mvn --batch-mode verify ${{ matrix.profile }} -Dspigot.api.version=${{ matrix.api }}
 
   # The same plugin built against paper-api instead. Paper-only methods are reached reflectively,
   # so a wrong name would silently turn the feature off; PaperApiTest only runs here.
   paper-api:
-    name: Paper ${{ matrix.paper }}
+    name: ${{ matrix.artifact == 'purpur' && 'Purpur' || 'Paper' }} ${{ matrix.paper }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -135,19 +143,58 @@ jobs:
         # "paper:", not "minecraft:": release.yml reads every "- minecraft:" line as a
         # supported version for the release title.
         include:
+          # The same versions as server-api above.
+          - paper: "1.20"
+            api: "1.20-R0.1-SNAPSHOT"
+            profile: "-Plegacy-api"
+            java: "21"
+          - paper: "1.20.1"
+            api: "1.20.1-R0.1-SNAPSHOT"
+            profile: "-Plegacy-api"
+            java: "21"
           - paper: "1.20.4"
             api: "1.20.4-R0.1-SNAPSHOT"
             profile: ""
+            java: "21"
+          - paper: "1.20.6"
+            api: "1.20.6-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+            java: "21"
+          - paper: "1.21.1"
+            api: "1.21.1-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+            java: "21"
+          - paper: "1.21.4"
+            api: "1.21.4-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+            java: "21"
+          - paper: "1.21.10"
+            api: "1.21.10-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
             java: "21"
           - paper: "1.21.11"
             api: "1.21.11-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
             java: "21"
-          # The newest stable build.
+          - paper: "26.1.2"
+            api: "26.1.2.build.74-stable"
+            profile: "-Pmodern-api"
+            java: "25"
           - paper: "26.2"
             api: "26.2.build.124-stable"
             profile: "-Pmodern-api"
             java: "25"
+          # No stable 26.3 build yet.
+          - paper: "26.3"
+            api: "26.3.build.19-alpha"
+            profile: "-Pmodern-api"
+            java: "25"
+          # Purpur, through the same profile. Newest only: its API is Paper's plus extras this plugin never calls.
+          - paper: "26.3"
+            api: "26.3.build.2637-experimental"
+            profile: "-Pmodern-api"
+            java: "25"
+            artifact: "purpur"
 
     steps:
       - uses: actions/checkout@v7
@@ -159,8 +206,10 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Build and test against Paper ${{ matrix.paper }}
-        run: mvn --batch-mode verify ${{ matrix.profile }} -Dpaper.api.version=${{ matrix.api }}
+      - name: Build and test against ${{ matrix.artifact == 'purpur' && 'Purpur' || 'Paper' }} ${{ matrix.paper }}
+        run: >-
+          mvn --batch-mode verify ${{ matrix.profile }} -Dpaper.api.version=${{ matrix.api }}
+          ${{ matrix.artifact == 'purpur' && '-Dpaper.api.group=org.purpurmc.purpur -Dpaper.api.artifact=purpur-api' || '' }}
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest
@@ -191,6 +240,9 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     # A pull request from a fork does not receive this repository's secrets, so SONAR_TOKEN
     # is empty there and the scan can only fail auth. Skip that case outright rather than
     # running it and swallowing the failure: a job that always passes because it never

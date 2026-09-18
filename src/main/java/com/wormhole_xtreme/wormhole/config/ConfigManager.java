@@ -789,15 +789,63 @@ public class ConfigManager
     }
 
     /**
-     * Whether a dialling gate shows its inner ring turning: a light travelling round the frame
-     * to the top chevron before each chevron locks (#357).
+     * Whether a dialling gate shows its inner ring turning (#357).
      *
-     * @return true if it does
+     * @return true unless the pattern is NONE
      */
     public static boolean isGateDialSpin()
     {
+        return getGateDialSpinPattern() != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE;
+    }
+
+    /**
+     * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
+     * {@code true} or {@code false}, read as CHEVRON and NONE; anything unreadable is CHEVRON.
+     *
+     * @return the pattern
+     */
+    public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern()
+    {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
-        return (s == null) || s.getBooleanValue();
+        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern = (s == null) ? null
+            : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(s.getValue()));
+        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.CHEVRON : pattern;
+    }
+
+    /**
+     * The values a setting takes, for tab completion: its choices, or true and false for a switch.
+     *
+     * @param typed
+     *            the setting's name as typed, in either spelling
+     * @return the values, empty for free text or a number
+     */
+    public static java.util.List<String> valuesFor(final String typed)
+    {
+        final ConfigKeys key;
+        try
+        {
+            key = ConfigKeys.valueOf(String.valueOf(typed).replace('-', '_').toUpperCase(Locale.ROOT));
+        }
+        catch (final IllegalArgumentException notASetting)
+        {
+            return java.util.List.of();
+        }
+        switch (key)
+        {
+            case GATE_DIAL_SPIN:
+                return java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
+                    .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
+            case RING_DEFAULT_ACCESS:
+                return java.util.List.of("public", "private");
+            case RING_DEFAULT_STYLE:
+                return java.util.List.of("concurrent", "sequential");
+            case LOG_LEVEL:
+                return java.util.List.of("SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL", "OFF");
+            default:
+                final Setting s = getConfigurations().get(key);
+                return ((s != null) && (s.getValue() instanceof Boolean)) ? java.util.List.of("true", "false")
+                    : java.util.List.of();
+        }
     }
 
     /**
