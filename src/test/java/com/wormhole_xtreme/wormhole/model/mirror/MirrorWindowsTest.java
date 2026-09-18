@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,7 +56,6 @@ import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
-import org.mockito.invocation.Invocation;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -128,11 +128,15 @@ class MirrorWindowsTest
         // read a view off its first batch, and there is no scheduler here to send the rest.
         MirrorWindows.streamPerTick = Integer.MAX_VALUE;
 
-        world = named(mock(World.class), "world");
+        // stubOnly: a redraw asks the world for a block hundreds of thousands of times, and Mockito
+        // keeps an invocation — with a stack trace — for each one. Nothing verifies the world, so
+        // that record is only ever held. This is worth nothing on its own; it only shows once the
+        // blocks it hands back have stopped being mocks themselves.
+        world = named(mock(World.class, withSettings().stubOnly()), "world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
-            blockAt(invocation.getArgument(0), invocation.getArgument(1),
-                invocation.getArgument(2), true));
+            viewBlock(invocation.getArgument(0), invocation.getArgument(1),
+                invocation.getArgument(2)));
         // Sky over sky above a column's top is skipped, and a bare mock's top is y 0: the
         // real side here reaches the top of the world, so nothing a test builds is skipped.
         when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
@@ -151,6 +155,10 @@ class MirrorWindowsTest
     @AfterEach
     void tearDown() throws Exception
     {
+        // Without this every test leaves its windows and the states it drew them from behind, and
+        // 75 tests' worth pile up in static maps for the life of the class. clear() says it is for
+        // a test or a reload; nothing here was calling it.
+        MirrorWindows.clear();
         MirrorManager.clear();
         MirrorProximity.clear();
         MirrorFog.sendDistanceWith(null);
@@ -2432,8 +2440,7 @@ class MirrorWindowsTest
         for (final BlockState state : batch)
         {
             at.put(new Spot(state.getX(), state.getY(), state.getZ()),
-                setBlockDataCalls(state).map(call -> (BlockData) call.getArgument(0)).findFirst()
-                    .orElse(null));
+                setBlockDataCalls(state).findFirst().orElse(null));
         }
         return at;
     }
@@ -2441,14 +2448,23 @@ class MirrorWindowsTest
     private static long drawnAs(final Collection<BlockState> batch, final BlockData data)
     {
         return batch.stream()
-            .filter(state -> setBlockDataCalls(state).anyMatch(call -> call.getArgument(0) == data))
+            .filter(state -> setBlockDataCalls(state).anyMatch(drawn -> drawn == data))
             .count();
     }
 
-    private static Stream<Invocation> setBlockDataCalls(final BlockState state)
+    /**
+     * What a state was set to, in call order. The stand-ins keep the argument themselves; the
+     * handful of states a test still builds with Mockito are read off its invocation record.
+     */
+    private static Stream<BlockData> setBlockDataCalls(final BlockState state)
     {
+        if (state instanceof Drawn drawn)
+        {
+            return drawn.drawnData().stream();
+        }
         return mockingDetails(state).getInvocations().stream()
-            .filter(call -> "setBlockData".equals(call.getMethod().getName()));
+            .filter(call -> "setBlockData".equals(call.getMethod().getName()))
+            .map(call -> (BlockData) call.getArgument(0));
     }
 
     /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
@@ -2525,6 +2541,123 @@ class MirrorWindowsTest
         when(data.isOccluding()).thenReturn(true);
         when(block.getBlockData()).thenReturn(data);
         doReturn(block).when(world).getBlockAt(x, y, z);
+    }
+
+    /**
+     * The block the catch-all answers with, as a proxy rather than a mock.
+     *
+     * <p>Mockito keeps an invocation — with a stack trace — for every read of every mock, and a
+     * redraw over this world reads hundreds of thousands of blocks. That bookkeeping, not
+     * anything the plugin does, is what took this class past 2 GB on its own: a histogram taken
+     * as it died counted 4.4M retained invocations behind ~496K live mocks. Nothing verifies a
+     * drawn block, so the record was only ever held, never read.
+     *
+     * <p>The blocks a test builds by hand still come from {@link #blockAt}: there are a few dozen
+     * of those, some are re-stubbed by their callers, and they cost nothing worth saving.
+     */
+    private Block viewBlock(final int x, final int y, final int z)
+    {
+        return standIn(Block.class, (method, arguments) -> switch (method.getName())
+        {
+            case "getX" -> x;
+            case "getY" -> y;
+            case "getZ" -> z;
+            case "getWorld" -> world;
+            case "isPassable" -> true;
+            // Read per call, not fixed at creation: a test shapes the wall before the redraw that
+            // reads it, and a fresh mock per read used to give that for free.
+            case "isEmpty" -> localEmpty;
+            case "getType" -> Material.AIR;
+            case "getLocation" -> new Location(world, x, y, z);
+            case "getBlockData" -> viewData(x, y, z);
+            case "getState" -> viewState(x, y, z);
+            case "getRelative" -> relative(x, y, z, arguments[0]);
+            default -> uncovered(Block.class, method);
+        });
+    }
+
+    /** The block data of a drawn block: the wall the tests shape is read off {@code isOccluding}. */
+    private BlockData viewData(final int x, final int y, final int z)
+    {
+        return standIn(BlockData.class, (method, arguments) -> switch (method.getName())
+        {
+            case "isOccluding" -> wallBehind && (z == 11) && !new Spot(x, y, z).equals(gap)
+                && ((panel == null)
+                    || ((Math.abs(x - 10) <= panel) && (y >= (63 - panel)) && (y <= (64 + panel))));
+            case "getAsString" -> "fake:" + x + "," + y + "," + z;
+            default -> uncovered(BlockData.class, method);
+        });
+    }
+
+    /**
+     * What a stand-in state was drawn as. The assertions read the data a state was set to, which
+     * on a mock meant reading Mockito's invocation record — the record whose stack traces are the
+     * memory. A list of the one argument anybody asks about costs nothing.
+     */
+    private interface Drawn
+    {
+        List<BlockData> drawnData();
+    }
+
+    /** A drawn block's state, fresh per read as Bukkit gives. */
+    private BlockState viewState(final int x, final int y, final int z)
+    {
+        final List<BlockData> drawn = new ArrayList<>(1);
+        return standIn(BlockState.class, (method, arguments) -> switch (method.getName())
+        {
+            case "getX" -> x;
+            case "getY" -> y;
+            case "getZ" -> z;
+            case "getWorld" -> world;
+            case "getLocation" -> new Location(world, x, y, z);
+            case "getType" -> Material.AIR;
+            case "setBlockData" ->
+            {
+                drawn.add((BlockData) arguments[0]);
+                yield null;
+            }
+            case "drawnData" -> drawn;
+            default -> uncovered(BlockState.class, method);
+        }, Drawn.class);
+    }
+
+    /** The neighbour a {@code getRelative} asks for, so a walk off a drawn block stays in this world. */
+    private Block relative(final int x, final int y, final int z, final Object face)
+    {
+        final BlockFace to = (BlockFace) face;
+        return viewBlock(x + to.getModX(), y + to.getModY(), z + to.getModZ());
+    }
+
+    /**
+     * A proxy for a Bukkit interface, answering what {@code answers} covers and Object's three.
+     * Identity equality is what a mock gave, and the drawing keeps blocks in sets.
+     */
+    private static <T> T standIn(final Class<T> type,
+        final java.util.function.BiFunction<java.lang.reflect.Method, Object[], Object> answers,
+        final Class<?>... also)
+    {
+        final Class<?>[] types = new Class<?>[also.length + 1];
+        types[0] = type;
+        System.arraycopy(also, 0, types, 1, also.length);
+        return type.cast(java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),
+            types, (self, method, arguments) -> switch (method.getName())
+            {
+                case "equals" -> self == arguments[0];
+                case "hashCode" -> System.identityHashCode(self);
+                case "toString" -> type.getSimpleName() + "@" + System.identityHashCode(self);
+                default -> answers.apply(method, arguments);
+            }));
+    }
+
+    /**
+     * Refuses a call this stand-in does not answer. A null would be taken for a real reading and
+     * read as a passing test; the drawing is full of places where absent and empty differ.
+     */
+    private static Object uncovered(final Class<?> type, final java.lang.reflect.Method method)
+    {
+        throw new UnsupportedOperationException(
+            "MirrorWindowsTest's " + type.getSimpleName() + " stand-in does not answer "
+                + method.getName() + "(); add it there if the drawing now needs it");
     }
 
     /** A block of the banner's world, with a fresh state per read as Bukkit gives. */
