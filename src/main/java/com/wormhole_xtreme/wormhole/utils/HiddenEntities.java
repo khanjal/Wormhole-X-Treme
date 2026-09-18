@@ -87,7 +87,10 @@ public final class HiddenEntities
         else
         {
             entity = world.spawn(at, type);
-            prepare(entity, setup);
+            if (entity != null)
+            {
+                prepare(entity, setup);
+            }
         }
         if ((entity == null) || !entity.isValid())
         {
