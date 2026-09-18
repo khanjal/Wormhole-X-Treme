@@ -53,7 +53,7 @@ Look at a preview and these change it, for you alone:
 | `gate build -iris` | Closes an iris over the opening, in the group's iris material; again opens it |
 | `gate build -material <group>` | Redresses it in another material group |
 | `gate build -material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
-| `gate build -chevrons` | Draws a group's chevron blocks as frame, since they are optional; lit chevrons then show the light material |
+| `gate build -chevrons` | Shows or hides a group's chevron blocks. The Standard palette starts with them hidden, drawn as frame the classic way; other groups start with them shown. Lit, a hidden chevron shows the light material |
 | `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
 | `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
 | `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
@@ -152,6 +152,9 @@ built in can still pin one — an explicit value outranks the group.
 
 `MATERIAL_GROUPS=Standard,Atlantis` restricts which palettes a shape accepts; without it, every
 group is accepted.
+
+`SOUND_SCALE=2.5` sets how big the gate sounds, `Standard` being 1.0; without it, the shape's width
+over `Standard`'s 7. See [Sounds](#sounds).
 
 ## Material groups
 
@@ -267,7 +270,7 @@ The selection is coloured *and* wrapped in `»` `«`, so it still reads for a co
 
 Colours are Bukkit names such as `AQUA` or `GOLD`; an unrecognised one falls back to the default.
 Signs repaint when next written — a dial sign on the next click, a name sign on
-`/wormhole gate regenerate <gate>`.
+`/wormhole gate regen <gate>`.
 
 ## The iris
 
@@ -357,7 +360,7 @@ A trigger on a gate that is lit but never dialled deactivates it.
 ### An older gate that ignores redstone
 
 A gate records its marker positions when built. One built before its shape gained `[RD]` has none,
-and no wiring will fire it. `/wormhole gate regenerate <gate>` re-reads the shape and adds them.
+and no wiring will fire it. `/wormhole gate regen <gate>` re-reads the shape and adds them.
 
 ### `[RS]` — sign cycling, custom shapes only
 
@@ -397,7 +400,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |
-| `gate regenerate <gate\|-all>` | Recompute markers, light order and arrival point |
+| `gate regen [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
@@ -410,10 +413,23 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 
-**`gate regenerate <gate>`** re-reads the gate's shape file and moves its redstone hookup, iris
+**`gate regen <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
+turns out to be, keeping its name, owner, iris code and network, as `/wormhole refresh` used to
+(that command still works, and does the same). With no gate named, it waits for you to click the
+gate's DHD. Then it re-reads the gate's shape file and moves its redstone hookup, iris
 lever and signs to match, then recomputes where travellers arrive. Use it for a gate that lands
-people at its side. Markers are only added or moved, never removed; a gate that no longer matches
-its shape is left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
+people at its side. Markers are only added or moved, never removed. A gate recorded under a shape
+its frame does not match takes the shape it does match, and says so; one that matches no shape is
+left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
+**`-shape <shape>`**, for one named gate rather than `-all`, names the shape for a gate that matches none, such as one recorded under the
+wrong shape and missing a block or two. It takes the shape if at least 90% of its frame is
+standing, lists what is missing or wrong either way, and places nothing. The shape is laid where
+the gate's own recorded frame is: near where the DHD puts it, up to six blocks along the facing
+and three up, down or across, or facing the other way. So a gate whose DHD is a block or two off,
+or which was recorded facing backwards, still lines up. The light order is laid the same way.
+**`-water`** clears real water or lava standing in a closed gate's opening or woosh, left by older
+versions that built the portal from blocks when a dial glitched. Without it, regenerate only says
+how many stand there, since a gate built underwater has ordinary water in its opening.
 It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
 open, or the shape lights blocks its frame does not have. **`-all`** recomputes arrival points
 and the light order, and reports how many changed.
@@ -429,6 +445,17 @@ duplicate marker, a material this Minecraft version lacks, redstone landing on t
 ## Sounds
 
 General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).
+
+**A gate sounds its size.** Every gate sound is deeper and louder on a bigger gate, and lighter on
+a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOUND_SCALE`.
+`Standard` plays each sound exactly as configured below.
+
+| Shape | Pitch | Volume, and so range |
+|---|---|---|
+| `Minimal` | 1.15x (the limit) | 0.85x (the limit) |
+| `Standard`, `Horizontal` | 1x | 1x |
+| `Large` | 0.90x | 1.24x |
+| `Grand`, `Massive` | 0.75x (the limit) | 2x (the limit) |
 
 | Setting | Default | When it plays |
 |---|---|---|

@@ -287,12 +287,12 @@ Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, whi
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".
 
-**`refresh` and `regenerate` are different repairs.** `/wormhole gate refresh` puts the player in
+**`refresh` and `regen` are different repairs.** `/wormhole gate refresh` puts the player in
 refresh mode and their next DHD click re-detects the geometry from scratch, keeping name, owner,
 IDC and network. No blocks are touched and no removal event is raised — a refresh is not the gate
 going away, so listeners are not told to discard what they know.
 
-`/wormhole gate regenerate <gate>` re-derives the narrower thing, by name and without a click: it
+`/wormhole gate regen <gate>` re-derives the narrower thing, by name and without a click: it
 hands the gate's own stored dial-lever block and facing back to `checkStargate` with the shape as
 it is now, and copies the markers off the result — the three redstone blocks, the iris lever, the
 dial sign, the name sign. Copying markers rather than swapping the gate object is what keeps
