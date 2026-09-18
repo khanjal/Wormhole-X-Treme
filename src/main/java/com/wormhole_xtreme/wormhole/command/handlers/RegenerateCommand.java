@@ -257,11 +257,8 @@ public class RegenerateCommand implements SubCommand
             case NO_ANCHOR -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + gate + " records no dial button, so its shape cannot be re-read."
                 + " Markers left as they are.");
-            case NOT_DETECTED -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + ((missing > 0)
-                ? "Markers on " + gate + " left as they are until its frame is whole: " + ChatText.value(String.valueOf(missing))
-                    + " block" + ((missing == 1) ? "" : "s") + " short of a " + shape + "."
-                : gate + " no longer matches shape " + shape + ", so its markers were left alone."
-                    + " Check the frame is still standing."));
+            case NOT_DETECTED -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + notDetected(gate, shape, missing));
             case REDERIVED -> reportRederived(sender, s, outcome);
             default -> { /* every Result is covered above */ }
         }
@@ -297,6 +294,21 @@ public class RegenerateCommand implements SubCommand
             // No shape and no anchor are already reported by the marker re-derivation.
             default -> { /* nothing changed, nothing to say */ }
         }
+    }
+
+    /**
+     * Why a gate's markers were left alone: a named shape a few blocks short, or a frame that no
+     * longer matches.
+     */
+    private static String notDetected(final String gate, final String shape, final int missing)
+    {
+        if (missing > 0)
+        {
+            return "Markers on " + gate + " left as they are until its frame is whole: "
+                + ChatText.value(String.valueOf(missing)) + " block" + plural(missing) + " short of a " + shape + ".";
+        }
+        return gate + " no longer matches shape " + shape + ", so its markers were left alone."
+            + " Check the frame is still standing.";
     }
 
     /**
