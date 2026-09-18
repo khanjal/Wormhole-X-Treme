@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -94,7 +95,7 @@ class RegenerateExecuteTest
     {
         assertFalse(run("regenerate"));
 
-        verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(said("No gate name specified"));
     }
 
     /** A gate nobody built is named back. */
@@ -103,7 +104,7 @@ class RegenerateExecuteTest
     {
         assertTrue(run("regenerate", "nowhere"));
 
-        verify(sender).sendMessage(contains("nowhere"));
+        verify(sender).sendMessage(said("nowhere"));
     }
 
     /** One named gate gets the full refresh: lever, sign, and its arrival point. */
@@ -118,8 +119,8 @@ class RegenerateExecuteTest
         verify(gate).toggleDialLeverState(true);
         verify(gate).setupGateSign(true);
         verify(gate).matchDialSignMaterial();
-        verify(sender).sendMessage(contains("Arrival point recomputed for alpha"));
-        verify(sender).sendMessage(contains("Regenerating Gate: alpha"));
+        verify(sender).sendMessage(said("Arrival point recomputed for alpha"));
+        verify(sender).sendMessage(said("Regenerated alpha."));
     }
 
     /** A gate whose exit cannot be worked out is not told it was. */
@@ -131,8 +132,8 @@ class RegenerateExecuteTest
 
         assertTrue(run("regenerate", "alpha"));
 
-        verify(sender, never()).sendMessage(contains("Arrival point recomputed"));
-        verify(sender).sendMessage(contains("Regenerating Gate: alpha"));
+        verify(sender, never()).sendMessage(said("Arrival point recomputed"));
+        verify(sender).sendMessage(said("Regenerated alpha."));
     }
 
     /** The iris lever is only redone on a gate that has a code to protect. */
@@ -211,7 +212,7 @@ class RegenerateExecuteTest
             assertTrue(run("regenerate", "-all"));
         }
 
-        verify(sender).sendMessage(contains("could not be checked"));
+        verify(sender).sendMessage(said("could not be checked"));
     }
 
     /**
@@ -237,8 +238,8 @@ class RegenerateExecuteTest
             db.verify(() -> StargateDBManager.saveStargate(busy), never());
         }
 
-        verify(sender).sendMessage(contains("1 gate now lights its chevrons"));
-        verify(sender).sendMessage(contains("1 gate kept its old light order"));
+        verify(sender).sendMessage(said("1 gate now lights its chevrons"));
+        verify(sender).sendMessage(said("1 gate kept its old light order"));
     }
 
     /**
@@ -285,7 +286,7 @@ class RegenerateExecuteTest
             assertTrue(run("regenerate", "alpha"));
         }
 
-        verify(sender, never()).sendMessage(contains(forbidden));
+        verify(sender, never()).sendMessage(said(forbidden));
     }
 
     /**
@@ -310,7 +311,7 @@ class RegenerateExecuteTest
             assertTrue(run("regenerate", "alpha"));
         }
 
-        verify(sender).sendMessage(contains(expected));
+        verify(sender).sendMessage(said(expected));
     }
 
     /**
@@ -340,7 +341,7 @@ class RegenerateExecuteTest
             db.verify(() -> StargateDBManager.saveStargate(gate));
         }
 
-        verify(sender).sendMessage(contains("redstone dial input, iris lever"));
+        verify(sender).sendMessage(said("redstone dial input, iris lever"));
     }
 
     /** A rebuilt light order is saved, or the next restart would put the old one back. */
@@ -361,7 +362,7 @@ class RegenerateExecuteTest
             db.verify(() -> StargateDBManager.saveStargate(gate));
         }
 
-        verify(sender).sendMessage(contains("now lights its chevrons"));
+        verify(sender).sendMessage(said("now lights its chevrons"));
     }
 
     /**
@@ -389,7 +390,7 @@ class RegenerateExecuteTest
             db.verify(() -> StargateDBManager.saveStargate(gate), never());
         }
 
-        verify(sender, never()).sendMessage(contains("and moved:"));
+        verify(sender, never()).sendMessage(said("and moved:"));
     }
 
     /**
@@ -433,7 +434,210 @@ class RegenerateExecuteTest
 
         assertTrue(new RegenerateCommand().execute(player, new String[] {"regenerate", "alpha"}));
 
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(said("ermission"));
         verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** Runs with one named shape loaded, and puts the registry back. */
+    private static void withShape(final String name, final Runnable body)
+    {
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new java.util.HashMap<>(shapes);
+        shapes.clear();
+        final com.wormhole_xtreme.wormhole.model.Stargate3DShape shape = mock(com.wormhole_xtreme.wormhole.model.Stargate3DShape.class);
+        when(shape.getShapeName()).thenReturn(name);
+        shapes.put(name, shape);
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            shapes.clear();
+            shapes.putAll(saved);
+        }
+    }
+
+    /** -shape with no name after it says how to use it, and regenerates nothing. */
+    @Test
+    void aShapeFlagWithNoNameSaysHowToUseIt()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        assertTrue(run("regenerate", "alpha", "-shape"));
+
+        verify(sender).sendMessage(said("Name the shape"));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** A shape nobody loaded is named back, and nothing is regenerated. */
+    @Test
+    void anUnknownShapeIsNamedBack()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        withShape("Massive", () -> assertTrue(run("regenerate", "alpha", "-shape", "Colossal")));
+
+        verify(sender).sendMessage(said("No gate shape called Colossal"));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** A shape the gate fits is taken whatever its capitals, saved, reported with its gaps, and regenerated from. */
+    @Test
+    void aShapeTheGateFitsIsTakenSavedAndRegeneratedFrom()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.getGateShapeName()).thenReturn("Standard");
+
+        withShape("Massive", () -> {
+            try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+                 MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+            {
+                rederive.when(() -> GateRederivation.adoptShape(any(), any()))
+                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of(new GateRederivation.Gap(1, 2, 3, org.bukkit.Material.AIR)), null));
+                rederive.when(() -> GateRederivation.rederive(gate))
+                    .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
+                rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
+
+                assertTrue(run("regenerate", "alpha", "-shape", "massive"));
+
+                db.verify(() -> StargateDBManager.saveStargate(gate));
+            }
+        });
+
+        verify(sender).sendMessage(said("99 of 100 frame blocks"));
+        verify(sender).sendMessage(said("1 2 3 (AIR)"));
+        // The parts a player looks for stand out: the gate and shape as names, the block as a block.
+        verify(sender).sendMessage(contains(com.wormhole_xtreme.wormhole.utils.ChatText.name("alpha") + " is now "
+            + com.wormhole_xtreme.wormhole.utils.ChatText.name("Massive")));
+        verify(sender).sendMessage(contains(com.wormhole_xtreme.wormhole.utils.ChatText.material("AIR")));
+        verify(gate).toggleDialLeverState(true);
+    }
+
+    /** A shape the gate does not fit is refused, and the gate is not regenerated under it. */
+    @Test
+    void aShapeTheGateDoesNotFitIsRefused()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.getGateShapeName()).thenReturn("Standard");
+
+        withShape("Massive", () -> {
+            try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+                 MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+            {
+                rederive.when(() -> GateRederivation.adoptShape(any(), any()))
+                    .thenReturn(new GateRederivation.ShapeFit(false, 20, 100, List.of(), null));
+
+                assertTrue(run("regenerate", "alpha", "-shape", "Massive"));
+
+                db.verify(() -> StargateDBManager.saveStargate(gate), never());
+            }
+        });
+
+        verify(sender).sendMessage(said("stays Standard:"));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** A message whose words, colours aside, contain the text: what a player reads. */
+    private static String said(final String text)
+    {
+        return org.mockito.ArgumentMatchers.argThat(
+            m -> (m != null) && com.wormhole_xtreme.wormhole.utils.ChatText.plain(m).contains(text));
+    }
+
+    /** With no gate named, a player's next DHD click is waited for, as /wormhole refresh did. */
+    @Test
+    void noGateNamedWaitsForAPlayersDhdClick()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        when(player.hasPermission(anyString())).thenReturn(true);
+        when(player.isOp()).thenReturn(true);
+        try
+        {
+            assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate" }));
+            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player));
+            assertFalse(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player));
+            verify(player).sendMessage(said("Click the DHD of the gate to regenerate it."));
+
+            assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate", "-water" }));
+            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player), "-water carries to the click");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
+        }
+    }
+
+    /** By name, the whole gate is detected afresh first, and the rest is done on the fresh gate. */
+    @Test
+    void aNamedGateIsDetectedAfreshAndRegeneratedAsThatGate()
+    {
+        final Stargate gate = registeredGate("alpha");
+        final Stargate fresh = mock(Stargate.class);
+        when(fresh.getGateName()).thenReturn("alpha");
+        when(fresh.getGateShapeName()).thenReturn("Grand");
+
+        try (MockedStatic<com.wormhole_xtreme.wormhole.logic.GateRefresh> refresh =
+                 mockStatic(com.wormhole_xtreme.wormhole.logic.GateRefresh.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            refresh.when(() -> com.wormhole_xtreme.wormhole.logic.GateRefresh.refresh(any(), any(), any())).thenReturn(fresh);
+
+            assertTrue(run("regenerate", "alpha"));
+        }
+
+        verify(sender).sendMessage(said("Re-detected alpha from its frame as Grand"));
+        verify(fresh).toggleDialLeverState(true);
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** -water clears what stands in the opening; without it, the water is only pointed out. */
+    @Test
+    void waterIsClearedOnlyWhenAskedAndPointedOutOtherwise()
+    {
+        final Stargate gate = registeredGate("alpha");
+        final org.bukkit.block.Block puddle = mock(org.bukkit.block.Block.class);
+        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle));
+        when(gate.clearStrandedLiquid()).thenReturn(2);
+
+        assertTrue(run("regenerate", "alpha"));
+        verify(gate, never()).clearStrandedLiquid();
+        verify(sender).sendMessage(said("2 water or lava blocks stand in alpha's opening"));
+
+        assertTrue(run("regenerate", "alpha", "-water"));
+        verify(gate).clearStrandedLiquid();
+        verify(sender).sendMessage(said("Cleared 2 water or lava blocks left standing in alpha."));
+    }
+
+    /**
+     * An open gate is shut down before it is regenerated, rather than left open and its geometry
+     * left alone: its far end holds the gate being replaced.
+     */
+    @Test
+    void anOpenGateIsShutDownThenRegenerated()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.isGateActive()).thenReturn(true);
+
+        assertTrue(run("regen", "alpha"));
+
+        verify(gate).shutdownStargate(true);
+        verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
+        verify(gate).toggleDialLeverState(true);
+    }
+
+    /** A gate lit by its button and waiting for /dial is darkened before it is regenerated. */
+    @Test
+    void aGateWaitingForDialIsDarkenedThenRegenerated()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.isGateLightsActive()).thenReturn(true);
+
+        assertTrue(run("regen", "alpha"));
+
+        verify(gate).lightStargate(false);
+        verify(gate).stopActivationTimer();
+        verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
     }
 }

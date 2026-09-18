@@ -40,6 +40,7 @@ import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -896,10 +897,14 @@ public final class GatePreviews
             preview.litWaves(preview.litWaves() + 1);
             sound(owner, preview, ConfigManager.getGateSoundChevron(),
                 GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
+            if (preview.litWaves() == preview.lastWave())
+            {
+                sound(owner, preview, ConfigManager.getGateSoundLock(), GateSounds.LOCK_PITCH);
+            }
             restyle(preview);
-            // A real gate starts its woosh the tick after its last chevron.
+            // Held after the last chevron as a real gate holds it.
             next(owner, preview, (preview.litWaves() < preview.lastWave())
-                ? preview.shape().getShapeLightTicks() : 1L);
+                ? preview.shape().getShapeLightTicks() : Stargate.LAST_CHEVRON_PAUSE_TICKS);
             return;
         }
         final int stage = preview.wooshStage();
@@ -1142,7 +1147,11 @@ public final class GatePreviews
     {
         if (ConfigManager.isGateSoundsEnabled())
         {
-            watching(owner, preview).forEach(viewer -> Sounds.playTo(viewer, sound, ConfigManager.getGateSoundVolume(), pitch));
+            // Sized like the real gate this shape would build.
+            final double scale = GateSounds.scaleOf(preview.shape());
+            final float volume = ConfigManager.getGateSoundVolume() * GateSounds.sizeVolume(scale);
+            final float scaledPitch = pitch * GateSounds.sizePitch(scale);
+            watching(owner, preview).forEach(viewer -> Sounds.playTo(viewer, sound, volume, scaledPitch));
         }
     }
 

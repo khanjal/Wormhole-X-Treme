@@ -21,7 +21,26 @@ public class Refresh implements CommandExecutor
 
     public static void addPendingRefresh(final Player p)
     {
-        pendingRefresh.put(p, Boolean.TRUE);
+        addPendingRefresh(p, false);
+    }
+
+    /**
+     * Waits for the player's next DHD click to regenerate that gate.
+     *
+     * @param p
+     *            the player
+     * @param clearLiquid
+     *            whether to clear water left standing in the gate, as {@code -water} asks
+     */
+    public static void addPendingRefresh(final Player p, final boolean clearLiquid)
+    {
+        pendingRefresh.put(p, clearLiquid);
+    }
+
+    /** @return whether the pending click was asked to clear stranded water */
+    public static boolean isPendingClearLiquid(final Player p)
+    {
+        return Boolean.TRUE.equals(pendingRefresh.get(p));
     }
 
     public static boolean isPendingRefresh(final Player p)
@@ -51,7 +70,7 @@ public class Refresh implements CommandExecutor
         }
         addPendingRefresh(player);
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Refresh mode active. Click the DHD lever/button of the gate to refresh.");
+            + "Click the DHD of the gate to regenerate it.");
         return true;
     }
 }

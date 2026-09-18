@@ -32,6 +32,7 @@ public final class SubCommands
     private static final String BUILD = "build";
     private static final String REMOVE = "remove";
     private static final String REGENERATE = "regenerate";
+    private static final String REGEN = "regen";
     private static final String OWNER = "owner";
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
@@ -192,7 +193,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate>",
+        register(REGEN, aliases(REGENERATE), "/wormhole regen [gate] [-shape <shape>] [-water] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -306,7 +307,7 @@ public final class SubCommands
                         .toArray(new String[0]));
             });
 
-        hide("list", BUILD, "complete", REMOVE, REGENERATE, "refresh", "go", "force",
+        hide("list", BUILD, "complete", REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict");
@@ -344,7 +345,7 @@ public final class SubCommands
         {
             return completeGateShapes(args);
         }
-        if (REGENERATE.equals(verb) || "regen".equals(verb) || "validate".equals(verb))
+        if (REGENERATE.equals(verb) || REGEN.equals(verb) || "validate".equals(verb))
         {
             // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
@@ -720,13 +721,38 @@ public final class SubCommands
      */
     private static List<String> completeGateRegenerate(final String[] args)
     {
-        if (args.length != 3)
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        final boolean regenerate = REGENERATE.equals(verb) || REGEN.equals(verb);
+        if (args.length == 3)
+        {
+            final List<String> out = new ArrayList<>(gateNames(args[2]));
+            out.addAll(prefixed(args[2], "-all"));
+            if (regenerate)
+            {
+                // With no gate named, regenerate waits for a DHD click; -water rides along.
+                out.addAll(prefixed(args[2], "-water"));
+            }
+            return out;
+        }
+        // Regenerate alone takes a shape, for a gate recorded under the wrong one, and -water.
+        if (!regenerate)
         {
             return none();
         }
-        final List<String> out = new ArrayList<>(gateNames(args[2]));
-        out.addAll(prefixed(args[2], "-all"));
-        return out;
+        final String previous = args[args.length - 2];
+        if ("-shape".equalsIgnoreCase(previous))
+        {
+            return shapeNames(args[args.length - 1]);
+        }
+        final List<String> flags = new ArrayList<>();
+        for (final String flag : new String[] { "-shape", "-water" })
+        {
+            if (java.util.Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
+            {
+                flags.add(flag);
+            }
+        }
+        return prefixed(args[args.length - 1], flags.toArray(new String[0]));
     }
 
     /**

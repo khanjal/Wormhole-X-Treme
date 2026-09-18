@@ -32,11 +32,13 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 public class GateCommand implements SubCommand
 {
     private static final String REGENERATE = "regenerate";
+    /** What regenerate is offered as: short to type. The long name still works. */
+    private static final String REGEN = "regen";
     private static final String VALIDATE = "validate";
 
     /** The verbs, in the order they are offered. */
     private static final List<String> VERBS = Arrays.asList(
-        "build", "complete", "list", "remove", "edit", REGENERATE, "refresh", "go", "force",
+        "build", "complete", "list", "remove", "edit", REGEN, "go", "force",
         "import", "shapes", VALIDATE);
 
     /**
@@ -70,7 +72,7 @@ public class GateCommand implements SubCommand
         {
             return new GateEditCommand().execute(sender, args);
         }
-        if (CommandHandlerUtils.verbIs(verb, REGENERATE, "regen"))
+        if (CommandHandlerUtils.verbIs(verb, REGEN, REGENERATE))
         {
             final String[] forHandler = new String[rest.length + 1];
             forHandler[0] = REGENERATE;

@@ -473,9 +473,10 @@ class GatePreviewsTest
         verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
         final long light = standard.getShapeLightTicks();
         final long woosh = standard.getShapeWooshTicks();
-        assertEquals(List.of(light, light, light, light, light, light, light, 1L, woosh, woosh, woosh, woosh, woosh),
-            dialDelays, "chevrons the shape's light ticks apart, the woosh a tick after the last and its woosh ticks"
-                + " apart, as a real gate times them, then nothing more");
+        final long hold = com.wormhole_xtreme.wormhole.model.Stargate.LAST_CHEVRON_PAUSE_TICKS;
+        assertEquals(List.of(light, light, light, light, light, light, light, hold, woosh, woosh, woosh, woosh, woosh),
+            dialDelays, "chevrons the shape's light ticks apart, the last held before the woosh, and the woosh its"
+                + " ticks apart, as a real gate times them, then nothing more");
         assertEquals(STANDARD_BLOCKS, spawned.size(), "the wormhole is fake blocks, not displays");
     }
 

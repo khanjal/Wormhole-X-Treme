@@ -71,6 +71,9 @@ public class Stargate
 
     /** The chevron that locks only when the other gate is in another world. */
     public static final int OTHER_WORLD_CHEVRON = 8;
+
+    /** How long the last chevron holds before the wormhole forms: a second, so the lock reads as one. */
+    public static final long LAST_CHEVRON_PAUSE_TICKS = 20L;
     /** Is activated through sign destination?. */
     private boolean gateSignPowered;
     /** The gate redstone powered. */
@@ -1599,6 +1602,18 @@ public class Stargate
     public boolean isGateSignPowered()
     {
         return gateSignPowered;
+    }
+
+    /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
+    public List<org.bukkit.block.Block> strandedLiquid()
+    {
+        return StargateBlockSetup.strandedLiquid(this);
+    }
+
+    /** @return how many water or lava blocks were cleared from this closed gate's opening and woosh */
+    public int clearStrandedLiquid()
+    {
+        return StargateBlockSetup.clearStrandedLiquid(this);
     }
 
     /** Lights every chevron at once, for a gate activated and waiting for a destination. */

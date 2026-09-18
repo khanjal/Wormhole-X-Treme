@@ -328,6 +328,10 @@ class StargateAnimator
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
         GateSounds.chevron(gate, step, lastWave(gate, waves));
+        if (step == lastWave(gate, waves))
+        {
+            GateSounds.locked(gate);
+        }
     }
 
     /**
@@ -347,7 +351,8 @@ class StargateAnimator
             gate.setGateLightingCurrentIteration(0);
             if (gate.isGateActive())
             {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                    new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), Stargate.LAST_CHEVRON_PAUSE_TICKS);
             }
         }
         else

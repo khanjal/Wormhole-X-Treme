@@ -8,7 +8,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -279,6 +281,53 @@ class ChevronLightingTest
 
             sounds.verify(() -> GateSounds.activated(gate), times(1));
             sounds.verify(() -> GateSounds.chevron(gate, 1, 7));
+        }
+    }
+
+    /**
+     * The last chevron holds a moment before the wormhole forms, rather than the woosh starting
+     * the very next tick: the lock should read as the end of the sequence.
+     */
+    @Test
+    void theLastChevronHoldsBeforeTheWormholeForms() throws Exception
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        final World here = world("here");
+        final Stargate gate = eightChevronGate("alpha", here);
+        gate.setGateTarget(eightChevronGate("beta", here));
+        gate.setGateActive(true);
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(6);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.locked(gate));
+        }
+
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
+            eq(Stargate.LAST_CHEVRON_PAUSE_TICKS));
+        assertEquals(0, gate.getGateLightingCurrentIteration(), "the seventh was the last");
+    }
+
+    /** A chevron before the last locks with its own sound only. */
+    @Test
+    void anEarlierChevronDoesNotLockIn()
+    {
+        final Stargate gate = eightChevronGate("alpha", world("here"));
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(2);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+
+            sounds.verify(() -> GateSounds.chevron(gate, 3, 7));
+            sounds.verify(() -> GateSounds.locked(gate), never());
         }
     }
 }
