@@ -57,7 +57,13 @@ option only with a dash, and no name may start with one. Scripts and command blo
   MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
 - **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
   `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
-  already standing keep working; `gate regen` or `refresh` on a three-deep one no longer finds it.
+  already standing keep working; `gate regen` on a three-deep one no longer finds it.
+- **Startup names each bundled shape that differs from this version's.** Shape files are never
+  overwritten, since an admin may have edited them, so an upgraded server keeps 1.6's. Delete the
+  ones you did not edit and restart to take the new shapes, then run `gate regen -all`.
+- **Every gate's light order is rebuilt from its shape at startup**, as `gate regen -all` does,
+  saving the gates it changed. A gate whose frame no longer fits its shape keeps its order and is
+  named in the log. A ring no longer turns on such a gate, where it could be laid beside the frame.
 - **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.

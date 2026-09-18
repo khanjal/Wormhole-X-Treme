@@ -9,8 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,11 +34,13 @@ import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -496,6 +502,46 @@ class GateRederivationTest
 
         assertEquals(GateRederivation.LightResult.BUSY, GateRederivation.rebuildLightOrder(gate));
         assertEquals(before, order(gate));
+    }
+
+    /**
+     * Startup brings each standing gate's light order up to date and saves only the gates it
+     * changed, so an upgrade needs no {@code regen -all}.
+     */
+    @Test
+    void startupRebuildsAndSavesOnlyTheGatesLightingInAnOlderOrder() throws Exception
+    {
+        final Stargate old = detected("Standard");
+        old.setGateName("Old");
+        swapFirstAndLast(old);
+        final Stargate current = detected("Standard");
+        current.setGateName("Current");
+        final List<java.util.Set<String>> shapeOrder = order(current);
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            assertEquals(1, LightOrderUpgrade.rebuildAll(List.of(old, current)));
+            db.verify(() -> StargateDBManager.saveStargate(old));
+            db.verify(() -> StargateDBManager.saveStargate(current), never());
+        }
+        assertEquals(shapeOrder, order(old));
+    }
+
+    /** A gate whose frame no longer fits its shape is left as it is, and named in the log. */
+    @Test
+    void startupNamesAGateItCouldNotRelight() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        gate.setGateName("Abydos");
+        gate.getGateStructureBlocks().clear();
+        gate.getGateLightBlocks().clear();
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            assertEquals(0, LightOrderUpgrade.rebuildAll(List.of(gate)));
+            db.verify(() -> StargateDBManager.saveStargate(gate), never());
+        }
+        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(Level.INFO), contains("Abydos"));
     }
 
     /** A shape lighting blocks the gate does not have leaves the gate alone: its frame has changed. */
