@@ -945,6 +945,67 @@ class StargateBlockSetup
     }
 
     /**
+     * Real water or lava still standing in a closed gate's opening or woosh.
+     *
+     * <p>The portal and the woosh are drawn to clients now, but older versions built them from
+     * real blocks, and a dial that glitched part-way could leave some behind. Nothing standing
+     * there belongs to the gate, though a gate built underwater has ordinary water in those cells,
+     * which is why clearing it is asked for rather than done.
+     *
+     * @param gate
+     *            the gate
+     * @return the liquid blocks, none while the gate is open
+     */
+    public static List<Block> strandedLiquid(final Stargate gate)
+    {
+        final List<Block> found = new ArrayList<>();
+        if ((gate == null) || gate.isGateActive() || (gate.getGateWorld() == null))
+        {
+            return found;
+        }
+        final List<Location> cells = new ArrayList<>(gate.getGatePortalBlocks());
+        for (int i = 0; i < StargateAnimator.wooshWaveCount(gate); i++)
+        {
+            final List<Location> wave = StargateAnimator.wooshWave(gate, i);
+            if (wave != null)
+            {
+                cells.addAll(wave);
+            }
+        }
+        final Set<String> seen = new HashSet<>();
+        for (final Location cell : cells)
+        {
+            if (!seen.add(cell.getBlockX() + "," + cell.getBlockY() + "," + cell.getBlockZ()))
+            {
+                continue;
+            }
+            final Block block = gate.getGateWorld().getBlockAt(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ());
+            if ((block.getType() == Material.WATER) || (block.getType() == Material.LAVA))
+            {
+                found.add(block);
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Clears the real water and lava standing in a closed gate's opening and woosh.
+     *
+     * @param gate
+     *            the gate
+     * @return how many blocks were cleared
+     */
+    public static int clearStrandedLiquid(final Stargate gate)
+    {
+        final List<Block> liquid = strandedLiquid(gate);
+        for (final Block block : liquid)
+        {
+            block.setType(Material.AIR);
+        }
+        return liquid.size();
+    }
+
+    /**
      * Puts a set of drawn blocks back to whatever is really there.
      *
      * <p>Read from the world rather than remembered, which is the whole advantage of drawing:

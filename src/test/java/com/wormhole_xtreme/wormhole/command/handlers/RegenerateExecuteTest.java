@@ -545,4 +545,68 @@ class RegenerateExecuteTest
         return org.mockito.ArgumentMatchers.argThat(
             m -> (m != null) && com.wormhole_xtreme.wormhole.utils.ChatText.plain(m).contains(text));
     }
+
+    /** With no gate named, a player's next DHD click is waited for, as /wormhole refresh did. */
+    @Test
+    void noGateNamedWaitsForAPlayersDhdClick()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        when(player.hasPermission(anyString())).thenReturn(true);
+        when(player.isOp()).thenReturn(true);
+        try
+        {
+            assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate" }));
+            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player));
+            assertFalse(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player));
+            verify(player).sendMessage(said("Click the DHD of the gate to regenerate it."));
+
+            assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate", "-water" }));
+            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player), "-water carries to the click");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
+        }
+    }
+
+    /** By name, the whole gate is detected afresh first, and the rest is done on the fresh gate. */
+    @Test
+    void aNamedGateIsDetectedAfreshAndRegeneratedAsThatGate()
+    {
+        final Stargate gate = registeredGate("alpha");
+        final Stargate fresh = mock(Stargate.class);
+        when(fresh.getGateName()).thenReturn("alpha");
+        when(fresh.getGateShapeName()).thenReturn("Grand");
+
+        try (MockedStatic<com.wormhole_xtreme.wormhole.logic.GateRefresh> refresh =
+                 mockStatic(com.wormhole_xtreme.wormhole.logic.GateRefresh.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            refresh.when(() -> com.wormhole_xtreme.wormhole.logic.GateRefresh.refresh(any(), any(), any())).thenReturn(fresh);
+
+            assertTrue(run("regenerate", "alpha"));
+        }
+
+        verify(sender).sendMessage(said("Re-detected alpha from its frame as Grand"));
+        verify(fresh).toggleDialLeverState(true);
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** -water clears what stands in the opening; without it, the water is only pointed out. */
+    @Test
+    void waterIsClearedOnlyWhenAskedAndPointedOutOtherwise()
+    {
+        final Stargate gate = registeredGate("alpha");
+        final org.bukkit.block.Block puddle = mock(org.bukkit.block.Block.class);
+        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle));
+        when(gate.clearStrandedLiquid()).thenReturn(2);
+
+        assertTrue(run("regenerate", "alpha"));
+        verify(gate, never()).clearStrandedLiquid();
+        verify(sender).sendMessage(said("2 water or lava blocks stand in alpha's opening"));
+
+        assertTrue(run("regenerate", "alpha", "-water"));
+        verify(gate).clearStrandedLiquid();
+        verify(sender).sendMessage(said("Cleared 2 water or lava blocks left standing in alpha."));
+    }
 }

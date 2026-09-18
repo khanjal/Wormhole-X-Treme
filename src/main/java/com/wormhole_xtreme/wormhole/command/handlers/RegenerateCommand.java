@@ -5,6 +5,7 @@ import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
+import com.wormhole_xtreme.wormhole.logic.GateRefresh;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -28,10 +29,9 @@ public class RegenerateCommand implements SubCommand
         {
             return true;
         }
-        if (args.length < 2)
+        if ((args.length < 2) || (args[1].startsWith("-") && !"-all".equalsIgnoreCase(args[1])))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
-            return false;
+            return waitForClick(sender, args);
         }
         if ("-all".equalsIgnoreCase(args[1]))
         {
@@ -46,23 +46,125 @@ public class RegenerateCommand implements SubCommand
             return true;
         }
         int missing = 0;
-        if ((args.length >= 3) && "-shape".equalsIgnoreCase(args[2]))
+        final int shapeAt = flagAt(args, 2, "-shape");
+        if (shapeAt > 0)
         {
-            if (args.length < 4)
+            if ((shapeAt + 1) >= args.length)
             {
                 sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "Name the shape: " + ChatText.command("/wormhole gate regenerate <gate> -shape <shape>"));
                 return true;
             }
-            final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[3]);
+            final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[shapeAt + 1]);
             if ((fit == null) || !fit.accepted())
             {
                 return true;
             }
             missing = fit.gaps().size();
         }
-        regenerateOneGate(sender, s, missing);
+        regenerateOneGate(sender, s, missing, flagAt(args, 2, "-water") > 0, true);
         return true;
+    }
+
+    /** Where a flag stands among the arguments from a position on, whatever its capitals, or -1. */
+    private static int flagAt(final String[] args, final int from, final String flag)
+    {
+        for (int i = from; i < args.length; i++)
+        {
+            if (flag.equalsIgnoreCase(args[i]))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * With no gate named, waits for the player's next DHD click and regenerates that gate, as
+     * {@code /wormhole refresh} did.
+     */
+    private static boolean waitForClick(final CommandSender sender, final String[] args)
+    {
+        if (!(sender instanceof org.bukkit.entity.Player player))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
+            return false;
+        }
+        com.wormhole_xtreme.wormhole.command.Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Click the DHD of the gate to regenerate it.");
+        return true;
+    }
+
+    /**
+     * Regenerates the gate whose DHD a player clicked after {@code /wormhole gate regenerate} with
+     * no gate name, detecting it from the face they clicked first.
+     *
+     * @param player
+     *            who clicked
+     * @param clicked
+     *            the block clicked
+     * @param direction
+     *            the face clicked, or null
+     * @param clearLiquid
+     *            whether {@code -water} was asked for
+     */
+    public static void regenerateClicked(final org.bukkit.entity.Player player, final org.bukkit.block.Block clicked,
+        final org.bukkit.block.BlockFace direction, final boolean clearLiquid)
+    {
+        final Stargate existing = StargateManager.getGateFromBlock(clicked);
+        if (existing == null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "No registered gate found at that block. Build or complete the gate first.");
+            return;
+        }
+        final Stargate fresh = GateRefresh.refresh(existing, clicked, direction);
+        reportRedetect(player, existing, fresh);
+        regenerateOneGate(player, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
+    }
+
+    /** Says whether the gate's whole geometry was detected afresh, or why it was kept. */
+    private static void reportRedetect(final CommandSender sender, final Stargate existing, final Stargate fresh)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        if (fresh != null)
+        {
+            sender.sendMessage(header + "Re-detected " + ChatText.name(fresh.getGateName()) + " from its frame as "
+                + ChatText.name(fresh.getGateShapeName()) + ": frame, opening and chevrons taken afresh.");
+            return;
+        }
+        if (existing.isGateActive() || existing.isGateLightsActive())
+        {
+            sender.sendMessage(header + ChatText.name(existing.getGateName())
+                + " is open or dialling, so its recorded geometry is kept. Regenerate it again once it is shut.");
+            return;
+        }
+        sender.sendMessage(header + "No shape matches all of " + ChatText.name(existing.getGateName())
+            + "'s frame, so its recorded geometry is kept.");
+    }
+
+    /** Clears water left standing in the gate if asked, or says it is there. */
+    private static void reportLiquid(final CommandSender sender, final Stargate s, final boolean clear)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        if (clear)
+        {
+            final int cleared = s.clearStrandedLiquid();
+            if (cleared > 0)
+            {
+                sender.sendMessage(header + ChatText.good("Cleared " + cleared) + " water or lava block"
+                    + plural(cleared) + " left standing in " + ChatText.name(s.getGateName()) + ".");
+            }
+            return;
+        }
+        final int standing = s.strandedLiquid().size();
+        if (standing > 0)
+        {
+            sender.sendMessage(header + ChatText.bad(standing + " water or lava block" + plural(standing)) + " stand in "
+                + ChatText.name(s.getGateName()) + "'s opening. If a dial left them, clear them with "
+                + ChatText.command("/wormhole gate regenerate " + s.getGateName() + " -water") + ".");
+        }
     }
 
     /** Most missing blocks listed before the rest are only counted. */
@@ -166,9 +268,25 @@ public class RegenerateCommand implements SubCommand
      *            the gate
      * @param missing
      *            frame blocks a named shape found missing, so markers wait for the frame to be whole
+     * @param clearLiquid
+     *            whether to clear water left standing in the gate
+     * @param redetect
+     *            whether to try detecting the whole gate afresh first, as a click already has
      */
-    private static void regenerateOneGate(final CommandSender sender, final Stargate s, final int missing)
+    private static void regenerateOneGate(final CommandSender sender, final Stargate given, final int missing,
+        final boolean clearLiquid, final boolean redetect)
     {
+        Stargate s = given;
+        if (redetect && (missing == 0))
+        {
+            final Stargate fresh = GateRefresh.refresh(s, s.getGateDialLeverBlock(), s.getGateFacing());
+            reportRedetect(sender, s, fresh);
+            if (fresh != null)
+            {
+                s = fresh;
+            }
+        }
+        reportLiquid(sender, s, clearLiquid);
         // The exit is worked out once when a gate is built and then stored, so a gate that
         // landed travellers at its side kept doing it for ever. This is the command people
         // already reach for when a gate is misbehaving, so it is where the fix belongs.

@@ -397,7 +397,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |
-| `gate regenerate <gate> [-shape <shape>]` \| `-all` | Recompute markers, light order and arrival point |
+| `gate regenerate [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
@@ -410,7 +410,10 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 
-**`gate regenerate <gate>`** re-reads the gate's shape file and moves its redstone hookup, iris
+**`gate regenerate <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
+turns out to be, keeping its name, owner, iris code and network, as `/wormhole refresh` used to
+(that command still works, and does the same). With no gate named, it waits for you to click the
+gate's DHD. Then it re-reads the gate's shape file and moves its redstone hookup, iris
 lever and signs to match, then recomputes where travellers arrive. Use it for a gate that lands
 people at its side. Markers are only added or moved, never removed. A gate recorded under a shape
 its frame does not match takes the shape it does match, and says so; one that matches no shape is
@@ -421,6 +424,9 @@ standing, lists what is missing or wrong either way, and places nothing. The sha
 the gate's own recorded frame is: near where the DHD puts it, up to six blocks along the facing
 and three up, down or across, or facing the other way. So a gate whose DHD is a block or two off,
 or which was recorded facing backwards, still lines up. The light order is laid the same way.
+**`-water`** clears real water or lava standing in a closed gate's opening or woosh, left by older
+versions that built the portal from blocks when a dial glitched. Without it, regenerate only says
+how many stand there, since a gate built underwater has ordinary water in its opening.
 It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
 open, or the shape lights blocks its frame does not have. **`-all`** recomputes arrival points
 and the light order, and reports how many changed.

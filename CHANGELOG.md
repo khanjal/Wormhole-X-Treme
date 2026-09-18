@@ -78,6 +78,15 @@ option only with a dash, and no name may start with one. Scripts and command blo
   and three up, down or across from the DHD's layout, and facing the other way, and laid where it
   covers most of the gate's own recorded frame. The DHD's layout wins any tie, so a gate built as
   its shape says is laid exactly as before. Both `-shape` and the light order rebuild use it.
+- **`/wormhole refresh` is folded into `/wormhole gate regenerate`.** Regenerate by name now first
+  detects the whole gate afresh from its frame, as refresh did on a DHD click, keeping its name,
+  owner, iris code and network, then does the rest. With no gate named, regenerate waits for a DHD
+  click, and `/wormhole refresh` does the same. A click whose detection fails no longer stops there:
+  the gate is regenerated from what it has. A gate that is open or dialling keeps its geometry.
+- **`/wormhole gate regenerate <gate> -water` clears stranded water.** Older versions built the
+  portal and woosh from real blocks, and a dial that glitched could leave water or lava standing in
+  the opening. `-water` clears it from a closed gate; without it, regenerate says how many blocks
+  stand there, since a gate built underwater has ordinary water in its opening.
 - **Regenerate's messages pick out what matters**: the gate and shape in aqua, counts and coordinates
   in white, the block found in yellow, done in green and missing in red. Everything was grey. The
   palette is #325's, now in one shared `ChatText` that the build preview's text uses too.

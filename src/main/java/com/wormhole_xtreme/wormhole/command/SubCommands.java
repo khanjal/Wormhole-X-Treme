@@ -193,7 +193,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGENERATE, aliases(REGEN), "/wormhole regenerate <gate> [-shape <shape>] | -all",
+        register(REGENERATE, aliases(REGEN), "/wormhole regenerate [gate] [-shape <shape>] [-water] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -721,23 +721,38 @@ public final class SubCommands
      */
     private static List<String> completeGateRegenerate(final String[] args)
     {
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        final boolean regenerate = REGENERATE.equals(verb) || REGEN.equals(verb);
         if (args.length == 3)
         {
             final List<String> out = new ArrayList<>(gateNames(args[2]));
             out.addAll(prefixed(args[2], "-all"));
+            if (regenerate)
+            {
+                // With no gate named, regenerate waits for a DHD click; -water rides along.
+                out.addAll(prefixed(args[2], "-water"));
+            }
             return out;
         }
-        // Regenerate alone takes a shape, for a gate recorded under the wrong one.
-        final String verb = args[1].toLowerCase(Locale.ROOT);
-        if (!REGENERATE.equals(verb) && !REGEN.equals(verb))
+        // Regenerate alone takes a shape, for a gate recorded under the wrong one, and -water.
+        if (!regenerate)
         {
             return none();
         }
-        if (args.length == 4)
+        final String previous = args[args.length - 2];
+        if ("-shape".equalsIgnoreCase(previous))
         {
-            return prefixed(args[3], "-shape");
+            return shapeNames(args[args.length - 1]);
         }
-        return ((args.length == 5) && "-shape".equalsIgnoreCase(args[3])) ? shapeNames(args[4]) : none();
+        final List<String> flags = new ArrayList<>();
+        for (final String flag : new String[] { "-shape", "-water" })
+        {
+            if (java.util.Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
+            {
+                flags.add(flag);
+            }
+        }
+        return prefixed(args[args.length - 1], flags.toArray(new String[0]));
     }
 
     /**

@@ -1601,6 +1601,18 @@ public class Stargate
         return gateSignPowered;
     }
 
+    /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
+    public List<org.bukkit.block.Block> strandedLiquid()
+    {
+        return StargateBlockSetup.strandedLiquid(this);
+    }
+
+    /** @return how many water or lava blocks were cleared from this closed gate's opening and woosh */
+    public int clearStrandedLiquid()
+    {
+        return StargateBlockSetup.clearStrandedLiquid(this);
+    }
+
     /** Lights every chevron at once, for a gate activated and waiting for a destination. */
     public void lightAllChevrons()
     {
