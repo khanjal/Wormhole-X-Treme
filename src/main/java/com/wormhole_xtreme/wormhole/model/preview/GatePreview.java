@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 
 /**
@@ -91,7 +92,8 @@ final class GatePreview
         this.displays = new ArrayList<>(Collections.nCopies(cells.size(), (BlockDisplay) null));
         this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         this.blockedDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
-        lastWave = cells.stream().mapToInt(Cell::wave).max().orElse(0);
+        // A preview dials nowhere, so its other-world chevron stays dark.
+        lastWave = Math.min(cells.stream().mapToInt(Cell::wave).max().orElse(0), Stargate.LOCAL_CHEVRONS);
         builtLayers = cells.stream().map(Cell::layer).distinct().sorted().toList();
         lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);

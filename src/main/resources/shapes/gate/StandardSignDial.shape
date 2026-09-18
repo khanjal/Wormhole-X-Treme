@@ -70,12 +70,12 @@ GateShape=
 
 Layer#1=
 [I][I][S][S:L#7][S][I][I]
-[I][S:L#3][P][P][P][S:L#2][I]
+[I][S:L#6][P][P][P][S:L#1][I]
 [S][P][P][P][P][P][S]
-[S:L#1][P][P][P][P][P][S:L#6]
+[S:L#5][P][P][P][P][P][S:L#2]
 [S:N][P][P][P][P][P][S]
-[I][S:L#4][P][P][P][S:L#5][I]
-[I][I][S][S:EP][S][I][I]
+[I][S:L#4][P][P][P][S:L#3][I]
+[I][I][S][S:EP:L#8][S][I][I]
 
 Layer#2=
 [I][I][I][I][I][I][I]
@@ -107,7 +107,7 @@ Layer#4=
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
 WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
-LIGHT_TICKS = 2;
+LIGHT_TICKS = 10;
 
 # Materials are not set here. A gate's appearance comes from its material group in
 # config.yml, chosen by the material the frame is actually built from: build this shape

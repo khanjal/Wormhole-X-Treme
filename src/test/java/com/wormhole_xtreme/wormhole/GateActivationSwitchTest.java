@@ -183,18 +183,19 @@ class GateActivationSwitchTest
         verify(gate).toggleDialLeverState(false);
     }
 
-    /** Pressing the DHD on a plain dial gate lights it and waits for a /dial. */
+    /** Pressing the DHD on a plain dial gate lights every chevron at once and waits for a /dial. */
     @Test
     void pressingTheDhdOnAPlainGateLightsItForDialling()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("plain");
-        doNothing().when(gate).lightStargate(anyBoolean());
+        doNothing().when(gate).lightAllChevrons();
         doNothing().when(gate).startActivationTimer(any(Player.class));
 
         assertTrue(GateInteractionHandler.handleGateActivationSwitch(gate, player));
 
-        verify(gate).lightStargate(true);
+        verify(gate).lightAllChevrons();
+        verify(gate, never()).lightStargate(true);
         verify(gate).startActivationTimer(player);
     }
 

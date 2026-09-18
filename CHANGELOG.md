@@ -43,13 +43,72 @@ option only with a dash, and no name may start with one. Scripts and command blo
   MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
 - **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
   `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
-  already standing keep working; `gate regenerate` or `refresh` on a three-deep one no longer finds it.
+  already standing keep working; `gate regen` or `refresh` on a three-deep one no longer finds it.
 - **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
 - **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
-- **`Grand` has a bottom chevron**, lighting eighth. Existing Grand gates still match; delete
-  `shapes/gate/Grand.shape` and restart for the new one.
+- **Chevrons light in the show's order: down the right side, up the left, and the top one last.**
+  Each shipped shape had its own order; `Grand` lit its top first. A horizontal gate's far edge is
+  its top. Gates already built keep the order they were built with; delete the files under
+  `shapes/gate/` and restart to get the new shapes, then `gate regen` the old ones.
+- **An eighth chevron locks when the other gate is in another world**, after the top one, as in
+  *The Fifth Race*. `:L#8` marks it, at the bottom of every shipped ring gate but `Minimal`:
+  `Standard`'s arrival cell, `Large`'s bottom pair, and the bottom chevron of `Grand` and
+  `Massive`. `Massive` had one chevron numbered in two places; with an eighth, it numbers cleanly.
+- **Pressing a gate's button lights every chevron at once**, the eighth too. `/dial` then darkens
+  them and dials the ones it needs in order, with their sounds. The button used to run the whole
+  sequence before any destination was chosen, and `/dial` went straight to the woosh.
+- **A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read.** Every shipped shape writes
+  `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
+  default of 3.
+- **Chevrons lock at a pace you can follow.** Read at last, the shipped values (1 to 3 ticks) lit a
+  whole dial in about a third of a second. `Standard` now takes half a second a chevron
+  (`LIGHT_TICKS = 10;`), and a bigger gate a little longer: `Large` 12, `Grand` and `Massive` 15.
+  `Minimal` is 6. Delete `shapes/gate/` and restart for the new files.
+- **The last chevron holds a second before the wormhole forms, and locks in with its own sound.**
+  The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
+  `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
+  sound. The build preview's test dial holds and locks too.
+- **`/wormhole gate regen` finds the shape a gate really is.** A gate recorded under the wrong
+  shape could never be regenerated: every gate the legacy importer brought in is recorded as
+  `Standard`, so a `Massive` gate came back "no longer matches Standard", markers and light order
+  untouched, however often it was asked. Regenerate now detects such a gate against every shape and
+  takes the one its frame matches, then carries on from that shape.
+- **`/wormhole gate regen <gate> -shape <shape>` names the shape** for a gate detection cannot
+  place: recorded under the wrong shape and missing a block or two, so no shape matches it whole.
+  It takes the named shape if at least 90% of that shape's frame is standing, lists what is
+  missing or wrong (up to ten, then a count), and places nothing.
+- **A shape is laid where the gate's frame is, not only where its DHD says.** `Large` and `Grand`
+  gates recorded as `Standard` found 2 of 26 and 2 of 464 frame blocks when their shape was named:
+  the ring was not where the DHD put it. The shape is now tried up to six blocks along the facing
+  and three up, down or across from the DHD's layout, and facing the other way, and laid where it
+  covers most of the gate's own recorded frame. The DHD's layout wins any tie, so a gate built as
+  its shape says is laid exactly as before. Both `-shape` and the light order rebuild use it.
+- **`/wormhole gate regen` is the name** (`regenerate` still works, and so does `/wormhole refresh`):
+  shorter to type. An open or dialling gate is shut down first, then regenerated.
+- **`/wormhole refresh` is folded into `/wormhole gate regen`.** Regenerate by name now first
+  detects the whole gate afresh from its frame, as refresh did on a DHD click, keeping its name,
+  owner, iris code and network, then does the rest. With no gate named, regenerate waits for a DHD
+  click, and `/wormhole refresh` does the same. A click whose detection fails no longer stops there:
+  the gate is regenerated from what it has. A gate that is open or dialling is shut down first.
+- **`/wormhole gate regen <gate> -water` clears stranded water.** Older versions built the
+  portal and woosh from real blocks, and a dial that glitched could leave water or lava standing in
+  the opening. `-water` clears it from a closed gate; without it, regenerate says how many blocks
+  stand there, since a gate built underwater has ordinary water in its opening.
+- **Regenerate's messages pick out what matters**: the gate and shape in aqua, counts and coordinates
+  in white, the block found in yellow, done in green and missing in red. Everything was grey. The
+  palette is #325's, now in one shared `ChatText` that the build preview's text uses too.
+- **`/wormhole gate regen` relights a gate's chevrons in its shape's order**, and so does
+  `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
+  from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
+  It reads no blocks, so `-all` covers gates in unloaded chunks too. A gate that is dialling or
+  open, or whose frame no longer fits its shape, is left alone and counted.
+- **A gate sounds its size.** A `Massive` gate made the same sounds as a `Standard` one. Every gate
+  sound is now deeper and louder on a bigger gate, and lighter on a smaller one, scaled from the
+  shape's width: `Standard` is unchanged, and `Grand` and `Massive` reach the limits of 0.75x pitch
+  and 2x volume, which doubles their range. A shape can set its own with `SOUND_SCALE`. The build
+  preview sounds like the gate it would build.
 
 ### Quantum mirrors
 

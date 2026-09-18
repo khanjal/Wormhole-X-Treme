@@ -237,8 +237,8 @@ class GateBlueprintTest
 
         final Set<Integer> waves = cells.stream().map(Cell::wave).filter(w -> w > 0)
             .collect(Collectors.toCollection(TreeSet::new));
-        assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7), waves);
-        assertEquals(7, cells.stream().filter(c -> c.wave() > 0).count(), "one block a wave in Standard");
+        assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7, 8), waves);
+        assertEquals(8, cells.stream().filter(c -> c.wave() > 0).count(), "one block a wave in Standard");
     }
 
     /** A sign-dial shape shows its sign in front of the holder; a button-dial shape has none. */

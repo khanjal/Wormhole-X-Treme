@@ -36,7 +36,8 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 
 /**
- * Rebuilding a gate's geometry with {@code /wormhole refresh}.
+ * Rebuilding a gate's geometry by clicking its DHD after {@code /wormhole gate regenerate} with no
+ * gate name, or {@code /wormhole refresh}, which now does the same.
  *
  * <p>A refresh throws away what the gate knew about its own blocks and detects them again,
  * which is the point -- but everything that is <em>not</em> geometry has to survive: its name,
@@ -174,7 +175,7 @@ class PendingRefreshTest
 
             db.verify(() -> StargateDBManager.saveStargate(fresh));
         }
-        verify(player).sendMessage(contains("refreshed successfully"));
+        verify(player).sendMessage(contains("Re-detected "));
     }
 
     /**
@@ -199,7 +200,7 @@ class PendingRefreshTest
             db.verify(() -> StargateDBManager.saveStargate(any()), never());
         }
 
-        verify(player).sendMessage(contains("geometry detection failed"));
+        verify(player).sendMessage(contains("No shape matches all of "));
         assertSame(existing, StargateManager.getStargate("alpha"),
             "the gate that could not be re-detected is still the one that is registered");
     }
