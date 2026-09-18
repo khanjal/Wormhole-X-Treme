@@ -17,6 +17,10 @@ concurrency:
   group: ci-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Read-only unless a job says otherwise: nothing here writes to the repository.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build & Test (Java ${{ matrix.java }})
@@ -191,6 +195,9 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     # A pull request from a fork does not receive this repository's secrets, so SONAR_TOKEN
     # is empty there and the scan can only fail auth. Skip that case outright rather than
     # running it and swallowing the failure: a job that always passes because it never
