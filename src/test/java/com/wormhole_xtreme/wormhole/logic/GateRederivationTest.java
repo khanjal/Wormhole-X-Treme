@@ -409,4 +409,100 @@ class GateRederivationTest
             "nothing changed underneath this gate, so nothing should be reported as moved;"
                 + " got: " + outcome.changes());
     }
+
+    /** Each light wave as its blocks' coordinates, in wave order, so two gates' orders compare. */
+    private static List<java.util.Set<String>> order(final Stargate gate)
+    {
+        final List<java.util.Set<String>> waves = new java.util.ArrayList<>();
+        for (final List<Location> wave : gate.getGateLightBlocks())
+        {
+            final java.util.Set<String> keys = new java.util.HashSet<>();
+            if (wave != null)
+            {
+                for (final Location l : wave)
+                {
+                    keys.add(key(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+                }
+            }
+            waves.add(keys);
+        }
+        return waves;
+    }
+
+    /** Swaps the first and last chevron, the way a shape renumbered since the gate was built leaves it. */
+    private static void swapFirstAndLast(final Stargate gate)
+    {
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        final int last = waves.size() - 1;
+        final List<Location> first = waves.get(1);
+        waves.set(1, waves.get(last));
+        waves.set(last, first);
+    }
+
+    /**
+     * A gate built before its shape was renumbered takes the shape's order (#350).
+     *
+     * <p>A gate saves its light order when it is built, and nothing re-read it, so the show's
+     * order never reached a gate already standing.
+     */
+    @Test
+    void aGateBuiltWithAnOlderLightOrderTakesTheShapesOrder() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        final List<java.util.Set<String>> shapeOrder = order(gate);
+        swapFirstAndLast(gate);
+        assertFalse(shapeOrder.equals(order(gate)), "the swap should have changed the order");
+
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(shapeOrder, order(gate));
+    }
+
+    /** A gate already lighting in its shape's order is reported unchanged, so it is not saved again. */
+    @Test
+    void aGateAlreadyLightingInItsShapesOrderIsUnchanged() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+
+        assertEquals(GateRederivation.LightResult.UNCHANGED, GateRederivation.rebuildLightOrder(gate));
+    }
+
+    /**
+     * Rebuilding reads no blocks, which is what lets {@code regenerate -all} run it on gates in
+     * chunks nobody has loaded.
+     */
+    @Test
+    void rebuildingTheLightOrderReadsNoBlocks() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        swapFirstAndLast(gate);
+        org.mockito.Mockito.clearInvocations(world);
+
+        assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
+        org.mockito.Mockito.verify(world, org.mockito.Mockito.never()).getBlockAt(anyInt(), anyInt(), anyInt());
+    }
+
+    /** A gate part-way through dialling keeps its lights, or the ones already drawn would be stranded. */
+    @Test
+    void aGateThatIsDiallingKeepsItsLightOrder() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        swapFirstAndLast(gate);
+        final List<java.util.Set<String>> before = order(gate);
+        gate.setGateLightsActive(true);
+
+        assertEquals(GateRederivation.LightResult.BUSY, GateRederivation.rebuildLightOrder(gate));
+        assertEquals(before, order(gate));
+    }
+
+    /** A shape lighting blocks the gate does not have leaves the gate alone: its frame has changed. */
+    @Test
+    void aShapeThatLightsBlocksOutsideTheFrameIsRefused() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        gate.getGateStructureBlocks().clear();
+        gate.getGateLightBlocks().clear();
+
+        assertEquals(GateRederivation.LightResult.DOES_NOT_FIT, GateRederivation.rebuildLightOrder(gate));
+        assertTrue(gate.getGateLightBlocks().isEmpty());
+    }
 }

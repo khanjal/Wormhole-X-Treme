@@ -397,7 +397,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |
-| `gate regenerate <gate\|-all>` | Recompute markers and arrival point |
+| `gate regenerate <gate\|-all>` | Recompute markers, light order and arrival point |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
@@ -414,7 +414,9 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 lever and signs to match, then recomputes where travellers arrive. Use it for a gate that lands
 people at its side. Markers are only added or moved, never removed; a gate that no longer matches
 its shape is left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
-**`-all`** only recomputes arrival points, and reports how many changed.
+It also relights the chevrons in the order the shape gives now, unless the gate is dialling or
+open, or the shape lights blocks its frame does not have. **`-all`** recomputes arrival points
+and the light order, and reports how many changed.
 
 **`gate validate`** finds gates taken apart by WorldEdit, which fires nothing the plugin can see.
 It reports missing frame blocks and a dial sign that is no longer a sign. A gate in an unloaded

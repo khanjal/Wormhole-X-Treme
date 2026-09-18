@@ -1,13 +1,18 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 
 /**
  * Works a gate's furniture out from its shape again, for a gate whose shape file has changed
@@ -30,7 +35,9 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
  * <h2>What it copies, and what it deliberately does not</h2>
  *
  * <p>Only the furniture: the three redstone markers, the iris lever, the dial sign and the name
- * sign holder. Not the frame, the portal, the animation waves or the arrival point.
+ * sign holder. Not the frame, the portal, the woosh waves or the arrival point. The light order
+ * has its own rebuild, {@link #rebuildLightOrder}, which reads no blocks and so can run on
+ * every gate.
  *
  * <p>That line is where it is because re-derivation runs unattended here, unlike
  * {@code /wormhole refresh}, which is always a player standing at one gate clicking its button.
@@ -80,9 +87,181 @@ public final class GateRederivation
         }
     }
 
+    /** How rebuilding a gate's light order went. */
+    public enum LightResult
+    {
+        /** The gate has no 3D shape to read the order from. */
+        NO_SHAPE,
+
+        /** No dial button, facing or world to place the shape by. */
+        NO_ANCHOR,
+
+        /** Lit or dialling; swapping the lights now would strand the ones already drawn. */
+        BUSY,
+
+        /** The shape lights a block that is not part of the gate's frame, so its frame has changed. */
+        DOES_NOT_FIT,
+
+        /** The gate already lights in the shape's order. */
+        UNCHANGED,
+
+        /** The gate now lights in the shape's order. */
+        REBUILT
+    }
+
     /** Static helpers only. */
     private GateRederivation()
     {
+    }
+
+    /**
+     * Rebuilds which blocks light at each chevron step from the gate's shape as it is now.
+     *
+     * <p>A gate saves its light order at detection, so a shape renumbered since (#350) never
+     * reached it. This places the shape by the gate's stored button and facing without reading
+     * a block, so it is safe to run on every gate, loaded or not.
+     *
+     * @param gate
+     *            the gate, changed only when the result is {@link LightResult#REBUILT}
+     * @return what happened
+     */
+    public static LightResult rebuildLightOrder(final Stargate gate)
+    {
+        if (!(gate.getGateShape() instanceof Stargate3DShape shape))
+        {
+            return LightResult.NO_SHAPE;
+        }
+        final Block button = gate.getGateDialLeverBlock();
+        final BlockFace facing = gate.getGateFacing();
+        final World world = gate.getGateWorld();
+        if ((button == null) || (facing == null) || (world == null))
+        {
+            return LightResult.NO_ANCHOR;
+        }
+        if (gate.isGateActive() || gate.isGateLightsActive())
+        {
+            return LightResult.BUSY;
+        }
+        // The button is mounted one step along the facing from the block it sits on.
+        final GateGrid grid = GateGrid.fromActivationHolder(shape, button.getX() - facing.getModX(),
+            button.getY() - facing.getModY(), button.getZ() - facing.getModZ(), facing);
+        if (grid == null)
+        {
+            return LightResult.NO_ANCHOR;
+        }
+        final List<List<Location>> derived = lightWaves(shape, grid, world);
+        if (!fitsFrame(gate, derived))
+        {
+            return LightResult.DOES_NOT_FIT;
+        }
+        if (keysOf(gate.getGateLightBlocks()).equals(keysOf(derived)))
+        {
+            return LightResult.UNCHANGED;
+        }
+        gate.getGateLightBlocks().clear();
+        gate.getGateLightBlocks().addAll(derived);
+        return LightResult.REBUILT;
+    }
+
+    /** The shape's light waves placed on the grid, indexed as detection indexes them (0 unused). */
+    private static List<List<Location>> lightWaves(final Stargate3DShape shape, final GateGrid grid, final World world)
+    {
+        final List<List<Location>> waves = new ArrayList<>();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            if ((layer == null) || (layer.getLayerLightPositions() == null))
+            {
+                continue;
+            }
+            final List<List<Integer[]>> lights = layer.getLayerLightPositions();
+            for (int waveIdx = 1; waveIdx < lights.size(); waveIdx++)
+            {
+                if (lights.get(waveIdx) != null)
+                {
+                    addLights(wave(waves, waveIdx), lights.get(waveIdx), layerIdx, grid, world);
+                }
+            }
+        }
+        return waves;
+    }
+
+    /** The wave at an index, padding the list and creating the wave as needed. */
+    private static List<Location> wave(final List<List<Location>> waves, final int waveIdx)
+    {
+        while (waves.size() <= waveIdx)
+        {
+            waves.add(null);
+        }
+        if (waves.get(waveIdx) == null)
+        {
+            waves.set(waveIdx, new ArrayList<>());
+        }
+        return waves.get(waveIdx);
+    }
+
+    /** Places one layer's cells of a wave on the grid. */
+    private static void addLights(final List<Location> wave, final List<Integer[]> cells, final int layerIdx,
+        final GateGrid grid, final World world)
+    {
+        for (final Integer[] pos : cells)
+        {
+            final int col = pos[2].intValue();
+            wave.add(new Location(world, grid.x(layerIdx, col), grid.y(pos[1].intValue()), grid.z(layerIdx, col)));
+        }
+    }
+
+    /** Whether every block the shape lights is one the gate already has as frame or light. */
+    private static boolean fitsFrame(final Stargate gate, final List<List<Location>> derived)
+    {
+        final Set<String> frame = new HashSet<>();
+        for (final Location l : gate.getGateStructureBlocks())
+        {
+            frame.add(key(l));
+        }
+        for (final Set<String> wave : keysOf(gate.getGateLightBlocks()))
+        {
+            frame.addAll(wave);
+        }
+        for (final Set<String> wave : keysOf(derived))
+        {
+            if (!frame.containsAll(wave))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Each wave as a set of block keys, index 0 dropped and trailing empty waves trimmed. */
+    private static List<Set<String>> keysOf(final List<List<Location>> waves)
+    {
+        final List<Set<String>> keys = new ArrayList<>();
+        for (int i = 1; i < waves.size(); i++)
+        {
+            final Set<String> wave = new HashSet<>();
+            if (waves.get(i) != null)
+            {
+                for (final Location l : waves.get(i))
+                {
+                    wave.add(key(l));
+                }
+            }
+            keys.add(wave);
+        }
+        while (!keys.isEmpty() && keys.get(keys.size() - 1).isEmpty())
+        {
+            keys.remove(keys.size() - 1);
+        }
+        return keys;
+    }
+
+    /** A block position with its world by name, since a reload can hand out a new World object. */
+    private static String key(final Location l)
+    {
+        return ((l.getWorld() == null) ? "" : l.getWorld().getName()) + ':' + l.getBlockX() + ',' + l.getBlockY()
+            + ',' + l.getBlockZ();
     }
 
     /**
