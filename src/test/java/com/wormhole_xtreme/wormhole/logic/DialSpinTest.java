@@ -122,4 +122,27 @@ class DialSpinTest
         assertTrue(last.contains(path.get(path.size() - 1)), "it ends at the top");
         assertTrue(last.size() >= 2, "a run of cells, not one");
     }
+
+    /**
+     * A gate lit on two layers turns on the front one, nearest the DHD, as the show's ring is the
+     * face you look at. Found in-game: Grand and Massive turned on the back layer.
+     */
+    @Test
+    void aGateLitOnTwoLayersTurnsOnTheFrontOne() throws Exception
+    {
+        for (final String name : new String[] { "Grand", "Massive" })
+        {
+            final Stargate3DShape shape = new Stargate3DShape(
+                Files.readAllLines(SHAPE_DIR.resolve(name + ".shape")).toArray(new String[0]));
+            final GateGrid grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
+            final List<Cell> cells = GateBlueprint.of(shape, grid);
+            final int front = cells.stream().filter(c -> c.wave() > 0).mapToInt(Cell::layer).max().orElseThrow();
+            final int back = cells.stream().filter(c -> c.wave() > 0).mapToInt(Cell::layer).min().orElseThrow();
+            assertTrue(front > back, name + " lights more than one layer");
+
+            final DialSpin spin = DialSpin.of(cells, grid);
+
+            assertTrue(spin.ring().stream().allMatch(c -> c.layer() == front), name + ": every ring cell on layer " + front);
+        }
+    }
 }

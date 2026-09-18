@@ -18,8 +18,8 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  * lit segment travels half the ring instead: from the point opposite the top chevron to the top,
  * alternating direction each glyph. When it arrives, that glyph's chevron locks.
  *
- * <p>The ring is the layer holding the top chevron, ordered by angle round its centre, clockwise
- * as seen from the DHD with the top chevron at 0. A horizontal gate works the same way, its far
+ * <p>The ring is the front layer of chevrons, nearest the DHD, ordered by angle round its centre,
+ * clockwise as seen from the DHD with the top chevron at 0. A horizontal gate works the same way, its far
  * edge being its top.
  */
 public final class DialSpin
@@ -53,7 +53,10 @@ public final class DialSpin
         // for one lying flat. It is the axis the lit cells spread least along.
         final List<Cell> lit = cells.stream().filter(c -> (c.wave() > 0) && (c.wave() <= Stargate.LOCAL_CHEVRONS)).toList();
         final int normal = narrowestAxis(lit);
-        final int level = coordinate(top.get(0), normal);
+        // A gate lit on more than one layer (Grand, Massive) turns on the front one, nearest the
+        // DHD, as the show's ring is the face you look at. Layers count up toward the DHD.
+        final Cell front = lit.stream().max(Comparator.comparingInt(Cell::layer)).orElse(top.get(0));
+        final int level = coordinate(front, normal);
         final List<Cell> ring = cells.stream()
             .filter(c -> !c.dhd() && (coordinate(c, normal) == level) && ((c.part() == Part.FRAME) || (c.part() == Part.CHEVRON)))
             .toList();
