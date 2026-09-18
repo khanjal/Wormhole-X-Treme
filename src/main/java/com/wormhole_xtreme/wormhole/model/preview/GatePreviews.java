@@ -1132,8 +1132,8 @@ public final class GatePreviews
             // Sized like the real gate this shape would build.
             final double scale = GateSounds.scaleOf(preview.shape());
             final float volume = ConfigManager.getGateSoundVolume() * GateSounds.sizeVolume(scale);
-            final float sized = pitch * GateSounds.sizePitch(scale);
-            watching(owner, preview).forEach(viewer -> Sounds.playTo(viewer, sound, volume, sized));
+            final float scaledPitch = pitch * GateSounds.sizePitch(scale);
+            watching(owner, preview).forEach(viewer -> Sounds.playTo(viewer, sound, volume, scaledPitch));
         }
     }
 

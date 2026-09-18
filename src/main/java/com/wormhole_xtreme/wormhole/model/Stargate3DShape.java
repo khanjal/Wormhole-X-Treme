@@ -263,7 +263,7 @@ public class Stargate3DShape extends StargateShape
     /**
      * How big this gate sounds, against {@code Standard}'s 1.0.
      *
-     * @return {@code SOUND_SCALE} from the file, or the shape's width over {@code Standard}'s
+     * @return {@code SOUND_SCALE} from the file, or the shape's width divided by 7, {@code Standard}'s width
      */
     public double getShapeSoundScale()
     {
