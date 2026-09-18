@@ -330,4 +330,33 @@ class ChevronLightingTest
             sounds.verify(() -> GateSounds.locked(gate), never());
         }
     }
+
+    /**
+     * A sign dial opens at once: every chevron its link needs lights together with the lock-in
+     * sound, the woosh follows on the next tick, and no chevron sound plays from a gate that is
+     * already open.
+     */
+    @Test
+    void aSignDialOpensAtOnceWithoutTheChevronSequence() throws Exception
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        final World here = world("here");
+        final Stargate gate = eightChevronGate("alpha", here);
+        gate.setGateTarget(eightChevronGate("beta", here));
+        gate.setGateActive(true);
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.openAtOnce(gate);
+
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), any()), times(7));
+            sounds.verify(() -> GateSounds.locked(gate));
+            sounds.verify(() -> GateSounds.chevron(any(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt()), never());
+        }
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class));
+        assertEquals(true, gate.isGateLightsActive());
+    }
 }

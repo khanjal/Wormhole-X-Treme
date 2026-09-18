@@ -472,7 +472,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-| `gate-dial-spin` | `true` | Show the inner ring turning: a light travels round the frame to the top chevron before each chevron locks, alternating direction. Build preview only for now. |
+| `gate-dial-spin` | `true` | Show the inner ring turning: a light travels round the frame to the top chevron before each chevron locks, alternating direction, on gates and build previews alike. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that
