@@ -2027,17 +2027,30 @@ public final class MirrorWindows
             + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
-            // A display may be hidden by default for one player; showing it again would reveal it to this one.
-            if ((entity instanceof Player) || (entity instanceof org.bukkit.entity.Display)
-                || (entity instanceof org.bukkit.entity.Interaction))
-            {
-                continue;
-            }
-            if (inAnyView(eye, entity.getLocation(), seeing, fixed, allOpen))
+            if (veilable(entity) && inAnyView(eye, entity.getLocation(), seeing, fixed, allOpen))
             {
                 inside.add(entity);
             }
         }
+    }
+
+    /**
+     * Whether a mirror may hide this entity from a viewer.
+     *
+     * <p>Not a player, which would drop off the tab list. Not anything else that is already hidden
+     * by default for somebody: a preview's displays and their interactions, and the companion, whom
+     * a hide takes from her owner and the later show hands to a stranger.
+     *
+     * @param entity
+     *            an entity near the viewer
+     * @return true if a mirror may veil it
+     */
+    static boolean veilable(final Entity entity)
+    {
+        return !(entity instanceof Player)
+            && !(entity instanceof org.bukkit.entity.Display)
+            && !(entity instanceof org.bukkit.entity.Interaction)
+            && !com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(entity);
     }
 
     /** Whether a place is inside the view through any of these windows, as {@link #creaturesInside} judges it. */

@@ -121,6 +121,7 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(entityListener, tp);
             pm.registerEvents(projectileTracker, tp);
             pm.registerEvents(beamFreezeListener, tp);
+            pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
             registerDismountListener(pm, tp);
         }
     }
@@ -240,6 +241,15 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            // Otherwise a /reload leaves old companions beside the new ones.
+            try
+            {
+                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.removeAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to remove companions", e);
             }
             try
             {
@@ -493,6 +503,19 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
+        }
+        // Deliberately no startup log line, which would announce the easter egg.
+        try
+        {
+            final int companions = com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences.loadAll();
+            if (companions > 0)
+            {
+                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.spawnForOnline();
+            }
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.FINE, "Failed to load companions", e);
         }
         registerEvents(false);
         registerCommands();
