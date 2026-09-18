@@ -38,7 +38,7 @@ final class GatePreview
     private final List<Cell> cells;
     private final List<Cell> opening;
     private final List<Cell> woosh;
-    /** Where a fake block has been sent to the owner, so it can be taken back. */
+    /** Which cells a fake block has been sent at, to everyone watching, so it can be taken back. */
     private final Set<Long> sent = new HashSet<>();
     /** Who the owner has shared it with, by id, with the name they had then. */
     private final Map<UUID, String> sharedWith = new LinkedHashMap<>();

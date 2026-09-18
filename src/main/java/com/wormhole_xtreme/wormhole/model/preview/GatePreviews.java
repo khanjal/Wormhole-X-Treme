@@ -953,8 +953,8 @@ public final class GatePreviews
     }
 
     /**
-     * Sends the owner the wormhole's material at some cells, as fake blocks: a block display draws no
-     * liquid, and a real gate draws its wormhole the same way.
+     * Sends everyone watching the wormhole's material at some cells, as fake blocks: a block display
+     * draws no liquid, and a real gate draws its wormhole the same way.
      */
     private static void send(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
@@ -977,8 +977,8 @@ public final class GatePreviews
     }
 
     /**
-     * Shows the owner what really stands at cells a fake block was sent to. An unloaded chunk is left
-     * alone: the client gets it afresh when it loads.
+     * Shows everyone watching what really stands at cells a fake block was sent to. An unloaded chunk
+     * is left alone: the client gets it afresh when it loads.
      */
     private static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
