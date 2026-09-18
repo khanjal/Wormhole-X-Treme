@@ -2596,7 +2596,6 @@ class MirrorWindowsTest
      * A proxy for a Bukkit interface, answering what {@code answers} covers and Object's three.
      * Identity equality is what a mock gave, and the drawing keeps blocks in sets.
      */
-    @SuppressWarnings("unchecked")
     private static <T> T standIn(final Class<T> type,
         final java.util.function.BiFunction<java.lang.reflect.Method, Object[], Object> answers,
         final Class<?>... also)
@@ -2604,14 +2603,14 @@ class MirrorWindowsTest
         final Class<?>[] types = new Class<?>[also.length + 1];
         types[0] = type;
         System.arraycopy(also, 0, types, 1, also.length);
-        return (T) java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),
+        return type.cast(java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),
             types, (self, method, arguments) -> switch (method.getName())
             {
                 case "equals" -> self == arguments[0];
                 case "hashCode" -> System.identityHashCode(self);
                 case "toString" -> type.getSimpleName() + "@" + System.identityHashCode(self);
                 default -> answers.apply(method, arguments);
-            });
+            }));
     }
 
     /**
