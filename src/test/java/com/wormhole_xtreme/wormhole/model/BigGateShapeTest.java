@@ -103,13 +103,13 @@ class BigGateShapeTest
     }
 
     /**
-     * Every chevron lights in order with no gap. {@code Grand} has an eighth at the bottom: its chevrons
-     * stand 45 degrees apart, and the seven left the bottom one empty.
+     * Every chevron lights in order with no gap. {@code Grand}'s bottom chevron stays dark, as the
+     * show's bottom ones do.
      */
     @Test
     void allThreeLightTheirChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
     {
-        final java.util.Map<String, Integer> chevrons = java.util.Map.of("Large", 7, "Grand", 8, "Massive", 7);
+        final java.util.Map<String, Integer> chevrons = java.util.Map.of("Large", 7, "Grand", 7, "Massive", 7);
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);

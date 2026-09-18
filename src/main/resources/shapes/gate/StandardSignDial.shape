@@ -70,11 +70,11 @@ GateShape=
 
 Layer#1=
 [I][I][S][S:L#7][S][I][I]
-[I][S:L#3][P][P][P][S:L#2][I]
+[I][S:L#6][P][P][P][S:L#1][I]
 [S][P][P][P][P][P][S]
-[S:L#1][P][P][P][P][P][S:L#6]
+[S:L#5][P][P][P][P][P][S:L#2]
 [S:N][P][P][P][P][P][S]
-[I][S:L#4][P][P][P][S:L#5][I]
+[I][S:L#4][P][P][P][S:L#3][I]
 [I][I][S][S:EP][S][I][I]
 
 Layer#2=

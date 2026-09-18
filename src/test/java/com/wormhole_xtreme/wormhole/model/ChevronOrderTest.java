@@ -1,0 +1,124 @@
+package com.wormhole_xtreme.wormhole.model;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+
+/**
+ * Shipped gates light their chevrons in the show's order: down the right side, up the left, and
+ * the top one last.
+ *
+ * <p>Seen from the DHD, a cell's column counts from the right. A horizontal gate's "top" is its
+ * far edge, Layer#1. {@code Massive} is left out until its layout is redrawn (#299): one of its
+ * chevrons sits in two places, one of them at the top centre.
+ */
+class ChevronOrderTest
+{
+    /** A light cell: which layer, how high, and how far from the right. */
+    private record Light(int order, int layer, int row, int col)
+    {
+    }
+
+    private static List<Light> lights(final String name) throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final Stargate3DShape shape = new Stargate3DShape(
+            Files.readAllLines(Paths.get("src/main/resources/shapes/gate", name + ".shape")).toArray(new String[0]));
+        final List<Light> lights = new ArrayList<>();
+        for (int layerIdx = 1; layerIdx < shape.getShapeLayers().size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = shape.getShapeLayers().get(layerIdx);
+            if (layer == null)
+            {
+                continue;
+            }
+            for (int order = 0; order < layer.getLayerLightPositions().size(); order++)
+            {
+                final List<Integer[]> cells = layer.getLayerLightPositions().get(order);
+                if (cells == null)
+                {
+                    continue;
+                }
+                for (final Integer[] pos : cells)
+                {
+                    lights.add(new Light(order, layerIdx, pos[1], pos[2]));
+                }
+            }
+        }
+        return lights;
+    }
+
+    private static void assertShowOrder(final String name, final boolean flat) throws Exception
+    {
+        final List<Light> lights = lights(name);
+        final int minCol = lights.stream().mapToInt(Light::col).min().orElseThrow();
+        final int maxCol = lights.stream().mapToInt(Light::col).max().orElseThrow();
+        final double centre = (minCol + maxCol) / 2.0;
+        final int top = flat
+            ? lights.stream().mapToInt(Light::layer).min().orElseThrow()
+            : lights.stream().mapToInt(Light::row).max().orElseThrow();
+
+        assertEquals(List.of(1, 2, 3, 4, 5, 6, 7), lights.stream().map(Light::order).distinct().sorted().toList(),
+            name + ": seven chevrons light, none of them eighth");
+        for (final Light light : lights)
+        {
+            final int height = flat ? light.layer() : light.row();
+            if (light.order() == 7)
+            {
+                continue;
+            }
+            if (light.order() <= 3)
+            {
+                assertTrue(light.col() < centre, name + ": chevron " + light.order() + " is on the right");
+            }
+            else
+            {
+                assertTrue(light.col() > centre, name + ": chevron " + light.order() + " is on the left");
+            }
+        }
+        for (final int[] pair : new int[][] { { 1, 2 }, { 2, 3 } })
+        {
+            assertTrue(highest(lights, pair[0], flat) > highest(lights, pair[1], flat),
+                name + ": the right side lights downward");
+        }
+        for (final int[] pair : new int[][] { { 4, 5 }, { 5, 6 } })
+        {
+            assertTrue(highest(lights, pair[0], flat) < highest(lights, pair[1], flat),
+                name + ": the left side lights upward");
+        }
+    }
+
+    /** How high a chevron stands; on a flat gate, how far toward its far edge. */
+    private static int highest(final List<Light> lights, final int order, final boolean flat)
+    {
+        return lights.stream().filter(l -> l.order() == order)
+            .mapToInt(l -> flat ? -l.layer() : l.row()).max().orElseThrow();
+    }
+
+    @Test
+    void standingGatesLightDownTheRightUpTheLeftAndTheTopLast() throws Exception
+    {
+        for (final String name : new String[] { "Standard", "StandardSignDial", "Large", "Grand" })
+        {
+            assertShowOrder(name, false);
+        }
+    }
+
+    @Test
+    void horizontalGatesLightTheirFarEdgeLast() throws Exception
+    {
+        for (final String name : new String[] { "Horizontal", "HorizontalSignDial" })
+        {
+            assertShowOrder(name, true);
+        }
+    }
+}

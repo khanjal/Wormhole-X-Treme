@@ -261,7 +261,8 @@ public final class GateBlueprint
                 continue;
             }
             final Map<Long, Integer> waves = wavesOf(layer);
-            final boolean dhdLayer = waves.isEmpty() && layer.getLayerPortalPositions().isEmpty();
+            final boolean dhdLayer = waves.isEmpty() && layer.getLayerPortalPositions().isEmpty()
+                && !edgesOpening(layer, layers.get(layerIdx - 1));
             addAll(cells, grid, layerIdx, layer.getLayerBlockPositions(), Part.FRAME, waves, dhdLayer);
             addAll(cells, grid, layerIdx, layer.getLayerChevronPositions(), Part.CHEVRON, waves, dhdLayer);
             if (layerIdx == shape.getShapeActivationLayer())
@@ -348,6 +349,31 @@ public final class GateBlueprint
             }
         }
         return 0;
+    }
+
+    /**
+     * Whether a layer's frame closes off the opening in the layer before it, as a horizontal
+     * gate's near edge does, making it ring rather than DHD even with no chevron in it.
+     */
+    private static boolean edgesOpening(final StargateShapeLayer layer, final StargateShapeLayer previous)
+    {
+        if (previous == null)
+        {
+            return false;
+        }
+        final java.util.Set<Long> opening = new java.util.HashSet<>();
+        for (final Integer[] pos : previous.getLayerPortalPositions())
+        {
+            opening.add(StargateHelper.cellKey(pos));
+        }
+        for (final Integer[] pos : layer.getLayerBlockPositions())
+        {
+            if (opening.contains(StargateHelper.cellKey(pos)))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Which wave lights each cell of a layer, keyed as {@link StargateHelper#cellKey}. */
