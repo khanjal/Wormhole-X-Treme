@@ -222,8 +222,10 @@ public class Stargate3DShape extends StargateShape
      * An unrecognised line is ignored, which is what lets a shape file carry comments and
      * settings written for a later version of the plugin.
      */
-    private void applySetting(final String line)
+    private void applySetting(final String rawLine)
     {
+        // Shipped shapes write "LIGHT_TICKS = 2;", so spacing round '=' and a trailing ';' are dropped.
+        final String line = normaliseSetting(rawLine);
         if (applyMaterialSetting(line))
         {
             return;
@@ -245,6 +247,23 @@ public class Stargate3DShape extends StargateShape
             setShapeMaterialGroups(line.split("=")[1]);
         }
     }
+
+    /**
+     * Reduces {@code KEY = value;} to {@code KEY=value}.
+     *
+     * @return the line with its first '=' unspaced and any trailing ';' removed
+     */
+    static String normaliseSetting(final String line)
+    {
+        String setting = line.trim();
+        if (setting.endsWith(";"))
+        {
+            setting = setting.substring(0, setting.length() - 1).trim();
+        }
+        return SETTING_EQUALS.matcher(setting).replaceFirst("=");
+    }
+
+    private static final java.util.regex.Pattern SETTING_EQUALS = java.util.regex.Pattern.compile("\\s*=\\s*");
 
     /** The material keys a shape file may carry, each against the setting it fills. */
     private static final java.util.Map<String, java.util.function.BiConsumer<Stargate3DShape, Material>> MATERIAL_KEYS =

@@ -50,6 +50,10 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
 - **`Grand` has a bottom chevron**, lighting eighth. Existing Grand gates still match; delete
   `shapes/gate/Grand.shape` and restart for the new one.
+- **A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read.** Every shipped shape writes
+  `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
+  default of 3. `Minimal` (1) and the `Standard`, `Large`, `Grand` and `Massive` families (2) now
+  light their chevrons faster, as their files always asked.
 
 ### Quantum mirrors
 
