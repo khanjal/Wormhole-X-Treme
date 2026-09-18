@@ -64,7 +64,7 @@
 					<!-- A ceiling of its own, because the default is a quarter of the machine's RAM and
 					     differs between runners. @{argLine} is late replacement: JaCoCo publishes its
 					     agent in that property, and writing -Xmx alone would replace it and silently
-					     drop coverage to zero. The suite measures at about 512m. -->
+					     drop coverage to zero. The suite passes at 256m and not at 192m. -->
 					<argLine>@{argLine} -Xmx1g</argLine>
 				</configuration>
 			</plugin>
