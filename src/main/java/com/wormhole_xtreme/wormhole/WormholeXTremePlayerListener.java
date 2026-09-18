@@ -1402,6 +1402,24 @@ class WormholeXTremePlayerListener implements Listener
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPlayer(event.getPlayer());
         com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.forgetPlayer(event.getPlayer());
         com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(event.getPlayer());
+        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.forget(event.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Dials a build preview whose button was right-clicked.
+     *
+     * @param event
+     *            the click
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerInteractEntity(final org.bukkit.event.player.PlayerInteractEntityEvent event)
+    {
+        // The off hand repeats the click; only the main hand's counts.
+        if ((event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND)
+            && com.wormhole_xtreme.wormhole.model.preview.GatePreviews.pressed(event.getPlayer(), event.getRightClicked()))
+        {
+            event.setCancelled(true);
+        }
     }
 
     /**
@@ -1417,7 +1435,8 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
-     * Redraws open portals for a player who has changed world.
+     * Redraws open portals for a player who has changed world, and takes away the previews they
+     * left behind.
      *
      * @param event
      *            the world change
@@ -1426,6 +1445,7 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerChangedWorld(final PlayerChangedWorldEvent event)
     {
         refreshPortalVisualsFor(event.getPlayer());
+        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.forget(event.getPlayer().getUniqueId());
     }
 
     /**

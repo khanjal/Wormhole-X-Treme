@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -283,7 +284,9 @@ class WormholeXTremeBlockListener implements Listener
         if ((stargate != null) && handleBlockBreak(player, stargate, block))
         {
             event.setCancelled(true);
+            return;
         }
+        GatePreviews.blockChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
     }
 
     /** Tells whoever placed it that the gate opening is not somewhere to build. */
@@ -370,7 +373,9 @@ class WormholeXTremeBlockListener implements Listener
         {
             event.setCancelled(true);
             refusePlace(player, stargate);
+            return;
         }
+        GatePreviews.blockChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
     }
 
     /* (non-Javadoc)

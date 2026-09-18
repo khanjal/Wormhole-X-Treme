@@ -313,35 +313,25 @@ public final class StargateHelper
      * Where a gate sits and which way it faces, so a shape cell can be turned into a world
      * block.
      *
-     * <p>The mapping was written out seventeen times in this file before this existed: the
-     * layer index steps along the facing, the column along its perpendicular right, and the
-     * row is height. Getting one of those wrong is the mistake a detection refactor is most
-     * likely to make, so it is written once.
+     * <p>The mapping itself is {@link GateGrid}, shared with the build preview; this adds the
+     * world to read the blocks from.
      */
     private static final class GateFrame
     {
         private final World world;
-        private final int ox;
-        private final int oy;
-        private final int oz;
-        private final BlockFace facing;
-        private final BlockFace right;
+        private final GateGrid grid;
 
-        GateFrame(final World world, final int ox, final int oy, final int oz, final BlockFace facing)
+        GateFrame(final World world, final GateGrid grid)
         {
             this.world = world;
-            this.ox = ox;
-            this.oy = oy;
-            this.oz = oz;
-            this.facing = facing;
-            this.right = WorldUtils.getPerpendicularRightDirection(facing);
+            this.grid = grid;
         }
 
         /**
          * The world block a shape cell maps to.
          *
          * @param layerIdx
-         *            the 1-based layer, increasing away from the player
+         *            the 1-based layer, increasing toward the button's side
          * @param row
          *            the row from the bottom
          * @param col
@@ -350,10 +340,7 @@ public final class StargateHelper
          */
         Block blockAt(final int layerIdx, final int row, final int col)
         {
-            return world.getBlockAt(
-                ox + ((layerIdx - 1) * facing.getModX()) + (col * right.getModX()),
-                oy + row,
-                oz + ((layerIdx - 1) * facing.getModZ()) + (col * right.getModZ()));
+            return world.getBlockAt(grid.x(layerIdx, col), grid.y(row), grid.z(layerIdx, col));
         }
 
         Block blockAt(final int layerIdx, final Integer[] pos)
@@ -368,7 +355,7 @@ public final class StargateHelper
 
         BlockFace facing()
         {
-            return facing;
+            return grid.facing();
         }
 
         World world()
@@ -477,7 +464,7 @@ public final class StargateHelper
      *
      * <p>Coordinate system (per StargateShapeLayer):
      * <ul>
-     *   <li>{@code L} – layer index (1-based; increases away from the player)
+     *   <li>{@code L} – layer index (1-based; increases toward whoever presses the button)
      *   <li>{@code R} – row from the bottom (0 = ground row)
      *   <li>{@code C} – column from the right (when looking at the gate face)
      * </ul>
@@ -495,29 +482,6 @@ public final class StargateHelper
                                           final BlockFace facing,
                                           final Stargate3DShape shape)
     {
-        final int activationLayerIdx = shape.getShapeActivationLayer();
-        if (activationLayerIdx < 1)
-        {
-            return null;
-        }
-        final List<StargateShapeLayer> shapeLayers = shape.getShapeLayers();
-        if (shapeLayers == null || shapeLayers.size() <= activationLayerIdx)
-        {
-            return null;
-        }
-        final StargateShapeLayer actLayer = shapeLayers.get(activationLayerIdx);
-        if (actLayer == null)
-        {
-            return null;
-        }
-        final int[] aPos = actLayer.getLayerActivationPosition();
-        if (aPos.length < 3)
-        {
-            return null;
-        }
-        final int aRow = aPos[1]; // row from bottom
-        final int aCol = aPos[2]; // col from right
-
         // The button/lever is mounted on the gate-facing face of the activation
         // holder block, so the holder is one step opposite to the facing direction.
         final Block holder = clickedBlock.getRelative(WorldUtils.getInverseDirection(facing));
@@ -527,14 +491,14 @@ public final class StargateHelper
         // buttons or levers freely; detection should succeed regardless of the
         // exact activation item used.
 
-        // Derive the gate's coordinate-system origin.
-        final BlockFace right = WorldUtils.getPerpendicularRightDirection(facing);
-        final int ox = holder.getX() - (activationLayerIdx - 1) * facing.getModX() - aCol * right.getModX();
-        final int oy = holder.getY() - aRow;
-        final int oz = holder.getZ() - (activationLayerIdx - 1) * facing.getModZ() - aCol * right.getModZ();
-
+        final GateGrid grid = GateGrid.fromActivationHolder(shape, holder.getX(), holder.getY(), holder.getZ(), facing);
+        if (grid == null)
+        {
+            return null;
+        }
+        final List<StargateShapeLayer> shapeLayers = shape.getShapeLayers();
         final World world = clickedBlock.getWorld();
-        final GateFrame frame = new GateFrame(world, ox, oy, oz, facing);
+        final GateFrame frame = new GateFrame(world, grid);
         final int numLayers = shapeLayers.size();
 
         // Resolve the palette from what is actually standing in the world rather than

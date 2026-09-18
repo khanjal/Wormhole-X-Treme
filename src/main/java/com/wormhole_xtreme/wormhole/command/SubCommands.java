@@ -64,6 +64,7 @@ public final class SubCommands
         private final ArgCompleter completer;
         private boolean hidden;
         private boolean checksOwnPermissions;
+        private java.util.function.BiPredicate<CommandSender, String[]> admitsWithoutConfig = (sender, args) -> false;
 
         Entry(final String name, final List<String> aliases, final String usage,
             final SubCommand handler, final boolean dropSubcommandArg, final ArgCompleter completer)
@@ -102,6 +103,22 @@ public final class SubCommands
          * @return true if the handler does its own checking
          */
         public boolean checksOwnPermissions() { return checksOwnPermissions; }
+
+        /**
+         * Whether {@code /wormhole} may dispatch this without {@code wormhole.config}: always for a
+         * subcommand that checks its own permissions, and for the particular verbs an otherwise
+         * admin-only subcommand opens to a narrower node.
+         *
+         * @param sender
+         *            whoever typed it
+         * @param args
+         *            the full argument array, subcommand at index 0
+         * @return true if the config gate does not apply
+         */
+        public boolean admits(final CommandSender sender, final String[] args)
+        {
+            return checksOwnPermissions || admitsWithoutConfig.test(sender, args);
+        }
 
         public List<String> getAliases() { return aliases; }
 
@@ -295,6 +312,8 @@ public final class SubCommands
             "cooldown", "restrict");
 
         selfPermissioned("beam", "ring", "go", "list", "compass");
+        // gate stays admin-only, except build for whoever may preview: Build checks the node itself.
+        BY_NAME.get("gate").admitsWithoutConfig = Build::admitsWithoutConfig;
     }
 
     /**
@@ -319,7 +338,7 @@ public final class SubCommands
         }
         if (BUILD.equals(verb))
         {
-            return args.length == 3 ? shapeNames(args[2]) : none();
+            return completeGateBuild(args);
         }
         if ("shapes".equals(verb))
         {
@@ -332,6 +351,84 @@ public final class SubCommands
         }
         // Every other verb takes a gate name first, and nothing after it worth guessing at.
         return args.length == 3 ? gateNames(args[2]) : none();
+    }
+
+    /**
+     * Completions for {@code /wormhole gate build <shape> [group]} and {@code gate build -clear [-all]}.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeGateBuild(final String[] args)
+    {
+        if (args.length == 3)
+        {
+            final List<String> out = new ArrayList<>(prefixed(args[2], Build.OPTIONS.toArray(new String[0])));
+            out.addAll(shapeNames(args[2]));
+            return out;
+        }
+        if (Build.MATERIAL.equalsIgnoreCase(args[2]))
+        {
+            return completeBuildMaterial(args);
+        }
+        if (args.length != 4)
+        {
+            return none();
+        }
+        if (Build.CLEAR.equalsIgnoreCase(args[2]))
+        {
+            return prefixed(args[3], Build.ALL);
+        }
+        if (Build.LAYER.equalsIgnoreCase(args[2]))
+        {
+            return prefixed(args[3], Build.NEXT, Build.ALL);
+        }
+        if (args[2].startsWith("-"))
+        {
+            return none();
+        }
+        final com.wormhole_xtreme.wormhole.model.StargateShape shape =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShape(args[2]);
+        if (shape == null)
+        {
+            return none();
+        }
+        return prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
+            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+            .filter(shape::acceptsMaterialGroup)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toArray(String[]::new));
+    }
+
+    /**
+     * Completions for {@code gate build -material <group>|<role> <block>}: the groups and roles, then
+     * block names once something has been typed, since every block at once is not a list anybody reads.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeBuildMaterial(final String[] args)
+    {
+        if (args.length == 4)
+        {
+            final List<String> out = new ArrayList<>(prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry
+                .getGroups().stream().map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+                .sorted(String.CASE_INSENSITIVE_ORDER).toArray(String[]::new)));
+            out.addAll(prefixed(args[3], java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.values())
+                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::word).toArray(String[]::new)));
+            return out;
+        }
+        if ((args.length != 5) || args[4].isEmpty()
+            || (com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.named(args[3]) == null))
+        {
+            return none();
+        }
+        return prefixed(args[4], java.util.Arrays.stream(org.bukkit.Material.values())
+            .filter(material -> !material.name().startsWith("LEGACY_")
+                && com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
+            .map(material -> material.name().toLowerCase(Locale.ROOT)).toArray(String[]::new));
     }
 
     /**

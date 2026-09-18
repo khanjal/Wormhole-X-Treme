@@ -18,13 +18,61 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 
 ## Building a gate
 
-1. `/wormhole gate build <shape>` — pick a [shape](#shapes).
+1. `/wormhole gate build <shape> [group]` — pick a [shape](#shapes), and optionally a
+   [material group](#material-groups).
 2. Lay the frame and put a button or lever on the DHD position, then click it.
 3. `/wormhole gate complete <name> [idc=CODE] [net=NETWORK]` — name it. The plugin places the
    name sign and levers, and saves the gate.
 
 The frame material decides the gate's look: build `Standard` in obsidian for a Standard gate,
 in lapis for an Atlantis one. See [Material groups](#material-groups).
+
+### Previews
+
+With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
+DHD in the block in front of you with the button facing you, its bottom row level with your feet, in the
+group's materials (the first group in `config.yml` if you name none). Only you see it, and it is
+not made of blocks, so you can walk through it and build into it. Build where it stands and press
+its button.
+
+- **Several at once.** Each `gate build` adds one where you are looking, so every shape, or one
+  shape in every group, can stand side by side.
+- **`gate build -clear`** takes away the preview you are looking at; **`gate build -clear -all`**
+  takes every one of yours.
+- **They go on their own** when you log out or change world, when a gate is found where one
+  stood, and after `gate-preview-minutes` (default 10) without a `gate build` command.
+- **`gate-preview-max-blocks`** (default 5000) caps the blocks every preview on the server shows
+  between them, its opening included. Each block is a display entity, except the open wormhole,
+  which is sent to the owner as fake blocks. `0` turns previews off.
+
+Look at a preview and these change it, for you alone:
+
+| Option | What it does |
+|---|---|
+| `gate build -activate` | Lights the chevrons in order, sends the kawoosh out and back, and leaves the wormhole open; again shuts it down. **Right-clicking the preview's button** does the same. |
+| `gate build -iris` | Closes an iris over the opening, in the group's iris material; again opens it |
+| `gate build -material <group>` | Redresses it in another material group |
+| `gate build -material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
+| `gate build -chevrons` | Draws a group's chevron blocks as frame, since they are optional; lit chevrons then show the light material |
+| `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
+| `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
+| `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
+| `gate build -layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
+| `gate build -place` | Builds it for real, with `wormhole.build.preview.place`: frame, chevrons, DHD and a button, in the materials it shows. Then name it with `/wormhole gate complete`, as if you had pressed the button. A button or lever already hung on the DHD facing you is kept. Nothing is placed if a block is in the way (the first five are named), part of it belongs to another gate or ring, is unloaded or past the world border, or no material group uses its frame block. A dial sign is left for you to write. |
+
+**Picking a build back up.** Look at the button or lever on a DHD you have already placed and run
+`gate build <shape> [group]`: the preview stands on that DHD, where the gate will be found, rather
+than in front of you.
+
+With `-guide` on you are told once every block is in place; press the button to check the gate.
+A block is judged the way the gate is found: a chevron may be the frame or the group's chevron
+block, and the DHD takes any button or a lever. The dial sign of a `SignDial` shape is optional.
+Once a real button stands on the preview's, clicking it presses the real one.
+
+Sounds play to you alone. The wormhole and its kawoosh are sent to you as blocks, the way a real
+gate draws them, since a display cannot show water; walk into one and your client treats it as
+water. `-dhd` hides only what stands apart from the ring: on a gate
+whose DHD is part of the ring's edge, as `Horizontal`'s is, just the button goes.
 
 The DHD takes any button — every wood, stone and Nether variant — or a lever. A button is swapped
 for a lever when the gate activates, so it can be held open.
@@ -111,7 +159,9 @@ The same `Standard` gate in the four groups that ship:
 
 ![The four palettes on a Standard gate](../images/gates/standard-palettes.png)
 
-Groups live in `config.yml`, and the first is the default:
+Groups live in `config.yml`, and the first is the default. A `config.yml` with no
+`gate-material-groups` section is given the four example groups (Standard, Atlantis, Universe
+and MilkyWay) at startup; a section you have written is left as it is:
 
 ```yaml
 gate-material-groups:
@@ -336,7 +386,10 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 | Command | What it does |
 |---|---|
-| `gate build <shape>` | Start building |
+| `gate build <shape> [group]` | Start building; with `wormhole.build.preview`, [show it in front of you](#previews) |
+| `gate build -clear [-all]` | Take away the preview you look at, or all of yours |
+| `gate build -activate\|-iris\|-chevrons\|-dhd` | Dial, iris, plain chevrons or hide the DHD on the preview you look at; [previews](#previews) |
+| `gate build -material <group>\|<role> <block>` | Change the materials of the preview you look at |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
 | `gate remove <gate> [-destroy]` | Take it down; `-destroy` takes its frame down too |
