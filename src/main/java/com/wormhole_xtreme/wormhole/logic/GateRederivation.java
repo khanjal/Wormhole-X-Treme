@@ -243,6 +243,28 @@ public final class GateRederivation
         return best[0];
     }
 
+    /**
+     * Whether every cell is one the gate recorded as its frame or its lights.
+     *
+     * @param gate
+     *            the gate
+     * @param cells
+     *            cells laid from its shape
+     * @return true if none of them falls outside the gate
+     */
+    public static boolean liesOnGate(final Stargate gate, final java.util.Collection<GateBlueprint.Cell> cells)
+    {
+        final Set<Long> own = ownBlocks(gate);
+        for (final GateBlueprint.Cell c : cells)
+        {
+            if (!own.contains(packed(c.x(), c.y(), c.z())))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** Every block the gate recorded as its frame or its lights. */
     private static Set<Long> ownBlocks(final Stargate gate)
     {

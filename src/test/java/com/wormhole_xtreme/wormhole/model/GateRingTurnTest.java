@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -126,6 +127,27 @@ class GateRingTurnTest
     {
         return (blocks != null) && blocks.stream().anyMatch(b -> (b.getBlockX() == l.getBlockX())
             && (b.getBlockY() == l.getBlockY()) && (b.getBlockZ() == l.getBlockZ()));
+    }
+
+    /** A gate its shape no longer fits turns no ring, rather than one laid over blocks it does not own. */
+    @Test
+    void aGateItsShapeNoLongerFitsTurnsNoRing()
+    {
+        final Stargate fits = standardGate();
+        assertNotNull(StargateAnimator.spinOf(fits), "a gate built as its shape says should turn");
+
+        // The ring's bottom row gone from the gate's record, as a frame built to another shape has it.
+        final Stargate moved = standardGate();
+        final int bottom = StargateAnimator.spinOf(fits).ring().stream().mapToInt(Cell::y).min().orElseThrow();
+        moved.getGateStructureBlocks().removeIf(l -> l.getBlockY() == bottom);
+        for (final List<Location> wave : moved.getGateLightBlocks())
+        {
+            if (wave != null)
+            {
+                wave.removeIf(l -> l.getBlockY() == bottom);
+            }
+        }
+        assertNull(StargateAnimator.spinOf(moved));
     }
 
     /**
