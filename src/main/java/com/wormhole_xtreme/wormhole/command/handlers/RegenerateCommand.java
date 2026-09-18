@@ -494,7 +494,7 @@ public class RegenerateCommand implements SubCommand
         for (final Stargate gate : StargateManager.getAllGates())
         {
             tally.checked++;
-            final boolean relit = tallyLights(tally, GateRederivation.rebuildLightOrder(gate));
+            final boolean relit = tallyLights(tally, gate.getGateName(), GateRederivation.rebuildLightOrder(gate));
             if (tallyExit(tally, gate) || relit)
             {
                 StargateDBManager.saveStargate(gate);
@@ -509,13 +509,17 @@ public class RegenerateCommand implements SubCommand
     {
         private int checked;
         private int moved;
-        private int couldNotCompute;
         private int relit;
-        private int lightsLeft;
+        private final java.util.List<String> couldNotCompute = new java.util.ArrayList<>();
+        private final java.util.List<String> busy = new java.util.ArrayList<>();
+        private final java.util.List<String> doesNotFit = new java.util.ArrayList<>();
     }
 
+    /** Most gate names a report line lists before the rest are only counted. */
+    private static final int NAMES_LISTED = 20;
+
     /** Counts one gate's light rebuild; true if it changed the gate. */
-    private static boolean tallyLights(final AllTally tally, final GateRederivation.LightResult lights)
+    private static boolean tallyLights(final AllTally tally, final String name, final GateRederivation.LightResult lights)
     {
         switch (lights)
         {
@@ -524,7 +528,8 @@ public class RegenerateCommand implements SubCommand
                 tally.relit++;
                 return true;
             }
-            case BUSY, DOES_NOT_FIT -> tally.lightsLeft++;
+            case BUSY -> tally.busy.add(name);
+            case DOES_NOT_FIT -> tally.doesNotFit.add(name);
             default -> { /* nothing to change, or reported by name only */ }
         }
         return false;
@@ -538,7 +543,7 @@ public class RegenerateCommand implements SubCommand
         {
             // No world, no facing, or no portal blocks to derive a position from --
             // an incomplete or badly damaged gate, not something to guess at here.
-            tally.couldNotCompute++;
+            tally.couldNotCompute.add(gate.getGateName());
             return false;
         }
         if (exitMoved(before, gate.getGatePlayerTeleportLocation()))
@@ -557,10 +562,11 @@ public class RegenerateCommand implements SubCommand
             + "Checked " + ChatText.value(gates(tally.checked)) + ". "
             + ChatText.value(String.valueOf(tally.moved)) + " arrival point" + plural(tally.moved) + " " + (one ? "was" : "were")
             + " out of place and " + (one ? "has" : "have") + " been recomputed.");
-        if (tally.couldNotCompute > 0)
+        if (!tally.couldNotCompute.isEmpty())
         {
-            sender.sendMessage(ChatText.bad(gates(tally.couldNotCompute))
-                + " could not be checked -- no world, no facing, or no portal blocks recorded.");
+            sender.sendMessage(ChatText.bad(gates(tally.couldNotCompute.size()))
+                + " had no arrival point to work out (no world, facing or portal blocks recorded): "
+                + names(tally.couldNotCompute));
         }
         if (tally.relit > 0)
         {
@@ -568,12 +574,32 @@ public class RegenerateCommand implements SubCommand
                 ? " now lights its chevrons in its shape's order."
                 : " now light their chevrons in their shapes' order."));
         }
-        if (tally.lightsLeft > 0)
+        if (!tally.busy.isEmpty())
         {
-            sender.sendMessage(ChatText.bad(gates(tally.lightsLeft)) + " kept " + ((tally.lightsLeft == 1) ? "its" : "their")
-                + " old light order: dialling or open, or the frame no longer fits the shape."
-                + " Regenerate one by name to see which.");
+            sender.sendMessage(ChatText.bad(gates(tally.busy.size())) + " kept " + ((tally.busy.size() == 1) ? "its" : "their")
+                + " old light order because " + ((tally.busy.size() == 1) ? "it was" : "they were")
+                + " dialling or open; run it again once they are shut: " + names(tally.busy));
         }
+        if (!tally.doesNotFit.isEmpty())
+        {
+            sender.sendMessage(ChatText.bad(gates(tally.doesNotFit.size())) + " kept " + ((tally.doesNotFit.size() == 1) ? "its" : "their")
+                + " old light order because the frame no longer fits the shape; regen each by name, or with "
+                + ChatText.command("-shape") + ": " + names(tally.doesNotFit));
+        }
+    }
+
+    /** The gates, as names, the first few listed and the rest counted. */
+    private static String names(final java.util.List<String> names)
+    {
+        final java.util.List<String> sorted = new java.util.ArrayList<>(names);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER);
+        final java.util.List<String> shown = new java.util.ArrayList<>();
+        for (final String name : sorted.subList(0, Math.min(NAMES_LISTED, sorted.size())))
+        {
+            shown.add(ChatText.name(name));
+        }
+        final int more = sorted.size() - shown.size();
+        return String.join(", ", shown) + ((more > 0) ? ", and " + ChatText.value(String.valueOf(more)) + " more." : ".");
     }
 
     /** "1 gate", "2 gates". */

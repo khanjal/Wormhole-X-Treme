@@ -356,7 +356,7 @@ class ChevronLightingTest
             sounds.verify(() -> GateSounds.chevron(any(), org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.anyInt()), never());
         }
-        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class));
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(1L));
         assertEquals(true, gate.isGateLightsActive());
     }
 }

@@ -607,7 +607,7 @@ class StargateAnimator
         }
         GateSounds.locked(gate);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
+            new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), 1L);
     }
 
     /**
