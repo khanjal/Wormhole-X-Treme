@@ -113,6 +113,7 @@ public class ConfigManager
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
+        GATE_DIAL_SPIN,
         /** Minutes a gate build preview lasts after its owner last used a build command. */
         GATE_PREVIEW_MINUTES,
         /** Most blocks every gate build preview on the server may show between them. */
@@ -785,6 +786,18 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return (s != null) ? s.getIntValue() : fallback;
+    }
+
+    /**
+     * Whether a dialling gate shows its inner ring turning: a light travelling round the frame
+     * to the top chevron before each chevron locks (#357).
+     *
+     * @return true if it does
+     */
+    public static boolean isGateDialSpin()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
+        return (s == null) || s.getBooleanValue();
     }
 
     /**

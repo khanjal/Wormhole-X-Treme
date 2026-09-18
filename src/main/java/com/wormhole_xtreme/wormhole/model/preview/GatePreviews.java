@@ -894,17 +894,10 @@ public final class GatePreviews
         preview.dialling(null);
         if (preview.litWaves() < preview.lastWave())
         {
-            preview.litWaves(preview.litWaves() + 1);
-            sound(owner, preview, ConfigManager.getGateSoundChevron(),
-                GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
-            if (preview.litWaves() == preview.lastWave())
+            if (!turnRing(owner, preview))
             {
-                sound(owner, preview, ConfigManager.getGateSoundLock(), GateSounds.LOCK_PITCH);
+                lockNextChevron(owner, preview);
             }
-            restyle(preview);
-            // Held after the last chevron as a real gate holds it.
-            next(owner, preview, (preview.litWaves() < preview.lastWave())
-                ? preview.shape().getShapeLightTicks() : Stargate.LAST_CHEVRON_PAUSE_TICKS);
             return;
         }
         final int stage = preview.wooshStage();
@@ -934,6 +927,59 @@ public final class GatePreviews
         next(owner, preview, preview.shape().getShapeWooshTicks());
     }
 
+    /** Locks the next chevron, with its sound, and books what follows it. */
+    private static void lockNextChevron(final Player owner, final GatePreview preview)
+    {
+        preview.litWaves(preview.litWaves() + 1);
+        sound(owner, preview, ConfigManager.getGateSoundChevron(),
+            GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
+        if (preview.litWaves() == preview.lastWave())
+        {
+            sound(owner, preview, ConfigManager.getGateSoundLock(), GateSounds.LOCK_PITCH);
+        }
+        restyle(preview);
+        // Held after the last chevron as a real gate holds it. With the ring turning, the turn
+        // itself is the wait before the next chevron.
+        final long between = spins(preview) ? 1L : preview.shape().getShapeLightTicks();
+        next(owner, preview, (preview.litWaves() < preview.lastWave()) ? between : Stargate.LAST_CHEVRON_PAUSE_TICKS);
+    }
+
+    /** Whether this preview's dial shows the ring turning. */
+    private static boolean spins(final GatePreview preview)
+    {
+        return (preview.spin() != null) && ConfigManager.isGateDialSpin();
+    }
+
+    /**
+     * Moves the ring's light one tick along its way to the top chevron (#357), for the glyph about
+     * to lock. The turn takes the chevron's own interval, so the dial keeps its pace.
+     *
+     * @return true while the light is still travelling, false once it has arrived (and is taken away)
+     */
+    private static boolean turnRing(final Player owner, final GatePreview preview)
+    {
+        if (!spins(preview))
+        {
+            return false;
+        }
+        final Set<Cell> was = preview.spinCells();
+        final int ticks = Math.max(1, preview.shape().getShapeLightTicks());
+        if (preview.spinTick() >= ticks)
+        {
+            preview.spinTick(0);
+            preview.spinCells(Set.of());
+            restyle(preview, was);
+            return false;
+        }
+        preview.spinCells(preview.spin().comet(preview.litWaves() + 1, preview.spinTick(), ticks));
+        preview.spinTick(preview.spinTick() + 1);
+        final Set<Cell> changed = new java.util.HashSet<>(was);
+        changed.addAll(preview.spinCells());
+        restyle(preview, changed);
+        next(owner, preview, 1L);
+        return true;
+    }
+
     private static void next(final Player owner, final GatePreview preview, final long ticks)
     {
         preview.dialling(later.after(Math.max(1L, ticks), () -> step(owner, preview)));
@@ -950,6 +996,8 @@ public final class GatePreviews
         {
             preview.stopDialling();
             preview.litWaves(0);
+            preview.spinTick(0);
+            preview.spinCells(Set.of());
             preview.wooshStage(0);
             preview.open(false);
             takeBack(owner, preview, preview.woosh());
@@ -1345,10 +1393,24 @@ public final class GatePreviews
         }
     }
 
-    /** What a frame cell shows now: lit while its wave is, and as built otherwise. */
+    /** Restyles only the given cells: the ring's light moves every tick, and the rest stands still. */
+    private static void restyle(final GatePreview preview, final Set<Cell> cells)
+    {
+        for (final Cell cell : cells)
+        {
+            final int i = preview.cells().indexOf(cell);
+            final BlockDisplay display = (i < 0) ? null : preview.displays().get(i);
+            if (display != null)
+            {
+                display.setBlock(dataFor(preview, cell));
+            }
+        }
+    }
+
+    /** What a frame cell shows now: lit while its wave is or the ring's light is on it, and as built otherwise. */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean lit = (cell.wave() > 0) && (cell.wave() <= preview.litWaves());
+        final boolean lit = ((cell.wave() > 0) && (cell.wave() <= preview.litWaves())) || preview.spinCells().contains(cell);
         return lit ? litData(preview.drawnPalette(), cell) : blockDataFor(preview, cell);
     }
 

@@ -65,6 +65,9 @@ final class GatePreview
     private Interaction button;
     private BukkitTask dialling;
     private int litWaves;
+    private final com.wormhole_xtreme.wormhole.logic.DialSpin spin;
+    private int spinTick;
+    private Set<Cell> spinCells = Set.of();
     private int wooshStage;
     private boolean open;
     private boolean irisClosed;
@@ -96,6 +99,7 @@ final class GatePreview
         lastWave = Math.min(cells.stream().mapToInt(Cell::wave).max().orElse(0), Stargate.LOCAL_CHEVRONS);
         builtLayers = cells.stream().map(Cell::layer).distinct().sorted().toList();
         lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
+        spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(this.cells, grid);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
         minY = cells.stream().mapToInt(Cell::y).min().orElse(0);
         minZ = cells.stream().mapToInt(Cell::z).min().orElse(0);
@@ -154,6 +158,33 @@ final class GatePreview
     int lastWoosh()
     {
         return lastWoosh;
+    }
+
+    /** @return the ring's turn while dialling, or null for a gate with no top chevron */
+    com.wormhole_xtreme.wormhole.logic.DialSpin spin()
+    {
+        return spin;
+    }
+
+    int spinTick()
+    {
+        return spinTick;
+    }
+
+    void spinTick(final int tick)
+    {
+        spinTick = tick;
+    }
+
+    /** @return the cells the ring's light is on now */
+    Set<Cell> spinCells()
+    {
+        return spinCells;
+    }
+
+    void spinCells(final Set<Cell> cells)
+    {
+        spinCells = Set.copyOf(cells);
     }
 
     int wooshStage()

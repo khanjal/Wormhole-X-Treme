@@ -84,6 +84,12 @@ option only with a dash, and no name may start with one. Scripts and command blo
   The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
   `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
   sound. The build preview's test dial holds and locks too.
+- **A build preview's test dial shows the inner ring turning** (#357, a first try). Before each
+  chevron locks, a short run of light travels half way round the frame from opposite the top
+  chevron to the top, clockwise for the first glyph and anticlockwise for the next, as a Milky Way
+  gate's ring turns each glyph under the top chevron. It takes the chevron's own interval, so the
+  dial keeps its pace. `gate-dial-spin: false` turns it off. Real gates do not do it yet.
+- **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
 - **`/wormhole gate regen` finds the shape a gate really is.** A gate recorded under the wrong
   shape could never be regenerated: every gate the legacy importer brought in is recorded as
   `Standard`, so a `Massive` gate came back "no longer matches Standard", markers and light order

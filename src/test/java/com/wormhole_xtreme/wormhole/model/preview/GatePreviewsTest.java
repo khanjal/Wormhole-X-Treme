@@ -111,6 +111,8 @@ class GatePreviewsTest
         plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
+        // These tests pin the chevrons' and the woosh's timing; the ring's turn has its own test.
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, false);
         standard = new Stargate3DShape(Files.readAllLines(
             Paths.get("src/main/resources/shapes/gate/Standard.shape")).toArray(new String[0]));
 
@@ -1408,5 +1410,40 @@ class GatePreviewsTest
         GatePreviews.forget(owner.getUniqueId());
 
         verify(alex, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /**
+     * With the ring turning (#357), a light travels round the frame before each chevron: it starts
+     * opposite the top chevron, and only once it has arrived does the chevron lock, the turn taking
+     * the chevron's own interval.
+     */
+    @Test
+    void theRingsLightTravelsToTheTopBeforeEachChevronLocks()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, true);
+        final List<Cell> cells = standardLookingNorth();
+        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final Cell start = spin.path(1).get(0);
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+
+        verify(startDisplay).setBlock(data.get(Material.GLOWSTONE));
+        ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+
+        final int ticks = standard.getShapeLightTicks();
+        for (int step = 1; step < ticks; step++)
+        {
+            dialStep.run();
+        }
+        ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+
+        dialStep.run();
+
+        ringDisplaysOfWave(1).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+        assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
     }
 }
