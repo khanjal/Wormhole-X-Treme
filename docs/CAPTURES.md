@@ -186,7 +186,7 @@ animation rather than embedding it to run forever.
 | A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](../README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |
 | A traveller leaving in a column of light | `beams/beam-up.webp` | [README](../README.md), [guide/BEAMS.md](guide/BEAMS.md), [BEAMS.md](BEAMS.md#the-sequence) |
 | A round trip through a mirror | `mirrors/mirror-effects.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#setting-one-up) |
-| One mirror showing two rooms | `mirrors/mirror-look.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| One mirror showing two rooms | `mirrors/mirror-look.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 | A mirror's view shifting as you move past it | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 
 **Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
