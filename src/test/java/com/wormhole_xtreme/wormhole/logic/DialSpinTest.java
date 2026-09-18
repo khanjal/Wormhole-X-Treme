@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -24,7 +23,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 
 /**
  * The ring a dial's light travels round (#357): ordered clockwise from the top chevron as seen from
- * the DHD, and walked half way round to the top, alternating direction each glyph.
+ * the DHD, and walked half way round to the chevron about to lock, alternating direction each glyph.
  */
 class DialSpinTest
 {
@@ -90,36 +89,62 @@ class DialSpinTest
         }
     }
 
-    /** A glyph's light goes half way round, from opposite the top to the top, turning back each glyph. */
+    /**
+     * Each glyph's light ends on its own chevron, the one about to lock, after half the ring. Found
+     * in-game: ending at the top for every glyph made the chevron that then lit look random.
+     */
     @Test
-    void eachGlyphTravelsHalfTheRingToTheTopTurningBackEachTime() throws Exception
+    void eachGlyphTravelsHalfTheRingToItsOwnChevron() throws Exception
     {
         for (final String name : RINGS)
         {
             final DialSpin spin = spin(name, BlockFace.NORTH);
-            final List<Cell> odd = spin.path(1);
-            final List<Cell> even = spin.path(2);
             final int half = spin.ring().size() / 2;
-
-            assertEquals(odd.get(odd.size() - 1), even.get(even.size() - 1), name + ": both end at the top");
-            assertTrue(Math.abs(spin.angleOf(odd.get(odd.size() - 1))) < 0.35
-                || Math.abs(spin.angleOf(odd.get(odd.size() - 1)) - (2 * Math.PI)) < 0.35, name + ": the top");
-            assertTrue(Math.abs(odd.size() - half) <= 2, name + ": about half the ring, " + odd.size() + " of "
-                + spin.ring().size());
-            assertNotEquals(odd.get(1), even.get(1), name + ": the second glyph turns the other way");
+            for (int glyph = 1; glyph <= 7; glyph++)
+            {
+                final List<Cell> path = spin.path(glyph);
+                assertEquals(glyph, path.get(path.size() - 1).wave(), name + ": glyph " + glyph + " ends on its chevron");
+                assertTrue(Math.abs(path.size() - half) <= 2, name + ": glyph " + glyph + " goes about half the ring, "
+                    + path.size() + " of " + spin.ring().size());
+            }
         }
     }
 
-    /** The light moves along the path over the spin and ends at the top. */
+    /** Successive glyphs turn opposite ways, as the show's ring does. */
     @Test
-    void theCometStartsOppositeAndArrivesAtTheTop() throws Exception
+    void eachGlyphTurnsTheOtherWay() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name, BlockFace.NORTH);
+            // A thick ring's neighbours can sit a hair either side, so it is the whole path's turn that counts.
+            assertTrue(travel(spin, spin.path(1)) > 0, name + ": the first glyph turns clockwise");
+            assertTrue(travel(spin, spin.path(2)) < 0, name + ": the second anticlockwise");
+        }
+    }
+
+    /** The signed angle a path turns through, clockwise positive. */
+    private static double travel(final DialSpin spin, final List<Cell> path)
+    {
+        double total = 0;
+        for (int i = 1; i < path.size(); i++)
+        {
+            final double d = spin.angleOf(path.get(i)) - spin.angleOf(path.get(i - 1));
+            total += (d > Math.PI) ? (d - (2 * Math.PI)) : ((d < -Math.PI) ? (d + (2 * Math.PI)) : d);
+        }
+        return total;
+    }
+
+    /** The light moves along the path over the spin and ends on the chevron. */
+    @Test
+    void theCometStartsOppositeAndArrivesOnTheChevron() throws Exception
     {
         final DialSpin spin = spin("Standard", BlockFace.NORTH);
         final List<Cell> path = spin.path(1);
 
-        assertTrue(spin.comet(1, 0, 10).contains(path.get(0)), "it starts opposite the top");
+        assertTrue(spin.comet(1, 0, 10).contains(path.get(0)), "it starts opposite the chevron");
         final Set<Cell> last = spin.comet(1, 9, 10);
-        assertTrue(last.contains(path.get(path.size() - 1)), "it ends at the top");
+        assertTrue(last.contains(path.get(path.size() - 1)), "it ends on the chevron");
         assertTrue(last.size() >= 2, "a run of cells, not one");
     }
 

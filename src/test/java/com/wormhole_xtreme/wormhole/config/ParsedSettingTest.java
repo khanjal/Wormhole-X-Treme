@@ -72,6 +72,20 @@ class ParsedSettingTest
         return parsed;
     }
 
+    /**
+     * A ring pattern is read by name even where config.yml still holds the old boolean, which would
+     * otherwise refuse anything but true or false.
+     */
+    @Test
+    void aRingPatternIsReadByNameOverTheOldBoolean()
+    {
+        final ParsedSetting parsed = ParsedSetting.read(ConfigKeys.GATE_DIAL_SPIN, Boolean.TRUE, "pegasus");
+        assertTrue(parsed.isAccepted(), parsed.getRefusal());
+        assertEquals("PEGASUS", parsed.getValue());
+        storesAs(ConfigKeys.GATE_DIAL_SPIN, "none", "NONE");
+        assertTrue(text(ConfigKeys.GATE_DIAL_SPIN, "banana").getRefusal().contains("PEGASUS"));
+    }
+
     @Test
     void aRingStyleThatIsNotAStyleIsRefusedRatherThanStored()
     {

@@ -101,7 +101,7 @@ class DefaultSettings
             new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION),
             new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
             new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION),
-            new Setting(ConfigKeys.GATE_DIAL_SPIN, true, "Whether a dialling gate shows its inner ring turning: a light travelling round the frame to the top chevron before each chevron locks, alternating direction.", SECTION),
+            new Setting(ConfigKeys.GATE_DIAL_SPIN, "CHEVRON", "How a dialling gate's inner ring light moves before each chevron locks: CHEVRON, TOP, LAP, FILL, PEGASUS or NONE. Each is described in the gate guide. None changes how fast a gate dials.", SECTION),
             new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a /wormhole gate build preview stays up after its owner last used a build command. At least 1.", SECTION),
             new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION)),
 

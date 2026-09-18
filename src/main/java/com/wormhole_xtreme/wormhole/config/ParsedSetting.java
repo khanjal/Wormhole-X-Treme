@@ -81,6 +81,15 @@ final class ParsedSetting
         // value has been typed. Treating an absent one as empty keeps every rule below able
         // to assume a string, rather than each having to say so again.
         final String raw = typed == null ? "" : typed;
+        // Checked before the type: a config.yml from before patterns still holds a boolean here.
+        if (key == ConfigKeys.GATE_DIAL_SPIN)
+        {
+            final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
+                com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(raw);
+            return (pattern == null)
+                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS or NONE, not \"" + raw + "\".")
+                : accepted(pattern.name());
+        }
         if (current instanceof Boolean)
         {
             if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw))

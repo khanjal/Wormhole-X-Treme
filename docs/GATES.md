@@ -495,8 +495,16 @@ Fifth Race*). Every shipped ring gate but `Minimal` has one.
 **The button lights every chevron at once, and `/dial` dials the ones it needs.** Until `/dial`
 the gate has no destination, so it cannot know whether an eighth is wanted. Lit all at once, it
 is ready either way; `/dial` darkens it and runs the sequence in order, with the eighth only for
-another world. A sign dial knows its destination when the button is pressed, so it goes straight
-to the sequence.
+another world. A sign dial knows its destination when the button is pressed, so it skips the
+sequence: both ends light the chevrons they need at once, with the lock-in sound, and open.
+
+**The ring turns inside the chevron's interval.** Before each chevron locks, a light runs round
+the front layer of the ring, nearest the DHD, as the show's ring is the face you look at. It is
+laid from the gate's own recorded frame, the way `regen` lays a shape, and a gate whose frame
+no longer fits its shape gets no ring rather than one drawn beside it. `gate-dial-spin` chooses
+the pattern, and a pattern only chooses which ring blocks are lit on each tick of the chevron's
+own interval, so the dial's pace is the shape's `LIGHT_TICKS` whatever the look. Only the gate
+dialling out turns: on the show, the gate being dialled just lights.
 
 **The woosh is waves.** A shape authoring `:W#n` markers says exactly what each wave is; one that
 does not falls back to `WOOSH_DEPTH` or a per-gate override, and wave *n* is derived on demand as
