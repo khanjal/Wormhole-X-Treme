@@ -49,6 +49,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **`gate build -place` builds a preview for real** (`wormhole.build.preview.place`, op by default),
   refusing if anything is in the way; name it with `gate complete` as usual.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
+- **A Standard gate is previewed the classic way**, its chevrons drawn as frame; `-chevrons` shows
+  the palette's chevron blocks. Other groups, and shapes that pin their own chevrons, start with
+  them shown.
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
   MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
