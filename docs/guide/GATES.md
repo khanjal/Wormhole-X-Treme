@@ -472,7 +472,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-| `gate-dial-spin` | `true` | Show the inner ring turning: a light travels round the frame to the top chevron before each chevron locks, alternating direction, on gates and build previews alike. |
+| `gate-dial-spin` | `chevron` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `chevron`: half the ring, landing on the chevron about to lock, alternating direction. `top`: half the ring to the top chevron, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `none`: no ring light. None changes how fast a gate dials; `true` and `false` from older configs mean `chevron` and `none`. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that
