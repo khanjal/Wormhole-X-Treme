@@ -262,7 +262,7 @@ public final class StargateShapeRegistry
         {
             return;
         }
-        ShippedShapes.updateUntouched(directory);
+        ShippedShapes.reportDiffering(directory);
         restoreMissingDefaults(directory);
         readShapesIn(directory);
 

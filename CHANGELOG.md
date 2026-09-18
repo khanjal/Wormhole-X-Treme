@@ -55,13 +55,12 @@ option only with a dash, and no name may start with one. Scripts and command blo
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
   MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
-- **`Large` is one layer deep**, as `Standard` is, rather than three. Large gates already standing
-  keep working; `gate regen` on a three-deep one no longer finds it. To keep building three-deep
-  ones, rename `Large.shape.old` to a `.shape` file and give it another `Name=`.
-- **Bundled shapes nobody edited are updated at startup.** Shape files were written once and never
-  again, so an upgraded server kept every old shape. A copy matching a version some release shipped
-  is replaced, the old one kept beside it as `<name>.shape.old`; an edited copy is left alone, with
-  one log line saying so. Delete it and restart to take this version's.
+- **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
+  `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
+  already standing keep working; `gate regen` on a three-deep one no longer finds it.
+- **Startup names each bundled shape that differs from this version's.** Shape files are never
+  overwritten, since an admin may have edited them, so an upgraded server keeps 1.6's. Delete the
+  ones you did not edit and restart to take the new shapes, then run `gate regen -all`.
 - **Every gate's light order is rebuilt from its shape at startup**, as `gate regen -all` does,
   saving the gates it changed. A gate whose frame no longer fits its shape keeps its order and is
   named in the log. A ring no longer turns on such a gate, where it could be laid beside the frame.
