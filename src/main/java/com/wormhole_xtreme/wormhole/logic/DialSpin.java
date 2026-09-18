@@ -128,18 +128,96 @@ public final class DialSpin
      */
     public List<Cell> path(final int glyph)
     {
+        final double target = chevronAngle(glyph);
+        return route(nearest(target + Math.PI), nearest(target), alternating(glyph));
+    }
+
+    /**
+     * The cells a glyph's light passes under a pattern: half the ring or a whole turn, ending on
+     * the glyph's chevron, or on the top for {@link DialSpinPattern#TOP}.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @return the path, its last cell where the light lands
+     */
+    public List<Cell> path(final DialSpinPattern pattern, final int glyph)
+    {
+        final int end = nearest(chevronAngle(glyph));
+        return switch (pattern)
+        {
+            case TOP -> route(nearest(Math.PI), nearest(0.0), alternating(glyph));
+            case LAP -> route(Math.floorMod(end + alternating(glyph), ring.size()), end, alternating(glyph));
+            case PEGASUS -> route(Math.floorMod(end + 1, ring.size()), end, 1);
+            default -> path(glyph);
+        };
+    }
+
+    /**
+     * The cells lit at one tick of a glyph's spin under a pattern. The light reaches the end of
+     * its path on the last tick, whatever the pattern, so every pattern takes the same time.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @param tick
+     *            the tick, from 0
+     * @param ticks
+     *            how many ticks the spin takes
+     * @return the lit cells
+     */
+    public Set<Cell> lit(final DialSpinPattern pattern, final int glyph, final int tick, final int ticks)
+    {
+        final List<Cell> path = path(pattern, glyph);
+        final int last = path.size() - 1;
+        int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
+        int length = Math.max(2, ring.size() / 16);
+        if (pattern == DialSpinPattern.FILL)
+        {
+            length = head + 1;
+        }
+        else if (pattern == DialSpinPattern.PEGASUS)
+        {
+            // A glyph at a time: the run jumps a glyph's width rather than sliding.
+            length = Math.max(2, ring.size() / GLYPHS);
+            head = (head >= last) ? last : ((head / length) * length) + (length - 1);
+            head = Math.min(head, last);
+        }
+        final Set<Cell> lit = new LinkedHashSet<>();
+        for (int i = Math.max(0, head - length + 1); i <= head; i++)
+        {
+            lit.add(path.get(i));
+        }
+        return lit;
+    }
+
+    /** How many glyphs a Pegasus step takes the width of: 36 round an Atlantis gate, read as nine. */
+    private static final int GLYPHS = 9;
+
+    /** The angle a glyph's light lands on: its chevron's, or the top's for one not on the ring. */
+    private double chevronAngle(final int glyph)
+    {
+        return ((glyph > 0) && (glyph < chevrons.length) && !Double.isNaN(chevrons[glyph])) ? chevrons[glyph] : 0.0;
+    }
+
+    /** Clockwise for odd glyphs, anticlockwise for even ones. */
+    private static int alternating(final int glyph)
+    {
+        return ((glyph % 2) == 1) ? 1 : -1;
+    }
+
+    /** The ring cells from one index to another, stepping one way round. */
+    private List<Cell> route(final int start, final int end, final int step)
+    {
         final int n = ring.size();
-        final double target = ((glyph > 0) && (glyph < chevrons.length) && !Double.isNaN(chevrons[glyph]))
-            ? chevrons[glyph] : 0.0;
-        final int end = nearest(target);
-        final int start = nearest(target + Math.PI);
-        final int step = ((glyph % 2) == 1) ? 1 : -1;
         final List<Cell> path = new ArrayList<>();
         int i = start;
         while (true)
         {
             path.add(ring.get(i));
-            if ((i == end) || (path.size() > n))
+            if ((i == end) || (path.size() >= n))
             {
                 return path;
             }
@@ -160,16 +238,7 @@ public final class DialSpin
      */
     public Set<Cell> comet(final int glyph, final int tick, final int ticks)
     {
-        final List<Cell> path = path(glyph);
-        final int last = path.size() - 1;
-        final int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
-        final int length = Math.max(2, ring.size() / 16);
-        final Set<Cell> lit = new LinkedHashSet<>();
-        for (int i = Math.max(0, head - length + 1); i <= Math.min(head, last); i++)
-        {
-            lit.add(path.get(i));
-        }
-        return lit;
+        return lit(DialSpinPattern.CHEVRON, glyph, tick, ticks);
     }
 
     /** The axis (0 x, 1 y, 2 z) the cells spread least along. */

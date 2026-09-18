@@ -296,6 +296,11 @@ public final class SubCommands
         register("config", aliases("set"), "/wormhole config <setting> [value]",
             new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, (sender, args) ->
             {
+                if (args.length == 3)
+                {
+                    return prefixed(args[2],
+                        com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor(args[1]).toArray(new String[0]));
+                }
                 if (args.length != 2)
                 {
                     return none();

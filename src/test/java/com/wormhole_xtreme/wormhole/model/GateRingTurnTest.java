@@ -186,6 +186,44 @@ class GateRingTurnTest
             any(Runnable.class), eq(1L));
     }
 
+    /**
+     * Every pattern locks the first chevron on the same tick, so the choice never changes how fast
+     * a gate dials, and NONE locks it at once without a turn.
+     */
+    @Test
+    void everyPatternLocksTheChevronOnTheSameTick()
+    {
+        try
+        {
+            for (final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern
+                : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
+            {
+                com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                    com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, pattern.name());
+                final Stargate gate = standardGate();
+                final int ticks = (pattern == com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
+                    ? 0 : gate.getEffectiveLightTicks();
+                try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                     MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+                {
+                    for (int tick = 0; tick < ticks; tick++)
+                    {
+                        StargateAnimator.lightStargate(gate, true);
+                        assertEquals(0, gate.getGateLightingCurrentIteration(), pattern + ": nothing locked at tick " + tick);
+                    }
+                    StargateAnimator.lightStargate(gate, true);
+                    assertEquals(1, gate.getGateLightingCurrentIteration(), pattern + ": locked after " + ticks + " ticks");
+                }
+            }
+        }
+        finally
+        {
+            // The default, as the other tests here assume.
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
+        }
+    }
+
     /** A gate shut part way through a turn takes the ring's light back. */
     @Test
     void shuttingAGateMidTurnTakesTheLightBack()
