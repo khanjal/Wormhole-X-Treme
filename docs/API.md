@@ -5,7 +5,7 @@ somebody is going. Everything a server owner needs is in the [guide](guide/READM
 subsystem is put together is in [GATES.md](GATES.md), [RINGS.md](RINGS.md), [BEAMS.md](BEAMS.md)
 and [MIRRORS.md](MIRRORS.md).
 
-The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.2**. It is compiled against
+The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.3**. It is compiled against
 the oldest supported API, so everything here works across that whole range. Beaming and mirrors
 raise no events yet.
 
