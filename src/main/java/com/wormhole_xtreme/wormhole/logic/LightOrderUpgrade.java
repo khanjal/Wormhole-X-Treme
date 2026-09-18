@@ -13,7 +13,7 @@ import com.wormhole_xtreme.wormhole.model.StargateDBManager;
  * Rebuilds every gate's chevron light order from its shape when the server starts.
  *
  * <p>A gate saves the order it was built with, so a shape whose order changed left every gate
- * already standing lighting the old way until someone ran {@code /wormhole regen -all}. This is
+ * already standing lighting the old way until someone ran {@code /wormhole gate regen -all}. This is
  * that same rebuild, run once gates are loaded: it reads no blocks, and a gate whose frame no
  * longer fits its shape keeps the order it has.
  */
@@ -76,7 +76,7 @@ public final class LightOrderUpgrade
             final int more = sorted.size() - NAMES_LISTED;
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, sorted.size()
                 + ((sorted.size() == 1) ? " gate keeps its" : " gates keep their")
-                + " old light order because the frame no longer fits the shape; /wormhole regen <gate> -shape <shape>"
+                + " old light order because the frame no longer fits the shape; /wormhole gate regen <gate> -shape <shape>"
                 + " can fix one: " + String.join(", ", sorted.subList(0, Math.min(NAMES_LISTED, sorted.size())))
                 + ((more > 0) ? ", and " + more + " more." : "."));
         }

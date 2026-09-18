@@ -480,7 +480,7 @@ public class WormholeXTreme extends JavaPlugin
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         // A shape whose light order changed would otherwise leave standing gates on the old one.
-        com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade.rebuildAll(StargateManager.getAllGates());
+        com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade.rebuildAll(StargateManager.getAllGatesUnsorted());
         // Rings load after gates so that a ring overlapping gate blocks is refused against
         // an index that is already populated.
         try
