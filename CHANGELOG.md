@@ -33,6 +33,8 @@ option only with a dash, and no name may start with one. Scripts and command blo
   blocks to place drawn small, wrong ones outlined in red, placed ones gone.
 - **`gate build -layer` shows a preview a layer at a time**, and `gate build <shape>` while looking at
   a placed DHD button stands the preview on it.
+- **`gate build -share <player>|-all` shows a preview to other players** (`wormhole.build.preview.share`,
+  op by default); only its owner can change it.
 - **`gate build -place` builds a preview for real** (`wormhole.build.preview.place`, op by default),
   refusing if anything is in the way; name it with `gate complete` as usual.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).

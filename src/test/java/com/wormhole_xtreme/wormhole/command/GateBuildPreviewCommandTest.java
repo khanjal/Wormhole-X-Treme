@@ -241,7 +241,7 @@ class GateBuildPreviewCommandTest
         }
         verify(player).sendMessage(saying("Cleared 3 previews."));
         verify(player).sendMessage(saying("No shape called clear."));
-        verify(player).sendMessage(saying("No option -bogus. Try -clear -activate -iris -material -materials -guide -layer -chevrons -dhd -place"));
+        verify(player).sendMessage(saying("No option -bogus. Try -clear -activate -iris -material -materials -guide -layer -chevrons -dhd -share -place"));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -429,6 +429,50 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(saying("Placed Standard."));
     }
 
+    /**
+     * -share needs its own node, shows the preview to a named player and tells them, shares with
+     * everyone with -all, and lists who sees it with nothing after it.
+     */
+    @Test
+    void shareNeedsItsNodeAndSaysWhoSeesIt()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        final org.bukkit.Server server = mock(org.bukkit.Server.class);
+        when(player.getServer()).thenReturn(server);
+        final Player alex = mock(Player.class);
+        when(alex.getName()).thenReturn("Alex");
+        when(server.getPlayerExact("Alex")).thenReturn(alex);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.share(player, alex)).thenReturn(GatePreviews.Shared.SHARED,
+                GatePreviews.Shared.UNSHARED);
+            previews.when(() -> GatePreviews.shareAll(player)).thenReturn(GatePreviews.Shared.SHARED_ALL);
+            previews.when(() -> GatePreviews.audience(player)).thenReturn(
+                new GatePreviews.Audience(true, List.of("Alex")), new GatePreviews.Audience(false, List.of()));
+
+            run("gate", "build", "-share", "Alex");
+            previews.verify(() -> GatePreviews.share(any(), any()), never());
+            verify(player).sendMessage(saying("You lack the permissions"));
+
+            when(player.hasPermission("wormhole.build.preview.share")).thenReturn(true);
+            run("gate", "build", "-share", "Alex");
+            run("gate", "build", "-SHARE", "Alex");
+            run("gate", "build", "-share", "-all");
+            run("gate", "build", "-share", "Nobody");
+            run("gate", "build", "-share");
+            run("gate", "build", "-share");
+        }
+        verify(player).sendMessage(saying("Showing it to Alex. -share Alex again stops."));
+        verify(alex).sendMessage(saying("builder is showing you a gate preview."));
+        verify(player).sendMessage(saying("Stopped showing it to Alex."));
+        verify(player).sendMessage(saying("Showing it to everyone in this world. -share -all again stops."));
+        verify(player).sendMessage(saying("No player called Nobody is online."));
+        verify(player).sendMessage(saying("Shown to everyone in this world, Alex."));
+        verify(player).sendMessage(saying("Only you see it. -share <player> or -share -all shows it."));
+        assertEquals(List.of("-all"),
+            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "build", "-share", "-" }));
+    }
+
     /** -material names what it takes when given something else, and refuses a block that does not exist. */
     @Test
     void materialSaysWhatItTakes()
@@ -467,7 +511,7 @@ class GateBuildPreviewCommandTest
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
-            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd", "-place")));
+            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd", "-share", "-place")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
             .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })

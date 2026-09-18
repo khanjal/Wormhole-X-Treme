@@ -275,6 +275,14 @@ button and hands it to `GateInteractionHandler.offerNewGate`, the same step a pr
 so naming, the `BUILD` permission and removing the preview are not a second path. Protection plugins
 are not asked yet: the node is admin-level, and region support is #240.
 
+A shared preview keeps who it is shared with apart from who is being shown it now. Every tick, and
+on every `-share`, the second is brought in line with the first for the players online in its world:
+anyone new is shown every display and sent the wormhole where it is open, and anyone gone is hidden
+from them and has it taken back. That covers a viewer who changes world or relogs, whose client has
+forgotten what it was shown, and with `-all` anyone who arrives later. Displays drawn after sharing
+are shown to viewers as they spawn, and fake blocks and sounds go to everyone watching. The button's
+box is the owner's alone, so nobody else can dial it.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".
