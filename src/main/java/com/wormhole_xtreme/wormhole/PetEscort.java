@@ -55,9 +55,10 @@ public final class PetEscort
         final boolean explain = PluginLog.isLoggable(Level.FINE);
         try
         {
+            final Location from = owner.getLocation();
             for (final Entity entity : owner.getNearbyEntities(REACH, REACH, REACH))
             {
-                if (follows(entity, owner.getUniqueId()))
+                if (follows(entity, owner.getUniqueId()) && withinReach(entity.getLocation(), from))
                 {
                     pets.add(entity);
                 }
@@ -108,11 +109,40 @@ public final class PetEscort
         {
             why = "riding something";
         }
-        else
+        else if (entity.isDead())
         {
             why = "dead";
         }
+        else
+        {
+            why = "further than " + (int) REACH + " blocks away";
+        }
         PluginLog.log(Level.FINE, owner.getName() + "'s " + entity.getType() + " stays behind: " + why);
+    }
+
+    /**
+     * Whether a pet the box turned up stands within {@link #REACH} of its owner.
+     *
+     * <p>{@link Entity#getNearbyEntities} takes half-widths and hands back a box, and the corner of
+     * that box is twenty blocks from the middle. Vanilla's own following is a distance, and so is
+     * {@link #apart}, which decides at the far end whether a pet still needs bringing; a pet only
+     * the corner reaches would be gathered here and judged out of reach there.
+     *
+     * @param pet
+     *            where the pet stands, or null if the server will not say
+     * @param ownerAt
+     *            where its owner stands, or null
+     * @return true unless both are known and they stand further apart than {@link #REACH}
+     */
+    private static boolean withinReach(final Location pet, final Location ownerAt)
+    {
+        if ((pet == null) || (ownerAt == null) || (pet.getWorld() == null) || (ownerAt.getWorld() == null))
+        {
+            // Nothing to measure with. The box has already said it is near, and leaving a pet
+            // behind over a location the server would not give is the worse way to be wrong.
+            return true;
+        }
+        return !apart(pet, ownerAt);
     }
 
     /**
@@ -223,7 +253,7 @@ public final class PetEscort
         catch (final RuntimeException e)
         {
             // Refused by another plugin, or gone mid-trip; the others still come.
-            PluginLog.log(Level.FINE, "Could not bring " + pet.getType() + ": " + e);
+            PluginLog.log(Level.FINE, "Could not bring " + pet.getType(), e);
             return false;
         }
     }

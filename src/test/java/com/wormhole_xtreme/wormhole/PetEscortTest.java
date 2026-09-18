@@ -157,6 +157,28 @@ class PetEscortTest
         assertEquals(List.of(mine), PetEscort.gather(owner));
     }
 
+    /**
+     * A pet the nearby-entity box turned up but that really stands out of reach is left.
+     *
+     * <p>{@code getNearbyEntities} takes half-widths, so the corner of its box is twenty blocks
+     * from the middle while the rule, and {@link PetEscort#apart} at the far end, are twelve. A
+     * pet gathered from that corner would be carried through a gate it was never following its
+     * owner towards, and then judged out of reach when it arrived.
+     */
+    @Test
+    void aPetFoundInTheCornerOfTheBoxButOutOfReachStays()
+    {
+        final World here = mock(World.class);
+        ownerNowAt(new Location(here, 0.5, 64.0, 0.5));
+        final Wolf corner = at(wolfOf(owner), new Location(here, 11.5, 64.0, 11.5));
+        final Wolf beside = at(wolfOf(owner), new Location(here, 5.5, 64.0, 5.5));
+        when(owner.getNearbyEntities(anyDouble(), anyDouble(), anyDouble()))
+            .thenReturn(List.of(corner, beside));
+
+        assertEquals(List.of(beside), PetEscort.gather(owner),
+            "the box reaches further diagonally than a pet ever follows");
+    }
+
     @Test
     void turningTheSettingOffLeavesEveryPetBehind()
     {
