@@ -267,7 +267,7 @@ The selection is coloured *and* wrapped in `»` `«`, so it still reads for a co
 
 Colours are Bukkit names such as `AQUA` or `GOLD`; an unrecognised one falls back to the default.
 Signs repaint when next written — a dial sign on the next click, a name sign on
-`/wormhole gate regenerate <gate>`.
+`/wormhole gate regen <gate>`.
 
 ## The iris
 
@@ -357,7 +357,7 @@ A trigger on a gate that is lit but never dialled deactivates it.
 ### An older gate that ignores redstone
 
 A gate records its marker positions when built. One built before its shape gained `[RD]` has none,
-and no wiring will fire it. `/wormhole gate regenerate <gate>` re-reads the shape and adds them.
+and no wiring will fire it. `/wormhole gate regen <gate>` re-reads the shape and adds them.
 
 ### `[RS]` — sign cycling, custom shapes only
 
@@ -397,7 +397,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |
-| `gate regenerate [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
+| `gate regen [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
@@ -410,7 +410,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 
-**`gate regenerate <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
+**`gate regen <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
 turns out to be, keeping its name, owner, iris code and network, as `/wormhole refresh` used to
 (that command still works, and does the same). With no gate named, it waits for you to click the
 gate's DHD. Then it re-reads the gate's shape file and moves its redstone hookup, iris

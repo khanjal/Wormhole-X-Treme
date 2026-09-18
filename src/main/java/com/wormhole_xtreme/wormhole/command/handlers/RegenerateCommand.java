@@ -52,7 +52,7 @@ public class RegenerateCommand implements SubCommand
             if ((shapeAt + 1) >= args.length)
             {
                 sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "Name the shape: " + ChatText.command("/wormhole gate regenerate <gate> -shape <shape>"));
+                    + "Name the shape: " + ChatText.command("/wormhole gate regen <gate> -shape <shape>"));
                 return true;
             }
             final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[shapeAt + 1]);
@@ -119,9 +119,25 @@ public class RegenerateCommand implements SubCommand
                 + "No registered gate found at that block. Build or complete the gate first.");
             return;
         }
+        shutForRegen(player, existing);
         final Stargate fresh = GateRefresh.refresh(existing, clicked, direction);
         reportRedetect(player, existing, fresh);
         regenerateOneGate(player, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
+    }
+
+    /**
+     * Shuts an open or dialling gate before regenerating it: the far end holds the gate being
+     * replaced, and chevrons drawn from the old order would be left lit.
+     */
+    private static void shutForRegen(final CommandSender sender, final Stargate s)
+    {
+        if (!s.isGateActive() && !s.isGateLightsActive())
+        {
+            return;
+        }
+        com.wormhole_xtreme.wormhole.command.CommandUtilities.closeGate(s, false);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Shut "
+            + ChatText.name(s.getGateName()) + " down to regenerate it.");
     }
 
     /** Says whether the gate's whole geometry was detected afresh, or why it was kept. */
@@ -163,7 +179,7 @@ public class RegenerateCommand implements SubCommand
         {
             sender.sendMessage(header + ChatText.bad(standing + " water or lava block" + plural(standing)) + " stand in "
                 + ChatText.name(s.getGateName()) + "'s opening. If a dial left them, clear them with "
-                + ChatText.command("/wormhole gate regenerate " + s.getGateName() + " -water") + ".");
+                + ChatText.command("/wormhole gate regen " + s.getGateName() + " -water") + ".");
         }
     }
 
@@ -277,6 +293,7 @@ public class RegenerateCommand implements SubCommand
         final boolean clearLiquid, final boolean redetect)
     {
         Stargate s = given;
+        shutForRegen(sender, s);
         if (redetect && (missing == 0))
         {
             final Stargate fresh = GateRefresh.refresh(s, s.getGateDialLeverBlock(), s.getGateFacing());

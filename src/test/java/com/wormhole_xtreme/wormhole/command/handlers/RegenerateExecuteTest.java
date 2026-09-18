@@ -609,4 +609,35 @@ class RegenerateExecuteTest
         verify(gate).clearStrandedLiquid();
         verify(sender).sendMessage(said("Cleared 2 water or lava blocks left standing in alpha."));
     }
+
+    /**
+     * An open gate is shut down before it is regenerated, rather than left open and its geometry
+     * left alone: its far end holds the gate being replaced.
+     */
+    @Test
+    void anOpenGateIsShutDownThenRegenerated()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.isGateActive()).thenReturn(true);
+
+        assertTrue(run("regen", "alpha"));
+
+        verify(gate).shutdownStargate(true);
+        verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
+        verify(gate).toggleDialLeverState(true);
+    }
+
+    /** A gate lit by its button and waiting for /dial is darkened before it is regenerated. */
+    @Test
+    void aGateWaitingForDialIsDarkenedThenRegenerated()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.isGateLightsActive()).thenReturn(true);
+
+        assertTrue(run("regen", "alpha"));
+
+        verify(gate).lightStargate(false);
+        verify(gate).stopActivationTimer();
+        verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
+    }
 }

@@ -193,7 +193,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGENERATE, aliases(REGEN), "/wormhole regenerate [gate] [-shape <shape>] [-water] | -all",
+        register(REGEN, aliases(REGENERATE), "/wormhole regen [gate] [-shape <shape>] [-water] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -307,7 +307,7 @@ public final class SubCommands
                         .toArray(new String[0]));
             });
 
-        hide("list", BUILD, "complete", REMOVE, REGENERATE, "refresh", "go", "force",
+        hide("list", BUILD, "complete", REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict");
