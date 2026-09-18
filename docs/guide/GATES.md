@@ -90,6 +90,23 @@ Gates work in the Nether and the End.
 
 `/dial` finishes a dial the button started; it cannot start one on its own.
 
+**The inner ring turns while a gate dials.** Before each chevron locks, a light runs round the
+ring, and the chevron locks when it has finished. Only the gate dialling out turns; the gate
+being dialled lights its chevrons in order without it. A sign dial opens at once, so it has no
+ring turn. A build preview's test dial turns the same way. `gate-dial-spin` picks the pattern:
+
+| Pattern | Before each chevron locks |
+|---|---|
+| `chevron` *(default)* | The light runs half the ring and lands on the chevron, turning the other way each glyph |
+| `top` | Half the ring to the top chevron, turning the other way each glyph |
+| `lap` | A whole turn clockwise, landing on the chevron: round and round |
+| `fill` | As `chevron`, lighting the ring behind it as it goes |
+| `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time |
+| `none` | No ring light |
+
+The light takes the chevron's own time whatever the pattern, so no pattern makes a gate dial
+faster or slower.
+
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
 A dial is refused when the target's iris is closed, the target is already active, or another
