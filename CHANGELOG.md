@@ -83,7 +83,7 @@ option only with a dash, and no name may start with one. Scripts and command blo
   in 256m. A block the stand-ins do not answer fails the test by name rather than reading as null.
 - **The test fork has a 1 GB ceiling**, where it took the JVM default of a quarter of the
   machine's RAM and the same commit passed or failed by which runner it landed on. The suite of
-  1,988 measures at about 512m.
+  1,988 passes at 256m and not at 192m, so the ceiling is four times what it needs.
 - **The mirror window tests clear their windows between tests**, where each could see the views
   and cached block states the one before it left behind.
 
