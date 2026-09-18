@@ -1,9 +1,11 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,10 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
+
 /**
  * A server that cannot show an action bar costs the player the line, never the ring trip or the
  * mirror that asked for it.
@@ -30,7 +36,27 @@ class ActionBarTest
     @AfterEach
     void tearDown() throws ReflectiveOperationException
     {
+        ActionBar.forgetUnavailable();
         PluginTestSupport.remove();
+    }
+
+    @Test
+    void theLineGoesAboveTheHotbar()
+    {
+        final Player player = mock(Player.class);
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
+
+        ActionBar.send(player, "Rings in 3");
+
+        verify(hotbar).sendMessage(eq(ChatMessageType.ACTION_BAR),
+            argThat((final BaseComponent line) -> "Rings in 3".equals(((TextComponent) line).getText())));
+    }
+
+    @Test
+    void somebodyWhoHasLoggedOutIsToldNothing()
+    {
+        assertDoesNotThrow(() -> ActionBar.send(null, "Rings in 3"));
     }
 
     @Test
@@ -40,6 +66,25 @@ class ActionBarTest
         when(player.spigot()).thenThrow(new IllegalStateException("refused"));
 
         assertDoesNotThrow(() -> ActionBar.send(player, "Rings in 3"));
+    }
+
+    /**
+     * The same failure on the class the plugin really uses: said once, and nobody asked again.
+     */
+    @Test
+    void aMissingSpigotMethodIsLoggedOnceAndNotTriedAgain() throws ReflectiveOperationException
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
+        final Player first = mock(Player.class);
+        when(first.spigot()).thenThrow(new NoSuchMethodError("Player.spigot()"));
+        final Player second = mock(Player.class);
+
+        assertDoesNotThrow(() -> ActionBar.send(first, "Rings in 3"));
+        assertDoesNotThrow(() -> ActionBar.send(second, "Rings in 2"));
+
+        verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("no Spigot action bar"));
+        verify(second, never()).spigot();
     }
 
     /**
@@ -105,8 +150,13 @@ class ActionBarTest
             }
             synchronized (getClassLoadingLock(name))
             {
-                final Class<?> loaded = findLoadedClass(name);
-                return loaded != null ? loaded : define(name);
+                final Class<?> found = findLoadedClass(name);
+                final Class<?> loaded = found != null ? found : define(name);
+                if (resolve)
+                {
+                    resolveClass(loaded);
+                }
+                return loaded;
             }
         }
 
@@ -119,7 +169,7 @@ class ActionBarTest
          */
         private Class<?> define(final String name) throws ClassNotFoundException
         {
-            try (InputStream in = getParent().getResourceAsStream(name.replace('.', '/') + ".class"))
+            try (final InputStream in = getParent().getResourceAsStream(name.replace('.', '/') + ".class"))
             {
                 if (in == null)
                 {

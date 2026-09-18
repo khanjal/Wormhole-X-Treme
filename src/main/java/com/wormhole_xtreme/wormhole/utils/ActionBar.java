@@ -33,6 +33,12 @@ public final class ActionBar
     {
     }
 
+    /** Tests only: other tests read the action bar, so one that breaks it must put it back. */
+    static void forgetUnavailable()
+    {
+        unavailable = false;
+    }
+
     /**
      * Sends one line to a player's action bar, or quietly does not.
      *
