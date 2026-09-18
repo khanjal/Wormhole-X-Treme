@@ -392,6 +392,11 @@ public final class SubCommands
         {
             return prefixed(args[3], Build.NEXT, Build.ALL);
         }
+        if (Build.SHARE.equalsIgnoreCase(args[2]))
+        {
+            // No player's name starts with a dash.
+            return args[3].startsWith("-") ? prefixed(args[3], Build.ALL) : playerNames(args[3]);
+        }
         if (args[2].startsWith("-"))
         {
             return none();

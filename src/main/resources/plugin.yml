@@ -53,6 +53,9 @@ permissions:
   wormhole.build.preview:
     description: Allow showing a gate shape full size in front of you with /wormhole gate build, seen by you alone.
     default: op
+  wormhole.build.preview.share:
+    description: Allow showing your gate previews to other players with /wormhole gate build -share.
+    default: op
   wormhole.build.preview.place:
     description: Allow turning a gate preview into a real gate with /wormhole gate build -place.
     default: op

@@ -40,7 +40,7 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
  * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
  * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide},
- * {@code -layer [<n>|-next|-all]} and {@code -place}.
+ * {@code -layer [<n>|-next|-all]}, {@code -share [<player>|-all]} and {@code -place}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -84,9 +84,12 @@ public class Build implements CommandExecutor
     /** Builds the preview for real, with {@code wormhole.build.preview.place}. */
     public static final String PLACE = "-place";
 
+    /** Shows the preview to a player or everyone in the world, or stops, with {@code wormhole.build.preview.share}. */
+    public static final String SHARE = "-share";
+
     /** Every option, in the order they are offered. */
     public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
-        CHEVRONS, DHD, PLACE);
+        CHEVRONS, DHD, SHARE, PLACE);
 
     private static final String USAGE = "Usage: ";
 
@@ -201,7 +204,8 @@ public class Build implements CommandExecutor
             clear(player, args);
             return;
         }
-        if (!mayPreview || (PLACE.equals(option) && !PreviewPermissions.mayPlace(player)))
+        if (!mayPreview || (PLACE.equals(option) && !PreviewPermissions.mayPlace(player))
+            || (SHARE.equals(option) && !PreviewPermissions.mayShare(player)))
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
@@ -216,6 +220,7 @@ public class Build implements CommandExecutor
             case MATERIALS -> listMaterials(player);
             case LAYER -> layers(player, args);
             case PLACE -> place(player);
+            case SHARE -> share(player, args);
             default -> material(player, args);
         };
         if (done != null)
@@ -246,6 +251,63 @@ public class Build implements CommandExecutor
         }
         final Material block = Material.matchMaterial(args[2]);
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
+    }
+
+    /** {@code -share [<player>|-all]}; null once it has answered itself. */
+    private static GatePreviews.Control share(final Player player, final String[] args)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        if (args.length == 1)
+        {
+            final GatePreviews.Audience audience = GatePreviews.audience(player);
+            if (audience == null)
+            {
+                return GatePreviews.Control.NOT_LOOKING;
+            }
+            final List<String> who = new java.util.ArrayList<>(audience.names().stream().map(PreviewText::name).toList());
+            if (audience.everyone())
+            {
+                who.add(0, "everyone in this world");
+            }
+            player.sendMessage(header + (who.isEmpty()
+                ? "Only you see it. " + command(SHARE + " <player>") + " or " + command(SHARE + " " + ALL) + " shows it."
+                : "Shown to " + String.join(", ", who) + "."));
+            return null;
+        }
+        if (ALL.equalsIgnoreCase(args[1]))
+        {
+            return tellShared(player, GatePreviews.shareAll(player), null);
+        }
+        final Player with = player.getServer().getPlayerExact(args[1]);
+        if (with == null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No player called " + name(args[1])
+                + " is online.");
+            return null;
+        }
+        return tellShared(player, GatePreviews.share(player, with), with);
+    }
+
+    private static GatePreviews.Control tellShared(final Player player, final GatePreviews.Shared done, final Player with)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        switch (done)
+        {
+            case NOT_LOOKING -> {
+                return GatePreviews.Control.NOT_LOOKING;
+            }
+            case SELF -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "You already see it.");
+            case SHARED -> {
+                player.sendMessage(header + "Showing it to " + name(with.getName()) + ". " + command(SHARE + " "
+                    + with.getName()) + " again stops.");
+                with.sendMessage(header + name(player.getName()) + " is showing you a gate preview.");
+            }
+            case UNSHARED -> player.sendMessage(header + "Stopped showing it to " + name(with.getName()) + ".");
+            case SHARED_ALL -> player.sendMessage(header + "Showing it to everyone in this world. " + command(SHARE + " "
+                + ALL) + " again stops.");
+            case UNSHARED_ALL -> player.sendMessage(header + "Stopped showing it to everyone.");
+        }
+        return null;
     }
 
     /** {@code -place}; null once it has answered itself. */

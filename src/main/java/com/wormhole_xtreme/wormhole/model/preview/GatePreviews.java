@@ -3,8 +3,10 @@ package com.wormhole_xtreme.wormhole.model.preview;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -202,6 +204,33 @@ public final class GatePreviews
         boolean at(World world, int x, int y, int z);
     }
 
+    /** What {@code gate build -share} did. */
+    public enum Shared
+    {
+        /** The player is not looking at one of their previews. */
+        NOT_LOOKING,
+        /** They asked to share it with themselves. */
+        SELF,
+        /** It is shown to that player now. */
+        SHARED,
+        /** It is no longer shown to that player. */
+        UNSHARED,
+        /** It is shown to everyone in its world now. */
+        SHARED_ALL,
+        /** It is no longer shown to everyone in its world. */
+        UNSHARED_ALL
+    }
+
+    /**
+     * Who the preview looked at is shown to.
+     *
+     * @param everyone
+     *            whether everyone in its world sees it
+     * @param names
+     *            the players it is shared with by name
+     */
+    public record Audience(boolean everyone, List<String> names) {}
+
     /** Runs a step of a dial later; tests step a dial by hand instead. */
     interface Later
     {
@@ -338,7 +367,7 @@ public final class GatePreviews
         {
             takeBack(owner, preview, preview.opening());
         }
-        sound(owner, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
+        sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         restyle(preview);
         draw(owner, preview);
@@ -518,6 +547,74 @@ public final class GatePreviews
     }
 
     /**
+     * Shows the preview a player is looking at to another player, or stops. They see it change, dial
+     * and guide as its owner does, and cannot change it.
+     *
+     * @param owner
+     *            whose preview
+     * @param with
+     *            who to show it to
+     * @return what happened
+     */
+    public static Shared share(final Player owner, final Player with)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        if (preview == null)
+        {
+            return Shared.NOT_LOOKING;
+        }
+        if (with.getUniqueId().equals(owner.getUniqueId()))
+        {
+            return Shared.SELF;
+        }
+        final boolean sharing = !preview.sharedWith().containsKey(with.getUniqueId());
+        if (sharing)
+        {
+            preview.sharedWith().put(with.getUniqueId(), with.getName());
+        }
+        else
+        {
+            preview.sharedWith().remove(with.getUniqueId());
+        }
+        showToAudience(owner, preview);
+        return sharing ? Shared.SHARED : Shared.UNSHARED;
+    }
+
+    /**
+     * Shows the preview a player is looking at to everyone in its world, or stops.
+     *
+     * @param owner
+     *            whose preview
+     * @return what happened
+     */
+    public static Shared shareAll(final Player owner)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        if (preview == null)
+        {
+            return Shared.NOT_LOOKING;
+        }
+        preview.sharedWithAll(!preview.sharedWithAll());
+        showToAudience(owner, preview);
+        return preview.sharedWithAll() ? Shared.SHARED_ALL : Shared.UNSHARED_ALL;
+    }
+
+    /**
+     * @param owner
+     *            whose preview
+     * @return who the preview they are looking at is shown to, or null if they are not looking at one
+     */
+    public static Audience audience(final Player owner)
+    {
+        touch(owner.getUniqueId());
+        final GatePreview preview = lookedAt(owner);
+        return (preview == null) ? null
+            : new Audience(preview.sharedWithAll(), List.copyOf(preview.sharedWith().values()));
+    }
+
+    /**
      * Counts what the preview a player is looking at takes to build, and what of it is in place.
      *
      * @param owner
@@ -642,8 +739,14 @@ public final class GatePreviews
         final List<GatePreview> mine = PREVIEWS.remove(owner);
         if (mine != null)
         {
-            mine.forEach(GatePreview::remove);
+            mine.forEach(preview ->
+            {
+                takeBackAll(null, preview);
+                preview.remove();
+            });
         }
+        // Shown again when they are back; a relog forgets what the client was shown.
+        PREVIEWS.values().forEach(theirs -> theirs.forEach(preview -> preview.shownTo().remove(owner)));
     }
 
     /**
@@ -705,6 +808,7 @@ public final class GatePreviews
                 }
                 if ((owner != null) && preview.world().equals(owner.getWorld()))
                 {
+                    showToAudience(owner, preview);
                     draw(owner, preview);
                 }
                 return false;
@@ -777,7 +881,7 @@ public final class GatePreviews
         if (preview.litWaves() < preview.lastWave())
         {
             preview.litWaves(preview.litWaves() + 1);
-            sound(owner, ConfigManager.getGateSoundChevron(),
+            sound(owner, preview, ConfigManager.getGateSoundChevron(),
                 GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
             restyle(preview);
             // A real gate starts its woosh the tick after its last chevron.
@@ -789,7 +893,7 @@ public final class GatePreviews
         final int steps = preview.lastWoosh();
         if ((stage == 0) && (steps > 0))
         {
-            sound(owner, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
+            sound(owner, preview, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
         }
         final WooshSequence.Step now = WooshSequence.at(stage, steps);
         preview.wooshStage(stage + 1);
@@ -832,12 +936,12 @@ public final class GatePreviews
             preview.open(false);
             takeBack(owner, preview, preview.woosh());
             takeBack(owner, preview, preview.opening());
-            sound(owner, ConfigManager.getGateSoundClose(), 1.0f);
+            sound(owner, preview, ConfigManager.getGateSoundClose(), 1.0f);
             restyle(preview);
             draw(owner, preview);
             return Control.SHUT_DOWN;
         }
-        sound(owner, ConfigManager.getGateSoundActivate(), 1.0f);
+        sound(owner, preview, ConfigManager.getGateSoundActivate(), 1.0f);
         next(owner, preview, preview.shape().getShapeLightTicks());
         return Control.DIALLING;
     }
@@ -849,43 +953,133 @@ public final class GatePreviews
     }
 
     /**
-     * Sends the owner the wormhole's material at some cells, as fake blocks: a block display draws no
-     * liquid, and a real gate draws its wormhole the same way.
+     * Sends everyone watching the wormhole's material at some cells, as fake blocks: a block display
+     * draws no liquid, and a real gate draws its wormhole the same way.
      */
     private static void send(final Player owner, final GatePreview preview, final List<Cell> cells)
+    {
+        final List<Player> watching = watching(owner, preview);
+        for (final Cell cell : cells)
+        {
+            preview.sent().add(GatePreview.key(cell));
+        }
+        watching.forEach(viewer -> sendTo(viewer, preview, cells));
+    }
+
+    /** Sends one viewer the wormhole at some cells. */
+    private static void sendTo(final Player viewer, final GatePreview preview, final List<Cell> cells)
     {
         final BlockData portal = blockData.apply(preview.palette().portal());
         for (final Cell cell : cells)
         {
-            owner.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()), portal);
-            preview.sent().add(GatePreview.key(cell));
+            viewer.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()), portal);
         }
     }
 
     /**
-     * Shows the owner what really stands at cells a fake block was sent to. An unloaded chunk is left
-     * alone: the client gets it afresh when it loads.
+     * Shows everyone watching what really stands at cells a fake block was sent to. An unloaded chunk
+     * is left alone: the client gets it afresh when it loads.
      */
     private static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
+        final List<Player> watching = watching(owner, preview);
+        final List<Cell> sent = cells.stream().filter(cell -> preview.sent().remove(GatePreview.key(cell))).toList();
+        watching.forEach(viewer -> takeBackFrom(viewer, preview, sent));
+    }
+
+    /** Shows one viewer what really stands at some cells, where their chunk is loaded. */
+    private static void takeBackFrom(final Player viewer, final GatePreview preview, final List<Cell> cells)
+    {
         for (final Cell cell : cells)
         {
-            if (preview.sent().remove(GatePreview.key(cell))
-                && preview.world().isChunkLoaded(cell.x() >> 4, cell.z() >> 4))
+            if (preview.world().isChunkLoaded(cell.x() >> 4, cell.z() >> 4))
             {
-                owner.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()),
+                viewer.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()),
                     preview.world().getBlockAt(cell.x(), cell.y(), cell.z()).getBlockData());
             }
         }
     }
 
-    /** Takes back every fake block a preview sent, where its owner is still here to see them. */
+    /** Takes back every fake block a preview sent, from whoever is still here to see them. */
     private static void takeBackAll(final Player owner, final GatePreview preview)
     {
+        takeBack(owner, preview, preview.woosh());
+        takeBack(owner, preview, preview.opening());
+    }
+
+    /** The cells a fake block stands at now. */
+    private static List<Cell> sentCells(final GatePreview preview)
+    {
+        final List<Cell> cells = new ArrayList<>();
+        for (final List<Cell> part : List.of(preview.woosh(), preview.opening()))
+        {
+            part.stream().filter(cell -> preview.sent().contains(GatePreview.key(cell))).forEach(cells::add);
+        }
+        return cells;
+    }
+
+    /**
+     * The owner, if given, and everyone the preview is shown to, who are online and in its world.
+     *
+     * @param owner
+     *            its owner, or null when they are not here
+     */
+    private static List<Player> watching(final Player owner, final GatePreview preview)
+    {
+        final List<Player> watching = new ArrayList<>();
         if ((owner != null) && preview.world().equals(owner.getWorld()))
         {
-            takeBack(owner, preview, preview.woosh());
-            takeBack(owner, preview, preview.opening());
+            watching.add(owner);
+        }
+        for (final UUID id : preview.shownTo())
+        {
+            final Player viewer = online.apply(id);
+            if ((viewer != null) && preview.world().equals(viewer.getWorld()))
+            {
+                watching.add(viewer);
+            }
+        }
+        return watching;
+    }
+
+    /**
+     * Brings who is shown the preview in line with who it is shared with: shows everything to anybody
+     * new, and takes it all back from anybody gone or no longer shared with.
+     */
+    static void showToAudience(final Player owner, final GatePreview preview)
+    {
+        final Set<UUID> wanted = new LinkedHashSet<>(preview.sharedWith().keySet());
+        if (preview.sharedWithAll())
+        {
+            preview.world().getPlayers().forEach(player -> wanted.add(player.getUniqueId()));
+        }
+        wanted.remove(owner.getUniqueId());
+        wanted.removeIf(id ->
+        {
+            final Player viewer = online.apply(id);
+            return (viewer == null) || !preview.world().equals(viewer.getWorld());
+        });
+        for (final UUID id : new ArrayList<>(preview.shownTo()))
+        {
+            if (!wanted.contains(id))
+            {
+                preview.shownTo().remove(id);
+                final Player gone = online.apply(id);
+                if ((gone != null) && preview.world().equals(gone.getWorld()))
+                {
+                    preview.standingDisplays().forEach(display -> gone.hideEntity(WormholeXTreme.getThisPlugin(), display));
+                    takeBackFrom(gone, preview, sentCells(preview));
+                }
+            }
+        }
+        for (final UUID id : wanted)
+        {
+            if (preview.shownTo().add(id))
+            {
+                final Player viewer = online.apply(id);
+                preview.standingDisplays().forEach(display -> viewer.showEntity(WormholeXTreme.getThisPlugin(), display));
+                sendTo(viewer, preview, sentCells(preview));
+            }
         }
     }
 
@@ -931,11 +1125,11 @@ public final class GatePreviews
         }
     }
 
-    private static void sound(final Player owner, final String sound, final float pitch)
+    private static void sound(final Player owner, final GatePreview preview, final String sound, final float pitch)
     {
         if (ConfigManager.isGateSoundsEnabled())
         {
-            Sounds.playTo(owner, sound, ConfigManager.getGateSoundVolume(), pitch);
+            watching(owner, preview).forEach(viewer -> Sounds.playTo(viewer, sound, ConfigManager.getGateSoundVolume(), pitch));
         }
     }
 
@@ -964,7 +1158,7 @@ public final class GatePreviews
                 GatePreview.removeAt(preview.openingDisplays(), i);
                 continue;
             }
-            spawnMissing(owner, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
+            spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
         }
         if (preview.open() && !preview.irisClosed())
         {
@@ -992,7 +1186,7 @@ public final class GatePreviews
                 GatePreview.removeAt(preview.displays(), i);
                 continue;
             }
-            spawnMissing(owner, preview.displays(), i, preview.world(), cell, dataFor(preview, cell));
+            spawnMissing(owner, preview, preview.displays(), i, preview.world(), cell, dataFor(preview, cell));
             styleForGuide(preview.displays().get(i), state);
         }
         return built;
@@ -1015,26 +1209,31 @@ public final class GatePreviews
                 continue;
             }
             clear = false;
-            spawnMissing(owner, preview.blockedDisplays(), i, preview.world(), cell, blockData.apply(IN_THE_WAY));
+            spawnMissing(owner, preview, preview.blockedDisplays(), i, preview.world(), cell, blockData.apply(IN_THE_WAY));
             styleForGuide(preview.blockedDisplays().get(i), BuildGuide.State.WRONG);
         }
         return clear;
     }
 
-    private static void spawnMissing(final Player owner, final List<BlockDisplay> shown, final int i,
-        final World world, final Cell cell, final BlockData data)
+    private static void spawnMissing(final Player owner, final GatePreview preview, final List<BlockDisplay> shown,
+        final int i, final World world, final Cell cell, final BlockData data)
     {
         final BlockDisplay existing = shown.get(i);
         if (((existing != null) && existing.isValid()) || !world.isChunkLoaded(cell.x() >> 4, cell.z() >> 4))
         {
             return;
         }
-        shown.set(i, HiddenEntities.spawnFor(WormholeXTreme.getThisPlugin(), owner,
+        final BlockDisplay spawned = HiddenEntities.spawnFor(WormholeXTreme.getThisPlugin(), owner,
             new Location(world, cell.x(), cell.y(), cell.z()), BlockDisplay.class, display ->
             {
                 display.setBlock(data);
                 display.setBrightness(FULL_BRIGHT);
-            }));
+            });
+        shown.set(i, spawned);
+        if (spawned != null)
+        {
+            watching(null, preview).forEach(viewer -> viewer.showEntity(WormholeXTreme.getThisPlugin(), spawned));
+        }
     }
 
     /** The invisible box over the preview's button that a click lands on. */
