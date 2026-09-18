@@ -385,7 +385,7 @@ class StargateAnimator
         Stargate other = gate.getGateTarget();
         if (other == null)
         {
-            for (final Stargate s : StargateManager.getAllGates())
+            for (final Stargate s : StargateManager.getAllGatesUnsorted())
             {
                 if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
                 {

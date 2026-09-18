@@ -4,10 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -169,7 +171,7 @@ class ChevronLightingTest
     private static World world(final String name)
     {
         final World w = mock(World.class);
-        org.mockito.Mockito.when(w.getName()).thenReturn(name);
+        when(w.getName()).thenReturn(name);
         return w;
     }
 
@@ -234,7 +236,7 @@ class ChevronLightingTest
         {
             StargateAnimator.lightAll(gate);
 
-            blocks.verify(() -> StargateBlockSetup.drawLights(org.mockito.ArgumentMatchers.eq(gate), any()), times(8));
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), any()), times(8));
             sounds.verify(() -> GateSounds.activated(gate));
         }
         assertEquals(true, gate.isGateLightsActive());
@@ -269,7 +271,7 @@ class ChevronLightingTest
             StargateAnimator.lightAll(gate);
             StargateAnimator.relightInOrder(gate);
 
-            blocks.verify(() -> StargateBlockSetup.undrawBlocks(org.mockito.ArgumentMatchers.eq(gate), any()), times(8));
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), any()), times(8));
             assertEquals(0, gate.getGateLightingCurrentIteration());
             assertEquals(true, gate.isGateLightsActive(), "still lit, so the sequence does not restart itself");
 
