@@ -8,201 +8,135 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.0 (unreleased)
 
-**Upgrading: command keywords now start with `-`.** A word that can stand where a name does is an
-option only with a dash, and no name may start with one. Scripts and command blocks need:
+**Upgrading: command keywords start with `-`, and the new gate shapes are yours to take.**
 
-| Was | Now |
-|---|---|
-| `gate remove <gate> -all` | `gate remove <gate> -destroy` |
-| `complete help` | `complete -help` |
-| `custom -clean confirm` | `custom -clean -confirm` |
-| `mirror set [name] stamp\|start\|capture` | `mirror set [name] -stamp\|-start\|-capture` |
-| `mirror set [name] start none` | `mirror set [name] -start -none` |
-| `mirror debug [name] all\|full\|on\|off` | `mirror debug [name] -all\|-full\|-on\|-off` |
-| `beam admin cost <name> default` | `beam admin cost <name> -default` |
+- A word that can stand where a name does is an option only with a dash, and no name may start
+  with one. Scripts and command blocks need:
 
-### Server
+  | Was | Now |
+  |---|---|
+  | `gate remove <gate> -all` | `gate remove <gate> -destroy` |
+  | `complete help` | `complete -help` |
+  | `custom -clean confirm` | `custom -clean -confirm` |
+  | `mirror set [name] stamp\|start\|capture` | `mirror set [name] -stamp\|-start\|-capture` |
+  | `mirror set [name] start none` | `mirror set [name] -start -none` |
+  | `mirror debug [name] all\|full\|on\|off` | `mirror debug [name] -all\|-full\|-on\|-off` |
+  | `beam admin cost <name> default` | `beam admin cost <name> -default` |
 
-- **`log-level` below `INFO` now reaches the console**, as lines marked `[FINE]`; the console drops
-  anything lower, so these never showed before. `/wormhole config log-level` takes effect at once.
+- Shape files are never overwritten, so a server keeps 1.6's. The startup log names each bundled
+  shape that differs from this version's: delete the ones you did not edit and restart to get the
+  show's chevron order, the eighth chevron, the slower pace and the one-layer `Large`.
+- Every gate's light order is rebuilt from its shape at startup, so the restart after that brings
+  standing gates along. A gate whose frame no longer fits its shape is named in the log; run
+  `/wormhole gate regen <gate>`, or `-shape <shape>` for one missing a block or two.
+- A three-deep `Large` gate from 1.6 keeps working, but no longer matches `Large`. To keep building
+  them, keep 1.6's `Large.shape` under another file name and another `Name=`.
+- Gates the legacy importer recorded as `Standard` are found as the shape they really are by
+  `gate regen <gate>`.
+- `/wormhole gate regen` replaces `regenerate` and `/wormhole refresh`, which both still work.
+- New settings are added to an existing `config.yml` at their defaults, under a marked block.
 
-### Travel
+### In this release
 
-- **A player's pets travel with them** by gate, ring, beam or mirror: tamed wolves, cats and parrots
-  within 12 blocks that are not sitting. Sit a pet to leave it behind; `pets-follow-owner: false`
-  turns this off.
+- **[Stargates](#stargates)** — the show's dialling: chevrons in order at a pace you can follow,
+  an eighth for another world, the inner ring turning, a lock-in sound, and sounds sized to the
+  gate. Build previews. `gate regen` finds a gate's real shape.
+- **[Travel](#travel)** — pets come with you.
+- **[Command options](#command-options)** — keywords start with `-`.
+
+Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs/guide/).
 
 ### Stargates
 
-- **`/wormhole gate build <shape> [group]` shows the shape full size in front of you**, seen by
-  you alone and walkable through, with the new `wormhole.build.preview` node (op by default).
-  Several can stand at once; `gate build -clear [-all]` takes them away.
-- **A preview can be dialled, given an iris and redressed** while you look at it: `gate build`
-  `-activate` (or right-click its button), `-iris`, `-material <group>|<role> <block>`, `-chevrons`
-  to draw chevron blocks as frame, and `-dhd` to hide the DHD for a picture.
-- **`gate build -materials` lists what a preview takes, and `-guide` marks what is left to build**:
-  blocks to place drawn small, wrong ones outlined in red, placed ones gone.
-- **`gate build -layer` shows a preview a layer at a time**, and `gate build <shape>` while looking at
-  a placed DHD button stands the preview on it.
-- **`gate build -share <player>|-all` shows a preview to other players** (`wormhole.build.preview.share`,
-  op by default); only its owner can change it.
-- **`gate build -place` builds a preview for real** (`wormhole.build.preview.place`, op by default),
-  refusing if anything is in the way; name it with `gate complete` as usual.
+**Dialling**
+
+- **Chevrons light in the show's order**: down the right side, up the left, the top one last.
+- **An eighth chevron locks when the other gate is in another world**, after the top one. `:L#8`
+  marks it, at the bottom of every shipped ring gate but `Minimal`.
+- **Pressing a gate's button lights every chevron at once**; `/dial` then darkens them and dials
+  the ones it needs in order, with their sounds.
+- **Chevrons lock at a pace you can follow**: half a second each on `Standard`, a little longer on
+  bigger gates. A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read at last.
+- **The last chevron holds a second and locks in with its own sound** (`gate-sound-lock`).
+- **The dialling gate's inner ring turns**: a light travels half the ring and lands on each
+  chevron as it locks, alternating direction. The gate being dialled only lights. `gate-dial-spin`
+  picks the pattern: `chevron`, `top`, `lap`, `fill`, `pegasus` or `none`; none changes the dial's pace.
+- **A sign dial opens at once** on both ends, with the lock-in sound and no chevron sequence.
+- **A gate sounds its size**: deeper and louder on a bigger gate, lighter on a smaller one.
+  `SOUND_SCALE` in a shape sets its own.
+
+**Build previews**
+
+- **`/wormhole gate build <shape> [group]` shows a shape full size in front of you**, seen by you
+  alone (`wormhole.build.preview`, op by default). `-clear [-all]` takes previews away.
+- **A preview can be dialled, given an iris and redressed**: `-activate`, `-iris`,
+  `-material <group>|<role> <block>`, `-chevrons`, `-dhd`.
+- **`-materials` lists what it takes, `-guide` marks what is left to build, `-layer` shows a layer
+  at a time**, and looking at a placed DHD button stands the preview on it.
+- **`-share <player>|-all` shows it to others** (`wormhole.build.preview.share`), and **`-place`
+  builds it for real** (`wormhole.build.preview.place`).
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
-- **A Standard gate is previewed the classic way**, its chevrons drawn as frame; `-chevrons` shows
-  the palette's chevron blocks. Other groups, and shapes that pin their own chevrons, start with
-  them shown.
-- **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+- **A Standard gate is previewed the classic way**, its chevrons drawn as frame.
+
+**Regen**
+
+- **`/wormhole gate regen` is the name**, and it now does what `refresh` did: detects the gate
+  afresh from its frame, keeping its name, owner, iris code and network. With no gate named, it
+  waits for a DHD click. An open or dialling gate is shut down first.
+- **It finds the shape a gate really is** when the gate was recorded under the wrong one, and
+  `-shape <shape>` takes a named shape if 90% of its frame is standing, listing what is missing.
+- **A shape is laid where the gate's frame is**, searching a few blocks round the DHD's layout.
+- **It relights a gate's chevrons in its shape's order**, reading no blocks, so `-all` covers
+  unloaded gates too. `-all` names the gates it left alone, a line per reason.
+- **`-water` clears water or lava stranded in a closed gate's opening.**
+- **Its messages pick out the gate, shape, counts and coordinates in colour.**
+
+**Shapes and other changes**
+
+- **`Large` is one layer deep**, as `Standard` is, rather than three.
+- **Startup names each bundled shape that differs from this version's**, and rebuilds every gate's
+  light order from its shape.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
-  MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
-- **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
-  `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
-  already standing keep working; `gate regen` on a three-deep one no longer finds it.
-- **Startup names each bundled shape that differs from this version's.** Shape files are never
-  overwritten, since an admin may have edited them, so an upgraded server keeps 1.6's. Delete the
-  ones you did not edit and restart to take the new shapes, then run `gate regen -all`.
-- **Every gate's light order is rebuilt from its shape at startup**, as `gate regen -all` does,
-  saving the gates it changed. A gate whose frame no longer fits its shape keeps its order and is
-  named in the log. A ring no longer turns on such a gate, where it could be laid beside the frame.
-- **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
-  with `-`.
+  MilkyWay beside Standard).
+- **`/wormhole gate complete -cancel` cancels a waiting completion.**
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
-- **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
-- **Chevrons light in the show's order: down the right side, up the left, and the top one last.**
-  Each shipped shape had its own order; `Grand` lit its top first. A horizontal gate's far edge is
-  its top. Gates already built keep the order they were built with; delete the files under
-  `shapes/gate/` and restart to get the new shapes, then `gate regen` the old ones.
-- **An eighth chevron locks when the other gate is in another world**, after the top one, as in
-  *The Fifth Race*. `:L#8` marks it, at the bottom of every shipped ring gate but `Minimal`:
-  `Standard`'s arrival cell, `Large`'s bottom pair, and the bottom chevron of `Grand` and
-  `Massive`. `Massive` had one chevron numbered in two places; with an eighth, it numbers cleanly.
-- **Pressing a gate's button lights every chevron at once**, the eighth too. `/dial` then darkens
-  them and dials the ones it needs in order, with their sounds. The button used to run the whole
-  sequence before any destination was chosen, and `/dial` went straight to the woosh.
-- **A shape's `LIGHT_TICKS` and `WOOSH_TICKS` are read.** Every shipped shape writes
-  `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
-  default of 3.
-- **Chevrons lock at a pace you can follow.** Read at last, the shipped values (1 to 3 ticks) lit a
-  whole dial in about a third of a second. `Standard` now takes half a second a chevron
-  (`LIGHT_TICKS = 10;`), and a bigger gate a little longer: `Large` 12, `Grand` and `Massive` 15.
-  `Minimal` is 6. Delete `shapes/gate/` and restart for the new files.
-- **The last chevron holds a second before the wormhole forms, and locks in with its own sound.**
-  The kawoosh started the tick after it locked, so the lock and the opening ran together. The new
-  `gate-sound-lock` (`block.beacon.power_select`, at pitch 0.8) plays with the last chevron's own
-  sound. The build preview's test dial holds and locks too.
-- **A sign dial opens at once, without the chevron sequence.** Since chevrons lock one at a time
-  with their sounds, a sign-dialled gate opened straight away and then played the whole dial after it
-  was already open. Both ends now light the chevrons they need together, with the lock-in sound, and
-  the wormhole forms on the next tick.
-- **A build preview's test dial shows the inner ring turning** (#357, a first try). Before each
-  chevron locks, a short run of light travels half way round the frame from opposite the top
-  chevron to the top, clockwise for the first glyph and anticlockwise for the next, as a Milky Way
-  gate's ring turns each glyph under the top chevron. It takes the chevron's own interval, so the
-  dial keeps its pace. `gate-dial-spin: false` turns it off.
-- **A dialling gate shows its inner ring turning too**, the same way, after `/dial` and for an
-  eighth chevron. Only the gate dialling turns; the gate being dialled lights its chevrons in order,
-  as on the show. The ring is laid from the gate's own recorded frame, as `regen` lays it, and turns
-  on its front layer. A sign dial, which opens at once, does not turn.
-- **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
-- **`/wormhole gate regen` finds the shape a gate really is.** A gate recorded under the wrong
-  shape could never be regenerated: every gate the legacy importer brought in is recorded as
-  `Standard`, so a `Massive` gate came back "no longer matches Standard", markers and light order
-  untouched, however often it was asked. Regenerate now detects such a gate against every shape and
-  takes the one its frame matches, then carries on from that shape.
-- **`/wormhole gate regen <gate> -shape <shape>` names the shape** for a gate detection cannot
-  place: recorded under the wrong shape and missing a block or two, so no shape matches it whole.
-  It takes the named shape if at least 90% of that shape's frame is standing, lists what is
-  missing or wrong (up to ten, then a count), and places nothing.
-- **A shape is laid where the gate's frame is, not only where its DHD says.** `Large` and `Grand`
-  gates recorded as `Standard` found 2 of 26 and 2 of 464 frame blocks when their shape was named:
-  the ring was not where the DHD put it. The shape is now tried up to six blocks along the facing
-  and three up, down or across from the DHD's layout, and facing the other way, and laid where it
-  covers most of the gate's own recorded frame. The DHD's layout wins any tie, so a gate built as
-  its shape says is laid exactly as before. Both `-shape` and the light order rebuild use it.
-- **`/wormhole gate regen` is the name** (`regenerate` still works, and so does `/wormhole refresh`):
-  shorter to type. An open or dialling gate is shut down first, then regenerated.
-- **`/wormhole refresh` is folded into `/wormhole gate regen`.** Regenerate by name now first
-  detects the whole gate afresh from its frame, as refresh did on a DHD click, keeping its name,
-  owner, iris code and network, then does the rest. With no gate named, regenerate waits for a DHD
-  click, and `/wormhole refresh` does the same. A click whose detection fails no longer stops there:
-  the gate is regenerated from what it has. A gate that is open or dialling is shut down first.
-- **`/wormhole gate regen <gate> -water` clears stranded water.** Older versions built the
-  portal and woosh from real blocks, and a dial that glitched could leave water or lava standing in
-  the opening. `-water` clears it from a closed gate; without it, regenerate says how many blocks
-  stand there, since a gate built underwater has ordinary water in its opening.
-- **Regenerate's messages pick out what matters**: the gate and shape in aqua, counts and coordinates
-  in white, the block found in yellow, done in green and missing in red. Everything was grey. The
-  palette is #325's, now in one shared `ChatText` that the build preview's text uses too.
-- **`/wormhole gate regen -all` names the gates it left alone**, a line per reason: dialling or
-  open (run it again once they are shut), a frame that no longer fits the shape (regen each by name,
-  or with `-shape`), and no arrival point to work out. It only counted them before.
-- **`/wormhole gate regen` relights a gate's chevrons in its shape's order**, and so does
-  `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
-  from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
-  It reads no blocks, so `-all` covers gates in unloaded chunks too. A gate that is dialling or
-  open, or whose frame no longer fits its shape, is left alone and counted.
-- **A gate sounds its size.** A `Massive` gate made the same sounds as a `Standard` one. Every gate
-  sound is now deeper and louder on a bigger gate, and lighter on a smaller one, scaled from the
-  shape's width: `Standard` is unchanged, and `Grand` and `Massive` reach the limits of 0.75x pitch
-  and 2x volume, which doubles their range. A shape can set its own with `SOUND_SCALE`. The build
-  preview sounds like the gate it would build.
+- **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+
+### Travel
+
+- **A player's pets travel with them** by gate, ring, beam or mirror: tamed wolves, cats and
+  parrots within 12 blocks that are not sitting. `pets-follow-owner: false` turns this off.
+
+### Command options
+
+- **Keywords start with `-`** (see Upgrading), and gate, mirror, beam destination and place names
+  may not. `-all` and `-clear` are recognised whatever their capitals.
 
 ### Quantum mirrors
 
 - **A mirror's view no longer hides and re-shows display entities.**
 - **`/wormhole mirror set <name> -start` with no mirror after it is refused.**
-- **A mirror may no longer be named starting with `-`**; `start`, `stamp` and `capture` are
-  ordinary names now.
 
-### Beaming
+### Server
 
-- **A beam destination or place may no longer be named starting with `-`.**
+- **`log-level` below `INFO` reaches the console**, as lines marked `[FINE]`, and
+  `/wormhole config log-level` takes effect at once.
 
 ### Documentation
 
-- **`SECURITY.md` says how to report a security problem privately**, and the issue chooser links its
-  private report form and the maintainer's Discord. The bug template asks reporters not to post their server's address.
-- **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from
-  `CHANGELOG-0.x.md`.
-- **The docs show the plugin in game.** Gate shapes, palettes, the dial, a ring cycle, a beam
-  departure and two mirror clips replace the capture slates, which are deleted. `CAPTURES.md` now prefers animated
-  WebP over APNG, which measured the largest of the three.
-- **`CAPTURES.md` has the checklist for recording**: world and client settings, stills, 60fps
-  video, and a WebP encode in place of the APNG one.
-- **The docs are shorter, and say each thing once.** Commands, settings and permission nodes
-  live in `docs/guide/` only; the design notes point there instead of repeating them, and the
-  four-way comparison of gates, rings, beams and mirrors is in the README alone. `docs/RINGS.md`
-  now names the flat `ring-*` settings that exist rather than a `rings:` block that does not;
-  `guide/SERVER.md` names `timeout-shutdown` rather than the old command. The mirror guide is
-  rewritten around what a mirror shows, and gains a settings table. `API.md` is events only, with
-  the coding conventions moved to `DEVELOPMENT.md`. Notes about what a page used to say are gone.
-- **The in-game captures are where a reader starts**: one per subsystem on the README, and
-  each on the guide page for what it shows, rather than on the guide's index page alone.
-- **The ring guide shows the two patterns, and the gate guide the sign-dial corner, as the
-  drawn sheets** rather than ASCII sketches; the beam guide shows the timing strip beside its
-  settings, and the ring guide the finished stack beside the headroom rule.
+- **`SECURITY.md` says how to report a security problem privately**; the issue chooser links the
+  private report form and the maintainer's Discord.
+- **The docs show the plugin in game**, with a capture per subsystem on the README and on each
+  guide page, and drawn sheets in place of ASCII sketches.
+- **The docs say each thing once**: commands, settings and permissions in `docs/guide/` only.
+- **The original plugin's 2011 notes are in `CHANGELOG-ORIGINAL-2011.md`.**
 
 ### Internals
 
-- **All 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror redraw tests
-  move the clock where they slept. `MirrorCapture` takes its box and arrival as records, and keeps
-  its seen air in `MirrorSeenAir`; captures on disk are unchanged. The mirror windows say "not seen"
-  and "over budget" with named constants instead of `null`.
-- **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
-- **The Sonar scan is retried three times**, where one refusal failed the job: SonarCloud
-  answered with a 500 for half an hour and took two unrelated pull requests red with it, before
-  it had read a line of the code. A scan that never finishes still fails, and a finding still
-  fails; only a server briefly not there is forgiven. Tests run before the scan now, so a real
-  failure fails once rather than three times.
-- **The mirror window tests draw on stand-ins rather than mocks.** A redraw reads hundreds of
-  thousands of blocks, and Mockito kept an invocation with a stack trace for every read of every
-  one: `MirrorWindowsTest` alone wanted 4 GB and never finished a test under 2, where it now runs
-  in 256m. A block the stand-ins do not answer fails the test by name rather than reading as null.
-- **The test fork has a 1 GB ceiling**, where it took the JVM default of a quarter of the
-  machine's RAM and the same commit passed or failed by which runner it landed on. The suite of
-  1,988 passes at 256m and not at 192m, so the ceiling is four times what it needs.
-- **The mirror window tests clear their windows between tests**, where each could see the views
-  and cached block states the one before it left behind.
+- **CI fails a pull request with any open Sonar finding**, and all 41 on main are cleared.
+- **The Sonar scan is retried**, so a SonarCloud outage no longer fails a pull request.
+- **The mirror window tests draw on stand-ins rather than mocks**, and run in 256 MB where they
+  wanted 4 GB. The test fork has a 1 GB ceiling.
 
 ## 1.6.0 (2026-09-16)
 
