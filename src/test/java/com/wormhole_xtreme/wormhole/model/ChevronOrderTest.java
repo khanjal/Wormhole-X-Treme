@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -28,9 +30,20 @@ class ChevronOrderTest
     {
     }
 
-    private static List<Light> lights(final String name) throws Exception
+    @BeforeEach
+    void setUp() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        PluginTestSupport.remove();
+    }
+
+    private static List<Light> lights(final String name) throws Exception
+    {
         final Stargate3DShape shape = new Stargate3DShape(
             Files.readAllLines(Paths.get("src/main/resources/shapes/gate", name + ".shape")).toArray(new String[0]));
         final List<Light> lights = new ArrayList<>();
@@ -63,15 +76,13 @@ class ChevronOrderTest
         final int minCol = lights.stream().mapToInt(Light::col).min().orElseThrow();
         final int maxCol = lights.stream().mapToInt(Light::col).max().orElseThrow();
         final double centre = (minCol + maxCol) / 2.0;
-        final int top = flat
-            ? lights.stream().mapToInt(Light::layer).min().orElseThrow()
-            : lights.stream().mapToInt(Light::row).max().orElseThrow();
+        final int top = lights.stream().mapToInt(l -> height(l, flat)).max().orElseThrow();
 
         assertEquals(List.of(1, 2, 3, 4, 5, 6, 7), lights.stream().map(Light::order).distinct().sorted().toList(),
             name + ": seven chevrons light, none of them eighth");
+        assertEquals(top, highest(lights, 7, flat), name + ": the seventh chevron is the top one");
         for (final Light light : lights)
         {
-            final int height = flat ? light.layer() : light.row();
             if (light.order() == 7)
             {
                 continue;
@@ -97,11 +108,16 @@ class ChevronOrderTest
         }
     }
 
-    /** How high a chevron stands; on a flat gate, how far toward its far edge. */
+    /** How high a cell stands; on a flat gate, how far toward its far edge. */
+    private static int height(final Light light, final boolean flat)
+    {
+        return flat ? -light.layer() : light.row();
+    }
+
+    /** How high a chevron's highest cell stands. */
     private static int highest(final List<Light> lights, final int order, final boolean flat)
     {
-        return lights.stream().filter(l -> l.order() == order)
-            .mapToInt(l -> flat ? -l.layer() : l.row()).max().orElseThrow();
+        return lights.stream().filter(l -> l.order() == order).mapToInt(l -> height(l, flat)).max().orElseThrow();
     }
 
     @Test

@@ -366,7 +366,9 @@ public final class GateBlueprint
         {
             opening.add(StargateHelper.cellKey(pos));
         }
-        for (final Integer[] pos : layer.getLayerBlockPositions())
+        final List<Integer[]> frame = new ArrayList<>(layer.getLayerBlockPositions());
+        frame.addAll(layer.getLayerChevronPositions());
+        for (final Integer[] pos : frame)
         {
             if (opening.contains(StargateHelper.cellKey(pos)))
             {

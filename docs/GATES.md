@@ -488,7 +488,7 @@ a `Grand` runs visibly longer than this.
 **Chevrons light one at a time**, in `:L#n` order, over the activation sequence. A shape with
 three lighting steps climbs the same distance as one with seven, in bigger steps. The shipped
 shapes number theirs as the show does, seen from the DHD: down the right side, up the left, and
-the top (a horizontal gate's far edge) last, with the bottom left dark.
+the top (a horizontal gate's far edge) last. A bottom chevron, where there is one, stays dark.
 
 **The woosh is waves.** A shape authoring `:W#n` markers says exactly what each wave is; one that
 does not falls back to `WOOSH_DEPTH` or a per-gate override, and wave *n* is derived on demand as
