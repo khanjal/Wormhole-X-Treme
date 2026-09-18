@@ -121,6 +121,7 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(entityListener, tp);
             pm.registerEvents(projectileTracker, tp);
             pm.registerEvents(beamFreezeListener, tp);
+            pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
             registerDismountListener(pm, tp);
         }
     }
@@ -192,8 +193,27 @@ public class WormholeXTreme extends JavaPlugin
      */
     private static void setPrettyLogLevel(final Level level)
     {
-        getLog().setLevel(level);
-        getThisPlugin().prettyLog(Level.CONFIG, "Logging set to: " + level);
+        applyLogLevel(level);
+    }
+
+    /**
+     * Applies a log level now, so changing the setting in-game needs no restart.
+     *
+     * @param level
+     *            the level to log from
+     */
+    public static void applyLogLevel(final Level level)
+    {
+        final Logger logger = getLog();
+        if ((logger == null) || (level == null))
+        {
+            return;
+        }
+        logger.setLevel(level);
+        if (getThisPlugin() != null)
+        {
+            getThisPlugin().prettyLog(Level.CONFIG, "Logging set to: " + level);
+        }
     }
 
     /**
@@ -240,6 +260,15 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            // Otherwise a /reload leaves old companions beside the new ones.
+            try
+            {
+                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.removeAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to remove companions", e);
             }
             try
             {
@@ -493,6 +522,19 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
+        }
+        // Deliberately no startup log line, which would announce the easter egg.
+        try
+        {
+            final int companions = com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences.loadAll();
+            if (companions > 0)
+            {
+                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.spawnForOnline();
+            }
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.FINE, "Failed to load companions", e);
         }
         registerEvents(false);
         registerCommands();
@@ -768,7 +810,8 @@ public class WormholeXTreme extends JavaPlugin
         // A supplier, so the tag is not built and joined for a line the level will discard.
         // Every FINE call on a server logging at INFO pays for that otherwise, and this
         // method is how the whole plugin logs.
-        getLog().log(severity, () -> prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+        getLog().log(consoleLevel(getLog(), severity),
+            () -> prettyTag(getThisPlugin().getName(), pluginVersion) + levelMark(severity) + " " + message);
     }
 
     /**
@@ -792,8 +835,35 @@ public class WormholeXTreme extends JavaPlugin
      */
     public void prettyLog(final Level severity, final String message, final Throwable thrown)
     {
-        getLog().log(severity, thrown,
-            () -> prettyTag(getThisPlugin().getName(), null) + " " + message);
+        getLog().log(consoleLevel(getLog(), severity), thrown,
+            () -> prettyTag(getThisPlugin().getName(), null) + levelMark(severity) + " " + message);
+    }
+
+    /**
+     * The level a line is written at: one below INFO that log-level lets through goes out at
+     * INFO, because Spigot and Paper consoles drop anything lower whatever the plugin asks.
+     *
+     * @param logger
+     *            the plugin's logger
+     * @param severity
+     *            the level the line was logged at
+     * @return INFO for a detail line that should be seen, otherwise the level unchanged
+     */
+    static Level consoleLevel(final Logger logger, final Level severity)
+    {
+        return ((severity.intValue() < Level.INFO.intValue()) && logger.isLoggable(severity)) ? Level.INFO : severity;
+    }
+
+    /**
+     * Marks a detail line raised to INFO with the level it was really logged at.
+     *
+     * @param severity
+     *            the level the line was logged at
+     * @return {@code " [FINE]"} and the like below INFO, otherwise empty
+     */
+    static String levelMark(final Level severity)
+    {
+        return (severity.intValue() < Level.INFO.intValue()) ? " [" + severity.getName() + "]" : "";
     }
 
     /**

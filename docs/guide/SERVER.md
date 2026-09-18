@@ -97,6 +97,12 @@ command, or edit the file with the server stopped.
 The cap is what stops anything that re-dials on a schedule, or a `timeout-shutdown` of `0`, from
 holding a gate open forever.
 
+### Pets
+
+| Setting | Default | What it does |
+|---|---|---|
+| `pets-follow-owner` | true | A player's tamed wolves, cats and parrots within 12 blocks travel with them by gate, ring, beam or mirror, unless told to sit |
+
 ### What this costs a busy server
 
 One repeating task per subsystem and no background threads. Cost scales with how much

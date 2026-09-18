@@ -131,6 +131,57 @@ class PrettyLogThrowableTest
         verify(logger).log(any(Level.class), any(Throwable.class), any(Supplier.class));
     }
 
+    /**
+     * A detail line the setting lets through is written at INFO, marked with its real level.
+     *
+     * <p>Spigot and Paper hand plugin logging to a console that drops anything below INFO, so
+     * {@code log-level: FINE} used to change nothing anyone could see.
+     */
+    @Test
+    void aDetailLineTheSettingAllowsReachesTheConsoleMarked() throws Exception
+    {
+        final WormholeXTreme plugin = pluginThatReallyLogs();
+        when(logger.isLoggable(Level.FINE)).thenReturn(true);
+
+        plugin.prettyLog(Level.FINE, "pets travelling: 1", null);
+
+        final ArgumentCaptor<Supplier<String>> line = ArgumentCaptor.captor();
+        verify(logger).log(eq(Level.INFO), eq((Throwable) null), line.capture());
+        assertEquals("[WormholeXTreme] [FINE] pets travelling: 1", line.getValue().get());
+    }
+
+    /** A detail line the setting does not allow keeps its own level, so the logger drops it. */
+    @Test
+    void aDetailLineTheSettingRefusesIsNotRaised() throws Exception
+    {
+        final WormholeXTreme plugin = pluginThatReallyLogs();
+        when(logger.isLoggable(Level.FINE)).thenReturn(false);
+
+        plugin.prettyLog(Level.FINE, "pets travelling: 1", null);
+
+        verify(logger).log(eq(Level.FINE), eq((Throwable) null), any(Supplier.class));
+    }
+
+    /** Changing log-level in-game applies at once rather than at the next restart. */
+    @Test
+    void changingTheSettingInGameAppliesItAtOnce() throws Exception
+    {
+        final Logger real = Logger.getLogger("PrettyLogThrowableTest.changingTheSetting");
+        real.setLevel(Level.INFO);
+        set("log", real);
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigManager.applySetting("log-level", "FINE");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+
+        assertEquals(Level.FINE, real.getLevel());
+    }
+
     /** A site with nothing to report passes null, and still gets its line out. */
     @Test
     void aNullThrowableStillLogsTheLine() throws Exception

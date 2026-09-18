@@ -812,9 +812,9 @@ public class StargateManager
         // the one that always paid for a string.
         final Stargate s = gateAt(b.getWorld(), b.getX(), b.getY(), b.getZ());
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-        if ((plugin != null) && plugin.isLoggable(Level.FINE))
+        if ((plugin != null) && plugin.isLoggable(Level.FINER))
         {
-            plugin.prettyLog(Level.FINE, "Gate lookup: loc=" + b.getLocation()
+            plugin.prettyLog(Level.FINER, "Gate lookup: loc=" + b.getLocation()
                 + " type=" + b.getType()
                 + (s == null ? " miss" : " hit gate=" + s.getGateName()));
         }

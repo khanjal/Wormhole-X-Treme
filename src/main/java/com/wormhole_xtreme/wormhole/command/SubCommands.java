@@ -36,6 +36,7 @@ public final class SubCommands
     private static final String OWNER = "owner";
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
+    private static final String FREYA = "freya";
 
     /**
      * Supplies tab-completion candidates for a subcommand's arguments.
@@ -307,12 +308,19 @@ public final class SubCommands
                         .toArray(new String[0]));
             });
 
+        // --- Not advertised ---------------------------------------------------
+        // Hidden below, so it never reaches help or tab completion. Self-permissioned so the
+        // dispatcher does not put it behind wormhole.config, which would make an easter egg
+        // that only operators could find.
+        register(FREYA, aliases(), "/wormhole freya [on|off]",
+            new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
+
         hide("list", BUILD, "complete", REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict");
+            "cooldown", "restrict", FREYA);
 
-        selfPermissioned("beam", "ring", "go", "list", "compass");
+        selfPermissioned("beam", "ring", "go", "list", "compass", FREYA);
         // gate stays admin-only, except build for whoever may preview: Build checks the node itself.
         BY_NAME.get("gate").admitsWithoutConfig = Build::admitsWithoutConfig;
     }

@@ -81,7 +81,8 @@ class DefaultSettings
             new Setting(ConfigKeys.LOG_LEVEL, "INFO", "How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.", SECTION),
             new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to even if available.", SECTION),
             new Setting(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true, "If true and no Vault provider is detected, automatically fall back to simple permission mode.", SECTION),
-            new Setting(ConfigKeys.HELP_SUPPORT_DISABLE, false, "If set to true, Help plugin will not be attached to even if available.", SECTION)),
+            new Setting(ConfigKeys.HELP_SUPPORT_DISABLE, false, "If set to true, Help plugin will not be attached to even if available.", SECTION),
+            new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION)),
 
         group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
             new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
