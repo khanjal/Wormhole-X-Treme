@@ -375,6 +375,7 @@ plugin drops an `[RS]` that lands adjacent to it.
 | Players | Their own move event |
 | Minecarts, boats | With passengers re-seated on arrival |
 | Ridden horses, camels, pigs, donkeys, llamas, striders | With the rider, re-seated |
+| A player's tamed wolves, cats and parrots within 12 blocks, not sitting | With their owner, landing beside them (`pets-follow-owner`) |
 | Arrows, tridents, snowballs, eggs, ender pearls, potions, fireballs | Followed from launch, crossing the tick they reach the portal |
 | Mobs, dropped items, XP orbs, armour stands | A sweep of open gates every `entity-scan-interval-ticks` (default once a second) |
 | Item frames, paintings | Never |

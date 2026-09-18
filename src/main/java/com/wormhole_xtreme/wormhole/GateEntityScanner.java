@@ -459,11 +459,6 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        // A companion that wanders in alone would arrive somewhere her owner is not.
-        if (com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(entity))
-        {
-            return false;
-        }
         // Item frames and paintings hang on a block rather than travelling through the
         // world. Sending one through a gate tears it off its wall and leaves it orphaned at
         // the far end, so a decorated gate frame would slowly strip itself every time the

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -471,5 +472,126 @@ class FreyaCompanionTest
         new FreyaListener().onSpawn(spawn);
 
         verify(spawn, never()).setCancelled(false);
+    }
+
+    /**
+     * A companion carried to another world is shown to her owner again.
+     *
+     * <p>In play she arrived beside her owner, valid and alive, and was invisible to them: the
+     * copy made in the new world came back visible by default while the owner's exception stayed,
+     * which inverts to everyone but the owner seeing her.
+     */
+    @Test
+    void catchingUpShowsHerAgainWhenATripLeftHerVisibleToTheWrongPeople()
+    {
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(cat.isVisibleByDefault()).thenReturn(true);
+        when(owner.canSee(cat)).thenReturn(false);
+
+        assertFalse(FreyaCompanion.catchUp(owner), "she is beside them, so she is not re-summoned");
+
+        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(cat, owner);
+        order.verify(cat).setVisibleByDefault(false);
+        order.verify(owner).hideEntity(plugin, cat);
+        order.verify(owner).showEntity(plugin, cat);
+        verify(owner, times(2)).showEntity(plugin, cat);
+    }
+
+    @Test
+    void catchingUpLeavesACompanionAlreadyShownRightAlone()
+    {
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(cat.isVisibleByDefault()).thenReturn(false);
+        when(owner.canSee(cat)).thenReturn(true);
+
+        FreyaCompanion.catchUp(owner);
+
+        verify(owner, times(1)).showEntity(plugin, cat);
+    }
+
+    /**
+     * After a world change she is sent to her owner again, even when the server says they see her.
+     *
+     * <p>In play the log read "visible by default false, owner sees her true", 0 blocks away,
+     * and the owner still saw nothing: the server's state was right and the client never got her.
+     */
+    @Test
+    void resendingHidesAndShowsHerToHerOwnerEvenWhenTheServerSaysTheySeeHer()
+    {
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        FreyaCompanion.spawnFor(owner);
+        when(owner.canSee(cat)).thenReturn(true);
+
+        assertTrue(FreyaCompanion.resend(owner));
+
+        verify(owner, times(2)).hideEntity(plugin, cat);
+        verify(owner, times(2)).showEntity(plugin, cat);
+    }
+
+    @Test
+    void resendingDoesNothingWithoutACompanionBesideThem()
+    {
+        final Player owner = playerWith(OWNER, liveCat());
+
+        assertFalse(FreyaCompanion.resend(owner), "nothing is out to send");
+    }
+
+    /**
+     * With detail logging on, the check says where she is and how she is shown.
+     *
+     * <p>That line is what told a lost packet apart from a lost cat in play: world, distance,
+     * validity, and both visibility flags.
+     */
+    @Test
+    void withDetailLoggingTheCheckDescribesWhereSheIsAndHowSheIsShown()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, cat);
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.spawnFor(owner);
+
+        FreyaCompanion.catchUp(owner);
+        FreyaCompanion.resend(owner);
+
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Companion check for owner: in "));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Re-sending companion to owner"));
+    }
+
+    @Test
+    void withDetailLoggingACheckOnAnOwnerInBedSaysSheIsAway()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Player owner = playerWith(OWNER, liveCat());
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.ownerSleeps(OWNER);
+
+        assertFalse(FreyaCompanion.catchUp(owner));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("away while they sleep"));
+    }
+
+    @Test
+    void withDetailLoggingAReSummonSaysSheDidNotTravel()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        FreyaPreferences.setEnabled(OWNER, true);
+        final Cat before = catAt(new Location(mock(World.class), 1.0, 64.0, 1.0));
+        final Player owner = playerWith(OWNER, before);
+        when(owner.getName()).thenReturn("owner");
+        FreyaCompanion.spawnFor(owner);
+        final Cat after = liveCat();
+        when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(after);
+
+        assertTrue(FreyaCompanion.catchUp(owner));
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("did not travel with them"));
     }
 }

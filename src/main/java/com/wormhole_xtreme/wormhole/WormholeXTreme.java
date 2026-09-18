@@ -193,8 +193,27 @@ public class WormholeXTreme extends JavaPlugin
      */
     private static void setPrettyLogLevel(final Level level)
     {
-        getLog().setLevel(level);
-        getThisPlugin().prettyLog(Level.CONFIG, "Logging set to: " + level);
+        applyLogLevel(level);
+    }
+
+    /**
+     * Applies a log level now, so changing the setting in-game needs no restart.
+     *
+     * @param level
+     *            the level to log from
+     */
+    public static void applyLogLevel(final Level level)
+    {
+        final Logger logger = getLog();
+        if ((logger == null) || (level == null))
+        {
+            return;
+        }
+        logger.setLevel(level);
+        if (getThisPlugin() != null)
+        {
+            getThisPlugin().prettyLog(Level.CONFIG, "Logging set to: " + level);
+        }
     }
 
     /**
@@ -791,7 +810,8 @@ public class WormholeXTreme extends JavaPlugin
         // A supplier, so the tag is not built and joined for a line the level will discard.
         // Every FINE call on a server logging at INFO pays for that otherwise, and this
         // method is how the whole plugin logs.
-        getLog().log(severity, () -> prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+        getLog().log(consoleLevel(getLog(), severity),
+            () -> prettyTag(getThisPlugin().getName(), pluginVersion) + levelMark(severity) + " " + message);
     }
 
     /**
@@ -815,8 +835,35 @@ public class WormholeXTreme extends JavaPlugin
      */
     public void prettyLog(final Level severity, final String message, final Throwable thrown)
     {
-        getLog().log(severity, thrown,
-            () -> prettyTag(getThisPlugin().getName(), null) + " " + message);
+        getLog().log(consoleLevel(getLog(), severity), thrown,
+            () -> prettyTag(getThisPlugin().getName(), null) + levelMark(severity) + " " + message);
+    }
+
+    /**
+     * The level a line is written at: one below INFO that log-level lets through goes out at
+     * INFO, because Spigot and Paper consoles drop anything lower whatever the plugin asks.
+     *
+     * @param logger
+     *            the plugin's logger
+     * @param severity
+     *            the level the line was logged at
+     * @return INFO for a detail line that should be seen, otherwise the level unchanged
+     */
+    static Level consoleLevel(final Logger logger, final Level severity)
+    {
+        return ((severity.intValue() < Level.INFO.intValue()) && logger.isLoggable(severity)) ? Level.INFO : severity;
+    }
+
+    /**
+     * Marks a detail line raised to INFO with the level it was really logged at.
+     *
+     * @param severity
+     *            the level the line was logged at
+     * @return {@code " [FINE]"} and the like below INFO, otherwise empty
+     */
+    static String levelMark(final Level severity)
+    {
+        return (severity.intValue() < Level.INFO.intValue()) ? " [" + severity.getName() + "]" : "";
     }
 
     /**

@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Cat;
@@ -20,12 +21,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * The companion: a real, tamed cat that only her owner's client is shown.
  *
- * <p>Following is vanilla tamed-cat AI, so there is no repeating task. Vanilla never follows
- * across worlds or very far, so {@link #catchUp(Player)} re-summons her after her owner travels.
+ * <p>Following is vanilla tamed-cat AI, and she travels by gate, ring, beam or mirror the way
+ * any pet does, through {@link com.wormhole_xtreme.wormhole.PetEscort}. {@link #catchUp(Player)}
+ * re-summons her only when that failed, and logs it, so a transport that drops pets shows up.
  * She is kept away while her owner sleeps or is hunted, so she gives no advantage a real cat would.
  */
 public final class FreyaCompanion
@@ -143,11 +146,27 @@ public final class FreyaCompanion
         cat.setPersistent(false);
         cat.setRemoveWhenFarAway(false);
 
-        // Hidden by default covers players who join later, which a per-observer hide does not.
+        reveal(cat, owner);
+    }
+
+    /**
+     * Hides her from everyone and shows her to her owner, from whatever state she was in.
+     *
+     * <p>Hidden by default covers players who join later, which a per-observer hide does not.
+     * The hide before the show clears a stale exception, so the show always sends her again.
+     *
+     * @param cat
+     *            the companion
+     * @param owner
+     *            the one player who may see her
+     */
+    static void reveal(final Cat cat, final Player owner)
+    {
         cat.setVisibleByDefault(false);
         final Plugin plugin = WormholeXTreme.getThisPlugin();
         if (plugin != null)
         {
+            owner.hideEntity(plugin, cat);
             owner.showEntity(plugin, cat);
         }
     }
@@ -206,16 +225,62 @@ public final class FreyaCompanion
      */
     public static boolean catchUp(final Player owner)
     {
-        if ((owner == null) || !FreyaPreferences.isEnabled(owner.getUniqueId())
-            || isAway(owner.getUniqueId()))
+        if ((owner == null) || !FreyaPreferences.isEnabled(owner.getUniqueId()))
         {
             return false;
         }
-        if (!isLeftBehind(LIVE.get(owner.getUniqueId()), owner.getLocation()))
+        if (isAway(owner.getUniqueId()))
         {
+            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": away while they "
+                + (ASLEEP.contains(owner.getUniqueId()) ? "sleep" : "are hunted"));
             return false;
+        }
+        final Cat before = LIVE.get(owner.getUniqueId());
+        if (PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Companion check for " + owner.getName() + ": " + describe(before, owner));
+        }
+        if (!isLeftBehind(before, owner.getLocation()))
+        {
+            // Carried to another world she can arrive visible by default again, which with the
+            // owner's exception still in place shows her to everyone except them.
+            if (before.isVisibleByDefault() || !owner.canSee(before))
+            {
+                PluginLog.log(Level.FINE, "Companion for " + owner.getName() + " was not hidden right; showing her to them again");
+                reveal(before, owner);
+            }
+            return false;
+        }
+        if ((before != null) && PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Re-summoned " + owner.getName() + "'s companion; she did not travel with them.");
         }
         return spawnFor(owner) != null;
+    }
+
+    /**
+     * Where a companion stands relative to her owner, for the log.
+     *
+     * @param cat
+     *            the tracked companion, or null
+     * @param player
+     *            her owner
+     * @return a one-line summary
+     */
+    private static String describe(final Cat cat, final Player player)
+    {
+        if (cat == null)
+        {
+            return "none out";
+        }
+        final Location owner = player.getLocation();
+        final Location at = cat.getLocation();
+        final String world = ((at == null) || (at.getWorld() == null)) ? "?" : at.getWorld().getName();
+        final boolean together = (at != null) && (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
+        return "in " + world + (together ? " " + Math.round(Math.sqrt(at.distanceSquared(owner))) + " blocks away" : ", another world")
+            + ", valid " + cat.isValid() + ", dead " + cat.isDead()
+            + ", visible by default " + cat.isVisibleByDefault() + ", owner sees her " + player.canSee(cat)
+            + ", sent to owner " + sentTo(cat, player);
     }
 
     /**
@@ -242,6 +307,54 @@ public final class FreyaCompanion
         }
         return !Objects.equals(at.getWorld(), owner.getWorld())
             || (at.distanceSquared(owner) > LEFT_BEHIND_DISTANCE_SQUARED);
+    }
+
+    /**
+     * Sends her to her owner's client again, once it has finished loading a world it just moved to.
+     *
+     * <p>A companion carried across in the same tick as her owner can be tracked by the server as
+     * visible to them yet never reach their client, which is still switching worlds.
+     *
+     * @param owner
+     *            the owner who changed world a moment ago
+     * @return true if she was re-sent
+     */
+    public static boolean resend(final Player owner)
+    {
+        final Cat cat = (owner == null) ? null : LIVE.get(owner.getUniqueId());
+        if ((cat == null) || isLeftBehind(cat, owner.getLocation()))
+        {
+            return false;
+        }
+        if (PluginLog.isLoggable(Level.FINE))
+        {
+            PluginLog.log(Level.FINE, "Re-sending companion to " + owner.getName() + ": " + describe(cat, owner));
+        }
+        reveal(cat, owner);
+        return true;
+    }
+
+    /**
+     * Whether Paper reports this entity as sent to the player's client, looked up by reflection
+     * because {@code getTrackedBy} is Paper API and absent from the 1.20 Spigot API.
+     *
+     * @param cat
+     *            the companion
+     * @param player
+     *            her owner
+     * @return "true", "false", or "unknown" where the server cannot say
+     */
+    static String sentTo(final Cat cat, final Player player)
+    {
+        try
+        {
+            final Object tracked = cat.getClass().getMethod("getTrackedBy").invoke(cat);
+            return (tracked instanceof Collection<?> players) ? String.valueOf(players.contains(player)) : "unknown";
+        }
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
+        {
+            return "unknown";
+        }
     }
 
     /**

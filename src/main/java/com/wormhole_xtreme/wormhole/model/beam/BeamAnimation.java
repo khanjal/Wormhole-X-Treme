@@ -366,6 +366,9 @@ public final class BeamAnimation
             if (!teleported && frame.marks().teleport())
             {
                 BeamSounds.playDepart(origin);
+                // The traveller is frozen at the origin until this tick, so it is still the place to look.
+                final java.util.List<org.bukkit.entity.Entity> pets =
+                    com.wormhole_xtreme.wormhole.PetEscort.gather(player);
                 player.teleport(destination);
                 teleported = true;
                 // Bukkit dismounts a rider before teleporting them, so the traveller has
@@ -374,6 +377,7 @@ public final class BeamAnimation
                 // after the player's own teleport rather than before so that the re-seat is
                 // a short hop at the destination rather than a cross-world one.
                 mount.carry(player, destination);
+                com.wormhole_xtreme.wormhole.PetEscort.follow(pets, player);
                 // The traveller is physically at the destination from this tick on -- the
                 // descend column is still only starting to fall around them, but nothing
                 // stops their own eyes from seeing straight through it to the terrain

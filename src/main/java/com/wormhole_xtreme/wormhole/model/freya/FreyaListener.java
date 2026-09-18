@@ -35,6 +35,9 @@ public class FreyaListener implements Listener
     /** How often to look again whether a hunt is over: five seconds. */
     private static final long HUNT_CHECK_TICKS = 100L;
 
+    /** After a trip, once the pet escort has had its turn, so the fallback only covers a miss. */
+    private static final long AFTER_TRIP_TICKS = com.wormhole_xtreme.wormhole.PetEscort.FOLLOW_DELAY_TICKS + 20L;
+
     @EventHandler
     public void onJoin(final PlayerJoinEvent event)
     {
@@ -50,7 +53,7 @@ public class FreyaListener implements Listener
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(final PlayerTeleportEvent event)
     {
-        catchUpNextTick(event.getPlayer());
+        catchUpAfter(event.getPlayer(), AFTER_TRIP_TICKS);
     }
 
     /**
@@ -62,7 +65,18 @@ public class FreyaListener implements Listener
     @EventHandler
     public void onChangedWorld(final PlayerChangedWorldEvent event)
     {
-        catchUpNextTick(event.getPlayer());
+        catchUpAfter(event.getPlayer(), AFTER_TRIP_TICKS);
+        final Player player = event.getPlayer();
+        if (FreyaPreferences.isEnabled(player.getUniqueId()))
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+            {
+                if (player.isOnline())
+                {
+                    FreyaCompanion.resend(player);
+                }
+            }, AFTER_TRIP_TICKS);
+        }
     }
 
     @EventHandler
@@ -200,6 +214,19 @@ public class FreyaListener implements Listener
      */
     private static void catchUpNextTick(final Player player)
     {
+        catchUpAfter(player, 1L);
+    }
+
+    /**
+     * Brings her after a delay, if she has not come by herself.
+     *
+     * @param player
+     *            her owner
+     * @param ticks
+     *            how long to wait
+     */
+    private static void catchUpAfter(final Player player, final long ticks)
+    {
         if (!FreyaPreferences.isEnabled(player.getUniqueId()))
         {
             return;
@@ -210,7 +237,7 @@ public class FreyaListener implements Listener
             {
                 FreyaCompanion.catchUp(player);
             }
-        }, 1L);
+        }, ticks);
     }
 
     /**
