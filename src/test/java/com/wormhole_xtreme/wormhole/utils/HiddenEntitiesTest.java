@@ -86,6 +86,22 @@ class HiddenEntitiesTest
         verify(viewer).showEntity(plugin, display);
     }
 
+    /**
+     * A world that answers the spawn with nothing at all returns null rather than throwing. The
+     * older path has no entity to hide yet when it spawns, so the result has to be checked before
+     * it is touched; the path that makes one first already did.
+     */
+    @Test
+    void aSpawnTheWorldAnswersWithNothingReturnsNull()
+    {
+        HiddenEntities.creationWith(new RecordingCreation(type -> null));
+        when(world.spawn(at, BlockDisplay.class)).thenReturn(null);
+
+        assertNull(HiddenEntities.spawnFor(plugin, viewer, at, BlockDisplay.class, d -> { }));
+
+        verify(viewer, never()).showEntity(any(Plugin.class), any(Entity.class));
+    }
+
     /** An entity another plugin refused to let into the world is not shown, and nothing is returned. */
     @Test
     void anEntityTheWorldRefusedIsNotShown()
