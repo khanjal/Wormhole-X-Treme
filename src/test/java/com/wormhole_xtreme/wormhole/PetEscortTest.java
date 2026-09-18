@@ -47,12 +47,17 @@ class PetEscortTest
 
     private Player owner;
     private WormholeXTreme plugin;
+    /** Held here because a Location keeps its World weakly, and a collected mock reads as unloaded. */
+    private World ownerWorld;
+    private World petWorld;
 
     @BeforeEach
     void setUp() throws Exception
     {
         plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
+        ownerWorld = mock(World.class);
+        petWorld = mock(World.class);
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
@@ -220,9 +225,9 @@ class PetEscortTest
     @Test
     void bringingSendsEachPetToWhereTheOwnerNowIsAndMarksItArrived()
     {
-        final Location arrival = new Location(mock(World.class), 100.5, 64.0, -20.5);
+        final Location arrival = new Location(ownerWorld, 100.5, 64.0, -20.5);
         ownerNowAt(arrival);
-        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
 
         assertEquals(1, PetEscort.bring(List.of(wolf), owner));
 
@@ -246,8 +251,8 @@ class PetEscortTest
     @Test
     void aPetToldToSitBeforeItFollowedStays()
     {
-        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
-        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
         when(wolf.isSitting()).thenReturn(true);
 
         assertEquals(0, PetEscort.bring(List.of(wolf), owner),
@@ -257,10 +262,10 @@ class PetEscortTest
     @Test
     void aPetThatWillNotMoveDoesNotStopTheRest()
     {
-        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
-        final Wolf stuck = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
+        final Wolf stuck = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
         when(stuck.teleport(any(Location.class))).thenThrow(new IllegalStateException("refused"));
-        final Wolf free = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        final Wolf free = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
         final List<Entity> pets = List.of(stuck, free);
 
         assertEquals(1, PetEscort.bring(pets, owner));
@@ -270,7 +275,7 @@ class PetEscortTest
     @Test
     void anOwnerWhoHasLeftTheServerBringsNobody()
     {
-        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
         when(owner.isOnline()).thenReturn(false);
 
         assertEquals(0, PetEscort.bring(List.of(wolf), owner));
@@ -343,8 +348,8 @@ class PetEscortTest
     @Test
     void aRefusedTeleportIsNotCountedAndIsLogged()
     {
-        ownerNowAt(new Location(mock(World.class), 100.5, 64.0, 0.5));
-        final Wolf wolf = at(wolfOf(owner), new Location(mock(World.class), 0.5, 64.0, 0.5));
+        ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
         when(wolf.teleport(any(Location.class))).thenReturn(false);
 
         assertEquals(0, PetEscort.bring(List.of(wolf), owner));
