@@ -32,7 +32,7 @@ public class RegenerateCommand implements SubCommand
         }
         if ("-all".equalsIgnoreCase(args[1]))
         {
-            return regenerateAllExits(sender);
+            return regenerateAll(sender);
         }
 
         final Stargate s = StargateManager.getStargate(args[1]);
@@ -85,6 +85,7 @@ public class RegenerateCommand implements SubCommand
         // leaves its old wire standing, which is cosmetic, visible, and named in the
         // report -- the better trade of the two.
         reportRederivation(sender, s, GateRederivation.rederive(s));
+        reportLightOrder(sender, s, GateRederivation.rebuildLightOrder(s));
 
         s.toggleDialLeverState(true);
         if ((s.getGateIrisDeactivationCode() != null) && !s.getGateIrisDeactivationCode().isEmpty())
@@ -153,6 +154,38 @@ public class RegenerateCommand implements SubCommand
     }
 
     /**
+     * Says what rebuilding one gate's light order came to, and saves the gate if it changed.
+     *
+     * @param sender
+     *            who to tell
+     * @param s
+     *            the gate
+     * @param result
+     *            what the rebuild came to
+     */
+    private static void reportLightOrder(final CommandSender sender, final Stargate s,
+        final GateRederivation.LightResult result)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        switch (result)
+        {
+            case REBUILT ->
+            {
+                StargateDBManager.saveStargate(s);
+                sender.sendMessage(header + s.getGateName() + " now lights its chevrons in the order shape \""
+                    + s.getGateShapeName() + "\" gives.");
+            }
+            case BUSY -> sender.sendMessage(header + s.getGateName()
+                + " is dialling or open, so its light order was left alone. Try again once it is shut.");
+            case DOES_NOT_FIT -> sender.sendMessage(header + "Shape \"" + s.getGateShapeName()
+                + "\" lights blocks that are not part of " + s.getGateName()
+                + "'s frame, so its light order was left alone.");
+            // No shape and no anchor are already reported by the marker re-derivation.
+            default -> { /* nothing changed, nothing to say */ }
+        }
+    }
+
+    /**
      * Reports a successful re-derivation, and saves when it actually changed something.
      *
      * @param sender
@@ -176,14 +209,15 @@ public class RegenerateCommand implements SubCommand
     }
 
     /**
-     * Recomputes the arrival point of every gate, and only that.
+     * Recomputes the arrival point and light order of every gate, and only those.
      *
      * <p>Deliberately narrower than a single-gate {@code regenerate}, which also refreshes
      * the dial lever, the iris lever, redstone, and the sign -- all reasonable things to
      * redo on one gate an admin is actively looking at, and none of them reasonable to
      * silently rewrite on every gate on the server at once. This does exactly the one thing
      * that was asked for: find gates whose exit is not where the geometry says it should be,
-     * and fix those, unattended.
+     * and fix those, unattended. The light order joins it because it reads no blocks and leaves a
+     * gate alone unless its frame still fits the shape.
      *
      * <p>Only gates whose position actually changes are saved back to disk. Recomputing is
      * deterministic, so a gate that was already correct comes back with the same answer --
@@ -193,38 +227,103 @@ public class RegenerateCommand implements SubCommand
      *            who asked
      * @return true, the command was handled
      */
-    private static boolean regenerateAllExits(final CommandSender sender)
+    private static boolean regenerateAll(final CommandSender sender)
     {
-        int checked = 0;
-        int moved = 0;
-        int couldNotCompute = 0;
+        final AllTally tally = new AllTally();
         for (final Stargate gate : StargateManager.getAllGates())
         {
-            checked++;
-            final Location before = gate.getGatePlayerTeleportLocation();
-            if (!gate.recomputeGatePlayerTeleportLocation())
+            tally.checked++;
+            final boolean relit = tallyLights(tally, GateRederivation.rebuildLightOrder(gate));
+            if (tallyExit(tally, gate) || relit)
             {
-                // No world, no facing, or no portal blocks to derive a position from --
-                // an incomplete or badly damaged gate, not something to guess at here.
-                couldNotCompute++;
-                continue;
-            }
-            if (exitMoved(before, gate.getGatePlayerTeleportLocation()))
-            {
-                moved++;
                 StargateDBManager.saveStargate(gate);
             }
         }
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Checked " + checked + " gate" + (checked == 1 ? "" : "s") + ". "
-            + moved + " arrival point" + (moved == 1 ? "" : "s") + " " + (moved == 1 ? "was" : "were")
-            + " out of place and " + (moved == 1 ? "has" : "have") + " been recomputed.");
-        if (couldNotCompute > 0)
+        reportAll(sender, tally);
+        return true;
+    }
+
+    /** What {@code -all} found, counted as it goes. */
+    private static final class AllTally
+    {
+        private int checked;
+        private int moved;
+        private int couldNotCompute;
+        private int relit;
+        private int lightsLeft;
+    }
+
+    /** Counts one gate's light rebuild; true if it changed the gate. */
+    private static boolean tallyLights(final AllTally tally, final GateRederivation.LightResult lights)
+    {
+        switch (lights)
         {
-            sender.sendMessage(couldNotCompute + " gate" + (couldNotCompute == 1 ? "" : "s")
+            case REBUILT ->
+            {
+                tally.relit++;
+                return true;
+            }
+            case BUSY, DOES_NOT_FIT -> tally.lightsLeft++;
+            default -> { /* nothing to change, or reported by name only */ }
+        }
+        return false;
+    }
+
+    /** Recomputes one gate's exit and counts it; true if it moved. */
+    private static boolean tallyExit(final AllTally tally, final Stargate gate)
+    {
+        final Location before = gate.getGatePlayerTeleportLocation();
+        if (!gate.recomputeGatePlayerTeleportLocation())
+        {
+            // No world, no facing, or no portal blocks to derive a position from --
+            // an incomplete or badly damaged gate, not something to guess at here.
+            tally.couldNotCompute++;
+            return false;
+        }
+        if (exitMoved(before, gate.getGatePlayerTeleportLocation()))
+        {
+            tally.moved++;
+            return true;
+        }
+        return false;
+    }
+
+    /** Tells the admin what {@code -all} came to. */
+    private static void reportAll(final CommandSender sender, final AllTally tally)
+    {
+        final boolean one = tally.moved == 1;
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Checked " + gates(tally.checked) + ". "
+            + tally.moved + " arrival point" + plural(tally.moved) + " " + (one ? "was" : "were")
+            + " out of place and " + (one ? "has" : "have") + " been recomputed.");
+        if (tally.couldNotCompute > 0)
+        {
+            sender.sendMessage(gates(tally.couldNotCompute)
                 + " could not be checked -- no world, no facing, or no portal blocks recorded.");
         }
-        return true;
+        if (tally.relit > 0)
+        {
+            sender.sendMessage(gates(tally.relit) + ((tally.relit == 1)
+                ? " now lights its chevrons in its shape's order."
+                : " now light their chevrons in their shapes' order."));
+        }
+        if (tally.lightsLeft > 0)
+        {
+            sender.sendMessage(gates(tally.lightsLeft) + " kept " + ((tally.lightsLeft == 1) ? "its" : "their")
+                + " old light order: dialling or open, or the frame no longer fits the shape."
+                + " Regenerate one by name to see which.");
+        }
+    }
+
+    /** "1 gate", "2 gates". */
+    private static String gates(final int n)
+    {
+        return n + " gate" + plural(n);
+    }
+
+    private static String plural(final int n)
+    {
+        return (n == 1) ? "" : "s";
     }
 
     /**

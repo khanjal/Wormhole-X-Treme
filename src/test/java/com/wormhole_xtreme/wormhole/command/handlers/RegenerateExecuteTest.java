@@ -36,8 +36,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  * {@link RegenerateCommandTest} already covers.
  *
  * <p>The command has two quite different jobs behind one name. On one gate it redoes
- * everything -- levers, redstone, sign, arrival point. On {@code -all} it deliberately does
- * only the arrival point, because silently rewriting every gate's levers and signs on the
+ * everything -- levers, redstone, sign, arrival point, light order. On {@code -all} it does
+ * only the arrival point and light order, because silently rewriting every gate's levers and signs on the
  * whole server is not what an admin asked for.
  *
  * <p>Neither was covered.
@@ -152,7 +152,7 @@ class RegenerateExecuteTest
     }
 
     /**
-     * {@code -all} recomputes arrival points and nothing else.
+     * {@code -all} recomputes arrival points and the light order, and nothing else.
      *
      * <p>This is the difference between the two jobs. Rewriting every gate's levers, redstone
      * and sign unattended is not what was asked for, and the command says so in its own
@@ -215,6 +215,33 @@ class RegenerateExecuteTest
     }
 
     /**
+     * {@code -all} relights a gate whose shape was renumbered, and saves it, even when its
+     * arrival point cannot be computed.
+     */
+    @Test
+    void allRelightsAndSavesEveryGateWhoseOrderChanged()
+    {
+        final Stargate relit = registeredGate("relit");
+        when(relit.recomputeGatePlayerTeleportLocation()).thenReturn(false);
+        final Stargate busy = registeredGate("busy");
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(relit)).thenReturn(GateRederivation.LightResult.REBUILT);
+            rederive.when(() -> GateRederivation.rebuildLightOrder(busy)).thenReturn(GateRederivation.LightResult.BUSY);
+
+            assertTrue(run("regenerate", "-all"));
+
+            db.verify(() -> StargateDBManager.saveStargate(relit));
+            db.verify(() -> StargateDBManager.saveStargate(busy), never());
+        }
+
+        verify(sender).sendMessage(contains("1 gate now lights its chevrons"));
+        verify(sender).sendMessage(contains("1 gate kept its old light order"));
+    }
+
+    /**
      * Every way re-deriving a gate's shape can decline names something the admin can act on.
      *
      * <p>The reporting is what is being pinned here, not the derivation --
@@ -251,6 +278,7 @@ class RegenerateExecuteTest
 
         try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
         {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(result, List.of()));
 
@@ -275,6 +303,7 @@ class RegenerateExecuteTest
 
         try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
         {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(result, List.of()));
 
@@ -301,6 +330,7 @@ class RegenerateExecuteTest
         try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
              MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
         {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED,
                     List.of("redstone dial input", "iris lever")));
@@ -311,6 +341,27 @@ class RegenerateExecuteTest
         }
 
         verify(sender).sendMessage(contains("redstone dial input, iris lever"));
+    }
+
+    /** A rebuilt light order is saved, or the next restart would put the old one back. */
+    @Test
+    void aRebuiltLightOrderIsSavedAndSaid()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.REBUILT);
+            rederive.when(() -> GateRederivation.rederive(gate))
+                .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
+
+            assertTrue(run("regenerate", "alpha"));
+
+            db.verify(() -> StargateDBManager.saveStargate(gate));
+        }
+
+        verify(sender).sendMessage(contains("now lights its chevrons"));
     }
 
     /**
@@ -328,6 +379,7 @@ class RegenerateExecuteTest
         try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
              MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
         {
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED,
                     List.of()));

@@ -63,6 +63,11 @@ option only with a dash, and no name may start with one. Scripts and command blo
   `LIGHT_TICKS = 2;`, and the parser only matched `LIGHT_TICKS=`, so every gate dialled at the
   default of 3. `Minimal` (1) and the `Standard`, `Large`, `Grand` and `Massive` families (2) now
   light their chevrons faster, as their files always asked.
+- **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
+  `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
+  from the shape again, so renumbering a shape's chevrons never reached a gate already standing.
+  It reads no blocks, so `-all` covers gates in unloaded chunks too. A gate that is dialling or
+  open, or whose frame no longer fits its shape, is left alone and counted.
 
 ### Quantum mirrors
 
