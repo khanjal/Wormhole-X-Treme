@@ -9,6 +9,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -304,7 +305,7 @@ class ChevronLightingTest
             StargateAnimator.lightStargate(gate, true);
         }
 
-        org.mockito.Mockito.verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
             eq(Stargate.LAST_CHEVRON_PAUSE_TICKS));
         assertEquals(0, gate.getGateLightingCurrentIteration(), "the seventh was the last");
     }
