@@ -332,15 +332,15 @@ class GateDetectionTest
         assertTrue(lit > 0, "the waves should hold the cells the shape marked for lighting");
 
         // The shift itself, which the assertions above do not reach: Standard numbers its
-        // light waves L#1..L#7, and the runtime steps its counter to 1 before reading a
+        // light waves L#1..L#8, and the runtime steps its counter to 1 before reading a
         // wave. Index 0 has to stay empty or wave 1 lands where nothing ever looks, and the
         // first chevron never lights.
         assertNull(found.getGateLightBlocks().get(0),
             "index 0 is the placeholder the lighting counter steps past");
         assertNotNull(found.getGateLightBlocks().get(1),
             "L#1 is recorded at index 1, not shifted down to 0");
-        assertEquals(8, found.getGateLightBlocks().size(),
-            "seven waves plus the placeholder");
+        assertEquals(9, found.getGateLightBlocks().size(),
+            "eight waves plus the placeholder");
 
         // Woosh waves are the other way round, and deliberately: nothing steps past a
         // placeholder there, so W#1 becomes index 0.
