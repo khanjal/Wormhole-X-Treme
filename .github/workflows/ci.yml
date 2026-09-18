@@ -69,7 +69,7 @@ jobs:
   # removed something we rely on, so every supported version is built and tested here.
   # A Minecraft version is only claimed as supported in the README if it is in this list.
   server-api:
-    name: Minecraft ${{ matrix.minecraft }}
+    name: Spigot ${{ matrix.minecraft }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -129,7 +129,7 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Build and test against Minecraft ${{ matrix.minecraft }}
+      - name: Build and test against Spigot ${{ matrix.minecraft }}
         run: mvn --batch-mode verify ${{ matrix.profile }} -Dspigot.api.version=${{ matrix.api }}
 
   # The same plugin built against paper-api instead. Paper-only methods are reached reflectively,
