@@ -40,6 +40,7 @@ import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -884,9 +885,9 @@ public final class GatePreviews
             sound(owner, preview, ConfigManager.getGateSoundChevron(),
                 GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
             restyle(preview);
-            // A real gate starts its woosh the tick after its last chevron.
+            // Held after the last chevron as a real gate holds it.
             next(owner, preview, (preview.litWaves() < preview.lastWave())
-                ? preview.shape().getShapeLightTicks() : 1L);
+                ? preview.shape().getShapeLightTicks() : Stargate.LAST_CHEVRON_PAUSE_TICKS);
             return;
         }
         final int stage = preview.wooshStage();

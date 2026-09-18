@@ -347,7 +347,8 @@ class StargateAnimator
             gate.setGateLightingCurrentIteration(0);
             if (gate.isGateActive())
             {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                    new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), Stargate.LAST_CHEVRON_PAUSE_TICKS);
             }
         }
         else
