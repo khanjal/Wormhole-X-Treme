@@ -83,6 +83,15 @@ option only with a dash, and no name may start with one. Scripts and command blo
   its seen air in `MirrorSeenAir`; captures on disk are unchanged. The mirror windows say "not seen"
   and "over budget" with named constants instead of `null`.
 - **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
+- **The mirror window tests draw on stand-ins rather than mocks.** A redraw reads hundreds of
+  thousands of blocks, and Mockito kept an invocation with a stack trace for every read of every
+  one: `MirrorWindowsTest` alone wanted 4 GB and never finished a test under 2, where it now runs
+  in 256m. A block the stand-ins do not answer fails the test by name rather than reading as null.
+- **The test fork has a 1 GB ceiling**, where it took the JVM default of a quarter of the
+  machine's RAM and the same commit passed or failed by which runner it landed on. The suite of
+  1,988 measures at about 512m.
+- **The mirror window tests clear their windows between tests**, where each could see the views
+  and cached block states the one before it left behind.
 
 ## 1.6.0 (2026-09-16)
 
