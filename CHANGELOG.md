@@ -119,6 +119,8 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 
 ### Server
 
+- **CraftBukkit no longer throws on every ring countdown and mirror approach.** It has no
+  action bar, so the plugin says so once in the log and goes without.
 - **Supported through Minecraft 26.3.** CI builds and tests against Paper at every supported
   version, and against Purpur's newest.
 - **`log-level` below `INFO` reaches the console**, as lines marked `[FINE]`, and
