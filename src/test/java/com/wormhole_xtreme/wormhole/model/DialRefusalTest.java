@@ -264,12 +264,11 @@ class DialRefusalTest
 
             world.verify(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
                 .scheduleChunkLoad(any(Block.class)));
-            // Set so its ring can turn from the first chevron, then cleared when it did not open.
-            verify(gate).setGateTarget(null);
+            verify(gate, never()).setGateTarget(any());
         }
     }
 
-    /** Local activation failing stops the dial and leaves no target assigned. */
+    /** Local activation failing stops the dial before a target is ever assigned. */
     @Test
     void aLocalEndThatWillNotOpenAssignsNoTarget()
     {
@@ -286,9 +285,7 @@ class DialRefusalTest
 
             assertFalse(StargateDialManager.dialStargate(gate, target, false));
 
-            final org.mockito.InOrder order = org.mockito.Mockito.inOrder(gate);
-            order.verify(gate).setGateTarget(target);
-            order.verify(gate).setGateTarget(null);
+            verify(gate, never()).setGateTarget(any());
             verify(target, never()).dialStargate();
         }
     }

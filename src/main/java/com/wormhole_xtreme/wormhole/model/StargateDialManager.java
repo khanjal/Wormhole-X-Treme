@@ -659,17 +659,14 @@ class StargateDialManager
         // A sign dial opens at once: no chevron sequence, and so no dialling sounds from a gate
         // that is already open.
         final boolean atOnce = gate.isGateSignPowered();
-        // Set before the local end starts: its ring turns only while it names a target, and a
-        // sequence that starts at once would otherwise lock its first chevron without the turn.
-        gate.setGateTarget(target);
         dialStargate(gate, atOnce);
         if (!gate.isGateActive())
         {
-            gate.setGateTarget(null);
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Dial aborted: local activation failed for gate '" + gate.getGateName() + "'.");
             return false;
         }
+        gate.setGateTarget(target);
         try
         {
             dialStargate(target, atOnce);
