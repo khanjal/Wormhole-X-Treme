@@ -20,6 +20,10 @@
 			added. Both directions have to hold, and neither is checked by the other.
 		-->
 		<spigot.api.version>1.20.4-R0.1-SNAPSHOT</spigot.api.version>
+		<!-- Purpur is a Paper fork, so CI builds it through the paper-api profile with these
+		     swapped for org.purpurmc.purpur and purpur-api. -->
+		<paper.api.group>io.papermc.paper</paper.api.group>
+		<paper.api.artifact>paper-api</paper.api.artifact>
 		 <maven.compiler.release>17</maven.compiler.release>
 		 <java.version>17</java.version>
 	 </properties>
@@ -264,8 +268,8 @@
 			</activation>
 			<dependencies>
 				<dependency>
-					<groupId>io.papermc.paper</groupId>
-					<artifactId>paper-api</artifactId>
+					<groupId>${paper.api.group}</groupId>
+					<artifactId>${paper.api.artifact}</artifactId>
 					<version>${paper.api.version}</version>
 					<scope>provided</scope>
 				</dependency>
@@ -274,6 +278,10 @@
 				<repository>
 					<id>papermc-repo</id>
 					<url>https://repo.papermc.io/repository/maven-public/</url>
+				</repository>
+				<repository>
+					<id>purpur-repo</id>
+					<url>https://repo.purpurmc.org/snapshots</url>
 				</repository>
 			</repositories>
 			<build>
@@ -284,6 +292,7 @@
 						<configuration>
 							<systemPropertyVariables>
 								<server.api>paper</server.api>
+								<paper.api.version>${paper.api.version}</paper.api.version>
 							</systemPropertyVariables>
 						</configuration>
 					</plugin>

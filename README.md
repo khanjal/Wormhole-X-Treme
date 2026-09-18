@@ -10,11 +10,11 @@
 [![Security](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating)](https://sonarcloud.io/summary/overall/?id=khanjal_Wormhole-X-Treme)
 
 [![Release](https://img.shields.io/github/v/release/khanjal/Wormhole-X-Treme?label=release&logo=github)](https://github.com/khanjal/Wormhole-X-Treme/releases/latest)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%2026.2-brightgreen)](#compatibility)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%2026.3-brightgreen)](#compatibility)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=blue)](LICENSE)
 
-Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.2.
+Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
 
 Four ways to get somewhere, each a different trade between what you build and what you get:
 
@@ -68,7 +68,7 @@ in another world; right-click a mirror to choose where it opens onto, and punch 
 
 | | |
 |---|---|
-| Minecraft | 1.20 – 26.2, built and tested against ten versions across that range |
+| Minecraft | 1.20 – 26.3, built and tested against eleven versions across that range |
 | Servers | Spigot, Paper and CraftBukkit. Purpur best effort. Not Folia. |
 | Java | 17 or later. Minecraft 1.20.5+ itself needs Java 21, and 26.1+ needs Java 25. |
 
