@@ -53,7 +53,7 @@ Look at a preview and these change it, for you alone:
 | `gate build -iris` | Closes an iris over the opening, in the group's iris material; again opens it |
 | `gate build -material <group>` | Redresses it in another material group |
 | `gate build -material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
-| `gate build -chevrons` | Draws a group's chevron blocks as frame, since they are optional; lit chevrons then show the light material |
+| `gate build -chevrons` | Shows or hides a group's chevron blocks. The Standard palette starts with them hidden, drawn as frame the classic way; other groups start with them shown. Lit, a hidden chevron shows the light material |
 | `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
 | `gate build -materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
 | `gate build -guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |

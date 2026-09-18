@@ -301,6 +301,9 @@ public final class GatePreviews
         }
         final GatePreview preview = new GatePreview(world, shape, grid, Palette.of(shape, group),
             GateBlueprint.of(shape, grid), GateBlueprint.openingOf(shape, grid), GateBlueprint.wooshOf(shape, grid));
+        // The classic gate: a Standard palette draws its chevrons as frame, as the original gates
+        // were built, until -chevrons shows them. A shape that pins its own chevrons shows them.
+        preview.plainChevrons(classic(shape, group));
         if ((blocksShown() + preview.size()) > ConfigManager.getGatePreviewMaxBlocks())
         {
             return Shown.OVER_LIMIT;
@@ -309,6 +312,16 @@ public final class GatePreviews
         draw(owner, preview);
         touch(owner.getUniqueId());
         return Shown.SHOWN;
+    }
+
+    /**
+     * Whether a preview starts with its chevrons drawn as plain frame: the Standard palette, or none
+     * named, on a shape that does not pin its own chevron material.
+     */
+    static boolean classic(final Stargate3DShape shape, final MaterialGroup group)
+    {
+        return (shape.getShapeChevronMaterial() == null)
+            && ((group == null) || "Standard".equalsIgnoreCase(group.getName()));
     }
 
     /**

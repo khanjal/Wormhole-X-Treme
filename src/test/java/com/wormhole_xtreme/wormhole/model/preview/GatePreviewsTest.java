@@ -950,27 +950,40 @@ class GatePreviewsTest
     }
 
     /**
-     * -chevrons draws a group's chevron blocks as frame, since they are optional, and lit chevrons
-     * then show the light material as a gate built without them does.
+     * A Standard gate is shown the classic way, its chevrons drawn as frame, and -chevrons shows the
+     * group's chevron blocks and hides them again. Lit, a plain chevron shows the light material, as
+     * a gate built without chevron blocks does.
      */
     @Test
-    void chevronsCanBeDrawnAsTheFrameTheyMayBeBuiltFrom()
+    void aStandardGateStartsWithPlainChevronsAndChevronsShowsThem()
     {
         final com.wormhole_xtreme.wormhole.model.MaterialGroup lamps = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
             "Standard", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
             Material.REDSTONE_LAMP);
         GatePreviews.show(owner, standard, lamps);
         final BlockDisplay chevron = ringDisplaysOfWave(1).get(0);
+        verify(chevron).setBlock(data.get(Material.OBSIDIAN));
+        verify(chevron, never()).setBlock(data.get(Material.REDSTONE_LAMP));
+
+        assertEquals(GatePreviews.Control.CHEVRONS_SHOWN, GatePreviews.toggleChevrons(owner));
         verify(chevron).setBlock(data.get(Material.REDSTONE_LAMP));
 
         assertEquals(GatePreviews.Control.CHEVRONS_PLAIN, GatePreviews.toggleChevrons(owner));
-        verify(chevron).setBlock(data.get(Material.OBSIDIAN));
-
         GatePreviews.activate(owner);
         dialStep.run();
         verify(chevron).setBlock(data.get(Material.GLOWSTONE));
+    }
 
-        assertEquals(GatePreviews.Control.CHEVRONS_SHOWN, GatePreviews.toggleChevrons(owner));
+    /** Any other group shows its chevron blocks from the start: they are its look. */
+    @Test
+    void anotherGroupShowsItsChevronsFromTheStart()
+    {
+        final com.wormhole_xtreme.wormhole.model.MaterialGroup atlantis = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
+            "Atlantis", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+        GatePreviews.show(owner, standard, atlantis);
+
+        verify(ringDisplaysOfWave(1).get(0)).setBlock(data.get(Material.REDSTONE_LAMP));
         assertEquals(Material.REDSTONE_LAMP, GatePreviews.of(owner.getUniqueId()).get(0).drawnPalette().chevron());
     }
 
