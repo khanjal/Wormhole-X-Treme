@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.util.logging.Level;
+
 import org.bukkit.entity.Player;
 
 import net.md_5.bungee.api.ChatMessageType;
@@ -17,9 +19,15 @@ import net.md_5.bungee.api.chat.TextComponent;
  * <p>Cosmetic, and treated that way: a client or a fork that will not take an action bar must
  * not break the thing the player came to do. The trip still happens, the mirror still works;
  * they simply do not get told about it.
+ *
+ * <p>CraftBukkit is such a fork: it has neither {@code Player.spigot()} nor BungeeCord's chat
+ * classes, so the call fails to link rather than throwing.
  */
 public final class ActionBar
 {
+    /** Set once the server has shown it cannot link an action bar, so it is not tried again. */
+    private static volatile boolean unavailable;
+
     /** Static use only. */
     private ActionBar()
     {
@@ -35,17 +43,46 @@ public final class ActionBar
      */
     public static void send(final Player player, final String message)
     {
-        if (player == null)
+        if (player == null || unavailable)
         {
             return;
         }
         try
         {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+            SpigotBar.send(player, message);
+        }
+        catch (final LinkageError missing)
+        {
+            unavailable = true;
+            PluginLog.log(Level.INFO, "This server has no Spigot action bar, so ring countdowns and"
+                + " mirror names will not show above the hotbar.");
         }
         catch (final RuntimeException ignored)
         {
             // deliberately silent -- see the class comment
+        }
+    }
+
+    /**
+     * The only code naming Spigot's chat API, so a server without it fails to link this class,
+     * inside {@link #send}'s try, and never {@link ActionBar} in its caller.
+     */
+    private static final class SpigotBar
+    {
+        /** Static use only. */
+        private SpigotBar()
+        {
+        }
+
+        /**
+         * @param player
+         *            who to tell
+         * @param message
+         *            what to say
+         */
+        static void send(final Player player, final String message)
+        {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
         }
     }
 }
