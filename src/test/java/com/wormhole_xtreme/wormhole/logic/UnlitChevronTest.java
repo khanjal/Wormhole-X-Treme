@@ -341,8 +341,8 @@ class UnlitChevronTest
         final StargateShapeLayer face = standard.getShapeLayers().get(1);
         final java.util.Set<Long> lit = StargateHelper.lightCells(face);
 
-        assertEquals(7, lit.size(),
-            "Standard's seven chevrons must produce seven distinct keys -- a key that "
+        assertEquals(8, lit.size(),
+            "Standard's eight chevrons must produce eight distinct keys -- a key that "
                 + "collapses them would match every frame block in the layer");
 
         int plainFrameBlocks = 0;

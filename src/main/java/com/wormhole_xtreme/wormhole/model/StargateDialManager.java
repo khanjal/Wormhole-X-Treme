@@ -500,8 +500,8 @@ class StargateDialManager
             }
             else
             {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-                    new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
+                // Lit all at once by its button; now the destination is known, dial it in order.
+                gate.relightChevrons();
             }
         }
         else

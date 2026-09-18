@@ -103,12 +103,12 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 | Idle | Dialled | Shape | Grid | What it is | Markers |
 |---|---|---|---|---|---|
-| <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 8 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
-| <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
-| <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 5 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 5), `IA` (layer 5) |
-| <a href="images/gates/massive-idle.svg"><img src="images/gates/massive-idle.svg" width="104" alt="Massive, idle"></a> | <a href="images/gates/massive-dialled.svg"><img src="images/gates/massive-dialled.svg" width="104" alt="Massive, dialled"></a> | `Massive` | 23 x 23 | Twenty-three wide and fifteen deep — the largest that ships. 15 layers, woosh in 13 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 4), `EM` (layer 5), `A` (layer 9), `IA` (layer 9) |
+| <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 7 chevrons light 2 ticks apart, and an eighth for another world. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
+| <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 7 chevrons light 3 ticks apart, and an eighth for another world. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
+| <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 5 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart, and an eighth for another world. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 5), `IA` (layer 5) |
+| <a href="images/gates/massive-idle.svg"><img src="images/gates/massive-idle.svg" width="104" alt="Massive, idle"></a> | <a href="images/gates/massive-dialled.svg"><img src="images/gates/massive-dialled.svg" width="104" alt="Massive, dialled"></a> | `Massive` | 23 x 23 | Twenty-three wide and fifteen deep — the largest that ships. 15 layers, woosh in 13 steps, 7 chevrons light 2 ticks apart, and an eighth for another world. | `N` (layer 1), `EP` (layer 4), `EM` (layer 5), `A` (layer 9), `IA` (layer 9) |
 | <a href="images/gates/minimal-idle.svg"><img src="images/gates/minimal-idle.svg" width="104" alt="Minimal, idle"></a> | <a href="images/gates/minimal-dialled.svg"><img src="images/gates/minimal-dialled.svg" width="104" alt="Minimal, dialled"></a> | `Minimal` | 2 x 4 | One block wide — the smallest gate that works. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `A` (layer 2), `IA` (layer 2), `EM` (layer 2) |
-| <a href="images/gates/standard-idle.svg"><img src="images/gates/standard-idle.svg" width="104" alt="Standard, idle"></a> | <a href="images/gates/standard-dialled.svg"><img src="images/gates/standard-dialled.svg" width="104" alt="Standard, dialled"></a> | `Standard` | 7 x 7 | The seven-wide ring, and what most servers build. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
+| <a href="images/gates/standard-idle.svg"><img src="images/gates/standard-idle.svg" width="104" alt="Standard, idle"></a> | <a href="images/gates/standard-dialled.svg"><img src="images/gates/standard-dialled.svg" width="104" alt="Standard, dialled"></a> | `Standard` | 7 x 7 | The seven-wide ring, and what most servers build. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart, and an eighth for another world. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
 
 <!-- shapes:end -->
 
@@ -486,7 +486,17 @@ A `Standard` gate, slowed to five quarters of real time. The frame count is shap
 a `Grand` runs visibly longer than this.
 
 **Chevrons light one at a time**, in `:L#n` order, over the activation sequence. A shape with
-three lighting steps climbs the same distance as one with seven, in bigger steps.
+three lighting steps climbs the same distance as one with seven, in bigger steps. The shipped
+shapes number theirs as the show does, seen from the DHD: down the right side, up the left, and
+the top (a horizontal gate's far edge) last. `:L#8` is the eighth, at the bottom (a horizontal
+gate's near edge), lit after the top one only when the other gate is in another world (*The
+Fifth Race*). Every shipped ring gate but `Minimal` has one.
+
+**The button lights every chevron at once, and `/dial` dials the ones it needs.** Until `/dial`
+the gate has no destination, so it cannot know whether an eighth is wanted. Lit all at once, it
+is ready either way; `/dial` darkens it and runs the sequence in order, with the eighth only for
+another world. A sign dial knows its destination when the button is pressed, so it goes straight
+to the sequence.
 
 **The woosh is waves.** A shape authoring `:W#n` markers says exactly what each wave is; one that
 does not falls back to `WOOSH_DEPTH` or a per-gate override, and wave *n* is derived on demand as

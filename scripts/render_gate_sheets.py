@@ -218,6 +218,9 @@ def elevation(layers):
     return grid, False
 
 
+LOCAL_CHEVRONS = 7
+
+
 def wave(cell, letter):
     """The #number on an :L or :W marker, or None if the cell carries neither."""
     for mod in cell:
@@ -234,7 +237,10 @@ def fill(cell, group, dialled):
     """
     mods = [m.upper() for m in cell]
     mark = next((m for m in mods if m in MARKS), None)
-    lit = wave(cell, "L") is not None
+    order = wave(cell, "L")
+    lit = order is not None
+    # The eighth chevron locks only for another world; a drawing dials within one, so it stays dark.
+    dialled = dialled and (order is None or order <= LOCAL_CHEVRONS)
 
     chevron = group.get("chevron")
     if "P" in mods:
@@ -484,14 +490,17 @@ def note(name, settings, layers):
 
     cells = [cell for rows in layers.values() for row in rows for cell in row]
     woosh = max([wave(cell, "W") or 0 for cell in cells] + [0])
-    lights = max([wave(cell, "L") or 0 for cell in cells] + [0])
+    orders = max([wave(cell, "L") or 0 for cell in cells] + [0])
+    lights = min(orders, LOCAL_CHEVRONS)
     ticks = int(settings.get("LIGHT_TICKS", "2"))
-    return "%s. %s, %s, %s." % (
+    eighth = ", and an eighth for another world" if orders > LOCAL_CHEVRONS else ""
+    return "%s. %s, %s, %s%s." % (
         said[0].upper() + said[1:],
         count(len(layers), "layer"),
         "woosh in %s" % count(woosh, "step"),
         ("1 chevron, so no sequence to light in" if lights == 1
-         else "%s light %s apart" % (count(lights, "chevron"), count(ticks, "tick"))))
+         else "%s light %s apart" % (count(lights, "chevron"), count(ticks, "tick"))),
+        eighth)
 
 
 def count(n, noun):

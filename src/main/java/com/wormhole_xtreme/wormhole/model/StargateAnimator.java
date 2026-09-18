@@ -269,8 +269,9 @@ class StargateAnimator
     private static void lightNextChevron(final Stargate gate)
     {
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
-        if (gate.getGateLightingCurrentIteration() == 0)
+        if ((gate.getGateLightingCurrentIteration() == 0) && !gate.isGateLightsActive())
         {
+            // Not when relighting: the gate already made its activation sound when it lit.
             gate.setGateLightsActive(true);
             GateSounds.activated(gate);
         }
@@ -312,7 +313,7 @@ class StargateAnimator
      */
     private static void drawLightWave(final Stargate gate, final List<List<Location>> waves, final int step)
     {
-        if ((step >= waves.size()) || (waves.get(step) == null))
+        if ((step > lastWave(gate, waves)) || (waves.get(step) == null))
         {
             return;
         }
@@ -326,7 +327,7 @@ class StargateAnimator
         StargateBlockSetup.drawLights(gate, waves.get(step));
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
-        GateSounds.chevron(gate, step, waves.size() - 1);
+        GateSounds.chevron(gate, step, lastWave(gate, waves));
     }
 
     /**
@@ -341,7 +342,7 @@ class StargateAnimator
      */
     private static void scheduleNextStep(final Stargate gate, final List<List<Location>> waves, final int step)
     {
-        if (step >= waves.size() - 1)
+        if (step >= lastWave(gate, waves))
         {
             gate.setGateLightingCurrentIteration(0);
             if (gate.isGateActive())
@@ -353,6 +354,102 @@ class StargateAnimator
         {
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
         }
+    }
+
+    /**
+     * The last chevron this gate lights: the seventh, or the eighth when it is linked to a gate in
+     * another world. The eighth locks after the top one, as in <i>The Fifth Race</i> (#351).
+     */
+    static int lastWave(final Stargate gate, final List<List<Location>> waves)
+    {
+        final int last = linksAnotherWorld(gate) ? Stargate.OTHER_WORLD_CHEVRON : Stargate.LOCAL_CHEVRONS;
+        return Math.min(waves.size() - 1, last);
+    }
+
+    /**
+     * The last chevron a client should see lit: all of them while the button has the gate waiting
+     * for {@code /dial}, otherwise the ones its dial uses.
+     */
+    static int lastShownWave(final Stargate gate, final List<List<Location>> waves)
+    {
+        return (gate.isGateLightsActive() && !gate.isGateActive()) ? (waves.size() - 1) : lastWave(gate, waves);
+    }
+
+    /**
+     * Whether the gate is linked to one in another world, whichever end dialled.
+     *
+     * <p>The dialling gate names its target; the far gate is found as the active gate naming it.
+     */
+    static boolean linksAnotherWorld(final Stargate gate)
+    {
+        Stargate other = gate.getGateTarget();
+        if (other == null)
+        {
+            for (final Stargate s : StargateManager.getAllGatesUnsorted())
+            {
+                if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
+                {
+                    other = s;
+                    break;
+                }
+            }
+        }
+        if ((other == null) || (gate.getGateWorld() == null) || (other.getGateWorld() == null))
+        {
+            return false;
+        }
+        return !gate.getGateWorld().getName().equals(other.getGateWorld().getName());
+    }
+
+    /**
+     * Lights every chevron at once, the eighth included, for a gate activated by its button and
+     * waiting for {@code /dial}. The dial then relights only the ones it needs.
+     *
+     * @param gate
+     *            the gate
+     */
+    static void lightAll(final Stargate gate)
+    {
+        gate.setGateLightsActive(true);
+        gate.setGateLightingCurrentIteration(0);
+        GateSounds.activated(gate);
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        if (waves == null)
+        {
+            return;
+        }
+        for (int step = 1; step < waves.size(); step++)
+        {
+            if (waves.get(step) != null)
+            {
+                StargateBlockSetup.drawLights(gate, waves.get(step));
+            }
+        }
+    }
+
+    /**
+     * Darkens the chevrons, then relights them one at a time with their sounds; the woosh
+     * follows the last as usual. Used once {@code /dial} names a destination.
+     *
+     * @param gate
+     *            the gate, already lit
+     */
+    static void relightInOrder(final Stargate gate)
+    {
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        if (waves != null)
+        {
+            for (final List<Location> wave : waves)
+            {
+                if (wave != null)
+                {
+                    StargateBlockSetup.undrawBlocks(gate, wave);
+                }
+            }
+        }
+        gate.setGateLightingCurrentIteration(0);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
     }
 
     /**
