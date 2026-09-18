@@ -219,8 +219,8 @@ class PortalVisualRefreshTest
         return gate;
     }
 
-    /** Which light blocks, by x, a player arriving by the gate is sent. */
-    private static java.util.Set<Integer> chevronsSentFor(final World here, final Stargate gate)
+    /** Which light blocks, by x, a player arriving by the open gate is sent. */
+    private static java.util.Set<Integer> chevronsSentFor(final World here)
     {
         when(here.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv -> {
             final org.bukkit.block.Block b = mock(org.bukkit.block.Block.class);
@@ -255,9 +255,9 @@ class PortalVisualRefreshTest
     {
         final World here = mock(World.class);
         when(here.getName()).thenReturn("here");
-        final Stargate gate = openEightChevronGate(here, here);
+        openEightChevronGate(here, here);
 
-        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7), chevronsSentFor(here, gate));
+        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7), chevronsSentFor(here));
     }
 
     /** Open to another world, the eighth is shown too. */
@@ -268,8 +268,8 @@ class PortalVisualRefreshTest
         when(here.getName()).thenReturn("here");
         final World there = mock(World.class);
         when(there.getName()).thenReturn("there");
-        final Stargate gate = openEightChevronGate(here, there);
+        openEightChevronGate(here, there);
 
-        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here, gate));
+        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here));
     }
 }
