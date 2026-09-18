@@ -1,7 +1,12 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -10,6 +15,10 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpin;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
+import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 
@@ -284,14 +293,17 @@ class StargateAnimator
             return;
         }
 
-        final int step = gate.getGateLightingCurrentIteration() + 1;
-        gate.setGateLightingCurrentIteration(step);
-
         final List<List<Location>> waves = gate.getGateLightBlocks();
         if (waves == null)
         {
             return;
         }
+        if (turnRing(gate, waves))
+        {
+            return;
+        }
+        final int step = gate.getGateLightingCurrentIteration() + 1;
+        gate.setGateLightingCurrentIteration(step);
         drawLightWave(gate, waves, step);
         scheduleNextStep(gate, waves, step);
     }
@@ -357,8 +369,132 @@ class StargateAnimator
         }
         else
         {
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
+            // With the ring turning, the turn itself is the wait before the next chevron.
+            final long between = (spinOf(gate) != null) ? 1L : gate.getEffectiveLightTicks();
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), between);
         }
+    }
+
+    /** A gate's ring, laid from its own frame, and the shape it was laid for. */
+    private record LaidRing(StargateShape shape, DialSpin spin)
+    {
+    }
+
+    /** Where the ring's light is on a gate dialling now, and how far through its turn. */
+    private static final class Turning
+    {
+        private int tick;
+        private List<Location> cells = List.of();
+    }
+
+    private static final Map<Stargate, LaidRing> RINGS = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<Stargate, Turning> TURNING = Collections.synchronizedMap(new WeakHashMap<>());
+
+    /**
+     * The ring a gate's light travels round while it dials (#357), or null when it does not turn:
+     * turned off, or no 3D shape to lay. Laid where the gate's own recorded frame is, as regen lays
+     * it, and kept while the gate keeps that shape.
+     */
+    static DialSpin spinOf(final Stargate gate)
+    {
+        if (!ConfigManager.isGateDialSpin() || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        {
+            return null;
+        }
+        final LaidRing laid = RINGS.get(gate);
+        if ((laid != null) && (laid.shape() == shape))
+        {
+            return laid.spin();
+        }
+        final GateRederivation.Layout layout = GateRederivation.layoutFor(gate, shape);
+        final DialSpin spin = (layout == null) ? null
+            : DialSpin.of(GateBlueprint.of(shape, layout.grid()), layout.grid());
+        RINGS.put(gate, new LaidRing(shape, spin));
+        return spin;
+    }
+
+    /**
+     * Moves the ring's light one tick towards the top chevron, for the glyph about to lock: half
+     * the ring, alternating direction each glyph, over the chevron's own interval.
+     *
+     * @return true while the light is still travelling, false once it has arrived and is gone
+     */
+    private static boolean turnRing(final Stargate gate, final List<List<Location>> waves)
+    {
+        final int glyph = gate.getGateLightingCurrentIteration() + 1;
+        final DialSpin spin = spinOf(gate);
+        if ((spin == null) || (glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
+        {
+            return false;
+        }
+        final Turning turning = TURNING.computeIfAbsent(gate, g -> new Turning());
+        final int ticks = Math.max(1, gate.getEffectiveLightTicks());
+        final List<Location> now = new ArrayList<>();
+        if (turning.tick < ticks)
+        {
+            for (final GateBlueprint.Cell cell : spin.comet(glyph, turning.tick, ticks))
+            {
+                now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
+            }
+        }
+        takeBackLight(gate, turning.cells, now, lockedCells(waves, glyph - 1));
+        if (turning.tick >= ticks)
+        {
+            TURNING.remove(gate);
+            return false;
+        }
+        StargateBlockSetup.drawLights(gate, now);
+        turning.cells = now;
+        turning.tick++;
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), 1L);
+        return true;
+    }
+
+    /** Puts back the cells the light has left, except chevrons already locked, which stay lit. */
+    private static void takeBackLight(final Stargate gate, final List<Location> was, final List<Location> now,
+        final Set<String> locked)
+    {
+        final Set<String> keep = new HashSet<>(locked);
+        for (final Location l : now)
+        {
+            keep.add(key(l));
+        }
+        final List<Location> gone = new ArrayList<>();
+        for (final Location l : was)
+        {
+            if (!keep.contains(key(l)))
+            {
+                gone.add(l);
+            }
+        }
+        if (!gone.isEmpty())
+        {
+            StargateBlockSetup.undrawBlocks(gate, gone);
+        }
+    }
+
+    /** The blocks of the chevrons locked so far. */
+    private static Set<String> lockedCells(final List<List<Location>> waves, final int locked)
+    {
+        final Set<String> keys = new HashSet<>();
+        for (int step = 1; (step <= locked) && (step < waves.size()); step++)
+        {
+            if (waves.get(step) != null)
+            {
+                for (final Location l : waves.get(step))
+                {
+                    keys.add(key(l));
+                }
+            }
+        }
+        return keys;
+    }
+
+    private static String key(final Location l)
+    {
+        return l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ();
     }
 
     /**
@@ -494,6 +630,12 @@ class StargateAnimator
     private static void darkenStargate(final Stargate gate)
     {
         gate.setGateLightsActive(false);
+        // The ring's light may be part way round; put back whatever it was showing.
+        final Turning turning = TURNING.remove(gate);
+        if ((turning != null) && !turning.cells.isEmpty())
+        {
+            StargateBlockSetup.undrawBlocks(gate, turning.cells);
+        }
         if (gate.getGateLightBlocks() != null)
         {
             for (int i = 0; i < gate.getGateLightBlocks().size(); i++)

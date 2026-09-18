@@ -508,20 +508,7 @@ class StargateDialManager
                 gate.toggleRedstoneGateActivatedPower();
                 gate.setGateRecentlyActive(false);
             }
-            if (atOnce)
-            {
-                // Lit by the caller, once the far end is known.
-                return;
-            }
-            if (!gate.isGateLightsActive())
-            {
-                gate.lightStargate(true);
-            }
-            else
-            {
-                // Lit all at once by its button; now the destination is known, dial it in order.
-                gate.relightChevrons();
-            }
+            startLights(gate, atOnce);
         }
         else
         {
@@ -632,6 +619,27 @@ class StargateDialManager
             // broken gate anywhere on the server stop every dial.
         }
         return null;
+    }
+
+    /**
+     * Starts a newly open gate's chevrons: from the first, or again in order after its button lit
+     * them all. A sign dial's are lit by the caller, once the far end is known.
+     */
+    private static void startLights(final Stargate gate, final boolean atOnce)
+    {
+        if (atOnce)
+        {
+            return;
+        }
+        if (!gate.isGateLightsActive())
+        {
+            gate.lightStargate(true);
+        }
+        else
+        {
+            // Lit all at once by its button; now the destination is known, dial it in order.
+            gate.relightChevrons();
+        }
     }
 
     /**
