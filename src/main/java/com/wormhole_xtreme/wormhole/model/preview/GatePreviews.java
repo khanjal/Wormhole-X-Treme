@@ -971,7 +971,8 @@ public final class GatePreviews
             restyle(preview, was);
             return false;
         }
-        preview.spinCells(preview.spin().comet(preview.litWaves() + 1, preview.spinTick(), ticks));
+        preview.spinCells(preview.spin().lit(ConfigManager.getGateDialSpinPattern(), preview.litWaves() + 1,
+            preview.spinTick(), ticks));
         preview.spinTick(preview.spinTick() + 1);
         final Set<Cell> changed = new java.util.HashSet<>(was);
         changed.addAll(preview.spinCells());

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1414,11 +1415,11 @@ class GatePreviewsTest
 
     /**
      * With the ring turning (#357), a light travels round the frame before each chevron: it starts
-     * opposite the top chevron, and only once it has arrived does the chevron lock, the turn taking
-     * the chevron's own interval.
+     * half the ring from the chevron, lands on it at the end of the turn, and the chevron then locks,
+     * the turn taking the chevron's own interval.
      */
     @Test
-    void theRingsLightTravelsToTheTopBeforeEachChevronLocks()
+    void theRingsLightTravelsToTheChevronBeforeItLocks()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, true);
         final List<Cell> cells = standardLookingNorth();
@@ -1435,15 +1436,22 @@ class GatePreviewsTest
         ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
 
         final int ticks = standard.getShapeLightTicks();
-        for (int step = 1; step < ticks; step++)
+        for (int step = 1; step < ticks - 1; step++)
         {
             dialStep.run();
         }
-        ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+        // Each check sees only its own tick: the light's last, then the lock.
+        final List<BlockDisplay> chevron = ringDisplaysOfWave(1);
+        chevron.forEach(org.mockito.Mockito::clearInvocations);
+        dialStep.run();
+        assertTrue(chevron.stream().anyMatch(d -> mockingDetails(d).getInvocations()
+            .stream().anyMatch(i -> i.getMethod().getName().equals("setBlock")
+                && data.get(Material.GLOWSTONE).equals(i.getArgument(0)))), "the light's last tick lands on chevron 1");
 
+        chevron.forEach(org.mockito.Mockito::clearInvocations);
         dialStep.run();
 
-        ringDisplaysOfWave(1).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+        chevron.forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
         assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
     }
 }
