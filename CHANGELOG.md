@@ -72,6 +72,11 @@ option only with a dash, and no name may start with one. Scripts and command blo
   its seen air in `MirrorSeenAir`; captures on disk are unchanged. The mirror windows say "not seen"
   and "over budget" with named constants instead of `null`.
 - **CI fails a pull request with any open Sonar finding**, listing each on its file and line.
+- **The Sonar scan is retried three times**, where one refusal failed the job: SonarCloud
+  answered with a 500 for half an hour and took two unrelated pull requests red with it, before
+  it had read a line of the code. A scan that never finishes still fails, and a finding still
+  fails; only a server briefly not there is forgiven. Tests run before the scan now, so a real
+  failure fails once rather than three times.
 
 ## 1.6.0 (2026-09-16)
 

@@ -233,16 +233,34 @@ jobs:
             exit 1
           fi
 
-      - name: Build, test, and analyze
+      # Separate from the scan below so a failing test fails here, once, rather than being retried
+      # three times by a loop meant for a server that is briefly not there.
+      - name: Build and test
+        run: mvn --batch-mode verify
+
+      # Retried, where one refusal used to fail the job: SonarCloud answered /batch/project.protobuf
+      # with a 500 for half an hour and took two unrelated pull requests red with it, before it had
+      # read a line of the code. The step after this one already retries its reads for that reason.
+      # A scan that never finishes still fails the job; only a server that is briefly not there is
+      # forgiven, and never a verdict on the code.
+      - name: Analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: >
-          mvn --batch-mode verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar
-          -Dsonar.projectKey=khanjal_Wormhole-X-Treme
-          -Dsonar.organization=ironraptor
-          -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+        run: |
+          for attempt in 1 2 3; do
+            if mvn --batch-mode org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar \
+              -Dsonar.projectKey=khanjal_Wormhole-X-Treme \
+              -Dsonar.organization=ironraptor \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml; then
+              exit 0
+            fi
+            echo "::warning::SonarCloud scan attempt $attempt did not finish; retrying"
+            sleep $((attempt * 30))
+          done
+          echo "::error::SonarCloud scan did not finish after three attempts"
+          exit 1
 
       # A pull request fails while it has any open Sonar finding. The quality gate only weighs
       # coverage, which most pull requests miss, so its red went unread and 1.6.0 left 41
