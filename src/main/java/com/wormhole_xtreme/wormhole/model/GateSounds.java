@@ -18,6 +18,59 @@ import com.wormhole_xtreme.wormhole.utils.Sounds;
  */
 public final class GateSounds
 {
+    /** Deepest a big gate goes, as a share of {@code Standard}'s pitch. */
+    static final float BIG_PITCH_LIMIT = 0.75f;
+
+    /** Lightest a small gate goes. */
+    static final float SMALL_PITCH_LIMIT = 1.15f;
+
+    /** Loudest a big gate goes, as a multiple of {@code gate-sound-volume}; volume is also range. */
+    static final float BIG_VOLUME_LIMIT = 2.0f;
+
+    /** Quietest a small gate goes. */
+    static final float SMALL_VOLUME_LIMIT = 0.85f;
+
+    /**
+     * How a gate's size bends its pitch: deeper as it grows, within the limits.
+     *
+     * @param scale
+     *            the shape's sound scale, {@code Standard} being 1.0
+     * @return the pitch multiplier, exactly 1 at {@code Standard}'s size
+     */
+    public static float sizePitch(final double scale)
+    {
+        return limit((float) Math.pow(scale, -0.3), BIG_PITCH_LIMIT, SMALL_PITCH_LIMIT);
+    }
+
+    /**
+     * How a gate's size bends its volume, and so how far it carries: louder as it grows.
+     *
+     * @param scale
+     *            the shape's sound scale, {@code Standard} being 1.0
+     * @return the volume multiplier, exactly 1 at {@code Standard}'s size
+     */
+    public static float sizeVolume(final double scale)
+    {
+        return limit((float) Math.pow(scale, 0.6), SMALL_VOLUME_LIMIT, BIG_VOLUME_LIMIT);
+    }
+
+    /**
+     * A shape's sound scale; 1.0 for a 2D shape or none.
+     *
+     * @param shape
+     *            the shape, or null
+     * @return its scale
+     */
+    public static double scaleOf(final StargateShape shape)
+    {
+        return (shape instanceof Stargate3DShape s) && (s.getShapeSoundScale() > 0) ? s.getShapeSoundScale() : 1.0;
+    }
+
+    private static float limit(final float value, final float low, final float high)
+    {
+        return Math.max(low, Math.min(high, value));
+    }
+
     /** The pitch the first chevron locks at. */
     private static final float FIRST_CHEVRON_PITCH = 0.8f;
 
@@ -257,11 +310,12 @@ public final class GateSounds
         {
             return;
         }
+        final double scale = scaleOf(gate.getGateShape());
         Location where = gate.getGatePlayerTeleportLocation();
         if ((where == null) && (gate.getGateNameBlockHolder() != null))
         {
             where = gate.getGateNameBlockHolder().getLocation();
         }
-        Sounds.play(gate.getGateWorld(), where, sound, volume, pitch);
+        Sounds.play(gate.getGateWorld(), where, sound, volume * sizeVolume(scale), pitch * sizePitch(scale));
     }
 }

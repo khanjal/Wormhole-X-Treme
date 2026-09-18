@@ -96,6 +96,8 @@ public class Stargate3DShape extends StargateShape
             }
         }
 
+        shapeSoundScale = soundScaleOr(shapeSoundScale, width);
+
         setShapeWooshDepth(wooshDepth > 0
             ? wooshDepth
             : 0);
@@ -245,6 +247,46 @@ public class Stargate3DShape extends StargateShape
         if (line.startsWith("MATERIAL_GROUPS=") && (line.split("=").length > 1))
         {
             setShapeMaterialGroups(line.split("=")[1]);
+        }
+        if (line.startsWith("SOUND_SCALE=") && (line.split("=").length > 1))
+        {
+            shapeSoundScale = parseSoundScale(line.split("=")[1]);
+        }
+    }
+
+    /** {@code Standard}'s width, which sounds as the configured sounds are written. */
+    static final int STANDARD_WIDTH = 7;
+
+    /** How big this gate sounds against {@code Standard}'s 1.0; its width over 7 unless the file says. */
+    private double shapeSoundScale;
+
+    /**
+     * How big this gate sounds, against {@code Standard}'s 1.0.
+     *
+     * @return {@code SOUND_SCALE} from the file, or the shape's width over {@code Standard}'s
+     */
+    public double getShapeSoundScale()
+    {
+        return shapeSoundScale;
+    }
+
+    /** The file's scale if it set one, otherwise the width over {@code Standard}'s. */
+    private static double soundScaleOr(final double fromFile, final int width)
+    {
+        return (fromFile > 0) ? fromFile : (width / (double) STANDARD_WIDTH);
+    }
+
+    /** A positive number, or 0 (use the width) for anything else. */
+    private static double parseSoundScale(final String value)
+    {
+        try
+        {
+            final double scale = Double.parseDouble(value.trim());
+            return (scale > 0) ? scale : 0;
+        }
+        catch (final NumberFormatException e)
+        {
+            return 0;
         }
     }
 

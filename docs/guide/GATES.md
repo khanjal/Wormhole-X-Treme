@@ -153,6 +153,9 @@ built in can still pin one — an explicit value outranks the group.
 `MATERIAL_GROUPS=Standard,Atlantis` restricts which palettes a shape accepts; without it, every
 group is accepted.
 
+`SOUND_SCALE=2.5` sets how big the gate sounds, `Standard` being 1.0; without it, the shape's width
+over `Standard`'s 7. See [Sounds](#sounds).
+
 ## Material groups
 
 A gate's **shape** is its geometry; its **material group** is what that geometry is built from.
@@ -429,6 +432,17 @@ duplicate marker, a material this Minecraft version lacks, redstone landing on t
 ## Sounds
 
 General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).
+
+**A gate sounds its size.** Every gate sound is deeper and louder on a bigger gate, and lighter on
+a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOUND_SCALE`.
+`Standard` plays each sound exactly as configured below.
+
+| Shape | Pitch | Volume, and so range |
+|---|---|---|
+| `Minimal` | 1.15x (the limit) | 0.85x (the limit) |
+| `Standard`, `Horizontal` | 1x | 1x |
+| `Large` | 0.90x | 1.24x |
+| `Grand`, `Massive` | 0.75x (the limit) | 2x (the limit) |
 
 | Setting | Default | When it plays |
 |---|---|---|
