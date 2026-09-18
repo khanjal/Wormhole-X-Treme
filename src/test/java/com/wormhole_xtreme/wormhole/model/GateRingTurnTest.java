@@ -112,6 +112,8 @@ class GateRingTurnTest
         gate.setGateDialLeverBlock(buttonBlock);
         gate.setGateActive(true);
         gate.setGateLightsActive(true);
+        // Dialling: only the gate that names a target turns its ring.
+        gate.setGateTarget(new Stargate());
         return gate;
     }
 
@@ -176,5 +178,97 @@ class GateRingTurnTest
         }
         assertTrue(!gate.isGateLightsActive());
         verify(scheduler, times(1)).scheduleSyncDelayedTask(any(Plugin.class), any(Runnable.class), anyLong());
+    }
+
+    /** A Standard gate built at another spot, as detection would record it. */
+    private Stargate standardGateAt(final String name, final int ox)
+    {
+        final GateGrid at = GateBlueprint.inFrontOf(shape, ox, 64, 0, BlockFace.NORTH);
+        final List<Cell> its = GateBlueprint.of(shape, at);
+        final Stargate gate = org.mockito.Mockito.spy(new Stargate());
+        gate.setGateName(name);
+        gate.setGateWorld(world);
+        gate.setGateShape(shape);
+        gate.setGateFacing(at.facing());
+        gate.getGateLightBlocks().add(null);
+        for (int wave = 1; wave <= 8; wave++)
+        {
+            final List<Location> blocks = new ArrayList<>();
+            for (final Cell c : its)
+            {
+                if (c.wave() == wave)
+                {
+                    blocks.add(at(c));
+                }
+            }
+            gate.getGateLightBlocks().add(blocks);
+        }
+        for (final Cell c : its)
+        {
+            if ((c.part() == Part.FRAME) || (c.part() == Part.CHEVRON))
+            {
+                gate.getGateStructureBlocks().add(at(c));
+            }
+        }
+        final Cell button = its.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
+        final Block buttonBlock = mock(Block.class);
+        when(buttonBlock.getX()).thenReturn(button.x());
+        when(buttonBlock.getY()).thenReturn(button.y());
+        when(buttonBlock.getZ()).thenReturn(button.z());
+        gate.setGateDialLeverBlock(buttonBlock);
+        gate.setGatePlayerTeleportLocation(new Location(world, ox, 65, 2));
+        org.mockito.Mockito.doNothing().when(gate).toggleDialLeverState(org.mockito.ArgumentMatchers.anyBoolean());
+        org.mockito.Mockito.doNothing().when(gate).toggleRedstoneGateActivatedPower();
+        StargateManager.registerStargate(gate);
+        return gate;
+    }
+
+    /**
+     * Only the gate dialling turns its ring; the gate being dialled lights its chevrons in order, a
+     * chevron's interval apart, as on the show. Found in-game: both turned.
+     */
+    @Test
+    void onlyTheGateDiallingTurnsItsRing()
+    {
+        final Stargate near = standardGateAt("near", 0);
+        final Stargate far = standardGateAt("far", 40);
+        final List<Object[]> booked = new ArrayList<>();
+        when(scheduler.scheduleSyncDelayedTask(any(Plugin.class), any(Runnable.class), anyLong())).thenAnswer(inv -> {
+            booked.add(new Object[] { inv.getArgument(1, Runnable.class), inv.getArgument(2, Long.class) });
+            return 7;
+        });
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> worlds =
+                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            // Chunk loading is the server's; everything else about the dial runs for real.
+            worlds.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils.scheduleChunkLoad(any())).thenAnswer(inv -> null);
+            worlds.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils.forceLoadDestinationChunks(any())).thenAnswer(inv -> null);
+            near.setGateLightsActive(true);
+            StargateDialManager.dialStargate(near, far, true);
+            // The dial's own steps, not the shutdown timer.
+            for (int i = 0; i < 20; i++)
+            {
+                final List<Object[]> now = new ArrayList<>(booked);
+                booked.clear();
+                now.stream().filter(b -> ((Long) b[1]) <= Stargate.LAST_CHEVRON_PAUSE_TICKS)
+                    .forEach(b -> ((Runnable) b[0]).run());
+            }
+
+            final GateGrid nearGrid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
+            final GateGrid farGrid = GateBlueprint.inFrontOf(shape, 40, 64, 0, BlockFace.NORTH);
+            final Location nearStart = at(DialSpin.of(GateBlueprint.of(shape, nearGrid), nearGrid).path(1).get(1));
+            final Location farStart = at(DialSpin.of(GateBlueprint.of(shape, farGrid), farGrid).path(1).get(1));
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(near), argThat(l -> holds(l, nearStart))),
+                org.mockito.Mockito.atLeastOnce());
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(far), argThat(l -> holds(l, farStart))), never());
+            blocks.verify(() -> StargateBlockSetup.drawLights(far, far.getGateLightBlocks().get(1)));
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+            StargateManager.removeStargate(far);
+        }
     }
 }

@@ -370,7 +370,7 @@ class StargateAnimator
         else
         {
             // With the ring turning, the turn itself is the wait before the next chevron.
-            final long between = (spinOf(gate) != null) ? 1L : gate.getEffectiveLightTicks();
+            final long between = turns(gate) ? 1L : gate.getEffectiveLightTicks();
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), between);
         }
@@ -415,6 +415,15 @@ class StargateAnimator
     }
 
     /**
+     * Whether this gate's ring turns while it dials: only the gate dialling, which names a target.
+     * The gate being dialled lights its chevrons in order without turning, as on the show.
+     */
+    static boolean turns(final Stargate gate)
+    {
+        return (gate.getGateTarget() != null) && (spinOf(gate) != null);
+    }
+
+    /**
      * Moves the ring's light one tick towards the top chevron, for the glyph about to lock: half
      * the ring, alternating direction each glyph, over the chevron's own interval.
      *
@@ -423,7 +432,7 @@ class StargateAnimator
     private static boolean turnRing(final Stargate gate, final List<List<Location>> waves)
     {
         final int glyph = gate.getGateLightingCurrentIteration() + 1;
-        final DialSpin spin = spinOf(gate);
+        final DialSpin spin = turns(gate) ? spinOf(gate) : null;
         if ((spin == null) || (glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
         {
             return false;
