@@ -7,8 +7,10 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
@@ -42,8 +44,96 @@ public class RegenerateCommand implements SubCommand
                 + "\"" + args[1] + "\"");
             return true;
         }
+        if ((args.length >= 3) && "-shape".equalsIgnoreCase(args[2]))
+        {
+            if (args.length < 4)
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                    + "Name the shape: /wormhole gate regenerate <gate> -shape <shape>");
+                return true;
+            }
+            if (!adoptNamedShape(sender, s, args[3]))
+            {
+                return true;
+            }
+        }
         regenerateOneGate(sender, s);
         return true;
+    }
+
+    /** Most missing blocks listed before the rest are only counted. */
+    private static final int GAPS_LISTED = 10;
+
+    /**
+     * Records the shape an admin named for a gate, if enough of it is standing, and says what is
+     * missing either way.
+     *
+     * @param sender
+     *            who to tell
+     * @param s
+     *            the gate
+     * @param shapeName
+     *            the shape named
+     * @return true if the gate took the shape, so regenerating it can carry on
+     */
+    private static boolean adoptNamedShape(final CommandSender sender, final Stargate s, final String shapeName)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        if (!(namedShape(shapeName) instanceof Stargate3DShape shape))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate shape called \""
+                + shapeName + "\" is loaded.");
+            return false;
+        }
+        final String was = s.getGateShapeName();
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(s, shape);
+        if (fit.expected() == 0)
+        {
+            sender.sendMessage(header + s.getGateName() + " records no dial button to lay \"" + shape.getShapeName()
+                + "\" from. Left as \"" + was + "\".");
+            return false;
+        }
+        final String counted = fit.present() + " of " + fit.expected() + " frame blocks of \"" + shape.getShapeName()
+            + "\" are in place";
+        if (fit.accepted())
+        {
+            StargateDBManager.saveStargate(s);
+            sender.sendMessage(header + s.getGateName() + " is now recorded as \"" + shape.getShapeName() + "\" (was \""
+                + was + "\"): " + counted + ".");
+        }
+        else
+        {
+            sender.sendMessage(header + "Only " + counted + " at " + s.getGateName() + ", under the "
+                + Math.round(GateRederivation.NAMED_SHAPE_MINIMUM * 100) + "% needed, so it stays \"" + was + "\".");
+        }
+        reportGaps(sender, fit.gaps());
+        return fit.accepted();
+    }
+
+    /** A loaded shape by name, whatever its capitals. */
+    private static com.wormhole_xtreme.wormhole.model.StargateShape namedShape(final String name)
+    {
+        for (final java.util.Map.Entry<String, com.wormhole_xtreme.wormhole.model.StargateShape> e
+            : StargateShapeRegistry.getStargateShapes().entrySet())
+        {
+            if (e.getKey().equalsIgnoreCase(name))
+            {
+                return e.getValue();
+            }
+        }
+        return null;
+    }
+
+    /** Lists the first few missing or wrong blocks, and counts the rest. */
+    private static void reportGaps(final CommandSender sender, final java.util.List<String> gaps)
+    {
+        if (gaps.isEmpty())
+        {
+            return;
+        }
+        final java.util.List<String> shown = gaps.subList(0, Math.min(GAPS_LISTED, gaps.size()));
+        sender.sendMessage("Missing or wrong: " + String.join("; ", shown)
+            + ((gaps.size() > shown.size()) ? "; and " + (gaps.size() - shown.size()) + " more." : "."));
     }
 
 

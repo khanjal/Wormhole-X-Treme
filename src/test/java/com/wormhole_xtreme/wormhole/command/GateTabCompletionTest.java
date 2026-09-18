@@ -207,4 +207,16 @@ class GateTabCompletionTest
         assertTrue(candidates.contains("alpha"), "got " + candidates);
         assertTrue(candidates.contains("-all"), "got " + candidates);
     }
+
+    /** After a gate, {@code regenerate} offers {@code -shape}, then a shape name; {@code validate} offers neither. */
+    @Test
+    void regenerateOffersAShapeForAGateRecordedUnderTheWrongOne()
+    {
+        gateNamed("alpha");
+
+        assertTrue(complete("gate", "regenerate", "alpha", "").contains("-shape"));
+        assertTrue(complete("gate", "regen", "alpha", "-shape", "").contains("Standard"), "the shipped shapes are offered");
+        assertTrue(complete("gate", "validate", "alpha", "").isEmpty());
+        assertTrue(complete("gate", "regenerate", "alpha", "-shape", "Standard", "").isEmpty());
+    }
 }

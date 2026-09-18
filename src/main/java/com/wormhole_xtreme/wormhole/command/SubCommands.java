@@ -192,7 +192,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate>",
+        register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate> [-shape <shape>]",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -720,13 +720,23 @@ public final class SubCommands
      */
     private static List<String> completeGateRegenerate(final String[] args)
     {
-        if (args.length != 3)
+        if (args.length == 3)
+        {
+            final List<String> out = new ArrayList<>(gateNames(args[2]));
+            out.addAll(prefixed(args[2], "-all"));
+            return out;
+        }
+        // Regenerate alone takes a shape, for a gate recorded under the wrong one.
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        if (!REGENERATE.equals(verb) && !"regen".equals(verb))
         {
             return none();
         }
-        final List<String> out = new ArrayList<>(gateNames(args[2]));
-        out.addAll(prefixed(args[2], "-all"));
-        return out;
+        if (args.length == 4)
+        {
+            return prefixed(args[3], "-shape");
+        }
+        return ((args.length == 5) && "-shape".equalsIgnoreCase(args[3])) ? shapeNames(args[4]) : none();
     }
 
     /**

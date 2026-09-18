@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -434,6 +435,101 @@ class RegenerateExecuteTest
         assertTrue(new RegenerateCommand().execute(player, new String[] {"regenerate", "alpha"}));
 
         verify(player).sendMessage(contains("ermission"));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** Runs with one named shape loaded, and puts the registry back. */
+    private static void withShape(final String name, final Runnable body)
+    {
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
+        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new java.util.HashMap<>(shapes);
+        shapes.clear();
+        shapes.put(name, mock(com.wormhole_xtreme.wormhole.model.Stargate3DShape.class));
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            shapes.clear();
+            shapes.putAll(saved);
+        }
+    }
+
+    /** -shape with no name after it says how to use it, and regenerates nothing. */
+    @Test
+    void aShapeFlagWithNoNameSaysHowToUseIt()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        assertTrue(run("regenerate", "alpha", "-shape"));
+
+        verify(sender).sendMessage(contains("Name the shape"));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** A shape nobody loaded is named back, and nothing is regenerated. */
+    @Test
+    void anUnknownShapeIsNamedBack()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        withShape("Massive", () -> assertTrue(run("regenerate", "alpha", "-shape", "Colossal")));
+
+        verify(sender).sendMessage(contains("No gate shape called \"Colossal\""));
+        verify(gate, never()).toggleDialLeverState(anyBoolean());
+    }
+
+    /** A shape the gate fits is taken whatever its capitals, saved, reported with its gaps, and regenerated from. */
+    @Test
+    void aShapeTheGateFitsIsTakenSavedAndRegeneratedFrom()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.getGateShapeName()).thenReturn("Standard");
+
+        withShape("Massive", () -> {
+            try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+                 MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+            {
+                rederive.when(() -> GateRederivation.adoptShape(any(), any()))
+                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of("1,2,3 (found AIR)")));
+                rederive.when(() -> GateRederivation.rederive(gate))
+                    .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
+                rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
+
+                assertTrue(run("regenerate", "alpha", "-shape", "massive"));
+
+                db.verify(() -> StargateDBManager.saveStargate(gate));
+            }
+        });
+
+        verify(sender).sendMessage(contains("99 of 100 frame blocks"));
+        verify(sender).sendMessage(contains("1,2,3 (found AIR)"));
+        verify(gate).toggleDialLeverState(true);
+    }
+
+    /** A shape the gate does not fit is refused, and the gate is not regenerated under it. */
+    @Test
+    void aShapeTheGateDoesNotFitIsRefused()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.getGateShapeName()).thenReturn("Standard");
+
+        withShape("Massive", () -> {
+            try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+                 MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+            {
+                rederive.when(() -> GateRederivation.adoptShape(any(), any()))
+                    .thenReturn(new GateRederivation.ShapeFit(false, 20, 100, List.of()));
+
+                assertTrue(run("regenerate", "alpha", "-shape", "Massive"));
+
+                db.verify(() -> StargateDBManager.saveStargate(gate), never());
+            }
+        });
+
+        verify(sender).sendMessage(contains("stays \"Standard\""));
         verify(gate, never()).toggleDialLeverState(anyBoolean());
     }
 }

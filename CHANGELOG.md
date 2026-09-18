@@ -68,6 +68,10 @@ option only with a dash, and no name may start with one. Scripts and command blo
   `Standard`, so a `Massive` gate came back "no longer matches Standard", markers and light order
   untouched, however often it was asked. Regenerate now detects such a gate against every shape and
   takes the one its frame matches, then carries on from that shape.
+- **`/wormhole gate regenerate <gate> -shape <shape>` names the shape** for a gate detection cannot
+  place: recorded under the wrong shape and missing a block or two, so no shape matches it whole.
+  It takes the named shape if at least 90% of that shape's frame is standing, lists what is
+  missing or wrong (up to ten, then a count), and places nothing.
 - **`/wormhole gate regenerate` relights a gate's chevrons in its shape's order**, and so does
   `-all`. A gate saves which blocks light in which order when it is built, and nothing read that
   from the shape again, so renumbering a shape's chevrons never reached a gate already standing.

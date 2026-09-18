@@ -582,4 +582,41 @@ class GateRederivationTest
             assertTrue(outcome.changes().isEmpty());
         });
     }
+
+    /**
+     * A shape named for a gate it fits all but a block of is taken, and the gap is reported.
+     *
+     * <p>The case detection cannot reach: recorded as {@code Standard}, and a block short of the
+     * {@code Massive} it is, so no shape matches it whole.
+     */
+    @Test
+    void aNamedShapeTheFrameIsABlockShortOfIsTakenWithTheGapReported() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        gate.setGateShape(shape("Standard"));
+        placed.remove(placed.keySet().iterator().next());
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Massive"));
+
+        assertTrue(fit.accepted());
+        assertEquals(fit.expected() - 1, fit.present());
+        assertEquals(1, fit.gaps().size(), "gaps were: " + fit.gaps());
+        assertTrue(fit.gaps().get(0).contains("found AIR"), fit.gaps().get(0));
+        assertEquals("Massive", gate.getGateShapeName());
+    }
+
+    /** A shape named for a gate it does not fit is refused, and the gate keeps the shape it had. */
+    @Test
+    void aNamedShapeTheFrameIsNotIsRefused() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final com.wormhole_xtreme.wormhole.model.StargateShape before = gate.getGateShape();
+
+        final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
+
+        assertFalse(fit.accepted());
+        assertTrue(fit.present() < (fit.expected() * GateRederivation.NAMED_SHAPE_MINIMUM));
+        assertEquals("Massive", gate.getGateShapeName());
+        assertSame(before, gate.getGateShape(), "the shape the gate animates and sounds from is put back too");
+    }
 }

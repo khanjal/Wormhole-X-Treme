@@ -118,6 +118,82 @@ public final class GateRederivation
     {
     }
 
+    /** The share of a named shape's frame that must be standing for a gate to take that shape. */
+    public static final double NAMED_SHAPE_MINIMUM = 0.9;
+
+    /**
+     * How well a gate's frame fits a shape an admin named for it.
+     *
+     * @param accepted
+     *            whether the gate took the shape
+     * @param present
+     *            frame and chevron blocks of the shape found standing
+     * @param expected
+     *            frame and chevron blocks the shape has
+     * @param gaps
+     *            each block that is missing or wrong, as "x,y,z (found MATERIAL)"
+     */
+    public record ShapeFit(boolean accepted, int present, int expected, List<String> gaps)
+    {
+    }
+
+    /**
+     * Records a named shape for a gate whose frame is close enough to it, for a gate detection
+     * cannot place: recorded under the wrong shape and missing a block or two.
+     *
+     * <p>The shape is laid by the gate's stored button and facing, as detection would, and each
+     * of its frame and chevron cells is read. Nothing is placed. At {@link #NAMED_SHAPE_MINIMUM}
+     * or more of them standing, the gate takes the shape; below that it keeps the one it had.
+     *
+     * @param gate
+     *            the gate
+     * @param shape
+     *            the shape named for it
+     * @return how well it fits, and what is missing
+     */
+    public static ShapeFit adoptShape(final Stargate gate, final Stargate3DShape shape)
+    {
+        final Block button = gate.getGateDialLeverBlock();
+        final BlockFace facing = gate.getGateFacing();
+        final World world = gate.getGateWorld();
+        final GateGrid grid = ((button == null) || (facing == null) || (world == null)) ? null
+            : GateGrid.fromActivationHolder(shape, button.getX() - facing.getModX(),
+                button.getY() - facing.getModY(), button.getZ() - facing.getModZ(), facing);
+        if (grid == null)
+        {
+            return new ShapeFit(false, 0, 0, List.of());
+        }
+        final com.wormhole_xtreme.wormhole.model.StargateShape previous = gate.getGateShape();
+        final String previousName = gate.getGateShapeName();
+        // Taken first so the palette resolves as it would for this shape.
+        gate.setGateShape(shape);
+        final org.bukkit.Material frame = gate.getEffectiveStructureMaterial();
+        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final List<String> gaps = new ArrayList<>();
+        int expected = 0;
+        for (final GateBlueprint.Cell cell : GateBlueprint.of(shape, grid))
+        {
+            if ((cell.part() != GateBlueprint.Part.FRAME) && (cell.part() != GateBlueprint.Part.CHEVRON))
+            {
+                continue;
+            }
+            expected++;
+            final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
+            if ((found != frame) && ((chevron == null) || (found != chevron)))
+            {
+                gaps.add(cell.x() + "," + cell.y() + "," + cell.z() + " (found " + found + ")");
+            }
+        }
+        final int present = expected - gaps.size();
+        final boolean accepted = (expected > 0) && (present >= (expected * NAMED_SHAPE_MINIMUM));
+        if (!accepted)
+        {
+            gate.setGateShape(previous);
+            gate.setGateShapeName(previousName);
+        }
+        return new ShapeFit(accepted, present, expected, gaps);
+    }
+
     /**
      * Rebuilds which blocks light at each chevron step from the gate's shape as it is now.
      *
