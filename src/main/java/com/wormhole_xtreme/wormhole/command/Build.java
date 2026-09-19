@@ -559,7 +559,11 @@ public class Build implements CommandExecutor
      */
     public static boolean admitsWithoutConfig(final CommandSender sender, final String[] args)
     {
-        return (args.length > 1) && List.of("build", "preview").contains(args[1].toLowerCase(Locale.ROOT))
-            && PreviewPermissions.mayPreview(sender);
+        if (args.length < 2)
+        {
+            return false;
+        }
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        return ("build".equals(verb) || "preview".equals(verb)) && PreviewPermissions.mayPreview(sender);
     }
 }
