@@ -174,7 +174,9 @@ public final class GatePreviews
         /** Its blocks were placed, but detection did not find a gate in them. */
         NOT_FOUND,
         /** Its blocks were placed and the gate found. */
-        PLACED
+        PLACED,
+        /** It stood over one gate already there: the blocks that gate was missing were placed. */
+        REPAIRED
     }
 
     /**
@@ -203,6 +205,12 @@ public final class GatePreviews
     interface Occupied
     {
         boolean at(World world, int x, int y, int z);
+    }
+
+    /** The gate a block belongs to, or null; tests stand in for the gate index. */
+    interface GateAt
+    {
+        com.wormhole_xtreme.wormhole.model.Stargate at(World world, int x, int y, int z);
     }
 
     /** What {@code gate preview share} did. */
@@ -244,6 +252,7 @@ public final class GatePreviews
     static Later later = GatePreviews::schedule;
     static Detector detector = StargateHelper::checkStargate;
     static Occupied occupied = PreviewPlacer::occupied;
+    static GateAt gateAt = PreviewPlacer::gateAt;
 
     private static final Map<UUID, List<GatePreview>> PREVIEWS = new HashMap<>();
 
@@ -546,7 +555,7 @@ public final class GatePreviews
     /**
      * Builds the preview a player is looking at for real: its frame, chevrons, DHD and button, in the
      * materials it shows, then finds the gate the way a pressed button does. Nothing is placed if any
-     * block it needs is taken, belongs to a gate or ring, or cannot be reached.
+     * block it needs is taken, belongs to a ring or to more than one gate, or cannot be reached.
      *
      * @param owner
      *            whose preview
@@ -554,10 +563,26 @@ public final class GatePreviews
      */
     public static Placed place(final Player owner)
     {
+        return place(owner, false);
+    }
+
+    /**
+     * {@link #place(Player)}, and when {@code overAGate} is true, over one gate already standing: it
+     * fills only what that gate is missing and hands the gate back as {@link Outcome#REPAIRED}, to be
+     * regenerated rather than registered a second time.
+     *
+     * @param owner
+     *            whose preview
+     * @param overAGate
+     *            whether the owner may change a gate that is already there
+     * @return what happened
+     */
+    public static Placed place(final Player owner, final boolean overAGate)
+    {
         touch(owner.getUniqueId());
         final GatePreview preview = lookedAt(owner);
         return (preview == null) ? new Placed(Outcome.NOT_LOOKING, List.of(), null, null)
-            : PreviewPlacer.place(preview);
+            : PreviewPlacer.place(preview, overAGate);
     }
 
     /**
@@ -878,6 +903,7 @@ public final class GatePreviews
         later = GatePreviews::schedule;
         detector = StargateHelper::checkStargate;
         occupied = PreviewPlacer::occupied;
+        gateAt = PreviewPlacer::gateAt;
     }
 
     /**

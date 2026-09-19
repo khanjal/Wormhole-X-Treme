@@ -23,6 +23,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`gate regen` takes any sign standing in the gate's frame down and puts the block back**
   before it reads the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
   ring should be, and the markers were left alone.
+- **`gate preview place` fills in a gate it is laid over**, for a player with `wormhole.config`:
+  it places only the blocks that gate is missing, never replacing one, then regenerates the gate,
+  keeping its name, owner, network and IDC. Over a ring or two gates it is refused as before.
 - **A name sign is never placed over the gate's frame or chevron material.** The gate goes
   without one, and the log says why.
 - **`/wormhole gate shapes validate` catches a `:N` with a block in front of it**, a frame,

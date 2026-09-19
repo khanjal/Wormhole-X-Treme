@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
@@ -420,12 +421,12 @@ class GateBuildPreviewCommandTest
             MockedStatic<com.wormhole_xtreme.wormhole.GateInteractionHandler> handler =
                 mockStatic(com.wormhole_xtreme.wormhole.GateInteractionHandler.class))
         {
-            previews.when(() -> GatePreviews.place(player)).thenReturn(
+            previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
                 new GatePreviews.Placed(GatePreviews.Outcome.IN_THE_WAY, List.of("stone at 1 2 3", "4 more"), null, null),
                 new GatePreviews.Placed(GatePreviews.Outcome.PLACED, List.of(), gate, button));
 
             run("gate", "preview", "place");
-            previews.verify(() -> GatePreviews.place(any()), never());
+            previews.verify(() -> GatePreviews.place(any(), anyBoolean()), never());
             verify(player).sendMessage(saying("You lack the permissions"));
 
             when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
@@ -533,4 +534,33 @@ class GateBuildPreviewCommandTest
         assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "frame", "" }).isEmpty(),
             "every block at once is not a list anybody reads");
     }
+
+    /** A preview placed over a gate already there regenerates that gate instead of naming a new one. */
+    @Test
+    void placeOverAGateRegeneratesItRatherThanOfferingANewOne()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
+        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        when(gate.getGateName()).thenReturn("Lithium");
+        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
+            MockedStatic<com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand> regen =
+                mockStatic(com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.class);
+            MockedStatic<com.wormhole_xtreme.wormhole.GateInteractionHandler> handler =
+                mockStatic(com.wormhole_xtreme.wormhole.GateInteractionHandler.class))
+        {
+            previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.REPAIRED, List.of(), gate, button));
+
+            run("gate", "preview", "place");
+
+            regen.verify(() -> com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateAt(player,
+                gate, button, null, false));
+            handler.verify(() -> com.wormhole_xtreme.wormhole.GateInteractionHandler.offerNewGate(any(), any(), any()),
+                never());
+        }
+        verify(player).sendMessage(saying("Filled in Lithium's missing blocks."));
+    }
+
 }
