@@ -330,6 +330,40 @@ notes as Markdown and paste in unchanged. Spigot takes BBCode, so the same block
 the bullet list wrapped in `[LIST]` with `[*]` per item. The [BBCode notes](#bbcode-notes) above
 apply here too — in particular, do not reach for `[HR]`.
 
+The converted block is kept below so the upload is a paste rather than a conversion. It is the
+one place the release notes are duplicated, so **rewriting
+[`shared.md`](shared.md#release-notes) means rewriting this too.** What follows is 1.7.1's.
+
+```
+[B]Upgrading from 1.7.0 - take the new [ICODE]Massive[/ICODE] shape.[/B]
+[LIST]
+[*]Delete [ICODE]Massive.shape[/ICODE] if you did not edit it, and restart. The startup log names it.
+[*]Then run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate: its name sign stood inside the ring, and regen puts the block back and hangs the sign on the front. A gate with a hole where the sign was needs [ICODE]/wormhole gate regen <gate> -shape Massive -fill[/ICODE].
+[*]Coming from 1.6.0? 1.7.0's steps apply as well: command keywords now need a dash, and the bundled shapes you have not edited should be deleted so the new dialling appears.
+[*]Installing for the first time? None of the above applies. Drop the jar in and start.
+[/LIST]
+
+[B]Stargates[/B]
+[LIST]
+[*][ICODE]Massive[/ICODE] is the same on both sides, and its name sign hangs on the front of the gate.
+[*][ICODE]gate regen -fill[/ICODE] places the few frame blocks a gate is missing, from its own materials.
+[*]A build preview placed over a gate fills in what it is missing, then regenerates it.
+[*]Taking a name sign down no longer leaves a hole in the frame.
+[*][ICODE]gate shapes validate[/ICODE] catches a name sign that would land inside the gate.
+[/LIST]
+
+[B]Server[/B]
+[LIST]
+[*][ICODE]/version WormholeXTreme[/ICODE] says when the jar was built.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md]Full changelog[/URL]
+```
+
+**The dash in the first line is a plain hyphen**, where `shared.md` has an em-dash. Not verified
+as necessary — the description above uses real em-dashes and they render fine — just one less
+thing to go wrong in a field that is typed rather than pasted from a file.
+
 Tick **Notify followers** so people watching the resource hear about it. That notification is
 most of what uploading to Spigot buys over linking a jar, which is the reason the resource type
 is an upload in the first place — see [Fields](#fields).

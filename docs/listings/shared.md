@@ -358,7 +358,12 @@ is 1.7.1's.
 **Keep the Upgrading bullets whatever else is cut.** Shape files are never overwritten, so an
 upgrader who keeps the old `Massive.shape` gets none of this release's fixes, and one who skips
 the regenerate keeps each Massive gate's name sign inside its ring. The 1.6.0 line stays too: this
-page is what somebody still on 1.6.0 downloads.
+page is what somebody still on 1.6.0 downloads. So does the first-install line — a changelog on a
+download page is read by people who have never run the plugin, and a list of upgrade steps with
+nothing saying they do not apply reads as setup they have to do.
+
+**Spigot needs the same block in BBCode**, which [`spigot.md`](spigot.md#version-upload) carries.
+Rewriting these notes means rewriting that one too.
 
 > **Upgrading from 1.7.0 — take the new `Massive` shape.**
 >
@@ -368,6 +373,7 @@ page is what somebody still on 1.6.0 downloads.
 >   the sign was needs `/wormhole gate regen <gate> -shape Massive -fill`.
 > - Coming from 1.6.0? 1.7.0's steps apply as well: command keywords now need a dash, and the
 >   bundled shapes you have not edited should be deleted so the new dialling appears.
+> - Installing for the first time? None of the above applies. Drop the jar in and start.
 >
 > **Stargates**
 >
