@@ -64,6 +64,17 @@ class StargateBlockSetup
 
         if (create)
         {
+            // Frame material in front of :N is most likely the ring itself, which the sign would replace.
+            if (isFrameMaterial(gate, placeBlock.getType()))
+            {
+                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+                if (plugin != null)
+                {
+                    plugin.prettyLog(Level.WARNING, "No name sign for " + gate.getGateName()
+                        + ": the block in front of its :N block is the gate's frame material.");
+                }
+                return;
+            }
             logSignPlacement(gate, nameSign, toward, placeBlock);
             placeGateSign(gate, placeBlock, toward);
         }
@@ -163,6 +174,13 @@ class StargateBlockSetup
             dbg.append(" PlaceBlock=null");
         }
         plugin.prettyLog(Level.FINE, dbg.toString());
+    }
+
+    /** Whether a block is the gate's frame or chevron material. */
+    static boolean isFrameMaterial(final Stargate gate, final Material type)
+    {
+        return (type != null)
+            && ((type == gate.getEffectiveStructureMaterial()) || (type == gate.getEffectiveChevronMaterial()));
     }
 
     /** Places the sign and writes the gate's name, network and owner onto its front. */

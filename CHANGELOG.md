@@ -6,6 +6,34 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.7.1 (unreleased)
+
+**Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**
+
+- Delete `Massive.shape` if you did not edit it, and restart. The startup log names it.
+- Run `/wormhole gate regen <gate>` on each `Massive` gate. Its name sign stood inside the ring,
+  where a frame block was; regen puts the block back and hangs the sign on the front face.
+
+### Stargates
+
+- **`Massive` is the same on both sides.** Its lamp rings had an extra column of frame on the
+  right, and two blocks past the corner at each end of it.
+- **`Massive`'s name sign hangs on the front of the gate.** Its `:N` was on the back ring, so the
+  sign went into the layer in front of it.
+- **`gate regen` takes any sign standing in the gate's frame down and puts the block back**
+  before it reads the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
+  ring should be, and the markers were left alone.
+- **A name sign is never placed over the gate's frame or chevron material.** The gate goes
+  without one, and the log says why.
+- **`/wormhole gate shapes validate` catches a `:N` with a block in front of it**, a frame,
+  chevron or portal cell, where the sign would land inside the gate. `gate shapes reload` refuses
+  such a shape, 1.7.0's `Massive` among them; startup still loads it.
+
+### Server
+
+- **`/version WormholeXTreme` says when the jar was built**, in UTC, under the description, so two
+  builds of one version can be told apart.
+
 ## 1.7.0 (2026-09-19)
 
 **Upgrading: command keywords start with `-`, and the new gate shapes are yours to take.**

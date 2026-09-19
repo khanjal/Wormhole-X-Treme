@@ -62,6 +62,10 @@ public class RegenerateCommand implements SubCommand
             }
             missing = fit.gaps().size();
         }
+        else
+        {
+            takeSignOutOfFrame(sender, s);
+        }
         regenerateOneGate(sender, s, missing, flagAt(args, 2, "-water") > 0, true);
         return true;
     }
@@ -120,6 +124,7 @@ public class RegenerateCommand implements SubCommand
             return;
         }
         shutForRegen(player, existing);
+        takeSignOutOfFrame(player, existing);
         final Stargate fresh = GateRefresh.refresh(existing, clicked, direction);
         reportRedetect(player, existing, fresh);
         regenerateOneGate(player, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
@@ -138,6 +143,18 @@ public class RegenerateCommand implements SubCommand
         com.wormhole_xtreme.wormhole.command.CommandUtilities.closeGate(s, false);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Shut "
             + ChatText.name(s.getGateName()) + " down to regenerate it.");
+    }
+
+    /** Puts back frame blocks a sign was hung in, so the frame can be detected whole. */
+    private static void takeSignOutOfFrame(final CommandSender sender, final Stargate s)
+    {
+        for (final org.bukkit.block.Block restored : GateRederivation.restoreFrameUnderSigns(s))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Took a sign out of "
+                + ChatText.name(s.getGateName()) + "'s frame at "
+                + ChatText.value(restored.getX() + " " + restored.getY() + " " + restored.getZ())
+                + " and put the block back.");
+        }
     }
 
     /** Says whether the gate's whole geometry was detected afresh, or why it was kept. */
@@ -208,6 +225,8 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(shapeName) + " is loaded.");
             return null;
         }
+        // After the shape is known to exist, so a mistyped command changes no blocks.
+        takeSignOutOfFrame(sender, s);
         final String was = s.getGateShapeName();
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(s, shape);
         if (fit.expected() == 0)

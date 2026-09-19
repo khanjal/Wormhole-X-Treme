@@ -214,4 +214,72 @@ class ChevronSymmetryTest
                     + " are not that chevron");
         }
     }
+
+    /**
+     * Every layer of an upright ring that carries a chevron or the portal is built the same on
+     * both sides.
+     *
+     * <p>{@code Massive}'s lamp rings had an extra column of frame on the right, and two blocks
+     * poking past the corner, from 1.4 until somebody looked. Chevrons alone could not see it. DHD
+     * layers are left out: the button stands to one side on purpose.
+     */
+    @Test
+    void everyUprightRingsFrameMirrorsLeftToRight() throws IOException
+    {
+        for (final String name : UPRIGHT_RINGS)
+        {
+            final List<String> lines =
+                Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"), StandardCharsets.UTF_8);
+            String layer = null;
+            int row = 0;
+            for (final String line : lines)
+            {
+                if (line.trim().startsWith("Layer#"))
+                {
+                    layer = line.trim();
+                    row = 0;
+                    continue;
+                }
+                if (layer == null || !line.startsWith("[") || !isRingLayer(lines, layer))
+                {
+                    continue;
+                }
+                row++;
+                final List<Boolean> built = new ArrayList<>();
+                final Matcher cells = CELL.matcher(line);
+                while (cells.find())
+                {
+                    built.add(Boolean.valueOf(cells.group(1).startsWith("S") || cells.group(1).startsWith("C")));
+                }
+                assertEquals(reversed(built), built,
+                    name + " " + layer + " row " + row + ": frame is not the same on both sides");
+            }
+        }
+    }
+
+    /** Whether a layer is part of the ring: it has a chevron or a portal cell in it. */
+    private static boolean isRingLayer(final List<String> lines, final String layer)
+    {
+        boolean inLayer = false;
+        for (final String line : lines)
+        {
+            if (line.trim().startsWith("Layer#"))
+            {
+                inLayer = line.trim().equals(layer);
+                continue;
+            }
+            if (inLayer && line.startsWith("[") && (LIGHT.matcher(line).find() || line.contains("[P")))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<Boolean> reversed(final List<Boolean> list)
+    {
+        final List<Boolean> copy = new ArrayList<>(list);
+        java.util.Collections.reverse(copy);
+        return copy;
+    }
 }

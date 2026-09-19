@@ -363,4 +363,52 @@ class ShapeFileValidatorTest
         assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("[RD]") && p.contains(":D")),
             "expected the missing dial sign to be reported, got: " + result.getProblems());
     }
+
+    /** A two-layer ring with the name sign's holder on the back layer, at a given cell. */
+    private static String[] nameSignOnTheBackLayer(final String frontCell)
+    {
+        return new String[] {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S][S]",
+            "[S:N][P][S]",
+            "[S][S][S]",
+            "",
+            "Layer#2=",
+            "[S][S][S]",
+            "[" + frontCell + "][I][S:A]",
+            "[S][S:EP][S]",
+            "",
+            "REDSTONE_ACTIVATED=FALSE",
+        };
+    }
+
+    @Test
+    void aNameSignWhoseHolderHasTheFrameInFrontOfItIsCaught() throws Exception
+    {
+        // Massive shipped like this: :N on the back ring, so its sign went into the ring
+        // in front of it.
+        final ShapeFileValidator.Result result = validate(nameSignOnTheBackLayer("S"));
+        assertFalse(result.isValid());
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains(":N on Layer#1")),
+            "expected the buried name sign to be reported, got: " + result.getProblems());
+    }
+
+    @Test
+    void aNameSignWhoseHolderHasThePortalInFrontOfItIsCaught() throws Exception
+    {
+        final ShapeFileValidator.Result result = validate(nameSignOnTheBackLayer("P"));
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains(":N on Layer#1")),
+            "expected the name sign in the portal to be reported, got: " + result.getProblems());
+    }
+
+    @Test
+    void aNameSignWithNothingInFrontOfItPasses() throws Exception
+    {
+        final ShapeFileValidator.Result result = validate(nameSignOnTheBackLayer("I"));
+        assertTrue(result.isValid(), "unexpected problems: " + result.getProblems());
+    }
 }

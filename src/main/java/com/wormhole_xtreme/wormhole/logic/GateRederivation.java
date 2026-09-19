@@ -626,6 +626,46 @@ public final class GateRederivation
     }
 
     /**
+     * Takes down every wall sign standing on a frame or chevron cell of the gate's shape, and puts
+     * the block back.
+     *
+     * <p>1.7.0's {@code Massive} hung its name sign inside the ring, and detection cannot match a
+     * frame with a sign in it, so this runs before the gate is re-detected. It goes by the cells
+     * rather than the gate's recorded name holder, which a gate saved by an older version may not
+     * have where the sign actually is.
+     *
+     * @param gate
+     *            the gate
+     * @return the blocks put back, empty if no sign stood in the frame
+     */
+    public static List<Block> restoreFrameUnderSigns(final Stargate gate)
+    {
+        final World world = gate.getGateWorld();
+        if ((world == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        {
+            return List.of();
+        }
+        final Layout layout = layoutFor(gate, shape);
+        if (layout == null)
+        {
+            return List.of();
+        }
+        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final List<Block> restored = new ArrayList<>();
+        for (final GateBlueprint.Cell cell : frameCells(shape, layout.grid()))
+        {
+            final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
+            {
+                block.setType(((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
+                    ? chevron : gate.getEffectiveStructureMaterial(), false);
+                restored.add(block);
+            }
+        }
+        return restored;
+    }
+
+    /**
      * Moves the freshly detected marker positions onto the gate that is really registered.
      *
      * <p>The fresh gate is a detached object detection just built; it is read for its marker

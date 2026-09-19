@@ -75,6 +75,15 @@ class PluginDescriptorTest
             "the version the server reports should be the version the project was built as");
     }
 
+    /** Two builds of one version are told apart by /version, which prints the description. */
+    @Test
+    void theBuiltDescriptorSaysWhenItWasBuilt() throws Exception
+    {
+        final String yml = Files.readString(BUILT_PLUGIN_YML);
+        assertTrue(yml.matches("(?s).*Built \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC\\..*"),
+            "expected a build time in the description, got:\n" + yml);
+    }
+
     @Test
     void theDescriptorStillNamesItsMainClassAndApi() throws Exception
     {

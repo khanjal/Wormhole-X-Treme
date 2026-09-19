@@ -664,4 +664,46 @@ class RegenerateExecuteTest
         verify(sender).sendMessage(said(": Abydos, bent."));
         verify(sender, never()).sendMessage(said("dialling or open"));
     }
+
+    /** Regenerating a gate whose name sign stood in its frame says where the block went back. */
+    @Test
+    void aNameSignTakenOutOfTheFrameIsReported()
+    {
+        final Stargate gate = registeredGate("alpha");
+        final org.bukkit.block.Block restored = mock(org.bukkit.block.Block.class);
+        when(restored.getX()).thenReturn(1);
+        when(restored.getY()).thenReturn(64);
+        when(restored.getZ()).thenReturn(-3);
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
+        {
+            rederive.when(() -> GateRederivation.restoreFrameUnderSigns(gate)).thenReturn(List.of(restored));
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
+            rederive.when(() -> GateRederivation.rederive(gate))
+                .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
+
+            assertTrue(run("regen", "alpha"));
+        }
+
+        verify(sender).sendMessage(said("Took a sign out of alpha's frame at"));
+        verify(sender).sendMessage(said("1 64 -3"));
+    }
+
+    /** A mistyped -shape changes no blocks: the name sign is only taken out once the command is good. */
+    @Test
+    void aMalformedShapeCommandLeavesTheNameSignAlone()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
+        {
+            assertTrue(run("regen", "alpha", "-shape"));
+            assertTrue(run("regen", "alpha", "-shape", "NoSuchShape"));
+
+            rederive.verify(() -> GateRederivation.restoreFrameUnderSigns(gate), never());
+        }
+
+        verify(sender).sendMessage(said("Name the shape"));
+        verify(sender).sendMessage(said("No gate shape called"));
+    }
 }
