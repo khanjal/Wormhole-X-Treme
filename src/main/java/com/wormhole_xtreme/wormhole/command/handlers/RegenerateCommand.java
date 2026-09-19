@@ -45,7 +45,6 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(args[1]));
             return true;
         }
-        takeSignOutOfFrame(sender, s);
         int missing = 0;
         final int shapeAt = flagAt(args, 2, "-shape");
         if (shapeAt > 0)
@@ -62,6 +61,10 @@ public class RegenerateCommand implements SubCommand
                 return true;
             }
             missing = fit.gaps().size();
+        }
+        else
+        {
+            takeSignOutOfFrame(sender, s);
         }
         regenerateOneGate(sender, s, missing, flagAt(args, 2, "-water") > 0, true);
         return true;
@@ -223,6 +226,8 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(shapeName) + " is loaded.");
             return null;
         }
+        // After the shape is known to exist, so a mistyped command changes no blocks.
+        takeSignOutOfFrame(sender, s);
         final String was = s.getGateShapeName();
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(s, shape);
         if (fit.expected() == 0)

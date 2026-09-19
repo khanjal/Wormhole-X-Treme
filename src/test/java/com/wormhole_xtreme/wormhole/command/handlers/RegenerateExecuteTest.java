@@ -688,4 +688,22 @@ class RegenerateExecuteTest
         verify(sender).sendMessage(said("name sign out of its frame at"));
         verify(sender).sendMessage(said("1 64 -3"));
     }
+
+    /** A mistyped -shape changes no blocks: the name sign is only taken out once the command is good. */
+    @Test
+    void aMalformedShapeCommandLeavesTheNameSignAlone()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
+        {
+            assertTrue(run("regen", "alpha", "-shape"));
+            assertTrue(run("regen", "alpha", "-shape", "NoSuchShape"));
+
+            rederive.verify(() -> GateRederivation.restoreFrameUnderNameSign(gate), never());
+        }
+
+        verify(sender).sendMessage(said("Name the shape"));
+        verify(sender).sendMessage(said("No gate shape called"));
+    }
 }
