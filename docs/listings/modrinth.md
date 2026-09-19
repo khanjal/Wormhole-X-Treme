@@ -324,8 +324,8 @@ image on Modrinth's own CDN.
 
 The changelog field takes Markdown, so it pastes in as it stands. Use the short release notes
 rather than the full `CHANGELOG.md` section: that runs to about 150 lines and reads as a wall on a
-download page. It leads with the **Upgrading** bullets, which are what an operator on 1.6.0 needs
-before they download.
+download page. It leads with the **Upgrading** bullets, which are what an upgrading operator
+needs before they download.
 
 ## Keeping it current
 

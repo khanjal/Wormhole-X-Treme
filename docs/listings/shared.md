@@ -353,36 +353,33 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 Modrinth and Hangar both take a per-version changelog, and a release's full section of
 [`CHANGELOG.md`](../../CHANGELOG.md) runs to well over a hundred lines — a wall on a download
 page. Use the short form below there and link the full one. Rewrite it per release; what follows
-is 1.7.0's.
+is 1.7.1's.
 
-**Keep both Upgrading bullets whatever else is cut**, especially the shape-files one: an upgrader
-who keeps their old shape files sees none of the headline dialling changes and reads the release
-as broken.
+**Keep the Upgrading bullets whatever else is cut.** Shape files are never overwritten, so an
+upgrader who keeps the old `Massive.shape` gets none of this release's fixes, and one who skips
+the regenerate keeps each Massive gate's name sign inside its ring. The 1.6.0 line stays too: this
+page is what somebody still on 1.6.0 downloads.
 
-> **Upgrading from 1.6.0 — two things to do.**
+> **Upgrading from 1.7.0 — take the new `Massive` shape.**
 >
-> - Command keywords now need a dash: `gate remove <gate> -destroy` (was `-all`), `complete
->   -help`, `mirror set <name> -stamp`, `beam admin cost <name> -default`. Scripts and command
->   blocks need updating.
-> - Your shape files are kept, not overwritten — so the new dialling will not appear until you
->   delete the bundled shapes you have not edited and restart. The startup log names them.
+> - Delete `Massive.shape` if you did not edit it, and restart. The startup log names it.
+> - Then run `/wormhole gate regen <gate>` on each Massive gate: its name sign stood inside the
+>   ring, and regen puts the block back and hangs the sign on the front. A gate with a hole where
+>   the sign was needs `/wormhole gate regen <gate> -shape Massive -fill`.
+> - Coming from 1.6.0? 1.7.0's steps apply as well: command keywords now need a dash, and the
+>   bundled shapes you have not edited should be deleted so the new dialling appears.
 >
 > **Stargates**
 >
-> - Chevrons light in the show's order, at a pace you can follow, with a lock-in sound.
-> - An eighth chevron locks when the destination is in another world.
-> - The inner ring turns as it dials, in a choice of patterns, or not at all.
-> - Build previews: stand a shape full size in front of you, check what it costs, get a build
->   guide, then place it for real.
-> - `gate regen` finds a gate's real shape and relights its chevrons.
->
-> **Travel**
->
-> - Tamed wolves, cats and parrots follow their owner through gates, rings, beams and mirrors.
+> - `Massive` is the same on both sides, and its name sign hangs on the front of the gate.
+> - `gate regen -fill` places the few frame blocks a gate is missing, from its own materials.
+> - A build preview placed over a gate fills in what it is missing, then regenerates it.
+> - Taking a name sign down no longer leaves a hole in the frame.
+> - `gate shapes validate` catches a name sign that would land inside the gate.
 >
 > **Server**
 >
-> - Supported through Minecraft 26.3. CraftBukkit no longer errors on ring countdowns.
+> - `/version WormholeXTreme` says when the jar was built.
 >
 > [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md)
 
