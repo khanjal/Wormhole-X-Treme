@@ -28,8 +28,8 @@ Four ways to get somewhere, each a different trade between what you build and wh
 | A gate dialling | A ring pair firing |
 |:---:|:---:|
 | ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](docs/images/gates/gate-dial.webp) | ![A ring pair firing: the stack rises, the light runs through it, the rings come home](docs/images/rings/ring-cycle.webp) |
-| **A traveller beaming out** | **A mirror opening onto another world** |
-| ![A traveller leaving in a column of light](docs/images/beams/beam-up.webp) | ![A mirror in a garden wall, opening onto a library](docs/images/mirrors/mirror-archway.webp) |
+| **A traveller beaming out** | **A round trip through a mirror, and its two rooms** |
+| ![A traveller leaving in a column of light](docs/images/beams/beam-up.webp) | ![A round trip: a punch into a mirror in a library, and back from the world it opened onto](docs/images/mirrors/mirror-effects.webp)<br>![One mirror showing the library it hangs in, then the garden it was pointed at](docs/images/mirrors/mirror-look.webp) |
 
 ## Features
 
