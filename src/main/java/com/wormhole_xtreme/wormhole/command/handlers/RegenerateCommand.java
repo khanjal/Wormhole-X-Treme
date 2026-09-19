@@ -145,14 +145,13 @@ public class RegenerateCommand implements SubCommand
             + ChatText.name(s.getGateName()) + " down to regenerate it.");
     }
 
-    /** Puts back a frame block the gate's name sign was hung in, so the frame can be detected whole. */
+    /** Puts back frame blocks a sign was hung in, so the frame can be detected whole. */
     private static void takeSignOutOfFrame(final CommandSender sender, final Stargate s)
     {
-        final org.bukkit.block.Block restored = GateRederivation.restoreFrameUnderNameSign(s);
-        if (restored != null)
+        for (final org.bukkit.block.Block restored : GateRederivation.restoreFrameUnderSigns(s))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Took "
-                + ChatText.name(s.getGateName()) + "'s name sign out of its frame at "
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Took a sign out of "
+                + ChatText.name(s.getGateName()) + "'s frame at "
                 + ChatText.value(restored.getX() + " " + restored.getY() + " " + restored.getZ())
                 + " and put the block back.");
         }

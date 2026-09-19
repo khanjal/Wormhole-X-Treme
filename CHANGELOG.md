@@ -20,8 +20,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   right, and two blocks past the corner at each end of it.
 - **`Massive`'s name sign hangs on the front of the gate.** Its `:N` was on the back ring, so the
   sign went into the layer in front of it.
-- **`gate regen` takes a name sign out of the frame and puts the block back** before it reads
-  the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
+- **`gate regen` takes any sign standing in the gate's frame down and puts the block back**
+  before it reads the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
   ring should be, and the markers were left alone.
 - **A name sign is never placed over the gate's frame or chevron material.** The gate goes
   without one, and the log says why.

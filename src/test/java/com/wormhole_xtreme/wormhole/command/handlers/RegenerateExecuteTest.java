@@ -677,7 +677,7 @@ class RegenerateExecuteTest
 
         try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
         {
-            rederive.when(() -> GateRederivation.restoreFrameUnderNameSign(gate)).thenReturn(restored);
+            rederive.when(() -> GateRederivation.restoreFrameUnderSigns(gate)).thenReturn(List.of(restored));
             rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
@@ -685,7 +685,7 @@ class RegenerateExecuteTest
             assertTrue(run("regen", "alpha"));
         }
 
-        verify(sender).sendMessage(said("name sign out of its frame at"));
+        verify(sender).sendMessage(said("Took a sign out of alpha's frame at"));
         verify(sender).sendMessage(said("1 64 -3"));
     }
 
@@ -700,7 +700,7 @@ class RegenerateExecuteTest
             assertTrue(run("regen", "alpha", "-shape"));
             assertTrue(run("regen", "alpha", "-shape", "NoSuchShape"));
 
-            rederive.verify(() -> GateRederivation.restoreFrameUnderNameSign(gate), never());
+            rederive.verify(() -> GateRederivation.restoreFrameUnderSigns(gate), never());
         }
 
         verify(sender).sendMessage(said("Name the shape"));

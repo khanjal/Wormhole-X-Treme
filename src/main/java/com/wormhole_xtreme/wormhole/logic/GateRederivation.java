@@ -626,45 +626,43 @@ public final class GateRederivation
     }
 
     /**
-     * Takes the gate's name sign down if it stands on a frame or chevron cell of the gate's shape,
-     * and puts that block back.
+     * Takes down every wall sign standing on a frame or chevron cell of the gate's shape, and puts
+     * the block back.
      *
-     * <p>1.7.0's {@code Massive} hung its sign inside the ring, and detection cannot match a frame
-     * with a sign in it, so this runs before the gate is re-detected.
+     * <p>1.7.0's {@code Massive} hung its name sign inside the ring, and detection cannot match a
+     * frame with a sign in it, so this runs before the gate is re-detected. It goes by the cells
+     * rather than the gate's recorded name holder, which a gate saved by an older version may not
+     * have where the sign actually is.
      *
      * @param gate
      *            the gate
-     * @return the block put back, or null if the sign was not in the frame
+     * @return the blocks put back, empty if no sign stood in the frame
      */
-    public static Block restoreFrameUnderNameSign(final Stargate gate)
+    public static List<Block> restoreFrameUnderSigns(final Stargate gate)
     {
-        final Block holder = gate.getGateNameBlockHolder();
-        final BlockFace facing = gate.getGateFacing();
-        if ((holder == null) || (facing == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        final World world = gate.getGateWorld();
+        if ((world == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
         {
-            return null;
-        }
-        final Block sign = holder.getRelative(facing);
-        if ((sign == null) || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(sign.getType()))
-        {
-            return null;
+            return List.of();
         }
         final Layout layout = layoutFor(gate, shape);
         if (layout == null)
         {
-            return null;
+            return List.of();
         }
+        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final List<Block> restored = new ArrayList<>();
         for (final GateBlueprint.Cell cell : frameCells(shape, layout.grid()))
         {
-            if ((cell.x() == sign.getX()) && (cell.y() == sign.getY()) && (cell.z() == sign.getZ()))
+            final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
             {
-                final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
-                sign.setType(((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
+                block.setType(((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
                     ? chevron : gate.getEffectiveStructureMaterial(), false);
-                return sign;
+                restored.add(block);
             }
         }
-        return null;
+        return restored;
     }
 
     /**

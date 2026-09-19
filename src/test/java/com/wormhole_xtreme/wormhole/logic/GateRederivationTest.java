@@ -749,9 +749,9 @@ class GateRederivationTest
         placed.put(key(signCell.getX(), signCell.getY(), signCell.getZ()), Material.OAK_WALL_SIGN);
         gate.setGateNameBlockHolder(signCell.getRelative(back));
 
-        final Block restored = GateRederivation.restoreFrameUnderNameSign(gate);
+        final List<Block> restored = GateRederivation.restoreFrameUnderSigns(gate);
 
-        assertSame(signCell, restored);
+        assertEquals(List.of(signCell), restored);
         assertEquals(frame, signCell.getType());
         final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
         assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
@@ -767,7 +767,26 @@ class GateRederivationTest
         final Block sign = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing());
         placed.put(key(sign.getX(), sign.getY(), sign.getZ()), Material.OAK_WALL_SIGN);
 
-        assertNull(GateRederivation.restoreFrameUnderNameSign(gate));
+        assertEquals(List.of(), GateRederivation.restoreFrameUnderSigns(gate));
         assertEquals(Material.OAK_WALL_SIGN, sign.getType());
+    }
+
+    /**
+     * A sign in the frame is found by the cell it stands in, not by the gate's recorded name holder.
+     *
+     * <p>Jericho, a {@code Massive} gate from 1.7.0, came up 459 of 460 with the sign reported in
+     * the frame, and a cleanup that started from the holder did nothing for it.
+     */
+    @Test
+    void aSignInTheFrameIsFoundWithoutTheNameHolder() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Block signCell = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing().getOppositeFace());
+        final Material frame = signCell.getType();
+        placed.put(key(signCell.getX(), signCell.getY(), signCell.getZ()), Material.OAK_WALL_SIGN);
+        gate.setGateNameBlockHolder(null);
+
+        assertEquals(List.of(signCell), GateRederivation.restoreFrameUnderSigns(gate));
+        assertEquals(frame, signCell.getType());
     }
 }
