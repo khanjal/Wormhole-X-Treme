@@ -1,5 +1,5 @@
 #!/bin/bash
-# Warm the Maven cache before a Claude Code on the web session starts.
+# Warm the Maven cache before a Claude Code web session starts.
 #
 # A web session gets a fresh container with an empty ~/.m2, so the first `mvn test` spends
 # several minutes downloading the build before it runs a single test. That download is what
