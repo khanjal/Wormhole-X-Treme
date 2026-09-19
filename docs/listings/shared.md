@@ -22,23 +22,20 @@ The values a release changes. Change them here first, then carry them into the s
 | Dependencies | none. Vault and LuckPerms optional, snakeyaml comes from the server, nothing shaded |
 | Jar | `WormholeXTreme-<version>.jar` |
 
-## Counts
+## Numbers the copy does not print
 
-Re-derive these every release. They are countable on purpose: a reader can check any of them.
+**No count that a release can change goes in listing copy.** Settings, test classes, CI legs,
+mirror looks, gate shapes, material groups, open Sonar findings: each of those was accurate the
+day it was written and wrong a release later, and a figure a reader can contradict from the badge
+or the repo is worse than no figure at all. Say what the thing is instead — "any setting", "a look
+for every biome", "the whole matrix" — and let the live badges carry anything numeric.
 
-| Value | Now | How to recount |
-|---|---|---|
-| Settings | 86 | constants in `ConfigManager.ConfigKeys`, up to the one ending in `;` |
-| Gate shapes | 6 | `ls src/main/resources/shapes/gate/` — 9 files, 3 of them `SignDial` variants |
-| Dial-spin patterns | 5, plus `none` | `top`, `chevron`, `lap`, `fill`, `pegasus` |
-| Mirror looks | 90 | `ls src/main/resources/shapes/mirror/ \| wc -l` |
-| Test classes | 254 | `find src/test -name '*Test.java' \| wc -l` |
-| CI build legs | 25 | 2 JDK + 11 Spigot + 11 Paper + 1 Purpur in `.github/workflows/ci.yml` |
-| CI Minecraft versions | 11 | `grep -c '^\s*- minecraft:' .github/workflows/ci.yml` |
+The numbers that do appear are the ones that describe how the plugin behaves rather than how much
+of it there is: the slab counts a ring pattern needs, how long a chevron holds, the three-second
+mirror round trip. Those are part of the description and do not drift on their own.
 
-**Do not print a test-method count.** `grep` finds ~2,245 `@Test` methods, but SonarCloud reports
-a different figure because it counts executions. Say "254 test classes", which is exactly
-countable, and let the coverage badge speak for the rest.
+The exceptions are in [Release facts](#release-facts) above: the version, the supported range and
+the Java versions. Those are required fields, and a release has to revisit them anyway.
 
 ## Links
 
@@ -131,20 +128,20 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Dialling the way the show does it.** Chevrons light in order — down the right side, up the
   left, the top one last — at half a second each on a Standard gate and a little slower on bigger
   ones. The last one holds a second and locks in with its own sound. Then the kawoosh.
-- **Six dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
+- **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
   `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap`
   takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an
   Atlantis gate does, and `none` turns it off. No pattern changes how fast a gate dials.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
-- **Six gate shapes** — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying
-  flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit
-  the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files are
-  written out on first run and never overwrite yours.
+- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
+  last lying flat to be dropped into rather than walked through. Shapes are plain text files:
+  copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped
+  files are written out on first run and never overwrite yours.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal,
   iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a
-  different-looking gate from one shape file. Four groups ship, you can write as many as you like,
-  and a gate framed in a material no group declares gets one added for it automatically. Per-gate
-  overrides beat the shape, which beats the group.
+  different-looking gate from one shape file. Several groups ship, you can write as many as you
+  like, and a gate framed in a material no group declares gets one added for it automatically.
+  Per-gate overrides beat the shape, which beats the group.
 - **A building assistant.** `/wormhole gate build <shape>` stands the shape full size in front of
   you, seen by you alone and made of no blocks, so you can build straight into it. Then:
   `-materials` lists what it will cost you block by block; `-guide` draws what is still to place,
@@ -220,7 +217,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Right-click to choose, punch to travel.** Right-click steps through the other mirrors by name;
   punch it and you land in front of that mirror's banner, facing out into its room. A whole round
   trip takes three seconds and no commands.
-- **Ninety looks ship** — one for every biome in the game, plus `hub`, `exit`, `market`,
+- **A look for every biome in the game**, plus `hub`, `exit`, `market`,
   `warning`, `private`, `shrine`, `vault` and more. They are plain text files: edit one and it
   stays edited, delete one and it comes back, add your own and the plugin offers it.
 - **Stamp a look from the room itself.** `mirror set <name> -stamp` reads the room and paints the
@@ -229,8 +226,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   Indoors, the room's own blocks decide, so a library comes back the brown of its shelves.
 - **The view is a capture**, taken once and kept on disk, so a mirror onto an archived world still
   shows it without loading that world.
-- **Tunable depth.** How far the room is drawn is a setting (160 blocks by default, about as far
-  as a server sends). A deep redraw rests before the next, so a mirror can never take more than a
+- **Tunable depth.** How far the room is drawn is a setting (about as far as a server
+  sends, by default). A deep redraw rests before the next, so a mirror can never take more than a
   quarter of the server's time however close you stand.
 - **It says what it is.** Look at one from a few blocks and it tells you above the hotbar what a
   click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the
@@ -244,7 +241,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in
   mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and
   parrots follow their owner through any of the four.
-- **Configured in game.** `/wormhole config <setting> <value>` changes any of the 86 settings on
+- **Configured in game.** `/wormhole config <setting> <value>` changes any setting on
   the spot — no reload, no restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and
   `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate,
@@ -269,7 +266,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 
 ## Compatibility
 
-- **Minecraft 1.20 – 26.3.** CI builds and runs the test suite against eleven versions across that
+- **Minecraft 1.20 – 26.3.** CI builds and runs the test suite across that
   range, at every boundary where the API moved.
 - **Spigot** is the primary target — the API this is compiled against. **Paper** is supported and
   built against at every version. **CraftBukkit** works, but has no action bar, so ring countdowns
@@ -292,12 +289,12 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 `khanjal_Wormhole-X-Treme`, at
 `https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=<metric>`
 
-- **Tested.** 254 test classes covering gate detection, dial sequencing, ring geometry, beam
+- **Tested.** A test suite covering gate detection, dial sequencing, ring geometry, beam
   timing, mirror captures, config parsing and the command layer. Coverage is on the badge above
   and is measured on every push, not quoted from memory.
-- **Twenty-five builds on every push.** Java 17 and Java 25; eleven Spigot API versions from 1.20
-  to 26.3; Paper at every one of those versions; and Purpur's newest. A Minecraft version is only
-  claimed as supported if it is in that matrix.
+- **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported
+  Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A
+  Minecraft version is only claimed as supported if it is in that matrix.
 - **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs
   on newer servers; one built against a new API can call something an old server has never heard
   of, and nothing catches that until a player reports a crash. Building against the floor makes
@@ -305,8 +302,7 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
   case, an API that has been removed.
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a
   pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring
-  campaign took the project from 893 open issues to zero, cut cognitive complexity by a third, and
-  closed every "method too complex" finding on the way.
+  campaign cleared the open backlog and closed every "method too complex" finding on the way.
 - **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no
   shading, no bundled library, and no database. Gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are
@@ -361,7 +357,7 @@ Ships on every listing.
 ## AI disclosure
 
 Goes last, after the non-affiliation notice, and only with **Under the hood** above it — the
-disclosure reads completely differently sitting under a twenty-five-leg CI matrix than it does
+disclosure reads completely differently sitting under a full CI matrix than it does
 standing alone. Claude Code is named as **plain text, never a link**.
 
 > **On how this is built**
@@ -372,7 +368,7 @@ standing alone. Claude Code is named as **plain text, never a link**.
 >
 > Development is AI-assisted — much of the modernisation work was done with Claude Code under
 > review, and the commit history records it. What that assistance does not do is decide what
-> ships: every change goes through the test suite, the twenty-five-leg build matrix and the static
+> ships: every change goes through the test suite, the full build matrix and the static
 > analysis described above before it is merged, and a maintainer reads it. The placeholder logo
 > was drawn the same way, which `TRADEMARK.md` says in as many words.
 >
@@ -383,5 +379,5 @@ Short version, if a site's page is tight:
 > **On how this is built**
 >
 > Development is AI-assisted, with Claude Code doing much of the modernisation work under review;
-> the commit history records it. Nothing merges without the test suite, the twenty-five-leg build
+> the commit history records it. Nothing merges without the test suite, the full build
 > matrix and the static analysis above. The code is all there under GPL-3.0.

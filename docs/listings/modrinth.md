@@ -44,9 +44,9 @@ Tick the four this supports and leave Folia off — ticking it would put the plu
 exactly the operators it does not work for.
 
 **On the version list.** Modrinth wants versions picked from its own list rather than a range, so
-this is 1.20 through 26.3 inclusive. CI proves eleven of them (see
-[`shared.md`](shared.md#counts)); the rest are in-between versions expected to work, which is the
-normal meaning of the field. Leave the snapshots toggle off.
+this is 1.20 through 26.3 inclusive. CI proves the ones at each boundary where the API moved; the
+rest are in-between versions expected to work, which is the normal meaning of the field. Leave
+the snapshots toggle off.
 
 ## Summary
 
@@ -94,10 +94,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 ![Dialling a gate](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-dial.webp)
 
 - **Dialling the way the show does it.** Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds a second and locks in with its own sound. Then the kawoosh.
-- **Six dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks: `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an Atlantis gate does, and `none` turns it off. No pattern changes how fast a gate dials.
+- **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks: `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an Atlantis gate does, and `none` turns it off. No pattern changes how fast a gate dials.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
-- **Six gate shapes** — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files are written out on first run and never overwrite yours.
-- **Material groups.** A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a different-looking gate from one shape file. Four groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
+- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files are written out on first run and never overwrite yours.
+- **Material groups.** A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
 - **A building assistant.** `/wormhole gate build <shape>` stands the shape full size in front of you, seen by you alone and made of no blocks, so you can build straight into it. Then: `-materials` lists what it will cost you block by block; `-guide` draws what is still to place, outlines a wrong block in red and makes a correct one disappear; `-layer` steps through a deep gate a layer at a time; `-activate` test-dials it; `-iris`, `-chevrons`, `-dhd` and `-material` redress it; `-share` shows it to another player or the whole world; and `-place` builds it for real.
 - **An iris, with remote codes.** A closed iris bounces anyone dialling in. Give a gate an IDC and callers can open it from the other end.
 - **Sign dialling and redstone.** A dial sign steps through destinations on right-click, with the selection coloured and wrapped in `» «` so it reads for a colourblind player. Wire redstone to the marked cell and a pulse dials whatever the sign shows; a second marked cell drives a lever while the gate is open, for doors and lamps.
@@ -139,10 +139,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **One banner on a wall** and `/wormhole mirror create <name>`. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall.
 - **It opens onto the room beyond.** Walk up and the banner gives way to an opening its own size showing another world's room in real blocks — so the view has depth and shifts as you move past it. Nothing in the world changes; only the players looking in are sent the view.
 - **Right-click to choose, punch to travel.** Right-click steps through the other mirrors by name; punch it and you land in front of that mirror's banner, facing out into its room. A whole round trip takes three seconds and no commands.
-- **Ninety looks ship** — one for every biome in the game, plus `hub`, `exit`, `market`, `warning`, `private`, `shrine`, `vault` and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
+- **A look for every biome in the game**, plus `hub`, `exit`, `market`, `warning`, `private`, `shrine`, `vault` and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
 - **Stamp a look from the room itself.** `mirror set <name> -stamp` reads the room and paints the banner from it: the biome picks the frame — rising flame for the Nether, white crests over blue for an ocean — and the blocks around it become coarse squares in their dominant colours. Indoors, the room's own blocks decide, so a library comes back the brown of its shelves.
 - **The view is a capture**, taken once and kept on disk, so a mirror onto an archived world still shows it without loading that world.
-- **Tunable depth.** How far the room is drawn is a setting (160 blocks by default, about as far as a server sends). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
+- **Tunable depth.** How far the room is drawn is a setting (about as far as a server sends, by default). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
 - **It says what it is.** Look at one from a few blocks and it tells you above the hotbar what a click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the wall, another mirror too near, a missing capture.
 - **Paper bonus:** optional fog pulled in to where the room ends, so the far edge is fog rather than this world's hills.
 
@@ -151,7 +151,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 ## For the people running the server
 
 - **Everything travels** — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
-- **Configured in game.** `/wormhole config <setting> <value>` changes any of the 86 settings on the spot — no reload, no restart. `/wormhole config sign` searches them.
+- **Configured in game.** `/wormhole config <setting> <value>` changes any setting on the spot — no reload, no restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
@@ -174,7 +174,7 @@ Drop the jar in `plugins/` and start the server. Nothing else is needed.
 
 ## Compatibility
 
-- **Minecraft 1.20 – 26.3.** CI builds and runs the test suite against eleven versions across that range, at every boundary where the API moved.
+- **Minecraft 1.20 – 26.3.** CI builds and runs the test suite across that range, at every boundary where the API moved.
 - **Spigot** is the primary target — the API this is compiled against. **Paper** is supported and built against at every version. **CraftBukkit** works, but has no action bar, so ring countdowns and mirror names do not appear above the hotbar. **Purpur** and **Pufferfish** are best effort. **Folia is not supported.**
 - **Java 17** or later for the plugin itself. Minecraft 1.20.5+ needs the server on Java 21, and 26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 
@@ -189,10 +189,10 @@ answered.
 ![Reliability](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=reliability_rating)
 ![Security](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating)
 
-- **Tested.** 254 test classes covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
-- **Twenty-five builds on every push.** Java 17 and Java 25; eleven Spigot API versions from 1.20 to 26.3; Paper at every one of those versions; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
+- **Tested.** A test suite covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
+- **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
 - **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
-- **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign took the project from 893 open issues to zero, cut cognitive complexity by a third, and closed every "method too complex" finding on the way.
+- **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
 - **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are welcome.
 
@@ -241,7 +241,7 @@ beaming and mirrors.
 
 Development is AI-assisted — much of the modernisation work was done with Claude Code under
 review, and the commit history records it. What that assistance does not do is decide what ships:
-every change goes through the test suite, the twenty-five-leg build matrix and the static analysis
+every change goes through the test suite, the full build matrix and the static analysis
 described above before it is merged, and a maintainer reads it. The placeholder logo was drawn the
 same way, which
 [TRADEMARK.md](https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md) says in as many
@@ -259,12 +259,12 @@ with no gallery section.
 
 | Image | Title | Description |
 |---|---|---|
-| `docs/images/gates/gate-shapes.png` | The six shapes that ship | Minimal, Standard, Large, Grand, Massive and Horizontal, built side by side from one camera position. **Feature this one.** |
-| `docs/images/gates/gate-shapes-active.png` | The six shapes, dialled | The same six with a wormhole open. |
+| `docs/images/gates/gate-shapes.png` | The shapes that ship | Minimal, Standard, Large, Grand, Massive and Horizontal, built side by side from one camera position. **Feature this one.** |
+| `docs/images/gates/gate-shapes-active.png` | The shapes, dialled | The same set with a wormhole open. |
 | `docs/images/gates/gate-horizontal.png` | Horizontal lies flat | Dropped into rather than walked through. Idle and dialled. |
-| `docs/images/gates/standard-palettes.png` | One shape, four palettes | The same Standard gate built in each material group that ships. The shape file is identical; only the blocks differ. |
-| `docs/images/gates/standard-palettes-active.png` | The four palettes, dialled | |
-| `docs/images/gates/standard-palettes-iris.png` | The four palettes with the iris closed | |
+| `docs/images/gates/standard-palettes.png` | One shape, several palettes | The same Standard gate built in each material group that ships. The shape file is identical; only the blocks differ. |
+| `docs/images/gates/standard-palettes-active.png` | The palettes, dialled | |
+| `docs/images/gates/standard-palettes-iris.png` | The palettes with the iris closed | |
 
 Upload the files rather than hotlinking `raw.githubusercontent.com` — a gallery entry wants an
 image on Modrinth's own CDN.

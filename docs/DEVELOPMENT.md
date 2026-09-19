@@ -132,9 +132,10 @@ symbol, and one was fixable in a line.
   the tables between the `<!-- ...:start -->` markers in the design documents come from
   `scripts/render_*_sheets.py`, and a test fails until they are re-run after the source changes.
 - **Plugin-site listing copy lives in [`docs/listings/`](listings/).** Its facts are in
-  `listings/shared.md`, each site's fields and markup in its own file, and the counts it quotes
-  (settings, shapes, test classes, CI legs) come with the command that re-derives them. A release
-  that changes one of those numbers changes it there too.
+  `listings/shared.md` and each site's fields and markup in its own file. It prints no count a
+  release can change — not settings, test classes, CI legs, shapes or mirror looks — because such
+  a figure goes stale where nobody is looking. Only the version, the supported range and the Java
+  versions are numbers there, and a live badge carries the rest.
 
 ## Submitting changes
 

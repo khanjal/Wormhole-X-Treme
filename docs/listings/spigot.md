@@ -87,10 +87,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 [LIST]
 [*][B]Dialling the way the show does it.[/B] Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds a second and locks in with its own sound. Then the kawoosh.
-[*][B]Six dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] lands on the chevron itself, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, and [ICODE]none[/ICODE] turns it off. No pattern changes how fast a gate dials.
+[*][B]Dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] lands on the chevron itself, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, and [ICODE]none[/ICODE] turns it off. No pattern changes how fast a gate dials.
 [*][B]An eighth chevron[/B] locks when the destination is in another world, after the top one.
-[*][B]Six gate shapes[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files are written out on first run and never overwrite yours.
-[*][B]Material groups.[/B] A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build [ICODE]Standard[/ICODE] in obsidian or in lapis and get a different-looking gate from one shape file. Four groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
+[*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files are written out on first run and never overwrite yours.
+[*][B]Material groups.[/B] A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build [ICODE]Standard[/ICODE] in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
 [*][B]A building assistant.[/B] [ICODE]/wormhole gate build <shape>[/ICODE] stands the shape full size in front of you, seen by you alone and made of no blocks, so you can build straight into it. Then: [ICODE]-materials[/ICODE] lists what it will cost you block by block; [ICODE]-guide[/ICODE] draws what is still to place, outlines a wrong block in red and makes a correct one disappear; [ICODE]-layer[/ICODE] steps through a deep gate a layer at a time; [ICODE]-activate[/ICODE] test-dials it; [ICODE]-iris[/ICODE], [ICODE]-chevrons[/ICODE], [ICODE]-dhd[/ICODE] and [ICODE]-material[/ICODE] redress it; [ICODE]-share[/ICODE] shows it to another player or the whole world; and [ICODE]-place[/ICODE] builds it for real.
 [*][B]An iris, with remote codes.[/B] A closed iris bounces anyone dialling in. Give a gate an IDC and callers can open it from the other end.
 [*][B]Sign dialling and redstone.[/B] A dial sign steps through destinations on right-click, with the selection coloured and wrapped in [ICODE]» «[/ICODE] so it reads for a colourblind player. Wire redstone to the marked cell and a pulse dials whatever the sign shows; a second marked cell drives a lever while the gate is open, for doors and lamps.
@@ -141,10 +141,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]One banner on a wall[/B] and [ICODE]/wormhole mirror create <name>[/ICODE]. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall.
 [*][B]It opens onto the room beyond.[/B] Walk up and the banner gives way to an opening its own size showing another world's room in real blocks — so the view has depth and shifts as you move past it. Nothing in the world changes; only the players looking in are sent the view.
 [*][B]Right-click to choose, punch to travel.[/B] Right-click steps through the other mirrors by name; punch it and you land in front of that mirror's banner, facing out into its room. A whole round trip takes three seconds and no commands.
-[*][B]Ninety looks ship[/B] — one for every biome in the game, plus [ICODE]hub[/ICODE], [ICODE]exit[/ICODE], [ICODE]market[/ICODE], [ICODE]warning[/ICODE], [ICODE]private[/ICODE], [ICODE]shrine[/ICODE], [ICODE]vault[/ICODE] and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
+[*][B]A look for every biome in the game[/B], plus [ICODE]hub[/ICODE], [ICODE]exit[/ICODE], [ICODE]market[/ICODE], [ICODE]warning[/ICODE], [ICODE]private[/ICODE], [ICODE]shrine[/ICODE], [ICODE]vault[/ICODE] and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
 [*][B]Stamp a look from the room itself.[/B] [ICODE]mirror set <name> -stamp[/ICODE] reads the room and paints the banner from it: the biome picks the frame — rising flame for the Nether, white crests over blue for an ocean — and the blocks around it become coarse squares in their dominant colours. Indoors, the room's own blocks decide, so a library comes back the brown of its shelves.
 [*][B]The view is a capture[/B], taken once and kept on disk, so a mirror onto an archived world still shows it without loading that world.
-[*][B]Tunable depth.[/B] How far the room is drawn is a setting (160 blocks by default, about as far as a server sends). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
+[*][B]Tunable depth.[/B] How far the room is drawn is a setting (about as far as a server sends, by default). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
 [*][B]It says what it is.[/B] Look at one from a few blocks and it tells you above the hotbar what a click will do. [ICODE]mirror debug[/ICODE] lists every fact about a mirror in green and red — a gap in the wall, another mirror too near, a missing capture.
 [*][B]Paper bonus:[/B] optional fog pulled in to where the room ends, so the far edge is fog rather than this world's hills.
 [/LIST]
@@ -154,7 +154,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 [LIST]
 [*][B]Everything travels[/B] — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
-[*][B]Configured in game.[/B] [ICODE]/wormhole config <setting> <value>[/ICODE] changes any of the 86 settings on the spot — no reload, no restart. [ICODE]/wormhole config sign[/ICODE] searches them.
+[*][B]Configured in game.[/B] [ICODE]/wormhole config <setting> <value>[/ICODE] changes any setting on the spot — no reload, no restart. [ICODE]/wormhole config sign[/ICODE] searches them.
 [*][B]Every sound is a setting[/B], resource pack sounds included, with a volume per subsystem and [ICODE]none[/ICODE] to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
 [*][B]Works with or without a permissions plugin.[/B] Vault and LuckPerms if you have them, a built-in fallback if you do not.
 [*][B]Plain YAML storage[/B], one file per gate. No database.
@@ -176,7 +176,7 @@ Drop the jar in [ICODE]plugins/[/ICODE] and start the server. Nothing else is ne
 [SIZE=5][B]Compatibility[/B][/SIZE]
 
 [LIST]
-[*][B]Minecraft 1.20 - 26.3.[/B] CI builds and runs the test suite against eleven versions across that range, at every boundary where the API moved.
+[*][B]Minecraft 1.20 - 26.3.[/B] CI builds and runs the test suite across that range, at every boundary where the API moved.
 [*][B]Spigot[/B] is the primary target — the API this is compiled against. [B]Paper[/B] is supported and built against at every version. [B]CraftBukkit[/B] works, but has no action bar, so ring countdowns and mirror names do not appear above the hotbar. [B]Purpur[/B] and [B]Pufferfish[/B] are best effort. [B]Folia is not supported.[/B]
 [*][B]Java 17[/B] or later for the plugin itself. Minecraft 1.20.5+ needs the server on Java 21, and 26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 [/LIST]
@@ -189,10 +189,10 @@ What CI proves is that the plugin compiles and its tests pass against each versi
 [CENTER][IMG]https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=coverage[/IMG] [IMG]https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=sqale_rating[/IMG] [IMG]https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=reliability_rating[/IMG] [IMG]https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating[/IMG][/CENTER]
 
 [LIST]
-[*][B]Tested.[/B] 254 test classes covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
-[*][B]Twenty-five builds on every push.[/B] Java 17 and Java 25; eleven Spigot API versions from 1.20 to 26.3; Paper at every one of those versions; and Purpur's newest. A Minecraft version is only claimed as supported on the README if it is in that matrix.
+[*][B]Tested.[/B] A test suite covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
+[*][B]Every push builds and tests the whole matrix.[/B] Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported on the README if it is in that matrix.
 [*][B]Compiled against the oldest supported API on purpose.[/B] A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
-[*][B]Static analysis on every pull request.[/B] SpotBugs runs on each build, and SonarCloud fails a pull request that carries [I]any[/I] open finding — not merely a coverage gate. A 2026-09 refactoring campaign took the project from 893 open issues to zero, cut cognitive complexity by a third, and closed every "method too complex" finding on the way.
+[*][B]Static analysis on every pull request.[/B] SpotBugs runs on each build, and SonarCloud fails a pull request that carries [I]any[/I] open finding — not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
 [*][B]Nothing third-party in the jar.[/B] Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
 [*][B]GPL-3.0, and the issue tracker is open.[/B] Bug reports get answered and pull requests are welcome.
 [/LIST]
@@ -200,11 +200,11 @@ What CI proves is that the plugin compiles and its tests pass against each versi
 
 [SIZE=5][B]Gallery[/B][/SIZE]
 
-[B]The six shapes that ship[/B], built side by side from one camera position — Minimal, Standard, Large, Grand, Massive and Horizontal.
+[B]The shapes that ship[/B], built side by side from one camera position — Minimal, Standard, Large, Grand, Massive and Horizontal.
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-shapes.png[/IMG][/CENTER]
 
-[B]The same six, dialled.[/B]
+[B]The same set, dialled.[/B]
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-shapes-active.png[/IMG][/CENTER]
 
@@ -212,11 +212,11 @@ What CI proves is that the plugin compiles and its tests pass against each versi
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-horizontal.png[/IMG][/CENTER]
 
-[B]One shape, four palettes.[/B] The same Standard gate built in each of the material groups that ship. The shape file is identical; only the blocks differ, and you can write as many groups as you like.
+[B]One shape, several palettes.[/B] The same Standard gate built in each of the material groups that ship. The shape file is identical; only the blocks differ, and you can write as many groups as you like.
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/standard-palettes.png[/IMG][/CENTER]
 
-[B]The four palettes dialled[/B], and with the iris closed.
+[B]The palettes dialled[/B], and with the iris closed.
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/standard-palettes-active.png[/IMG]
 [IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/standard-palettes-iris.png[/IMG][/CENTER]
@@ -255,7 +255,7 @@ The plugin ships no franchise material of any kind: every sound it plays is a st
 
 Wormhole X-Treme is a fifteen-year-old plugin brought forward, not a new one generated. The original was written in 2011 by Lologarithm and alron; this fork modernises it and adds rings, beaming and mirrors.
 
-Development is AI-assisted — much of the modernisation work was done with Claude Code under review, and the commit history records it. What that assistance does not do is decide what ships: every change goes through the test suite, the twenty-five-leg build matrix and the static analysis described above before it is merged, and a maintainer reads it. The placeholder logo was drawn the same way, which [URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md]TRADEMARK.md[/URL] says in as many words.
+Development is AI-assisted — much of the modernisation work was done with Claude Code under review, and the commit history records it. What that assistance does not do is decide what ships: every change goes through the test suite, the full build matrix and the static analysis described above before it is merged, and a maintainer reads it. The placeholder logo was drawn the same way, which [URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md]TRADEMARK.md[/URL] says in as many words.
 
 The code is all there under GPL-3.0. Read it, fork it, or tell me where it is wrong.
 ```
@@ -287,9 +287,9 @@ Read against Spigot's rules text as of 2025-07-19. Four things matter; one is a 
 - **"Posting someone else's plugin or resource is not allowed."** This is the rule a report would
   cite, and it states no fork exception. What defends the listing is that the rule's wording
   targets *minor* edits — configuration changes, code lifted from tutorials — and nothing here is
-  minor: three transport systems the original never had, a version range it never saw, 254 test
-  classes. The lineage line in the first screenful does the work; the Credits section at the
-  bottom is not enough on its own. If it is ever raised, the answer is the commit history and the
+  minor: three transport systems the original never had, a version range it never saw, and a test
+  suite and CI matrix standing behind both. The lineage line in the first screenful does the work;
+  the Credits section at the bottom is not enough on its own. If it is ever raised, the answer is the commit history and the
   three new subsystems, not an argument about the GPL. There is precedent: another fork of this
   same plugin is already live on Spigot, crediting the original authors and linking its source.
 - **Brand names.** "Stargate-style travel" is structurally the "AAAA like BBBB" pattern the rule

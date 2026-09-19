@@ -12,7 +12,7 @@ Hangar takes **Markdown**, like Modrinth, so the page below is close to `shared.
 **The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
 **(assumed)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
-against Paper at all eleven versions) but inverts how Spigot and Modrinth describe it. The page
+against Paper at every supported version) but inverts how Spigot and Modrinth describe it. The page
 below leads with Paper and mentions Spigot second, which is the only place the copy deliberately
 diverges from the other two.
 
@@ -107,8 +107,8 @@ Each has its own page: **[Stargates](#)** · **[Transport rings](#)** · **[Beam
 ### Stargates
 
 A frame of blocks, a button, and `/dial`. Chevrons light in the show's order, the last one locks
-in with its own sound, and then the kawoosh. Six shapes ship, from Minimal to Massive plus a
-Horizontal one that lies flat; six dial-spin patterns; an eighth chevron for a cross-world
+in with its own sound, and then the kawoosh. Shapes ship from Minimal to Massive, plus a
+Horizontal one that lies flat; a choice of dial-spin patterns; an eighth chevron for a cross-world
 destination; an iris with remote codes; sign and redstone dialling. Shapes and material palettes
 are plain text files you can edit, and `/wormhole gate build` stands the shape full size in front
 of you as a guide before you place a block.
@@ -130,7 +130,7 @@ own places. Charge per destination through Vault if you want to.
 
 Hang a banner on a wall and run one command. Walk up to it and the banner gives way to an opening
 showing another world's room in real blocks, with depth that shifts as you move past it.
-Right-click to choose where it leads, punch it to go. Ninety looks ship, one per biome, and
+Right-click to choose where it leads, punch it to go. A look ships for every biome, and
 `-stamp` paints a banner from the room it stands in.
 
 **On Paper:** optional fog pulled in to where the room ends, so the far edge is fog rather than
@@ -141,7 +141,7 @@ this world's hills.
 ## For the people running the server
 
 - **Everything travels** — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
-- **Configured in game.** `/wormhole config <setting> <value>` changes any of the 86 settings on the spot — no reload, no restart. `/wormhole config sign` searches them.
+- **Configured in game.** `/wormhole config <setting> <value>` changes any setting on the spot — no reload, no restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
@@ -164,7 +164,7 @@ Drop the jar in `plugins/` and start the server. Nothing else is needed.
 
 ## Compatibility
 
-- **Minecraft 1.20 – 26.3**, one jar. CI builds and runs the test suite against eleven versions across that range, at every boundary where the API moved.
+- **Minecraft 1.20 – 26.3**, one jar. CI builds and runs the test suite across that range, at every boundary where the API moved.
 - **Paper** is built and tested against at every one of those versions. **Spigot** is the API the jar is compiled against. **CraftBukkit** works, but has no action bar, so ring countdowns and mirror names do not appear above the hotbar. **Purpur** and **Pufferfish** are best effort. **Folia is not supported.**
 - **Java 17** or later for the plugin itself. Minecraft 1.20.5+ needs the server on Java 21, and 26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 
@@ -179,10 +179,10 @@ answered.
 ![Reliability](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=reliability_rating)
 ![Security](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating)
 
-- **Tested.** 254 test classes covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
-- **Twenty-five builds on every push.** Java 17 and Java 25; eleven Spigot API versions from 1.20 to 26.3; Paper at every one of those versions; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
+- **Tested.** A test suite covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
+- **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
 - **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
-- **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign took the project from 893 open issues to zero, cut cognitive complexity by a third, and closed every "method too complex" finding on the way.
+- **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
 - **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are welcome.
 
@@ -231,7 +231,7 @@ beaming and mirrors.
 
 Development is AI-assisted — much of the modernisation work was done with Claude Code under
 review, and the commit history records it. What that assistance does not do is decide what ships:
-every change goes through the test suite, the twenty-five-leg build matrix and the static analysis
+every change goes through the test suite, the full build matrix and the static analysis
 described above before it is merged, and a maintainer reads it. The placeholder logo was drawn the
 same way, which
 [TRADEMARK.md](https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md) says in as many

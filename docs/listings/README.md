@@ -16,11 +16,9 @@ changes, you change it there and then carry it into whichever site files quote i
 
 ## Updating for a release
 
-1. **Re-derive the counts** in [`shared.md`](shared.md#counts). Each row carries the command that
-   produces it. They drift — the count of settings moved between 1.7.0 being drafted and it being
-   published — and a number a reader can contradict is worse than no number.
-2. **Bump the version and the supported range** in [`shared.md`](shared.md#release-facts), then in
-   each site file's fields table.
+1. **Bump the version and the supported range** in [`shared.md`](shared.md#release-facts), then in
+   each site file's fields table. These are the only numbers a release should have to touch — see
+   the convention below.
 3. **Check the image URLs still resolve.** They are pinned to `main`, not to a tag, so they follow
    whatever later happens to those files. That is deliberate: a tag URL 404s until the tag exists,
    which is what broke the first Spigot preview. The cost is that renaming a capture breaks three
@@ -30,9 +28,12 @@ changes, you change it there and then carry it into whichever site files quote i
 
 ## Conventions
 
-- **Facts are countable or they do not go in.** "253 test classes" is checkable by anyone who
-  clones the repo; "thousands of tests" is not, and a figure a badge contradicts is worse than
-  silence. Where a live badge exists, prefer the badge.
+- **No count that a release can change goes in the copy.** Settings, test classes, CI legs, mirror
+  looks, gate shapes, material groups, open Sonar findings: every one of those was accurate the
+  day it was written and wrong a release later, and a figure a reader can contradict from the
+  badge or the repo is worse than no figure. Say what the thing is — "any setting", "a look for
+  every biome", "the whole matrix" — and let the live badges carry anything numeric. See
+  [`shared.md`](shared.md#numbers-the-copy-does-not-print) for what this does and does not cover.
 - **Images are pinned to `main`.** See above.
 - **The name and logo are not under the GPL.** Every listing says so and links
   [`TRADEMARK.md`](../../TRADEMARK.md); more than one project carries this name.
