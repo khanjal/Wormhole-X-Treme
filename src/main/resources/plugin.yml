@@ -8,6 +8,7 @@ softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 description: >
   Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
   Iris, configurable Wormhole materials, and much much more.
+  Built ${build.stamp} UTC.
 
 commands:
   dial:

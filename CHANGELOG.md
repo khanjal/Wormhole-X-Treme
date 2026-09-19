@@ -29,6 +29,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   chevron or portal cell, where the sign would land inside the gate. `gate shapes reload` refuses
   such a shape, 1.7.0's `Massive` among them; startup still loads it.
 
+### Server
+
+- **`/version WormholeXTreme` says when the jar was built**, in UTC, under the description, so two
+  builds of one version can be told apart.
+
 ## 1.7.0 (2026-09-19)
 
 **Upgrading: command keywords start with `-`, and the new gate shapes are yours to take.**

@@ -8,6 +8,11 @@
 	<name>Wormhole-X-Treme</name>
 	 <properties>
 		 <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- Printed by /version under the description, so two builds of one version can be told
+		     apart on a server. Maven stamps it in UTC; a property is needed because resource
+		     filtering does not see maven.build.timestamp directly. -->
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+		<build.stamp>${maven.build.timestamp}</build.stamp>
 		<!--
 			Compile against the OLDEST server this plugin supports, not the newest. A plugin
 			built against an old API runs on newer servers; one built against a new API can
