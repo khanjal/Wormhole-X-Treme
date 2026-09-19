@@ -33,7 +33,7 @@ final class PreviewPlacer
 
     private PreviewPlacer() {}
 
-    static Placed place(final GatePreview preview)
+    static Placed place(final GatePreview preview, final boolean overAGate)
     {
         if (!StargateHelper.isPossibleGateFrameMaterial(preview.palette().structure()))
         {
@@ -46,12 +46,17 @@ final class PreviewPlacer
         {
             return refused(unreachable);
         }
-        final List<String> inTheWay = inTheWay(preview, all);
+        final Stargate under = overAGate ? gateUnder(preview.world(), all) : null;
+        final List<String> inTheWay = inTheWay(preview, all, under);
         if (!inTheWay.isEmpty())
         {
             return new Placed(Outcome.IN_THE_WAY, inTheWay, null, null);
         }
         final Block button = build(preview);
+        if (under != null)
+        {
+            return (button == null) ? refused(Outcome.NOT_FOUND) : new Placed(Outcome.REPAIRED, List.of(), under, button);
+        }
         final Stargate gate = (button == null) ? null
             : GatePreviews.detector.find(button, preview.grid().facing(), preview.shape());
         return (gate == null) ? refused(Outcome.NOT_FOUND) : new Placed(Outcome.PLACED, List.of(), gate, button);
@@ -121,8 +126,31 @@ final class PreviewPlacer
                 && (data instanceof Directional directional) && (directional.getFacing() == preview.grid().facing()));
     }
 
-    /** Every block the gate needs that holds something else, and every one a gate or ring owns. */
-    private static List<String> inTheWay(final GatePreview preview, final List<Cell> all)
+    /**
+     * A gate owning a block the preview covers, or null. Any block a ring or another gate owns stays
+     * in the way, so a preview over more than one is still refused.
+     */
+    private static Stargate gateUnder(final World world, final List<Cell> all)
+    {
+        for (final Cell cell : all)
+        {
+            if (GatePreviews.occupied.at(world, cell.x(), cell.y(), cell.z()))
+            {
+                final Stargate gate = GatePreviews.gateAt.at(world, cell.x(), cell.y(), cell.z());
+                if (gate != null)
+                {
+                    return gate;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Every block the gate needs that holds something else, and every one a gate or ring owns, apart
+     * from the gate it stands over.
+     */
+    private static List<String> inTheWay(final GatePreview preview, final List<Cell> all, final Stargate under)
     {
         final World world = preview.world();
         final List<String> found = new ArrayList<>();
@@ -130,7 +158,7 @@ final class PreviewPlacer
         for (final Cell cell : all)
         {
             final Material there = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
-            final boolean owned = GatePreviews.occupied.at(world, cell.x(), cell.y(), cell.z());
+            final boolean owned = ownedByAnother(world, cell, under);
             final boolean taken = owned || ((cell.part() == Part.PORTAL) ? BuildGuide.blocksOpening(there)
                 : (BuildGuide.of(cell, preview.palette(), there) == BuildGuide.State.WRONG));
             if (!taken)
@@ -154,9 +182,22 @@ final class PreviewPlacer
         return found;
     }
 
+    /** Whether a gate or ring other than the one the preview stands over owns this block. */
+    private static boolean ownedByAnother(final World world, final Cell cell, final Stargate under)
+    {
+        return GatePreviews.occupied.at(world, cell.x(), cell.y(), cell.z())
+            && ((under == null) || (GatePreviews.gateAt.at(world, cell.x(), cell.y(), cell.z()) != under));
+    }
+
     private static Placed refused(final Outcome outcome)
     {
         return new Placed(outcome, List.of(), null, null);
+    }
+
+    /** The gate a block belongs to, or null. */
+    static Stargate gateAt(final World world, final int x, final int y, final int z)
+    {
+        return StargateManager.getGateFromBlock(world.getBlockAt(x, y, z));
     }
 
     /** Whether a block belongs to a gate or a ring already standing. */

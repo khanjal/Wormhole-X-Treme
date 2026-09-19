@@ -352,7 +352,8 @@ public class Build implements CommandExecutor
     /** {@code place}; null once it has answered itself. */
     private static GatePreviews.Control place(final Player player)
     {
-        final GatePreviews.Placed placed = GatePreviews.place(player);
+        // Filling in a gate already there regenerates it, which is an admin's to do, as regen is.
+        final GatePreviews.Placed placed = GatePreviews.place(player, CommandHandlerUtils.hasConfigPermission(player));
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         switch (placed.outcome())
         {
@@ -371,6 +372,12 @@ public class Build implements CommandExecutor
                 player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                     + good("Placed " + placed.gate().getGateShape().getShapeName() + "."));
                 GateInteractionHandler.offerNewGate(player, placed.button(), placed.gate());
+            }
+            case REPAIRED -> {
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + good("Filled in " + placed.gate().getGateName() + "'s missing blocks.") + " Regenerating it.");
+                com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateAt(player, placed.gate(),
+                    placed.button(), null, false);
             }
         }
         return null;

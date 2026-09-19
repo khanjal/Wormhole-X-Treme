@@ -59,7 +59,7 @@ Look at a preview and `/wormhole gate preview <action>` changes it, for you alon
 | `guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
 | `layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
 | `share [<player>\|-all]` | Shows it to a player, or with `-all` to everyone in its world, including anyone who arrives later; again stops. With `wormhole.build.preview.share`. They see it change, dial and guide as you do, and hear it, but only you can change it or press its button. Alone, `-share` says who sees it. |
-| `place` | Builds it for real, with `wormhole.build.preview.place`: frame, chevrons, DHD and a button, in the materials it shows. Then name it with `/wormhole gate complete`, as if you had pressed the button. A button or lever already hung on the DHD facing you is kept. Nothing is placed if a block is in the way (the first five are named), part of it belongs to another gate or ring, is unloaded or past the world border, or no material group uses its frame block. A dial sign is left for you to write. |
+| `place` | Builds it for real, with `wormhole.build.preview.place`: frame, chevrons, DHD and a button, in the materials it shows. Then name it with `/wormhole gate complete`, as if you had pressed the button. A button or lever already hung on the DHD facing you is kept. Nothing is placed if a block is in the way (the first five are named), part of it belongs to another gate or ring, is unloaded or past the world border, or no material group uses its frame block. A dial sign is left for you to write. With `wormhole.config`, a preview laid over one gate already standing fills in only the blocks that gate is missing, never replacing one, and then regenerates it, keeping its name, owner, network and IDC. |
 
 **Picking a build back up.** Look at the button or lever on a DHD you have already placed and run
 `gate build <shape> [group]`: the preview stands on that DHD, where the gate will be found, rather
@@ -429,7 +429,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 |---|---|
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate remove <gate> [-destroy]` | Take it down; `-destroy` takes its frame down too |
-| `gate regen [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
+| `gate regen <gate> [-shape <shape>] [-fill] [-water]` \| `[-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD; that form takes only `-water`. |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 
@@ -457,10 +457,14 @@ its frame does not match takes the shape it does match, and says so; one that ma
 left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
 **`-shape <shape>`**, for one named gate rather than `-all`, names the shape for a gate that matches none, such as one recorded under the
 wrong shape and missing a block or two. It takes the shape if at least 90% of its frame is
-standing, lists what is missing or wrong either way, and places nothing. The shape is laid where
+standing, and lists what is missing or wrong either way. The shape is laid where
 the gate's own recorded frame is: near where the DHD puts it, up to six blocks along the facing
 and three up, down or across, or facing the other way. So a gate whose DHD is a block or two off,
 or which was recorded facing backwards, still lines up. The light order is laid the same way.
+**`-fill`**, for one named gate, places the frame blocks a gate is missing, from its own frame and chevron materials, and
+names each one. It places at most three, or one in a hundred on a big gate, and only into air, water
+or lava: more missing than that, or a solid block where the frame should be, and it places nothing
+and says why. Without it, regenerate places nothing.
 **`-water`** clears real water or lava standing in a closed gate's opening or woosh, left by older
 versions that built the portal from blocks when a dial glitched. Without it, regenerate only says
 how many stand there, since a gate built underwater has ordinary water in its opening.
