@@ -3,9 +3,9 @@
 Copy for a Hangar project at <https://hangar.papermc.io/>. Facts and prose come from
 [`shared.md`](shared.md); what is here is Hangar's own field set and markup.
 
-Fields marked **(assumed)** come from how Hangar normally works, not from looking at the form —
-its docs are not reachable from the sessions this was written in. Check each one against the page
-and correct it here.
+Rows marked **(confirmed)** were read off the real form while the project was being filled in on
+2026-09-19. Rows still marked **(assumed)** come from how Hangar normally works rather than from
+looking; check those against the page and correct them here.
 
 Hangar takes **Markdown**, like Modrinth, so the page below is close to `shared.md` as written.
 
@@ -26,15 +26,17 @@ diverges from the other two.
 | URL / namespace | `khanjal/Wormhole-X-Treme` **(assumed: it takes the owner's name)** |
 | Tagline | see [Tagline](#tagline) below |
 | Category **(assumed)** | Gameplay |
-| Keywords **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
+| Keywords **(confirmed)** | `stargate`, `teleport`, `portal`, `warp`, `rings` |
+| Tags **(confirmed)** | Addon **off**, Library **off**, Supports Folia **off** |
 | Licence | `GPL-3.0-or-later` — see the note in [`modrinth.md`](modrinth.md#fields) |
 | Platforms **(assumed)** | Paper only. Not Velocity, not Waterfall — this is a server plugin, not a proxy plugin. |
-| Platform versions | 1.20 through 26.3 |
-| Issues | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
-| Source | `https://github.com/khanjal/Wormhole-X-Treme` |
-| Support | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
-| Wiki | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
-| Donations | none |
+| Platform versions **(confirmed)** | tick every 1.20.x, 1.21.x and 26.x individually. Snapshots off. |
+| Issues **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
+| Source **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme` |
+| Support **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
+| Wiki **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
+| Discord **(confirmed)** | blank |
+| Donations **(confirmed)** | blank |
 | Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` |
 
 **On the category.** Hangar's list is shorter than Modrinth's and has no Transportation
@@ -44,18 +46,26 @@ mean something narrower. Check the list on the form and correct this row.
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
+**On the keywords.** These deliberately differ from the Spigot tags, which are `stargate`,
+`teleport`, `portal`, `transportation`, `wormhole`. `transportation` is a Hangar *category* rather
+than a useful keyword there, and `wormhole` is already in the project name, so the two slots go to
+`warp` and `rings` instead — `rings` being the one subsystem nobody would find under the other
+four.
+
+**On the platform versions.** Hangar wants each one ticked individually rather than a range, so
+tick every 1.20.x, 1.21.x and 26.x. Leave snapshots off.
+
 ## Tagline
 
-Hangar's tagline cap is 120 characters **(assumed)**, between Spigot's 100 and Modrinth's 256. The
-preferred tagline from [`shared.md`](shared.md#tagline) fits as-is at 97, and there is room for a
-slightly fuller one:
+Hangar's tagline cap is **120 characters, confirmed on the form**, between Spigot's 100 and
+Modrinth's 256. The preferred tagline from [`shared.md`](shared.md#tagline) fits as-is at 97, and
+there is room for a slightly fuller one:
 
 ```
 Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3, no dependencies.
 ```
 
-(115 characters.) If the cap turns out to be 100 after all, use the 97-character version in
-[`shared.md`](shared.md#tagline) unchanged.
+(115 characters, so it fits the 120 cap with five to spare.)
 
 ## Home page
 
@@ -254,7 +264,7 @@ text.
 | Version | `1.7.0` |
 | Release channel | Release |
 | Platform | Paper |
-| Platform versions | 1.20 through 26.3 |
+| Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
 | File | `WormholeXTreme-1.7.0.jar` |
 | Changelog | the 1.7.0 section of [`CHANGELOG.md`](../../CHANGELOG.md), pasted as Markdown |
 

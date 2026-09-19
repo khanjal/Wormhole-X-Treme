@@ -3,9 +3,9 @@
 Copy for a Modrinth project at <https://modrinth.com/plugins>. Facts and prose come from
 [`shared.md`](shared.md); what is here is Modrinth's own field set and markup.
 
-Fields marked **(assumed)** come from how Modrinth normally works, not from looking at the form —
-its docs are not reachable from the sessions this was written in. Check each one against the page
-and correct it here.
+Rows marked **(confirmed)** were read off the real form while the project was being filled in on
+2026-09-19. Rows still marked **(assumed)** come from how Modrinth normally works rather than from
+looking; check those against the page and correct them here.
 
 Modrinth takes **Markdown**, not BBCode, so the description below is close to `shared.md` as
 written. A project is **submitted for review** before it goes public **(assumed)**; expect a wait
@@ -21,17 +21,17 @@ between filling this in and it appearing.
 | Slug / URL | `wormhole-x-treme` |
 | Summary | see [Summary](#summary) below |
 | Project type | Plugin |
-| Loaders **(assumed)** | Bukkit, Spigot, Paper, Purpur — **not** Folia, which is unsupported |
-| Game versions | 1.20 through 26.3 |
+| Loaders **(confirmed)** | Bukkit, Spigot, Paper, Purpur. Folia, Sponge and the proxy loaders all **off**. |
+| Game versions **(confirmed)** | tick every 1.20.x, 1.21.x and 26.x individually. Snapshots off. **Modrinth's auto-detection gets this wrong — see below.** |
 | Client side **(assumed)** | Unsupported |
 | Server side **(assumed)** | Required |
 | Categories **(assumed: 3 max)** | Transportation, Game Mechanics, Utility |
 | Licence | `GPL-3.0-or-later` |
-| Issue tracker | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
-| Source code | `https://github.com/khanjal/Wormhole-X-Treme` |
-| Wiki | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
-| Discord | leave blank — see the note in [`shared.md`](shared.md#links) |
-| Donation links | none |
+| Issue tracker **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
+| Source code **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme` |
+| Wiki **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
+| Discord **(confirmed)** | blank — see the note in [`shared.md`](shared.md#links) |
+| Donation links **(confirmed)** | blank |
 | Icon **(assumed: 512×512)** | PNG rendered from `docs/images/logo.svg` |
 
 **On the licence field.** `LICENSING.md` and the README both say "GPL-3.0" without qualifying it,
@@ -39,14 +39,19 @@ but `NOTICE.txt` carries the full grant: "either version 3 of the License, or (a
 later version". That is `GPL-3.0-or-later` in SPDX, which is what Modrinth's picker wants. Picking
 `GPL-3.0-only` would be narrower than what the project actually grants.
 
-**On loaders.** Modrinth treats Bukkit, Spigot, Paper, Purpur and Folia as separate loader tags.
-Tick the four this supports and leave Folia off — ticking it would put the plugin in front of
-exactly the operators it does not work for.
+**On loaders.** Modrinth treats each of these as a separate loader tag. Tick Bukkit, Spigot,
+Paper and Purpur; leave Folia, Sponge and the proxy loaders off. Ticking Folia would put the
+plugin in front of exactly the operators it does not work for.
 
-**On the version list.** Modrinth wants versions picked from its own list rather than a range, so
-this is 1.20 through 26.3 inclusive. CI proves the ones at each boundary where the API moved; the
-rest are in-between versions expected to work, which is the normal meaning of the field. Leave
-the snapshots toggle off.
+**On the version list, and the trap in it.** Modrinth reads `api-version` out of `plugin.yml` and
+offers to fill the game versions from it. `plugin.yml` says `api-version: "1.20"`, so what it
+auto-detects is **1.20.x and nothing else** — which would advertise the plugin as supporting none
+of 1.21 or 26.x. Override it by hand: tick every 1.20.x, 1.21.x and 26.x version individually,
+and leave snapshots off. This is a consequence of compiling against the floor on purpose, so
+expect it again at every release.
+
+CI proves the versions at each boundary where the API moved; the rest are in-between versions
+expected to work, which is the normal meaning of the field.
 
 ## Summary
 
@@ -277,7 +282,7 @@ image on Modrinth's own CDN.
 | Version title | `Wormhole X-Treme 1.7.0 (MC 1.20-26.3)` |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
-| Game versions | 1.20 through 26.3 |
+| Game versions | every 1.20.x, 1.21.x and 26.x, ticked individually — the auto-detected list is wrong, see [Fields](#fields). Snapshots off. |
 | File | `WormholeXTreme-1.7.0.jar` |
 | Changelog | the 1.7.0 section of [`CHANGELOG.md`](../../CHANGELOG.md), pasted as Markdown |
 
