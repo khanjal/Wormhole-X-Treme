@@ -324,8 +324,10 @@ class GateRingTurnTest
 
             final GateGrid nearGrid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
             final GateGrid farGrid = GateBlueprint.inFrontOf(shape, 40, 64, 0, BlockFace.NORTH);
-            final Location nearStart = at(DialSpin.of(GateBlueprint.of(shape, nearGrid), nearGrid).path(DialSpinPattern.TOP, 1).get(1));
-            final Location farStart = at(DialSpin.of(GateBlueprint.of(shape, farGrid), farGrid).path(DialSpinPattern.TOP, 1).get(1));
+            final DialSpin nearSpin = DialSpin.of(GateBlueprint.of(shape, nearGrid), nearGrid);
+            final DialSpin farSpin = DialSpin.of(GateBlueprint.of(shape, farGrid), farGrid);
+            final Location nearStart = at(nearSpin.path(DialSpinPattern.TOP, 1).get(1));
+            final Location farStart = at(farSpin.path(DialSpinPattern.TOP, 1).get(1));
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(near), argThat(l -> holds(l, nearStart))),
                 atLeastOnce());
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(far), argThat(l -> holds(l, farStart))), never());
