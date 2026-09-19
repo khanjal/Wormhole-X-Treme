@@ -1421,7 +1421,7 @@ class GatePreviewsTest
     @Test
     void theRingsLightTravelsToTheChevronBeforeItLocks()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, true);
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
         final List<Cell> cells = standardLookingNorth();
         final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));

@@ -32,7 +32,7 @@ public enum DialSpinPattern
 
     /**
      * Reads a pattern by name, whatever its capitals. {@code true} and {@code false} are the
-     * setting's values before it had patterns, and mean {@link #CHEVRON} and {@link #NONE}; {@code off} is {@link #NONE} too.
+     * setting's values before it had patterns, and mean the default {@link #TOP} and {@link #NONE}; {@code off} is {@link #NONE} too.
      *
      * @param raw
      *            the value as written
@@ -47,7 +47,7 @@ public enum DialSpinPattern
         final String name = raw.trim().toUpperCase(Locale.ROOT);
         if ("TRUE".equals(name))
         {
-            return CHEVRON;
+            return TOP;
         }
         if ("FALSE".equals(name) || "OFF".equals(name))
         {

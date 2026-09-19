@@ -97,8 +97,8 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 
 | Pattern | Before each chevron locks |
 |---|---|
-| `chevron` *(default)* | The light runs half the ring and lands on the chevron, turning the other way each glyph |
-| `top` | Half the ring to the top chevron, turning the other way each glyph |
+| `top` *(default)* | Half the ring to the top chevron, turning the other way each glyph |
+| `chevron` | The light runs half the ring and lands on the chevron, turning the other way each glyph |
 | `lap` | A whole turn clockwise, landing on the chevron: round and round |
 | `fill` | As `chevron`, lighting the ring behind it as it goes |
 | `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time |
@@ -489,7 +489,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-| `gate-dial-spin` | `chevron` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `chevron`: half the ring, landing on the chevron about to lock, alternating direction. `top`: half the ring to the top chevron, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `none`: no ring light. None changes how fast a gate dials; `true` and `false` from older configs mean `chevron` and `none`. |
+| `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction. `chevron`: half the ring, landing on the chevron about to lock, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `none`: no ring light. None changes how fast a gate dials; `true` and `false` from older configs mean `top` and `none`. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that
