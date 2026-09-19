@@ -429,7 +429,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 |---|---|
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate remove <gate> [-destroy]` | Take it down; `-destroy` takes its frame down too |
-| `gate regen [gate] [-shape <shape>] [-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD. |
+| `gate regen <gate> [-shape <shape>] [-fill] [-water]` \| `[-water]` \| `-all` | Detect the gate afresh, then recompute markers, light order and arrival point. With no gate named, click its DHD; that form takes only `-water`. |
 | `gate validate <gate\|-all>` | Check it is still standing |
 | `gate refresh` | Your next DHD click re-detects that gate from scratch |
 
@@ -457,10 +457,14 @@ its frame does not match takes the shape it does match, and says so; one that ma
 left alone, with the reason. It cannot fix a gate facing the wrong way — rebuild that.
 **`-shape <shape>`**, for one named gate rather than `-all`, names the shape for a gate that matches none, such as one recorded under the
 wrong shape and missing a block or two. It takes the shape if at least 90% of its frame is
-standing, lists what is missing or wrong either way, and places nothing. The shape is laid where
+standing, and lists what is missing or wrong either way. The shape is laid where
 the gate's own recorded frame is: near where the DHD puts it, up to six blocks along the facing
 and three up, down or across, or facing the other way. So a gate whose DHD is a block or two off,
 or which was recorded facing backwards, still lines up. The light order is laid the same way.
+**`-fill`**, for one named gate, places the frame blocks a gate is missing, from its own frame and chevron materials, and
+names each one. It places at most three, or one in a hundred on a big gate, and only into air, water
+or lava: more missing than that, or a solid block where the frame should be, and it places nothing
+and says why. Without it, regenerate places nothing.
 **`-water`** clears real water or lava standing in a closed gate's opening or woosh, left by older
 versions that built the portal from blocks when a dial glitched. Without it, regenerate only says
 how many stand there, since a gate built underwater has ordinary water in its opening.
