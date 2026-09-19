@@ -138,3 +138,30 @@ Create a feature branch from `main` and open a pull request; nothing is committe
 directly. Run the tests locally first, and add tests where the change touches behaviour. A
 user-facing change — a command, a setting, a fixed bug — gets a line in `CHANGELOG.md` under the
 unreleased version, and often a change in the guide beside it.
+
+## Versioning
+
+Three numbers, and what decides each one is what a server owner has to do to upgrade, not how
+much work went into it.
+
+- **Patch** (`1.7.1`) — fixes only. Swap the jar and carry on.
+- **Minor** (`1.8.0`) — features, settings and behaviour changes, including anything that needs
+  an **Upgrading:** note at the top of its changelog entry. A shape may gain a marker, a config
+  key may gain a default, a gate may need regenerating; none of that changes what a file that
+  already exists *means*.
+- **Major** (`2.0.0`) — the shape or data format changes meaning, or the events and methods in
+  [API.md](API.md) break. Reserved for the case where a file that parsed yesterday describes
+  something different today.
+
+**This is a change in practice, not a description of it.** 1.7.1 reshaped `Massive.shape` and
+told operators to regenerate every `Massive` gate, which is a minor by the rule above. It went
+out as a patch because there was no rule to consult. From 1.8.0 on there is.
+
+Two things that follow from it, worth knowing before filing an issue:
+
+- **The plugin's version says nothing about Minecraft's.** The supported range lives in the
+  README badge and in [Minecraft versions](#minecraft-versions), and moves on its own schedule.
+  `1.10.0` after `1.9.0` is ordinary, and is not a claim about Minecraft 1.10.
+- **The number is set at release, not during.** Work lands under a top changelog heading marked
+  `(unreleased)`, while the pom still carries the last released version. One commit at the end
+  versions the pom and dates the heading.
