@@ -53,7 +53,8 @@ its tests pass against each API — not that a gate behaves correctly in game.
 | Server | Support |
 |---|---|
 | Spigot | Primary target — the API compiled against |
-| CraftBukkit, Paper | Supported. CI also builds and tests against Paper at every version above |
+| Paper | Supported. CI also builds and tests against Paper at every version above |
+| CraftBukkit | Supported, without an action bar: ring countdowns and mirror names do not show above the hotbar, and the log says so once |
 | Purpur, Pufferfish | Best effort. CI builds and tests against Purpur's newest |
 | Folia | Not supported — different scheduler model |
 
