@@ -279,8 +279,8 @@ written out again, and the gates people built cannot.
 
 **Folders move themselves.** On the first startup, this fork's own files under
 `WormholeXTremeDB/` are moved into `data/`, and shapes under `GateShapes/` into `shapes/gate/`,
-including any still sitting in the old `GateShapes/3d/` and `2d/` subfolders, which nothing has
-read for a long time. Nothing is deleted and nothing is overwritten: a file already at the
+including any still sitting in the old `GateShapes/3d/` and `GateShapes/2d/` subfolders, which
+nothing has read for a long time. Nothing is deleted and nothing is overwritten: a file already at the
 destination wins, because that is the copy being loaded, and the one left behind in the old
 folder is inert. A move that fails is named in the log, so the one file to move by hand can be
 found. Worth knowing before editing a gate file in the old folder and wondering why nothing
