@@ -13,6 +13,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Commands](#commands)
 - [Sounds](#sounds)
 - [Storage](#storage)
+- [Upgrading](#upgrading)
 - [Coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme)
 - [Economy](#economy)
 - [Troubleshooting](#troubleshooting)
@@ -264,9 +265,47 @@ Back up by copying `data/`; edit anything in it by hand if you need to. There is
 install or configure. Gates are one file each; rings are one file per world, and a pair that
 will not parse is logged and skipped while the rest of the world loads.
 
-Older builds kept these files in `WormholeXTremeDB/`. They are moved into `data/` on the first
-startup after upgrading, and nothing is deleted. The HSQLDB and SQLite backends of earlier
-versions are gone; a SQLite database from another fork is read by `gate import`, below.
+The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
+kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is
+swapped; a SQLite database from *another* fork is left where it is and read by `gate import`,
+below.
+
+## Upgrading
+
+Stop the server, replace the jar in `plugins/`, start it again. Your gates, rings, beam
+destinations and mirrors are read from `data/` as they stand, and the upgrade itself does not
+rewrite them. Copy `data/` first anyway — `config.yml` and the shipped shapes can always be
+written out again, and the gates people built cannot.
+
+**Folders move themselves.** On the first startup, this fork's own files under
+`WormholeXTremeDB/` are moved into `data/`, and shapes under `GateShapes/` into `shapes/gate/`,
+including any still sitting in the old `GateShapes/3d/` and `2d/` subfolders, which nothing has
+read for a long time. Nothing is deleted and nothing is overwritten: a file already at the
+destination wins, because that is the copy being loaded, and the one left behind in the old
+folder is inert. A move that fails is named in the log, so the one file to move by hand can be
+found. Worth knowing before editing a gate file in the old folder and wondering why nothing
+changed.
+
+**`config.yml` keeps your edits.** Settings a release adds are appended to the file with their
+defaults, so a new setting is visible rather than only documented; a setting that was renamed is
+read from its old name and written back under the new one. Values you set are not touched, and a
+file that no longer parses as YAML is left exactly as you left it rather than having every
+default appended to the end of it.
+
+**Shipped shapes are written once.** A `.shape` file already in `shapes/gate/` is never
+overwritten, so a shipped shape improved in a later release does not reach a server that already
+has the file. Delete it and restart to get the new one. Shapes you wrote yourself are left alone
+either way.
+
+**Gates already standing do not change.** A gate stores its own blocks rather than re-reading its
+shape, so new shapes in a release leave existing gates exactly as they are. Two cases want a
+nudge: a gate built before its shape gained `[RD]` has no redstone markers and no wiring will
+fire it until [`/wormhole gate regen <gate>`](GATES.md#an-older-gate-that-ignores-redstone), and
+`gate-dial-spin` was once `true`/`false`, which are read as `top` and `none`.
+
+Then check the log once. The migrations above stay silent when they have nothing to do, so
+anything they do say is either a file that needs moving by hand or the note below about gates
+from another fork.
 
 ## Coming from another Wormhole X-Treme
 
