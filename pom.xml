@@ -236,6 +236,14 @@
 			<version>5.20.0</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- Test only: gate import uses the server's own SQLite driver, and
+		     LegacySqliteImportTest needs one to build a real database to import. -->
+		<dependency>
+			<groupId>org.xerial</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<version>3.53.4.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<!-- The server API, Spigot's unless -Dpaper.api.version is given. A property rather
