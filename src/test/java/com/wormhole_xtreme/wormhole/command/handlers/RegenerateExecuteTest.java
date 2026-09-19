@@ -706,4 +706,85 @@ class RegenerateExecuteTest
         verify(sender).sendMessage(said("Name the shape"));
         verify(sender).sendMessage(said("No gate shape called"));
     }
+
+    /** A block placed by -fill, at a place a message can name. */
+    private static org.bukkit.block.Block placedBlock()
+    {
+        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+        when(block.getType()).thenReturn(org.bukkit.Material.OBSIDIAN);
+        when(block.getX()).thenReturn(5998);
+        when(block.getY()).thenReturn(141);
+        when(block.getZ()).thenReturn(3);
+        return block;
+    }
+
+    /** Runs regen with fillFrame answering as given, and re-derivation doing nothing. */
+    private void runWithFill(final Stargate gate, final GateRederivation.Fill fill, final String... args)
+    {
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
+        {
+            rederive.when(() -> GateRederivation.restoreFrameUnderSigns(gate)).thenReturn(List.of());
+            rederive.when(() -> GateRederivation.fillFrame(gate)).thenReturn(fill);
+            rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
+            rederive.when(() -> GateRederivation.rederive(gate))
+                .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
+
+            assertTrue(run(args));
+            rederive.verify(() -> GateRederivation.fillFrame(gate), org.mockito.Mockito.times(
+                java.util.Arrays.asList(args).contains("-fill") ? 1 : 0));
+        }
+    }
+
+    /** -fill names every block it placed. */
+    @Test
+    void fillNamesTheBlocksItPlaced()
+    {
+        final Stargate gate = registeredGate("Lithium");
+        final GateRederivation.Gap gap = new GateRederivation.Gap(5998, 141, 3, org.bukkit.Material.AIR);
+
+        runWithFill(gate, new GateRederivation.Fill(List.of(placedBlock()), List.of(gap), List.of(), 4),
+            "regen", "Lithium", "-fill");
+
+        verify(sender).sendMessage(said("Placed OBSIDIAN at 5998 141 3."));
+    }
+
+    /** Without -fill nothing is filled, and nothing claims to have been. */
+    @Test
+    void withoutFillNothingIsPlaced()
+    {
+        final Stargate gate = registeredGate("Lithium");
+
+        runWithFill(gate, new GateRederivation.Fill(List.of(placedBlock()), List.of(), List.of(), 4),
+            "regen", "Lithium");
+
+        verify(sender, never()).sendMessage(said("Placed "));
+        verify(sender).sendMessage(said("Regenerated"));
+    }
+
+    /** More missing than the cap is refused, with the numbers. */
+    @Test
+    void fillRefusesMoreThanItsCap()
+    {
+        final Stargate gate = registeredGate("Lithium");
+        final GateRederivation.Gap gap = new GateRederivation.Gap(0, 64, 0, org.bukkit.Material.AIR);
+
+        runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(gap, gap, gap, gap, gap), List.of(), 4),
+            "regen", "Lithium", "-fill");
+
+        verify(sender).sendMessage(said("5 blocks are missing, more than the 4 -fill will place"));
+    }
+
+    /** A solid block in the frame is named, and left for a person. */
+    @Test
+    void fillNamesASolidBlockItWillNotReplace()
+    {
+        final Stargate gate = registeredGate("Lithium");
+        final GateRederivation.Gap stone = new GateRederivation.Gap(5998, 141, 3, org.bukkit.Material.STONE);
+
+        runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(stone), List.of(stone), 4),
+            "regen", "Lithium", "-fill");
+
+        verify(sender).sendMessage(said("5998 141 3 holds STONE. Clear it, or place the block yourself."));
+    }
+
 }

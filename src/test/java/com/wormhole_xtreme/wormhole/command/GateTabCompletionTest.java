@@ -215,10 +215,10 @@ class GateTabCompletionTest
     {
         gateNamed("alpha");
 
-        assertTrue(complete("gate", "regenerate", "alpha", "").containsAll(List.of("-shape", "-water")));
+        assertTrue(complete("gate", "regenerate", "alpha", "").containsAll(List.of("-shape", "-fill", "-water")));
         assertTrue(complete("gate", "regen", "alpha", "-shape", "").contains("Standard"), "the shipped shapes are offered");
         assertTrue(complete("gate", "validate", "alpha", "").isEmpty());
-        assertEquals(List.of("-water"), complete("gate", "regenerate", "alpha", "-shape", "Standard", ""),
+        assertEquals(List.of("-fill", "-water"), complete("gate", "regenerate", "alpha", "-shape", "Standard", ""),
             "a flag already given is not offered again");
         assertTrue(complete("gate", "regenerate", "").contains("-water"), "the click form takes -water too");
         assertFalse(complete("gate", "validate", "").contains("-water"));

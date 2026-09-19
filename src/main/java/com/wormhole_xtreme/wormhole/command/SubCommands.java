@@ -194,7 +194,7 @@ public final class SubCommands
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
-        register(REGEN, aliases(REGENERATE), "/wormhole regen [gate] [-shape <shape>] [-water] | -all",
+        register(REGEN, aliases(REGENERATE), "/wormhole regen [gate] [-shape <shape>] [-fill] [-water] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -765,7 +765,7 @@ public final class SubCommands
             }
             return out;
         }
-        // Regenerate alone takes a shape, for a gate recorded under the wrong one, and -water.
+        // Regenerate alone takes a shape, for a gate recorded under the wrong one, -fill and -water.
         if (!regenerate)
         {
             return none();
@@ -776,7 +776,7 @@ public final class SubCommands
             return shapeNames(args[args.length - 1]);
         }
         final List<String> flags = new ArrayList<>();
-        for (final String flag : new String[] { "-shape", "-water" })
+        for (final String flag : new String[] { "-shape", "-fill", "-water" })
         {
             if (java.util.Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
             {

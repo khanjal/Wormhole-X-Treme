@@ -111,6 +111,8 @@ class GateRederivationTest
         when(b.getType()).thenAnswer(inv -> placed.getOrDefault(key(x, y, z), Material.AIR));
         org.mockito.Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
             .when(b).setType(any(Material.class), org.mockito.ArgumentMatchers.anyBoolean());
+        org.mockito.Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
+            .when(b).setType(any(Material.class));
         when(b.getRelative(any(BlockFace.class))).thenAnswer(inv -> {
             final BlockFace face = inv.getArgument(0, BlockFace.class);
             return blockAt(x + face.getModX(), y + face.getModY(), z + face.getModZ());
@@ -789,4 +791,103 @@ class GateRederivationTest
         assertEquals(List.of(signCell), GateRederivation.restoreFrameUnderSigns(gate));
         assertEquals(frame, signCell.getType());
     }
+
+    /** The material standing at a location in the fake world. */
+    private Material at(final Location l)
+    {
+        return placed.getOrDefault(key(l.getBlockX(), l.getBlockY(), l.getBlockZ()), Material.AIR);
+    }
+
+    /** Sets a block of the fake world to a material. */
+    private void set(final Location l, final Material m)
+    {
+        placed.put(key(l.getBlockX(), l.getBlockY(), l.getBlockZ()), m);
+    }
+
+    /**
+     * A frame a block short is filled from the gate's own material, and then detected whole.
+     *
+     * <p>Lithium, a {@code Massive} gate brought in by the importer, came up 459 of 460 with AIR
+     * where a frame block belongs, and could not be re-detected until somebody placed it.
+     */
+    @Test
+    void aMissingFrameBlockIsFilledAndTheGateIsDetectedWhole() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Location hole = gate.getGateStructureBlocks().get(0);
+        final Material frame = at(hole);
+        knockOut(hole);
+
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(gate);
+
+        assertEquals(1, fill.placed().size(), "gaps were: " + fill.gaps());
+        assertEquals(frame, at(hole));
+        assertEquals(GateRederivation.Result.REDERIVED, GateRederivation.rederive(gate).result());
+    }
+
+    /** More blocks missing than the cap is not a repair: nothing is placed. */
+    @Test
+    void moreMissingThanTheCapIsNotFilled() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final List<Location> holes = gate.getGateStructureBlocks().subList(0, 5);
+        holes.forEach(this::knockOut);
+
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(gate);
+
+        assertEquals(4, fill.cap(), "Massive has 460 frame blocks");
+        assertTrue(fill.overCap());
+        assertTrue(fill.placed().isEmpty());
+        holes.forEach(h -> assertEquals(Material.AIR, at(h)));
+    }
+
+    /** A solid block where the frame should be is somebody's: nothing is placed, not even the rest. */
+    @Test
+    void aSolidBlockInTheFrameStopsTheFill() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Location hole = gate.getGateStructureBlocks().get(0);
+        final Location stone = gate.getGateStructureBlocks().get(1);
+        knockOut(hole);
+        set(stone, Material.STONE);
+
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(gate);
+
+        assertTrue(fill.placed().isEmpty());
+        assertEquals(1, fill.blocked().size(), "blocked were: " + fill.blocked());
+        assertEquals(Material.STONE, fill.blocked().get(0).found());
+        assertEquals(Material.AIR, at(hole));
+        assertEquals(Material.STONE, at(stone));
+    }
+
+    /** A name sign taken down from a frame cell leaves the frame block, not a hole. */
+    @Test
+    void aNameSignTakenDownFromTheFrameLeavesTheFrameBlock() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Block front = gate.getGateNameBlockHolder();
+        final BlockFace back = gate.getGateFacing().getOppositeFace();
+        final Block signCell = front.getRelative(back);
+        final Material frame = signCell.getType();
+        placed.put(key(signCell.getX(), signCell.getY(), signCell.getZ()), Material.OAK_WALL_SIGN);
+        gate.setGateNameBlockHolder(signCell.getRelative(back));
+
+        gate.setupGateSign(false);
+
+        assertEquals(frame, signCell.getType());
+    }
+
+    /** A name sign hanging in front of the frame, where it belongs, still leaves air. */
+    @Test
+    void aNameSignInFrontOfTheFrameLeavesAir() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Block sign = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing());
+        placed.put(key(sign.getX(), sign.getY(), sign.getZ()), Material.OAK_WALL_SIGN);
+
+        gate.setupGateSign(false);
+
+        assertEquals(Material.AIR, sign.getType());
+    }
+
 }

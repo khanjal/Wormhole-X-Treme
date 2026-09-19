@@ -650,19 +650,158 @@ public final class GateRederivation
         {
             return List.of();
         }
-        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
         final List<Block> restored = new ArrayList<>();
         for (final GateBlueprint.Cell cell : frameCells(shape, layout.grid()))
         {
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
             if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
             {
-                block.setType(((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
-                    ? chevron : gate.getEffectiveStructureMaterial(), false);
+                block.setType(builtMaterial(gate, cell), false);
                 restored.add(block);
             }
         }
         return restored;
+    }
+
+    /** What a frame or chevron cell of this gate is built from. */
+    private static org.bukkit.Material builtMaterial(final Stargate gate, final GateBlueprint.Cell cell)
+    {
+        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        return ((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
+            ? chevron : gate.getEffectiveStructureMaterial();
+    }
+
+    /**
+     * What a block of the gate's frame is built from, if the block is one.
+     *
+     * @param gate
+     *            the gate
+     * @param block
+     *            the block
+     * @return the material, or null if the block is not a frame or chevron cell of the gate's shape
+     */
+    public static org.bukkit.Material frameMaterialAt(final Stargate gate, final Block block)
+    {
+        if ((block == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        {
+            return null;
+        }
+        final Layout layout = layoutFor(gate, shape);
+        if (layout == null)
+        {
+            return null;
+        }
+        for (final GateBlueprint.Cell cell : frameCells(shape, layout.grid()))
+        {
+            if ((cell.x() == block.getX()) && (cell.y() == block.getY()) && (cell.z() == block.getZ()))
+            {
+                return builtMaterial(gate, cell);
+            }
+        }
+        return null;
+    }
+
+    /** The fewest frame blocks {@code -fill} will place, however small the gate. */
+    public static final int FILL_MINIMUM = 3;
+
+    /**
+     * The most frame blocks {@code -fill} will place on a gate of this size: a few, or one in a
+     * hundred on a big gate. More missing than that is not a gate needing repair.
+     *
+     * @param frameBlocks
+     *            frame and chevron blocks the shape has
+     * @return the cap
+     */
+    public static int fillCap(final int frameBlocks)
+    {
+        return Math.max(FILL_MINIMUM, frameBlocks / 100);
+    }
+
+    /**
+     * What {@code -fill} found and did.
+     *
+     * @param placed
+     *            the blocks it placed, empty if it placed none
+     * @param gaps
+     *            every frame cell that was missing or wrong
+     * @param blocked
+     *            the gaps holding something it will not replace
+     * @param cap
+     *            the most it would place on this gate
+     */
+    public record Fill(List<Block> placed, List<Gap> gaps, List<Gap> blocked, int cap)
+    {
+        /** @return true if more blocks are missing than it will place */
+        public boolean overCap()
+        {
+            return gaps.size() > cap;
+        }
+    }
+
+    /**
+     * Places the frame blocks a gate is missing, from its own materials.
+     *
+     * <p>All or nothing: when more are missing than {@link #fillCap} allows, or any gap holds a
+     * block that is not air or a liquid, nothing is placed and the result says why. A solid block
+     * in the frame is somebody's, and a large gap means the shape or its layout is wrong.
+     *
+     * @param gate
+     *            the gate, laid by its own shape
+     * @return what was missing and what was placed
+     */
+    public static Fill fillFrame(final Stargate gate)
+    {
+        final World world = gate.getGateWorld();
+        if ((world == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        {
+            return new Fill(List.of(), List.of(), List.of(), 0);
+        }
+        final Layout layout = layoutFor(gate, shape);
+        if (layout == null)
+        {
+            return new Fill(List.of(), List.of(), List.of(), 0);
+        }
+        final List<GateBlueprint.Cell> cells = frameCells(shape, layout.grid());
+        final org.bukkit.Material frame = gate.getEffectiveStructureMaterial();
+        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final List<Gap> gaps = new ArrayList<>();
+        final List<Gap> blocked = new ArrayList<>();
+        final List<GateBlueprint.Cell> missing = new ArrayList<>();
+        for (final GateBlueprint.Cell cell : cells)
+        {
+            final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
+            if ((found == frame) || ((chevron != null) && (found == chevron)))
+            {
+                continue;
+            }
+            final Gap gap = new Gap(cell.x(), cell.y(), cell.z(), found);
+            gaps.add(gap);
+            missing.add(cell);
+            if (!fillable(found))
+            {
+                blocked.add(gap);
+            }
+        }
+        final int cap = fillCap(cells.size());
+        if (gaps.isEmpty() || (gaps.size() > cap) || !blocked.isEmpty())
+        {
+            return new Fill(List.of(), gaps, blocked, cap);
+        }
+        final List<Block> placed = new ArrayList<>();
+        for (final GateBlueprint.Cell cell : missing)
+        {
+            final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            block.setType(builtMaterial(gate, cell), false);
+            placed.add(block);
+        }
+        return new Fill(placed, gaps, blocked, cap);
+    }
+
+    /** Air or a liquid: what a frame block can be put into without taking anything away. */
+    private static boolean fillable(final org.bukkit.Material found)
+    {
+        return (found == null) || com.wormhole_xtreme.wormhole.utils.MaterialUtils.isAirMaterial(found)
+            || (found == org.bukkit.Material.WATER) || (found == org.bukkit.Material.LAVA);
     }
 
     /**
