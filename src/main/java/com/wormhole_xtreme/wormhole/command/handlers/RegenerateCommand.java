@@ -21,6 +21,9 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
  */
 public class RegenerateCommand implements SubCommand
 {
+    /** Places the frame blocks a named gate is missing. */
+    private static final String FILL = "-fill";
+
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
@@ -45,7 +48,7 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(args[1]));
             return true;
         }
-        final boolean fill = flagAt(args, 2, "-fill") > 0;
+        final boolean fill = flagAt(args, 2, FILL) > 0;
         int missing = 0;
         final int shapeAt = flagAt(args, 2, "-shape");
         if (shapeAt > 0)
@@ -98,7 +101,7 @@ public class RegenerateCommand implements SubCommand
         if ((missing > 0) && (missing <= GateRederivation.fillCap(fit.expected())))
         {
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Add "
-                + ChatText.command("-fill") + " to place the missing blocks from the gate's own materials.");
+                + ChatText.command(FILL) + " to place the missing blocks from the gate's own materials.");
         }
         return missing;
     }
@@ -127,7 +130,7 @@ public class RegenerateCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
         }
-        if (flagAt(args, 1, "-fill") > 0)
+        if (flagAt(args, 1, FILL) > 0)
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Name the gate to fill: "
                 + ChatText.command("/wormhole gate regen <gate> -fill"));
