@@ -52,6 +52,14 @@ changes, you change it there and then carry it into whichever site files quote i
   every biome", "the whole matrix" — and let the live badges carry anything numeric. See
   [`shared.md`](shared.md#numbers-the-copy-does-not-print) for what this does and does not cover.
 - **Images are pinned to `main`.** See above.
+- **The README carries a badge per site that has one.** SpigotMC's come from Spiget, by resource
+  id: `img.shields.io/spiget/version/138936` and `spiget/downloads/138936`. Hangar's downloads
+  come from `img.shields.io/hangar/dt/Wormhole-X-Treme` — there is no Hangar version badge, and
+  no Paper or Hangar logo in shields' icon set, so that one carries a colour instead.
+  **Modrinth has no badge yet**: `modrinth/dt` and `modrinth/v` answer "not found" while
+  `api.modrinth.com/v2/project/wormhole-x-treme` 404s, which it does today. Add them once it
+  resolves. Point them at that slug and nothing else — Modrinth also carries `wormholextreme`,
+  which is the other fork, and a badge on its slug would advertise its downloads as ours.
 - **The name and logo are not under the GPL.** Every listing says so and links
   [`TRADEMARK.md`](../../TRADEMARK.md); more than one project carries this name.
 - **The non-affiliation notice ships on every listing.** It is trademark hygiene and it is the

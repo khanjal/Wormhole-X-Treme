@@ -182,6 +182,8 @@ of you as a guide before you place a block.
 
 ### Transport rings
 
+![Rings deploying](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/rings/ring-cycle.webp)
+
 Lay a circle of slabs, run one command, do it again elsewhere, and the two are paired. The rings
 rise in whatever material you laid. A countdown you can step out of, floor and ceiling variants,
 two deployment styles, and everything in the circle travels — players, mobs, items, a horse with
@@ -189,11 +191,15 @@ you still on it.
 
 ### Beaming
 
+![Beaming up](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/beams/beam-up.webp)
+
 Nothing to build. A destination is a named point somebody stood on once, and a column of light
 takes you there from anywhere, across worlds. Staff curate a public list; every player keeps their
 own places. Charge per destination through Vault if you want to.
 
 ### Quantum mirrors
+
+![A mirror opening onto another world](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/mirrors/mirror-effects.webp)
 
 Hang a banner on a wall and run one command. Walk up to it and the banner gives way to an opening
 showing another world's room in real blocks, with depth that shifts as you move past it.

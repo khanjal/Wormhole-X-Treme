@@ -14,6 +14,10 @@
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=blue)](LICENSE)
 
+[![SpigotMC](https://img.shields.io/spiget/version/138936?label=spigotmc&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/)
+[![SpigotMC downloads](https://img.shields.io/spiget/downloads/138936?label=downloads&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/)
+[![Hangar downloads](https://img.shields.io/hangar/dt/Wormhole-X-Treme?label=hangar%20downloads&color=blue)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme)
+
 Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
 
 Four ways to get somewhere, each a different trade between what you build and what you get:
