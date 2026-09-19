@@ -788,4 +788,17 @@ class RegenerateExecuteTest
         verify(sender).sendMessage(said("5998 141 3 holds STONE. Clear it, or place the block yourself."));
     }
 
+    /** -fill with no gate named is refused: the click form cannot fill, and saying so beats ignoring it. */
+    @Test
+    void fillWithNoGateNamedIsRefusedRatherThanIgnored()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        when(player.hasPermission(anyString())).thenReturn(true);
+        when(player.isOp()).thenReturn(true);
+
+        assertTrue(new RegenerateCommand().execute(player, new String[] { "regen", "-fill" }));
+
+        verify(player).sendMessage(said("Name the gate to fill"));
+        verify(player, never()).sendMessage(said("Click the DHD"));
+    }
 }

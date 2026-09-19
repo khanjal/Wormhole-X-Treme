@@ -127,6 +127,12 @@ public class RegenerateCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
         }
+        if (flagAt(args, 1, "-fill") > 0)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Name the gate to fill: "
+                + ChatText.command("/wormhole gate regen <gate> -fill"));
+            return true;
+        }
         com.wormhole_xtreme.wormhole.command.Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Click the DHD of the gate to regenerate it.");

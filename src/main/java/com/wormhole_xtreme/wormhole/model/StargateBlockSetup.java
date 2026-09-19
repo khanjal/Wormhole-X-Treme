@@ -225,13 +225,19 @@ class StargateBlockSetup
      * Takes the sign down and drops it from the gate's structure blocks.
      *
      * <p>A sign hung in the frame, as 1.7.0's {@code Massive} hung it, gets the frame block back
-     * rather than leaving a hole the gate cannot be detected with.
+     * rather than leaving a hole the gate cannot be detected with, and stays one of the gate's
+     * blocks. The frame is asked about first, because it is laid by those same recorded blocks.
      */
     private static void removeGateSign(final Stargate gate, final Block placeBlock)
     {
-        gate.getGateStructureBlocks().remove(placeBlock.getLocation());
         final Material frame = com.wormhole_xtreme.wormhole.logic.GateRederivation.frameMaterialAt(gate, placeBlock);
-        placeBlock.setType((frame != null) ? frame : Material.AIR);
+        if (frame != null)
+        {
+            placeBlock.setType(frame);
+            return;
+        }
+        gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+        placeBlock.setType(Material.AIR);
     }
 
 

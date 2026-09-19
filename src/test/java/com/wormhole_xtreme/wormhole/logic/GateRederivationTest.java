@@ -871,10 +871,14 @@ class GateRederivationTest
         final Material frame = signCell.getType();
         placed.put(key(signCell.getX(), signCell.getY(), signCell.getZ()), Material.OAK_WALL_SIGN);
         gate.setGateNameBlockHolder(signCell.getRelative(back));
+        final Location cell = signCell.getLocation();
+        gate.getGateStructureBlocks().removeIf(cell::equals);
+        gate.getGateStructureBlocks().add(cell);
 
         gate.setupGateSign(false);
 
         assertEquals(frame, signCell.getType());
+        assertTrue(gate.getGateStructureBlocks().contains(cell), "the restored block is still the gate's");
     }
 
     /** A name sign hanging in front of the frame, where it belongs, still leaves air. */
