@@ -294,18 +294,22 @@ default appended to the end of it.
 
 **Shipped shapes are written once.** A `.shape` file already in `shapes/gate/` is never
 overwritten, so a shipped shape improved in a later release does not reach a server that already
-has the file. Delete it and restart to get the new one. Shapes you wrote yourself are left alone
-either way.
+has the file. The startup log names each shipped shape whose copy differs from the jar's; delete
+the ones you did not edit and restart to get the new ones. Shapes you wrote yourself are left
+alone either way.
 
-**Gates already standing do not change.** A gate stores its own blocks rather than re-reading its
-shape, so new shapes in a release leave existing gates exactly as they are. Two cases want a
-nudge: a gate built before its shape gained `[RD]` has no redstone markers and no wiring will
-fire it until [`/wormhole gate regen <gate>`](GATES.md#an-older-gate-that-ignores-redstone), and
+**Gates already standing keep their blocks.** A gate stores its own blocks rather than re-reading
+its shape, so new shapes in a release do not rebuild a gate's frame. Its chevron light order is
+the exception: it is rebuilt from the shape at every startup, and a gate whose frame no longer
+fits its shape keeps the old order and is named in the log. A gate built before its shape gained
+`[RD]` has no redstone markers and no wiring will fire it until
+[`/wormhole gate regen <gate>`](GATES.md#an-older-gate-that-ignores-redstone), and
 `gate-dial-spin` was once `true`/`false`, which are read as `top` and `none`.
 
 Then check the log once. The migrations above stay silent when they have nothing to do, so
-anything they do say is either a file that needs moving by hand or the note below about gates
-from another fork.
+anything they do say is a file to move by hand, a shape or gate named for the reasons above, or
+the note below about gates from another fork. The [CHANGELOG](../../CHANGELOG.md) opens each
+release with what upgrading to it asks of you.
 
 ## Coming from another Wormhole X-Treme
 
