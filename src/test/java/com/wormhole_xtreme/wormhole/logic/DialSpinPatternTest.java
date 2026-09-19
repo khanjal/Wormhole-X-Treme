@@ -54,7 +54,7 @@ class DialSpinPatternTest
     {
         assertEquals(DialSpinPattern.LAP, DialSpinPattern.parse("lap"));
         assertEquals(DialSpinPattern.PEGASUS, DialSpinPattern.parse(" Pegasus "));
-        assertEquals(DialSpinPattern.CHEVRON, DialSpinPattern.parse("true"));
+        assertEquals(DialSpinPattern.TOP, DialSpinPattern.parse("true"), "the old switch on means the default");
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("FALSE"));
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("off"));
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("none"));
@@ -149,8 +149,17 @@ class DialSpinPatternTest
         }
         assertEquals(List.of("true", "false"), com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("PETS_FOLLOW_OWNER"));
         assertTrue(com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("not-a-setting").isEmpty());
-        assertEquals(DialSpinPattern.CHEVRON, com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern(),
-            "the default");
+        assertEquals(DialSpinPattern.TOP, com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern(),
+            "the default, not the CHEVRON it was");
+    }
+
+    /** A config with no gate-dial-spin at all turns the same default as a fresh one, not the old CHEVRON. */
+    @Test
+    void aMissingSettingTurnsTheDefault()
+    {
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+
+        assertEquals(DialSpinPattern.TOP, com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern());
     }
 
     /** FILL leaves the light behind it lit, so it only ever grows. */

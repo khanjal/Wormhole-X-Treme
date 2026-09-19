@@ -809,7 +809,7 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
         final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern = (s == null) ? null
             : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.CHEVRON : pattern;
+        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP : pattern;
     }
 
     /**

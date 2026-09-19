@@ -39,6 +39,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
@@ -151,8 +152,8 @@ class GateRingTurnTest
     }
 
     /**
-     * Before the first chevron locks, the light starts opposite the top and moves a tick at a time,
-     * and the chevron locks only once the turn is done.
+     * Before the first chevron locks, the default TOP turn starts opposite the top and moves a tick
+     * at a time, and the chevron locks only once the turn is done.
      */
     @Test
     void theRingTurnsToTheTopBeforeTheFirstChevronLocks()
@@ -160,7 +161,7 @@ class GateRingTurnTest
         final Stargate gate = standardGate();
         final DialSpin spin = StargateAnimator.spinOf(gate);
         assertNotNull(spin, "a Standard gate has a ring to turn");
-        final Location start = at(DialSpin.of(cells, grid).path(1).get(0));
+        final Location start = at(DialSpin.of(cells, grid).path(DialSpinPattern.TOP, 1).get(0));
         final List<Location> first = gate.getGateLightBlocks().get(1);
 
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
@@ -220,7 +221,7 @@ class GateRingTurnTest
         {
             // The default, as the other tests here assume.
             com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
@@ -236,7 +237,7 @@ class GateRingTurnTest
             StargateAnimator.lightStargate(gate, true);
             StargateAnimator.lightStargate(gate, false);
 
-            final Location start = at(DialSpin.of(cells, grid).path(1).get(0));
+            final Location start = at(DialSpin.of(cells, grid).path(DialSpinPattern.TOP, 1).get(0));
             // Standard's bottom centre is also its eighth chevron, so it is put back as both.
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, start))),
                 atLeastOnce());
@@ -323,8 +324,8 @@ class GateRingTurnTest
 
             final GateGrid nearGrid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
             final GateGrid farGrid = GateBlueprint.inFrontOf(shape, 40, 64, 0, BlockFace.NORTH);
-            final Location nearStart = at(DialSpin.of(GateBlueprint.of(shape, nearGrid), nearGrid).path(1).get(1));
-            final Location farStart = at(DialSpin.of(GateBlueprint.of(shape, farGrid), farGrid).path(1).get(1));
+            final Location nearStart = at(DialSpin.of(GateBlueprint.of(shape, nearGrid), nearGrid).path(DialSpinPattern.TOP, 1).get(1));
+            final Location farStart = at(DialSpin.of(GateBlueprint.of(shape, farGrid), farGrid).path(DialSpinPattern.TOP, 1).get(1));
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(near), argThat(l -> holds(l, nearStart))),
                 atLeastOnce());
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(far), argThat(l -> holds(l, farStart))), never());
