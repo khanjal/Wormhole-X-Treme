@@ -1,6 +1,6 @@
 # Modrinth
 
-Copy for a Modrinth project at <https://modrinth.com/plugins>. Facts and prose come from
+Copy for the Modrinth project at <https://modrinth.com/plugin/wormhole-x-treme>, published 2026-09-19. Facts and prose come from
 [`shared.md`](shared.md); what is here is Modrinth's own field set and markup.
 
 Rows marked **(confirmed)** were read off the real form while the project was being filled in on
@@ -40,8 +40,22 @@ later version". That is `GPL-3.0-or-later` in SPDX, which is what Modrinth's pic
 `GPL-3.0-only` would be narrower than what the project actually grants.
 
 **On the categories.** Modrinth does not cap categories at three, as first assumed: it offers
-all nineteen and has a separate **Featured tags 0/3** field that picks which three show on the
-card. So tick four and feature Transportation, Game Mechanics and Adventure.
+all nineteen and has a separate **Featured tags 0/3** field picking which three show on the card.
+So tick four and feature the first three.
+
+- **Transportation** and **Game Mechanics** are the core of it.
+- **Adventure** because Modrinth uses that for content giving players somewhere new to go, which
+  a gate network is.
+- **Utility** is ticked but deliberately *not* featured. Preview mode, the building assistant and
+  the admin commands justify it, but leading with it makes the plugin read as an admin tool.
+
+Excluded on purpose, so nobody re-litigates them: **Library** (see below), **Magic** (the fiction
+is science fiction), **Decoration** (gates are functional, not ornamental) and **Management**
+(that means server administration).
+
+The full nineteen, for reference: Adventure, Cursed, Decoration, Economy, Equipment, Food, Game
+Mechanics, Library, Magic, Management, Minigame, Mobs, Optimization, Social, Storage, Technology,
+Transportation, Utility, World Generation.
 
 **Library stays off, on both sites.** `docs/API.md` exists and other plugins can build against
 this one, but Library on these sites means a dependency installed underneath something else,
@@ -300,12 +314,12 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.7.0` |
-| Version title | `Wormhole X-Treme 1.7.0 (MC 1.20-26.3)` |
+| Version number | `1.7.1` |
+| Version title | `Wormhole X-Treme v1.7.1 (MC 1.20-26.3)` — matches the GitHub release name |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
 | Game versions | every 1.20.x, 1.21.x and 26.x, ticked individually — the auto-detected list is wrong, see [Fields](#fields). Snapshots off. |
-| File | `WormholeXTreme-1.7.0.jar` |
+| File | `WormholeXTreme-<version>.jar` from the release |
 | Changelog | the short form in [`shared.md`](shared.md#release-notes) |
 
 The changelog field takes Markdown, so it pastes in as it stands. Use the short release notes
@@ -313,15 +327,20 @@ rather than the full `CHANGELOG.md` section: that runs to about 150 lines and re
 download page. It leads with the **Upgrading** bullets, which are what an operator on 1.6.0 needs
 before they download.
 
-## Before you submit
+## Keeping it current
 
-1. **There is no 1.7.0 release yet.** The newest tag is `v1.6.0`. Tag and let the release workflow
-   build the jar first.
-2. **Render the icon.** Modrinth wants 512×512 **(assumed)**, not the 256×256 rendered for Spigot.
+Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
+so there is a jar to upload. What is left:
+
+1. **Check which version the project carries.** `v1.7.1` is the newest release; the listing went
+   up around `v1.7.0`.
+2. **Re-check the game versions after every release.** Modrinth's auto-detection ticks 1.20.x
+   alone, as above, so a new version upload can silently narrow what the page claims.
+3. **Render the icon.** Modrinth wants 512×512 **(assumed)**, not the 256×256 rendered for Spigot.
    The same `docs/images/logo.svg` at a larger size.
-3. **The banner is an SVG.** Modrinth's Markdown renderer generally handles SVG where Spigot's
+4. **The banner is an SVG.** Modrinth's Markdown renderer generally handles SVG where Spigot's
    BBCode does not, so it is worth trying as written — but check the preview, and fall back to a
    PNG render if it does not appear.
-4. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
+5. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
    type from `raw.githubusercontent.com`. If any fails to render, upload it to the gallery and
    point the description at the gallery URL.

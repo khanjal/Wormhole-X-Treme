@@ -13,7 +13,7 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.7.0` |
+| Version | `1.7.1` — newest release. v1.7.0 went out the same day; check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
@@ -21,6 +21,20 @@ The values a release changes. Change them here first, then carry them into the s
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
 | Dependencies | none. Vault and LuckPerms optional, snakeyaml comes from the server, nothing shaded |
 | Jar | `WormholeXTreme-<version>.jar` |
+
+## Where the listings live
+
+All three were published on 2026-09-19.
+
+| Site | URL |
+|---|---|
+| SpigotMC | <https://www.spigotmc.org/resources/wormhole-x-treme.138936/> (resource id 138936) |
+| Modrinth | <https://modrinth.com/plugin/wormhole-x-treme> (slug `wormhole-x-treme`) |
+| Hangar | <https://hangar.papermc.io/khanjal/Wormhole-X-Treme> |
+
+These are live pages with real readers, so a change here is a change to something published.
+Edit the file, then carry it to the site — the file is the record of what *should* be there, not
+proof of what is.
 
 ## Numbers the copy does not print
 
@@ -336,9 +350,10 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 
 ## Release notes
 
-Modrinth and Hangar both take a per-version changelog, and the full 1.7.0 section of
-[`CHANGELOG.md`](../../CHANGELOG.md) runs to about 150 lines — a wall on a download page. Use the
-short form below there and link the full one.
+Modrinth and Hangar both take a per-version changelog, and a release's full section of
+[`CHANGELOG.md`](../../CHANGELOG.md) runs to well over a hundred lines — a wall on a download
+page. Use the short form below there and link the full one. Rewrite it per release; what follows
+is 1.7.0's.
 
 **Keep both Upgrading bullets whatever else is cut**, especially the shape-files one: an upgrader
 who keeps their old shape files sees none of the headline dialling changes and reads the release

@@ -1,6 +1,6 @@
 # Hangar
 
-Copy for a Hangar project at <https://hangar.papermc.io/>. Facts and prose come from
+Copy for the Hangar project at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>, published 2026-09-19. Facts and prose come from
 [`shared.md`](shared.md); what is here is Hangar's own field set and markup.
 
 Rows marked **(confirmed)** were read off the real form while the project was being filled in on
@@ -11,7 +11,7 @@ Hangar takes **Markdown**, like Modrinth, so the page below is close to `shared.
 
 **The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
-**(assumed)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
+**(inferred, see below)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
 against Paper at every supported version) but inverts how Spigot and Modrinth describe it. The page
 below leads with Paper and mentions Spigot second, which is the only place the copy deliberately
 diverges from the other two.
@@ -26,10 +26,10 @@ diverges from the other two.
 | URL / namespace | `khanjal/Wormhole-X-Treme` **(assumed: it takes the owner's name)** |
 | Tagline | see [Tagline](#tagline) below |
 | Category **(assumed)** | Gameplay |
-| Keywords **(confirmed)** | `stargate`, `teleport`, `portal`, `warp`, `rings` |
+| Keywords **(confirmed; re-check, see below)** | `stargate`, `teleport`, `portal`, `warp`, `rings` |
 | Tags **(confirmed)** | Addon **off**, Library **off**, Supports Folia **off** |
 | Licence | `GPL-3.0-or-later` — see the note in [`modrinth.md`](modrinth.md#fields) |
-| Platforms **(assumed)** | Paper only. Not Velocity, not Waterfall — this is a server plugin, not a proxy plugin. |
+| Platforms **(inferred)** | Paper only. Not Velocity, not Waterfall — this is a server plugin, not a proxy plugin. |
 | Platform versions **(confirmed)** | tick every 1.20.x, 1.21.x and 26.x individually. Snapshots off. |
 | Issues **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
 | Source **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme` |
@@ -44,16 +44,38 @@ diverges from the other two.
 **(assumed)** — Gameplay is the closest honest fit, with Misc the fallback if Gameplay is taken to
 mean something narrower. Check the list on the form and correct this row.
 
+**How firm the Paper-only line is.** Not read off the platform picker, so it is inference rather
+than confirmation — but the inference is decent. Hangar's Dependencies section, as it appeared on
+the real form, showed a **Paper group and nothing else**. Hangar scopes dependencies per
+platform, so a Spigot or Bukkit platform would have brought its own group. That plus Hangar being
+Paper, Velocity and Waterfall only is why the page leads with Paper. If the platform picker ever
+shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-first wording in
+[`modrinth.md`](modrinth.md#description) so all three read alike.
+
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]` — every one of those is
-optional and the plugin loads without them. Declaring a required dependency that is not required
-would make Hangar warn operators off installing it.
+only `softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]` — every one is optional
+and the plugin loads without them. Declaring a required dependency that is not required would
+make Hangar warn operators off installing it, and the listing's strongest line is "no
+dependencies"; four optional rows dilute that for nothing.
+
+If the integrations are ever wanted discoverable, **only Vault and LuckPerms** are defensible,
+and only as Optional. The other two never go on the listing:
+
+- **`Permissions`** is the 2011-era Permissions plugin, long dead. It survives in `softdepend`
+  for servers still running it, which is not a reason to advertise it.
+- **`WormholeXTremeWorlds`** is the original project's companion plugin. Unmaintained, and not
+  on Hangar at all.
 
 **On the Library tag.** Off, for the reason in [`modrinth.md`](modrinth.md#fields): this is a
 plugin somebody installs, not a dependency installed underneath something else.
+
+**Check the keywords against Hangar's own form before trusting them.** There is a provenance
+doubt: a nine-item platform list relayed alongside them turned out to be Modrinth's loader field
+rather than anything of Hangar's, so anything relayed in that batch may have come off the wrong
+form. The five below are sensible either way, but confirm them on the page.
 
 **On the keywords.** These deliberately differ from the Spigot tags, which are `stargate`,
 `teleport`, `portal`, `transportation`, `wormhole`. `transportation` is a Hangar *category* rather
@@ -296,24 +318,27 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.7.0` |
-| Version title | `Wormhole X-Treme 1.7.0 (MC 1.20-26.3)` — beats a bare version string in a list |
+| Version | `1.7.1` |
+| Version title | `Wormhole X-Treme v1.7.1 (MC 1.20-26.3)` — matches the GitHub release name and beats a bare version string in a list |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
-| File | `WormholeXTreme-1.7.0.jar` |
+| File | `WormholeXTreme-<version>.jar` from the release |
 | Changelog | the short form in [`shared.md`](shared.md#release-notes) |
 
 Use the short release notes rather than the full `CHANGELOG.md` section, which runs to about 150
 lines and reads as a wall on a download page.
 
-## Before you submit
+## Keeping it current
 
-1. **There is no 1.7.0 release yet.** The newest tag is `v1.6.0`. Tag first.
+Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
+so there is a jar to upload. What is left:
+
+1. **Check which version the project carries.** `v1.7.1` is the newest release; the listing went
+   up around `v1.7.0`.
 2. **Render the avatar** from `docs/images/logo.svg`. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.
-3. **Confirm the platform question first.** If Hangar genuinely has no Spigot or Bukkit tag, the
-   Paper-first framing above is right. If it does have one, revert the page's opening lines to the
-   Spigot-first wording used in [`modrinth.md`](modrinth.md#description) so all three read alike.
-4. **Point the four subpage links** in the main page at the subpages once they exist. They are
+3. **Read the platform picker** and settle the Paper-only question properly, per the note above.
+4. **Confirm the keywords** on the form, per the provenance note above.
+5. **Point the four subpage links** in the main page at the subpages once they exist. They are
    `#` placeholders as written.

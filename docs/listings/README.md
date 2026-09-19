@@ -9,6 +9,12 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`modrinth.md`](modrinth.md) | [Modrinth](https://modrinth.com/plugins) — project fields and the description in Markdown. |
 | [`hangar.md`](hangar.md) | [Hangar](https://hangar.papermc.io/) — project fields and the page in Markdown. |
 
+All three are published:
+[SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
+[Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
+[Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme). Editing a file here does not change
+a live page; it records what the page should say, and somebody still has to paste it.
+
 Nothing here is generated. The three site files are parallel texts, not renders of `shared.md`,
 because the markup and the field sets differ enough that a generator would cost more than it
 saves. What `shared.md` buys is that the *facts* live in one place: when a number or a link

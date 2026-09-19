@@ -1,6 +1,6 @@
 # SpigotMC
 
-Copy for a Spigot resource at <https://www.spigotmc.org/resources/>. Facts and prose come from
+Copy for the Spigot resource at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>, published 2026-09-19. Facts and prose come from
 [`shared.md`](shared.md); what is here is Spigot's own field set and markup.
 
 Spigot is the only one of the three that takes **BBCode** rather than Markdown, and it has the
@@ -18,7 +18,7 @@ Spigot's. The ones that are *not* marked were confirmed against a live resource 
 | Title | `Wormhole X-Treme` |
 | Tag line | `Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3` |
 | Category **(assumed)** | Transportation, under Spigot Plugins. Mechanics is the second choice. |
-| Version | `1.7.0` |
+| Version | `1.7.1` — newest release; the listing went up around `v1.7.0` |
 | Native Major MC Version | `1.20` |
 | Tested Major MC Versions | everything from 1.20 through 26.3 |
 | Tags **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
@@ -312,15 +312,16 @@ Concealment is the bigger risk.
 giving or requesting legal advice. Stating your own licence and your own non-affiliation is a
 statement about your own resource, which is fine.
 
-## Before you submit
+## Keeping it current
 
-1. **There is no 1.7.0 release.** `pom.xml` says 1.7.0 and the changelog is dated 2026-09-19, but
-   the newest tag is `v1.6.0`. The form needs a jar. Tagging also un-breaks any image URL still
-   pinned to a tag.
-2. **Render the 256×256 icon** from `docs/images/logo.svg`.
-3. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
+Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
+so there is a jar to upload. What is left:
+
+1. **Check which version the resource carries.** `v1.7.1` is the newest release; the listing went
+   up around `v1.7.0`. Upload the newer jar and update the Version field if it has not been done.
+2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,
    and it names none of rings, beaming or mirrors. Not a blocker for the form, but the first thing
    anyone who installs from Spigot reads.
-4. **`pom.xml:35` still carries `<url>http://www.wormhole-xtreme.com</url>`** from the original
+3. **`pom.xml:35` still carries `<url>http://www.wormhole-xtreme.com</url>`** from the original
    project. It did not resolve when checked. Worth cleaning out.
