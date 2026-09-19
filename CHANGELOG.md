@@ -13,6 +13,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - Delete `Massive.shape` if you did not edit it, and restart. The startup log names it.
 - Run `/wormhole gate regen <gate>` on each `Massive` gate. Its name sign stood inside the ring,
   where a frame block was; regen puts the block back and hangs the sign on the front face.
+- A `Massive` gate whose sign was ever taken down has a hole there instead, and regen reports it
+  a block short. `/wormhole gate regen <gate> -shape Massive -fill` puts it back.
 
 ### Stargates
 
@@ -23,6 +25,12 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`gate regen` takes any sign standing in the gate's frame down and puts the block back**
   before it reads the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
   ring should be, and the markers were left alone.
+- **`gate regen -fill` places the frame blocks a gate is missing**, from its own frame and chevron
+  materials, and names each one. At most three, or one in a hundred on a big gate, and only into
+  air, water or lava; more than that, or a solid block where the frame goes, and it places nothing
+  and says why.
+- **Taking a name sign down from the frame puts the frame block back**, rather than leaving air
+  where the ring was.
 - **A name sign is never placed over the gate's frame or chevron material.** The gate goes
   without one, and the log says why.
 - **`/wormhole gate shapes validate` catches a `:N` with a block in front of it**, a frame,

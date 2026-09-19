@@ -21,6 +21,9 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
  */
 public class RegenerateCommand implements SubCommand
 {
+    /** Places the frame blocks a named gate is missing. */
+    private static final String FILL = "-fill";
+
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
@@ -45,29 +48,62 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(args[1]));
             return true;
         }
+        final boolean fill = flagAt(args, 2, FILL) > 0;
         int missing = 0;
         final int shapeAt = flagAt(args, 2, "-shape");
         if (shapeAt > 0)
         {
-            if ((shapeAt + 1) >= args.length)
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "Name the shape: " + ChatText.command("/wormhole gate regen <gate> -shape <shape>"));
-                return true;
-            }
-            final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[shapeAt + 1]);
-            if ((fit == null) || !fit.accepted())
+            missing = adoptForRegen(sender, s, args, shapeAt, fill);
+            if (missing == STOP)
             {
                 return true;
             }
-            missing = fit.gaps().size();
         }
         else
         {
             takeSignOutOfFrame(sender, s);
+            if (fill)
+            {
+                fillAndReport(sender, s, 0);
+            }
         }
         regenerateOneGate(sender, s, missing, flagAt(args, 2, "-water") > 0, true);
         return true;
+    }
+
+    /** What {@link #adoptForRegen} returns when the command ends there. */
+    private static final int STOP = -1;
+
+    /**
+     * Takes the shape named after {@code -shape}, fills its gaps if asked, and says what is left.
+     *
+     * @return how many frame blocks are still missing, or {@link #STOP} when the shape was not taken
+     */
+    private static int adoptForRegen(final CommandSender sender, final Stargate s, final String[] args,
+        final int shapeAt, final boolean fill)
+    {
+        if ((shapeAt + 1) >= args.length)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "Name the shape: " + ChatText.command("/wormhole gate regen <gate> -shape <shape>"));
+            return STOP;
+        }
+        final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[shapeAt + 1]);
+        if ((fit == null) || !fit.accepted())
+        {
+            return STOP;
+        }
+        final int missing = fit.gaps().size();
+        if (fill)
+        {
+            return fillAndReport(sender, s, missing);
+        }
+        if ((missing > 0) && (missing <= GateRederivation.fillCap(fit.expected())))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Add "
+                + ChatText.command(FILL) + " to place the missing blocks from the gate's own materials.");
+        }
+        return missing;
     }
 
     /** Where a flag stands among the arguments from a position on, whatever its capitals, or -1. */
@@ -93,6 +129,12 @@ public class RegenerateCommand implements SubCommand
         {
             sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
+        }
+        if (flagAt(args, 1, FILL) > 0)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Name the gate to fill: "
+                + ChatText.command("/wormhole gate regen <gate> -fill"));
+            return true;
         }
         com.wormhole_xtreme.wormhole.command.Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
@@ -143,6 +185,42 @@ public class RegenerateCommand implements SubCommand
         com.wormhole_xtreme.wormhole.command.CommandUtilities.closeGate(s, false);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Shut "
             + ChatText.name(s.getGateName()) + " down to regenerate it.");
+    }
+
+    /**
+     * Places the frame blocks a gate is missing, or says why it will not.
+     *
+     * @return how many blocks are still missing afterwards
+     */
+    private static int fillAndReport(final CommandSender sender, final Stargate s, final int missing)
+    {
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(s);
+        if (!fill.placed().isEmpty())
+        {
+            for (final org.bukkit.block.Block placed : fill.placed())
+            {
+                sender.sendMessage(header + "Placed " + ChatText.material(placed.getType().name()) + " at "
+                    + ChatText.value(placed.getX() + " " + placed.getY() + " " + placed.getZ()) + ".");
+            }
+            return 0;
+        }
+        if (fill.overCap())
+        {
+            sender.sendMessage(header + "Not filling " + ChatText.name(s.getGateName()) + ": "
+                + ChatText.bad(fill.gaps().size() + " blocks") + " are missing, more than the " + fill.cap()
+                + " -fill will place. Check the shape, and where it is laid.");
+        }
+        else
+        {
+            for (final GateRederivation.Gap gap : fill.blocked().subList(0, Math.min(GAPS_LISTED, fill.blocked().size())))
+            {
+                sender.sendMessage(header + "Not filling " + ChatText.name(s.getGateName()) + ": "
+                    + ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " holds "
+                    + ChatText.material(gap.found().name()) + ". Clear it, or place the block yourself.");
+            }
+        }
+        return missing;
     }
 
     /** Puts back frame blocks a sign was hung in, so the frame can be detected whole. */
