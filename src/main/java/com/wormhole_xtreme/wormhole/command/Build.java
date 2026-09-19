@@ -37,10 +37,10 @@ import com.wormhole_xtreme.wormhole.model.preview.PreviewText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
- * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
- * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd},
- * {@code -material <group>|<role> <block>}, {@code -materials}, {@code -guide},
- * {@code -layer [<n>|-next|-all]}, {@code -share [<player>|-all]} and {@code -place}.
+ * {@code /wormhole gate build <shape> [group]}, and {@code /wormhole gate preview <action>} on the
+ * preview being looked at: {@code clear [-all]}, {@code activate}, {@code iris}, {@code chevrons},
+ * {@code dhd}, {@code material <group>|<role> <block>}, {@code materials}, {@code guide},
+ * {@code layer [<n>|-next|-all]}, {@code share [<player>|-all]} and {@code place}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -48,47 +48,50 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  */
 public class Build implements CommandExecutor
 {
-    /** The word that takes previews away rather than naming a shape. */
-    public static final String CLEAR = "-clear";
+    /** The command the preview actions follow, with the space before an action. */
+    public static final String PREVIEW_COMMAND = "/wormhole gate preview ";
+
+    /** Takes the preview looked at away, or with {@link #ALL} every one. */
+    public static final String CLEAR = "clear";
 
     /** After {@link #CLEAR}: every preview, not only the one looked at. */
     public static final String ALL = "-all";
 
     /** Dials the preview looked at, or shuts it down. */
-    public static final String ACTIVATE = "-activate";
+    public static final String ACTIVATE = "activate";
 
     /** Closes the preview's iris, or opens it. */
-    public static final String IRIS = "-iris";
+    public static final String IRIS = "iris";
 
     /** Hides the preview's DHD, or shows it. */
-    public static final String DHD = "-dhd";
+    public static final String DHD = "dhd";
 
     /** Draws the preview's chevrons as frame, or in the chevron material again. */
-    public static final String CHEVRONS = "-chevrons";
+    public static final String CHEVRONS = "chevrons";
 
     /** Redresses the preview in a group, or changes one of its materials. */
-    public static final String MATERIAL = "-material";
+    public static final String MATERIAL = "material";
 
     /** Lists what the preview takes to build, and what of it is still to place. */
-    public static final String MATERIALS = "-materials";
+    public static final String MATERIALS = "materials";
 
     /** Marks on the preview what is still to place and what is wrong, or stops. */
-    public static final String GUIDE = "-guide";
+    public static final String GUIDE = "guide";
 
     /** Shows the preview's layers up to one, the next, or all. */
-    public static final String LAYER = "-layer";
+    public static final String LAYER = "layer";
 
     /** After {@link #LAYER}: one more layer, or all again after the last. */
     public static final String NEXT = "-next";
 
     /** Builds the preview for real, with {@code wormhole.build.preview.place}. */
-    public static final String PLACE = "-place";
+    public static final String PLACE = "place";
 
     /** Shows the preview to a player or everyone in the world, or stops, with {@code wormhole.build.preview.share}. */
-    public static final String SHARE = "-share";
+    public static final String SHARE = "share";
 
-    /** Every option, in the order they are offered. */
-    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
+    /** Every action, in the order they are offered. */
+    public static final List<String> ACTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
         CHEVRONS, DHD, SHARE, PLACE);
 
     private static final String USAGE = "Usage: ";
@@ -105,7 +108,8 @@ public class Build implements CommandExecutor
         }
         if (args[0].startsWith("-"))
         {
-            option(player, args, mayPreview);
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Preview options moved to "
+                + actionList());
             return;
         }
         if (args.length > 2)
@@ -162,11 +166,11 @@ public class Build implements CommandExecutor
                     + ((group == null) ? "" : " in " + name(group.getName()))
                     + ((dhdFacing == null) ? ". Build inside it, then press a real button on its DHD."
                         : " on your DHD. Finish it, then press the button."));
-                player.sendMessage(header + "Look at it and use " + commands(OPTIONS));
+                player.sendMessage(header + "Look at it and use " + actionList());
             }
             case OVER_LIMIT -> player.sendMessage(error + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
                 ? "Previews are off on this server."
-                : "Too many preview blocks on the server. Clear one with " + command(CLEAR) + "."));
+                : "Too many preview blocks on the server. Clear one with " + hint(CLEAR) + "."));
             case NO_DHD -> player.sendMessage(error + name(shape.getShapeName()) + " has no DHD, so it cannot be previewed.");
         }
     }
@@ -189,14 +193,49 @@ public class Build implements CommandExecutor
             : null;
     }
 
-    /** Runs an option on the preview the player looks at. */
+    /**
+     * {@code /wormhole gate preview <action> [...]}, on the preview the sender looks at.
+     *
+     * @param sender
+     *            whoever typed it
+     * @param args
+     *            the action and what follows it, {@code preview} already taken off
+     * @return true, since every path answers
+     */
+    public static boolean previewAction(final CommandSender sender, final String[] args)
+    {
+        return CommandUtilities.runCommandSafe(sender, () ->
+        {
+            if (!CommandUtilities.playerCheck(sender))
+            {
+                return true;
+            }
+            final Player player = (Player) sender;
+            final boolean mayPreview = PreviewPermissions.mayPreview(player);
+            if (!mayPreview && CommandHandlerUtils.lacksConfigPermission(player))
+            {
+                return true;
+            }
+            final String[] arguments = CommandUtilities.commandEscaper(args);
+            if ((arguments.length < 1) || (arguments.length > 3))
+            {
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE
+                    + actionList());
+                return true;
+            }
+            option(player, arguments, mayPreview);
+            return true;
+        });
+    }
+
+    /** Runs an action on the preview the player looks at. */
     private static void option(final Player player, final String[] args, final boolean mayPreview)
     {
         final String option = args[0].toLowerCase(Locale.ROOT);
-        if (!OPTIONS.contains(option))
+        if (!ACTIONS.contains(option))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No option "
-                + command(args[0]) + ". Try " + commands(OPTIONS));
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No preview action "
+                + name(args[0]) + ". Try " + commands(ACTIONS));
             return;
         }
         if (CLEAR.equals(option))
@@ -229,7 +268,7 @@ public class Build implements CommandExecutor
         }
     }
 
-    /** {@code -material <group>} or {@code -material <role> <block>}; null once it has answered itself. */
+    /** {@code material <group>} or {@code material <role> <block>}; null once it has answered itself. */
     private static GatePreviews.Control material(final Player player, final String[] args)
     {
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
@@ -245,15 +284,15 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            player.sendMessage(error + USAGE + command(MATERIAL + " <group>") + " or "
-                + command(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
+            player.sendMessage(error + USAGE + hint(MATERIAL + " <group>") + " or "
+                + hint(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
             return null;
         }
         final Material block = Material.matchMaterial(args[2]);
         return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
     }
 
-    /** {@code -share [<player>|-all]}; null once it has answered itself. */
+    /** {@code share [<player>|-all]}; null once it has answered itself. */
     private static GatePreviews.Control share(final Player player, final String[] args)
     {
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
@@ -270,7 +309,7 @@ public class Build implements CommandExecutor
                 who.add(0, "everyone in this world");
             }
             player.sendMessage(header + (who.isEmpty()
-                ? "Only you see it. " + command(SHARE + " <player>") + " or " + command(SHARE + " " + ALL) + " shows it."
+                ? "Only you see it. " + hint(SHARE + " <player>") + " or " + hint(SHARE + " " + ALL) + " shows it."
                 : "Shown to " + String.join(", ", who) + "."));
             return null;
         }
@@ -298,19 +337,19 @@ public class Build implements CommandExecutor
             }
             case SELF -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "You already see it.");
             case SHARED -> {
-                player.sendMessage(header + "Showing it to " + name(with.getName()) + ". " + command(SHARE + " "
+                player.sendMessage(header + "Showing it to " + name(with.getName()) + ". " + hint(SHARE + " "
                     + with.getName()) + " again stops.");
                 with.sendMessage(header + name(player.getName()) + " is showing you a gate preview.");
             }
             case UNSHARED -> player.sendMessage(header + "Stopped showing it to " + name(with.getName()) + ".");
-            case SHARED_ALL -> player.sendMessage(header + "Showing it to everyone in this world. " + command(SHARE + " "
+            case SHARED_ALL -> player.sendMessage(header + "Showing it to everyone in this world. " + hint(SHARE + " "
                 + ALL) + " again stops.");
             case UNSHARED_ALL -> player.sendMessage(header + "Stopped showing it to everyone.");
         }
         return null;
     }
 
-    /** {@code -place}; null once it has answered itself. */
+    /** {@code place}; null once it has answered itself. */
     private static GatePreviews.Control place(final Player player)
     {
         final GatePreviews.Placed placed = GatePreviews.place(player);
@@ -325,8 +364,8 @@ public class Build implements CommandExecutor
             case NOT_LOADED -> player.sendMessage(error + "Part of it is in an unloaded chunk. Move closer. Nothing placed.");
             case OUTSIDE_BORDER -> player.sendMessage(error + "Part of it is outside the world border. Nothing placed.");
             case IN_THE_WAY -> player.sendMessage(error + "Nothing placed. In the way: "
-                + bad(String.join(", ", placed.inTheWay())) + ". " + command(GUIDE) + " marks them.");
-            case NOT_FOUND -> player.sendMessage(error + "Placed, but no gate was found in it. " + command(GUIDE)
+                + bad(String.join(", ", placed.inTheWay())) + ". " + hint(GUIDE) + " marks them.");
+            case NOT_FOUND -> player.sendMessage(error + "Placed, but no gate was found in it. " + hint(GUIDE)
                 + " shows what is wrong.");
             case PLACED -> {
                 player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
@@ -337,14 +376,14 @@ public class Build implements CommandExecutor
         return null;
     }
 
-    /** {@code -layer [<n>|-next|-all]}; null once it has answered itself. */
+    /** {@code layer [<n>|-next|-all]}; null once it has answered itself. */
     private static GatePreviews.Control layers(final Player player, final String[] args)
     {
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            player.sendMessage(error + USAGE + command(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
+            player.sendMessage(error + USAGE + hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
             return null;
         }
         final GatePreviews.Layers layers = GatePreviews.layers(player, asked);
@@ -365,12 +404,12 @@ public class Build implements CommandExecutor
         {
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing layer "
                 + ((layers.shown() == 1) ? "1" : "1-" + layers.shown()) + " of " + layers.of() + ". "
-                + command(LAYER) + " for the next.");
+                + hint(LAYER) + " for the next.");
         }
         return null;
     }
 
-    /** What {@code -layer} asked for, or less than {@link GatePreviews#NEXT_LAYER} if it makes no sense. */
+    /** What {@code layer} asked for, or less than {@link GatePreviews#NEXT_LAYER} if it makes no sense. */
     private static int layerAsked(final String[] args)
     {
         if ((args.length == 1) || NEXT.equalsIgnoreCase(args[1]))
@@ -392,7 +431,7 @@ public class Build implements CommandExecutor
         }
     }
 
-    /** {@code -materials}; null once it has answered itself. */
+    /** {@code materials}; null once it has answered itself. */
     private static GatePreviews.Control listMaterials(final Player player)
     {
         final GatePreviews.Materials list = GatePreviews.materials(player);
@@ -420,6 +459,18 @@ public class Build implements CommandExecutor
         return null;
     }
 
+    /** {@code /wormhole gate preview <action>} and every action, for a message that lists them. */
+    private static String actionList()
+    {
+        return hint("<action>") + ": " + commands(ACTIONS);
+    }
+
+    /** A preview command, highlighted, for a message that points at it. */
+    private static String hint(final String words)
+    {
+        return command(PREVIEW_COMMAND + words);
+    }
+
     private static void tell(final Player player, final GatePreviews.Control done)
     {
         final boolean refused = switch (done)
@@ -430,18 +481,18 @@ public class Build implements CommandExecutor
         final String text = switch (done)
         {
             case NOT_LOOKING -> "Look at one of your previews first.";
-            case DIALLING -> "Dialling. " + command(ACTIVATE) + " again shuts it down.";
+            case DIALLING -> "Dialling. " + hint(ACTIVATE) + " again shuts it down.";
             case SHUT_DOWN -> "Shut down.";
-            case IRIS_CLOSED -> "Iris closed. " + command(IRIS) + " opens it.";
+            case IRIS_CLOSED -> "Iris closed. " + hint(IRIS) + " opens it.";
             case IRIS_OPENED -> "Iris open.";
             case CHANGED -> "Materials changed.";
             case NOT_A_BLOCK -> "That is not a block.";
             case NOT_IN_GROUP -> "This shape cannot use that group.";
-            case DHD_HIDDEN -> "DHD hidden. " + command(DHD) + " shows it.";
+            case DHD_HIDDEN -> "DHD hidden. " + hint(DHD) + " shows it.";
             case DHD_SHOWN -> "DHD shown.";
-            case CHEVRONS_PLAIN -> "Chevrons shown as frame. " + command(CHEVRONS) + " undoes it.";
+            case CHEVRONS_PLAIN -> "Chevrons shown as frame. " + hint(CHEVRONS) + " undoes it.";
             case CHEVRONS_SHOWN -> "Chevrons shown.";
-            case GUIDE_ON -> "Guide on: small = to place, " + bad("red") + " = wrong, gone = done. " + command(GUIDE)
+            case GUIDE_ON -> "Guide on: small = to place, " + bad("red") + " = wrong, gone = done. " + hint(GUIDE)
                 + " turns it off.";
             case GUIDE_OFF -> "Guide off.";
         };
@@ -464,7 +515,7 @@ public class Build implements CommandExecutor
             return;
         }
         player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Look at a preview to clear it, or use " + command(CLEAR + " " + ALL) + ".");
+            + "Look at a preview to clear it, or use " + hint(CLEAR + " " + ALL) + ".");
     }
 
     /** The group names a shape may be built in, for an error message. */
@@ -498,17 +549,21 @@ public class Build implements CommandExecutor
     }
 
     /**
-     * Whether a sender may run {@code gate build} without {@code wormhole.config}.
+     * Whether a sender may run {@code gate build} or {@code gate preview} without {@code wormhole.config}.
      *
      * @param sender
      *            whoever typed it
      * @param args
      *            the full argument array, {@code gate} at index 0
-     * @return true for {@code gate build} typed by somebody who may preview
+     * @return true for {@code gate build} or {@code gate preview} typed by somebody who may preview
      */
     public static boolean admitsWithoutConfig(final CommandSender sender, final String[] args)
     {
-        return (args.length > 1) && "build".equals(args[1].toLowerCase(Locale.ROOT))
-            && PreviewPermissions.mayPreview(sender);
+        if (args.length < 2)
+        {
+            return false;
+        }
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        return ("build".equals(verb) || "preview".equals(verb)) && PreviewPermissions.mayPreview(sender);
     }
 }

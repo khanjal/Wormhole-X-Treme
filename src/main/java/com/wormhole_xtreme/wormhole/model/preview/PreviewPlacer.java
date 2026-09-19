@@ -23,7 +23,7 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews.Placed;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
 
 /**
- * Turns a preview into real blocks for {@code gate build -place}, after checking every block it would
+ * Turns a preview into real blocks for {@code gate preview place}, after checking every block it would
  * take, so a refusal leaves the world as it was.
  */
 final class PreviewPlacer

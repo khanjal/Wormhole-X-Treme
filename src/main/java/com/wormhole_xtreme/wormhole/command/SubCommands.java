@@ -326,7 +326,7 @@ public final class SubCommands
             "cooldown", "restrict", FREYA);
 
         selfPermissioned("beam", "ring", "go", "list", "compass", FREYA);
-        // gate stays admin-only, except build for whoever may preview: Build checks the node itself.
+        // gate stays admin-only, except build and preview for whoever may preview: Build checks the node itself.
         BY_NAME.get("gate").admitsWithoutConfig = Build::admitsWithoutConfig;
     }
 
@@ -354,6 +354,10 @@ public final class SubCommands
         {
             return completeGateBuild(args);
         }
+        if ("preview".equals(verb))
+        {
+            return completeGatePreview(args);
+        }
         if ("shapes".equals(verb))
         {
             return completeGateShapes(args);
@@ -368,7 +372,7 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code /wormhole gate build <shape> [group]} and {@code gate build -clear [-all]}.
+     * Completions for {@code /wormhole gate build <shape> [group]}.
      *
      * @param args
      *            the full argument array
@@ -378,9 +382,37 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            final List<String> out = new ArrayList<>(prefixed(args[2], Build.OPTIONS.toArray(new String[0])));
-            out.addAll(shapeNames(args[2]));
-            return out;
+            return shapeNames(args[2]);
+        }
+        if (args.length != 4)
+        {
+            return none();
+        }
+        final com.wormhole_xtreme.wormhole.model.StargateShape shape =
+            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShape(args[2]);
+        if (shape == null)
+        {
+            return none();
+        }
+        return prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
+            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+            .filter(shape::acceptsMaterialGroup)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toArray(String[]::new));
+    }
+
+    /**
+     * Completions for {@code /wormhole gate preview <action> ...}: the actions, then what each takes.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeGatePreview(final String[] args)
+    {
+        if (args.length == 3)
+        {
+            return prefixed(args[2], Build.ACTIONS.toArray(new String[0]));
         }
         if (Build.MATERIAL.equalsIgnoreCase(args[2]))
         {
@@ -403,25 +435,11 @@ public final class SubCommands
             // No player's name starts with a dash.
             return args[3].startsWith("-") ? prefixed(args[3], Build.ALL) : playerNames(args[3]);
         }
-        if (args[2].startsWith("-"))
-        {
-            return none();
-        }
-        final com.wormhole_xtreme.wormhole.model.StargateShape shape =
-            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShape(args[2]);
-        if (shape == null)
-        {
-            return none();
-        }
-        return prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
-            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
-            .filter(shape::acceptsMaterialGroup)
-            .sorted(String.CASE_INSENSITIVE_ORDER)
-            .toArray(String[]::new));
+        return none();
     }
 
     /**
-     * Completions for {@code gate build -material <group>|<role> <block>}: the groups and roles, then
+     * Completions for {@code gate preview material <group>|<role> <block>}: the groups and roles, then
      * block names once something has been typed, since every block at once is not a list anybody reads.
      *
      * @param args

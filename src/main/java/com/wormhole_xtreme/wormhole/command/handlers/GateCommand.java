@@ -36,10 +36,12 @@ public class GateCommand implements SubCommand
     private static final String REGEN = "regen";
     private static final String VALIDATE = "validate";
 
-    /** The verbs, in the order they are offered. */
+    /** The verbs, in the order they are offered: building, using, looking after, then shapes and imports. */
     private static final List<String> VERBS = Arrays.asList(
-        "build", "complete", "list", "remove", "edit", REGEN, "go", "force",
-        "import", "shapes", VALIDATE);
+        "build", "preview", "complete",
+        "list", "go", "force",
+        "edit", "remove", REGEN, VALIDATE,
+        "shapes", "import");
 
     /**
      * The verbs, for tab completion and help.
@@ -98,6 +100,10 @@ public class GateCommand implements SubCommand
         if ("build".equals(verb))
         {
             return new Build().onCommand(sender, null, verb, rest);
+        }
+        if ("preview".equals(verb))
+        {
+            return Build.previewAction(sender, rest);
         }
         // create is what somebody tries first, because it is what the rest of the ecosystem
         // uses for "register the thing I just built" -- /mv create, /npc create. complete is

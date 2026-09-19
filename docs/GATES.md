@@ -258,7 +258,7 @@ block is really there; the five-second tick catches everything else, pistons and
 included. Once a real button stands on the preview's button cell, the `Interaction` box goes, or it
 would take the click meant for the real button and dial the preview instead.
 
-Each blueprint cell carries its shape layer, so `-layer` hides cells past a layer the way `-dhd`
+Each blueprint cell carries its shape layer, so `preview layer` hides cells past a layer the way `preview dhd`
 hides the DHD's: the display and, with the DHD's layer hidden, the button's box. A preview stood on
 a placed button takes its grid from `GateGrid.fromActivationHolder` with that button's facing,
 exactly as detection does when the button is pressed, which is what makes it the right place to
@@ -266,7 +266,7 @@ pick a build up again after a relog. Only a button or lever on the side of a blo
 floor has no facing a DHD could have. Nothing is saved: previews end with the session, and the
 button in the world is the anchor.
 
-`-place` checks every block before it writes one, so a refusal leaves the world as it was: the frame
+`preview place` checks every block before it writes one, so a refusal leaves the world as it was: the frame
 material has to be one detection can find, every chunk loaded and inside the border, and no block
 the gate or its opening needs may hold something else or belong to a gate or ring. A block already
 right is kept, so a half-built gate is finished rather than rebuilt. It writes the preview's own
@@ -276,7 +276,7 @@ so naming, the `BUILD` permission and removing the preview are not a second path
 are not asked yet: the node is admin-level, and region support is #240.
 
 A shared preview keeps who it is shared with apart from who is being shown it now. Every tick, and
-on every `-share`, the second is brought in line with the first for the players online in its world:
+on every `preview share`, the second is brought in line with the first for the players online in its world:
 anyone new is shown every display and sent the wormhole where it is open, and anyone gone is hidden
 from them and has it taken back. That covers a viewer who changes world or relogs, whose client has
 forgotten what it was shown, and with `-all` anyone who arrives later. Displays drawn after sharing

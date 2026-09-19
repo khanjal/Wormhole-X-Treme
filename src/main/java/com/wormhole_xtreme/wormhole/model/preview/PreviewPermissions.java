@@ -11,10 +11,10 @@ public final class PreviewPermissions
     /** Showing a shape in front of you under {@code /wormhole gate build}. */
     public static final String PREVIEW = "wormhole.build.preview";
 
-    /** Showing a preview to other players with {@code gate build -share}. */
+    /** Showing a preview to other players with {@code gate preview share}. */
     public static final String SHARE = "wormhole.build.preview.share";
 
-    /** Turning a preview into a real gate with {@code gate build -place}. */
+    /** Turning a preview into a real gate with {@code gate preview place}. */
     public static final String PLACE = "wormhole.build.preview.place";
 
     private PreviewPermissions() {}

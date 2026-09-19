@@ -158,7 +158,7 @@ public final class GatePreviews
     /** Asks {@link #layers} for every layer. */
     public static final int ALL_LAYERS = 0;
 
-    /** What became of {@code gate build -place}. */
+    /** What became of {@code gate preview place}. */
     public enum Outcome
     {
         /** The player is not looking at one of their previews. */
@@ -178,7 +178,7 @@ public final class GatePreviews
     }
 
     /**
-     * What {@code gate build -place} did.
+     * What {@code gate preview place} did.
      *
      * @param outcome
      *            what became of it
@@ -205,7 +205,7 @@ public final class GatePreviews
         boolean at(World world, int x, int y, int z);
     }
 
-    /** What {@code gate build -share} did. */
+    /** What {@code gate preview share} did. */
     public enum Shared
     {
         /** The player is not looking at one of their previews. */

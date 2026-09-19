@@ -35,7 +35,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * travels through one.
  *
  * <p>Static throughout. The class is public for {@link #offerNewGate} alone, which
- * {@code gate build -place} shares with a pressed button; everything else stays package-private. The listener still owns the
+ * {@code gate preview place} shares with a pressed button; everything else stays package-private. The listener still owns the
  * {@code @EventHandler} and calls in here.
  */
 public final class GateInteractionHandler

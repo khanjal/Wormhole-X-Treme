@@ -22,7 +22,8 @@ commands:
     aliases: [wx]
     usage: |
       /<command> <subcommand> [args]
-      Gates:  gate build|complete|list|remove|edit|regen|go|force
+      Build:  gate build <shape> [group], gate preview <action>, gate complete <name>
+      Gates:  gate list|go|force|edit|remove|regen|validate, gate shapes|import
       Rings:  ring create|cancel|list|remove|edit|allow|deny|owner
       Config: config <setting> [value]
       Other:  compass
@@ -54,10 +55,10 @@ permissions:
     description: Allow showing a gate shape full size in front of you with /wormhole gate build, seen by you alone.
     default: op
   wormhole.build.preview.share:
-    description: Allow showing your gate previews to other players with /wormhole gate build -share.
+    description: Allow showing your gate previews to other players with /wormhole gate preview share.
     default: op
   wormhole.build.preview.place:
-    description: Allow turning a gate preview into a real gate with /wormhole gate build -place.
+    description: Allow turning a gate preview into a real gate with /wormhole gate preview place.
     default: op
   wormhole.config:
     description: Allow changing plugin configuration via command.
