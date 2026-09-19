@@ -6,7 +6,7 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## 1.7.1 (unreleased)
+## 1.7.1 (2026-09-19)
 
 **Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**
 
@@ -23,8 +23,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`Massive`'s name sign hangs on the front of the gate.** Its `:N` was on the back ring, so the
   sign went into the layer in front of it.
 - **`gate regen` takes any sign standing in the gate's frame down and puts the block back**
-  before it reads the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
-  ring should be, and the markers were left alone.
+  before it reads the gate, and says where. Until then the frame came up a block short,
+  `OAK_WALL_SIGN` where the ring should be, and the markers were left alone.
 - **`gate regen -fill` places the frame blocks a gate is missing**, from its own frame and chevron
   materials, and names each one. At most three, or one in a hundred on a big gate, and only into
   air, water or lava; more than that, or a solid block where the frame goes, and it places nothing
