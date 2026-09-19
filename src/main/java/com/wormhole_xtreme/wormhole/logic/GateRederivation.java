@@ -770,7 +770,7 @@ public final class GateRederivation
         for (final GateBlueprint.Cell cell : cells)
         {
             final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
-            if ((found == frame) || ((chevron != null) && (found == chevron)))
+            if (detectionTakes(cell, found, frame, chevron))
             {
                 continue;
             }
@@ -795,6 +795,21 @@ public final class GateRederivation
             placed.add(block);
         }
         return new Fill(placed, gaps, blocked, cap);
+    }
+
+    /**
+     * Whether detection takes this block in this cell, by the rule {@code StargateHelper} applies: a
+     * frame cell takes the frame material, or the chevron material where it lights; a {@code [C]} cell
+     * takes only the chevron material, or the frame material when the gate has none.
+     */
+    private static boolean detectionTakes(final GateBlueprint.Cell cell, final org.bukkit.Material found,
+        final org.bukkit.Material frame, final org.bukkit.Material chevron)
+    {
+        if (cell.part() == GateBlueprint.Part.CHEVRON)
+        {
+            return found == ((chevron != null) ? chevron : frame);
+        }
+        return (found == frame) || ((chevron != null) && (found == chevron) && (cell.wave() > 0));
     }
 
     /** Air or a liquid: what a frame block can be put into without taking anything away. */

@@ -890,4 +890,32 @@ class GateRederivationTest
         assertEquals(Material.AIR, sign.getType());
     }
 
+    /**
+     * A chevron block in a frame cell that does not light is wrong, as detection reads it, so it
+     * stops the fill; in a cell that lights it is right, and is not a gap at all.
+     */
+    @Test
+    void aChevronBlockWhereNoChevronLightsStopsTheFill() throws Exception
+    {
+        final List<String> lines = new java.util.ArrayList<>(Files.readAllLines(SHAPE_DIR.resolve("Massive.shape")));
+        lines.add("CHEVRON_MATERIAL=REDSTONE_LAMP");
+        final Stargate3DShape lamps = new Stargate3DShape(lines.toArray(new String[0]));
+        final Stargate gate = StargateHelper.checkStargate(build(lamps, BlockFace.SOUTH, 0, 64, 0), BlockFace.SOUTH, lamps);
+        assertNotNull(gate);
+        assertEquals(Material.REDSTONE_LAMP, gate.getEffectiveChevronMaterial());
+        final List<GateBlueprint.Cell> cells = GateBlueprint.of(lamps, GateRederivation.layoutFor(gate, lamps).grid());
+        final GateBlueprint.Cell unlit = cells.stream()
+            .filter(c -> (c.part() == GateBlueprint.Part.FRAME) && (c.wave() == 0) && !c.dhd()).findFirst().orElseThrow();
+        final GateBlueprint.Cell lit = cells.stream()
+            .filter(c -> (c.part() == GateBlueprint.Part.FRAME) && (c.wave() > 0)).findFirst().orElseThrow();
+        placed.put(key(unlit.x(), unlit.y(), unlit.z()), Material.REDSTONE_LAMP);
+        placed.put(key(lit.x(), lit.y(), lit.z()), Material.REDSTONE_LAMP);
+
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(gate);
+
+        assertTrue(fill.placed().isEmpty());
+        assertEquals(List.of(new GateRederivation.Gap(unlit.x(), unlit.y(), unlit.z(), Material.REDSTONE_LAMP)),
+            fill.blocked());
+        assertEquals(1, fill.gaps().size(), "the lit cell is not a gap: " + fill.gaps());
+    }
 }
