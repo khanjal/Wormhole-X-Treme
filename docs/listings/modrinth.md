@@ -33,6 +33,69 @@ between filling this in and it appearing.
 | Discord **(confirmed)** | blank — see the note in [`shared.md`](shared.md#links) |
 | Donation links **(confirmed)** | blank |
 | Icon **(assumed: 512×512)** | PNG rendered from `docs/images/logo.svg` |
+| Contains AI-generated content **(confirmed)** | **On**, with Code, Assets and Text all ticked — see below |
+| Contains derivative content **(confirmed)** | **On**. Original work: `Wormhole X-Treme`. The link is an open item — see below |
+
+**The two disclosure toggles are Modrinth's alone.** Spigot and Hangar have no equivalent, which
+is why they live here rather than in `shared.md`. Both are structured fields with their own
+explanation boxes, and both are enabled. `shared.md`'s [AI disclosure](shared.md#ai-disclosure)
+prose stays as it is — the explanations below are built on it deliberately, so the two do not
+drift apart when one is edited.
+
+**Contains AI-generated content: on, all three boxes.** The form asks it to be enabled for any
+AI-generated assets or text, or a substantial amount of AI-generated code.
+
+- **Code** — the modernisation work, which the commit history records.
+- **Text** — the documentation and this listing copy.
+- **Assets — the one somebody will be tempted to untick, so do not.** The logo's SVG was written
+  with Claude Code rather than by a designer: [`docs/LOGO.md`](../LOGO.md) and
+  [`TRADEMARK.md`](../../TRADEMARK.md) both say so in as many words, and the project icon is
+  rendered from that same `docs/images/logo.svg`. An AI-authored asset is literally on the page.
+  The gameplay captures and screenshots are real recordings from a running server, which is why
+  the explanation says so rather than leaving it ambiguous.
+
+> Wormhole X-Treme is a fifteen-year-old plugin brought forward, not a new one generated. The
+> original was written in 2011 by Lologarithm and alron; this fork modernises it and adds
+> transport rings, beaming and quantum mirrors.
+>
+> Much of that modernisation work was done with Claude Code under review, and the commit history
+> records it. Nothing merges on that basis alone: every change goes through the test suite, the
+> full build matrix and static analysis, and a maintainer reads it.
+>
+> The documentation and this listing were drafted the same way, as was the placeholder logo — its
+> SVG was hand-authored as markup rather than image-generated, but written with Claude Code at a
+> maintainer's direction, which TRADEMARK.md states in as many words. Replacing it with a
+> commissioned mark is tracked as issue #187.
+>
+> The in-game footage and screenshots are real captures from a running server.
+
+**Contains derivative content: on.** The form asks it to be enabled for a fork or a project
+containing a substantial amount of someone else's work, which this is. Name of original work:
+**Wormhole X-Treme**.
+
+**The link to the original work is unresolved.** It wants the 2011 original, and no URL for it
+has been verified — the original repository may not survive, and its BukkitDev page is not
+something to guess at. The only such URL the repository itself cites is
+`https://github.com/WolfNetDevelopment/Wormhole-X-Treme` ([`README.md:119`](../../README.md)),
+and that is the *later* fork, not the original. Use whichever of the two actually resolves, and
+if it is the WolfNet one, say so in the explanation rather than letting it read as the original.
+Record here whatever ends up in the field, so nobody re-derives this.
+
+> This is a fork of the original Wormhole X-Treme, a Bukkit plugin written in 2011 by Lologarithm
+> (Ben Echols) and alron (Dean Bailey), with contributions from lirelent (Ryan Metzger) and
+> Jeremy Wood. It went unmaintained years ago.
+>
+> This fork brings it forward to Minecraft 1.20–26.3 and adds three subsystems the original never
+> had: transport rings, beaming and quantum mirrors. The stargate code is descended from the
+> original rather than rewritten. Licence is unchanged at GPL-3.0-or-later.
+>
+> It descends from the original rather than from the later WolfNetDevelopment fork, which lycano
+> maintained until 2015.
+
+That last paragraph is deliberate. It is the same lineage point that settled lycano's place in
+[the credits](shared.md#credits), and it heads off confusion with the other Wormhole X-Treme
+listing on Spigot. Both blocks name the supported range, so a release that moves the range has to
+touch them as well as the fields table.
 
 **On the licence field.** `LICENSING.md` and the README both say "GPL-3.0" without qualifying it,
 but `NOTICE.txt` carries the full grant: "either version 3 of the License, or (at your option) any
