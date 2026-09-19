@@ -109,6 +109,8 @@ class GateRederivationTest
         when(b.getWorld()).thenReturn(world);
         when(b.getLocation()).thenReturn(new Location(world, x, y, z));
         when(b.getType()).thenAnswer(inv -> placed.getOrDefault(key(x, y, z), Material.AIR));
+        org.mockito.Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
+            .when(b).setType(any(Material.class), org.mockito.ArgumentMatchers.anyBoolean());
         when(b.getRelative(any(BlockFace.class))).thenAnswer(inv -> {
             final BlockFace face = inv.getArgument(0, BlockFace.class);
             return blockAt(x + face.getModX(), y + face.getModY(), z + face.getModZ());
@@ -725,5 +727,47 @@ class GateRederivationTest
             final Stargate gate = detected(name);
             assertFalse(GateRederivation.layoutFor(gate, shape(name)).moved(), name);
         }
+    }
+
+    /**
+     * A {@code Massive} gate built under 1.7.0 has its name sign in the ring; regen takes it out.
+     *
+     * <p>1.7.0's shape put {@code :N} on the back ring, so the sign replaced a frame block of the
+     * layer in front. Staged here on today's shape: the holder moved back two layers and a sign
+     * standing in the frame cell between. Detection cannot match the frame with the sign in it,
+     * so re-deriving fails until the block is back.
+     */
+    @Test
+    void aNameSignStandingInTheFrameIsTakenOutAndTheHolderMovesToTheFront() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Block front = gate.getGateNameBlockHolder();
+        final BlockFace back = gate.getGateFacing().getOppositeFace();
+        final Block signCell = front.getRelative(back);
+        final Material frame = placed.get(key(signCell.getX(), signCell.getY(), signCell.getZ()));
+        assertNotNull(frame, "the cell behind the front holder is frame");
+        placed.put(key(signCell.getX(), signCell.getY(), signCell.getZ()), Material.OAK_WALL_SIGN);
+        gate.setGateNameBlockHolder(signCell.getRelative(back));
+
+        final Block restored = GateRederivation.restoreFrameUnderNameSign(gate);
+
+        assertSame(signCell, restored);
+        assertEquals(frame, signCell.getType());
+        final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+        assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
+        assertTrue(outcome.changes().contains("name sign"), "changes were: " + outcome.changes());
+        assertSame(front, gate.getGateNameBlockHolder());
+    }
+
+    /** A name sign hanging where it should, in front of the ring, is left standing. */
+    @Test
+    void aNameSignInFrontOfTheFrameIsLeftAlone() throws Exception
+    {
+        final Stargate gate = detected("Massive");
+        final Block sign = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing());
+        placed.put(key(sign.getX(), sign.getY(), sign.getZ()), Material.OAK_WALL_SIGN);
+
+        assertNull(GateRederivation.restoreFrameUnderNameSign(gate));
+        assertEquals(Material.OAK_WALL_SIGN, sign.getType());
     }
 }

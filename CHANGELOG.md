@@ -8,12 +8,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.1 (unreleased)
 
-**Upgrading: take the new `Massive.shape`, and move a standing `Massive` gate's name sign.**
+**Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**
 
 - Delete `Massive.shape` if you did not edit it, and restart. The startup log names it.
-- A named `Massive` gate put its sign inside the ring, where a frame block was, second layer from
-  the back at the lower left. Break that sign, put the frame block back, and run
-  `/wormhole gate regen <gate>`: the sign goes on the front face.
+- Run `/wormhole gate regen <gate>` on each `Massive` gate. Its name sign stood inside the ring,
+  where a frame block was; regen puts the block back and hangs the sign on the front face.
 
 ### Stargates
 
@@ -21,6 +20,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   right, and two blocks past the corner at each end of it.
 - **`Massive`'s name sign hangs on the front of the gate.** Its `:N` was on the back ring, so the
   sign went into the layer in front of it.
+- **`gate regen` takes a name sign out of the frame and puts the block back** before it reads
+  the gate, and says where. Until then the frame came up a block short, `OAK_WALL_SIGN` where the
+  ring should be, and the markers were left alone.
+- **A name sign is never placed over the gate's frame or chevron material.** The gate goes
+  without one, and the log says why.
 - **`/wormhole gate shapes validate` catches a `:N` with a block in front of it**, a frame,
   chevron or portal cell, where the sign would land inside the gate. `gate shapes reload` refuses
   such a shape, 1.7.0's `Massive` among them; startup still loads it.

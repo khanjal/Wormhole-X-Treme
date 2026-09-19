@@ -45,6 +45,7 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(args[1]));
             return true;
         }
+        takeSignOutOfFrame(sender, s);
         int missing = 0;
         final int shapeAt = flagAt(args, 2, "-shape");
         if (shapeAt > 0)
@@ -120,6 +121,7 @@ public class RegenerateCommand implements SubCommand
             return;
         }
         shutForRegen(player, existing);
+        takeSignOutOfFrame(player, existing);
         final Stargate fresh = GateRefresh.refresh(existing, clicked, direction);
         reportRedetect(player, existing, fresh);
         regenerateOneGate(player, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
@@ -138,6 +140,19 @@ public class RegenerateCommand implements SubCommand
         com.wormhole_xtreme.wormhole.command.CommandUtilities.closeGate(s, false);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Shut "
             + ChatText.name(s.getGateName()) + " down to regenerate it.");
+    }
+
+    /** Puts back a frame block the gate's name sign was hung in, so the frame can be detected whole. */
+    private static void takeSignOutOfFrame(final CommandSender sender, final Stargate s)
+    {
+        final org.bukkit.block.Block restored = GateRederivation.restoreFrameUnderNameSign(s);
+        if (restored != null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Took "
+                + ChatText.name(s.getGateName()) + "'s name sign out of its frame at "
+                + ChatText.value(restored.getX() + " " + restored.getY() + " " + restored.getZ())
+                + " and put the block back.");
+        }
     }
 
     /** Says whether the gate's whole geometry was detected afresh, or why it was kept. */

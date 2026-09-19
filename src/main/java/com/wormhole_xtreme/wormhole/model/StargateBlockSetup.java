@@ -64,6 +64,17 @@ class StargateBlockSetup
 
         if (create)
         {
+            // A shape whose :N has the frame in front of it would otherwise eat a block of the ring.
+            if (isFrameMaterial(gate, placeBlock.getType()))
+            {
+                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+                if (plugin != null)
+                {
+                    plugin.prettyLog(Level.WARNING, "No name sign for " + gate.getGateName()
+                        + ": the cell in front of its :N block is part of the frame.");
+                }
+                return;
+            }
             logSignPlacement(gate, nameSign, toward, placeBlock);
             placeGateSign(gate, placeBlock, toward);
         }
@@ -163,6 +174,13 @@ class StargateBlockSetup
             dbg.append(" PlaceBlock=null");
         }
         plugin.prettyLog(Level.FINE, dbg.toString());
+    }
+
+    /** Whether a block is the gate's frame or chevron material. */
+    static boolean isFrameMaterial(final Stargate gate, final Material type)
+    {
+        return (type != null)
+            && ((type == gate.getEffectiveStructureMaterial()) || (type == gate.getEffectiveChevronMaterial()));
     }
 
     /** Places the sign and writes the gate's name, network and owner onto its front. */

@@ -16,6 +16,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 
 /**
  * Tests for sign placement in {@link Stargate#setupGateSign(boolean)}.
@@ -279,5 +281,27 @@ class StargateSignTest
         gate.setupGateSign(false);
 
         verify(signPlaceBlock, never()).setType(any());
+    }
+
+    /**
+     * A name sign whose cell is the gate's own frame is not placed there.
+     *
+     * <p>1.7.0's {@code Massive} had {@code :N} on its back ring, and the sign replaced a block of
+     * the ring in front.
+     */
+    @Test
+    void aNameSignIsNotPlacedOverTheFrame()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        final Material frame = gate.getEffectiveStructureMaterial();
+        assertNotNull(frame);
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        when(signPlaceBlock.getType()).thenReturn(frame);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(signPlaceBlock, never()).setType(any(), anyBoolean());
     }
 }
