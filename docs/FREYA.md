@@ -25,6 +25,7 @@ She had habits none of the other cats ever picked up. She spun her treat contain
 treats came out, while the rest watched and hoped one would roll their way. She waited on the
 kitchen counter for the fridge to open and tapped insistently until a piece of cheese came out
 of it. In the car she rode on a lap, watching out of the window or just lying there quietly.
+And once a year, on her birthday, there were cheese fries.
 
 The last of it had a shape to it as well: the pills at night, her own meals through the day, the
 vet every month for her B12 and her arthritis. She was let go peacefully, at three in the
