@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -730,7 +731,7 @@ class RegenerateExecuteTest
                 .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
 
             assertTrue(run(args));
-            rederive.verify(() -> GateRederivation.fillFrame(gate), org.mockito.Mockito.times(
+            rederive.verify(() -> GateRederivation.fillFrame(gate), times(
                 java.util.Arrays.asList(args).contains("-fill") ? 1 : 0));
         }
     }
