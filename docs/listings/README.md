@@ -5,9 +5,9 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | File | What it is |
 |---|---|
 | [`shared.md`](shared.md) | The source of truth. Every fact and every block of prose the listings share, in plain Markdown with no site markup. |
-| [`spigot.md`](spigot.md) | [SpigotMC](https://www.spigotmc.org/resources/) — form fields and the description in BBCode. |
-| [`modrinth.md`](modrinth.md) | [Modrinth](https://modrinth.com/plugins) — project fields and the description in Markdown. |
-| [`hangar.md`](hangar.md) | [Hangar](https://hangar.papermc.io/) — project fields and the page in Markdown. |
+| [`spigot.md`](spigot.md) | [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) — form fields and the description in BBCode. |
+| [`modrinth.md`](modrinth.md) | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) — project fields and the description in Markdown. |
+| [`hangar.md`](hangar.md) | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) — project fields and the page in Markdown. |
 
 All three are published:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
@@ -25,11 +25,21 @@ changes, you change it there and then carry it into whichever site files quote i
 1. **Bump the version and the supported range** in [`shared.md`](shared.md#release-facts), then in
    each site file's fields table. These are the only numbers a release should have to touch — see
    the convention below.
-3. **Check the image URLs still resolve.** They are pinned to `main`, not to a tag, so they follow
+2. **Upload the new jar to all three sites**, and set each one's version field to match. Spigot
+   takes an uploaded file rather than a link, for the reasons in [`spigot.md`](spigot.md#fields);
+   Modrinth and Hangar take a version upload each. This is the step that actually ships the
+   release to the people using it, and it is easy to stop after tagging.
+3. **Re-check Modrinth's game versions.** Its auto-detection reads `api-version` from `plugin.yml`
+   and ticks 1.20.x alone, so a version upload can quietly narrow what the page claims. See
+   [`modrinth.md`](modrinth.md#fields).
+4. **Rewrite the release notes** in [`shared.md`](shared.md#release-notes) for the new version.
+   Modrinth and Hangar both take a per-version changelog, and the full `CHANGELOG.md` section is
+   too long for one.
+5. **Check the image URLs still resolve.** They are pinned to `main`, not to a tag, so they follow
    whatever later happens to those files. That is deliberate: a tag URL 404s until the tag exists,
    which is what broke the first Spigot preview. The cost is that renaming a capture breaks three
    listings at once.
-4. **Carry any feature change into all three descriptions.** This is the one place the parallel
+6. **Carry any feature change into all three descriptions.** This is the one place the parallel
    texts hurt. `grep` for a phrase from the block you changed.
 
 ## Conventions

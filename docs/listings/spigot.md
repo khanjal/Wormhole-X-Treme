@@ -280,7 +280,7 @@ The code is all there under GPL-3.0. Read it, fork it, or tell me where it is wr
   the thing they came for. If it needs shortening, the operator list is the cut: the guide links
   cover it.
 
-## Rules this submission touches
+## Rules this listing touches
 
 Read against Spigot's rules text as of 2025-07-19. Four things matter; one is a real risk.
 
