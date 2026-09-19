@@ -312,6 +312,28 @@ Concealment is the bigger risk.
 giving or requesting legal advice. Stating your own licence and your own non-affiliation is a
 statement about your own resource, which is fine.
 
+## Version upload
+
+Spigot calls this posting a resource update. It takes a title, a message and the jar, and the
+message is the one piece of release copy this file does not otherwise carry.
+
+| Field | Value |
+|---|---|
+| Update title | `Wormhole X-Treme v1.7.1 (MC 1.20-26.3)` — matches the GitHub release name |
+| Update message | the short form in [`shared.md`](shared.md#release-notes), converted to BBCode |
+| File | `WormholeXTreme-<version>.jar` from the release |
+| Version | set it to match, so the resource header stops advertising the old one |
+
+**The message needs converting; Modrinth's and Hangar's do not.** Those two take the release
+notes as Markdown and paste in unchanged. Spigot takes BBCode, so the same block needs
+`**bold**` as `[B]bold[/B]`, `` `code` `` as `[ICODE]code[/ICODE]`, the `>` blockquote dropped and
+the bullet list wrapped in `[LIST]` with `[*]` per item. The [BBCode notes](#bbcode-notes) above
+apply here too — in particular, do not reach for `[HR]`.
+
+Tick **Notify followers** so people watching the resource hear about it. That notification is
+most of what uploading to Spigot buys over linking a jar, which is the reason the resource type
+is an upload in the first place — see [Fields](#fields).
+
 ## Keeping it current
 
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,

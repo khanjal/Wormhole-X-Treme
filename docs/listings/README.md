@@ -27,8 +27,9 @@ changes, you change it there and then carry it into whichever site files quote i
    the convention below.
 2. **Upload the new jar to all three sites**, and set each one's version field to match. Spigot
    takes an uploaded file rather than a link, for the reasons in [`spigot.md`](spigot.md#fields);
-   Modrinth and Hangar take a version upload each. This is the step that actually ships the
-   release to the people using it, and it is easy to stop after tagging.
+   Modrinth and Hangar take a version upload each. Each of the three has a version-upload section
+   in its file saying what goes in the fields. This is the step that actually ships the release to
+   the people using it, and it is easy to stop after tagging.
 3. **Re-check Modrinth's game versions.** Its auto-detection reads `api-version` from `plugin.yml`
    and ticks 1.20.x alone, so a version upload can quietly narrow what the page claims. See
    [`modrinth.md`](modrinth.md#fields).
