@@ -4,7 +4,7 @@ How to install, configure and use Wormhole X-Treme. Start with the page for what
 
 | Page | For |
 |---|---|
-| [SERVER.md](SERVER.md) | Installing, compatibility, configuration, permissions, commands, storage, economy, troubleshooting |
+| [SERVER.md](SERVER.md) | Installing, upgrading, compatibility, configuration, permissions, commands, storage, economy, troubleshooting |
 | [GATES.md](GATES.md) | Building, dialling and wiring stargates; shapes, palettes, signs, the iris, redstone |
 | [RINGS.md](RINGS.md) | Building and using transport rings |
 | [BEAMS.md](BEAMS.md) | Beam destinations and private places |
