@@ -800,7 +800,8 @@ public class ConfigManager
 
     /**
      * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
-     * {@code true} or {@code false}, read as CHEVRON and NONE; anything unreadable is CHEVRON.
+     * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
+     * default, TOP.
      *
      * @return the pattern
      */
@@ -809,7 +810,7 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
         final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern = (s == null) ? null
             : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.CHEVRON : pattern;
+        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP : pattern;
     }
 
     /**
