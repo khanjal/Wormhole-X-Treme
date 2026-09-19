@@ -162,6 +162,6 @@ Two things that follow from it, worth knowing before filing an issue:
 - **The plugin's version says nothing about Minecraft's.** The supported range lives in the
   README badge and in [Minecraft versions](#minecraft-versions), and moves on its own schedule.
   `1.10.0` after `1.9.0` is ordinary, and is not a claim about Minecraft 1.10.
-- **The number is set at release, not during.** While work lands, the changelog's top heading
-  reads `## 1.8.0 (unreleased)` and the pom still carries the last released version. One commit
-  at the end versions the pom and dates the heading.
+- **The number is set at release, not during.** Work lands under a top changelog heading marked
+  `(unreleased)`, while the pom still carries the last released version. One commit at the end
+  versions the pom and dates the heading.
