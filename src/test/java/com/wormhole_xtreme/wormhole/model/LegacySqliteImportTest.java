@@ -83,7 +83,7 @@ class LegacySqliteImportTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGatesUnsorted()))
         {
             if (s != null)
             {
