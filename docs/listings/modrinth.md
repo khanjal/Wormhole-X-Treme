@@ -66,6 +66,19 @@ Stargate-style travel: dialling gates, transport rings, beaming and quantum mirr
 (158 characters.) If the field turns out to be tighter, fall back to the 97-character preferred
 tagline in [`shared.md`](shared.md#tagline).
 
+Two fuller alternates, both measured, if the 256 cap holds:
+
+```
+Stargate-style travel for Bukkit, Spigot and Paper: dialling gates, transport rings, beaming, and quantum mirrors that open onto another world. Minecraft 1.20 through 26.3 in one jar, Java 17, no dependencies and no database.
+```
+(225)
+
+```
+A maintained fork of the 2011 original, bringing Stargate-style travel to modern Minecraft: dialling gates, transport rings, beaming and quantum mirrors. One jar covers 1.20 through 26.3 on Bukkit, Spigot, Paper and Purpur.
+```
+(223 — lineage-leading. Worth preferring where the summary is the only thing a reviewer reads,
+since it answers the "whose plugin is this" question before anyone asks.)
+
 ## Description
 
 Paste from here down. Modrinth renders GitHub-flavoured Markdown and strips most raw HTML
@@ -284,11 +297,12 @@ image on Modrinth's own CDN.
 | Loaders | Bukkit, Spigot, Paper, Purpur |
 | Game versions | every 1.20.x, 1.21.x and 26.x, ticked individually — the auto-detected list is wrong, see [Fields](#fields). Snapshots off. |
 | File | `WormholeXTreme-1.7.0.jar` |
-| Changelog | the 1.7.0 section of [`CHANGELOG.md`](../../CHANGELOG.md), pasted as Markdown |
+| Changelog | the short form in [`shared.md`](shared.md#release-notes) |
 
-The changelog field takes Markdown, so the release section pastes in as it stands — this is the
-one place Modrinth is less work than Spigot. Lead with the **Upgrading** paragraph; it is what an
-operator on 1.6.0 needs before they download.
+The changelog field takes Markdown, so it pastes in as it stands. Use the short release notes
+rather than the full `CHANGELOG.md` section: that runs to about 150 lines and reads as a wall on a
+download page. It leads with the **Upgrading** bullets, which are what an operator on 1.6.0 needs
+before they download.
 
 ## Before you submit
 

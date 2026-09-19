@@ -74,6 +74,20 @@ The gallery is about 1.9 MB all told. If a page feels heavy, `gate-shapes-active
 Everything else under `docs/images/` is SVG: the per-shape drawings, the ring patterns, the ring
 stack, the beam timing strip. Render to PNG before using them anywhere that will not take SVG.
 
+**Rendering the banner clips the wordmark unless you substitute the font.** `logo-banner.svg`
+draws its text as live `<text>` in `Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif`
+(`docs/images/logo-banner.svg:106`). Render it anywhere without Segoe UI installed and the
+fallback sets wider, pushing "WORMHOLE" and the tagline off the right edge of the 1040x340
+viewBox. Substitute a metric-compatible face first:
+
+```bash
+sed 's/font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif"/font-family="Liberation Sans"/' \
+  docs/images/logo-banner.svg > /tmp/banner.svg
+python3 -c "import cairosvg; cairosvg.svg2png(url='/tmp/banner.svg', write_to='banner.png', output_width=1240)"
+```
+
+Liberation Sans is metric-compatible with Arial, which is already in the stack, so nothing moves.
+
 ---
 
 ## Tagline
@@ -256,6 +270,11 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 
 > Drop the jar in `plugins/` and start the server. Nothing else is needed.
 
+**The quickstart builds `Standard`, not `StandardSignDial`, on purpose.**
+`docs/guide/GATES.md` says to expect the SignDial shapes to go, with
+[#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46) moving sign dialling to the DHD. A
+shape slated for removal does not belong in a listing that outlives it.
+
 ```
 /wormhole gate build Standard           # preview it, then lay the frame in obsidian
 /wormhole gate complete Home            # click the DHD button first
@@ -315,6 +334,43 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 - Writing a plugin against this one — `docs/API.md`
 - Changelog · Issues and bug reports
 
+## Release notes
+
+Modrinth and Hangar both take a per-version changelog, and the full 1.7.0 section of
+[`CHANGELOG.md`](../../CHANGELOG.md) runs to about 150 lines — a wall on a download page. Use the
+short form below there and link the full one.
+
+**Keep both Upgrading bullets whatever else is cut**, especially the shape-files one: an upgrader
+who keeps their old shape files sees none of the headline dialling changes and reads the release
+as broken.
+
+> **Upgrading from 1.6.0 — two things to do.**
+>
+> - Command keywords now need a dash: `gate remove <gate> -destroy` (was `-all`), `complete
+>   -help`, `mirror set <name> -stamp`, `beam admin cost <name> -default`. Scripts and command
+>   blocks need updating.
+> - Your shape files are kept, not overwritten — so the new dialling will not appear until you
+>   delete the bundled shapes you have not edited and restart. The startup log names them.
+>
+> **Stargates**
+>
+> - Chevrons light in the show's order, at a pace you can follow, with a lock-in sound.
+> - An eighth chevron locks when the destination is in another world.
+> - The inner ring turns as it dials, in a choice of patterns, or not at all.
+> - Build previews: stand a shape full size in front of you, check what it costs, get a build
+>   guide, then place it for real.
+> - `gate regen` finds a gate's real shape and relights its chevrons.
+>
+> **Travel**
+>
+> - Tamed wolves, cats and parrots follow their owner through gates, rings, beams and mirrors.
+>
+> **Server**
+>
+> - Supported through Minecraft 26.3. CraftBukkit no longer errors on ring countdowns.
+>
+> [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md)
+
 ## Credits
 
 > Wormhole X-Treme was written by **Lologarithm** (Ben Echols) and **alron** (Dean Bailey), with
@@ -331,6 +387,14 @@ descends from the original at 0.854 (May 2011), not from the WolfNet fork, which
 `com.wormhole_xtreme.wormhole`, the absence of any lycano reference in `src/`, and the changelog
 jumping from 0.x (2011) straight to 1.0.0 (2026) all confirm. History goes in prose, authorship
 goes in metadata.
+
+**Do not revise that list from the GitHub contributor graph.** The upstream graph shows alron,
+lirelent and dumptruckman but *not* Lologarithm, who is beyond dispute a primary author — commits
+authored under an email never linked to a GitHub account do not attach to a user, so the graph
+under-reports and absence from it proves nothing. In particular it is not grounds to drop Jeremy
+Wood, whose credit rests on the original authors having listed him in their own `plugin.yml`,
+which is better evidence than a graph known to be incomplete. lirelent is separately documented at
+`CHANGELOG-ORIGINAL-2011.md:192` for distance finding and gate shape parsing.
 
 ## Licence
 

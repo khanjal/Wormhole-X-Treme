@@ -67,6 +67,32 @@ Stargate-style travel: dialling gates, transport rings, beaming and quantum mirr
 
 (115 characters, so it fits the 120 cap with five to spare.)
 
+Alternates, all measured and none sitting on the cap:
+
+```
+Stargate-style travel for Paper: dialling gates, rings, beaming and quantum mirrors. Minecraft 1.20-26.3, one jar.
+```
+(114 — the Paper-leading one, which matches how Hangar tags the project.)
+
+```
+Stargate-style travel: dialling gates, transport rings, beaming and mirrors. Minecraft 1.20-26.3, no dependencies.
+```
+(114)
+
+```
+Dial a gate, step into a ring, beam, or walk through a mirror. One jar covers Minecraft 1.20-26.3, with no setup.
+```
+(113)
+
+```
+Gates you dial, rings you walk into, beaming, and mirrors onto other worlds. Minecraft 1.20-26.3, one jar.
+```
+(106)
+
+**Do not write one that lands exactly on a stated cap.** Spigot's advertised limit was already
+wrong once — it turned out to be 100, not the 128 its documentation implied — and a summary cut
+mid-word is a bad first impression.
+
 ## Home page
 
 Hangar projects have a main page and can have **subpages** **(assumed)**. That suits this plugin
@@ -262,13 +288,15 @@ text.
 | Field | Value |
 |---|---|
 | Version | `1.7.0` |
+| Version title | `Wormhole X-Treme 1.7.0 (MC 1.20-26.3)` — beats a bare version string in a list |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
 | File | `WormholeXTreme-1.7.0.jar` |
-| Changelog | the 1.7.0 section of [`CHANGELOG.md`](../../CHANGELOG.md), pasted as Markdown |
+| Changelog | the short form in [`shared.md`](shared.md#release-notes) |
 
-Lead the changelog with the **Upgrading** paragraph, as on Modrinth.
+Use the short release notes rather than the full `CHANGELOG.md` section, which runs to about 150
+lines and reads as a wall on a download page.
 
 ## Before you submit
 
