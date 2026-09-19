@@ -141,6 +141,8 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 - **The Sonar scan is retried**, so a SonarCloud outage no longer fails a pull request.
 - **The mirror window tests draw on stand-ins rather than mocks**, and run in 256 MB where they
   wanted 4 GB. The test fork has a 1 GB ceiling.
+- **A Claude Code web session warms the Maven cache as it starts**, so its first
+  `mvn test` runs tests instead of downloading the build. Local checkouts are unaffected.
 
 ## 1.6.0 (2026-09-16)
 
