@@ -31,6 +31,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   and says why.
 - **Taking a name sign down from the frame puts the frame block back**, rather than leaving air
   where the ring was.
+- **`gate preview place` fills in a gate it is laid over**, for a player with `wormhole.config`:
+  it places only the blocks that gate is missing, never replacing one, then regenerates the gate,
+  keeping its name, owner, network and IDC. Over a ring or two gates it is refused as before.
 - **A name sign is never placed over the gate's frame or chevron material.** The gate goes
   without one, and the log says why.
 - **`/wormhole gate shapes validate` catches a `:N` with a block in front of it**, a frame,

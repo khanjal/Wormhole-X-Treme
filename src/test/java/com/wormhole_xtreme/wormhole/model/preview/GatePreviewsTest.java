@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1454,4 +1455,108 @@ class GatePreviewsTest
         chevron.forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
         assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
     }
+
+    /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */
+    private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final Cell hole = cells.get(0);
+        for (final Cell cell : cells)
+        {
+            if ((cell != hole) && (cell.part() != Part.BUTTON) && (cell.part() != Part.DIAL_SIGN))
+            {
+                place(cell, Material.OBSIDIAN);
+            }
+        }
+        GatePreviews.occupied = (w, x, y, z) -> standing.containsKey(List.of(x, y, z));
+        GatePreviews.gateAt = (w, x, y, z) -> standing.containsKey(List.of(x, y, z)) ? gate : null;
+        return hole;
+    }
+
+    /**
+     * A preview over one gate already there fills only what that gate is missing, and hands that gate
+     * back to be regenerated, rather than finding a second gate in the same blocks.
+     *
+     * <p>Lithium, a {@code Massive} gate brought in by the importer, stood a frame block short, and a
+     * preview could not be placed over it: every other block it needed was the gate's.
+     */
+    @Test
+    void placingOverOneGateFillsWhatItIsMissingAndHandsThatGateBack()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final com.wormhole_xtreme.wormhole.model.Stargate existing = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Cell hole = standAGateShortOfOneBlock(existing);
+        final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
+        GatePreviews.show(owner, standard, null);
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner, true);
+
+        assertEquals(GatePreviews.Outcome.REPAIRED, placed.outcome());
+        assertSame(existing, placed.gate());
+        assertEquals(List.of(List.of(hole.x(), hole.y(), hole.z()), List.of(button.x(), button.y(), button.z())),
+            written, "the missing frame block, then the button");
+        assertEquals(Material.OBSIDIAN, standing.get(List.of(hole.x(), hole.y(), hole.z())));
+        assertTrue(detected.isEmpty(), "no second gate is looked for");
+    }
+
+    /** Without leave to change a gate that is there, its blocks are in the way as before. */
+    @Test
+    void placingOverAGateWithoutLeaveIsRefused()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        standAGateShortOfOneBlock(mock(com.wormhole_xtreme.wormhole.model.Stargate.class));
+        GatePreviews.show(owner, standard, null);
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner, false);
+
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, placed.outcome());
+        assertTrue(placed.inTheWay().get(0).startsWith("a gate or ring at "), placed.inTheWay().toString());
+        assertTrue(written.isEmpty());
+    }
+
+    /** Over two gates, or a gate and a ring, nothing is placed: there is no one gate to fill in. */
+    @Test
+    void placingOverTwoGatesOrAGateAndARingIsRefused()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final com.wormhole_xtreme.wormhole.model.Stargate one = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final com.wormhole_xtreme.wormhole.model.Stargate two = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Cell hole = standAGateShortOfOneBlock(one);
+        final Cell other = standardLookingNorth().get(1);
+        GatePreviews.gateAt = (w, x, y, z) -> !standing.containsKey(List.of(x, y, z)) ? null
+            : ((x == other.x()) && (y == other.y()) && (z == other.z())) ? two : one;
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, GatePreviews.place(owner, true).outcome());
+
+        GatePreviews.gateAt = (w, x, y, z) -> !standing.containsKey(List.of(x, y, z)) ? null
+            : ((x == other.x()) && (y == other.y()) && (z == other.z())) ? null : one;
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, GatePreviews.place(owner, true).outcome(),
+            "a block owned but by no gate is a ring's");
+        assertTrue(written.isEmpty());
+        assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
+    }
+
+    /** A wrong block in a gate it stands over is still in the way: filling in never replaces anything. */
+    @Test
+    void placingOverAGateLeavesAWrongBlockInTheWay()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final Cell hole = standAGateShortOfOneBlock(mock(com.wormhole_xtreme.wormhole.model.Stargate.class));
+        final Cell stone = standardLookingNorth().get(1);
+        place(stone, Material.STONE);
+        GatePreviews.show(owner, standard, null);
+
+        final GatePreviews.Placed placed = GatePreviews.place(owner, true);
+
+        assertEquals(GatePreviews.Outcome.IN_THE_WAY, placed.outcome());
+        assertEquals(List.of("stone at " + stone.x() + " " + stone.y() + " " + stone.z()), placed.inTheWay());
+        assertTrue(written.isEmpty());
+        assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
+    }
+
 }

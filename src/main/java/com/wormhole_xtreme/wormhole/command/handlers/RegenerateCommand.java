@@ -165,11 +165,31 @@ public class RegenerateCommand implements SubCommand
                 + "No registered gate found at that block. Build or complete the gate first.");
             return;
         }
-        shutForRegen(player, existing);
-        takeSignOutOfFrame(player, existing);
-        final Stargate fresh = GateRefresh.refresh(existing, clicked, direction);
-        reportRedetect(player, existing, fresh);
-        regenerateOneGate(player, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
+        regenerateAt(player, existing, clicked, direction, clearLiquid);
+    }
+
+    /**
+     * Regenerates a gate from a block of its DHD, detecting it afresh from there first.
+     *
+     * @param sender
+     *            who to tell
+     * @param existing
+     *            the gate as registered
+     * @param button
+     *            its DHD button, or the block clicked
+     * @param facing
+     *            the facing to try first, or null to try all four
+     * @param clearLiquid
+     *            whether {@code -water} was asked for
+     */
+    public static void regenerateAt(final CommandSender sender, final Stargate existing,
+        final org.bukkit.block.Block button, final org.bukkit.block.BlockFace facing, final boolean clearLiquid)
+    {
+        shutForRegen(sender, existing);
+        takeSignOutOfFrame(sender, existing);
+        final Stargate fresh = GateRefresh.refresh(existing, button, facing);
+        reportRedetect(sender, existing, fresh);
+        regenerateOneGate(sender, (fresh != null) ? fresh : existing, 0, clearLiquid, false);
     }
 
     /**

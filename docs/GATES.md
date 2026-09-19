@@ -272,7 +272,11 @@ the gate or its opening needs may hold something else or belong to a gate or rin
 right is kept, so a half-built gate is finished rather than rebuilt. It writes the preview's own
 `blockDataFor`, frame first and the button last, then finds the gate with `checkStargate` from that
 button and hands it to `GateInteractionHandler.offerNewGate`, the same step a pressed button takes,
-so naming, the `BUILD` permission and removing the preview are not a second path. Protection plugins
+so naming, the `BUILD` permission and removing the preview are not a second path. Laid over one
+gate already standing, by a player with `wormhole.config`, that gate's own blocks are not in the way:
+only what it is missing is written, and the gate goes to `RegenerateCommand.regenerateAt` rather than
+`offerNewGate`, so it is re-detected in place instead of registered twice. A ring's block, or a
+second gate's, is still in the way. Protection plugins
 are not asked yet: the node is admin-level, and region support is #240.
 
 A shared preview keeps who it is shared with apart from who is being shown it now. Every tick, and
