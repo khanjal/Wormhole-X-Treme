@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 
 /**
@@ -164,8 +166,11 @@ class PrettyLogThrowableTest
 
     /** Changing log-level in-game applies at once rather than at the next restart. */
     @Test
-    void changingTheSettingInGameAppliesItAtOnce() throws Exception
+    void changingTheSettingInGameAppliesItAtOnce(@TempDir final File dataFolder) throws Exception
     {
+        // Applying a setting saves config.yml; without a data folder that is ./plugins.
+        final WormholeXTreme plugin = PluginTestSupport.install();
+        when(plugin.getDataFolder()).thenReturn(dataFolder);
         final Logger real = Logger.getLogger("PrettyLogThrowableTest.changingTheSetting");
         real.setLevel(Level.INFO);
         set("log", real);
@@ -177,6 +182,7 @@ class PrettyLogThrowableTest
         finally
         {
             com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            PluginTestSupport.remove();
         }
 
         assertEquals(Level.FINE, real.getLevel());

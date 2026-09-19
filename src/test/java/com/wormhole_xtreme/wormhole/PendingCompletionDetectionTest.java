@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -23,6 +24,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
@@ -48,10 +50,15 @@ class PendingCompletionDetectionTest
     private Player player;
     private Block clicked;
 
+    /** Where a completed gate's file lands; without it the save goes to ./plugins. */
+    @TempDir
+    private File dataFolder;
+
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = PluginTestSupport.install();
+        when(plugin.getDataFolder()).thenReturn(dataFolder);
 
         GateSpatialIndex.clear();
         player = mock(Player.class);
