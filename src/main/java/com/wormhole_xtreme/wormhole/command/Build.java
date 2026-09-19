@@ -109,7 +109,7 @@ public class Build implements CommandExecutor
         if (args[0].startsWith("-"))
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Preview options moved to "
-                + hint("<action>") + ": " + commands(ACTIONS));
+                + actionList());
             return;
         }
         if (args.length > 2)
@@ -166,8 +166,7 @@ public class Build implements CommandExecutor
                     + ((group == null) ? "" : " in " + name(group.getName()))
                     + ((dhdFacing == null) ? ". Build inside it, then press a real button on its DHD."
                         : " on your DHD. Finish it, then press the button."));
-                player.sendMessage(header + "Look at it and use " + hint("<action>") + ": "
-                    + commands(ACTIONS));
+                player.sendMessage(header + "Look at it and use " + actionList());
             }
             case OVER_LIMIT -> player.sendMessage(error + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
                 ? "Previews are off on this server."
@@ -221,7 +220,7 @@ public class Build implements CommandExecutor
             if ((arguments.length < 1) || (arguments.length > 3))
             {
                 player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE
-                    + hint("<action>") + ": " + commands(ACTIONS));
+                    + actionList());
                 return true;
             }
             option(player, arguments, mayPreview);
@@ -458,6 +457,12 @@ public class Build implements CommandExecutor
                 + " for a frame, so this gate would not be found.");
         }
         return null;
+    }
+
+    /** {@code /wormhole gate preview <action>} and every action, for a message that lists them. */
+    private static String actionList()
+    {
+        return hint("<action>") + ": " + commands(ACTIONS);
     }
 
     /** A preview command, highlighted, for a message that points at it. */
