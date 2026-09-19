@@ -133,6 +133,10 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 
 ### Documentation
 
+- **The server guide has an [Upgrading](docs/guide/SERVER.md#upgrading) section**: what the first
+  startup after a new jar moves, what it leaves alone in `config.yml` and `shapes/gate/`, and what
+  a gate built by an older version wants doing to it. The README points at it, and at
+  `gate import` for gates from another fork.
 - **`SECURITY.md` says how to report a security problem privately**; the issue chooser links the
   private report form and the maintainer's Discord.
 - **The docs show the plugin in game**, with a capture per subsystem on the README and on each

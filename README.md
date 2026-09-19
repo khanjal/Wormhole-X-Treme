@@ -50,6 +50,12 @@ Four ways to get somewhere, each a different trade between what you build and wh
 Drop the jar from the [latest release](https://github.com/khanjal/Wormhole-X-Treme/releases/latest)
 into `plugins/` and start the server. No dependencies.
 
+**Already running Wormhole X-Treme?** Swapping the jar keeps your gates, and the plugin moves its
+own folders into their current places on the first startup. Gates from an older fork's SQLite
+database need one command to come across.
+[Upgrading](docs/guide/SERVER.md#upgrading) ·
+[Coming from another fork](docs/guide/SERVER.md#coming-from-another-wormhole-x-treme)
+
 **A gate** — `/wormhole gate build StandardSignDial`, lay the frame in obsidian, click the DHD
 button, then `/wormhole gate complete Home`. Put a sign on the dial block to pick destinations.
 [More](docs/guide/GATES.md#building-a-gate)
@@ -77,7 +83,7 @@ one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Documentation
 
-**Running a server** — [Setup, configuration, permissions and commands](docs/guide/SERVER.md)
+**Running a server** — [Setup, upgrading, configuration, permissions and commands](docs/guide/SERVER.md)
 
 **Using each feature** — [Gates](docs/guide/GATES.md) · [Rings](docs/guide/RINGS.md) ·
 [Beaming](docs/guide/BEAMS.md) · [Mirrors](docs/guide/MIRRORS.md)
