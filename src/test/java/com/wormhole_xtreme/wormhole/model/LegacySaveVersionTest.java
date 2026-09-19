@@ -75,7 +75,7 @@ class LegacySaveVersionTest
      * <p>Written with DataUtils rather than hand-rolled bytes: the point is to pin the
      * reader's field order and sizes, not to re-derive the encoding.
      */
-    private static byte[] version3Gate(final World w)
+    static byte[] version3Gate(final World w)
     {
         final byte[] dial = DataUtils.blockToBytes(blockAt(w, 10, 64, 20));
         final byte[] iris = DataUtils.blockToBytes(blockAt(w, 11, 64, 20));
