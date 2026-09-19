@@ -37,6 +37,7 @@ diverges from the other two.
 | Wiki **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
 | Discord **(confirmed)** | blank |
 | Donations **(confirmed)** | blank |
+| Dependencies **(confirmed)** | leave every row empty |
 | Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` |
 
 **On the category.** Hangar's list is shorter than Modrinth's and has no Transportation
@@ -45,6 +46,14 @@ mean something narrower. Check the list on the form and correct this row.
 
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
+
+**On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
+only `softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]` — every one of those is
+optional and the plugin loads without them. Declaring a required dependency that is not required
+would make Hangar warn operators off installing it.
+
+**On the Library tag.** Off, for the reason in [`modrinth.md`](modrinth.md#fields): this is a
+plugin somebody installs, not a dependency installed underneath something else.
 
 **On the keywords.** These deliberately differ from the Spigot tags, which are `stargate`,
 `teleport`, `portal`, `transportation`, `wormhole`. `transportation` is a Hangar *category* rather

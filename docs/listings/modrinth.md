@@ -25,7 +25,7 @@ between filling this in and it appearing.
 | Game versions **(confirmed)** | tick every 1.20.x, 1.21.x and 26.x individually. Snapshots off. **Modrinth's auto-detection gets this wrong — see below.** |
 | Client side **(assumed)** | Unsupported |
 | Server side **(assumed)** | Required |
-| Categories **(assumed: 3 max)** | Transportation, Game Mechanics, Utility |
+| Categories **(confirmed)** | Transportation, Game Mechanics, Adventure, Utility — the first three set as featured tags |
 | Licence | `GPL-3.0-or-later` |
 | Issue tracker **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/issues` |
 | Source code **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme` |
@@ -38,6 +38,15 @@ between filling this in and it appearing.
 but `NOTICE.txt` carries the full grant: "either version 3 of the License, or (at your option) any
 later version". That is `GPL-3.0-or-later` in SPDX, which is what Modrinth's picker wants. Picking
 `GPL-3.0-only` would be narrower than what the project actually grants.
+
+**On the categories.** Modrinth does not cap categories at three, as first assumed: it offers
+all nineteen and has a separate **Featured tags 0/3** field that picks which three show on the
+card. So tick four and feature Transportation, Game Mechanics and Adventure.
+
+**Library stays off, on both sites.** `docs/API.md` exists and other plugins can build against
+this one, but Library on these sites means a dependency installed underneath something else,
+which this is not. Ticking it would put the plugin in front of developers looking for a
+dependency and hide it from the operators who want a plugin.
 
 **On loaders.** Modrinth treats each of these as a separate loader tag. Tick Bukkit, Spigot,
 Paper and Purpur; leave Folia, Sponge and the proxy loaders off. Ticking Folia would put the
