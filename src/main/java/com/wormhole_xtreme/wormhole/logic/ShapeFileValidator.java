@@ -128,6 +128,7 @@ public final class ShapeFileValidator
             problems.addAll(checkLayerGaps(shape3d));
             problems.addAll(checkOrderSequencing(shape3d));
             problems.addAll(checkRedstonePlacement(shape3d));
+            problems.addAll(checkNameSignPlacement(shape3d));
         }
 
         return new Result(true, shape.getShapeName(), problems);
@@ -427,6 +428,45 @@ public final class ShapeFileValidator
             problems.add("[RD] is defined but there is no :D block for it to dial");
         }
         return problems;
+    }
+
+    /**
+     * The name sign hangs on the face of its {@code :N} block, one layer further along, so that
+     * cell has to be empty -- on a frame, chevron or portal cell the sign lands inside the gate.
+     */
+    private static List<String> checkNameSignPlacement(final Stargate3DShape shape)
+    {
+        final List<String> problems = new ArrayList<>();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size() - 1; layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            final StargateShapeLayer front = layers.get(layerIdx + 1);
+            if (layer == null || front == null || layer.getLayerNameSignPosition().length < 3)
+            {
+                continue;
+            }
+            final int y = layer.getLayerNameSignPosition()[1];
+            final int col = layer.getLayerNameSignPosition()[2];
+            if (isFrameAt(front, y, col) || isPortalAt(front, y, col))
+            {
+                problems.add(":N on Layer#" + layerIdx + " hangs its sign on Layer#" + (layerIdx + 1)
+                    + ", where the gate already has a block -- move :N to a cell with nothing in front of it");
+            }
+        }
+        return problems;
+    }
+
+    private static boolean isPortalAt(final StargateShapeLayer layer, final int y, final int col)
+    {
+        for (final Integer[] p : layer.getLayerPortalPositions())
+        {
+            if ((p[1].intValue() == y) && (p[2].intValue() == col))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isFrameAt(final StargateShapeLayer layer, final int y, final int col)
