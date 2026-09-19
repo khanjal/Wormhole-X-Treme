@@ -49,6 +49,10 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 class GateBuildPreviewCommandTest
 {
     private static final String NO_PERMISSION = "You lack the permissions";
+    /** The command every preview action follows, as hints print it. */
+    private static final String PREVIEW = "/wormhole gate preview ";
+    /** The preview actions, as a message lists them. */
+    private static final String ACTIONS = "clear activate iris material materials guide layer chevrons dhd share place";
 
     private final Wormhole command = new Wormhole();
     private Player player;
@@ -222,7 +226,10 @@ class GateBuildPreviewCommandTest
         assertNull(StargateManager.getPlayerBuilderShape(player));
     }
 
-    /** -clear takes the preview looked at, and -clear -all takes every one; a bare word is a shape. */
+    /**
+     * preview clear takes the preview looked at, and clear -all takes every one. Under build, a bare word
+     * is a shape, and a dashed one points at preview rather than reading as a missing shape.
+     */
     @Test
     void clearAndClearAllReachTheirPreviews()
     {
@@ -231,28 +238,30 @@ class GateBuildPreviewCommandTest
         {
             previews.when(() -> GatePreviews.clearAll(player)).thenReturn(3);
 
-            run("gate", "build", "-clear");
-            run("gate", "build", "-clear", "-all");
+            run("gate", "preview", "clear");
+            run("gate", "preview", "clear", "-all");
             run("gate", "build", "clear");
-            run("gate", "build", "-bogus");
+            run("gate", "build", "-guide");
+            run("gate", "preview", "bogus");
 
             previews.verify(() -> GatePreviews.clearLookedAt(player));
             previews.verify(() -> GatePreviews.clearAll(player));
         }
         verify(player).sendMessage(saying("Cleared 3 previews."));
         verify(player).sendMessage(saying("No shape called clear."));
-        verify(player).sendMessage(saying("No option -bogus. Try -clear -activate -iris -material -materials -guide -layer -chevrons -dhd -share -place"));
+        verify(player).sendMessage(saying("Preview options moved to " + PREVIEW + "<action>: " + ACTIONS));
+        verify(player).sendMessage(saying("No preview action bogus. Try " + ACTIONS));
     }
 
-    /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
+    /** Completion offers only shapes after build, the groups after a shape, and -all after preview clear. */
     @Test
     void completionOffersClearTheShapesAndTheirGroups()
     {
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         final List<String> third = gate.completeArgs(player, new String[] { "gate", "build", "" });
-        assertTrue(third.contains("-clear") && third.contains("Standard"), "got " + third);
-        assertEquals(List.of("-all"), gate.completeArgs(player, new String[] { "gate", "build", "-clear", "" }));
+        assertTrue(third.contains("Standard") && !third.contains("clear"), "got " + third);
+        assertEquals(List.of("-all"), gate.completeArgs(player, new String[] { "gate", "preview", "clear", "" }));
         assertEquals(List.of("Atlantis", "Standard"),
             gate.completeArgs(player, new String[] { "gate", "build", "Standard", "" }));
         assertEquals(List.of("Atlantis"), gate.completeArgs(player, new String[] { "gate", "build", "Standard", "a" }));
@@ -275,13 +284,13 @@ class GateBuildPreviewCommandTest
             previews.when(() -> GatePreviews.material(any(Player.class), any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class),
                 any(org.bukkit.Material.class))).thenReturn(GatePreviews.Control.NOT_LOOKING);
 
-            run("gate", "build", "-activate");
-            run("gate", "build", "-IRIS");
-            run("gate", "build", "-dhd");
-            run("gate", "build", "-chevrons");
-            run("gate", "build", "-guide");
-            run("gate", "build", "-material", "atlantis");
-            run("gate", "build", "-material", "frame", "gold_block");
+            run("gate", "preview", "activate");
+            run("gate", "preview", "IRIS");
+            run("gate", "preview", "dhd");
+            run("gate", "preview", "chevrons");
+            run("gate", "preview", "guide");
+            run("gate", "preview", "material", "atlantis");
+            run("gate", "preview", "material", "frame", "gold_block");
 
             previews.verify(() -> GatePreviews.material(eq(player),
                 argThat((MaterialGroup group) -> "Atlantis".equals(group.getName()))));
@@ -293,7 +302,7 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(saying("DHD hidden."));
         verify(player).sendMessage(saying("Chevrons shown as frame"));
         verify(player).sendMessage(saying("Guide on"));
-        verify(player).sendMessage(contains("\u00A7f-activate\u00A77 again shuts it down"));
+        verify(player).sendMessage(contains("\u00A7f/wormhole gate preview activate\u00A77 again shuts it down"));
         verify(player).sendMessage(saying("Materials changed."));
         verify(player).sendMessage(saying("Look at one of your previews first."));
     }
@@ -314,8 +323,8 @@ class GateBuildPreviewCommandTest
                     2, false, org.bukkit.Material.GOLD_BLOCK),
                 (GatePreviews.Materials) null);
 
-            run("gate", "build", "-materials");
-            run("gate", "build", "-MATERIALS");
+            run("gate", "preview", "materials");
+            run("gate", "preview", "MATERIALS");
         }
         verify(player).sendMessage(saying("Standard needs:"));
         verify(player).sendMessage(saying("18 obsidian - 4 left"));
@@ -341,13 +350,13 @@ class GateBuildPreviewCommandTest
             previews.when(() -> GatePreviews.layers(player, GatePreviews.ALL_LAYERS))
                 .thenReturn(new GatePreviews.Layers(0, 4, true));
 
-            run("gate", "build", "-layer");
-            run("gate", "build", "-layer", "-NEXT");
-            run("gate", "build", "-layer", "3");
-            run("gate", "build", "-layer", "9");
-            run("gate", "build", "-layer", "-all");
-            run("gate", "build", "-layer", "0");
-            run("gate", "build", "-layer", "top");
+            run("gate", "preview", "layer");
+            run("gate", "preview", "layer", "-NEXT");
+            run("gate", "preview", "layer", "3");
+            run("gate", "preview", "layer", "9");
+            run("gate", "preview", "layer", "-all");
+            run("gate", "preview", "layer", "0");
+            run("gate", "preview", "layer", "top");
 
             previews.verify(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER), times(2));
             previews.verify(() -> GatePreviews.layers(eq(player), org.mockito.ArgumentMatchers.intThat(n -> n < -1)),
@@ -357,9 +366,9 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(saying("Showing layer 1-3 of 4."));
         verify(player).sendMessage(saying("It has only 4 layers."));
         verify(player).sendMessage(saying("Showing all 4 layers."));
-        verify(player, times(2)).sendMessage(saying("-layer [number|-next|-all]"));
+        verify(player, times(2)).sendMessage(saying(PREVIEW + "layer [number|-next|-all]"));
         assertEquals(List.of("-next", "-all"),
-            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "build", "-layer", "" }));
+            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "preview", "layer", "" }));
     }
 
     /**
@@ -415,17 +424,18 @@ class GateBuildPreviewCommandTest
                 new GatePreviews.Placed(GatePreviews.Outcome.IN_THE_WAY, List.of("stone at 1 2 3", "4 more"), null, null),
                 new GatePreviews.Placed(GatePreviews.Outcome.PLACED, List.of(), gate, button));
 
-            run("gate", "build", "-place");
+            run("gate", "preview", "place");
             previews.verify(() -> GatePreviews.place(any()), never());
             verify(player).sendMessage(saying("You lack the permissions"));
 
             when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
-            run("gate", "build", "-place");
-            run("gate", "build", "-PLACE");
+            run("gate", "preview", "place");
+            run("gate", "preview", "PLACE");
 
             handler.verify(() -> com.wormhole_xtreme.wormhole.GateInteractionHandler.offerNewGate(player, button, gate));
         }
-        verify(player).sendMessage(saying("Nothing placed. In the way: stone at 1 2 3, 4 more. -guide marks them."));
+        verify(player).sendMessage(saying("Nothing placed. In the way: stone at 1 2 3, 4 more. "
+            + PREVIEW + "guide marks them."));
         verify(player).sendMessage(saying("Placed Standard."));
     }
 
@@ -450,27 +460,29 @@ class GateBuildPreviewCommandTest
             previews.when(() -> GatePreviews.audience(player)).thenReturn(
                 new GatePreviews.Audience(true, List.of("Alex")), new GatePreviews.Audience(false, List.of()));
 
-            run("gate", "build", "-share", "Alex");
+            run("gate", "preview", "share", "Alex");
             previews.verify(() -> GatePreviews.share(any(), any()), never());
             verify(player).sendMessage(saying("You lack the permissions"));
 
             when(player.hasPermission("wormhole.build.preview.share")).thenReturn(true);
-            run("gate", "build", "-share", "Alex");
-            run("gate", "build", "-SHARE", "Alex");
-            run("gate", "build", "-share", "-all");
-            run("gate", "build", "-share", "Nobody");
-            run("gate", "build", "-share");
-            run("gate", "build", "-share");
+            run("gate", "preview", "share", "Alex");
+            run("gate", "preview", "SHARE", "Alex");
+            run("gate", "preview", "share", "-all");
+            run("gate", "preview", "share", "Nobody");
+            run("gate", "preview", "share");
+            run("gate", "preview", "share");
         }
-        verify(player).sendMessage(saying("Showing it to Alex. -share Alex again stops."));
+        verify(player).sendMessage(saying("Showing it to Alex. " + PREVIEW + "share Alex again stops."));
         verify(alex).sendMessage(saying("builder is showing you a gate preview."));
         verify(player).sendMessage(saying("Stopped showing it to Alex."));
-        verify(player).sendMessage(saying("Showing it to everyone in this world. -share -all again stops."));
+        verify(player).sendMessage(saying("Showing it to everyone in this world. "
+            + PREVIEW + "share -all again stops."));
         verify(player).sendMessage(saying("No player called Nobody is online."));
         verify(player).sendMessage(saying("Shown to everyone in this world, Alex."));
-        verify(player).sendMessage(saying("Only you see it. -share <player> or -share -all shows it."));
+        verify(player).sendMessage(saying("Only you see it. " + PREVIEW + "share <player> or "
+            + PREVIEW + "share -all shows it."));
         assertEquals(List.of("-all"),
-            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "build", "-share", "-" }));
+            SubCommands.find("gate").completeArgs(player, new String[] { "gate", "preview", "share", "-" }));
     }
 
     /** -material names what it takes when given something else, and refuses a block that does not exist. */
@@ -480,13 +492,14 @@ class GateBuildPreviewCommandTest
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
-            run("gate", "build", "-material", "sparkly");
-            run("gate", "build", "-material", "frame", "unobtainium");
+            run("gate", "preview", "material", "sparkly");
+            run("gate", "preview", "material", "frame", "unobtainium");
 
             previews.verify(() -> GatePreviews.material(any(Player.class),
                 any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class), any(org.bukkit.Material.class)), never());
         }
-        verify(player).sendMessage(saying("-material <role> <block>. Roles: frame, chevron, light, portal, iris, sign."));
+        verify(player).sendMessage(saying(PREVIEW + "material <role> <block>. "
+            + "Roles: frame, chevron, light, portal, iris, sign."));
         verify(player).sendMessage(saying("That is not a block."));
     }
 
@@ -497,26 +510,27 @@ class GateBuildPreviewCommandTest
         when(player.hasPermission("wormhole.config")).thenReturn(true);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
-            run("gate", "build", "-activate");
+            run("gate", "preview", "activate");
 
             previews.verify(() -> GatePreviews.activate(any()), never());
         }
         verify(player).sendMessage(saying(NO_PERMISSION));
     }
 
-    /** Completion offers the options, the groups and roles after -material, and blocks after a role. */
+    /** Completion offers the actions after preview, the groups and roles after material, and blocks after a role. */
     @Test
     void completionOffersTheOptionsAndWhatMaterialTakes()
     {
         final SubCommands.Entry gate = SubCommands.find("gate");
 
-        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-" })
-            .containsAll(List.of("-clear", "-activate", "-iris", "-material", "-materials", "-guide", "-layer", "-chevrons", "-dhd", "-share", "-place")));
-        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "" })
+        assertEquals(List.of(ACTIONS.split(" ")),
+            gate.completeArgs(player, new String[] { "gate", "preview", "" }));
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "" }).contains("preview"));
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "" })
             .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
-        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "gold_b" })
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "frame", "gold_b" })
             .contains("gold_block"));
-        assertTrue(gate.completeArgs(player, new String[] { "gate", "build", "-material", "frame", "" }).isEmpty(),
+        assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "frame", "" }).isEmpty(),
             "every block at once is not a list anybody reads");
     }
 }

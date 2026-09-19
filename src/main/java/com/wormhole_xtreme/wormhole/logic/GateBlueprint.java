@@ -72,7 +72,7 @@ public final class GateBlueprint
         }
     }
 
-    /** What one material of a gate is for, as {@code gate build -material} names it. */
+    /** What one material of a gate is for, as {@code gate preview material} names it. */
     public enum Role
     {
         FRAME, CHEVRON, LIGHT, PORTAL, IRIS, SIGN;

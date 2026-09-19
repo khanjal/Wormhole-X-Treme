@@ -68,12 +68,14 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 **Build previews**
 
 - **`/wormhole gate build <shape> [group]` shows a shape full size in front of you**, seen by you
-  alone (`wormhole.build.preview`, op by default). `-clear [-all]` takes previews away.
-- **A preview can be dialled, given an iris and redressed**: `-activate`, `-iris`,
-  `-material <group>|<role> <block>`, `-chevrons`, `-dhd`.
-- **`-materials` lists what it takes, `-guide` marks what is left to build, `-layer` shows a layer
+  alone (`wormhole.build.preview`, op by default).
+- **`/wormhole gate preview <action>` does everything else to the preview you look at**;
+  `gate build` only starts a gate. `clear [-all]` takes previews away.
+- **A preview can be dialled, given an iris and redressed**: `activate`, `iris`,
+  `material <group>|<role> <block>`, `chevrons`, `dhd`.
+- **`materials` lists what it takes, `guide` marks what is left to build, `layer` shows a layer
   at a time**, and looking at a placed DHD button stands the preview on it.
-- **`-share <player>|-all` shows it to others** (`wormhole.build.preview.share`), and **`-place`
+- **`share <player>|-all` shows it to others** (`wormhole.build.preview.share`), and **`place`
   builds it for real** (`wormhole.build.preview.place`).
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
 - **A Standard gate is previewed the classic way**, its chevrons drawn as frame.

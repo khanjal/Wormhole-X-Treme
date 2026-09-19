@@ -141,8 +141,8 @@ outranks a negated node.
 | `wormhole.go` | false | `/wormhole go` |
 | `wormhole.build` | op | Building gates |
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
-| `wormhole.build.preview.share` | op | `gate build -share`, showing a preview to other players |
-| `wormhole.build.preview.place` | op | `gate build -place`, building a preview for real |
+| `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
+| `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
 | `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. |
