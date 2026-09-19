@@ -1456,8 +1456,8 @@ class GatePreviewsTest
         assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
     }
 
-    /** Stands a Standard frame north of the owner with one frame block missing, owned by the gate given. */
-    private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate owner)
+    /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */
+    private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate gate)
     {
         final List<Cell> cells = standardLookingNorth();
         final Cell hole = cells.get(0);
@@ -1469,7 +1469,7 @@ class GatePreviewsTest
             }
         }
         GatePreviews.occupied = (w, x, y, z) -> standing.containsKey(List.of(x, y, z));
-        GatePreviews.gateAt = (w, x, y, z) -> standing.containsKey(List.of(x, y, z)) ? owner : null;
+        GatePreviews.gateAt = (w, x, y, z) -> standing.containsKey(List.of(x, y, z)) ? gate : null;
         return hole;
     }
 

@@ -563,4 +563,28 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(saying("Filled in Lithium's missing blocks."));
     }
 
+    /**
+     * Only a player with {@code wormhole.config} may fill in a gate a preview stands over: filling in
+     * regenerates the gate, which is what that node guards for {@code gate regen}.
+     */
+    @Test
+    void placeLetsOnlyAConfigPlayerFillInAGate()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
+            MockedStatic<CommandHandlerUtils> perms = mockStatic(CommandHandlerUtils.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOOKING, List.of(), null, null));
+
+            perms.when(() -> CommandHandlerUtils.hasConfigPermission(player)).thenReturn(false);
+            run("gate", "preview", "place");
+            previews.verify(() -> GatePreviews.place(player, false));
+
+            perms.when(() -> CommandHandlerUtils.hasConfigPermission(player)).thenReturn(true);
+            run("gate", "preview", "place");
+            previews.verify(() -> GatePreviews.place(player, true));
+        }
+    }
 }
