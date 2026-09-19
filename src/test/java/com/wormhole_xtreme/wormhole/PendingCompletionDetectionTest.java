@@ -52,7 +52,7 @@ class PendingCompletionDetectionTest
 
     /** Where a completed gate's file lands; without it the save goes to ./plugins. */
     @TempDir
-    File dataFolder;
+    private File dataFolder;
 
     @BeforeEach
     void setUp() throws Exception

@@ -182,6 +182,7 @@ class PrettyLogThrowableTest
         finally
         {
             com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            PluginTestSupport.remove();
         }
 
         assertEquals(Level.FINE, real.getLevel());
