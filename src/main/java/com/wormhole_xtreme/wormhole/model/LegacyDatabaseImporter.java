@@ -246,7 +246,7 @@ public final class LegacyDatabaseImporter
      */
     // Package-private, not private: the four checks that run before Bukkit.getWorld are
     // exercised directly by LegacyImportTest, the same reason BeamCommand.resolveDestination
-    // is. Everything past the world lookup needs a live server and stays uncovered.
+    // is. LegacySqliteImportTest runs the whole import against a real database.
     static String importOne(final ResultSet rows, final String name,
         final int[] movedExits)
         throws java.sql.SQLException
@@ -348,9 +348,9 @@ public final class LegacyDatabaseImporter
         final String owner = column(rows, "Owner");
         if ((owner != null) && !owner.isEmpty())
         {
-            // Old databases hold a player name where this fork now holds a uuid. The gate
-            // model already carries that distinction for gates written before the uuid
-            // migration, so it is set as a name and left to resolve itself.
+            // A player name, not a UUID: set as the owner too, as the YAML loader does for a
+            // name-based owner, or the gate is ownerless and the owner is lost on save.
+            gate.setGateOwner(owner);
             gate.setGateOwnerName(owner);
         }
         final String networkName = column(rows, "Network");

@@ -12,9 +12,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Importing gates from an older Wormhole X-Treme's database.
  *
- * <p>The reading itself needs a real database and a running server, so what is pinned here is
- * the part that decides whether to try at all -- and the claim the whole feature rests on,
- * which is that this fork can still parse the binary format those databases hold.
+ * <p>What is pinned here is the part that decides whether to try at all, and each row's
+ * refusals. {@link LegacySqliteImportTest} runs the import against a real database.
  */
 class LegacyImportTest
 {

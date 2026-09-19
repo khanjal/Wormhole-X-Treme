@@ -103,6 +103,9 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
 - **`/wormhole gate complete -cancel` cancels a waiting completion.**
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+- **`/wormhole gate import` keeps each gate's owner**, who can now remove it with
+  `wormhole.remove.own`, and after a restart. A gate imported by an earlier version has no owner:
+  set one with `/wormhole gate edit <gate> owner <player>`.
 
 ### Travel
 
@@ -149,6 +152,8 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
   wanted 4 GB. The test fork has a 1 GB ceiling.
 - **A Claude Code web session warms the Maven cache as it starts**, so its first
   `mvn test` runs tests instead of downloading the build. Local checkouts are unaffected.
+- **`gate import` is tested against a real SQLite database**, with `sqlite-jdbc` as a test-only
+  dependency; the jar still uses the server's driver.
 
 ## 1.6.0 (2026-09-16)
 
