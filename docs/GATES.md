@@ -33,7 +33,8 @@ A gate is one `Stargate` object holding the world positions of everything the sh
 | Part | Marker | What it is |
 |---|---|---|
 | Frame | `[S]` | The ring itself, and what the palette is identified by |
-| Chevrons | `[C]` | Frame blocks built from a second material, so they read as chevrons before they light |
+| Chevrons | `[C]` | Frame blocks built from a second material, so they read as chevrons before they light. Strict: the chevron block is required |
+| Chevrons, either block | `[S:C]` | The same, but the frame material is accepted there too -- for a shape *gaining* a chevron position, where gates already built have plain frame |
 | Portal | `[P]` | Air until the gate opens, then the drawn event horizon |
 | Name sign | `:N` | Always placed; shows the gate's name, network and owner |
 | Dial sign | `:D` | Optional; makes the button dial what the sign shows, rather than wait for `/dial` |

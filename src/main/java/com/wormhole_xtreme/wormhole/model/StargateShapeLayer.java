@@ -29,6 +29,22 @@ public class StargateShapeLayer
      */
     private List<Integer[]> layerChevronPositions = new ArrayList<>();
 
+    /**
+     * The {@code [S:C]} cells: chevron positions the frame material is also accepted at.
+     *
+     * <p>A subset of {@link #layerChevronPositions}, not a separate kind of cell. They draw,
+     * light, index and protect exactly as a {@code [C]} does; the only difference is what
+     * detection will accept there.
+     *
+     * <p>{@code [C]} on its own is strict, and has to stay that way -- every shipped shape
+     * uses it and gates built to them have the chevron material in those cells. But a shape
+     * that gains a chevron position where it used to have plain frame cannot use it: every
+     * gate already standing has frame material there and would stop matching its own shape.
+     * {@code [S:C]} is for that case, and reads as what it means -- a frame cell that is also
+     * a chevron.
+     */
+    private final List<Integer[]> layerLenientChevronPositions = new ArrayList<>();
+
     /** The sign position. */
     private int[] layerNameSignPosition = null;
 
@@ -83,14 +99,55 @@ public class StargateShapeLayer
             while (m.find())
             {
                 final Integer[] point = {0, (height - 1 - i), (width - 1 - j)};
-                for (final String mod : m.group(1).split(":"))
+                final String[] mods = m.group(1).split(":");
+                if (lenientChevron(mods))
                 {
-                    recordMarker(mod, point);
+                    // S and C together: a chevron the frame material is also accepted at. Not
+                    // recorded as a frame cell as well, or the strict chevron check and the
+                    // frame check would each demand a different block of the one cell.
+                    getLayerChevronPositions().add(point);
+                    layerLenientChevronPositions.add(point);
+                }
+                for (final String mod : mods)
+                {
+                    if (!lenientChevron(mods) || !isFrameOrChevronMarker(mod))
+                    {
+                        recordMarker(mod, point);
+                    }
                 }
                 j++;
             }
         }
         logParsedPositions();
+    }
+
+    /**
+     * Whether a cell's markers are the {@code S}-and-{@code C} pair.
+     *
+     * @param mods
+     *            the cell's colon-separated markers
+     * @return true if both are present
+     */
+    private static boolean lenientChevron(final String[] mods)
+    {
+        boolean frame = false;
+        boolean chevron = false;
+        for (final String mod : mods)
+        {
+            frame |= "S".equalsIgnoreCase(mod);
+            chevron |= "C".equalsIgnoreCase(mod);
+        }
+        return frame && chevron;
+    }
+
+    /**
+     * @param mod
+     *            one marker
+     * @return true if it is the {@code S} or the {@code C} of a lenient chevron
+     */
+    private static boolean isFrameOrChevronMarker(final String mod)
+    {
+        return "S".equalsIgnoreCase(mod) || "C".equalsIgnoreCase(mod);
     }
 
     /**
@@ -218,6 +275,16 @@ public class StargateShapeLayer
     public List<Integer[]> getLayerBlockPositions()
     {
         return layerBlockPositions;
+    }
+
+    /**
+     * The chevron cells the frame material is also accepted at.
+     *
+     * @return the {@code [S:C]} positions, a subset of {@link #getLayerChevronPositions()}
+     */
+    public List<Integer[]> getLayerLenientChevronPositions()
+    {
+        return layerLenientChevronPositions;
     }
 
     /**
