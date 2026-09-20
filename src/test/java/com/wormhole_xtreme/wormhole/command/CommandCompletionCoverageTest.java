@@ -67,6 +67,9 @@ class CommandCompletionCoverageTest
         clearGates();
         StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().putAll(savedShapes);
+        // One test loads the config defaults to have settings to offer. The map is empty until
+        // something reads a file, so putting it back empty is putting it back as it was.
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
 
@@ -167,8 +170,8 @@ class CommandCompletionCoverageTest
         assertEquals(List.of(), complete("gate", "gate", "complete", ""));
         assertEquals(List.of("idc=", "net="), complete("gate", "gate", "complete", "NewGate", ""),
             "and the two things it does take after the name");
-        assertEquals(List.of(), complete("gate", "gate", "create", ""),
-            "create is complete's other name and completes the same way");
+        assertEquals(List.of("idc=", "net="), complete("gate", "gate", "create", "NewGate", ""),
+            "create is complete's other name, and is not registered under it, so it has to be mapped");
     }
 
     /** {@code remove} offers the one flag it takes, under both names. */
@@ -194,6 +197,11 @@ class CommandCompletionCoverageTest
     @Test
     void aWordGateDoesNotDispatchCompletesNothing()
     {
+        // Without these there are no settings to offer, so the assertion below would hold
+        // whether or not anything stopped the delegation.
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        assertFalse(complete("config", "config", "").isEmpty(), "config itself has settings to offer");
+
         assertEquals(List.of(), complete("gate", "gate", "set", ""));
         assertFalse(complete("gate", "gate", "list", "").isEmpty(),
             "though a verb it does dispatch still completes, or the assertion above proves nothing");
