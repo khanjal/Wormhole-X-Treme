@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -239,6 +240,26 @@ class GateOpenCloseEventTest
         assertSame(gate, events.get(1).getStargate());
         assertEquals(StargateShutdownEvent.Reason.MANUAL, events.get(1).getReason(),
             "the end the caller named keeps the reason the caller gave");
+    }
+
+    @Test
+    void askingToCloseAGateWithoutSayingWhyLeavesItOpen()
+    {
+        // The reason is only read at the very end, when the event is built, so a null caught
+        // there would close the gate and then throw -- the caller told about their mistake
+        // only after the side effects they did not ask for. Asserting the gate is still open
+        // is the half of this that a check in the wrong place would fail.
+        dial(gate);
+
+        try (MockedStatic<WorldUtils> utils = mockStatic(WorldUtils.class))
+        {
+            assertThrows(IllegalArgumentException.class,
+                () -> gate.shutdownStargate(true, null));
+        }
+
+        assertTrue(gate.isGateActive(), "the gate should have been left exactly as it was");
+        assertTrue(ofType(StargateShutdownEvent.class).isEmpty(),
+            "and nothing should have been announced");
     }
 
     @Test

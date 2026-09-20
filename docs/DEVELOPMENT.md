@@ -34,13 +34,13 @@ version in CI, so anything that only works on one of them is caught there.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Thirty-two at present; the one naming both `unchecked` and
+quiet one that is inconvenient. Thirty-four at present; the one naming both `unchecked` and
 `rawtypes` counts in each row:
 
 | Suppresses | Main | Tests | Why |
 |---|---|---|---|
 | `java:S3516` | 12 | – | Command handlers always return `true`, because Bukkit reads it as "handled". |
-| `java:S4144` | 5 | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
+| `java:S4144` | 7 | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
 | `java:S1168` | 3 | – | Null means something an empty result cannot; each names the caller relying on it. |
 | `java:S3077` | 3 | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
 | `unchecked` | 3 | 3 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors. |

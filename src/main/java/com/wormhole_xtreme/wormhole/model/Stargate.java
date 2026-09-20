@@ -2343,11 +2343,19 @@ public class Stargate
      * @param timer
      *            true if we want to spawn after shutdown timer.
      * @param reason
-     *            what closed it, reported to listeners if it was open
+     *            what closed it, reported to listeners if it was open, never null
      */
     public void shutdownStargate(final boolean timer,
                                  final StargateShutdownEvent.Reason reason)
     {
+        // Checked here rather than where the event is built. Building it is the last thing
+        // the shutdown does, so a null caught there would leave the gate closed and throw
+        // anyway -- the caller's mistake, reported after the side effects it did not ask
+        // for. Refusing up front leaves the gate exactly as it was.
+        if (reason == null)
+        {
+            throw new IllegalArgumentException("reason must not be null");
+        }
         StargateLifecycle.shutdownStargate(this, timer, reason);
     }
 
