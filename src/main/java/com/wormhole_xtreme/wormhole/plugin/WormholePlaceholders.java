@@ -71,8 +71,9 @@ public class WormholePlaceholders extends PlaceholderExpansion
         // answer for somebody who has logged off and the nearest gate does not.
         final Player online = player.getPlayer();
         final Location where = (online == null) ? null : online.getLocation();
-        return PlaceholderValues.resolve(params,
-            (player.getUniqueId() == null) ? null : player.getUniqueId().toString(),
+        // getUniqueId() is never null on an OfflinePlayer -- Bukkit builds one from the
+        // name when it has nothing else -- so there is nothing to guard here.
+        return PlaceholderValues.resolve(params, player.getUniqueId().toString(),
             player.getName(), where);
     }
 }

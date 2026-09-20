@@ -420,6 +420,22 @@ public class WormholeXTreme extends JavaPlugin
      * Exception for the same reason the shutdown one does: EconomySupport may not be there at
      * all. A server that cannot charge still gets its gates.
      */
+    private void enableEconomyIfConfigured()
+    {
+        if (!ConfigManager.isEconomyEnabled())
+        {
+            return;
+        }
+        try
+        {
+            EconomySupport.enableEconomy();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to enable economy support", t);
+        }
+    }
+
     /**
      * Registers the PlaceholderAPI expansion, if the config asks for it.
      *
@@ -440,22 +456,6 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception | LinkageError t)
         {
             prettyLog(Level.WARNING, "Failed to enable placeholder support", t);
-        }
-    }
-
-    private void enableEconomyIfConfigured()
-    {
-        if (!ConfigManager.isEconomyEnabled())
-        {
-            return;
-        }
-        try
-        {
-            EconomySupport.enableEconomy();
-        }
-        catch (final Exception | LinkageError t)
-        {
-            prettyLog(Level.WARNING, "Failed to enable economy support", t);
         }
     }
 
