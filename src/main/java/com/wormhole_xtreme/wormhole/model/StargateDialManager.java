@@ -14,6 +14,8 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
@@ -479,7 +481,7 @@ class StargateDialManager
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 GATE_PREFIX + gate.getGateName() + "\" reached its maximum open time; closing.");
-            gate.shutdownStargate(true);
+            gate.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
             return;
         }
 
@@ -492,7 +494,7 @@ class StargateDialManager
                 GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" created.");
             if (gate.getGateShutdownTaskId() == -1)
             {
-                gate.shutdownStargate(true);
+                gate.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                     "Failed to schdule wormhole shutdown timeout: " + timeout
                     + " Received task id of -1. Wormhole forced closed NOW.");
@@ -507,6 +509,9 @@ class StargateDialManager
                 gate.toggleDialLeverState(false);
                 gate.toggleRedstoneGateActivatedPower();
                 gate.setGateRecentlyActive(false);
+                // Inside the guard, so re-dialling an open gate announces nothing: the
+                // wormhole opened once and the event says so once.
+                GateEvents.fireActivated(gate);
             }
             startLights(gate, atOnce);
         }
@@ -715,13 +720,13 @@ class StargateDialManager
         }
         if (gate.isGateActive())
         {
-            gate.shutdownStargate(true);
+            gate.shutdownStargate(true, StargateShutdownEvent.Reason.FAR_END);
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Far wormhole failed to open. Closing local wormhole for safety sake.");
         }
         else if (target.isGateActive())
         {
-            target.shutdownStargate(true);
+            target.shutdownStargate(true, StargateShutdownEvent.Reason.FAR_END);
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Local wormhole failed to open. Closing far end wormhole for safety sake.");
         }

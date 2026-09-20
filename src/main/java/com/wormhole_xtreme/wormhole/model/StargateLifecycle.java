@@ -7,6 +7,8 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -35,13 +37,23 @@ class StargateLifecycle
      * shutdown timer, resets the portal interior, updates the iris and lever,
      * and optionally starts the after-shutdown cooldown timer.
      *
+     * <p>Raises {@link StargateShutdownEvent} only if the gate was actually open. This is
+     * called defensively -- before a removal, on plugin disable, on a gate that may or may
+     * not be running -- and announcing a wormhole closing that was never open would make the
+     * event useless to anything counting them.
+     *
      * @param gate  the gate to shut down
      * @param timer {@code true} to start the after-shutdown cooldown; this
      *              also briefly marks the gate as "recently active" to protect
      *              the exit area from fire/lava
+     * @param reason why it is closing, reported to listeners
      */
-    static void shutdownStargate(final Stargate gate, final boolean timer)
+    static void shutdownStargate(final Stargate gate, final boolean timer,
+                                 final StargateShutdownEvent.Reason reason)
     {
+        // Read before anything clears it: every path below runs whether or not the gate was
+        // open, and only one of them is a wormhole actually closing.
+        final boolean wasActive = gate.isGateActive();
         if (gate.getGateShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
@@ -52,7 +64,8 @@ class StargateLifecycle
 
         if (gate.getGateTarget() != null)
         {
-            gate.getGateTarget().shutdownStargate(true);
+            gate.getGateTarget().shutdownStargate(true,
+                StargateShutdownEvent.Reason.FAR_END);
         }
 
         gate.setGateTarget(null);
@@ -89,6 +102,11 @@ class StargateLifecycle
         }
 
         WorldUtils.scheduleChunkUnload(gate.getGatePlayerTeleportLocation().getBlock());
+
+        if (wasActive)
+        {
+            GateEvents.fireShutdown(gate, reason);
+        }
     }
 
     // -----------------------------------------------------------------------

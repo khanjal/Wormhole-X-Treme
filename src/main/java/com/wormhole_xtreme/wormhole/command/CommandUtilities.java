@@ -40,7 +40,7 @@ public class CommandUtilities
         {
             if (stargate.isGateActive())
             {
-                stargate.shutdownStargate(true);
+                stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
                 if (stargate.isGateActive())
                 {
                     stargate.setGateActive(false);
@@ -182,7 +182,7 @@ public class CommandUtilities
         // Ensure the gate is fully deactivated and cleaned up before removal.
         try
         {
-            stargate.shutdownStargate(false);
+            stargate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.REMOVAL);
         }
         catch (final Exception e)
         {

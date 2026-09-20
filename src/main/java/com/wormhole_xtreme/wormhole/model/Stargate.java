@@ -11,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 
 /**
  * WormholeXtreme Stargate Class/Instance.
@@ -2322,13 +2323,32 @@ public class Stargate
 
     /**
      * Shutdown stargate.
-     * 
+     *
+     * <p>Reports the close as {@link StargateShutdownEvent.Reason#MANUAL}, which is what an
+     * outside caller asking a gate to close is. Code inside this plugin should call
+     * {@link #shutdownStargate(boolean, StargateShutdownEvent.Reason)} and say why, so that a
+     * timeout does not reach a listener claiming somebody pulled the lever.
+     *
      * @param timer
      *            true if we want to spawn after shutdown timer.
      */
     public void shutdownStargate(final boolean timer)
     {
-        StargateLifecycle.shutdownStargate(this, timer);
+        shutdownStargate(timer, StargateShutdownEvent.Reason.MANUAL);
+    }
+
+    /**
+     * Shutdown stargate, saying why.
+     *
+     * @param timer
+     *            true if we want to spawn after shutdown timer.
+     * @param reason
+     *            what closed it, reported to listeners if it was open
+     */
+    public void shutdownStargate(final boolean timer,
+                                 final StargateShutdownEvent.Reason reason)
+    {
+        StargateLifecycle.shutdownStargate(this, timer, reason);
     }
 
     /**

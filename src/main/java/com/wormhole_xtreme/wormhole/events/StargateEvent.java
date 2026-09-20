@@ -14,6 +14,8 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  *
  * @see StargateCreatedEvent
  * @see StargateRemovedEvent
+ * @see StargateActivatedEvent
+ * @see StargateShutdownEvent
  */
 public abstract class StargateEvent extends Event
 {

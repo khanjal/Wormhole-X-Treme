@@ -29,6 +29,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -625,7 +626,7 @@ class RegenerateExecuteTest
 
         assertTrue(run("regen", "alpha"));
 
-        verify(gate).shutdownStargate(true);
+        verify(gate).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
         verify(sender).sendMessage(said("Shut alpha down to regenerate it."));
         verify(gate).toggleDialLeverState(true);
     }

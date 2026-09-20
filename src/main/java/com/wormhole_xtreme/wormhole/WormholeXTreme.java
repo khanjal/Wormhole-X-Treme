@@ -293,7 +293,7 @@ public class WormholeXTreme extends JavaPlugin
                 {
                     if (gate.isGateActive() || gate.isGateLightsActive())
                     {
-                        gate.shutdownStargate(false);
+                        gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
                     }
                     StargateDBManager.saveStargate(gate);
                 }

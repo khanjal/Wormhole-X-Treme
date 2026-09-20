@@ -730,7 +730,7 @@ class WormholeXTremePlayerListener implements Listener
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            stargate.shutdownStargate(true);
+            stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
         }
         return true;
     }
