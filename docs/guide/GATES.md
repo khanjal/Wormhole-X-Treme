@@ -332,6 +332,12 @@ know falls back to `sweep`, so a typo costs you the style and not the iris.
 A wider gate has more rings, so it takes longer to sweep than a small one — `Massive` at the
 default is about a second, `Standard` rather less.
 
+**A closed iris does not take the wormhole away.** An opening is one block thick, so a closed
+iris fills it and the event horizon has nowhere left inside the ring. It is shown one block
+behind instead: a glass iris (`Atlantis`, `Universe`) lets it through from the front, and
+anyone walking round the back sees the portal plainly. Nothing is drawn there if you have
+built behind the gate -- you see what you built.
+
 **The sweep is only the picture.** The iris blocks themselves are placed and removed in one go,
 as they always were, and the sweep is drawn on clients the same way the portal is. So a gate is
 never partly shut: closing, the barrier is there before it looks it; opening, it outlasts the
