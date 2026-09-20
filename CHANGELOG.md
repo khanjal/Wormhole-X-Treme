@@ -8,6 +8,18 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.8.0 (unreleased)
 
+### For other plugins
+
+The plugin API is in [docs/API.md](docs/API.md).
+
+**Added**
+
+- **`StargateActivatedEvent` and `StargateShutdownEvent`**, raised when a gate's wormhole
+  opens and when it closes. A dialled pair raises one of each per end.
+- **`StargateShutdownEvent.getReason()` says what closed the gate**: `TIMEOUT`, `MANUAL`,
+  `FAR_END`, `REMOVAL` or `PLUGIN_DISABLE`. Closing a gate that was already shut raises
+  nothing, so opens and closes can be counted against each other.
+
 ### Transport rings
 
 Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in

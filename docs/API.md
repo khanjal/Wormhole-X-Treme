@@ -31,6 +31,8 @@ only care about trips nobody else has already stopped.
 | --- | --- | --- |
 | `StargateCreatedEvent` | after a gate is built, named, registered and saved | no |
 | `StargateRemovedEvent` | while a gate is being removed, before it is torn down | no |
+| `StargateActivatedEvent` | after a gate's wormhole opens | no |
+| `StargateShutdownEvent` | after a gate's wormhole closes | no |
 | `StargatePlayerTravelEvent` | before a player travels through a gate | **yes** |
 | `RingTravelEvent` | before a player is carried by transport rings | **yes** |
 | `StargateMinecartTeleportEvent` | after a minecart has crossed a gate | no |
@@ -57,6 +59,47 @@ geometry of a gate that is not going away, so listeners are not told to discard 
 Neither lifecycle event is cancellable; both are sent after the decision has been made and, for
 creation, after the gate is already on disk. To prevent a gate being built, deny `wormhole.build`
 rather than listening for it.
+
+### Wormholes opening and closing
+
+`StargateActivatedEvent` and `StargateShutdownEvent` are about the thing a gate does, rather
+than about the gate existing. A dialled pair raises one of each per end, because each end
+opened and each end closed.
+
+```java
+@EventHandler
+public void onOpened(final StargateActivatedEvent event)
+{
+    getLogger().info(event.getStargateName() + " opened");
+}
+
+@EventHandler
+public void onClosed(final StargateShutdownEvent event)
+{
+    getLogger().info(event.getStargateName() + " closed: " + event.getReason());
+}
+```
+
+**Neither carries a destination.** A gate is marked active before it is linked, and the far
+end never receives a reciprocal target, so a destination field would read null at both ends.
+Read `getStargate().getGateTarget()` once dialling has settled, or use
+`StargatePlayerTravelEvent`, which carries both ends and where somebody is going.
+
+**A shutdown is only raised for a gate that was actually open.** Shutting a gate that was
+already closed raises nothing, so these can be counted against each other.
+
+`getReason()` is one of:
+
+| Reason | When |
+| --- | --- |
+| `TIMEOUT` | the shutdown clock ran out, including `timeout-shutdown: 0`, where a gate closes as soon as somebody has travelled |
+| `MANUAL` | somebody worked the switch, or an admin ran a command |
+| `FAR_END` | the gate at the other end closed, or never opened |
+| `REMOVAL` | the gate is being removed and its wormhole closes on the way out |
+| `PLUGIN_DISABLE` | the plugin is unloading, usually because the server is stopping |
+
+There is no `IRIS`: raising the iris into an open gate fills the portal and does not close
+the wormhole.
 
 ### Gate travel
 
