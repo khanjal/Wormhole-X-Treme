@@ -16,6 +16,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Upgrading](#upgrading)
 - [Coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme)
 - [Economy](#economy)
+- [Placeholders](#placeholders)
 - [Troubleshooting](#troubleshooting)
 
 ## Installing
@@ -343,6 +344,34 @@ such as [EssentialsX](https://essentialsx.net/).
 - A player who cannot afford the build cost still gets the gate, is told, and is not charged.
 
 Beaming has its own cost settings; see [Beam settings](BEAMS.md#settings).
+
+## Placeholders
+
+Optional. Needs
+[PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), and gives any
+plugin that reads placeholders -- a scoreboard, a tab list, a chat format -- four values
+from this one.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `placeholders-enabled` | `false` | Nothing is registered while this is off. |
+
+| Placeholder | What it is |
+|---|---|
+| `%wormhole_gates_total%` | How many gates exist. |
+| `%wormhole_gates_open%` | How many have a wormhole open right now. |
+| `%wormhole_gates_owned%` | How many the player looking at it owns. |
+| `%wormhole_nearest_gate%` | The name of the gate nearest them. |
+
+- **No PlaceholderAPI means nothing happens.** The startup log says so once, and every
+  other part of the plugin carries on.
+- **`gates_owned` counts gates recorded under either the player's UUID or their name**,
+  so gates built before this plugin stored owners as UUIDs still count as theirs.
+- **`nearest_gate` is empty for a player who is not online**, because there is nowhere
+  to measure from. The two counts still answer.
+- **A placeholder that is not one of these four is left exactly as you typed it**, which
+  is how you spot a typo rather than finding a blank line.
+- The expansion survives `/papi reload`.
 
 ## Troubleshooting
 

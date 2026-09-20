@@ -127,6 +127,8 @@ public class ConfigManager
         RING_SOUND_REFUSED,
         /** Whether to append newly-seen shape palettes to config.yml automatically. */
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
+        /** Whether the PlaceholderAPI expansion is registered. */
+        PLACEHOLDERS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
         ECONOMY_ENABLED,
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
@@ -1800,6 +1802,13 @@ public class ConfigManager
     public static void setUseCooldownSeconds(final int seconds)
     {
         setConfigValue(ConfigKeys.USE_COOLDOWN_SECONDS, seconds);
+    }
+
+    /** Returns true if the PlaceholderAPI expansion should be registered. */
+    public static boolean isPlaceholdersEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PLACEHOLDERS_ENABLED);
+        return s != null && s.getBooleanValue();
     }
 
     /** Returns true if Vault economy integration is enabled in config. */

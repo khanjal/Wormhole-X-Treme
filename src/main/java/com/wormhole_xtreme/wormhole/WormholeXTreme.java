@@ -436,6 +436,29 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
+    /**
+     * Registers the PlaceholderAPI expansion, if the config asks for it.
+     *
+     * <p>Its own method with its own catch, for the same reason the economy one has:
+     * PlaceholderAPI may not be installed at all. A server without placeholders still
+     * gets its gates.
+     */
+    private void enablePlaceholdersIfConfigured()
+    {
+        if (!ConfigManager.isPlaceholdersEnabled())
+        {
+            return;
+        }
+        try
+        {
+            com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport.enablePlaceholders();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to enable placeholder support", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -449,6 +472,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             PermissionsSupport.enablePermissions();
             enableEconomyIfConfigured();
+            enablePlaceholdersIfConfigured();
         }
         catch (final Exception e)
         {
