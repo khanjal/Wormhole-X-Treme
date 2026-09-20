@@ -24,6 +24,13 @@ The plugin API is in [docs/API.md](docs/API.md).
   `%wormhole_nearest_gate%`. Needs PlaceholderAPI; without it nothing is registered and
   the log says so once. See [the guide](docs/guide/SERVER.md#placeholders).
 
+### Performance
+
+- **Finding the gate nearest somebody no longer copies and sorts every gate on the server.**
+  It walks them once instead. `/wormhole compass` and `%wormhole_nearest_gate%` both use it,
+  and the placeholder is rebuilt on every scoreboard refresh for every player. Ties between
+  two equidistant gates still resolve to the same gate as before.
+
 ### Transport rings
 
 Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
