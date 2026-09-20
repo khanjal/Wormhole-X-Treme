@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,8 +47,10 @@ class IrisSweepOrderingTest
 {
     private World world;
     private Stargate gate;
-    private final List<Runnable> booked = new ArrayList<>();
+    /** Tasks the sweep has booked and not had cancelled, in the order they were booked. */
+    private final java.util.LinkedHashMap<Integer, Runnable> pending = new java.util.LinkedHashMap<>();
     private final List<String> events = new ArrayList<>();
+    private int nextTaskId = 1;
 
     @BeforeEach
     void setUp() throws Exception
@@ -56,12 +59,25 @@ class IrisSweepOrderingTest
         PluginTestSupport.forgetAllGates();
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        // "booked" is recorded when the sweep asks for its next step, not when that step is
+        // run. The difference is the whole of the closing assertion: a sweep started before
+        // the blocks were placed still runs its first step after them, so timing the run
+        // rather than the booking would hold whichever way round the two were done.
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(invocation ->
             {
-                booked.add(invocation.getArgument(1));
-                return booked.size();
+                final int id = nextTaskId++;
+                pending.put(id, invocation.getArgument(1));
+                events.add("booked");
+                return id;
             });
+        // Cancelling really does drop the task, so a sweep that was called off and one that
+        // was not are told apart by what is left waiting.
+        org.mockito.Mockito.doAnswer(invocation ->
+        {
+            pending.remove(invocation.<Integer>getArgument(0));
+            return null;
+        }).when(scheduler).cancelTask(org.mockito.ArgumentMatchers.anyInt());
         PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
@@ -104,9 +120,10 @@ class IrisSweepOrderingTest
     private void runSweepToCompletion()
     {
         int guard = 0;
-        while (!booked.isEmpty() && (guard++ < 50))
+        while (!pending.isEmpty() && (guard++ < 50))
         {
-            final Runnable next = booked.remove(0);
+            final Integer id = pending.keySet().iterator().next();
+            final Runnable next = pending.remove(id);
             events.add("step");
             next.run();
         }
@@ -122,13 +139,11 @@ class IrisSweepOrderingTest
         assertTrue(StargateIrisAnimator.isSweeping(gate),
             "and a sweep is actually running -- without this the ordering below holds vacuously");
 
-        runSweepToCompletion();
-
         final int firstBlock = indexOfFirst("block:");
-        final int firstStep = events.indexOf("step");
-        assertTrue(firstStep > 0, "the sweep drew at least one ring: " + events);
-        assertTrue(firstBlock < firstStep,
-            "the barrier must exist before the sweep starts showing it; got " + events);
+        final int firstBooked = events.indexOf("booked");
+        assertTrue(firstBooked >= 0, "the sweep booked a step: " + events);
+        assertTrue(firstBlock < firstBooked,
+            "the barrier must exist before the sweep is even started; got " + events);
     }
 
     /**
@@ -183,13 +198,15 @@ class IrisSweepOrderingTest
     {
         gate.toggleIrisActive(false);
         assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        assertEquals(1, pending.size(), "waiting on one step");
 
         gate.toggleIrisActive(false);
-        final int bookedAfterSecondToggle = booked.size();
-        runSweepToCompletion();
 
-        assertTrue(bookedAfterSecondToggle > 0, "the second toggle started its own sweep");
-        assertFalse(StargateIrisAnimator.isSweeping(gate), "and only it was left running");
+        assertEquals(1, pending.size(),
+            "the first sweep's step must have been dropped, not left waiting beside the second's: "
+                + pending.keySet());
+        runSweepToCompletion();
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "and the second one finished cleanly");
     }
 
     /** The index of the first event with this prefix, or {@link Integer#MAX_VALUE}. */
