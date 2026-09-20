@@ -301,6 +301,23 @@ closed is bounced back with "Remote Iris is locked!".
   - `gate complete <name> idc=<code>` when building, or
   - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it.
 
+### How it arrives
+
+An iris sweeps shut a ring at a time from the rim inwards, and draws back from the middle out.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-iris-animation` | `sweep` | `sweep` for the ring-at-a-time close, `instant` for the old behaviour |
+| `gate-iris-step-ticks` | `2` | Ticks between one ring and the next, 1 to 20 |
+
+A wider gate has more rings, so it takes longer to sweep than a small one — `Massive` at the
+default is about a second, `Standard` rather less.
+
+**The sweep is only the picture.** The iris blocks themselves are placed and removed in one go,
+as they always were, and the sweep is drawn on clients the same way the portal is. So a gate is
+never partly shut: closing, the barrier is there before it looks it; opening, it outlasts the
+picture of it. Nothing can walk through an iris that appears to still be arriving.
+
 ## Redstone
 
 A redstone gate is a **sign gate with a redstone input**. Redstone does not choose a destination —

@@ -110,6 +110,12 @@ public class ConfigManager
         GATE_SOUND_CLOSE,
         GATE_SOUND_IRIS_CLOSE,
         GATE_SOUND_IRIS_OPEN,
+
+        /** Whether an iris sweeps shut a ring at a time, or arrives all at once. */
+        GATE_IRIS_ANIMATION,
+
+        /** Ticks between one ring of an iris sweep and the next. */
+        GATE_IRIS_STEP_TICKS,
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
@@ -991,6 +997,39 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /**
+     * Whether a closing or opening iris is drawn a ring at a time.
+     *
+     * <p>The blocks themselves are placed in one go either way; only the picture is gradual.
+     * See {@link com.wormhole_xtreme.wormhole.model.StargateIrisAnimator} for why that
+     * separation is the whole point.
+     *
+     * @return true to sweep, false to arrive all at once
+     */
+    public static boolean isGateIrisAnimated()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
+        return (s == null) || !"instant".equalsIgnoreCase(String.valueOf(s.getStringValue()).trim());
+    }
+
+    /**
+     * Ticks between one ring of an iris sweep and the next.
+     *
+     * <p>Floored at one: a sweep of zero-tick steps draws every ring in the same tick, which is
+     * the instant iris written the long way round and reads as the animation having failed.
+     * A ceiling too, because the sweep holds the drawn picture apart from the placed blocks for
+     * as long as it runs, and a gate whose iris takes a minute to look shut is worse than one
+     * that snaps.
+     *
+     * @return ticks per ring, between 1 and 20
+     */
+    public static int getGateIrisStepTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 2;
+        return Math.min(20, Math.max(1, configured));
     }
 
     /**

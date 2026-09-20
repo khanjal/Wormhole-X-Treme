@@ -118,6 +118,8 @@ class DefaultSettings
             new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate, pitched down a little since it is a shield rather than a door.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening.", SECTION),
+            new Setting(ConfigKeys.GATE_IRIS_ANIMATION, "sweep", "How an iris arrives: sweep closes it a ring at a time from the rim inwards and opens it from the middle out; instant puts it there in one go, as it was before. The blocks are placed in one go either way -- only the picture sweeps.", SECTION),
+            new Setting(ConfigKeys.GATE_IRIS_STEP_TICKS, 2, "Ticks between one ring of an iris sweep and the next, 1 to 20. A wider gate has more rings, so it takes longer to sweep than a small one.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop", "The soft running water an open wormhole makes while it stands there.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70, "How often the ambient water repeats, in ticks. A little under the sound's own length, so it runs continuously.", SECTION)),
 
