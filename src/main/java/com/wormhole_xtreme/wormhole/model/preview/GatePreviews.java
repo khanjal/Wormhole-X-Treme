@@ -1330,8 +1330,9 @@ public final class GatePreviews
             places.add(at);
             index.put(at, i);
         }
-        final List<List<Location>> rings =
-            closing ? IrisSweep.closingRings(places) : IrisSweep.openingRings(places);
+        final IrisSweep.Style style = ConfigManager.getGateIrisStyle();
+        final List<List<Location>> rings = closing
+            ? IrisSweep.closingOrder(places, style) : IrisSweep.openingOrder(places, style);
         final List<List<Integer>> out = new ArrayList<>(rings.size());
         for (final List<Location> ring : rings)
         {

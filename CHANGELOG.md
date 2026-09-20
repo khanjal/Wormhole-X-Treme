@@ -32,6 +32,8 @@ The plugin API is in [docs/API.md](docs/API.md).
   out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
   the pace. Only the picture sweeps — the blocks are placed in one go, so a gate is never
   partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
+- **Four ways an iris can cross**: `sweep` (rings), `spiral`, `rows` and `columns`, plus
+  `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
 
@@ -45,6 +47,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
+  the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
+  the gate showed water the server did not have there. The sound still plays -- the wormhole
+  has formed, it is just behind a shut iris. Opening the iris shows the water as before.
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
   played for a player: the lever, the commands and dialling all reached the iris through one
   method that had already changed the gate's state before anything checked whether it had

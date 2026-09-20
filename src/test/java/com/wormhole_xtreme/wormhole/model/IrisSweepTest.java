@@ -169,6 +169,156 @@ class IrisSweepTest
             "the join of the arms, not somewhere off in the long one");
     }
 
+    /**
+     * A five-by-five opening, big enough for a style to differ from the others on.
+     */
+    private static List<Location> fiveByFive()
+    {
+        final List<Location> cells = new ArrayList<>();
+        for (int x = -2; x <= 2; x++)
+        {
+            for (int y = -2; y <= 2; y++)
+            {
+                cells.add(at(x, y, 0));
+            }
+        }
+        return cells;
+    }
+
+    /** Every cell of every step, in order. */
+    private static List<Location> flatten(final List<List<Location>> steps)
+    {
+        final List<Location> all = new ArrayList<>();
+        for (final List<Location> step : steps)
+        {
+            all.addAll(step);
+        }
+        return all;
+    }
+
+    /**
+     * Whatever the style, every cell is covered exactly once.
+     *
+     * <p>The assertion that matters for all of them at once: a style that drops a cell leaves a
+     * hole in a closed iris, and one that covers a cell twice only wastes a draw. Checked per
+     * style rather than once, because each builds its steps a different way -- the rings group
+     * by a key, the spiral cuts a sorted list into chunks -- and the two fail differently.
+     */
+    @Test
+    void everyStyleCoversEveryCellExactlyOnce()
+    {
+        for (final IrisSweep.Style style : IrisSweep.Style.values())
+        {
+            final List<Location> cells = fiveByFive();
+            final List<Location> swept = flatten(IrisSweep.closingOrder(cells, style));
+
+            assertEquals(cells.size(), swept.size(), style + " covered a different number of cells");
+            assertTrue(swept.containsAll(cells), style + " dropped a cell");
+        }
+    }
+
+    /**
+     * Every style actually animates: more than one step on an opening with room for it.
+     *
+     * <p>How many steps differs by style, and that is the geometry rather than a choice: a
+     * five-wide opening has three rows but six rings, so a rows iris crosses in half the steps
+     * a sweep does at the same {@code gate-iris-step-ticks}. What none of them may do is cross
+     * in one step, which is the instant iris wearing a style's name.
+     */
+    @Test
+    void everyStyleActuallyAnimates()
+    {
+        for (final IrisSweep.Style style : IrisSweep.Style.values())
+        {
+            assertTrue(IrisSweep.closingOrder(fiveByFive(), style).size() > 1,
+                style + " crossed a five-by-five opening in one step, which is not an animation");
+        }
+    }
+
+    /**
+     * The spiral is cut into as many steps as the sweep makes.
+     *
+     * <p>Unlike the others it has no natural step: it is one sorted run of cells, so the number
+     * of pieces is chosen rather than found. Matching the sweep is that choice, and it is worth
+     * pinning because the obvious way to cut it -- a fixed chunk size, rounded up -- silently
+     * loses a step whenever it does not divide evenly.
+     */
+    @Test
+    void theSpiralIsCutIntoAsManyStepsAsTheSweep()
+    {
+        assertEquals(IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SWEEP).size(),
+            IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SPIRAL).size());
+    }
+
+    /**
+     * Rows come in from the top and the bottom at once, not from one end.
+     *
+     * <p>An iris arriving from one side reads as a door. The first step of a closing rows iris
+     * is therefore both outermost rows, and the last is the middle one.
+     */
+    @Test
+    void rowsCloseFromTheTopAndBottomTowardsTheMiddle()
+    {
+        final List<List<Location>> steps = IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.ROWS);
+
+        final List<Location> first = steps.get(0);
+        assertEquals(10, first.size(), "both outermost rows of a five-wide opening: " + first);
+        assertTrue(first.stream().allMatch(c -> Math.abs(c.getBlockY()) == 2),
+            "and nothing from further in: " + first);
+
+        final List<Location> last = steps.get(steps.size() - 1);
+        assertTrue(last.stream().allMatch(c -> c.getBlockY() == 0), "the middle row goes last");
+    }
+
+    /**
+     * Columns do the same from the sides.
+     */
+    @Test
+    void columnsCloseFromBothSidesTowardsTheMiddle()
+    {
+        final List<List<Location>> steps = IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.COLUMNS);
+
+        final List<Location> first = steps.get(0);
+        assertEquals(10, first.size(), "both outermost columns: " + first);
+        assertTrue(first.stream().allMatch(c -> Math.abs(c.getBlockX()) == 2),
+            "and nothing from further in: " + first);
+    }
+
+    /**
+     * The spiral winds outwards rather than only turning.
+     *
+     * <p>Sorted by radius with the angle breaking ties, so an opening spiral starts in the
+     * middle and finishes at the rim. A wedge that only rotated would have the same cells in
+     * every step and read as a clock hand.
+     */
+    @Test
+    void theSpiralStartsInTheMiddleAndFinishesAtTheRim()
+    {
+        final List<List<Location>> steps = IrisSweep.openingOrder(fiveByFive(), IrisSweep.Style.SPIRAL);
+
+        final Location first = steps.get(0).get(0);
+        assertEquals(at(0, 0, 0), first, "an opening spiral starts at the middle");
+
+        final List<Location> last = steps.get(steps.size() - 1);
+        assertTrue(last.stream().anyMatch(c -> (Math.abs(c.getBlockX()) == 2) || (Math.abs(c.getBlockY()) == 2)),
+            "and finishes out at the rim: " + last);
+    }
+
+    /**
+     * A style name is read loosely, and anything unrecognised is the default.
+     *
+     * <p>This reads a value a server owner types. A mistyped style should cost them the style,
+     * not the iris.
+     */
+    @Test
+    void anUnknownStyleNameFallsBackToTheSweep()
+    {
+        assertEquals(IrisSweep.Style.SPIRAL, IrisSweep.Style.of("spiral"));
+        assertEquals(IrisSweep.Style.ROWS, IrisSweep.Style.of("  RoWs "));
+        assertEquals(IrisSweep.Style.SWEEP, IrisSweep.Style.of("corkscrew"));
+        assertEquals(IrisSweep.Style.SWEEP, IrisSweep.Style.of(null));
+    }
+
     @Test
     void anOpeningWithNoCellsSweepsNothing()
     {
