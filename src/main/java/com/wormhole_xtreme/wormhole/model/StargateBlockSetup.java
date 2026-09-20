@@ -1153,8 +1153,16 @@ class StargateBlockSetup
 
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (!shouldRedrawFor(gate, playerAt))
+            if (!isNearEnoughToRedraw(gate, playerAt))
             {
+                continue;
+            }
+            if (gate.isGateIrisActive())
+            {
+                // Its opening is full of iris, so what this player is owed is the horizon
+                // behind it rather than over it.
+                sendPortalBackdropTo(player, gate, true);
+                stillOpen.add(gate.getGateName());
                 continue;
             }
             final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
@@ -1189,6 +1197,114 @@ class StargateBlockSetup
         }
         showing.clear();
         showing.addAll(stillOpen);
+    }
+
+    /**
+     * The cells an open gate's event horizon is shown in while its iris is shut.
+     *
+     * <p>A gate's opening is one block thick on every shipped shape, so a closed iris fills it
+     * and there is nowhere left inside the ring for the water to be. The cell one block behind
+     * each portal cell is outside the gate and ordinarily empty, and showing the horizon there
+     * puts it back where somebody can see it: through a glass iris from the front, and plainly
+     * from behind.
+     *
+     * <p>Behind rather than in front on purpose. Moving the iris forward would work as well
+     * geometrically, but the iris is real blocks -- it would have to find room among whatever a
+     * player has built, and every check that asks where the barrier is would have to follow it.
+     * The horizon is drawn to clients and collides with nothing, so it can go somewhere the
+     * iris cannot.
+     *
+     * @param gate
+     *            the gate
+     * @return the cells, which may be empty
+     */
+    static List<Location> portalBackdropCells(final Stargate gate)
+    {
+        final List<Location> cells = new ArrayList<>();
+        if ((gate == null) || (gate.getGateWorld() == null) || (gate.getGateFacing() == null))
+        {
+            return cells;
+        }
+        final BlockFace facing = gate.getGateFacing();
+        for (final Location portal : gate.getGatePortalBlocks())
+        {
+            cells.add(new Location(gate.getGateWorld(),
+                (double) portal.getBlockX() - facing.getModX(),
+                (double) portal.getBlockY() - facing.getModY(),
+                (double) portal.getBlockZ() - facing.getModZ()));
+        }
+        return cells;
+    }
+
+    /**
+     * Whether a backdrop cell is free to be drawn in.
+     *
+     * <p>Only air. A player who has built behind a gate should see what they built, not a
+     * sheet of water over it, and a cell holding part of another gate is not this one's to
+     * draw in either.
+     *
+     * @param at
+     *            the cell
+     * @return true if the horizon may be shown there
+     */
+    private static boolean backdropIsFree(final Location at)
+    {
+        return MaterialUtils.isAirMaterial(
+            at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getType());
+    }
+
+    /**
+     * Shows or takes back the horizon behind a gate whose iris is shut.
+     *
+     * @param gate
+     *            the gate
+     * @param show
+     *            true to draw it, false to hand the real blocks back
+     */
+    static void sendPortalBackdrop(final Stargate gate, final boolean show)
+    {
+        final List<Location> cells = portalBackdropCells(gate);
+        if (cells.isEmpty())
+        {
+            return;
+        }
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                sendPortalBackdropTo(player, gate, show);
+            }
+        }
+    }
+
+    /**
+     * The same, to one player.
+     *
+     * @param player
+     *            who to show
+     * @param gate
+     *            the gate
+     * @param show
+     *            true to draw the horizon, false to hand the real blocks back
+     */
+    static void sendPortalBackdropTo(final Player player, final Stargate gate, final boolean show)
+    {
+        final List<Location> cells = portalBackdropCells(gate);
+        if (cells.isEmpty())
+        {
+            return;
+        }
+        final BlockData horizon = show
+            ? MaterialUtils.drawnAs(gate.getEffectivePortalMaterial()) : null;
+        for (final Location at : cells)
+        {
+            if (!backdropIsFree(at))
+            {
+                continue;
+            }
+            player.sendBlockChange(at, (horizon != null) ? horizon
+                : at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getBlockData());
+        }
     }
 
     /**
@@ -1318,9 +1434,24 @@ class StargateBlockSetup
     static boolean shouldRedrawFor(final Stargate gate, final Location playerAt)
     {
         // An iris is made of real blocks, which the client gets from the chunk like any
-        // other block. Redrawing here would paint the portal over the iris the gate is
-        // currently closed with.
-        if ((gate == null) || (playerAt == null) || gate.isGateIrisActive())
+        // other block. Redrawing the portal here would paint it over the iris the gate is
+        // currently closed with. What such a gate shows instead is the backdrop, which
+        // refreshPortalVisuals asks for separately.
+        return !gate.isGateIrisActive() && isNearEnoughToRedraw(gate, playerAt);
+    }
+
+    /**
+     * Whether a player is close enough to a gate to be sent its drawing.
+     *
+     * @param gate
+     *            the gate
+     * @param playerAt
+     *            where the player is
+     * @return true if they are near enough, in the same world
+     */
+    static boolean isNearEnoughToRedraw(final Stargate gate, final Location playerAt)
+    {
+        if ((gate == null) || (playerAt == null))
         {
             return false;
         }

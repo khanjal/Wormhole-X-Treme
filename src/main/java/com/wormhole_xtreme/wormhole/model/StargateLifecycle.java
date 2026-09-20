@@ -237,6 +237,52 @@ class StargateLifecycle
     }
 
     /**
+     * Puts the iris blocks where the flag now says they are, and draws what follows.
+     *
+     * @param gate
+     *            the gate, whose iris flag is already set
+     * @param moved
+     *            whether the iris actually changed, which is what a sweep needs
+     */
+    private static void drawIris(final Stargate gate, final boolean moved)
+    {
+        // What the opening looks like with no iris over it: the portal if a wormhole is up,
+        // otherwise nothing. Both the sweep and the instant path need it.
+        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
+        final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
+        if (gate.isGateIrisActive())
+        {
+            // The iris is a real barrier, so it is placed as real server-side blocks
+            // rather than drawn client-side the way the portal is.
+            gate.fillGateIris(gate.getEffectiveIrisMaterial());
+            if (sweep)
+            {
+                // Blocks first, picture second: the barrier is there before it looks it.
+                StargateIrisAnimator.sweepClosed(gate, uncovered);
+            }
+            // An opening is one block thick, so the iris fills it and the horizon has nowhere
+            // left inside the ring. Shown a block behind instead, where a glass iris lets it
+            // through from the front and anybody round the back can see it plainly.
+            if (gate.isGateActive())
+            {
+                StargateBlockSetup.sendPortalBackdrop(gate, true);
+            }
+            return;
+        }
+        StargateBlockSetup.sendPortalBackdrop(gate, false);
+        if (sweep)
+        {
+            // Picture first, blocks second, for the same reason the other way round: the
+            // barrier outlasts the picture of it rather than the other way about.
+            StargateIrisAnimator.sweepOpen(gate, uncovered, () -> gate.fillGateInterior(uncovered));
+            return;
+        }
+        // Opening the iris on an active gate returns the interior to the portal, which also
+        // clears the iris blocks placed above; an inactive one goes back to AIR.
+        gate.fillGateInterior(uncovered);
+    }
+
+    /**
      * Applies {@code irisActive} to the gate: sets the flag, fills the
      * interior with the appropriate material, and updates the iris lever.
      *
@@ -266,33 +312,7 @@ class StargateLifecycle
         {
             StargateIrisAnimator.cancel(gate);
         }
-        // What the opening looks like with no iris over it: the portal if a wormhole is up,
-        // otherwise nothing. Both the sweep and the instant path need it.
-        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
-        final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
-        if (gate.isGateIrisActive())
-        {
-            // The iris is a real barrier, so it is placed as real server-side blocks
-            // rather than drawn client-side the way the portal is.
-            gate.fillGateIris(gate.getEffectiveIrisMaterial());
-            if (sweep)
-            {
-                // Blocks first, picture second: the barrier is there before it looks it.
-                StargateIrisAnimator.sweepClosed(gate, uncovered);
-            }
-        }
-        else if (sweep)
-        {
-            // Picture first, blocks second, for the same reason the other way round: the
-            // barrier outlasts the picture of it rather than the other way about.
-            StargateIrisAnimator.sweepOpen(gate, uncovered, () -> gate.fillGateInterior(uncovered));
-        }
-        else
-        {
-            // Opening the iris on an active gate returns the interior to the portal, which
-            // also clears the iris blocks placed above; an inactive one goes back to AIR.
-            gate.fillGateInterior(uncovered);
-        }
+        drawIris(gate, moved);
         if ((gate.getGateIrisLeverBlock() != null)
             && (gate.getGateIrisLeverBlock().getType() == Material.LEVER))
         {
