@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
@@ -39,8 +38,7 @@ class PlaceholderValuesTest
     void setUp() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
-        GateSpatialIndex.clear();
-        deregisterEveryGate();
+        PluginTestSupport.forgetAllGates();
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
     }
@@ -48,40 +46,8 @@ class PlaceholderValuesTest
     @AfterEach
     void tearDown() throws Exception
     {
-        deregisterEveryGate();
-        GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
-    }
-
-    /**
-     * Empties the gate registry and the set of open gates.
-     *
-     * <p>Every assertion here is an absolute count, and both of those are static and shared
-     * across the whole suite. Without this each test counted the gates the one before it had
-     * built as well as its own, which is what the first run of these reported.
-     *
-     * <p>The open set needs clearing separately, and that is not belt and braces: it is
-     * maintained alongside the registry rather than derived from it, so a gate removed while
-     * still marked active stays in it afterwards. Other classes in this suite leave gates
-     * open, and draining only the registry left this counting six open gates where the test
-     * had opened one.
-     */
-    private static void deregisterEveryGate()
-    {
-        for (final Stargate existing
-            : new java.util.ArrayList<>(StargateManager.getAllGatesUnsorted()))
-        {
-            existing.setGateActive(false);
-            StargateManager.removeStargate(existing);
-        }
-        for (final Stargate open : new java.util.ArrayList<>(StargateManager.getOpenGates()))
-        {
-            open.setGateActive(false);
-        }
-        assertEquals(0, StargateManager.getAllGatesUnsorted().size(),
-            "the registry should be empty before a test counts anything");
-        assertEquals(0, StargateManager.getOpenGates().size(),
-            "and so should the set of open gates");
     }
 
     private Stargate gate(final String name, final String owner, final int x)
