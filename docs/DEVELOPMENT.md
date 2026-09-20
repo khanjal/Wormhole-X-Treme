@@ -14,6 +14,12 @@ mvn test                    # JUnit 5 + Mockito; no live server needed
 mvn -DskipTests package     # target/WormholeXTreme-<version>.jar
 ```
 
+`package` writes the jar twice: once as `WormholeXTreme-<version>.jar`, and once as
+`WormholeXTreme.jar`. They are byte for byte the same. The versioned one is what CI uploads and
+what a release attaches, because a download should say which version it is; the unversioned one
+is for anything local that has to keep pointing at the latest build — a symlink into a test
+server's `plugins/`, a copy script — without being repointed every time the version moves.
+
 Tests live in `src/test/java/`, mock the Bukkit API, and run against every supported Minecraft
 version in CI, so anything that only works on one of them is caught there.
 

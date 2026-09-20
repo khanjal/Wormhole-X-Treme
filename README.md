@@ -111,7 +111,9 @@ JDK 17 and Maven 3.8+.
 mvn -DskipTests package
 ```
 
-The jar lands in `target/WormholeXTreme-<version>.jar`. Tests, static analysis and supported
+The jar lands in `target/WormholeXTreme-<version>.jar`, and again as
+`target/WormholeXTreme.jar` — the same jar under a name that does not move when the version
+does, for a symlink or a copy script to point at once. Tests, static analysis and supported
 versions are covered in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Credits

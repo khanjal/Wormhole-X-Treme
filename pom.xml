@@ -165,6 +165,42 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- A second copy of the shaded jar under a name that never changes.
+				     ${finalName} carries the version, so every release moves it and anything
+				     pointing at the built jar - a symlink into a server's plugins folder, a
+				     copy script - has to be repointed. This one is always
+				     target/WormholeXTreme.jar, so it can be pointed at once.
+
+				     An alias, not a rename: the versioned jar stays exactly where it was.
+				     Both .github/workflows/ci.yml and release.yml find it by globbing
+				     WormholeXTreme-*.jar, which the hyphen keeps from matching this, and a
+				     release asset should carry its version in the filename regardless.
+
+				     Declared after the shade plugin on purpose. Both bind to package, and
+				     Maven runs same-phase executions in the order they appear here, so this
+				     copies the shaded jar rather than the thin one it replaces. -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>stable-jar-name</id>
+						<phase>package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<copy file="${project.build.directory}/${project.build.finalName}.jar"
+								      tofile="${project.build.directory}/${project.artifactId}.jar"
+								      overwrite="true"/>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
 				<!-- Coverage for SonarCloud to report against. prepare-agent instruments the
 				     tests surefire already runs; report turns that into the XML SonarCloud's
 				     Java analyzer picks up automatically from the default
