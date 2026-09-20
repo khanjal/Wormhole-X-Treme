@@ -207,28 +207,39 @@ class RingGalleryTest
     }
 
     /**
-     * The flash runs through the stack in the order the rings are stacked in.
+     * The flash filmstrip runs both sweeps, each the way the animator runs it.
      *
-     * <p>The lit ring is its own index, which is what lets the sweep need no sense of
-     * direction: ring zero is the first one out and travels furthest from its pad, so counting
-     * up from it runs towards the pad at either orientation. A filmstrip that showed the
-     * sequence the other way round would be arguing against the design note directly above it.
+     * <p>The drawing is the one place the two directions sit side by side, so it is the one
+     * most able to go quietly stale: reversing the arrival in the animator and leaving the
+     * strip alone would leave a picture arguing against the note beside it. Both orders are
+     * read out of {@link RingAnimator#litRing(int, boolean)} rather than written out here, so
+     * the claim cannot agree with a stale drawing by being stale in the same way.
      */
     @Test
-    void theFlashDrawingRunsTowardsThePad() throws IOException
+    void theFlashDrawingRunsInThenOut() throws IOException
     {
         final Ring ring = floorRing();
-        final List<Integer> order = restingHalfSteps(ring);
+        final List<Integer> inwards = new ArrayList<>();
+        final List<Integer> outwards = new ArrayList<>();
+        for (int frame = 0; frame < RingAnimator.RING_COUNT; frame++)
+        {
+            inwards.add(RingAnimator.restingHalfStep(ring, RingAnimator.litRing(frame, false)));
+            outwards.add(RingAnimator.restingHalfStep(ring, RingAnimator.litRing(frame, true)));
+        }
 
-        assertEquals("flash order=" + joined(order), claim("flash.svg"),
+        assertEquals("flash in=" + joined(inwards) + " out=" + joined(outwards),
+            claim("flash.svg"),
             "the flash filmstrip lights the rings in a different order from the cycle"
                 + REGENERATE);
 
-        for (int index = 1; index < order.size(); index++)
+        for (int index = 1; index < inwards.size(); index++)
         {
-            assertTrue(order.get(index) < order.get(index - 1),
-                "on a floor ring the sweep should descend towards the pad; ring " + index
+            assertTrue(inwards.get(index) < inwards.get(index - 1),
+                "on a floor ring the first sweep should descend towards the pad; ring " + index
                     + " is not below ring " + (index - 1));
+            assertTrue(outwards.get(index) > outwards.get(index - 1),
+                "and the second should climb away from it; ring " + index
+                    + " is not above ring " + (index - 1));
         }
     }
 

@@ -437,9 +437,9 @@ public class RingCycle
      * landed. With people at both ends both sweeps play at both, which is right — every end
      * is doing both jobs at once.
      *
-     * <p>Both sweeps run the same way: towards the pad, which is down a floor ring and up a
-     * ceiling one. The pad is where travellers are taken from and put back, so it is what the
-     * light moves to whichever job it is doing.
+     * <p>The two sweeps run opposite ways. The first gathers travellers in and runs towards
+     * the pad; the second puts them back and runs out from it. Down a floor ring and back up,
+     * up a ceiling one and back down: the light goes where the traveller goes.
      *
      * @param step
      *            which frame, from zero
@@ -449,7 +449,7 @@ public class RingCycle
     public void drawFlash(final int step, final boolean arriving)
     {
         drawSettled();
-        final int lit = RingAnimator.litRing(step);
+        final int lit = RingAnimator.litRing(step, arriving);
         if (arriving ? arrivingA : departingA)
         {
             lightOneRing(pair.getEndA(), lit);

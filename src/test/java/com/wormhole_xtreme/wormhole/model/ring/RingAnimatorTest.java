@@ -606,48 +606,85 @@ class RingAnimatorTest
     void theFlashTouchesEveryRingExactlyOnce()
     {
         // The transport itself, given an animation rather than being an instant nobody sees.
-        final Set<Integer> touched = new HashSet<>();
-        for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+        for (final boolean arriving : new boolean[] { false, true })
         {
-            assertTrue(touched.add(Integer.valueOf(RingAnimator.litRing(frame))),
-                "the flash lit the same ring twice");
+            final Set<Integer> touched = new HashSet<>();
+            for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+            {
+                assertTrue(touched.add(Integer.valueOf(RingAnimator.litRing(frame, arriving))),
+                    "the flash lit the same ring twice");
+            }
+            assertEquals(RingAnimator.RING_COUNT, touched.size(),
+                "every ring is lit once on each sweep, whichever way it runs");
         }
-        assertEquals(RingAnimator.RING_COUNT, touched.size());
     }
 
     @Test
-    void theFlashAlwaysRunsTowardsThePad()
+    void theDepartureRunsTowardsThePad()
     {
         // Down a floor ring's stack and up a ceiling ring's, which is the same rule stated
-        // twice: the light moves towards the pad, because the pad is where travellers are
-        // taken from and put back. It is also what the show does.
+        // twice: the sweep that takes a traveller in runs to the pad, because the pad is
+        // where the machine takes them from.
         final Ring floor = ring(RingOrientation.FLOOR);
         final int highest = 64 + (RingAnimator.TOP_HALF_STEP / 2);
         assertEquals(highest,
-            RingAnimator.ringAtRest(floor, RingAnimator.litRing(0)).get(0).getY(),
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(0, false)).get(0).getY(),
             "a floor ring starts at the top");
         assertEquals(64,
-            RingAnimator.ringAtRest(floor, RingAnimator.litRing(RingAnimator.RING_COUNT - 1))
+            RingAnimator
+                .ringAtRest(floor, RingAnimator.litRing(RingAnimator.RING_COUNT - 1, false))
                 .get(0).getY(),
             "and finishes at the pad");
 
         final Ring ceiling = ring(RingOrientation.CEILING);
         ceiling.setDrop(Ring.MIN_CEILING_DROP);
-        final int first = RingAnimator.ringAtRest(ceiling, RingAnimator.litRing(0)).get(0).getY();
+        final int first = RingAnimator.ringAtRest(ceiling, RingAnimator.litRing(0, false))
+            .get(0).getY();
         final int last = RingAnimator
-            .ringAtRest(ceiling, RingAnimator.litRing(RingAnimator.RING_COUNT - 1)).get(0).getY();
+            .ringAtRest(ceiling, RingAnimator.litRing(RingAnimator.RING_COUNT - 1, false))
+            .get(0).getY();
         assertTrue(last > first, "a ceiling ring runs the other way, up towards its own pad");
     }
 
     @Test
-    void bothSweepsRunTheSameWay()
+    void theArrivalRunsOutFromThePad()
     {
-        // The arrival used to reverse. It does not any more: the light goes to the pad taking
-        // travellers in and comes off the pad putting them out, which looks the same way round
-        // both times. One rule, so there is nothing left to get backwards.
-        for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+        // The light follows the traveller rather than running one way regardless: in towards
+        // the pad when the machine takes them, out from it when it stands them back up. Stated
+        // as positions rather than as indices, because an index that counts the right way for
+        // a floor ring counts the wrong way for a ceiling one, and that is the mistake this
+        // guards.
+        final int last = RingAnimator.RING_COUNT - 1;
+
+        final Ring floor = ring(RingOrientation.FLOOR);
+        assertEquals(64,
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(0, true)).get(0).getY(),
+            "a floor ring's arrival starts at the pad");
+        assertEquals(64 + (RingAnimator.TOP_HALF_STEP / 2),
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(last, true)).get(0).getY(),
+            "and finishes at the far end of the stack");
+
+        final Ring ceiling = ring(RingOrientation.CEILING);
+        ceiling.setDrop(Ring.MIN_CEILING_DROP);
+        final int from = RingAnimator.ringAtRest(ceiling, RingAnimator.litRing(0, true))
+            .get(0).getY();
+        final int to = RingAnimator.ringAtRest(ceiling, RingAnimator.litRing(last, true))
+            .get(0).getY();
+        assertTrue(to < from, "a ceiling ring's arrival runs downward, away from its pad");
+    }
+
+    @Test
+    void theTwoSweepsAreTheSameWalkInOppositeDirections()
+    {
+        // Whatever the departure lights first, the arrival lights last. Written as the pairing
+        // rather than as two formulas so that changing one sweep without the other fails here
+        // rather than only showing up in a room.
+        final int frames = RingAnimator.flashFrames();
+        for (int frame = 0; frame < frames; frame++)
         {
-            assertEquals(frame, RingAnimator.litRing(frame));
+            assertEquals(RingAnimator.litRing(frames - 1 - frame, false),
+                RingAnimator.litRing(frame, true),
+                "the arrival should be the departure played backwards");
         }
     }
 
@@ -718,7 +755,7 @@ class RingAnimatorTest
         for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
         {
             final int y = RingAnimator
-                .ringAtRest(ceiling, RingAnimator.litRing(frame)).get(0).getY();
+                .ringAtRest(ceiling, RingAnimator.litRing(frame, false)).get(0).getY();
             assertTrue(y > previous, "a ceiling ring should light upward, towards its pad");
             previous = y;
         }
@@ -734,7 +771,7 @@ class RingAnimatorTest
         for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
         {
             final int y = RingAnimator
-                .ringAtRest(hanging, RingAnimator.litRing(frame)).get(0).getY();
+                .ringAtRest(hanging, RingAnimator.litRing(frame, false)).get(0).getY();
             assertTrue(y > last, "it should keep climbing towards the ceiling");
             last = y;
         }

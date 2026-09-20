@@ -551,13 +551,15 @@ class RingCycleTest
 
         cycle.flash();
         cycle.drawFlash(0, true);
-        // Both sweeps start at the same end of the stack now: the far one from the pad, so
-        // the light runs towards the pad taking her in and towards it again putting her out.
-        // The arrival used to start at the bottom, which made the landing read as a second
-        // departure played backwards rather than as the answer to one.
-        assertEquals(Material.GLOWSTONE, world.seenAt(497, top, 500),
-            "the end she lands at lights as she arrives");
-        assertEquals(Material.STONE_SLAB, world.seenAt(-3, top, 0),
+        // The arrival runs the other way, so its first frame lights the ring at the pad and
+        // not the one at the top. Checking the top stays unlit is the half of this that
+        // would still pass if the sweep had not been reversed at all.
+        final int bottom = 64 + (RingAnimator.BASE_HALF_STEP / 2);
+        assertEquals(Material.GLOWSTONE, world.seenAt(497, bottom, 500),
+            "the end she lands at lights from the pad outwards");
+        assertEquals(Material.STONE_SLAB, world.seenAt(497, top, 500),
+            "not from the far end, which the departure started at");
+        assertEquals(Material.STONE_SLAB, world.seenAt(-3, bottom, 0),
             "and the end she left is done");
     }
 
