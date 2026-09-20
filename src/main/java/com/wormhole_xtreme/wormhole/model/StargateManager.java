@@ -505,6 +505,10 @@ public class StargateManager
      * sort would have made the winner depend on hash order, so the tie-break it gave for free
      * is spelled out here instead -- paid only on an exact tie rather than on every lookup.
      *
+     * <p>Neither name is checked for null, for the same reason the comparator this replaces
+     * did not check either: the registry is keyed by the name, so a gate with none throws on
+     * the way in and one walked out of it always has a name.
+     *
      * @param candidate
      *            the gate being considered
      * @param incumbent
@@ -513,18 +517,11 @@ public class StargateManager
      */
     private static boolean sortsBefore(final Stargate candidate, final Stargate incumbent)
     {
-        if ((incumbent == null) || (candidate.getGateName() == null))
-        {
-            // No incumbent means nothing has beaten Double.MAX_VALUE yet, and a gate that ties
-            // with it is unreachable rather than closest -- which is what the old code said by
-            // never entering the branch at all.
-            return false;
-        }
-        if (incumbent.getGateName() == null)
-        {
-            return true;
-        }
-        return candidate.getGateName().compareToIgnoreCase(incumbent.getGateName()) < 0;
+        // No incumbent means nothing has beaten Double.MAX_VALUE yet, and a gate that ties
+        // with it is unreachable rather than closest -- which is what the old code said by
+        // never entering the branch at all.
+        return (incumbent != null)
+            && (candidate.getGateName().compareToIgnoreCase(incumbent.getGateName()) < 0);
     }
 
     /**

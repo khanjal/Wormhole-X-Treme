@@ -1,8 +1,10 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -141,5 +143,33 @@ class ClosestGateTest
     void thereIsNoNearestGateWhenThereAreNoGates()
     {
         assertNull(StargateManager.findClosestStargate(new Location(world, 0, 64, 0)));
+    }
+
+    /**
+     * A gate whose name is null never reaches the registry, so the search never meets one.
+     *
+     * <p>This is load-bearing rather than trivia. The tie-break compares the two gates' names
+     * without checking either for null, which is only safe because the registry is a map keyed
+     * by the name and rejects a null key outright. If that ever stops being true, the search
+     * starts throwing on a tie, and this is the test that should go red first.
+     *
+     * <p>A gate nobody has named at all is a different thing and registers happily: the field
+     * starts as an empty string, not null, so it goes in under the empty key. Only a name
+     * explicitly set to null is refused, which is why this sets one.
+     */
+    @Test
+    void aGateWhoseNameIsNullCannotBeRegisteredAtAll()
+    {
+        final Stargate unnamed = new Stargate();
+        unnamed.setGateWorld(world);
+        assertDoesNotThrow(() -> StargateManager.registerStargate(unnamed),
+            "a gate nobody named goes in under the empty string it starts with");
+
+        final Stargate nulled = new Stargate();
+        nulled.setGateName(null);
+        nulled.setGateWorld(world);
+
+        assertThrows(NullPointerException.class, () -> StargateManager.registerStargate(nulled),
+            "but the registry is keyed by the name, so a null one cannot go in");
     }
 }
