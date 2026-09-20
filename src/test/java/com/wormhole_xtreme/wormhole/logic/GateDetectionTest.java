@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -168,6 +169,115 @@ class GateDetectionTest
         final int wy = oy + pos[1].intValue();
         final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2].intValue() * right.getModZ();
         placed.put(key(wx, wy, wz), m);
+    }
+
+    /**
+     * Reads a shipped shape with one cell rewritten, the way {@code UnlitChevronTest} does.
+     *
+     * @param name
+     *            the shape
+     * @param from
+     *            the cell text to replace
+     * @param to
+     *            what to put there
+     * @return the parsed shape
+     */
+    private static Stargate3DShape rewritten(final String name, final String from, final String to)
+        throws Exception
+    {
+        final java.util.List<String> lines = java.nio.file.Files.readAllLines(
+            java.nio.file.Paths.get("src/main/resources/shapes/gate").resolve(name + ".shape"));
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        for (final String line : lines)
+        {
+            out.add(line.trim().startsWith("#") ? line : line.replace(from, to));
+        }
+        return new Stargate3DShape(out.toArray(new String[0]));
+    }
+
+    /**
+     * The registry's one piece of state, which is final and so swapped by contents.
+     *
+     * @return the reference holding the loaded palettes
+     * @throws Exception
+     *             if the field was renamed
+     */
+    private static java.util.concurrent.atomic.AtomicReference<Object> registryState() throws Exception
+    {
+        return com.wormhole_xtreme.wormhole.PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
+    }
+
+    /**
+     * Registers a palette with a chevron material for one test, and puts the registry back.
+     *
+     * <p>{@code MaterialGroupRegistry} keeps its whole state in one reference, and nothing
+     * clears it, so a test that loads a palette and walks away leaves it for the next one.
+     */
+    private static Object swapInLampChevronPalette() throws Exception
+    {
+        final Object previous = registryState().get();
+        final java.util.Map<String, Object> group = new java.util.LinkedHashMap<>();
+        group.put("structure", "OBSIDIAN");
+        group.put("chevron", "REDSTONE_LAMP");
+        group.put("portal", "WATER");
+        group.put("light", "GLOWSTONE");
+        group.put("iris", "STONE");
+        final java.util.Map<String, Object> section = new java.util.LinkedHashMap<>();
+        section.put("Standard", group);
+        MaterialGroupRegistry.load(section);
+        return previous;
+    }
+
+    /**
+     * A shape that gains an {@code [S:C]} chevron still finds the gates already built to it.
+     *
+     * <p>This is the whole reason the cell exists. The gate here is built the way every gate
+     * in every world is built today -- frame material everywhere, because the shape had plain
+     * frame at that cell when it was raised. Marking that cell as a chevron must not make the
+     * gate stop being its own shape.
+     */
+    @Test
+    void aGateBuiltBeforeAShapeGainedALenientChevronIsStillDetected() throws Exception
+    {
+        final Object previous = swapInLampChevronPalette();
+        try
+        {
+            final Stargate3DShape s = rewritten("Standard", "[S:L#1]", "[S:C:L#1]");
+            final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+            assertNotNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+                "an obsidian gate standing where the shape now marks a chevron must still be "
+                    + "found, or every gate built to that shape breaks the day it changes");
+        }
+        finally
+        {
+            registryState().set(previous);
+        }
+    }
+
+    /**
+     * A strict {@code [C]} chevron still refuses the frame material, which is the contrast.
+     *
+     * <p>Without this the test above would pass just as well if leniency had been given to
+     * every chevron cell, which would quietly undo what {@code [C]} is for: a shape asking for
+     * a distinct block there and meaning it.
+     */
+    @Test
+    void aGateBuiltOfPlainFrameIsStillRefusedByAStrictChevron() throws Exception
+    {
+        final Object previous = swapInLampChevronPalette();
+        try
+        {
+            final Stargate3DShape s = rewritten("Standard", "[S:L#1]", "[C:L#1]");
+            final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+            assertNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+                "[C] asks for the chevron material and must go on meaning it");
+        }
+        finally
+        {
+            registryState().set(previous);
+        }
     }
 
     @Test

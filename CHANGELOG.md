@@ -55,6 +55,15 @@ The plugin API is in [docs/API.md](docs/API.md).
   changed, so the iris was judged never to move. Nothing to do; the sounds you have configured
   start working.
 
+### For shape authors
+
+**Added**
+
+- **`[S:C]` marks a chevron the frame material is also accepted at.** `[C]` requires the chevron
+  block, so a shape cannot gain a chevron position without every gate already built to it failing
+  to match. `[S:C]` can, so a shape can grow chevrons without anyone regenerating anything. See
+  [docs/GATES.md](docs/GATES.md).
+
 ### Performance
 
 - **Finding the gate nearest somebody no longer copies and sorts every gate on the server.**
