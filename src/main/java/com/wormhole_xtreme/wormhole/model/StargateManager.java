@@ -478,13 +478,16 @@ public class StargateManager
         Stargate stargate = null;
         if (self != null)
         {
-            final List<Stargate> gates = StargateManager.getAllGates();
+            // getAllGatesUnsorted, not getAllGates: this walks every gate to take a minimum,
+            // and the order it walks them in cannot change the answer. getAllGates copies the
+            // whole list and sorts it by name, which the %wormhole_nearest_gate% placeholder
+            // would pay for on every scoreboard refresh, for every player.
             double man = Double.MAX_VALUE;
-            for (final Stargate s : gates)
+            for (final Stargate s : getAllGatesUnsorted())
             {
                 final Location t = s.getGatePlayerTeleportLocation();
                 final double distance = getSquaredDistance(self, t);
-                if (distance < man)
+                if ((distance < man) || ((distance == man) && sortsBefore(s, stargate)))
                 {
                     man = distance;
                     stargate = s;
@@ -492,6 +495,33 @@ public class StargateManager
             }
         }
         return stargate;
+    }
+
+    /**
+     * Whether one gate would have come first in the name order the search used to walk in.
+     *
+     * <p>The sorted walk resolved a tie between two equidistant gates by keeping the one that
+     * sorted first, and the compass has been pointing at that gate ever since. Dropping the
+     * sort would have made the winner depend on hash order, so the tie-break it gave for free
+     * is spelled out here instead -- paid only on an exact tie rather than on every lookup.
+     *
+     * <p>Neither name is checked for null, for the same reason the comparator this replaces
+     * did not check either: the registry is keyed by the name, so a gate with none throws on
+     * the way in and one walked out of it always has a name.
+     *
+     * @param candidate
+     *            the gate being considered
+     * @param incumbent
+     *            the gate currently held as closest, or null if there is not one yet
+     * @return true if the candidate should displace the incumbent
+     */
+    private static boolean sortsBefore(final Stargate candidate, final Stargate incumbent)
+    {
+        // No incumbent means nothing has beaten Double.MAX_VALUE yet, and a gate that ties
+        // with it is unreachable rather than closest -- which is what the old code said by
+        // never entering the branch at all.
+        return (incumbent != null)
+            && (candidate.getGateName().compareToIgnoreCase(incumbent.getGateName()) < 0);
     }
 
     /**
