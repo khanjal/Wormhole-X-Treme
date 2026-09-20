@@ -39,13 +39,13 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 public final class MirrorText
 {
     /** The colour the header leaves behind, and the one every fragment returns to. */
-    public static final String BODY_COLOUR = ChatText.BODY;
+    public static final String BODY_COLOUR = ChatText.BODY_COLOUR;
 
     /** A name somebody typed or is about to: a mirror, a world, a look. */
-    public static final String NAME_COLOUR = ChatText.NAME;
+    public static final String NAME_COLOUR = ChatText.NAME_COLOUR;
 
     /** A line meant to be typed as it stands. */
-    public static final String COMMAND_COLOUR = ChatText.WHITE;
+    public static final String COMMAND_COLOUR = ChatText.COMMAND_COLOUR;
 
     /**
      * A value in {@code mirror debug}, beside its grey label.
@@ -53,16 +53,16 @@ public final class MirrorText
      * <p>The command's white: debug lines hold values to read rather than commands to type, and a
      * label and its value in the same grey was the paragraph this class exists to break up.
      */
-    public static final String VALUE_COLOUR = ChatText.WHITE;
+    public static final String VALUE_COLOUR = ChatText.COMMAND_COLOUR;
 
     /** Something in {@code mirror debug} that stops a view working: a missing file, a gap, a spent budget. */
-    public static final String BAD_COLOUR = ChatText.BAD;
+    public static final String BAD_COLOUR = ChatText.BAD_COLOUR;
 
     /** Something in {@code mirror debug} working as it should. */
-    public static final String GOOD_COLOUR = ChatText.GOOD;
+    public static final String GOOD_COLOUR = ChatText.GOOD_COLOUR;
 
     /** A group of {@code mirror debug} lines. */
-    public static final String HEADING_COLOUR = ChatText.HEADING;
+    public static final String HEADING_COLOUR = ChatText.HEADING_COLOUR;
 
     /** Static text only. */
     private MirrorText()
@@ -167,7 +167,7 @@ public final class MirrorText
      */
     public static String approach(final String name, final String worldName)
     {
-        return ChatText.HEADING + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
+        return ChatText.HEADING_COLOUR + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
             + NAME_COLOUR + worldName + BODY_COLOUR + ", right-click for another.";
     }
 
@@ -180,7 +180,7 @@ public final class MirrorText
      */
     public static String reflection(final String name)
     {
-        return ChatText.HEADING + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.";
+        return ChatText.HEADING_COLOUR + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.";
     }
 
     /**
