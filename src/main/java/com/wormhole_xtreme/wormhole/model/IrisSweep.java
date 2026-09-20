@@ -27,6 +27,50 @@ import org.bukkit.Location;
  */
 public final class IrisSweep
 {
+    /**
+     * How an iris crosses its opening.
+     *
+     * <p>Each is an order over the same cells and nothing else: the drawing, the pace and the
+     * blocks are identical, so a style can never affect whether a gate is shut, only what the
+     * crossing looks like.
+     */
+    public enum Style
+    {
+        /** Rings, out from the middle. */
+        SWEEP,
+        /** A wedge turning round the middle and working outwards. */
+        SPIRAL,
+        /** Rows, in from the top and bottom at once. */
+        ROWS,
+        /** Columns, in from both sides at once. */
+        COLUMNS;
+
+        /**
+         * The style of that name, or {@link #SWEEP} for anything unrecognised.
+         *
+         * <p>Unrecognised rather than refused: this reads a config value a server owner types,
+         * and a mistyped style should cost them the style they wanted rather than the iris.
+         *
+         * @param name
+         *            the configured name, in any case
+         * @return the style
+         */
+        public static Style of(final String name)
+        {
+            if (name != null)
+            {
+                for (final Style style : values())
+                {
+                    if (style.name().equalsIgnoreCase(name.trim()))
+                    {
+                        return style;
+                    }
+                }
+            }
+            return SWEEP;
+        }
+    }
+
     /** Static helpers only. */
     private IrisSweep()
     {
@@ -44,9 +88,23 @@ public final class IrisSweep
      */
     public static List<List<Location>> closingRings(final List<Location> cells)
     {
-        final List<List<Location>> rings = rings(cells);
-        java.util.Collections.reverse(rings);
-        return rings;
+        return closingOrder(cells, Style.SWEEP);
+    }
+
+    /**
+     * The opening's cells in the order a closing iris covers them.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> closingOrder(final List<Location> cells, final Style style)
+    {
+        final List<List<Location>> steps = openingOrder(cells, style);
+        java.util.Collections.reverse(steps);
+        return steps;
     }
 
     /**
@@ -61,7 +119,25 @@ public final class IrisSweep
      */
     public static List<List<Location>> openingRings(final List<Location> cells)
     {
-        return rings(cells);
+        return openingOrder(cells, Style.SWEEP);
+    }
+
+    /**
+     * The opening's cells in the order an opening iris uncovers them.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> openingOrder(final List<Location> cells, final Style style)
+    {
+        if (style == Style.SPIRAL)
+        {
+            return spiral(cells);
+        }
+        return rings(cells, style);
     }
 
     /**
@@ -71,7 +147,7 @@ public final class IrisSweep
      *            the cells, in any order
      * @return one list per ring
      */
-    private static List<List<Location>> rings(final List<Location> cells)
+    private static List<List<Location>> rings(final List<Location> cells, final Style style)
     {
         final List<List<Location>> rings = new ArrayList<>();
         if ((cells == null) || cells.isEmpty())
@@ -83,7 +159,7 @@ public final class IrisSweep
         final Map<Double, List<Location>> byDistance = new TreeMap<>();
         for (final Location cell : cells)
         {
-            byDistance.computeIfAbsent(squaredDistanceFrom(centre, cell), d -> new ArrayList<>()).add(cell);
+            byDistance.computeIfAbsent(keyOf(centre, cell, style), d -> new ArrayList<>()).add(cell);
         }
         for (final List<Location> ring : byDistance.values())
         {
@@ -133,19 +209,95 @@ public final class IrisSweep
     }
 
     /**
-     * How far a cell sits from the centre, squared.
+     * What a style groups a cell by: a squared distance along the axes it counts.
+     *
+     * <p>{@link Style#ROWS} counts only the vertical, so a row is a step; {@link Style#COLUMNS}
+     * only the horizontal. Both work in from the outside the way rings do rather than from one
+     * end, because an iris that arrives from one side reads as a door and not as an iris.
      *
      * @param centre
      *            the centre as {x, y, z}
      * @param cell
      *            the cell
-     * @return the squared distance
+     * @param style
+     *            which axes to count
+     * @return the grouping key
      */
-    private static double squaredDistanceFrom(final double[] centre, final Location cell)
+    private static double keyOf(final double[] centre, final Location cell, final Style style)
     {
         final double dx = cell.getBlockX() - centre[0];
         final double dy = cell.getBlockY() - centre[1];
         final double dz = cell.getBlockZ() - centre[2];
-        return (dx * dx) + (dy * dy) + (dz * dz);
+        return switch (style)
+        {
+            case ROWS -> dy * dy;
+            case COLUMNS -> (dx * dx) + (dz * dz);
+            default -> (dx * dx) + (dy * dy) + (dz * dz);
+        };
     }
+
+    /**
+     * The cells as a wedge turning round the centre and working outwards.
+     *
+     * <p>Sorted by angle plus radius, so the wedge does not merely rotate: by the time it comes
+     * back round it is a ring further out, which is what makes it read as a spiral rather than
+     * a clock hand.
+     *
+     * <p>Cut into as many steps as {@link Style#SWEEP} would make on the same opening, so every
+     * style takes the same number of {@code gate-iris-step-ticks} to cross. A style that took
+     * twice as long as another at the same setting would be a second pace control nobody asked
+     * for.
+     *
+     * @param cells
+     *            the cells
+     * @return the steps, innermost first
+     */
+    private static List<List<Location>> spiral(final List<Location> cells)
+    {
+        final List<List<Location>> steps = new ArrayList<>();
+        if ((cells == null) || cells.isEmpty())
+        {
+            return steps;
+        }
+        final double[] centre = centreOf(cells);
+        final List<Location> wound = new ArrayList<>(cells);
+        wound.sort(Comparator.comparingDouble(cell -> windingOf(centre, cell)));
+        // Exactly as many steps as the sweep makes, cut by position rather than by a fixed
+        // size: rounding a chunk size up loses a step whenever it does not divide evenly,
+        // which made the spiral cross faster than every other style on the same setting.
+        final int wanted = Math.min(wound.size(), Math.max(1, rings(cells, Style.SWEEP).size()));
+        for (int i = 0; i < wanted; i++)
+        {
+            final int from = (int) (((long) i * wound.size()) / wanted);
+            final int to = (int) ((((long) i + 1) * wound.size()) / wanted);
+            steps.add(new ArrayList<>(wound.subList(from, to)));
+        }
+        return steps;
+    }
+
+    /**
+     * How far round and out a cell sits, as one number.
+     *
+     * <p>The radius dominates and the angle breaks ties within it, so the order runs round the
+     * middle and outwards at once.
+     *
+     * @param centre
+     *            the centre as {x, y, z}
+     * @param cell
+     *            the cell
+     * @return the winding position
+     */
+    private static double windingOf(final double[] centre, final Location cell)
+    {
+        final double dx = cell.getBlockX() - centre[0];
+        final double dy = cell.getBlockY() - centre[1];
+        final double dz = cell.getBlockZ() - centre[2];
+        // The horizontal offset is whichever of x and z the gate actually spans; a gate stands
+        // in a plane, so the other is zero and adding them is the same as picking the right one.
+        final double across = dx + dz;
+        final double radius = Math.sqrt((across * across) + (dy * dy));
+        final double turn = (Math.atan2(dy, across) + Math.PI) / (2 * Math.PI);
+        return radius + turn;
+    }
+
 }

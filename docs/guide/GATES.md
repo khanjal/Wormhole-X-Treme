@@ -313,8 +313,21 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 
 | Setting | Default | What it does |
 |---|---|---|
-| `gate-iris-animation` | `sweep` | `sweep` for the ring-at-a-time close, `instant` for the old behaviour |
-| `gate-iris-step-ticks` | `2` | Ticks between one ring and the next, 1 to 20 |
+| `gate-iris-animation` | `sweep` | Which way it crosses, below, or `instant` for no animation |
+| `gate-iris-step-ticks` | `2` | Ticks between one step and the next, 1 to 20 |
+
+| Style | How it crosses |
+|---|---|
+| `sweep` | Rings, in from the rim and out from the middle |
+| `spiral` | A wedge turning round the middle and working outwards |
+| `rows` | Rows, in from the top and bottom at once |
+| `columns` | Columns, in from both sides at once |
+| `instant` | No animation; the iris is simply there |
+
+Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
+`rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
+for the style you settle on rather than expecting them to match. A name the plugin does not
+know falls back to `sweep`, so a typo costs you the style and not the iris.
 
 A wider gate has more rings, so it takes longer to sweep than a small one — `Massive` at the
 default is about a second, `Standard` rather less.
