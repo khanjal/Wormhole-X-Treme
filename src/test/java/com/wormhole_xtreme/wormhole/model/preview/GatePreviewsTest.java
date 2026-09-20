@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,8 +85,15 @@ class GatePreviewsTest
     private final List<Interaction> buttons = new ArrayList<>();
     private final Map<Material, BlockData> data = new EnumMap<>(Material.class);
     private Runnable dialStep;
-    /** The iris sweep's next step, run by {@link #finishIrisSweep()}. */
-    private Runnable irisStep;
+    /**
+     * Every iris step booked and not cancelled, in the order they were booked.
+     *
+     * <p>A map rather than one slot. Holding only the latest hides a sweep that was never
+     * called off: the second sweep's booking simply overwrites the first's, and a test can no
+     * longer tell one running sweep from two.
+     */
+    private final Map<Integer, Runnable> irisPending = new LinkedHashMap<>();
+    private int nextIrisTask = 1;
     private BukkitTask dialTask;
     private final List<Long> dialDelays = new ArrayList<>();
     /**
@@ -101,14 +109,12 @@ class GatePreviewsTest
      */
     private BukkitTask bookIrisStep(final Runnable step)
     {
-        irisStep = step;
+        final int id = nextIrisTask++;
+        irisPending.put(id, step);
         final BukkitTask task = mock(BukkitTask.class);
         doAnswer(invocation ->
         {
-            if (irisStep == step)
-            {
-                irisStep = null;
-            }
+            irisPending.remove(id);
             return null;
         }).when(task).cancel();
         return task;
@@ -123,11 +129,10 @@ class GatePreviewsTest
      */
     private void finishIrisSweep()
     {
-        for (int guard = 0; (irisStep != null) && (guard < 60); guard++)
+        for (int guard = 0; !irisPending.isEmpty() && (guard < 60); guard++)
         {
-            final Runnable step = irisStep;
-            irisStep = null;
-            step.run();
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
         }
     }
 
@@ -1353,7 +1358,7 @@ class GatePreviewsTest
         assertTrue(afterFirstRing > 0, "the first ring is drawn at once");
         assertTrue(afterFirstRing < STANDARD_OPENING,
             "but not the whole opening: " + afterFirstRing + " of " + STANDARD_OPENING);
-        assertNotNull(irisStep, "and the rest is booked");
+        assertEquals(1, irisPending.size(), "and the rest is booked");
 
         finishIrisSweep();
 
@@ -1374,13 +1379,15 @@ class GatePreviewsTest
         GatePreviews.show(owner, standard, null);
 
         GatePreviews.iris(owner);
-        assertNotNull(irisStep, "the closing sweep is part way through");
+        assertEquals(1, irisPending.size(), "the closing sweep is part way through");
 
         // Straight back open, without letting the close finish.
         assertEquals(GatePreviews.Control.IRIS_OPENED, GatePreviews.iris(owner));
-        finishIrisSweep();
 
-        assertEquals(0, countStanding(), "the opening sweep had the last word, and it finished");
+        assertEquals(1, irisPending.size(),
+            "the closing sweep's step was dropped, not left waiting beside the opening one");
+        finishIrisSweep();
+        assertEquals(0, countStanding(), "and the opening sweep finished");
     }
 
     /** How many of the opening's displays are still standing rather than removed. */
