@@ -203,7 +203,17 @@ public final class SubCommands
         register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
-        register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
+        register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true,
+            (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                // Taking the blocks down as well is the one thing the command does not do by
+                // default, and the only word it takes here.
+                return args.length == 3 ? prefixed(args[2], "-destroy") : none();
+            });
         register(REGEN, aliases(REGENERATE), "/wormhole regen <gate> [-shape <shape>] [-fill] [-water] | [-water] | -all",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false,
             (sender, args) -> completeGateRegenerate(asGateVerb(args)));
@@ -405,8 +415,56 @@ public final class SubCommands
             // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
         }
-        // Every other verb takes a gate name first, and nothing after it worth guessing at.
-        return args.length == 3 ? gateNames(args[2]) : none();
+        return completeFlatVerb(sender, args);
+    }
+
+    /**
+     * Completions for a {@code gate} verb that is also a flat subcommand under the same name.
+     *
+     * <p>Everything left here -- {@code list}, {@code go}, {@code force}, {@code remove},
+     * {@code complete}, {@code import} -- moved under {@code gate} from a name that is still
+     * registered and still knows what its own arguments are. Asking it is what keeps one
+     * completer per command: the fall-through this replaced offered a gate name in every one of
+     * these slots, so {@code gate list} offered gates where the command wants a network, and
+     * {@code gate complete} offered existing gates in the slot for a name that must be new.
+     *
+     * @param sender
+     *            whoever is typing
+     * @param args
+     *            the full argument array, {@code gate} at index 0
+     * @return whatever the flat command would offer for the same words
+     */
+    private static List<String> completeFlatVerb(final CommandSender sender, final String[] args)
+    {
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        // create is complete's second name, accepted by the handler but not registered as a
+        // subcommand of its own, so there is no entry to look up under it.
+        final String flatName = "create".equals(verb) ? "complete" : verb;
+        // Only the verbs gate actually dispatches. Without this, a word that happens to name
+        // some other subcommand -- gate set, gate timeout -- would complete as that one, and
+        // then be refused the moment it was run.
+        if (!com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs().contains(flatName)
+            && !"delete".equals(verb))
+        {
+            return none();
+        }
+        final Entry flat = BY_NAME.get(flatName);
+        return flat == null ? none() : flat.completeArgs(sender, asFlatCommand(args));
+    }
+
+    /**
+     * Reads a {@code gate} verb's arguments as though the verb had been typed on its own.
+     *
+     * <p>The mirror of {@link #asGateVerb}: one leading word is all that separates the two
+     * shapes, so dropping it lets the flat entry's completer index from where it expects.
+     *
+     * @param args
+     *            the {@code gate} form, with {@code gate} in front
+     * @return the same arguments without it
+     */
+    private static String[] asFlatCommand(final String[] args)
+    {
+        return java.util.Arrays.copyOfRange(args, 1, args.length);
     }
 
     /**

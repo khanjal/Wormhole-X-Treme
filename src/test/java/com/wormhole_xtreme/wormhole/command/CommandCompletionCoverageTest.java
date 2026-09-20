@@ -135,6 +135,70 @@ class CommandCompletionCoverageTest
         }
     }
 
+    /**
+     * {@code gate list} offers networks, which is what it takes, not gates.
+     *
+     * <p>Every verb {@code completeGate} did not name fell through to one line that offered a
+     * gate name, because most of them do take one. {@code list} does not -- it narrows the
+     * listing to a network -- so the completion named the wrong kind of thing entirely.
+     */
+    @Test
+    void gateListOffersNetworksRatherThanGates()
+    {
+        gateNamed("Abydos");
+
+        final List<String> offered = complete("gate", "gate", "list", "");
+        assertTrue(offered.contains("Public"), "the network every gate is on unless told otherwise: " + offered);
+        assertFalse(offered.contains("Abydos"), "and not a gate name, which list does not take: " + offered);
+        assertEquals(complete("list", "list", ""), offered, "the same as the flat name it is short for");
+    }
+
+    /**
+     * {@code gate complete} does not offer gates in the slot for a name that must be new.
+     *
+     * <p>The flat {@code complete} has said so in a comment since it was written -- suggesting
+     * an existing gate's name there is suggesting the one name the command will refuse.
+     */
+    @Test
+    void gateCompleteOffersNoGateForANameThatMustBeNew()
+    {
+        gateNamed("Abydos");
+
+        assertEquals(List.of(), complete("gate", "gate", "complete", ""));
+        assertEquals(List.of("idc=", "net="), complete("gate", "gate", "complete", "NewGate", ""),
+            "and the two things it does take after the name");
+        assertEquals(List.of(), complete("gate", "gate", "create", ""),
+            "create is complete's other name and completes the same way");
+    }
+
+    /** {@code remove} offers the one flag it takes, under both names. */
+    @Test
+    void removeOffersDestroyUnderBothNames()
+    {
+        gateNamed("Abydos");
+
+        assertEquals(List.of("Abydos"), complete("remove", "remove", ""));
+        assertEquals(List.of("-destroy"), complete("remove", "remove", "Abydos", ""));
+        assertEquals(List.of("-destroy"), complete("gate", "gate", "remove", "Abydos", ""),
+            "and the same through the gate verb");
+    }
+
+    /**
+     * A word {@code gate} does not dispatch completes nothing, even when it names another
+     * subcommand.
+     *
+     * <p>{@code set} is the {@code config} alias. Delegating on the name alone would complete
+     * {@code gate set } with every setting in config.yml, none of which {@code gate} would then
+     * accept.
+     */
+    @Test
+    void aWordGateDoesNotDispatchCompletesNothing()
+    {
+        assertEquals(List.of(), complete("gate", "gate", "set", ""));
+        assertFalse(complete("gate", "gate", "list", "").isEmpty(),
+            "though a verb it does dispatch still completes, or the assertion above proves nothing");
+    }
+
     /** The flat {@code build} name offers shapes, the same as the {@code gate build} it is short for. */
     @Test
     void theFlatBuildNameOffersShapes()

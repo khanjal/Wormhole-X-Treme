@@ -78,6 +78,15 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **`build` and `regen` complete the way `gate build` and `gate regen` do.** The flat names
   are still there for anything scripted against them; they kept the shorter completions they
   had before the move, so `build` offered no shapes and `regen` offered none of its flags.
+- **`remove` offers `-destroy`.**
+
+**Fixed**
+
+- **`gate list` offers networks, not gate names.** Every `gate` verb without a completer of its
+  own fell through to one that offered a gate name, which is wrong for `list` -- it narrows the
+  listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
+  Each verb now asks the command it is short for. A word that is not a verb at all offers
+  nothing, where it used to offer gates the command would then refuse.
 
 ### For shape authors
 

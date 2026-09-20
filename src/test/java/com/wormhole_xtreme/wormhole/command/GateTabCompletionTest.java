@@ -91,15 +91,23 @@ class GateTabCompletionTest
         assertFalse(verbs.isEmpty());
     }
 
-    /** Most verbs take a gate name and nothing after it. */
+    /**
+     * Most verbs take a gate name and nothing after it.
+     *
+     * <p>Asked of {@code force}, which is a verb. It used to be asked of {@code info}, which is
+     * not one -- the fall-through offered a gate name for any word at all, so the test passed
+     * against a verb the command would have refused.
+     */
     @Test
     void anOrdinaryVerbTakesAGateNameAndNothingMore()
     {
         gateNamed("alpha");
 
-        assertTrue(complete("gate", "info", "").contains("alpha"));
-        assertTrue(complete("gate", "info", "alpha", "").isEmpty(),
+        assertTrue(complete("gate", "force", "").contains("alpha"));
+        assertTrue(complete("gate", "force", "alpha", "").isEmpty(),
             "there is nothing worth guessing at past the gate name");
+        assertTrue(complete("gate", "info", "").isEmpty(),
+            "and a word that is not a verb offers nothing, rather than a gate it would refuse");
     }
 
     /** {@code edit} takes a gate, then a field. */
