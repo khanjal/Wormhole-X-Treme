@@ -80,6 +80,31 @@ public final class GateEvents
     }
 
     /**
+     * Announces that a gate's wormhole has opened.
+     *
+     * @param stargate
+     *            the gate that became active
+     */
+    public static void fireActivated(final Stargate stargate)
+    {
+        fire(new StargateActivatedEvent(stargate));
+    }
+
+    /**
+     * Announces that a gate's wormhole has closed.
+     *
+     * @param stargate
+     *            the gate that closed
+     * @param reason
+     *            why it closed
+     */
+    public static void fireShutdown(final Stargate stargate,
+                                    final StargateShutdownEvent.Reason reason)
+    {
+        fire(new StargateShutdownEvent(stargate, reason));
+    }
+
+    /**
      * Asks whether a player may travel, and reports what listeners decided.
      *
      * <p>Returns false only if a listener actually cancelled. A delivery that fails, or one

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
@@ -154,10 +155,11 @@ class GateActivationSwitchTest
         gate.setGateName("open");
         gate.setGateActive(true);
         doReturn(new Stargate()).when(gate).getGateTarget();
-        doNothing().when(gate).shutdownStargate(anyBoolean());
+        doNothing().when(gate)
+            .shutdownStargate(anyBoolean(), any(StargateShutdownEvent.Reason.class));
 
         assertTrue(GateInteractionHandler.handleGateActivationSwitch(gate, player));
-        verify(gate).shutdownStargate(true);
+        verify(gate).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
     }
 
     /**

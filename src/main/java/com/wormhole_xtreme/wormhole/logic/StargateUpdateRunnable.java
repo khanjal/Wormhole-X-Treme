@@ -110,7 +110,7 @@ public class StargateUpdateRunnable implements Runnable
         switch (action)
         {
             case SHUTDOWN :
-                stargate.shutdownStargate(true);
+                stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
                 break;
             case ANIMATE_WOOSH :
                 stargate.animateOpening();

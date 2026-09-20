@@ -798,7 +798,7 @@ class WormholeXTremeVehicleListener implements Listener
         veh.teleport(safeIrisTarget);
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            st.shutdownStargate(true);
+            st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
         }
     }
 
@@ -897,7 +897,7 @@ class WormholeXTremeVehicleListener implements Listener
 
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            st.shutdownStargate(true);
+            st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
         }
         return true;
     }

@@ -34,10 +34,19 @@ class GateEventTest
         // other way round. It compiles, registers and looks correct until it fires.
         final HandlerList created = StargateCreatedEvent.getHandlerList();
         final HandlerList removed = StargateRemovedEvent.getHandlerList();
+        final HandlerList activated = StargateActivatedEvent.getHandlerList();
+        final HandlerList shutdown = StargateShutdownEvent.getHandlerList();
 
-        assertNotNull(created);
-        assertNotNull(removed);
-        assertNotSame(created, removed, "the two event types must not share a handler list");
+        final HandlerList[] all = { created, removed, activated, shutdown };
+        for (int i = 0; i < all.length; i++)
+        {
+            assertNotNull(all[i], "event type " + i + " has no handler list");
+            for (int j = i + 1; j < all.length; j++)
+            {
+                assertNotSame(all[i], all[j],
+                    "no two event types may share a handler list; " + i + " and " + j + " do");
+            }
+        }
     }
 
     @Test
@@ -51,6 +60,46 @@ class GateEventTest
             new StargateCreatedEvent(gate, null).getHandlers());
         assertSame(StargateRemovedEvent.getHandlerList(),
             new StargateRemovedEvent(gate, null).getHandlers());
+        assertSame(StargateActivatedEvent.getHandlerList(),
+            new StargateActivatedEvent(gate).getHandlers());
+        assertSame(StargateShutdownEvent.getHandlerList(),
+            new StargateShutdownEvent(gate, StargateShutdownEvent.Reason.MANUAL).getHandlers());
+    }
+
+    @Test
+    void aShutdownCarriesItsGateAndTheReasonItClosed()
+    {
+        final Stargate gate = namedGate();
+
+        final StargateShutdownEvent event =
+            new StargateShutdownEvent(gate, StargateShutdownEvent.Reason.TIMEOUT);
+
+        assertSame(gate, event.getStargate());
+        assertEquals("subject", event.getStargateName());
+        assertEquals(StargateShutdownEvent.Reason.TIMEOUT, event.getReason());
+    }
+
+    @Test
+    void aShutdownWithoutAReasonIsRefusedRatherThanCarryingNull()
+    {
+        // A listener switching on getReason() would throw on a null, inside somebody else's
+        // plugin, on a path this one chose. Refusing at construction puts the failure where
+        // the mistake is.
+        final Stargate gate = namedGate();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> new StargateShutdownEvent(gate, null));
+    }
+
+    @Test
+    void anActivationCarriesTheGateThatOpened()
+    {
+        final Stargate gate = namedGate();
+
+        final StargateActivatedEvent event = new StargateActivatedEvent(gate);
+
+        assertSame(gate, event.getStargate());
+        assertEquals("subject", event.getStargateName());
     }
 
     @Test

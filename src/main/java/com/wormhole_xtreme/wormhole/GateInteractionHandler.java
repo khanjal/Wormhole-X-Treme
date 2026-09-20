@@ -444,7 +444,7 @@ public final class GateInteractionHandler
         if (stargate.getGateTarget() != null)
         {
             //Shutdown stargate
-            stargate.shutdownStargate(true);
+            stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
             player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
             return true;
         }
