@@ -22,9 +22,36 @@ public final class PlaceholderSupport
     /** Whether the expansion is registered, so a second enable does not register it twice. */
     private static volatile boolean registered = false;
 
+    /**
+     * How the expansion registers itself, so tests can stand in for a PlaceholderAPI that
+     * is not running.
+     *
+     * <p>The same seam, for the same reason, as {@code GateEvents.setDispatcherForTest}:
+     * the real call needs a live plugin and the suite has none, while what happens either
+     * side of it -- registering once and not twice, and what is said when PlaceholderAPI
+     * refuses -- is ordinary logic worth pinning. Null means register for real.
+     */
+    // A function reference, not a container: volatile is the whole synchronisation it needs.
+    @SuppressWarnings("java:S3077")
+    private static volatile java.util.function.BooleanSupplier registrar = null;
+
     /** Static helpers only. */
     private PlaceholderSupport()
     {
+    }
+
+    /**
+     * Replaces the registration step, for tests.
+     *
+     * <p>Not part of the plugin's API: production never calls it, and the name is meant to
+     * make that obvious at every call site.
+     *
+     * @param replacement
+     *            what to do instead of registering, or null to register for real
+     */
+    public static void setRegistrarForTest(final java.util.function.BooleanSupplier replacement)
+    {
+        registrar = replacement;
     }
 
     /**
@@ -54,7 +81,8 @@ public final class PlaceholderSupport
             // Only reached with PlaceholderAPI on the classpath, which is what makes naming
             // the expansion class here safe. Hoisting this above the check would load it on
             // every server and fail on the ones without.
-            registered = new WormholePlaceholders().register();
+            final java.util.function.BooleanSupplier how = registrar;
+            registered = (how != null) ? how.getAsBoolean() : new WormholePlaceholders().register();
             if (registered)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
