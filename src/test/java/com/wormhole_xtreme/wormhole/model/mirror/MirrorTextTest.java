@@ -183,4 +183,39 @@ class MirrorTextTest
                 .replace('_', ' ')), colour + " should still say its own name");
         }
     }
+
+    /**
+     * The mirror palette is these exact codes, whatever it is built out of.
+     *
+     * <p>Every other test in this class compares against the constants themselves, so all of
+     * them would keep passing if the codes changed together. This is the one that would not.
+     * It exists because the palette moved to {@link ChatText} and the whole point of that move
+     * was that a player sees no difference.
+     */
+    @Test
+    void theMirrorPaletteIsTheColoursItHasAlwaysBeen()
+    {
+        assertEquals("§7", MirrorText.BODY_COLOUR, "the grey the header leaves behind");
+        assertEquals("§b", MirrorText.NAME_COLOUR, "aqua for a name");
+        assertEquals("§f", MirrorText.COMMAND_COLOUR, "white for something to type");
+        assertEquals("§f", MirrorText.VALUE_COLOUR, "and for a value to read");
+        assertEquals("§a", MirrorText.GOOD_COLOUR, "green for working");
+        assertEquals("§c", MirrorText.BAD_COLOUR, "red for broken");
+        assertEquals("§3", MirrorText.HEADING_COLOUR, "dark aqua for a heading");
+    }
+
+    /**
+     * A debug fragment returns to the value colour, not the body colour.
+     *
+     * <p>The difference matters and is easy to lose: {@code ChatText.bad} hands the sentence
+     * back in grey, because it is used mid-sentence. These two sit inside a {@code field}
+     * value that is already white, so returning to grey would leave the rest of the value a
+     * different colour from its start.
+     */
+    @Test
+    void aDebugFragmentReturnsToTheValueColourAndNotTheBody()
+    {
+        assertEquals("§cmissing§f", MirrorText.bad("missing"));
+        assertEquals("§aready§f", MirrorText.good("ready"));
+    }
 }

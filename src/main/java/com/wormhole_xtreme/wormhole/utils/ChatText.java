@@ -13,11 +13,23 @@ public final class ChatText
     /** The body colour every fragment returns to. */
     public static final String BODY = "§7";
 
-    private static final String WHITE = "§f";
-    private static final String NAME = "§b";
-    private static final String MATERIAL = "§e";
-    private static final String GOOD = "§a";
-    private static final String BAD = "§c";
+    /** The {@code ::} a line opens with, and a heading over a group of them. */
+    public static final String HEADING = "§3";
+
+    /** Something to type, or a value to read beside its label. */
+    public static final String WHITE = "§f";
+
+    /** A name: a gate, network, mirror, shape, group or player. */
+    public static final String NAME = "§b";
+
+    /** A block or an item. */
+    public static final String MATERIAL = "§e";
+
+    /** Something done or allowed. */
+    public static final String GOOD = "§a";
+
+    /** Something wrong or refused. */
+    public static final String BAD = "§c";
 
     private static final Pattern CODE = Pattern.compile("§.");
 
@@ -60,6 +72,12 @@ public final class ChatText
     public static String bad(final String text)
     {
         return BAD + text + BODY;
+    }
+
+    /** @return a heading over a group of lines */
+    public static String heading(final String text)
+    {
+        return HEADING + text + BODY;
     }
 
     /** @return the line as a player reads it, without colour codes */

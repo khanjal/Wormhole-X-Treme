@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 
 /**
@@ -24,13 +25,13 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
 public final class RingMessages
 {
     /** Colour codes matching the plugin's own message headers. */
-    private static final String NORMAL = "§3:: §7";
+    private static final String NORMAL = ChatText.HEADING + ":: " + ChatText.BODY;
 
     /** Warmer colour for the moment of transport itself. */
-    private static final String ACTIVE = "§3:: §b";
+    private static final String ACTIVE = ChatText.HEADING + ":: " + ChatText.NAME;
 
     /** Error colouring, as the gate messages use. */
-    private static final String ERROR = "§3:: §5";
+    private static final String ERROR = ChatText.HEADING + ":: §5";
 
     private RingMessages() {}
 
