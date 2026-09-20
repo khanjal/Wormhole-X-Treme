@@ -55,7 +55,7 @@ Look at a preview and `/wormhole gate preview <action>` changes it, for you alon
 | `material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
 | `chevrons` | Shows or hides a group's chevron blocks. The Standard palette starts with them hidden, drawn as frame the classic way; other groups start with them shown. Lit, a hidden chevron shows the light material |
 | `dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
-| `materials` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening |
+| `needs` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening. Was `materials` in 1.7.0, which still works |
 | `guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
 | `layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
 | `share [<player>\|-all]` | Shows it to a player, or with `-all` to everyone in its world, including anyone who arrives later; again stops. With `wormhole.build.preview.share`. They see it change, dial and guide as you do, and hear it, but only you can change it or press its button. Alone, `-share` says who sees it. |
