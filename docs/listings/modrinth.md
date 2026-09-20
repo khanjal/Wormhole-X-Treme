@@ -432,7 +432,9 @@ so there is a jar to upload. What is left:
    alone, as above, so a new version upload can silently narrow what the page claims.
 3. **Crop the icon from a capture, never from the logo.** Modrinth wants 512×512 **(assumed)**.
    `docs/images/gates/gate-shapes-active.png` is the source; the Massive gate dialled reads at
-   that size. Rendering `logo.svg` here would breach Rule 6.2.1 — see below.
+   that size. Rendering `logo.svg` here would breach Rule 6.2.1 — see below. One such crop was
+   prepared on 2026-09-20 and measured 512×512; it is not in the repository, so if it has been
+   lost, re-crop from the same capture.
 4. **Do not add the banner back.** Whether Modrinth's renderer handles SVG is beside the point
    now; `logo-banner.svg` is AI-authored and may not go on the page at all.
 5. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
