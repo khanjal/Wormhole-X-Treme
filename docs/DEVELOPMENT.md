@@ -131,6 +131,11 @@ symbol, and one was fixable in a line.
 - **The galleries are generated.** The gate, ring, beam and mirror drawings in `docs/images/` and
   the tables between the `<!-- ...:start -->` markers in the design documents come from
   `scripts/render_*_sheets.py`, and a test fails until they are re-run after the source changes.
+- **Plugin-site listing copy lives in [`docs/listings/`](listings/).** Its facts are in
+  `listings/shared.md` and each site's fields and markup in its own file. It prints no count a
+  release can change — not settings, test classes, CI legs, shapes or mirror looks — because such
+  a figure goes stale where nobody is looking. Only the version, the supported range and the Java
+  versions are numbers there, and a live badge carries the rest.
 
 ## Submitting changes
 
