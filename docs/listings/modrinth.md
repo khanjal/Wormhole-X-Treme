@@ -76,10 +76,11 @@ containing a substantial amount of someone else's work, which this is. Name of o
 **The link to the original work is unresolved.** It wants the 2011 original, and no URL for it
 has been verified — the original repository may not survive, and its BukkitDev page is not
 something to guess at. The only such URL the repository itself cites is
-`https://github.com/WolfNetDevelopment/Wormhole-X-Treme` ([`README.md:119`](../../README.md)),
-and that is the *later* fork, not the original. Use whichever of the two actually resolves, and
-if it is the WolfNet one, say so in the explanation rather than letting it read as the original.
-Record here whatever ends up in the field, so nobody re-derives this.
+`https://github.com/WolfNetDevelopment/Wormhole-X-Treme`, in the credits section of
+[`README.md`](../../README.md), and that is the *later* fork, not the original. Use whichever of
+the two actually resolves, and if it is the WolfNet one, say so in the explanation rather than
+letting it read as the original. Record here whatever ends up in the field, so nobody re-derives
+this.
 
 > This is a fork of the original Wormhole X-Treme, a Bukkit plugin written in 2011 by Lologarithm
 > (Ben Echols) and alron (Dean Bailey), with contributions from lirelent (Ryan Metzger) and

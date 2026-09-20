@@ -166,8 +166,12 @@ Four ways to get somewhere, each a different trade between what you build and wh
 | **Beaming** | nothing at all | any named destination, across worlds |
 | **Quantum mirrors** | one banner on a wall | any other mirror, across worlds |
 
-Each has its own page: **[Stargates](#)** · **[Transport rings](#)** · **[Beaming](#)** ·
-**[Quantum mirrors](#)** — point those at the subpages once they exist.
+Each has its own section below.
+
+<!-- Once the Hangar subpages exist, this line becomes the navigation for them: link each of
+     Stargates, Transport rings, Beaming and Quantum mirrors to its own subpage. It is left
+     unlinked deliberately — a `(#)` placeholder pasted onto the live page publishes four dead
+     links that look real. See "Subpages" below. -->
 
 ![Dialling a gate](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-dial.webp)
 
