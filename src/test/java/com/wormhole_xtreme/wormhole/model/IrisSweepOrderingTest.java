@@ -324,6 +324,24 @@ class IrisSweepOrderingTest
             "but the iris blocks are still placed, which is the part that matters: " + events);
     }
 
+    /**
+     * No plugin at all is not "still running" either.
+     *
+     * <p>The scheduler and the plugin are separate statics, so one can be there without the
+     * other. Reading a missing plugin as running would book a task against null and throw from
+     * somewhere less obvious than here.
+     */
+    @Test
+    void aMissingPluginIsNotTreatedAsRunning() throws Exception
+    {
+        PluginTestSupport.remove();
+
+        gate.toggleIrisActive(false);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "no plugin, no sweep");
+        assertTrue(pending.isEmpty(), "and nothing booked against it");
+    }
+
     /** The index of the first event with this prefix, or {@link Integer#MAX_VALUE}. */
     private int indexOfFirst(final String prefix)
     {
