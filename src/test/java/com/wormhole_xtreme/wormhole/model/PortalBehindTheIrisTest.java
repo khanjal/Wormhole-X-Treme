@@ -2,19 +2,31 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Where an open gate's event horizon is shown while its iris is shut.
@@ -133,11 +145,12 @@ class PortalBehindTheIrisTest
      *            what stands there
      * @return the block, already wired into the world mock
      */
-    private org.bukkit.block.Block standing(final Location at, final org.bukkit.Material type)
+    private Block standing(final Location at, final Material type)
     {
-        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+        final Block block = mock(Block.class);
+        final BlockData data = mock(BlockData.class);
         when(block.getType()).thenReturn(type);
-        when(block.getBlockData()).thenReturn(mock(org.bukkit.block.data.BlockData.class));
+        when(block.getBlockData()).thenReturn(data);
         when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
         return block;
     }
@@ -150,39 +163,33 @@ class PortalBehindTheIrisTest
      * alone cannot reach, since the geometry does not know what is standing there.
      */
     @Test
-    void theHorizonIsDrawnOnlyWhereTheCellBehindIsAir() throws Exception
+    void theHorizonIsDrawnOnlyWhereTheCellBehindIsAir()
     {
-        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
+        gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateActive(true);
         final Location free = new Location(world, 10, 64, 20);
         final Location blocked = new Location(world, 10, 65, 20);
         gate.getGatePortalBlocks().add(free);
         gate.getGatePortalBlocks().add(blocked);
-        standing(new Location(world, 10, 64, 19), org.bukkit.Material.AIR);
-        standing(new Location(world, 10, 65, 19), org.bukkit.Material.STONE);
+        standing(new Location(world, 10, 64, 19), Material.AIR);
+        standing(new Location(world, 10, 65, 19), Material.STONE);
 
-        final org.bukkit.entity.Player watcher = mock(org.bukkit.entity.Player.class);
+        final Player watcher = mock(Player.class);
         when(watcher.getLocation()).thenReturn(new Location(world, 10, 64, 24));
         when(world.getPlayers()).thenReturn(List.of(watcher));
 
-        final org.bukkit.block.data.BlockData horizon = mock(org.bukkit.block.data.BlockData.class);
-        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
-            org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        final BlockData horizon = mock(BlockData.class);
+        try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
-                .drawnAs(org.mockito.ArgumentMatchers.any(org.bukkit.Material.class))).thenReturn(horizon);
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
-                .isAirMaterial(org.bukkit.Material.AIR)).thenReturn(true);
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
-                .isAirMaterial(org.bukkit.Material.STONE)).thenReturn(false);
+            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(horizon);
+            materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
+            materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
 
             StargateBlockSetup.sendPortalBackdrop(gate, true);
         }
 
-        org.mockito.Mockito.verify(watcher).sendBlockChange(
-            org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 64), org.mockito.ArgumentMatchers.eq(horizon));
-        org.mockito.Mockito.verify(watcher, org.mockito.Mockito.never()).sendBlockChange(
-            org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 65), org.mockito.ArgumentMatchers.eq(horizon));
+        verify(watcher).sendBlockChange(argThat(at -> at.getBlockY() == 64), eq(horizon));
+        verify(watcher, never()).sendBlockChange(argThat(at -> at.getBlockY() == 65), eq(horizon));
     }
 
     /**
@@ -192,22 +199,20 @@ class PortalBehindTheIrisTest
      * in the world every time an iris moved.
      */
     @Test
-    void somebodyOutOfRangeIsNotSentTheHorizon() throws Exception
+    void somebodyOutOfRangeIsNotSentTheHorizon()
     {
-        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
+        gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateActive(true);
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
-        standing(new Location(world, 10, 64, 19), org.bukkit.Material.AIR);
+        standing(new Location(world, 10, 64, 19), Material.AIR);
 
-        final org.bukkit.entity.Player distant = mock(org.bukkit.entity.Player.class);
+        final Player distant = mock(Player.class);
         when(distant.getLocation()).thenReturn(new Location(world, 10, 64, 900));
         when(world.getPlayers()).thenReturn(List.of(distant));
 
         StargateBlockSetup.sendPortalBackdrop(gate, true);
 
-        org.mockito.Mockito.verify(distant, org.mockito.Mockito.never()).sendBlockChange(
-            org.mockito.ArgumentMatchers.any(Location.class),
-            org.mockito.ArgumentMatchers.any(org.bukkit.block.data.BlockData.class));
+        verify(distant, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 
     /**
