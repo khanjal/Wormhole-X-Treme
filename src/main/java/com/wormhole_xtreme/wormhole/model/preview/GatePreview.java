@@ -71,6 +71,18 @@ final class GatePreview
     private int wooshStage;
     private boolean open;
     private boolean irisClosed;
+
+    /**
+     * Which of the opening's cells are showing iris right now.
+     *
+     * <p>Not the same question as {@link #irisClosed}, which is where the iris is *going*. A
+     * sweep moves this set a ring at a time, so between the two there is a moment where the
+     * iris is logically shut and only half drawn -- which on a preview is exactly the point,
+     * since there is nothing here for anybody to walk through.
+     *
+     * <p>With no sweep running the two agree: every index when closed, none when open.
+     */
+    private final java.util.Set<Integer> irisShown = new java.util.HashSet<>();
     private boolean dhdHidden;
     private boolean plainChevrons;
     private boolean guide;
@@ -418,10 +430,38 @@ final class GatePreview
         layersShown = layers;
     }
 
-    /** @return whether the opening's displays stand: they are the iris; the wormhole is sent as blocks */
-    boolean openingFilled()
+    /**
+     * Whether one opening cell is showing iris.
+     *
+     * <p>The opening's displays are the iris; the wormhole behind it is sent as blocks. Asked
+     * per cell rather than for the whole opening so a sweep can draw part of one.
+     *
+     * @param cell
+     *            the cell's index in {@link #opening()}
+     * @return true if its display should stand
+     */
+    boolean irisShownAt(final int cell)
     {
-        return irisClosed;
+        return irisShown.contains(cell);
+    }
+
+    /** @return the set of opening cells showing iris, for a sweep to move */
+    java.util.Set<Integer> irisShown()
+    {
+        return irisShown;
+    }
+
+    /** Shows the iris over the whole opening, or none of it, with no sweep in between. */
+    void irisShownEverywhere(final boolean everywhere)
+    {
+        irisShown.clear();
+        if (everywhere)
+        {
+            for (int i = 0; i < opening().size(); i++)
+            {
+                irisShown.add(i);
+            }
+        }
     }
 
     /**

@@ -39,6 +39,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -250,6 +251,15 @@ public final class GatePreviews
     static Function<Material, BlockData> blockData = Bukkit::createBlockData;
     static Function<UUID, Player> online = Bukkit::getPlayer;
     static Later later = GatePreviews::schedule;
+
+    /**
+     * Where an iris sweep books its steps.
+     *
+     * <p>Its own seam rather than {@link #later}, which the dial uses. The two animations can
+     * run on one preview at once -- a gate dialled with its iris shut is the ordinary case --
+     * and a test that drives one by hand should not have to pick it out of the other's steps.
+     */
+    static Later irisLater = GatePreviews::schedule;
     static Detector detector = StargateHelper::checkStargate;
     static Occupied occupied = PreviewPlacer::occupied;
     static GateAt gateAt = PreviewPlacer::gateAt;
@@ -392,8 +402,9 @@ public final class GatePreviews
         }
         sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
-        restyle(preview);
-        draw(owner, preview);
+        // Restyles and draws for itself, a ring at a time. Doing either here as well would
+        // draw the whole iris in the same tick the sweep set out to draw it gradually.
+        startIrisSweep(owner, preview);
         return preview.irisClosed() ? Control.IRIS_CLOSED : Control.IRIS_OPENED;
     }
 
@@ -1250,7 +1261,7 @@ public final class GatePreviews
         }
         for (int i = 0; i < preview.opening().size(); i++)
         {
-            if (!preview.openingFilled())
+            if (!preview.irisShownAt(i))
             {
                 GatePreview.removeAt(preview.openingDisplays(), i);
                 continue;
@@ -1262,6 +1273,143 @@ public final class GatePreviews
             send(owner, preview, preview.opening());
         }
         drawButton(owner, preview);
+    }
+
+    /**
+     * Moves the preview's iris a ring at a time, the way a real gate's does.
+     *
+     * <p>The preview is display entities rather than blocks, so none of the care a real gate
+     * needs applies -- there is nothing here to walk through, and no {@code BlockPhysicsEvent}
+     * to raise. What matters is that it looks the same: the same rings in the same order at the
+     * same pace, from {@link IrisSweep} and {@code gate-iris-step-ticks}, so a preview is a
+     * rehearsal of the gate rather than an approximation of one.
+     *
+     * <p>Instant when the setting says so, or when there is no scheduler to book a step with.
+     */
+    private static void startIrisSweep(final Player owner, final GatePreview preview)
+    {
+        cancelIrisSweep(preview);
+        final List<Cell> cells = preview.opening();
+        if (!ConfigManager.isGateIrisAnimated() || (cells.size() < 2))
+        {
+            preview.irisShownEverywhere(preview.irisClosed());
+            restyle(preview);
+            draw(owner, preview);
+            return;
+        }
+        // Closing starts from nothing shown and adds rings; opening starts from all of it and
+        // takes them away. Either way the set ends agreeing with irisClosed.
+        preview.irisShownEverywhere(!preview.irisClosed());
+        restyle(preview);
+        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.irisClosed()), 0);
+    }
+
+    /**
+     * The opening's cell indexes, grouped into rings in the order they are drawn.
+     *
+     * <p>Mapped back by identity: {@link IrisSweep} groups the very objects it is handed, so a
+     * location found in a ring is the one built for that cell and no other. Equality would do
+     * the wrong thing on an opening with two cells at the same coordinates, which a malformed
+     * shape can produce.
+     *
+     * @param preview
+     *            the preview
+     * @param closing
+     *            true for the closing order, rim first
+     * @return one list of indexes per ring
+     */
+    private static List<List<Integer>> ringsOfOpening(final GatePreview preview, final boolean closing)
+    {
+        final List<Cell> cells = preview.opening();
+        final List<Location> places = new ArrayList<>(cells.size());
+        final java.util.IdentityHashMap<Location, Integer> index = new java.util.IdentityHashMap<>();
+        for (int i = 0; i < cells.size(); i++)
+        {
+            final Cell cell = cells.get(i);
+            final Location at = new Location(preview.world(), cell.x(), cell.y(), cell.z());
+            places.add(at);
+            index.put(at, i);
+        }
+        final List<List<Location>> rings =
+            closing ? IrisSweep.closingRings(places) : IrisSweep.openingRings(places);
+        final List<List<Integer>> out = new ArrayList<>(rings.size());
+        for (final List<Location> ring : rings)
+        {
+            final List<Integer> ringIndexes = new ArrayList<>(ring.size());
+            for (final Location at : ring)
+            {
+                ringIndexes.add(index.get(at));
+            }
+            out.add(ringIndexes);
+        }
+        return out;
+    }
+
+    /** Draws one ring of the sweep and books the next. */
+    private static void stepIrisSweep(final Player owner, final GatePreview preview,
+        final List<List<Integer>> rings, final int ring)
+    {
+        if ((ring >= rings.size()) || !stillHeld(preview))
+        {
+            irisSweeps.remove(preview);
+            return;
+        }
+        for (final int cell : rings.get(ring))
+        {
+            if (preview.irisClosed())
+            {
+                preview.irisShown().add(cell);
+            }
+            else
+            {
+                preview.irisShown().remove(cell);
+            }
+        }
+        draw(owner, preview);
+        // Through `later`, not the scheduler directly: it is the seam the dial animation books
+        // its own steps with, and the one a test swaps out to drive an animation by hand.
+        irisSweeps.put(preview, irisLater.after(ConfigManager.getGateIrisStepTicks(),
+            () -> stepIrisSweep(owner, preview, rings, ring + 1)));
+    }
+
+    /**
+     * Whether a preview is still one somebody holds.
+     *
+     * <p>A step that fired after its preview was cleared would spawn fresh displays for one
+     * nobody is holding any more, and nothing left would ever take them away again.
+     *
+     * @param preview
+     *            the preview
+     * @return true if it is still in the register
+     */
+    private static boolean stillHeld(final GatePreview preview)
+    {
+        for (final List<GatePreview> held : PREVIEWS.values())
+        {
+            if (held.contains(preview))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Calls off a sweep running on a preview, leaving its iris where it was going.
+     *
+     * <p>Called when the iris is toggled again mid-sweep, and when a preview goes away -- a
+     * step that fired afterwards would spawn displays for a preview nobody is holding any more.
+     *
+     * @param preview
+     *            the preview
+     */
+    static void cancelIrisSweep(final GatePreview preview)
+    {
+        final BukkitTask task = irisSweeps.remove(preview);
+        if (task != null)
+        {
+            task.cancel();
+        }
     }
 
     /**
@@ -1452,6 +1600,9 @@ public final class GatePreviews
         return MaterialUtils.litChevron(palette.materialOf(cell), palette.chevron(), fixtureOn,
             MaterialUtils.drawnAs(blockData.apply(palette.light())));
     }
+
+    /** The sweep running on each preview, so a second toggle can call the first off. */
+    private static final java.util.Map<GatePreview, BukkitTask> irisSweeps = new java.util.IdentityHashMap<>();
 
     /** What the opening's displays show: they stand only while the iris is closed. */
     static BlockData openingData(final GatePreview preview)
