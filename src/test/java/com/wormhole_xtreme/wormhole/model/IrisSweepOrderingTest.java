@@ -62,6 +62,7 @@ class IrisSweepOrderingTest
     private World world;
     private Player watcher;
     private Stargate gate;
+    private WormholeXTreme plugin;
     /**
      * {@code MaterialUtils.drawnAs} goes through {@code Material.createBlockData}, which needs
      * a live server. Held open for the whole class because every test here has somebody
@@ -78,7 +79,11 @@ class IrisSweepOrderingTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        // A mock reports itself disabled unless told otherwise, and a disabled plugin does not
+        // sweep -- which is the whole of the guard the last test here covers.
+        when(plugin.isEnabled()).thenReturn(true);
+        PluginTestSupport.install(plugin);
         PluginTestSupport.forgetAllGates();
 
         materials = mockStatic(MaterialUtils.class);
@@ -293,6 +298,48 @@ class IrisSweepOrderingTest
         verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), drawn.capture());
         assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
             "the opening is drawn back over the placed iris before the sweep starts revealing it");
+    }
+
+    /**
+     * A server on its way down closes irises, and must not try to animate them.
+     *
+     * <p>Bukkit sets a plugin disabled before it calls {@code onDisable}, and a disabled plugin
+     * booking a task is refused with an exception rather than ignored. Shutdown closes the iris
+     * of every gate whose iris defaults closed, so a server stopping with one dialled gate of
+     * that kind would start a sweep, throw out of {@code shutdownStargate}, and land in the
+     * catch wrapping the whole save — taking the remaining gates, the rings, the beams, the
+     * mirrors and the database shutdown with it. The blocks still go where they belong; only
+     * the picture is skipped, and by then nobody is looking at it.
+     */
+    @Test
+    void aPluginOnItsWayDownPlacesTheIrisWithoutAnimatingIt()
+    {
+        when(plugin.isEnabled()).thenReturn(false);
+
+        gate.toggleIrisActive(false);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "no sweep is started while disabling");
+        assertTrue(pending.isEmpty(), "and nothing is booked on a scheduler that would refuse it");
+        assertTrue(events.stream().anyMatch(e -> e.startsWith("block:")),
+            "but the iris blocks are still placed, which is the part that matters: " + events);
+    }
+
+    /**
+     * No plugin at all is not "still running" either.
+     *
+     * <p>The scheduler and the plugin are separate statics, so one can be there without the
+     * other. Reading a missing plugin as running would book a task against null and throw from
+     * somewhere less obvious than here.
+     */
+    @Test
+    void aMissingPluginIsNotTreatedAsRunning() throws Exception
+    {
+        PluginTestSupport.remove();
+
+        gate.toggleIrisActive(false);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "no plugin, no sweep");
+        assertTrue(pending.isEmpty(), "and nothing booked against it");
     }
 
     /** The index of the first event with this prefix, or {@link Integer#MAX_VALUE}. */
