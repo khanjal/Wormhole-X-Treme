@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -132,7 +133,7 @@ class CommandCompletionCoverageTest
     {
         for (final String name : NOTHING_TO_OFFER)
         {
-            assertTrue(SubCommands.find(name) != null, name + " is exempted but not registered");
+            assertNotNull(SubCommands.find(name), name + " is exempted but not registered");
             assertFalse(SubCommands.find(name).completesArguments(),
                 name + " completes its arguments now, so it should come off the exemption list");
         }

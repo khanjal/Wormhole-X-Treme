@@ -15,14 +15,17 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 public class WooshDepthCommand implements SubCommand
 {
 
-    /** Said with the usage line every time the command is refused for its shape. */
     /** The shallowest woosh a gate may be set to: none at all. */
     private static final int MIN_DEPTH = 0;
 
     /** The deepest. Past this the waves reach further than the gate the shape describes. */
     private static final int MAX_DEPTH = 5;
 
+    /** Said with the usage line every time the command is refused for its shape. */
     private static final String VALID_RANGE = "Valid depth: " + MIN_DEPTH + " - " + MAX_DEPTH;
+
+    /** Said whenever the words given do not name a gate and a depth. */
+    private static final String USAGE = "Command: /wormhole wooshdepth [stargate] <depth>";
 
     /**
      * The depths this command accepts, for tab completion.
@@ -38,9 +41,6 @@ public class WooshDepthCommand implements SubCommand
         return java.util.stream.IntStream.rangeClosed(MIN_DEPTH, MAX_DEPTH)
             .mapToObj(String::valueOf).toList();
     }
-
-    /** Said whenever the words given do not name a gate and a depth. */
-    private static final String USAGE = "Command: /wormhole wooshdepth [stargate] <depth>";
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)

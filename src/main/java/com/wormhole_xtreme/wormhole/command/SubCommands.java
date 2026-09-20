@@ -31,6 +31,7 @@ public final class SubCommands
     private static final String FALSE = "false";
     private static final String BUILD = "build";
     private static final String REMOVE = "remove";
+    private static final String COMPLETE = "complete";
     private static final String REGENERATE = "regenerate";
     private static final String REGEN = "regen";
     private static final String OWNER = "owner";
@@ -200,7 +201,7 @@ public final class SubCommands
             args.length == 2 ? networkNames(args[1]) : none());
         register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true,
             (sender, args) -> completeGateBuild(asGateVerb(args)));
-        register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
+        register(COMPLETE, aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true,
@@ -368,7 +369,7 @@ public final class SubCommands
         register(FREYA, aliases(), "/wormhole freya [on|off]",
             new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
 
-        hide("list", BUILD, "complete", REMOVE, REGEN, "refresh", "go", "force",
+        hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict", FREYA);
@@ -439,7 +440,7 @@ public final class SubCommands
         final String verb = args[1].toLowerCase(Locale.ROOT);
         // create is complete's second name, accepted by the handler but not registered as a
         // subcommand of its own, so there is no entry to look up under it.
-        final String flatName = "create".equals(verb) ? "complete" : verb;
+        final String flatName = "create".equals(verb) ? COMPLETE : verb;
         // Only the verbs gate actually dispatches. Without this, a word that happens to name
         // some other subcommand -- gate set, gate timeout -- would complete as that one, and
         // then be refused the moment it was run.
