@@ -653,9 +653,22 @@ public final class StargateHelper
                                              final org.bukkit.Material chevronMat)
     {
         final org.bukkit.Material wanted = (chevronMat != null) ? chevronMat : structMat;
+        final java.util.Set<Long> lenient = new java.util.HashSet<>();
+        for (final Integer[] pos : layer.getLayerLenientChevronPositions())
+        {
+            lenient.add(cellKey(pos));
+        }
         for (final Integer[] pos : layer.getLayerChevronPositions())
         {
-            if (frame.blockAt(layerIdx, pos).getType() != wanted)
+            final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
+            if (found == wanted)
+            {
+                continue;
+            }
+            // An [S:C] cell takes the frame material too, so a shape can gain a chevron
+            // position where it used to have plain frame without every gate already built to
+            // it failing to match. [C] stays strict.
+            if (!lenient.contains(cellKey(pos)) || (found != structMat))
             {
                 return false;
             }

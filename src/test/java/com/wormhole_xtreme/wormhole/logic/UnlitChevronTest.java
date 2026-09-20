@@ -89,6 +89,20 @@ class UnlitChevronTest
         return all;
     }
 
+    /** Every cell that parsed as a chevron the frame material is also accepted at. */
+    private static List<Integer[]> lenientChevronCells(final Stargate3DShape shape)
+    {
+        final List<Integer[]> all = new ArrayList<>();
+        for (final StargateShapeLayer layer : shape.getShapeLayers())
+        {
+            if (layer != null)
+            {
+                all.addAll(layer.getLayerLenientChevronPositions());
+            }
+        }
+        return all;
+    }
+
     /** Every cell of a shape that parsed as a chevron block, across all layers. */
     private static List<Integer[]> chevronCells(final Stargate3DShape shape)
     {
@@ -135,6 +149,93 @@ class UnlitChevronTest
         assertFalse(containsCell(frameCells(shape), chevron),
             "a [C] cell in the frame list would drag the palette lookup onto the chevron "
                 + "material and stop the gate being detected at all");
+    }
+
+    /**
+     * An {@code [S:C]} cell is a chevron, and one the frame material is also accepted at.
+     *
+     * <p>{@code [C]} is strict on purpose and has to stay so: every shipped shape uses it, and
+     * gates built to them have the chevron material in those cells. That strictness is exactly
+     * what stops a shape *gaining* a chevron position, though -- put a {@code [C]} where a
+     * shape has plain frame today and every gate already standing has the wrong block there,
+     * so it fails to match its own shape on the next detection, validate or regen. That is
+     * what 1.7.1 did to `Massive` by hand, and what #299 would do to four shapes at once.
+     */
+    @Test
+    void aLenientChevronCellIsAChevronTheFrameMaterialIsAlsoAcceptedAt() throws Exception
+    {
+        final Stargate3DShape shape = load("Standard", "[S:L#1]", "[S:C:L#1]");
+
+        assertEquals(1, chevronCells(shape).size(), "it is a chevron cell");
+        assertEquals(1, lenientChevronCells(shape).size(), "and a lenient one");
+        assertTrue(containsCell(chevronCells(shape), lenientChevronCells(shape).get(0)),
+            "the lenient list is a subset of the chevron list, not a separate kind of cell");
+    }
+
+    /**
+     * A lenient chevron is kept out of the frame list, for the reason a strict one is.
+     *
+     * <p>Detection works out which palette a gate belongs to by reading the first frame block
+     * it finds. A chevron in that list would drag the lookup onto the chevron material.
+     */
+    @Test
+    void aLenientChevronCellIsNotCountedAsAFrameBlockEither() throws Exception
+    {
+        final Stargate3DShape shape = load("Standard", "[S:L#1]", "[S:C:L#1]");
+
+        assertFalse(containsCell(frameCells(shape), lenientChevronCells(shape).get(0)),
+            "an [S:C] cell in the frame list would pull the palette lookup onto the chevron "
+                + "material, exactly as a [C] cell would");
+    }
+
+    /**
+     * The two markers are still independent: a lenient chevron lights in its turn.
+     */
+    @Test
+    void aLenientChevronCellCanStillCarryALightOrder() throws Exception
+    {
+        final Stargate3DShape shape = load("Standard", "[S:L#1]", "[S:C:L#1]");
+
+        boolean lit = false;
+        for (final StargateShapeLayer layer : shape.getShapeLayers())
+        {
+            if (layer == null)
+            {
+                continue;
+            }
+            for (final List<Integer[]> wave : layer.getLayerLightPositions())
+            {
+                lit |= (wave != null) && containsCell(wave, lenientChevronCells(shape).get(0));
+            }
+        }
+        assertTrue(lit, "[S:C:L#1] should still light first, the way [S:L#1] and [C:L#1] do");
+    }
+
+    /**
+     * No shipped shape uses {@code [S:C]} yet, so nothing depended on what it used to mean.
+     *
+     * <p>Before this it parsed as both markers at once: the cell went into the frame list and
+     * the strict chevron list together, so the frame check wanted one material there and the
+     * chevron check wanted another. Unsatisfiable unless the two were the same block, which is
+     * why no shape ever used it and why giving it a meaning breaks nothing.
+     */
+    @Test
+    void noShippedShapeUsedTheCombinationBeforeItMeantSomething() throws Exception
+    {
+        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        {
+            for (final Path p : listing.toList())
+            {
+                final String file = p.getFileName().toString();
+                if (!file.endsWith(".shape"))
+                {
+                    continue;
+                }
+                final Stargate3DShape shape = load(file.substring(0, file.length() - 6));
+                assertTrue(lenientChevronCells(shape).isEmpty(),
+                    file + " already uses [S:C]; adding leniency would change what it means");
+            }
+        }
     }
 
     /**
