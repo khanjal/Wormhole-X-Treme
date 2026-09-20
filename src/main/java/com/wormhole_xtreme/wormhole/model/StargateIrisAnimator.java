@@ -62,7 +62,29 @@ public final class StargateIrisAnimator
             && (gate.getGateWorld() != null)
             && (gate.getGatePortalBlocks() != null)
             && (gate.getGatePortalBlocks().size() > 1)
-            && (WormholeXTreme.getScheduler() != null);
+            && (WormholeXTreme.getScheduler() != null)
+            && stillRunning();
+    }
+
+    /**
+     * Whether the plugin is still up enough to book a task.
+     *
+     * <p>Not a tidiness check. Bukkit sets a plugin disabled *before* it calls {@code onDisable},
+     * and refuses {@code scheduleSyncDelayedTask} from a disabled plugin by throwing. Shutdown
+     * closes the iris of every gate whose iris defaults closed, so without this a server
+     * stopping with one dialled gate of that kind would start a sweep, throw out of
+     * {@code shutdownStargate}, and land in the catch that wraps the whole save -- taking the
+     * remaining gates, the rings, the beams, the mirrors and the database shutdown with it.
+     *
+     * <p>An animation must never cost the save. The same reasoning is written out at the top of
+     * {@code onDisable} for the mirror restore, which learned it first.
+     *
+     * @return true if a sweep may be started
+     */
+    private static boolean stillRunning()
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        return (plugin != null) && plugin.isEnabled();
     }
 
     /**
