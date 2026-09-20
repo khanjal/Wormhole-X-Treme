@@ -19,6 +19,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **`StargateShutdownEvent.getReason()` says what closed the gate**: `TIMEOUT`, `MANUAL`,
   `FAR_END`, `REMOVAL` or `PLUGIN_DISABLE`. Closing a gate that was already shut raises
   nothing, so opens and closes can be counted against each other.
+- **A PlaceholderAPI expansion**, off until `placeholders-enabled` is set:
+  `%wormhole_gates_total%`, `%wormhole_gates_open%`, `%wormhole_gates_owned%` and
+  `%wormhole_nearest_gate%`. Needs PlaceholderAPI; without it nothing is registered and
+  the log says so once. See [the guide](docs/guide/SERVER.md#placeholders).
 
 ### Transport rings
 

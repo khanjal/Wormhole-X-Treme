@@ -228,6 +228,19 @@
 			<version>2.0</version>
 			<scope>provided</scope>
 		</dependency>
+		<!--
+			PlaceholderAPI, for the expansion in plugin/. The only third-party plugin this
+			build compiles against, and it is here because an expansion has to *extend*
+			PlaceholderExpansion. Vault and LuckPerms are only ever *called*, so those stay
+			reflective with no dependency at all. Provided, so nothing is shipped: the class
+			that extends it is only loaded when PlaceholderAPI is actually present.
+		-->
+		<dependency>
+			<groupId>me.clip</groupId>
+			<artifactId>placeholderapi</artifactId>
+			<version>2.11.6</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -371,6 +384,10 @@
 		<repository>
 			<id>spigotmc-repo</id>
 			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+		</repository>
+		<repository>
+			<id>placeholderapi-repo</id>
+			<url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
 		</repository>
 	</repositories>
 </project>
