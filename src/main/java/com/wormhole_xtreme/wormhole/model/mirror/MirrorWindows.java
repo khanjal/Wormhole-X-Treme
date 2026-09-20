@@ -90,6 +90,25 @@ public final class MirrorWindows
     /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
     private static final long REDRAW_TICKS = 2L;
 
+    /**
+     * Least time between two redraws of a viewer at a small opening, drawn twice as often (#309).
+     *
+     * <p>A one or two block opening shows so little that a small head movement changes a large
+     * share of what is visible, and it has only the one block of wall {@code mirror create}
+     * requires to hide what the last redraw drew behind. Ten redraws a second left blocks that
+     * had gone out of sight standing outside the opening for a redraw or two -- clearest as torch
+     * flames and smoke hanging in the air beside a banner-wide mirror.
+     */
+    static final long SMALL_REDRAW_MILLIS = 50L;
+
+    /**
+     * An opening of this many blocks or fewer is a small one.
+     *
+     * <p>Six covers the openings a mirror one or two banners wide has: the sizes the lingering
+     * was reported on, and the sizes cheap enough to draw at twice the pace.
+     */
+    static final int SMALL_OPEN = 6;
+
     /** How far in front of an opening real blocks are read for what they hide, and the least its wall is read. */
     static final int SURROUND = 8;
 
@@ -1021,7 +1040,7 @@ public final class MirrorWindows
         final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
             new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), took);
-        view.rest = restAfter(took);
+        view.rest = restAfter(took, smallestOpen(seeing));
         view.stamp = stamp;
         view.mirrors = names(seeing);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
@@ -1106,13 +1125,45 @@ public final class MirrorWindows
      * three times as long as it took, so a viewer costs at most a quarter of a tick's time, and a
      * quick redraw still comes ten times a second.
      *
+     * <p>A small opening comes twice as often ({@link #SMALL_REDRAW_MILLIS}), so what it drew is
+     * taken away sooner as the viewer moves. The rest for a slow redraw is unchanged by that: the
+     * cost cap is the same multiple of the same measurement, so a small opening that somehow took
+     * sixty-five milliseconds still rests nearly two hundred.
+     *
      * @param tookMillis
      *            how long the last redraw took
+     * @param openCells
+     *            the smallest opening being looked through, in blocks, or zero for none known
      * @return the least time before the next, in milliseconds
      */
-    static long restAfter(final long tookMillis)
+    static long restAfter(final long tookMillis, final int openCells)
     {
-        return Math.max(REDRAW_MILLIS, restFactor * tookMillis);
+        final long least = ((openCells > 0) && (openCells <= SMALL_OPEN)) ? SMALL_REDRAW_MILLIS : REDRAW_MILLIS;
+        return Math.max(least, restFactor * tookMillis);
+    }
+
+    /**
+     * The smallest opening a viewer is looking through, in blocks, or zero if they are through none.
+     *
+     * <p>The smallest decides the pace, because it is the one whose edges the lingering shows
+     * past: a viewer at a banner-wide mirror beside a wide one is redrawn for the banner.
+     *
+     * @param seeing
+     *            the windows this viewer is looking through
+     * @return the smallest opening's size in blocks, or zero
+     */
+    private static int smallestOpen(final List<MirrorWindowState> seeing)
+    {
+        int smallest = 0;
+        for (final MirrorWindowState window : seeing)
+        {
+            final int cells = window.open.size();
+            if ((smallest == 0) || (cells < smallest))
+            {
+                smallest = cells;
+            }
+        }
+        return smallest;
     }
 
     /** Whether nothing a view depends on has changed since it was last drawn. */
