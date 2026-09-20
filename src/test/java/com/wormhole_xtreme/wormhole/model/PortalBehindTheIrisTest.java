@@ -125,6 +125,92 @@ class PortalBehindTheIrisTest
     }
 
     /**
+     * Puts a block in the world at a cell, so the air check has something to find.
+     *
+     * @param at
+     *            where
+     * @param type
+     *            what stands there
+     * @return the block, already wired into the world mock
+     */
+    private org.bukkit.block.Block standing(final Location at, final org.bukkit.Material type)
+    {
+        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+        when(block.getType()).thenReturn(type);
+        when(block.getBlockData()).thenReturn(mock(org.bukkit.block.data.BlockData.class));
+        when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
+        return block;
+    }
+
+    /**
+     * The horizon is drawn behind the iris, and only where that cell is air.
+     *
+     * <p>The second half is the promise made to anybody who has built behind a gate: they see
+     * what they built, not a sheet of water over it. It is also the half a test of the geometry
+     * alone cannot reach, since the geometry does not know what is standing there.
+     */
+    @Test
+    void theHorizonIsDrawnOnlyWhereTheCellBehindIsAir() throws Exception
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
+        gate.setGateActive(true);
+        final Location free = new Location(world, 10, 64, 20);
+        final Location blocked = new Location(world, 10, 65, 20);
+        gate.getGatePortalBlocks().add(free);
+        gate.getGatePortalBlocks().add(blocked);
+        standing(new Location(world, 10, 64, 19), org.bukkit.Material.AIR);
+        standing(new Location(world, 10, 65, 19), org.bukkit.Material.STONE);
+
+        final org.bukkit.entity.Player watcher = mock(org.bukkit.entity.Player.class);
+        when(watcher.getLocation()).thenReturn(new Location(world, 10, 64, 24));
+        when(world.getPlayers()).thenReturn(List.of(watcher));
+
+        final org.bukkit.block.data.BlockData horizon = mock(org.bukkit.block.data.BlockData.class);
+        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
+            org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        {
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
+                .drawnAs(org.mockito.ArgumentMatchers.any(org.bukkit.Material.class))).thenReturn(horizon);
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
+                .isAirMaterial(org.bukkit.Material.AIR)).thenReturn(true);
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils
+                .isAirMaterial(org.bukkit.Material.STONE)).thenReturn(false);
+
+            StargateBlockSetup.sendPortalBackdrop(gate, true);
+        }
+
+        org.mockito.Mockito.verify(watcher).sendBlockChange(
+            org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 64), org.mockito.ArgumentMatchers.eq(horizon));
+        org.mockito.Mockito.verify(watcher, org.mockito.Mockito.never()).sendBlockChange(
+            org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 65), org.mockito.ArgumentMatchers.eq(horizon));
+    }
+
+    /**
+     * Somebody too far away is not sent it at all.
+     *
+     * <p>The same range the open-time send uses. Without this the backdrop would go to everyone
+     * in the world every time an iris moved.
+     */
+    @Test
+    void somebodyOutOfRangeIsNotSentTheHorizon() throws Exception
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
+        gate.setGateActive(true);
+        gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
+        standing(new Location(world, 10, 64, 19), org.bukkit.Material.AIR);
+
+        final org.bukkit.entity.Player distant = mock(org.bukkit.entity.Player.class);
+        when(distant.getLocation()).thenReturn(new Location(world, 10, 64, 900));
+        when(world.getPlayers()).thenReturn(List.of(distant));
+
+        StargateBlockSetup.sendPortalBackdrop(gate, true);
+
+        org.mockito.Mockito.verify(distant, org.mockito.Mockito.never()).sendBlockChange(
+            org.mockito.ArgumentMatchers.any(Location.class),
+            org.mockito.ArgumentMatchers.any(org.bukkit.block.data.BlockData.class));
+    }
+
+    /**
      * A gate with no facing yet asks for nothing, rather than throwing.
      *
      * <p>A gate is built up field by field as it is detected, and the drawing paths run from

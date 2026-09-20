@@ -1162,21 +1162,10 @@ class StargateBlockSetup
                 // Its opening is full of iris, so what this player is owed is the horizon
                 // behind it rather than over it.
                 sendPortalBackdropTo(player, gate, true);
-                stillOpen.add(gate.getGateName());
-                continue;
             }
-            final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
-            for (final Location bc : gate.getGatePortalBlocks())
+            else
             {
-                player.sendBlockChange(
-                    new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
-                    blockData);
-            }
-            // The chevrons are a drawing too now, so somebody who arrives after the gate
-            // dialled would otherwise find a lit wormhole in an unlit frame.
-            if (gate.isGateLightsActive())
-            {
-                sendLights(player, gate, true);
+                sendPortalTo(player, gate);
             }
             stillOpen.add(gate.getGateName());
         }
@@ -1197,6 +1186,31 @@ class StargateBlockSetup
         }
         showing.clear();
         showing.addAll(stillOpen);
+    }
+
+    /**
+     * Sends one player an open gate's horizon and lit chevrons.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the open gate
+     */
+    private static void sendPortalTo(final Player player, final Stargate gate)
+    {
+        final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
+        for (final Location bc : gate.getGatePortalBlocks())
+        {
+            player.sendBlockChange(
+                new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                blockData);
+        }
+        // The chevrons are a drawing too now, so somebody who arrives after the gate
+        // dialled would otherwise find a lit wormhole in an unlit frame.
+        if (gate.isGateLightsActive())
+        {
+            sendLights(player, gate, true);
+        }
     }
 
     /**
