@@ -53,7 +53,8 @@ class GateBuildPreviewCommandTest
     /** The command every preview action follows, as hints print it. */
     private static final String PREVIEW = "/wormhole gate preview ";
     /** The preview actions, as a message lists them. */
-    private static final String ACTIONS = "clear activate iris material materials guide layer chevrons dhd share place";
+    // materials is deliberately absent: it still answers, it is just not offered.
+    private static final String ACTIONS = "clear activate iris material needs guide layer chevrons dhd share place";
 
     private final Wormhole command = new Wormhole();
     private Player player;
@@ -324,7 +325,8 @@ class GateBuildPreviewCommandTest
                     2, false, org.bukkit.Material.GOLD_BLOCK),
                 (GatePreviews.Materials) null);
 
-            run("gate", "preview", "materials");
+            run("gate", "preview", "needs");
+            // The 1.7.0 spelling still answers, which is the whole point of keeping it.
             run("gate", "preview", "MATERIALS");
         }
         verify(player).sendMessage(saying("Standard needs:"));

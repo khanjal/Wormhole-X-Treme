@@ -33,6 +33,14 @@ The plugin API is in [docs/API.md](docs/API.md).
   the pace. Only the picture sweeps — the blocks are placed in one go, so a gate is never
   partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
 
+**Changed**
+
+- **`gate preview materials` is now `gate preview needs`.** It sat one letter from
+  `gate preview material`, which does something else entirely — redresses the preview rather
+  than counting what it would take to build — so a typo quietly did the other thing. The list
+  already called itself "needs" in its own first line. `materials` still works and is no longer
+  offered in tab completion; nothing to change unless you want to.
+
 **Fixed**
 
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
