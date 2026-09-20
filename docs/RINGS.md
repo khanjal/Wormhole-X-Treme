@@ -512,17 +512,23 @@ looping copy of it on a page is enough.
 With the stack up and still, the light runs through it one ring at a time — **twice, once each
 side of the transport.** Then the rings stand a beat and come home.
 
-**The light always runs towards the pad**, and both sweeps run the same way: down through a floor
-ring's stack, up through a ceiling ring's. That is what the show does, and the reading that makes
-sense of the machine — the pad is where travellers are taken from and put back. This was briefly
-two things, a configured departure direction and an arrival running its opposite; both are gone,
-because against the show they were wrong and they were arithmetic that could be got backwards, as
-the flash once was.
+**The light follows the traveller.** The first sweep gathers somebody in and runs **towards
+the pad**; the second stands them back up and runs **out from it**. Down through a floor
+ring's stack and back up it, up through a ceiling ring's and back down. The pad is where a
+traveller goes when the machine takes them and where they are stood when it gives them back,
+so a light that ran the same way both times was saying the first half twice and the second
+half never.
 
-What is left needs no orientation, direction or sense of which sweep is running. The lit ring is
-the ring's own number: ring zero is the first one out and travels furthest from its pad, so it is
-the far end of the stack whichever way that stack was built, and counting up from it runs towards
-the pad at both ends.
+Both sweeps ran towards the pad until 1.8.0, on the grounds that it was what the show did.
+The show does it both ways in different episodes, so there was nothing there to be faithful
+to, and what is left is the reading that makes sense of the machine. What has not come back
+is the configured departure direction that once sat beside it: the rule is fixed rather than
+a setting, because a knob here is arithmetic that can be pointed the wrong way for no gain.
+
+Neither sweep needs to know which way up its ring is. The lit ring is the ring's own number,
+counted forwards taking travellers in and backwards putting them out: ring zero is the first
+one out and travels furthest from its pad, so it is the far end of the stack whichever way
+that stack was built, and counting up from it runs towards the pad at both ends.
 
 **Each sweep plays only at the ends it belongs to.** The first takes travellers in, so it runs
 where somebody is standing; the second puts them out, so it runs where somebody has landed. A
@@ -533,8 +539,9 @@ rather than instead of it, so nothing appears to move while the light passes.
 
 ![The transport flash, frame by frame](images/rings/flash.svg)
 
-A filmstrip rather than a loop, deliberately: three ticks a ring through four rings is a fast
-bright flicker, and an animation on a page autoplays forever with no way to pause it.
+Two strips: the sweep that takes a traveller in, and the one that puts them back. A filmstrip
+rather than a loop, deliberately: three ticks a ring through four rings is a fast bright
+flicker, and an animation on a page autoplays forever with no way to pause it.
 
 <!-- flash:end -->
 

@@ -451,27 +451,32 @@ public final class RingAnimator
     /**
      * Which ring is lit on a given frame of the flash.
      *
-     * <p>The light always runs <em>towards the pad</em>: down through a floor ring's stack,
-     * up through a ceiling ring's, on the way out and on the way in alike. That is how the
-     * show does it, and it is the reading that makes sense of the machine -- the pad is where
-     * travellers are taken from and put back, so it is what the light moves to and from.
+     * <p>The light runs <em>towards the pad</em> taking travellers in, and <em>out from
+     * it</em> putting them back: down a floor ring's stack and back up it, up a ceiling
+     * ring's and back down. The pad is where a traveller goes when the machine takes them
+     * and where they are stood when it gives them back, so the light follows them rather
+     * than running the same way regardless of which half of the journey it is lighting.
      *
-     * <p>Which reduces to the ring's own number. Ring zero is the first one out and travels
-     * furthest from its pad, so it is the far end of the stack whichever way that stack was
-     * built: the top of a floor ring's, the bottom of a ceiling one's. Counting up from it
-     * runs towards the pad at both, so no orientation, direction or sweep needs asking about.
+     * <p>Which reduces to the ring's own number, counted forwards or backwards. Ring zero
+     * is the first one out and travels furthest from its pad, so it is the far end of the
+     * stack whichever way that stack was built: the top of a floor ring's, the bottom of a
+     * ceiling one's. Counting up from it runs towards the pad at both orientations, and
+     * counting down from the last runs away from it, so neither sweep needs to ask which
+     * way up its ring is.
      *
-     * <p>This used to be configurable and to reverse for the arrival. Neither survived
-     * contact with the show, and both were arithmetic that could be got backwards -- as the
-     * flash once was, running down one end of a pair and up the other.
+     * <p>Both sweeps ran towards the pad until 1.8.0, on the grounds that the show does it
+     * that way. The show does it both ways in different episodes, so there was nothing to
+     * be faithful to; what is left is the reading that makes sense of the machine.
      *
      * @param frame
      *            which frame, from zero
+     * @param arriving
+     *            true for the sweep after the swap, which puts travellers back down
      * @return the ring to light
      */
-    public static int litRing(final int frame)
+    public static int litRing(final int frame, final boolean arriving)
     {
-        return frame;
+        return arriving ? (RING_COUNT - 1 - frame) : frame;
     }
 
     /**

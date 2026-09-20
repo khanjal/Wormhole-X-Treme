@@ -318,33 +318,47 @@ def stack():
 
 
 def flash():
-    """The transport light running through the stack, one frame a ring."""
+    """The transport light running through the stack, one frame a ring, both sweeps."""
     half, pad, cell, gap = 12, 10, 26, 16
     steps = TOP_HALF_STEP + 1
     shots = RING_COUNT + 1
-    title = "The transport flash &#8212; the light always runs towards the pad"
+    title = "The transport flash &#8212; in towards the pad, then out from it"
     width = titled(title, 9, (pad * 2) + (shots * (cell + gap)))
-    height = (pad * 2) + (steps * half) + 20 + 18
+    row = (steps * half) + 38
+    height = (pad * 2) + 16 + (row * 2) + 6
 
-    top = pad + 16
-    floor = top + (steps * half)
     parts = [text(pad, pad + 8, 9, TEXT, title, anchor="start")]
     settled = {resting(index): index for index in range(RING_COUNT)}
-    for shot in range(shots):
-        x = pad + (shot * (cell + gap))
-        # Ring zero is the first one out and travels furthest from its pad, so counting up
-        # from it runs towards the pad -- which is why this needs no sense of direction.
-        lit = next((step for (step, index) in settled.items() if index == shot), None)
-        ladder(parts, x, top, steps, half, set(settled), lit=lit)
-        parts.append('<rect x="%.1f" y="%.1f" width="%.1f" height="5" fill="%s"/>'
-                     % (x + 0.25, floor, cell - 0.5, PAD))
-        parts.append(text(x + (cell / 2.0), floor + 15, 7, LABEL,
-                          ("ring %d" % shot) if shot < RING_COUNT else "hold"))
+    # Ring zero is the first one out and travels furthest from its pad, so counting up from
+    # it runs towards the pad and counting back down to it runs away. That is the whole
+    # difference between the two sweeps, and it holds at either orientation.
+    sweeps = (("taking them in &#8212; towards the pad", False),
+              ("putting them back &#8212; out from the pad", True))
+    order = {}
+    for (which, (caption, arriving)) in enumerate(sweeps):
+        top = pad + 26 + (which * row)
+        floor = top + (steps * half)
+        parts.append(text(pad, top - 5, 7.5, LABEL, caption, anchor="start"))
+        lit_order = []
+        for shot in range(shots):
+            x = pad + (shot * (cell + gap))
+            index = (RING_COUNT - 1 - shot) if arriving else shot
+            lit = next((step for (step, at) in settled.items() if at == index), None)
+            if shot < RING_COUNT:
+                lit_order.append(lit)
+            ladder(parts, x, top, steps, half, set(settled), lit=lit)
+            parts.append('<rect x="%.1f" y="%.1f" width="%.1f" height="5" fill="%s"/>'
+                         % (x + 0.25, floor, cell - 0.5, PAD))
+            parts.append(text(x + (cell / 2.0), floor + 15, 7, LABEL,
+                              ("ring %d" % index) if shot < RING_COUNT else "hold"))
+        order["out" if arriving else "in"] = lit_order
+
     parts.append(text(pad, height - 5, 7.5, LABEL,
                       "Drawn over the stack, not instead of it, so nothing appears to move as"
                       " the light passes.", anchor="start"))
 
-    data = "flash order=%s" % ",".join(str(resting(index)) for index in range(RING_COUNT))
+    data = "flash in=%s out=%s" % (",".join(str(s) for s in order["in"]),
+                                   ",".join(str(s) for s in order["out"]))
     return svg(width, height, "the transport flash, frame by frame", data, parts)
 
 
@@ -397,9 +411,10 @@ def main():
         "![The transport flash, frame by frame](images/rings/flash.svg)",
         "",
     ] + wrap(
-        "A filmstrip rather than a loop, deliberately: three ticks a ring through four rings is"
-        " a fast bright flicker, and an animation on a page autoplays forever with no way to"
-        " pause it.")
+        "Two strips: the sweep that takes a traveller in, and the one that puts them back."
+        " A filmstrip rather than a loop, deliberately: three ticks a ring through four rings"
+        " is a fast bright flicker, and an animation on a page autoplays forever with no way"
+        " to pause it.")
 
     document = io.open(DOCUMENT, encoding="utf-8", newline="").read()
     crlf = chr(13) + chr(10) in document
