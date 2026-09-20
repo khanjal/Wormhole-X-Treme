@@ -300,20 +300,4 @@ public final class IrisSweep
         return radius + turn;
     }
 
-    /**
-     * How far a cell sits from the centre, squared.
-     *
-     * @param centre
-     *            the centre as {x, y, z}
-     * @param cell
-     *            the cell
-     * @return the squared distance
-     */
-    private static double squaredDistanceFrom(final double[] centre, final Location cell)
-    {
-        final double dx = cell.getBlockX() - centre[0];
-        final double dy = cell.getBlockY() - centre[1];
-        final double dz = cell.getBlockZ() - centre[2];
-        return (dx * dx) + (dy * dy) + (dz * dz);
-    }
 }
