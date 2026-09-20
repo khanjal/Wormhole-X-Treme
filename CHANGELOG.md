@@ -32,6 +32,8 @@ The plugin API is in [docs/API.md](docs/API.md).
   out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
   the pace. Only the picture sweeps — the blocks are placed in one go, so a gate is never
   partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
+- **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
+  rehearses the iris the way it already rehearses a dial.
 
 **Fixed**
 
