@@ -284,6 +284,15 @@ The code is all there under GPL-3.0. Read it, fork it, or tell me where it is wr
 
 ## Rules this listing touches
 
+**Open: does this site ban AI-generated images?** Modrinth's Content Rules 6.2.1 forbids any
+image on a project page that was "created or derived from generative AI output", which rules the
+logo off that page entirely — see [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page).
+**SpigotMC's rules have not been checked for an equivalent.** The logo is used here as the resource icon
+and in the description, so if there is such a rule, both have to change the same way Modrinth's
+did: crop the icon from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
+before the next upload rather than assuming either way.
+
+
 Read against Spigot's rules text as of 2025-07-19. Four things matter; one is a real risk.
 
 - **"Posting someone else's plugin or resource is not allowed."** This is the rule a report would

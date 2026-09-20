@@ -9,6 +9,14 @@ looking; check those against the page and correct them here.
 
 Hangar takes **Markdown**, like Modrinth, so the page below is close to `shared.md` as written.
 
+**Open: does this site ban AI-generated images?** Modrinth's Content Rules 6.2.1 forbids any
+image on a project page that was "created or derived from generative AI output", which rules the
+logo off that page entirely — see [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page).
+**Hangar's rules have not been checked for an equivalent.** The logo is used here as the avatar
+and in the description, so if there is such a rule, both have to change the same way Modrinth's
+did: crop the avatar from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
+before the next upload rather than assuming either way.
+
 **The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
 **(inferred, see below)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
@@ -38,7 +46,7 @@ diverges from the other two.
 | Discord **(confirmed)** | blank |
 | Donations **(confirmed)** | blank |
 | Dependencies **(confirmed)** | leave every row empty |
-| Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` |
+| Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` — **but see the AI-image note below** |
 
 **On the category.** Hangar's list is shorter than Modrinth's and has no Transportation
 **(assumed)** — Gameplay is the closest honest fit, with Misc the fallback if Gameplay is taken to

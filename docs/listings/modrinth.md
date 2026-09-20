@@ -32,7 +32,7 @@ between filling this in and it appearing.
 | Wiki **(confirmed)** | `https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/guide` |
 | Discord **(confirmed)** | blank — see the note in [`shared.md`](shared.md#links) |
 | Donation links **(confirmed)** | blank |
-| Icon **(assumed: 512×512)** | PNG rendered from `docs/images/logo.svg` |
+| Icon **(assumed: 512×512)** | a crop from `docs/images/gates/gate-shapes-active.png`. **Not the logo** — see [Rule 6](#rule-6-no-ai-generated-images-on-the-page) |
 | Contains AI-generated content **(confirmed)** | **On**, with Code, Assets and Text all ticked — see below |
 | Contains derivative content **(confirmed)** | **On**. Original work: `Wormhole X-Treme`. The link is an open item — see below |
 
@@ -49,10 +49,11 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 - **Text** — the documentation and this listing copy.
 - **Assets — the one somebody will be tempted to untick, so do not.** The logo's SVG was written
   with Claude Code rather than by a designer: [`docs/LOGO.md`](../LOGO.md) and
-  [`TRADEMARK.md`](../../TRADEMARK.md) both say so in as many words, and the project icon is
-  rendered from that same `docs/images/logo.svg`. An AI-authored asset is literally on the page.
-  The gameplay captures and screenshots are real recordings from a running server, which is why
-  the explanation says so rather than leaving it ambiguous.
+  [`TRADEMARK.md`](../../TRADEMARK.md) both say so in as many words. It ships in the repository
+  and in the docs, so the box is accurate even though the logo is deliberately kept **off** this
+  page — see [Rule 6](#rule-6-no-ai-generated-images-on-the-page).
+- **Not ticked, and worth saying out loud because people assume it:** nothing here calls a model
+  at runtime. The plugin's design and functionality do not rely on generative AI.
 
 > Wormhole X-Treme is a fifteen-year-old plugin brought forward, not a new one generated. The
 > original was written in 2011 by Lologarithm and alron; this fork modernises it and adds
@@ -62,12 +63,41 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 > records it. Nothing merges on that basis alone: every change goes through the test suite, the
 > full build matrix and static analysis, and a maintainer reads it.
 >
-> The documentation and this listing were drafted the same way, as was the placeholder logo — its
-> SVG was hand-authored as markup rather than image-generated, but written with Claude Code at a
-> maintainer's direction, which TRADEMARK.md states in as many words. Replacing it with a
-> commissioned mark is tracked as issue #187.
+> The documentation and this listing were drafted the same way, as was the project's placeholder
+> logo — its SVG was hand-authored as markup rather than image-generated, but written with Claude
+> Code at a maintainer's direction, which TRADEMARK.md states in as many words.
 >
-> The in-game footage and screenshots are real captures from a running server.
+> No image on this page is AI-generated. The icon, the gallery and every screenshot are unedited
+> captures from a running Minecraft server. The placeholder logo is deliberately not used here;
+> replacing it with a commissioned mark is tracked as issue #187.
+
+### Rule 6: no AI-generated images on the page
+
+This is a takedown rule, not a disclosure question, and it is the reason the icon and the banner
+above differ from the other two sites. Modrinth's Content Rules, section 6.2.1:
+
+> No images uploaded to a gallery, icon, description, or any other part of a project page may be
+> created or derived from generative AI output. Any such images may be removed.
+
+**The logo is caught by this.** "Created or derived from generative AI output" is broader than the
+copyright distinction the repository draws: `TRADEMARK.md` is careful to say the SVG was
+hand-authored as markup rather than image-generated, which matters for authorship, but it was
+still written with Claude Code. So neither `docs/images/logo.svg` nor `docs/images/logo-banner.svg`
+may appear anywhere on this page — not as the icon, not in the description, not in the gallery.
+
+**What is not caught, so nobody strips it defensively.** Every clip and screenshot is a real
+capture from a running server, recorded and encoded per [`docs/CAPTURES.md`](../CAPTURES.md).
+Compositing and video encoding are not generative AI. The four animated WebP clips and the six
+gallery PNGs all stay.
+
+**On 6.2.2**, which says a project may not be "entirely or primarily comprised of content created
+or derived from generative AI output": this project reads as clear — a human-written 2011 plugin
+modernised under review, with the history to show it. But "primarily" is a moderator's judgement
+rather than a test anyone can run, and the honesty of the explanation above is the protection.
+Do not trim that explanation to look better.
+
+**Rule text provenance:** quoted from Modrinth's Content Rules as Justin read them on 2026-09-20.
+Re-read section 6 before the next upload; it is the sort of rule that gets tightened.
 
 **Contains derivative content: on.** The form asks it to be enabled for a fork or a project
 containing a substantial amount of someone else's work, which this is. Name of original work:
@@ -169,12 +199,11 @@ since it answers the "whose plugin is this" question before anyone asks.)
 ## Description
 
 Paste from here down. Modrinth renders GitHub-flavoured Markdown and strips most raw HTML
-**(assumed)**, so this uses no HTML — the centred banner and images from the Spigot version become
-ordinary Markdown images.
+**(assumed)**, so this uses no HTML — the images from the Spigot version become ordinary Markdown
+images. The banner that leads the Spigot description is **not** here; the gate-dialling clip leads
+instead, for the reason in [Rule 6](#rule-6-no-ai-generated-images-on-the-page).
 
 ````markdown
-![Wormhole X-Treme](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/logo-banner.svg)
-
 ## Stargate-style travel for Bukkit, Spigot and Paper
 
 **Minecraft 1.20 through 26.3 · Java 17 · no dependencies**
@@ -401,11 +430,11 @@ so there is a jar to upload. What is left:
 1. **Check which version the project carries.** `v1.8.0` is the newest release.
 2. **Re-check the game versions after every release.** Modrinth's auto-detection ticks 1.20.x
    alone, as above, so a new version upload can silently narrow what the page claims.
-3. **Render the icon.** Modrinth wants 512×512 **(assumed)**, not the 256×256 rendered for Spigot.
-   The same `docs/images/logo.svg` at a larger size.
-4. **The banner is an SVG.** Modrinth's Markdown renderer generally handles SVG where Spigot's
-   BBCode does not, so it is worth trying as written — but check the preview, and fall back to a
-   PNG render if it does not appear.
+3. **Crop the icon from a capture, never from the logo.** Modrinth wants 512×512 **(assumed)**.
+   `docs/images/gates/gate-shapes-active.png` is the source; the Massive gate dialled reads at
+   that size. Rendering `logo.svg` here would breach Rule 6.2.1 — see below.
+4. **Do not add the banner back.** Whether Modrinth's renderer handles SVG is beside the point
+   now; `logo-banner.svg` is AI-authored and may not go on the page at all.
 5. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
    type from `raw.githubusercontent.com`. If any fails to render, upload it to the gallery and
    point the description at the gallery URL.
