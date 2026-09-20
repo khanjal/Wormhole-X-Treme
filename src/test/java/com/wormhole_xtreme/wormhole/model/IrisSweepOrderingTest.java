@@ -261,13 +261,38 @@ class IrisSweepOrderingTest
         runSweepToCompletion();
         clearInvocations(watcher);
 
+        // Only up to the first ring, deliberately. Letting the sweep finish brings the final
+        // fillGateInterior with it, which redraws the whole opening as air for everybody -- so
+        // the bare opening turns up in the captured draws whether the sweep drew it or not,
+        // and the assertion below would hold against the very bug it is here to catch.
         gate.toggleIrisActive(false);
-        runSweepToCompletion();
 
         final ArgumentCaptor<BlockData> drawn = ArgumentCaptor.forClass(BlockData.class);
         verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), drawn.capture());
         assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
-            "the sweep has to draw the bare opening over the iris, or the open is invisible");
+            "the first ring has to be drawn as the bare opening over an iris that is still "
+                + "standing there, or the open is invisible");
+    }
+
+    /**
+     * A closing sweep hides the finished iris before it reveals it a ring at a time.
+     *
+     * <p>The blocks are placed first, so the server has already told every client what is
+     * there. Without drawing the opening back over them the iris is simply present, and the
+     * rings that follow reveal something already visible -- the animation runs and shows
+     * nothing.
+     */
+    @Test
+    void closingHidesTheFinishedIrisBeforeSweepingItIn()
+    {
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        final ArgumentCaptor<BlockData> drawn = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), drawn.capture());
+        assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
+            "the opening is drawn back over the placed iris before the sweep starts revealing it");
     }
 
     /** The index of the first event with this prefix, or {@link Integer#MAX_VALUE}. */
