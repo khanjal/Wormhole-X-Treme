@@ -63,6 +63,16 @@ class MirrorInteractionTest
     private Player.Spigot hotbar;
     private World world;
 
+    /**
+     * The world travelled to, held for the length of the test rather than the call.
+     *
+     * <p>A Location keeps its World weakly. This one was a local of {@code travelTo}, so once
+     * that returned nothing held the mock and a collection before the assertions turned every
+     * Location built against it into "World unloaded". It failed on CI and never here, which
+     * is what a garbage collector running at a different moment looks like.
+     */
+    private World destination;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -427,7 +437,7 @@ class MirrorInteractionTest
      */
     private void travelTo(final Block banner, final String worldName)
     {
-        final World destination = mock(World.class);
+        destination = mock(World.class);
         when(destination.getName()).thenReturn(worldName);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
