@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -39,7 +40,7 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 /**
  * {@code /wormhole gate build <shape> [group]}, and {@code /wormhole gate preview <action>} on the
  * preview being looked at: {@code clear [-all]}, {@code activate}, {@code iris}, {@code chevrons},
- * {@code dhd}, {@code material <group>|<role> <block>}, {@code materials}, {@code guide},
+ * {@code dhd}, {@code material <group>|<role> <block>}, {@code needs}, {@code guide},
  * {@code layer [<n>|-next|-all]}, {@code share [<player>|-all]} and {@code place}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
@@ -73,6 +74,16 @@ public class Build implements CommandExecutor
     public static final String MATERIAL = "material";
 
     /** Lists what the preview takes to build, and what of it is still to place. */
+    public static final String NEEDS = "needs";
+
+    /**
+     * What {@link #NEEDS} was called in 1.7.0, still accepted and no longer offered.
+     *
+     * <p>One letter from {@link #MATERIAL}, which does something else entirely -- redresses the
+     * preview rather than counting what it would take to build. Two neighbouring rows of the
+     * same table, told apart by an {@code s}, and a typo quietly did the other thing. The list
+     * already called itself "needs" in its own first line, so the command now agrees with it.
+     */
     public static final String MATERIALS = "materials";
 
     /** Marks on the preview what is still to place and what is wrong, or stops. */
@@ -91,8 +102,20 @@ public class Build implements CommandExecutor
     public static final String SHARE = "share";
 
     /** Every action, in the order they are offered. */
-    public static final List<String> ACTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, MATERIALS, GUIDE, LAYER,
+    // MATERIALS is deliberately absent: it is still accepted, it is just not offered.
+    public static final List<String> ACTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, NEEDS, GUIDE, LAYER,
         CHEVRONS, DHD, SHARE, PLACE);
+
+    /**
+     * Every action that answers, which is {@link #ACTIONS} plus the names they used to have.
+     *
+     * <p>Separate from {@code ACTIONS} because that list is also what tab completion offers and
+     * what an unknown action is told to try, and an old name should keep working without being
+     * advertised. Validating against {@code ACTIONS} instead turns every alias into a rejection
+     * before the dispatch below ever sees it, which is exactly what happened the first time.
+     */
+    private static final List<String> ACCEPTED =
+        Stream.concat(ACTIONS.stream(), Stream.of(MATERIALS)).toList();
 
     private static final String USAGE = "Usage: ";
 
@@ -232,7 +255,7 @@ public class Build implements CommandExecutor
     private static void option(final Player player, final String[] args, final boolean mayPreview)
     {
         final String option = args[0].toLowerCase(Locale.ROOT);
-        if (!ACTIONS.contains(option))
+        if (!ACCEPTED.contains(option))
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No preview action "
                 + name(args[0]) + ". Try " + commands(ACTIONS));
@@ -256,7 +279,7 @@ public class Build implements CommandExecutor
             case DHD -> GatePreviews.toggleDhd(player);
             case CHEVRONS -> GatePreviews.toggleChevrons(player);
             case GUIDE -> GatePreviews.guide(player);
-            case MATERIALS -> listMaterials(player);
+            case NEEDS, MATERIALS -> listMaterials(player);
             case LAYER -> layers(player, args);
             case PLACE -> place(player);
             case SHARE -> share(player, args);
