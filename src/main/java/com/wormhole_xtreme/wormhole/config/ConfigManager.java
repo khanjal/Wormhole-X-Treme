@@ -1010,8 +1010,29 @@ public class ConfigManager
      */
     public static boolean isGateIrisAnimated()
     {
+        return !"instant".equalsIgnoreCase(gateIrisAnimation());
+    }
+
+    /**
+     * How an animated iris crosses its opening.
+     *
+     * <p>Anything unrecognised is read as the default rather than refused, so a mistyped style
+     * costs the style and not the iris.
+     *
+     * @return the style
+     */
+    public static com.wormhole_xtreme.wormhole.model.IrisSweep.Style getGateIrisStyle()
+    {
+        return com.wormhole_xtreme.wormhole.model.IrisSweep.Style.of(gateIrisAnimation());
+    }
+
+    /**
+     * @return the configured value of {@code gate-iris-animation}, trimmed
+     */
+    private static String gateIrisAnimation()
+    {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
-        return (s == null) || !"instant".equalsIgnoreCase(String.valueOf(s.getStringValue()).trim());
+        return (s == null) ? "sweep" : String.valueOf(s.getStringValue()).trim();
     }
 
     /**
