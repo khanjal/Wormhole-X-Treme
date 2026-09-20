@@ -12,7 +12,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 public final class PreviewText
 {
     /** The grey both message headers leave behind. */
-    static final String BODY = ChatText.BODY;
+    static final String BODY = ChatText.BODY_COLOUR;
 
 
     private PreviewText() {}

@@ -11,13 +11,25 @@ import java.util.regex.Pattern;
 public final class ChatText
 {
     /** The body colour every fragment returns to. */
-    public static final String BODY = "§7";
+    public static final String BODY_COLOUR = "§7";
 
-    private static final String WHITE = "§f";
-    private static final String NAME = "§b";
-    private static final String MATERIAL = "§e";
-    private static final String GOOD = "§a";
-    private static final String BAD = "§c";
+    /** The {@code ::} a line opens with, and a heading over a group of them. */
+    public static final String HEADING_COLOUR = "§3";
+
+    /** Something to type. The same white serves a value read beside its label. */
+    public static final String COMMAND_COLOUR = "§f";
+
+    /** A name: a gate, network, mirror, shape, group or player. */
+    public static final String NAME_COLOUR = "§b";
+
+    /** A block or an item. */
+    public static final String MATERIAL_COLOUR = "§e";
+
+    /** Something done or allowed. */
+    public static final String GOOD_COLOUR = "§a";
+
+    /** Something wrong or refused. */
+    public static final String BAD_COLOUR = "§c";
 
     private static final Pattern CODE = Pattern.compile("§.");
 
@@ -29,37 +41,43 @@ public final class ChatText
     /** @return something to type: a command or an option */
     public static String command(final String text)
     {
-        return WHITE + text + BODY;
+        return COMMAND_COLOUR + text + BODY_COLOUR;
     }
 
     /** @return a value: a count, coordinates, a distance */
     public static String value(final String text)
     {
-        return WHITE + text + BODY;
+        return COMMAND_COLOUR + text + BODY_COLOUR;
     }
 
     /** @return a name: a gate, network, mirror, shape, group or player */
     public static String name(final String text)
     {
-        return NAME + text + BODY;
+        return NAME_COLOUR + text + BODY_COLOUR;
     }
 
     /** @return a block or an item, with "or" between alternatives kept in the body colour */
     public static String material(final String text)
     {
-        return MATERIAL + text.replace(" or ", BODY + " or " + MATERIAL) + BODY;
+        return MATERIAL_COLOUR + text.replace(" or ", BODY_COLOUR + " or " + MATERIAL_COLOUR) + BODY_COLOUR;
     }
 
     /** @return something done or allowed */
     public static String good(final String text)
     {
-        return GOOD + text + BODY;
+        return GOOD_COLOUR + text + BODY_COLOUR;
     }
 
     /** @return something wrong or refused */
     public static String bad(final String text)
     {
-        return BAD + text + BODY;
+        return BAD_COLOUR + text + BODY_COLOUR;
+    }
+
+    /** @return a heading over a group of lines */
+    public static String heading(final String text)
+    {
+        return HEADING_COLOUR + text + BODY_COLOUR;
     }
 
     /** @return the line as a player reads it, without colour codes */
