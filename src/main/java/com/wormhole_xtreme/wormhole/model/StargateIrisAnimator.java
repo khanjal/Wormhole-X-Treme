@@ -83,7 +83,8 @@ public final class StargateIrisAnimator
         {
             StargateBlockSetup.sendCells(gate, ring, under);
         }
-        step(gate, rings, 0, null);
+        // Then each ring is let through to the truth, which is the iris already standing there.
+        step(gate, rings, 0, null, null);
     }
 
     /**
@@ -98,7 +99,10 @@ public final class StargateIrisAnimator
      */
     static void sweepOpen(final Stargate gate, final Material under, final Runnable afterwards)
     {
-        step(gate, IrisSweep.openingRings(gate.getGatePortalBlocks()), 0, afterwards);
+        // Drawn as the bare opening rather than as the truth: the iris blocks are still there
+        // and stay there until the sweep ends, so sending what is really in the cell would
+        // paint the iris back over itself and the open would not be seen to happen at all.
+        step(gate, IrisSweep.openingRings(gate.getGatePortalBlocks()), 0, under, afterwards);
     }
 
     /**
@@ -110,11 +114,13 @@ public final class StargateIrisAnimator
      *            the rings, in the order they are drawn
      * @param index
      *            which ring
+     * @param draw
+     *            what to draw each ring as, or null to send what is really in those cells
      * @param afterwards
      *            run after the last ring, or null
      */
     private static void step(final Stargate gate, final List<List<Location>> rings, final int index,
-        final Runnable afterwards)
+        final Material draw, final Runnable afterwards)
     {
         if (index >= rings.size())
         {
@@ -132,10 +138,10 @@ public final class StargateIrisAnimator
             running.remove(key(gate));
             return;
         }
-        StargateBlockSetup.sendCells(gate, rings.get(index), null);
+        StargateBlockSetup.sendCells(gate, rings.get(index), draw);
         final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
-            () -> step(gate, rings, index + 1, afterwards),
+            () -> step(gate, rings, index + 1, draw, afterwards),
             ConfigManager.getGateIrisStepTicks());
         running.put(key(gate), task);
     }

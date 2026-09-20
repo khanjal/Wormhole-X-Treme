@@ -4,8 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -13,15 +21,21 @@ import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * The real iris blocks are committed at the cautious edge of a sweep, never the other one.
@@ -46,7 +60,16 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 class IrisSweepOrderingTest
 {
     private World world;
+    private Player watcher;
     private Stargate gate;
+    /**
+     * {@code MaterialUtils.drawnAs} goes through {@code Material.createBlockData}, which needs
+     * a live server. Held open for the whole class because every test here has somebody
+     * watching, and every draw reaches it.
+     */
+    private MockedStatic<MaterialUtils> materials;
+    /** What {@link Material#AIR} is drawn as, so the uncovering can be recognised. */
+    private final BlockData bareOpening = mock(BlockData.class);
     /** Tasks the sweep has booked and not had cancelled, in the order they were booked. */
     private final java.util.LinkedHashMap<Integer, Runnable> pending = new java.util.LinkedHashMap<>();
     private final List<String> events = new ArrayList<>();
@@ -57,6 +80,10 @@ class IrisSweepOrderingTest
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
         PluginTestSupport.forgetAllGates();
+
+        materials = mockStatic(MaterialUtils.class);
+        materials.when(() -> MaterialUtils.drawnAs(any(Material.class)))
+            .thenAnswer(i -> (i.getArgument(0) == Material.AIR) ? bareOpening : mock(BlockData.class));
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         // "booked" is recorded when the sweep asks for its next step, not when that step is
@@ -73,16 +100,21 @@ class IrisSweepOrderingTest
             });
         // Cancelling really does drop the task, so a sweep that was called off and one that
         // was not are told apart by what is left waiting.
-        org.mockito.Mockito.doAnswer(invocation ->
+        doAnswer(invocation ->
         {
             pending.remove(invocation.<Integer>getArgument(0));
             return null;
-        }).when(scheduler).cancelTask(org.mockito.ArgumentMatchers.anyInt());
+        }).when(scheduler).cancelTask(anyInt());
         PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
-        when(world.getPlayers()).thenReturn(new ArrayList<>());
+        // Somebody has to be watching, or every draw stops at the nobody-is-near check and
+        // the sweep's whole visible effect goes unobserved -- which is how an opening sweep
+        // that drew the iris back over itself passed for a while.
+        watcher = mock(Player.class);
+        when(watcher.getLocation()).thenReturn(new Location(world, 0, 64, 3));
+        when(world.getPlayers()).thenReturn(List.of(watcher));
 
         gate = new Stargate();
         gate.setGateName("IrisGate");
@@ -98,7 +130,7 @@ class IrisSweepOrderingTest
                 when(block.getLocation()).thenReturn(at);
                 when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
                 // Every real placement is recorded, whichever way round it happens.
-                org.mockito.Mockito.doAnswer(i ->
+                doAnswer(i ->
                 {
                     events.add("block:" + i.getArgument(0));
                     return null;
@@ -111,6 +143,10 @@ class IrisSweepOrderingTest
     void tearDown() throws Exception
     {
         StargateIrisAnimator.cancelAll();
+        if (materials != null)
+        {
+            materials.close();
+        }
         PluginTestSupport.scheduler(null);
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
@@ -162,10 +198,10 @@ class IrisSweepOrderingTest
 
         gate.toggleIrisActive(false);
 
-        org.mockito.Mockito.verify(world, org.mockito.Mockito.atLeastOnce()).playSound(
-            any(Location.class), org.mockito.ArgumentMatchers.anyString(),
-            any(org.bukkit.SoundCategory.class), org.mockito.ArgumentMatchers.anyFloat(),
-            org.mockito.ArgumentMatchers.anyFloat());
+        verify(world, atLeastOnce()).playSound(
+            any(Location.class), anyString(),
+            any(SoundCategory.class), anyFloat(),
+            anyFloat());
     }
 
     @Test
@@ -207,6 +243,31 @@ class IrisSweepOrderingTest
                 + pending.keySet());
         runSweepToCompletion();
         assertFalse(StargateIrisAnimator.isSweeping(gate), "and the second one finished cleanly");
+    }
+
+    /**
+     * An opening sweep is actually seen to uncover the gate.
+     *
+     * <p>The iris blocks stay where they are until the sweep ends, so a step that sends what is
+     * really in a cell paints the iris straight back over itself and nothing appears to happen.
+     * That is precisely what it did: the material to draw was passed in and then never used,
+     * and the ordering tests above all still passed, because they time the sweep rather than
+     * look at it. SonarCloud noticed the unused parameter; nothing else did.
+     */
+    @Test
+    void openingActuallyUncoversTheOpeningRatherThanRedrawingTheIris()
+    {
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+
+        final ArgumentCaptor<BlockData> drawn = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), drawn.capture());
+        assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
+            "the sweep has to draw the bare opening over the iris, or the open is invisible");
     }
 
     /** The index of the first event with this prefix, or {@link Integer#MAX_VALUE}. */

@@ -765,7 +765,11 @@ class StargateBlockSetup
         for (final Location bc : cells)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-            final BlockData data = (drawn != null) ? drawn : at.getBlock().getBlockData();
+            // getBlockAt by coordinate rather than Location.getBlock(), which is the same
+            // lookup with a Location built and thrown away on the way -- the round trip
+            // sendPortalVisual's own comment says buys nothing.
+            final BlockData data = (drawn != null) ? drawn
+                : gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()).getBlockData();
             for (final Player p : recipients)
             {
                 p.sendBlockChange(at, data);
