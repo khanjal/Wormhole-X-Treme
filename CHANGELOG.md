@@ -24,6 +24,23 @@ The plugin API is in [docs/API.md](docs/API.md).
   `%wormhole_nearest_gate%`. Needs PlaceholderAPI; without it nothing is registered and
   the log says so once. See [the guide](docs/guide/SERVER.md#placeholders).
 
+### Stargates
+
+**Added**
+
+- **An iris sweeps shut a ring at a time**, from the rim inwards, and opens from the middle
+  out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
+  the pace. Only the picture sweeps — the blocks are placed in one go, so a gate is never
+  partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
+
+**Fixed**
+
+- **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
+  played for a player: the lever, the commands and dialling all reached the iris through one
+  method that had already changed the gate's state before anything checked whether it had
+  changed, so the iris was judged never to move. Nothing to do; the sounds you have configured
+  start working.
+
 ### Performance
 
 - **Finding the gate nearest somebody no longer copies and sorts every gate on the server.**
