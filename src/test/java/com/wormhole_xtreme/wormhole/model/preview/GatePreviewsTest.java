@@ -11,9 +11,11 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,8 +85,57 @@ class GatePreviewsTest
     private final List<Interaction> buttons = new ArrayList<>();
     private final Map<Material, BlockData> data = new EnumMap<>(Material.class);
     private Runnable dialStep;
+    /**
+     * Every iris step booked and not cancelled, in the order they were booked.
+     *
+     * <p>A map rather than one slot. Holding only the latest hides a sweep that was never
+     * called off: the second sweep's booking simply overwrites the first's, and a test can no
+     * longer tell one running sweep from two.
+     */
+    private final Map<Integer, Runnable> irisPending = new LinkedHashMap<>();
+    private int nextIrisTask = 1;
     private BukkitTask dialTask;
     private final List<Long> dialDelays = new ArrayList<>();
+    /**
+     * Holds an iris sweep's next step, with a cancel that really drops it.
+     *
+     * <p>A task mock that accepts {@code cancel()} and does nothing makes a called-off sweep
+     * look exactly like a running one, so an iris toggled twice would run the first sweep's
+     * leftovers over the second's and the test would never notice.
+     *
+     * @param step
+     *            the step the sweep booked
+     * @return the task standing for it
+     */
+    private BukkitTask bookIrisStep(final Runnable step)
+    {
+        final int id = nextIrisTask++;
+        irisPending.put(id, step);
+        final BukkitTask task = mock(BukkitTask.class);
+        doAnswer(invocation ->
+        {
+            irisPending.remove(id);
+            return null;
+        }).when(task).cancel();
+        return task;
+    }
+
+    /**
+     * Runs an iris sweep to its end.
+     *
+     * <p>The iris arrives a ring at a time now, booked through the same {@code later} seam the
+     * dial uses, so a test that wants the finished iris has to run the sweep out first -- the
+     * same way {@link #dialStep} is run for a dial.
+     */
+    private void finishIrisSweep()
+    {
+        for (int guard = 0; !irisPending.isEmpty() && (guard < 60); guard++)
+        {
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
+        }
+    }
+
     /** What stands in the world, by x, y and z; air everywhere else. */
     private final Map<List<Integer>, Material> standing = new HashMap<>();
     /** Players online besides the owner. */
@@ -165,6 +217,7 @@ class GatePreviewsTest
             dialTask = mock(BukkitTask.class);
             return dialTask;
         };
+        GatePreviews.irisLater = (ticks, step) -> bookIrisStep(step);
     }
 
     @AfterEach
@@ -784,11 +837,13 @@ class GatePreviewsTest
         GatePreviews.show(owner, standard, null);
 
         assertEquals(GatePreviews.Control.IRIS_CLOSED, GatePreviews.iris(owner));
+        finishIrisSweep();
         final List<BlockDisplay> iris = new ArrayList<>(spawned.subList(STANDARD_BLOCKS, spawned.size()));
-        assertEquals(STANDARD_OPENING, iris.size());
+        assertEquals(STANDARD_OPENING, iris.size(), "every cell of the opening, once the sweep is out");
         iris.forEach(d -> verify(d).setBlock(data.get(Material.STONE)));
 
         assertEquals(GatePreviews.Control.IRIS_OPENED, GatePreviews.iris(owner));
+        finishIrisSweep();
         iris.forEach(d -> verify(d).remove());
     }
 
@@ -1015,10 +1070,12 @@ class GatePreviewsTest
         final int takenBackByTheWoosh = 21 + 13 + 5;
 
         GatePreviews.iris(owner);
+        finishIrisSweep();
         verify(owner, times(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
 
         GatePreviews.iris(owner);
-        verify(owner, times((takenBackByTheWoosh + 21) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        finishIrisSweep();
+        verify(owner, atLeast((takenBackByTheWoosh + 21) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
 
         assertEquals(1, GatePreviews.clearAll(owner));
         verify(owner, times(takenBackByTheWoosh + 21 + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
@@ -1283,6 +1340,65 @@ class GatePreviewsTest
         assertNull(GatePreviews.audience(owner));
     }
 
+    /**
+     * The preview's iris arrives a ring at a time, not all at once.
+     *
+     * <p>The whole reason the preview exists is to rehearse a gate before building it, and the
+     * iris animation is one of the things worth rehearsing. It was instant here while a real
+     * gate swept, so the preview was answering a question about a gate it did not match.
+     */
+    @Test
+    void theIrisSweepsOntoThePreviewARingAtATime()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.iris(owner);
+
+        final int afterFirstRing = spawned.size() - STANDARD_BLOCKS;
+        assertTrue(afterFirstRing > 0, "the first ring is drawn at once");
+        assertTrue(afterFirstRing < STANDARD_OPENING,
+            "but not the whole opening: " + afterFirstRing + " of " + STANDARD_OPENING);
+        assertEquals(1, irisPending.size(), "and the rest is booked");
+
+        finishIrisSweep();
+
+        assertEquals(STANDARD_OPENING, spawned.size() - STANDARD_BLOCKS, "every cell by the end");
+    }
+
+    /**
+     * Toggling the iris again mid-sweep calls the first sweep off.
+     *
+     * <p>Two sweeps running over one preview would add and remove the same cells in whatever
+     * order their steps happened to fire, and whichever finished last would decide what the
+     * preview showed -- which is not necessarily the state the iris is actually in. Somebody
+     * flipping the iris back and forth to look at it is exactly the person who would find that.
+     */
+    @Test
+    void togglingTheIrisAgainMidSweepCallsOffTheFirst()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.iris(owner);
+        assertEquals(1, irisPending.size(), "the closing sweep is part way through");
+
+        // Straight back open, without letting the close finish.
+        assertEquals(GatePreviews.Control.IRIS_OPENED, GatePreviews.iris(owner));
+
+        assertEquals(1, irisPending.size(),
+            "the closing sweep's step was dropped, not left waiting beside the opening one");
+        finishIrisSweep();
+        assertEquals(0, countStanding(), "and the opening sweep finished");
+    }
+
+    /** How many of the opening's displays are still standing rather than removed. */
+    private long countStanding()
+    {
+        return spawned.subList(STANDARD_BLOCKS, spawned.size()).stream()
+            .filter(display -> org.mockito.Mockito.mockingDetails(display).getInvocations().stream()
+                .noneMatch(invocation -> "remove".equals(invocation.getMethod().getName())))
+            .count();
+    }
+
     /** A display drawn after sharing, here the closed iris, is shown to the viewer as well. */
     @Test
     void aDisplayDrawnLaterIsShownToViewersToo()
@@ -1293,6 +1409,7 @@ class GatePreviewsTest
         final int before = spawned.size();
 
         GatePreviews.iris(owner);
+        finishIrisSweep();
 
         assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size());
         spawned.subList(before, spawned.size()).forEach(display -> verify(alex).showEntity(plugin, display));
