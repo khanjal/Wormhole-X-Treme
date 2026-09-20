@@ -282,13 +282,22 @@ The code is all there under GPL-3.0. Read it, fork it, or tell me where it is wr
 
 ## Rules this listing touches
 
-**Open: does this site ban AI-generated images?** Modrinth's Content Rules 6.2.1 forbids any
-image on a project page that was "created or derived from generative AI output", which rules the
-logo off that page entirely — see [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page).
-**SpigotMC's rules have not been checked for an equivalent.** The logo is used here as the resource icon
-and in the description, so if there is such a rule, both have to change the same way Modrinth's
-did: crop the icon from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
-before the next upload rather than assuming either way.
+**Checked: SpigotMC has no AI rule, so the logo stays.** Modrinth's Content Rules 6.2.1 forbids
+any page image "created or derived from generative AI output", which rules the AI-authored logo
+off that page entirely — see
+[`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page). SpigotMC's Terms & Rules
+contain no AI clause of any kind: nothing about generative AI, generated content or generated
+images, and nothing requiring disclosure of how a resource was produced. So the logo is fine as
+the resource icon and in the description here, and this page deliberately differs from Modrinth's.
+
+The rules that *do* bear on this listing are the four already recorded below: the direct-download
+link, the advertising rule that keeps Claude Code unlinked, "posting someone else's plugin or
+resource is not allowed", and the brand-name rule.
+
+Two caveats on that finding. It was checked against the Terms & Rules text as Justin pasted it on
+2026-09-19, footed "Last Modified: Jul 19, 2025", and not re-fetched since. And that page links a
+separate **Terms of Service** at `spigotmc.org/wiki/spigot-terms/` which nobody has read, so this
+covers the rules page only.
 
 
 Read against Spigot's rules text as of 2025-07-19. Four things matter; one is a real risk.

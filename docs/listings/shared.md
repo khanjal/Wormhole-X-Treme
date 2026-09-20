@@ -90,8 +90,8 @@ stack, the beam timing strip. Render to PNG before using them anywhere that will
 
 **Both logo images are AI-authored, and at least one site forbids that on the page.** Modrinth's
 Content Rules 6.2.1 bans any page image "created or derived from generative AI output", so its
-icon is cropped from a gameplay capture and its description carries no banner. Whether SpigotMC
-and Hangar have an equivalent rule is unchecked. The reasoning is in
+icon is cropped from a gameplay capture and its description carries no banner. SpigotMC's rules
+carry no AI clause, so the logo stays there; Hangar's are unchecked. The reasoning is in
 [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page); every clip and screenshot
 is a real capture and is unaffected.
 
