@@ -420,6 +420,29 @@ public class WormholeXTreme extends JavaPlugin
      * Exception for the same reason the shutdown one does: EconomySupport may not be there at
      * all. A server that cannot charge still gets its gates.
      */
+    /**
+     * Registers the PlaceholderAPI expansion, if the config asks for it.
+     *
+     * <p>Its own method with its own catch, for the same reason the economy one has:
+     * PlaceholderAPI may not be installed at all. A server without placeholders still
+     * gets its gates.
+     */
+    private void enablePlaceholdersIfConfigured()
+    {
+        if (!ConfigManager.isPlaceholdersEnabled())
+        {
+            return;
+        }
+        try
+        {
+            com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport.enablePlaceholders();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to enable placeholder support", t);
+        }
+    }
+
     private void enableEconomyIfConfigured()
     {
         if (!ConfigManager.isEconomyEnabled())
@@ -449,6 +472,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             PermissionsSupport.enablePermissions();
             enableEconomyIfConfigured();
+            enablePlaceholdersIfConfigured();
         }
         catch (final Exception e)
         {

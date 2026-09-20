@@ -84,6 +84,9 @@ class DefaultSettings
             new Setting(ConfigKeys.HELP_SUPPORT_DISABLE, false, "If set to true, Help plugin will not be attached to even if available.", SECTION),
             new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION)),
 
+        group("Integrations", "Other plugins this one can talk to. Each is optional and off until asked for.",
+            new Setting(ConfigKeys.PLACEHOLDERS_ENABLED, false, "Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.", SECTION)),
+
         group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
             new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
             new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. 0.0 to disable.", SECTION),
