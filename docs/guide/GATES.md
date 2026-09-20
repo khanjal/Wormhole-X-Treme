@@ -230,6 +230,12 @@ up as itself; anything else lights as the group's `light` material.
 A shape can *require* the chevron block with a `[C]` cell. No shipped shape does, since it would
 make every obsidian Standard gate undetectable.
 
+`[S:C]` is the middle ground: the cell is a chevron -- it draws, lights and is protected as one --
+but the frame material is accepted there as well. That is what a shape needs when it **gains** a
+chevron position. Mark a cell `[C]` where a shape has plain frame today and every gate already
+built to it has the wrong block there, so it stops matching its own shape and needs regenerating;
+`[S:C]` lets the position be added without touching anything already standing.
+
 ### Shapes whose materials are in no group
 
 A shape framed in a material no group declares still works, using the materials in its own file.
