@@ -88,6 +88,7 @@ class GateBlockProtectionTest
         StargateManager.removeBlockIndex(gateBlock);
         GateSpatialIndex.clear();
         set("thisPlugin", null);
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void set(final String name, final Object value) throws Exception

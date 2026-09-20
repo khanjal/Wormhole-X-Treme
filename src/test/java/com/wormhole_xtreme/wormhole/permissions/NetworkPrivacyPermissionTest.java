@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -66,6 +67,12 @@ class NetworkPrivacyPermissionTest
             gate.setGateNetwork(StargateManager.addStargateNetwork(network));
         }
         return gate;
+    }
+
+    @AfterEach
+    void forgetGates()
+    {
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

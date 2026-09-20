@@ -42,6 +42,7 @@ class WormholeXTremeRedstoneListenerTest
     void afterEach()
     {
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

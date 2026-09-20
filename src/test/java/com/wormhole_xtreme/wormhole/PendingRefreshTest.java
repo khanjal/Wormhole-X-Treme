@@ -84,6 +84,7 @@ class PendingRefreshTest
         Refresh.removePendingRefresh(player);
         clearGates();
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearGates()

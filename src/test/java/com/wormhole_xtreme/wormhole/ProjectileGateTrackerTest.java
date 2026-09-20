@@ -128,6 +128,7 @@ class ProjectileGateTrackerTest
         StargateManager.removeStargate(origin);
         ProjectileGateTracker.clear();
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     /** Puts the arrow somewhere, then runs one tick of the tracker. */

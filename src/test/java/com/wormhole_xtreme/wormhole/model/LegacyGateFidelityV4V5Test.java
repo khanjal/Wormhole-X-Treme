@@ -71,6 +71,7 @@ class LegacyGateFidelityV4V5Test
     void tearDown() throws Exception
     {
         setPlugin(null);
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void setPlugin(final WormholeXTreme value) throws Exception

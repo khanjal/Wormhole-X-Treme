@@ -51,6 +51,7 @@ class DialCommandTest
     {
         StargateManager.removeActivatedStargate(player);
         clearGates();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearGates()

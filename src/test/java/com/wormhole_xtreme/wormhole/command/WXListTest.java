@@ -49,6 +49,7 @@ class WXListTest
     void tearDown()
     {
         clearGates();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearGates()

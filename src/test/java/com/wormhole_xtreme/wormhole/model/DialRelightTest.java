@@ -59,6 +59,7 @@ class DialRelightTest
     {
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private void dial()

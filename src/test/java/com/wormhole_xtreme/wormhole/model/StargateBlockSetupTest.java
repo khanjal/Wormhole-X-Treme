@@ -10,8 +10,11 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.Powerable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Tests for {@link StargateBlockSetup}.
@@ -33,6 +36,12 @@ class StargateBlockSetupTest
     // -----------------------------------------------------------------------
     // fillGateInterior
     // -----------------------------------------------------------------------
+
+    @AfterEach
+    void forgetGates()
+    {
+        PluginTestSupport.forgetAllGates();
+    }
 
     @Test
     void fillGateInteriorWithEmptyPortalBlocksDoesNothing()

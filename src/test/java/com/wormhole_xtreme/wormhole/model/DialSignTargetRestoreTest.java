@@ -70,6 +70,7 @@ class DialSignTargetRestoreTest
         {
             StargateManager.removeStargate(s);
         }
+        PluginTestSupport.forgetAllGates();
     }
 
     /** A wall sign block whose state can be read and written the way the sign code expects. */

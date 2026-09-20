@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Powerable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -70,6 +71,12 @@ class GateLeverWriteIsGuardedTest
             return null;
         }).when(lever).setBlockData(any());
         return lever;
+    }
+
+    @AfterEach
+    void forgetGates()
+    {
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

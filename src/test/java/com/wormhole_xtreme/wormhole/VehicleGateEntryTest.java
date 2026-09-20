@@ -122,6 +122,7 @@ class VehicleGateEntryTest
         GateEvents.setDispatcherForTest(null);
         clearRecentMarks();
         PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+        PluginTestSupport.forgetAllGates();
     }
 
     /**

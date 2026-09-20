@@ -29,10 +29,7 @@ class PortalVisualRefreshTest
     @AfterEach
     void afterEach()
     {
-        for (final Stargate gate : new java.util.ArrayList<Stargate>(StargateManager.getOpenGates()))
-        {
-            gate.setGateActive(false);
-        }
+        com.wormhole_xtreme.wormhole.PluginTestSupport.forgetAllGates();
     }
 
     private static Stargate openGateAt(final World world, final int x, final int y, final int z)

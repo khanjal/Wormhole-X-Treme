@@ -4,6 +4,10 @@ import static org.mockito.Mockito.mock;
 
 import org.bukkit.scheduler.BukkitScheduler;
 
+import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
+
 /**
  * Puts a plugin instance where {@link WormholeXTreme#getThisPlugin()} will find it.
  *
@@ -94,5 +98,52 @@ public final class PluginTestSupport
     public static void scheduler(final BukkitScheduler scheduler) throws ReflectiveOperationException
     {
         PrivateStatics.set(WormholeXTreme.class, "scheduler", scheduler);
+    }
+
+    /** The {@link StargateManager} statics a test class can leave something in. */
+    private static final String[] GATE_STATICS =
+    {
+        "stargateList", "gateBlocksByWorld", "incompleteStargates", "activatedStargates",
+        "stargateNetworks", "playerBuilders"
+    };
+
+    /**
+     * Puts {@link StargateManager}'s shared statics back to empty.
+     *
+     * <p>A gate built in a test is a gate the manager keeps for the life of the JVM, and the
+     * suite runs in one fork, so anything left behind is inherited by every class that runs
+     * afterwards. That shows up as a test which passes alone and fails in the suite -- the way
+     * to recognise it is an assertion on a count that is larger than the test's own gates.
+     *
+     * <p>The open set is drained through {@code setGateActive(false)} rather than cleared,
+     * because the set mirrors that flag: clearing it alone would leave a gate object claiming
+     * to be open while the manager no longer thinks so.
+     *
+     * <p>Unchecked on purpose, unlike the rest of this class: this is called from teardowns
+     * that have no other reason to declare a checked exception, and a renamed field here is a
+     * mistake to fix rather than a condition to handle.
+     */
+    public static void forgetAllGates()
+    {
+        for (final Stargate gate : new java.util.ArrayList<>(StargateManager.getOpenGates()))
+        {
+            gate.setGateActive(false);
+        }
+        try
+        {
+            for (final String name : GATE_STATICS)
+            {
+                final Object value = PrivateStatics.of(StargateManager.class, name);
+                if (value instanceof java.util.Map)
+                {
+                    ((java.util.Map<?, ?>) value).clear();
+                }
+            }
+        }
+        catch (final ReflectiveOperationException e)
+        {
+            throw new AssertionError("StargateManager's statics were renamed", e);
+        }
+        GateSpatialIndex.clear();
     }
 }

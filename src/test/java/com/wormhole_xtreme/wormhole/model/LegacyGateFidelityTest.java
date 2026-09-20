@@ -83,6 +83,7 @@ class LegacyGateFidelityTest
     void tearDown() throws Exception
     {
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private Block blockAt(final int x, final int y, final int z)

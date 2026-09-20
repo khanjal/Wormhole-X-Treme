@@ -76,6 +76,7 @@ class LeverClickDispatchTest
                 StargateManager.removeStargate(s);
             }
         }
+        PluginTestSupport.forgetAllGates();
     }
 
     private Block blockAt(final int x, final int y, final int z)

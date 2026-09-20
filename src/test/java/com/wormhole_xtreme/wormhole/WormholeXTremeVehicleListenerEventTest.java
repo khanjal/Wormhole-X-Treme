@@ -57,6 +57,7 @@ class WormholeXTremeVehicleListenerEventTest
     {
         // Clear any registry state we modified
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     /**

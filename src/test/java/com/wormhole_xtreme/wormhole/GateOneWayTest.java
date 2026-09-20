@@ -58,6 +58,7 @@ class GateOneWayTest
     void tearDown()
     {
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     /**

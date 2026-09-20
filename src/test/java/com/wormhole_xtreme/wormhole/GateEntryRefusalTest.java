@@ -88,6 +88,7 @@ class GateEntryRefusalTest
     {
         StargateManager.removeStargate(origin);
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     private PlayerMoveEvent walkIntoDestination()
