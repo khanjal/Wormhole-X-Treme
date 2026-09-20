@@ -278,11 +278,6 @@ public class StargateShapeLayer
     }
 
     /**
-     * Gets the layer chevron positions.
-     *
-     * @return the layer chevron positions
-     */
-    /**
      * The chevron cells the frame material is also accepted at.
      *
      * @return the {@code [S:C]} positions, a subset of {@link #getLayerChevronPositions()}
@@ -292,6 +287,11 @@ public class StargateShapeLayer
         return layerLenientChevronPositions;
     }
 
+    /**
+     * Gets the layer chevron positions.
+     *
+     * @return the layer chevron positions
+     */
     public List<Integer[]> getLayerChevronPositions()
     {
         return layerChevronPositions;
