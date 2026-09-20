@@ -4,13 +4,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Unit tests for StargateManager activation mapping behavior.
  */
 class StargateManagerTest
 {
+    @AfterEach
+    void forgetGates()
+    {
+        PluginTestSupport.forgetAllGates();
+    }
+
     @Test
     void addAndRemoveActivatedStargate()
     {

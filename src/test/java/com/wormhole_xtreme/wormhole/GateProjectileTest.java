@@ -109,6 +109,7 @@ class GateProjectileTest
     {
         StargateManager.removeStargate(origin);
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     /**

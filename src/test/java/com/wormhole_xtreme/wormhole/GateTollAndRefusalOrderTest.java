@@ -134,6 +134,7 @@ class GateTollAndRefusalOrderTest
         GateEvents.setDispatcherForTest(null);
         set("thisPlugin", null);
         set("scheduler", null);
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void set(final String name, final Object value) throws Exception

@@ -79,6 +79,7 @@ class LegacySqliteImportTest
     {
         clearGates();
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearGates()

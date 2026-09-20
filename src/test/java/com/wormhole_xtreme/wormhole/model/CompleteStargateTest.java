@@ -57,6 +57,7 @@ class CompleteStargateTest
     {
         clearRegistry();
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearRegistry()

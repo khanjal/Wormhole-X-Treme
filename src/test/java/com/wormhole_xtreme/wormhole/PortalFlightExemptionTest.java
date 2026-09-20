@@ -144,6 +144,7 @@ class PortalFlightExemptionTest
         destination.setGateActive(false);
         origin.setGateActive(false);
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     private void move(final Location from, final Location to)

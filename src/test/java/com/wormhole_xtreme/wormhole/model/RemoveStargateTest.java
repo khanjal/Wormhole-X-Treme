@@ -44,9 +44,8 @@ class RemoveStargateTest
     @AfterEach
     void tearDown() throws Exception
     {
-        clearGates();
-        GateSpatialIndex.clear();
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static void clearGates()

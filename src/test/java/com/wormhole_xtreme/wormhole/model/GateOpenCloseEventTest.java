@@ -79,6 +79,7 @@ class GateOpenCloseEventTest
         GateEvents.setDispatcherForTest(null);
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     /** A gate with everything that would touch real blocks or a real world stubbed out. */

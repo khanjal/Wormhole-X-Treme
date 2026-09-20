@@ -87,6 +87,7 @@ class GateYamlRoundTripTest
                 StargateManager.removeStargate(s);
             }
         }
+        PluginTestSupport.forgetAllGates();
     }
 
     private File gatesDir()

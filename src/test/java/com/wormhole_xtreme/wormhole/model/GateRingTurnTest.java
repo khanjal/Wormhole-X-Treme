@@ -76,6 +76,7 @@ class GateRingTurnTest
     {
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
+        PluginTestSupport.forgetAllGates();
     }
 
     private Location at(final Cell c)

@@ -62,6 +62,7 @@ class StargateAnimatorTest
         // that touches it expects the plugin's normal null-until-onEnable default, not
         // whatever mock the one test above it happened to leave behind.
         PluginTestSupport.scheduler(null);
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

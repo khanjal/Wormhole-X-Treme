@@ -40,6 +40,7 @@ class WormholeXTremeBlockListenerTest
     void afterEach()
     {
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

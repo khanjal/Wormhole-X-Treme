@@ -52,6 +52,7 @@ class WormholeXTremePlayerListenerMountTest
     void tearDown()
     {
         GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
     }
 
     @Test

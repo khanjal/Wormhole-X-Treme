@@ -55,6 +55,7 @@ class ChevronLightingTest
         PluginTestSupport.remove();
 
         PluginTestSupport.scheduler(null);
+        PluginTestSupport.forgetAllGates();
     }
 
     /**

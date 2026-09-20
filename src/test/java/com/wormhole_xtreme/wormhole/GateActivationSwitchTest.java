@@ -73,6 +73,7 @@ class GateActivationSwitchTest
         {
             StargateManager.removeStargate(s);
         }
+        PluginTestSupport.forgetAllGates();
     }
 
     /** A wall sign block whose state reads back the way the sign code expects. */
