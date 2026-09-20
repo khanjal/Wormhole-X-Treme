@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * The woosh animation's own step counter, {@code gateAnimationStep3D}.
@@ -63,6 +64,74 @@ class StargateAnimatorTest
         // whatever mock the one test above it happened to leave behind.
         PluginTestSupport.scheduler(null);
         PluginTestSupport.forgetAllGates();
+    }
+
+    /**
+     * A wormhole opening behind a closed iris draws nothing.
+     *
+     * <p>Reported from a server: dial out from a sign gate whose iris is shut and the kawoosh
+     * comes straight through it. Every wave is the portal face pushed out along the gate's
+     * facing, so all of them land on or past the iris -- the one thing an iris is for is not
+     * letting that happen.
+     *
+     * <p>Reachable without an admin. {@code /dial} opens the dialling gate's own iris first,
+     * but the sign and lever path calls {@code dialStargate} straight out and nothing on the
+     * way checks the gate's own iris -- {@code whyNotDialable} only looks at the target's.
+     *
+     * <p>The gate here has woosh blocks, so a gate that drew anything would reach the drawing
+     * branch and need a live World. Not reaching it is the assertion.
+     */
+    @Test
+    void aClosedIrisStopsTheWooshComingThroughIt()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.setGateIrisActive(true);
+        // Two waves, neither null: drawing either would ask a null World for blocks.
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.setGateAnimationStep3D(0);
+
+        assertDoesNotThrow(() -> StargateAnimator.animateOpening(gate),
+            "nothing should be drawn, so nothing should need a world to draw it on");
+
+        assertEquals(0, gate.getGateAnimationStep3D(), "the woosh never starts");
+        assertFalse(gate.isGateAnimationRemoving(), "and is not left half-retracted either");
+    }
+
+    /**
+     * Opening the same gate with its iris clear does run the woosh.
+     *
+     * <p>The control. Without it the test above would pass just as well if the woosh had been
+     * switched off for every gate, iris or no iris.
+     */
+    @Test
+    void anOpenIrisLeavesTheWooshAlone() throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final org.bukkit.scheduler.BukkitScheduler scheduler =
+            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final Stargate gate = new Stargate();
+            gate.setGateActive(true);
+            gate.setGateIrisActive(false);
+            // Null waves: the shape authored these indexes as empty, so the drawing branch is
+            // skipped and the sequence still advances. See wooshWave's own contract.
+            gate.getGateWooshBlocks().add(null);
+            gate.getGateWooshBlocks().add(null);
+            gate.setGateAnimationStep3D(0);
+
+            StargateAnimator.animateOpening(gate);
+
+            assertEquals(1, gate.getGateAnimationStep3D(),
+                "with the iris open the woosh moves on to its next wave");
+        }
+        finally
+        {
+            PluginTestSupport.remove();
+        }
     }
 
     @Test

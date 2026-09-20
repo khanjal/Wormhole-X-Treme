@@ -56,6 +56,26 @@ class StargateAnimator
         {
             return;
         }
+        if (gate.isGateIrisActive())
+        {
+            // A wormhole behind a closed iris is heard and not seen. Every wave is the portal
+            // face pushed out along the gate's facing, so all of them land on or past the iris
+            // -- drawing them put the kawoosh straight through a shut gate, which is the one
+            // thing an iris is for.
+            //
+            // Settling is skipped for the same reason and a sharper one: it draws the event
+            // horizon over the portal cells, which on a 2D gate are exactly where the iris
+            // blocks stand. The client would be shown water over stone the server still has
+            // there, and would go on believing it until something else refreshed those blocks.
+            //
+            // The sound still plays. The wormhole really has formed; it is only the sight of
+            // it that the iris is in the way of. Opening the iris later draws the portal
+            // through setIrisState, which is where an active gate gets its water back.
+            GateSounds.kawoosh(gate);
+            gate.setGateAnimationStep3D(0);
+            gate.setGateAnimationRemoving(false);
+            return;
+        }
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         final int waveCount = wooshWaveCount(gate);
 
