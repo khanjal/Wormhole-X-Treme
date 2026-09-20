@@ -223,8 +223,13 @@ class StargateLifecycle
      */
     static void toggleIrisActive(final Stargate gate, final boolean setDefault)
     {
-        gate.setGateIrisActive(!gate.isGateIrisActive());
-        setIrisState(gate, gate.isGateIrisActive());
+        // setIrisState writes the flag itself, and works out whether the iris moved by
+        // comparing the old value against the new one. Flipping it here first made those two
+        // the same value on every path a player can reach -- the lever, the commands and
+        // dialling all come through here -- so the iris was always judged not to have moved:
+        // no sound on any of them, however the sound keys were configured. It is the only
+        // caller that has ever needed to pass the state it wants rather than the state it has.
+        setIrisState(gate, !gate.isGateIrisActive());
         if (setDefault)
         {
             gate.setGateIrisDefaultActive(gate.isGateIrisActive());
@@ -255,21 +260,38 @@ class StargateLifecycle
                 GateSounds.irisOpened(gate);
             }
         }
+        // A sweep still part-way through is stale the moment the iris moves again. Called off
+        // before anything is placed, so its next step cannot draw over what follows.
+        if (moved)
+        {
+            StargateIrisAnimator.cancel(gate);
+        }
+        // What the opening looks like with no iris over it: the portal if a wormhole is up,
+        // otherwise nothing. Both the sweep and the instant path need it.
+        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
+        final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {
             // The iris is a real barrier, so it is placed as real server-side blocks
             // rather than drawn client-side the way the portal is.
             gate.fillGateIris(gate.getEffectiveIrisMaterial());
+            if (sweep)
+            {
+                // Blocks first, picture second: the barrier is there before it looks it.
+                StargateIrisAnimator.sweepClosed(gate, uncovered);
+            }
         }
-        else if (gate.isGateActive())
+        else if (sweep)
         {
-            // Opening the iris on an active gate returns the interior to AIR with the
-            // portal drawn over it, which also clears the iris blocks placed above.
-            gate.fillGateInterior(gate.getEffectivePortalMaterial());
+            // Picture first, blocks second, for the same reason the other way round: the
+            // barrier outlasts the picture of it rather than the other way about.
+            StargateIrisAnimator.sweepOpen(gate, uncovered, () -> gate.fillGateInterior(uncovered));
         }
         else
         {
-            gate.fillGateInterior(Material.AIR);
+            // Opening the iris on an active gate returns the interior to the portal, which
+            // also clears the iris blocks placed above; an inactive one goes back to AIR.
+            gate.fillGateInterior(uncovered);
         }
         if ((gate.getGateIrisLeverBlock() != null)
             && (gate.getGateIrisLeverBlock().getType() == Material.LEVER))

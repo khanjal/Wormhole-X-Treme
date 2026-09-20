@@ -725,6 +725,55 @@ class StargateBlockSetup
     }
 
     /**
+     * Draws some of a gate's cells for whoever is near enough to see them.
+     *
+     * <p>The iris sweep's one piece of drawing. Unlike {@link #sendPortalVisual} this takes the
+     * cells rather than the whole opening, and can be asked for the truth instead of a picture:
+     * a null material sends each cell's real block, which is how a sweep finishes and how one
+     * that is called off puts things back.
+     *
+     * @param gate
+     *            the gate the cells belong to
+     * @param cells
+     *            the cells to draw
+     * @param material
+     *            what to draw them as, or null to send what is really there
+     */
+    static void sendCells(final Stargate gate, final List<Location> cells, final Material material)
+    {
+        if ((gate == null) || (gate.getGateWorld() == null) || (cells == null) || cells.isEmpty())
+        {
+            return;
+        }
+        final Location reference = new Location(gate.getGateWorld(),
+            cells.get(0).getBlockX(), cells.get(0).getBlockY(), cells.get(0).getBlockZ());
+        final List<Player> recipients = new ArrayList<>();
+        for (final Player p : gate.getGateWorld().getPlayers())
+        {
+            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
+            {
+                recipients.add(p);
+            }
+        }
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Built once nobody-is-watching has been ruled out, for the same reason
+        // sendPortalVisual does it: createBlockData needs a live server.
+        final BlockData drawn = (material == null) ? null : MaterialUtils.drawnAs(material);
+        for (final Location bc : cells)
+        {
+            final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final BlockData data = (drawn != null) ? drawn : at.getBlock().getBlockData();
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(at, data);
+            }
+        }
+    }
+
+    /**
      * Shows a traveller a moment of water as they come out of a gate.
      *
      * <p>The client draws its underwater overlay from whichever block it believes its camera

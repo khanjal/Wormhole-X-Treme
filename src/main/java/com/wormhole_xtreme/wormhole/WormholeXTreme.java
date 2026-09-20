@@ -278,6 +278,16 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.WARNING, "Failed to remove gate build previews", e);
             }
+            // A sweep half-drawn when the server stops would otherwise leave its last ring
+            // showing on clients until something else refreshed those blocks.
+            try
+            {
+                com.wormhole_xtreme.wormhole.model.StargateIrisAnimator.cancelAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to stop iris sweeps", e);
+            }
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
