@@ -6,6 +6,18 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.8.0 (unreleased)
+
+### Transport rings
+
+Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
+[docs/guide/RINGS.md](docs/guide/RINGS.md).
+
+**Changed**
+
+- **The transport light runs out from the pad putting a traveller back down**, where both
+  sweeps ran towards it. The sweep that takes somebody in is unchanged.
+
 ## 1.7.1 (2026-09-19)
 
 **Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**
