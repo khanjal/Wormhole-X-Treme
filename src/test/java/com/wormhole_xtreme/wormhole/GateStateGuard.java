@@ -6,6 +6,7 @@ import java.util.List;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
@@ -32,29 +33,47 @@ public final class GateStateGuard implements AfterAllCallback
     public void afterAll(final ExtensionContext context) throws Exception
     {
         final List<String> left = new ArrayList<>();
-        for (final Stargate gate : StargateManager.getOpenGates())
+        // Cleaning in a finally so a renamed static does not also leave the mess behind. Every
+        // later class would otherwise fail on this class's gates as well as the rename.
+        try
         {
-            left.add("open gate " + gate.getGateName());
+            collectLeftovers(left);
         }
-        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        finally
         {
-            left.add("registered gate " + gate.getGateName());
+            PluginTestSupport.forgetAllGates();
         }
-        describe("network", PrivateStatics.of(StargateManager.class, "stargateNetworks"), left);
-        describe("world block index", PrivateStatics.of(StargateManager.class, "gateBlocksByWorld"), left);
-        describe("incomplete gate", PrivateStatics.of(StargateManager.class, "incompleteStargates"), left);
-        describe("activated gate", PrivateStatics.of(StargateManager.class, "activatedStargates"), left);
-        describe("builder shape", PrivateStatics.of(StargateManager.class, "playerBuilders"), left);
-
-        PluginTestSupport.forgetAllGates();
-
         if (!left.isEmpty())
         {
             throw new AssertionError(context.getDisplayName() + " left " + left.size()
-                + " thing(s) in StargateManager's shared statics, which the next test class"
+                + " thing(s) in the shared gate statics, which the next test class"
                 + " inherits: " + summarise(left)
                 + ". Call PluginTestSupport.forgetAllGates() in an @AfterEach.");
         }
+    }
+
+    /**
+     * Names everything still held, across every static {@code forgetAllGates} empties.
+     *
+     * <p>These have to stay in step: something the teardown clears but this does not look at is
+     * a leak that gets tidied away without the class that caused it ever being told.
+     */
+    private static void collectLeftovers(final List<String> into) throws ReflectiveOperationException
+    {
+        for (final Stargate gate : StargateManager.getOpenGates())
+        {
+            into.add("open gate " + gate.getGateName());
+        }
+        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        {
+            into.add("registered gate " + gate.getGateName());
+        }
+        describe("network", PrivateStatics.of(StargateManager.class, "stargateNetworks"), into);
+        describe("world block index", PrivateStatics.of(StargateManager.class, "gateBlocksByWorld"), into);
+        describe("incomplete gate", PrivateStatics.of(StargateManager.class, "incompleteStargates"), into);
+        describe("activated gate", PrivateStatics.of(StargateManager.class, "activatedStargates"), into);
+        describe("builder shape", PrivateStatics.of(StargateManager.class, "playerBuilders"), into);
+        describe("indexed block", PrivateStatics.of(GateSpatialIndex.class, "index"), into);
     }
 
     /**
