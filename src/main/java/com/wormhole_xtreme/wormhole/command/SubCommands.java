@@ -159,6 +159,17 @@ public final class SubCommands
         {
             return completer == null ? Collections.<String>emptyList() : completer.complete(sender, args);
         }
+
+        /**
+         * Whether this subcommand tries to complete its arguments at all.
+         *
+         * <p>Distinct from getting nothing back from {@link #completeArgs}, which is the
+         * ordinary answer when the word being typed is a gate name on a server with no gates.
+         * This says whether anyone ever wrote a completer, which is what a guard test can ask.
+         *
+         * @return true if it has one
+         */
+        public boolean completesArguments() { return completer != null; }
     }
 
     private static final Map<String, Entry> BY_NAME = new LinkedHashMap<>();
@@ -181,21 +192,21 @@ public final class SubCommands
         return none();
     };
 
-    /** Completes a gate name, then a free value the plugin cannot guess. */
-    private static final ArgCompleter GATE_THEN_VALUE = (sender, args) -> args.length == 2 ? gateNames(args[1]) : none();
 
     static
     {
         // --- Gate lifecycle -------------------------------------------------
         register("list", aliases(), "/wormhole list [network]", new WXList(), true, (sender, args) ->
             args.length == 2 ? networkNames(args[1]) : none());
-        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true, null);
+        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true,
+            (sender, args) -> completeGateBuild(asGateVerb(args)));
         register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
         register(REGEN, aliases(REGENERATE), "/wormhole regen <gate> [-shape <shape>] [-fill] [-water] | [-water] | -all",
-            new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
+            new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false,
+            (sender, args) -> completeGateRegenerate(asGateVerb(args)));
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
         // --- Travel ---------------------------------------------------------
@@ -211,8 +222,23 @@ public final class SubCommands
 
         // --- Per-gate settings ----------------------------------------------
         register(OWNER, aliases(), "/wormhole owner <gate> [player]",
-            new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, GATE_THEN_VALUE);
-        register("idc", aliases(), "/wormhole idc <gate> [code|-clear]", new WXIDC(), true, GATE_THEN_VALUE);
+            new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                return args.length == 3 ? playerNames(args[2]) : none();
+            });
+        register("idc", aliases(), "/wormhole idc <gate> [code|-clear]", new WXIDC(), true, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                // The code itself is theirs to invent; -clear is the one word that is ours.
+                return args.length == 3 ? prefixed(args[2], "-clear") : none();
+            });
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
         register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|-confirm]",
@@ -253,7 +279,19 @@ public final class SubCommands
                 });
         }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
-            new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
+            new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                if (args.length != 3)
+                {
+                    return none();
+                }
+                return prefixed(args[2], com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand
+                    .depths().toArray(new String[0]));
+            });
 
         // --- Transport rings --------------------------------------------------
         register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
@@ -369,6 +407,26 @@ public final class SubCommands
         }
         // Every other verb takes a gate name first, and nothing after it worth guessing at.
         return args.length == 3 ? gateNames(args[2]) : none();
+    }
+
+    /**
+     * Reads a standalone subcommand's arguments as though they had been typed after {@code gate}.
+     *
+     * <p>The older top-level names are aliases of a {@code gate} verb -- {@code /wormhole build}
+     * is {@code /wormhole gate build} -- so they should complete identically rather than each
+     * carrying a second copy of the same candidates. The verb completers index from
+     * {@code args[1]}, so one leading word is all that separates the two shapes.
+     *
+     * @param args
+     *            the standalone form, verb first
+     * @return the same arguments with {@code gate} in front
+     */
+    private static String[] asGateVerb(final String[] args)
+    {
+        final String[] shifted = new String[args.length + 1];
+        shifted[0] = "gate";
+        System.arraycopy(args, 0, shifted, 1, args.length);
+        return shifted;
     }
 
     /**
