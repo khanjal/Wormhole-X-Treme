@@ -173,6 +173,12 @@ Two things that follow from it, worth knowing before filing an issue:
 - **The plugin's version says nothing about Minecraft's.** The supported range lives in the
   README badge and in [Minecraft versions](#minecraft-versions), and moves on its own schedule.
   `1.10.0` after `1.9.0` is ordinary, and is not a claim about Minecraft 1.10.
-- **The number is set at release, not during.** Work lands under a top changelog heading marked
-  `(unreleased)`, while the pom still carries the last released version. One commit at the end
-  versions the pom and dates the heading.
+- **The pom carries the version being worked towards, with `-SNAPSHOT`.** Work lands under a
+  top changelog heading marked `(unreleased)`, and the pom says `1.8.0-SNAPSHOT` while that is
+  what is being built. The release tag is what sets the real number: `release.yml` runs
+  `versions:set` from the tag, so nothing downstream reads the pom's development version.
+
+  It used to carry the *last released* version instead, which meant a jar built mid-cycle
+  reported a number that was already out and said nothing about what was in it. `/version`
+  still prints the build time, which is what tells two builds of one version apart; the
+  `-SNAPSHOT` is what stops a development jar claiming to be a release.
