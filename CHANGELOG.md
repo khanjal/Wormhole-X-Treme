@@ -56,6 +56,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole
   has formed, it is just behind a shut iris. Opening the iris shows the water as before.
+- **A preview's iris covers its wormhole rather than taking it away.** Closing the iris on
+  a dialled preview replaced the water with air a beat before the first ring of the sweep
+  arrived, so the wormhole read as having closed rather than been covered. It now behaves the
+  way a real gate does, which also means a glass iris shows water through it on both.
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
   played for a player: the lever, the commands and dialling all reached the iris through one
   method that had already changed the gate's state before anything checked whether it had
@@ -64,6 +68,28 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
   at the gate it came from but stepped out the way the *far* gate faces, so unless the two
   gates faced the same way it could land in the frame, the ground or a wall.
+
+### Commands
+
+**Added**
+
+- **`/wormhole config gate-iris-animation ` offers the styles it accepts**: `sweep`, `spiral`,
+  `rows`, `columns` and `instant`. It completed to nothing before, and the command takes any
+  word, so a typo was accepted and quietly read as the default.
+- **`wooshdepth` offers the six depths it accepts**, `owner` offers the online players, and
+  `idc` offers `-clear`.
+- **`build` and `regen` complete the way `gate build` and `gate regen` do.** The flat names
+  are still there for anything scripted against them; they kept the shorter completions they
+  had before the move, so `build` offered no shapes and `regen` offered none of its flags.
+- **`remove` offers `-destroy`.**
+
+**Fixed**
+
+- **`gate list` offers networks, not gate names.** Every `gate` verb without a completer of its
+  own fell through to one that offered a gate name, which is wrong for `list` -- it narrows the
+  listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
+  Each verb now asks the command it is short for. A word that is not a verb at all offers
+  nothing, where it used to offer gates the command would then refuse.
 
 ### For shape authors
 

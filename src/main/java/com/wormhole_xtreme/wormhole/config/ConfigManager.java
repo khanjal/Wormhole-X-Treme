@@ -844,6 +844,11 @@ public class ConfigManager
             case GATE_DIAL_SPIN:
                 return java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
+            case GATE_IRIS_ANIMATION:
+                return java.util.stream.Stream.concat(
+                    java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
+                        .map(s -> s.name().toLowerCase(Locale.ROOT)),
+                    java.util.stream.Stream.of("instant")).toList();
             case RING_DEFAULT_ACCESS:
                 return java.util.List.of("public", "private");
             case RING_DEFAULT_STYLE:

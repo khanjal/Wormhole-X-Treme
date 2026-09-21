@@ -16,6 +16,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -1057,9 +1059,20 @@ class GatePreviewsTest
         assertTrue(spawned.isEmpty());
     }
 
-    /** Closing the iris over an open wormhole takes the wormhole back, and clearing the preview takes back the rest. */
+    /**
+     * A closing iris covers the wormhole rather than taking it back; clearing takes it back.
+     *
+     * <p>It used to take it back, from when the iris stood in the horizon's place instead of in
+     * front of it. Reported from a server: the water was replaced with air a beat before the
+     * first ring of the sweep arrived, so the wormhole read as having closed rather than been
+     * covered -- and a sweep over empty air is a sweep over nothing.
+     *
+     * <p>The opening's displays stand in front of the sent blocks, so a closed iris hides the
+     * horizon without it having to go anywhere. That is what a real gate does, and it is what
+     * makes a glass iris show water through it on both.
+     */
     @Test
-    void theIrisAndClearingTakeTheWormholeBack()
+    void aClosingIrisCoversTheWormholeAndClearingTakesItBack()
     {
         GatePreviews.show(owner, standard, null);
         GatePreviews.activate(owner);
@@ -1071,14 +1084,38 @@ class GatePreviewsTest
 
         GatePreviews.iris(owner);
         finishIrisSweep();
-        verify(owner, times(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(owner, times(takenBackByTheWoosh)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
 
         GatePreviews.iris(owner);
         finishIrisSweep();
-        verify(owner, atLeast((takenBackByTheWoosh + 21) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        verify(owner, atLeast(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
 
         assertEquals(1, GatePreviews.clearAll(owner));
-        verify(owner, times(takenBackByTheWoosh + 21 + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(owner, times(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /**
+     * The horizon is still being sent while the iris sweeps over it.
+     *
+     * <p>The assertion the one above cannot make by counting: that the water is there *during*
+     * the sweep, which is the whole of what was reported. Taken at the moment the first ring
+     * lands, before the sweep has finished and before anything else has had a chance to redraw.
+     */
+    @Test
+    void theWormholeIsStillDrawnWhileTheIrisSweepsAcrossIt()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        clearInvocations(owner);
+
+        GatePreviews.iris(owner);
+
+        verify(owner, atLeastOnce()).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        verify(owner, never()).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
     }
 
     /** Obsidian frames are one a gate can be found by, as a server's Standard group makes them. */

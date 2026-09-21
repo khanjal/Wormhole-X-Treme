@@ -319,6 +319,36 @@ class IrisSweepTest
         assertEquals(IrisSweep.Style.SWEEP, IrisSweep.Style.of(null));
     }
 
+    /**
+     * Everything {@code /wormhole config gate-iris-animation } offers is a style the plugin honours.
+     *
+     * <p>The list was written out by hand and did not include the styles at all, so the setting
+     * that has the most values of any in the file was the one that completed to nothing. Offering
+     * the wrong words would be worse than offering none: the config command takes any string, so
+     * a suggested typo is accepted, silently read as the default, and never reported.
+     *
+     * <p>Asserted by round-tripping rather than by comparing to a second hand-written list, which
+     * would only pin the two lists to each other.
+     */
+    @Test
+    void theConfigCommandOffersEveryStyleAndInstant()
+    {
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        final List<String> offered =
+            com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("gate-iris-animation");
+
+        for (final IrisSweep.Style style : IrisSweep.Style.values())
+        {
+            final String word = style.name().toLowerCase(java.util.Locale.ROOT);
+            assertTrue(offered.contains(word), "should offer " + word + ", got " + offered);
+            assertEquals(style, IrisSweep.Style.of(word), word + " should read back as itself");
+        }
+        assertTrue(offered.contains("instant"),
+            "and the word that turns the sweep off, which is not a style: " + offered);
+        assertEquals(IrisSweep.Style.values().length + 1, offered.size(),
+            "and nothing else, or the completion names a value the plugin would ignore");
+    }
+
     @Test
     void anOpeningWithNoCellsSweepsNothing()
     {

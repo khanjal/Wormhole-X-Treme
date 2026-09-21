@@ -71,6 +71,8 @@ class IrisSweepOrderingTest
     private MockedStatic<MaterialUtils> materials;
     /** What {@link Material#AIR} is drawn as, so the uncovering can be recognised. */
     private final BlockData bareOpening = mock(BlockData.class);
+    /** What {@link Material#WATER} is drawn as, so an event horizon can be told from empty air. */
+    private final BlockData openWater = mock(BlockData.class);
     /** Tasks the sweep has booked and not had cancelled, in the order they were booked. */
     private final java.util.LinkedHashMap<Integer, Runnable> pending = new java.util.LinkedHashMap<>();
     private final List<String> events = new ArrayList<>();
@@ -88,7 +90,15 @@ class IrisSweepOrderingTest
 
         materials = mockStatic(MaterialUtils.class);
         materials.when(() -> MaterialUtils.drawnAs(any(Material.class)))
-            .thenAnswer(i -> (i.getArgument(0) == Material.AIR) ? bareOpening : mock(BlockData.class));
+            .thenAnswer(i ->
+            {
+                final Material asked = i.getArgument(0);
+                if (asked == Material.AIR)
+                {
+                    return bareOpening;
+                }
+                return (asked == Material.WATER) ? openWater : mock(BlockData.class);
+            });
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         // "booked" is recorded when the sweep asks for its next step, not when that step is
@@ -277,6 +287,33 @@ class IrisSweepOrderingTest
         assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
             "the first ring has to be drawn as the bare opening over an iris that is still "
                 + "standing there, or the open is invisible");
+    }
+
+    /**
+     * Closing over a live wormhole hides the iris behind the water, not behind nothing.
+     *
+     * <p>Reported from a server: closing the iris on a dialled gate showed the event horizon
+     * being replaced by empty air as the rings came in, rather than by the iris arriving over
+     * water still standing.
+     *
+     * <p>The cells not yet covered are drawn as whatever the opening looked like a moment
+     * earlier, and on an open gate that is the horizon. Drawing them as air says the wormhole
+     * has gone, a beat before the iris says anything at all.
+     */
+    @Test
+    void closingOverALiveWormholeHidesTheIrisBehindTheWater()
+    {
+        gate.setGateActive(true);
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        final ArgumentCaptor<BlockData> drawn = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), drawn.capture());
+        assertTrue(drawn.getAllValues().stream().anyMatch(d -> d == openWater),
+            "the opening should be held as water while the iris sweeps over it");
+        assertFalse(drawn.getAllValues().stream().anyMatch(d -> d == bareOpening),
+            "and never as empty air, which reads as the wormhole having closed");
     }
 
     /**
