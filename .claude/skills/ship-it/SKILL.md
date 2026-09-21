@@ -86,6 +86,12 @@ context rather than assuming a fixed string**, since it varies by session and by
 To the feature branch. Never force-push, never push to `main` directly, matching the standing
 project rule from step 1.
 
+## 6b. Review before the PR opens
+
+Follow the `pr-review` skill: a different model reviews the change before the PR is opened,
+Copilot is requested once at open, and the PR carries the Reviews checklist. Its steps run
+alongside this one's from here on.
+
 ## 7. Verify CI — actually check, don't assume
 
 ```
