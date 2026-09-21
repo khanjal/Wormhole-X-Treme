@@ -102,10 +102,12 @@ class WormholeXTremePlayerListener implements Listener
      *            the entity being ridden
      * @return a portal block of an active gate, or null if the mount is not in one
      */
+    // Never null on a server; the box check is for mock mounts that stub none.
+    @SuppressWarnings("java:S2589")
     private static Block findActiveGatePortalBlockAtMount(final Entity mount)
     {
         final Location ml = mount.getLocation();
-        if (ml == null || ml.getWorld() == null)
+        if (ml.getWorld() == null)
         {
             return null;
         }
@@ -272,11 +274,6 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        if (player == null)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "handlePlayerMoveEvent: event player is null, ignoring event.");
-            return false;
-        }
         logCrossing(event, player);
 
         final Location toLocFinal = event.getTo();

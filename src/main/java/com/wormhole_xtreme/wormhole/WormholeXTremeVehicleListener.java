@@ -619,10 +619,6 @@ class WormholeXTremeVehicleListener implements Listener
             ? st.getGateTarget().getGateMinecartTeleportLocation()
             : st.getGateTarget().getGatePlayerTeleportLocation();
         final Vehicle veh = event.getVehicle();
-        if (veh == null)
-        {
-            return false;
-        }
         final Vector v = veh.getVelocity();
         veh.setVelocity(nospeed);
         final List<Entity> passengers = new ArrayList<>(veh.getPassengers());
@@ -665,7 +661,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return;
         }
-        final String vt = (event.getVehicle() != null) ? event.getVehicle().getType().name() : "UNKNOWN";
+        final String vt = event.getVehicle().getType().name();
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "VehicleMoveEvent: type=" + vt
             + " toBlock=" + ch.getLocation() + " blockType=" + ch.getType().name());
     }

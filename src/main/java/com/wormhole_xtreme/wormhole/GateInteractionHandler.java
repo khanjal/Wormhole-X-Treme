@@ -804,7 +804,7 @@ public final class GateInteractionHandler
     private static Stargate unregisteredGateFacing(final Block candidate, final BlockFace face)
     {
         final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
-        if ((holder == null) || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
+        if (!StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
         {
             return null;
         }
@@ -834,11 +834,7 @@ public final class GateInteractionHandler
         final org.bukkit.block.data.BlockData data = candidate.getBlockData();
         if (data instanceof org.bukkit.block.data.Directional directional)
         {
-            final BlockFace facing = directional.getFacing();
-            if (facing != null)
-            {
-                return new BlockFace[] { facing };
-            }
+            return new BlockFace[] { directional.getFacing() };
         }
         return PROBE_FACES;
     }

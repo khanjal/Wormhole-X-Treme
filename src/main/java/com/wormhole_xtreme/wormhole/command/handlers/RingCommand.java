@@ -1167,7 +1167,7 @@ public class RingCommand implements SubCommand
         final OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(name);
         // getOfflinePlayer invents a profile for a name nobody has ever used, so having
         // played before is the only way to tell a real absent player from a typo.
-        return ((offline != null) && offline.hasPlayedBefore()) ? offline : null;
+        return offline.hasPlayedBefore() ? offline : null;
     }
 
     /**

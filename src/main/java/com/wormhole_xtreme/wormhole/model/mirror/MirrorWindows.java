@@ -648,7 +648,7 @@ public final class MirrorWindows
             return;
         }
         final UUID id = player.getUniqueId();
-        final MirrorDrawing view = (id == null) ? null : VIEWS.get(id);
+        final MirrorDrawing view = VIEWS.get(id);
         if ((view == null) && !nearAWindow(player, to))
         {
             return;
