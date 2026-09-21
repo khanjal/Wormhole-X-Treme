@@ -32,8 +32,10 @@ def normalised_hash(data):
 
 def main():
     names = re.findall(r'"(\w+\.shape)"', SOURCE.read_text(encoding="utf-8").split("NAMES", 1)[1].split(";", 1)[0])
-    # Blobs of every non-test .shape path main has touched, oldest first.
-    log = git("log", "main", "--reverse", "--format=%H", "--name-only", "--", "*.shape").decode()
+    # Blobs of every non-test .shape path main has touched, oldest first. origin/main, not a
+    # local main that may be behind it, so a version shipped in between is not missed.
+    git("fetch", "--quiet", "origin")
+    log = git("log", "origin/main", "--reverse", "--format=%H", "--name-only", "--", "*.shape").decode()
     seen = {}
     commit = None
     for line in log.splitlines():

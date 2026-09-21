@@ -144,4 +144,38 @@ class ShippedShapesTest
         assertFalse(new File(dir, "Large.shape" + ShippedShapes.BACKUP_SUFFIX).exists(),
             "and was never moved aside");
     }
+
+    /**
+     * Somebody's own .old is never overwritten; that shape is left for this start instead.
+     *
+     * <p>.old is the name the update log line tells admins about, so an edited copy saved under it
+     * is a likely thing to find. Only a .old that is itself a shipped version is the plugin's own.
+     */
+    @Test
+    void anAdminsOwnBackupIsNotOverwritten() throws Exception
+    {
+        final String old = oldLarge();
+        final String theirs = old + "# my own version\n";
+        Files.writeString(new File(dir, "Large.shape").toPath(), old, StandardCharsets.UTF_8);
+        Files.writeString(new File(dir, "Large.shape" + ShippedShapes.BACKUP_SUFFIX).toPath(), theirs,
+            StandardCharsets.UTF_8);
+
+        ShippedShapes.updateUntouched(dir);
+
+        assertEquals(theirs, read("Large.shape" + ShippedShapes.BACKUP_SUFFIX), "their backup is untouched");
+        assertEquals(old, read("Large.shape"), "and the shape is left for this start");
+    }
+
+    /** An edited shape is named in the log, which is how an admin learns why it was not updated. */
+    @Test
+    void anEditedShapeIsNamedInTheLog() throws Exception
+    {
+        Files.writeString(new File(dir, "Large.shape").toPath(), oldLarge() + "# my notes\n", StandardCharsets.UTF_8);
+
+        ShippedShapes.updateUntouched(dir);
+
+        org.mockito.Mockito.verify(WormholeXTreme.getThisPlugin()).prettyLog(
+            org.mockito.ArgumentMatchers.eq(java.util.logging.Level.INFO),
+            org.mockito.ArgumentMatchers.contains("Large.shape has been edited"));
+    }
 }

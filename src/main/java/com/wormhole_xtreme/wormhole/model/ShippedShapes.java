@@ -66,9 +66,10 @@ final class ShippedShapes
     /**
      * Replaces one bundled shape if the folder holds it as some earlier release wrote it.
      *
-     * <p>The new copy is written beside it first and only then swapped in, so a write that fails
-     * -- a full disk, a file held open on Windows -- leaves the old one where it was rather than
-     * already moved aside with nothing in its place.
+     * <p>The new copy is written beside it first, the old one copied to {@code .old}, and only
+     * then the new one moved over it, so at no point is there no shape: a failure anywhere
+     * leaves the old one in place. A {@code .old} that is not itself a shipped version is
+     * somebody's own backup, and is never overwritten -- that shape is left for this start.
      */
     private static void updateOne(final File directory, final String name, final Set<String> shipped)
     {
@@ -79,6 +80,7 @@ final class ShippedShapes
             return;
         }
         final java.nio.file.Path incoming = new File(directory, name + INCOMING_SUFFIX).toPath();
+        final File backup = new File(directory, name + BACKUP_SUFFIX);
         try
         {
             final String onDisk = hash(Files.readString(file.toPath(), StandardCharsets.UTF_8));
@@ -92,9 +94,16 @@ final class ShippedShapes
                     + " has been edited, so it was left as it is. Delete it and restart to get this version's.");
                 return;
             }
+            if (backup.isFile() && !shipped.contains(name + " "
+                + hash(Files.readString(backup.toPath(), StandardCharsets.UTF_8))))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
+                    + " was not updated, because " + name + BACKUP_SUFFIX
+                    + " is not one this plugin wrote. Move it aside and restart to update.");
+                return;
+            }
             Files.writeString(incoming, current, StandardCharsets.UTF_8);
-            Files.move(file.toPath(), new File(directory, name + BACKUP_SUFFIX).toPath(),
-                StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.move(incoming, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Updated gate shape " + name
                 + " to this version; the old one is kept as " + name + BACKUP_SUFFIX + ".");
