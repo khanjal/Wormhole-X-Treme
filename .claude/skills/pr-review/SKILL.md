@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a review by a different model than the one that wrote the code, on every PR, before it opens; then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
+description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a Sonnet review on every PR before it opens, and a Fable one as well on the larger ones, never by the model that wrote the code; then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
 ---
 
 # Reviewing a pull request before it merges
@@ -16,16 +16,19 @@ assumptions, so a review by the same model misses exactly the bugs that matter m
 review as a sub-agent with a model override -- the Agent tool's `model` parameter -- not as
 `/code-review` in the session that wrote the code.
 
-- **`fable` (Fable 5.1) is the default.** On 2026-09-21 it reviewed #412 blind and found the
-  bug the user had just hit in-game, plus two more that two Opus passes (writing, then
-  `/code-review`) had missed. About ten minutes and 200k tokens for a 1,700-line PR.
-- **`sonnet` (Sonnet 5)** was run on the same blind test the same day. It found the same
-  two high-severity bugs Fable did (the in-game one, and arrows through the far end's
-  iris), one Fable did not (a per-gate entity scan every second), and none of Fable's three
-  lower-confidence edge cases (ridden carts, fast movement, pearls). No false positives from
-  either. It took about as long and as many tokens, though Sonnet's are cheaper. Good enough
-  for small or routine PRs; use Fable for anything that changes behaviour a player sees, and
-  both when a PR is large enough that one more angle is worth ten minutes.
+- **`sonnet` (Sonnet 5) on every PR.** The immediate review, whatever the size. On
+  2026-09-21 it reviewed #412 blind and found the bug the user had just hit in-game, a second
+  serious one (arrows through the far end's iris), and a third nobody else saw (a per-gate
+  entity scan every second), with no false positives. Neither the writing session nor its own
+  `/code-review` had found any of them.
+- **`fable` (Fable 5.1) as well, on the larger ones** -- several hundred changed lines, or a
+  change to how something behaves for players across several paths. On the same blind test it
+  found both serious bugs too, plus three edge cases Sonnet missed (ridden carts, fast movement,
+  ender pearls), and missed the scan cost Sonnet caught. Each saw something the other did not,
+  which is the case for running both when a PR is big enough to hide more than one.
+
+Both took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens are cheaper.
+Run the two in parallel when both are due.
 
 Give it: the repo path, the diff range, that it is read-only (no edits, commits or GitHub
 posts), what the change is meant to do, and to hunt for bugs with a concrete failure scenario
