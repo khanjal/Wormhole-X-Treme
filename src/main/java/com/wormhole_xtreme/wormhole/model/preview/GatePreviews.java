@@ -993,6 +993,12 @@ public final class GatePreviews
             // Open all the same: the opening is drawn behind the iris, and its displays cover it.
             settle();
         }
+
+        /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
+        private static List<Cell> wooshStep(final GatePreview preview, final int index)
+        {
+            return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
+        }
     }
 
     /** Locks the next chevron, with its sound, and books what follows it. */
@@ -1079,12 +1085,6 @@ public final class GatePreviews
         sound(owner, preview, ConfigManager.getGateSoundActivate(), 1.0f);
         next(owner, preview, preview.shape().getShapeLightTicks());
         return Control.DIALLING;
-    }
-
-    /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
-    private static List<Cell> wooshStep(final GatePreview preview, final int index)
-    {
-        return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
     }
 
     /**
