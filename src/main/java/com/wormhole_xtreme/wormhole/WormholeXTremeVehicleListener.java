@@ -632,6 +632,12 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
+        // After the far iris has had its say, and before any trip is announced: a far gate with
+        // no arrival point has nowhere to put the cart, and teleport(null) throws.
+        if (target == null)
+        {
+            return false;
+        }
         if (!everyRiderMayTravel(st, passengers))
         {
             return false;
@@ -791,12 +797,13 @@ class WormholeXTremeVehicleListener implements Listener
         final Location irisTarget = st.getGateMinecartTeleportLocation() != null
             ? st.getGateMinecartTeleportLocation()
             : st.getGatePlayerTeleportLocation();
-        final Location safeIrisTarget = (irisTarget != null)
-            ? forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0)
-            : irisTarget;
-        // Marked before the move so it does not read as another trip through the gate.
-        markVehicleRecentlyTeleported(veh.getUniqueId());
-        veh.teleport(safeIrisTarget);
+        // With no arrival point of its own there is nowhere to put it back; it stays stopped.
+        if (irisTarget != null)
+        {
+            // Marked before the move so it does not read as another trip through the gate.
+            markVehicleRecentlyTeleported(veh.getUniqueId());
+            veh.teleport(forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
+        }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
             st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
@@ -867,7 +874,7 @@ class WormholeXTremeVehicleListener implements Listener
                                                    final List<Entity> passengers)
     {
         final Vector newSpeed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
-        final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+        final Location safeTarget = forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0);
         faceTheWayItIsGoing(safeTarget, newSpeed, st.getGateTarget().getGateFacing());
         if (veh != null)
         {

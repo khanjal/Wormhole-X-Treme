@@ -489,6 +489,11 @@ class WormholeXTremePlayerListener implements Listener
         }
 
         final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+        // A far gate with no arrival point has nowhere to put anybody, and teleport(null) throws.
+        if (target == null)
+        {
+            return false;
+        }
         if (refusedForCrossWorld(player, gateBlockFinal, target))
         {
             return false;
