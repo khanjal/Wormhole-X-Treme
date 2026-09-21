@@ -1142,6 +1142,57 @@ class GatePreviewsTest
     }
 
     /**
+     * An iris closed while the chevrons are still locking hides the kawoosh that follows.
+     *
+     * <p>What decides is the iris at the moment the woosh would play, not when dialling began.
+     */
+    @Test
+    void anIrisClosedDuringDiallingHidesTheKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        for (int step = 3; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+    }
+
+    /**
+     * An iris opened while the chevrons are still locking lets the kawoosh through.
+     *
+     * <p>The other way round from the test above: closed when dialling began, open by the time
+     * the woosh plays, so the woosh is drawn.
+     */
+    @Test
+    void anIrisOpenedDuringDiallingLetsTheKawooshThrough()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        for (int step = 3; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        verify(owner, atLeast((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+    }
+
+    /**
      * The horizon is still being sent while the iris sweeps over it.
      *
      * <p>The assertion the one above cannot make by counting: that the water is there *during*
