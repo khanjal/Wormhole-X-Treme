@@ -395,17 +395,17 @@ public final class GatePreviews
         {
             return Control.NOT_LOOKING;
         }
-        preview.irisClosed(!preview.irisClosed());
+        preview.setGateIrisActive(!preview.isGateIrisActive());
         // The wormhole is not taken back when the iris shuts. It used to be, from when the
         // iris stood in the horizon's place rather than in front of it -- and that is what
         // replaced the water with air a beat before the first ring of the sweep arrived.
         // The opening's displays cover it now, the way a real gate's iris does.
-        sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
+        sound(owner, preview, preview.isGateIrisActive() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         // Restyles and draws for itself, a ring at a time. Doing either here as well would
         // draw the whole iris in the same tick the sweep set out to draw it gradually.
         startIrisSweep(owner, preview);
-        return preview.irisClosed() ? Control.IRIS_CLOSED : Control.IRIS_OPENED;
+        return preview.isGateIrisActive() ? Control.IRIS_CLOSED : Control.IRIS_OPENED;
     }
 
     /**
@@ -939,7 +939,7 @@ public final class GatePreviews
         }
         // The same sequence a real gate plays, iris and all; only the drawing is the preview's.
         final int stage = preview.wooshStage();
-        final int next = WooshSequence.play(stage, preview.lastWoosh(), new PreviewCanvas(owner, preview));
+        final int next = WooshSequence.play(stage, preview.lastWoosh(), preview, new PreviewCanvas(owner, preview));
         preview.wooshStage((next < 0) ? (stage + 1) : next);
         if (next >= 0)
         {
@@ -950,12 +950,6 @@ public final class GatePreviews
     /** A preview's side of the woosh: fake blocks for whoever is watching, the sound at the preview. */
     private record PreviewCanvas(Player owner, GatePreview preview) implements WooshSequence.Canvas
     {
-        @Override
-        public boolean irisShut()
-        {
-            return preview.irisClosed();
-        }
-
         @Override
         public void kawoosh()
         {
@@ -1329,16 +1323,16 @@ public final class GatePreviews
         final List<Cell> cells = preview.opening();
         if (!ConfigManager.isGateIrisAnimated() || (cells.size() < 2))
         {
-            preview.irisShownEverywhere(preview.irisClosed());
+            preview.irisShownEverywhere(preview.isGateIrisActive());
             restyle(preview);
             draw(owner, preview);
             return;
         }
         // Closing starts from nothing shown and adds rings; opening starts from all of it and
-        // takes them away. Either way the set ends agreeing with irisClosed.
-        preview.irisShownEverywhere(!preview.irisClosed());
+        // takes them away. Either way the set ends agreeing with the iris flag.
+        preview.irisShownEverywhere(!preview.isGateIrisActive());
         restyle(preview);
-        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.irisClosed()), 0);
+        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.isGateIrisActive()), 0);
     }
 
     /**
@@ -1394,7 +1388,7 @@ public final class GatePreviews
         }
         for (final int cell : rings.get(ring))
         {
-            if (preview.irisClosed())
+            if (preview.isGateIrisActive())
             {
                 preview.irisShown().add(cell);
             }

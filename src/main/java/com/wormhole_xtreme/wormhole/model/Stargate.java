@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
  * @author Dean Bailey (alron)
  * 
  */
-public class Stargate
+public class Stargate implements GateIris
 {
 
     /** The Loaded version, used to determine what version of parser to use. */
@@ -1550,6 +1550,7 @@ public class Stargate
      * 
      * @return true, if is gate iris active
      */
+    @Override
     public boolean isGateIrisActive()
     {
         return gateIrisActive;

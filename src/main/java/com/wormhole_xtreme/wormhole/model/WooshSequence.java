@@ -37,9 +37,6 @@ public final class WooshSequence
      */
     public interface Canvas
     {
-        /** @return whether an iris is shut over the opening right now */
-        boolean irisShut();
-
         /** Plays the kawoosh sound. */
         void kawoosh();
 
@@ -103,17 +100,19 @@ public final class WooshSequence
      *            the stage to play, from 0
      * @param steps
      *            how many woosh steps the gate has
+     * @param iris
+     *            the iris over the opening: the gate's own, or the preview's
      * @param canvas
      *            what to play it on
      * @return the next stage, or -1 once the woosh is over and nothing more should be booked
      */
-    public static int play(final int stage, final int steps, final Canvas canvas)
+    public static int play(final int stage, final int steps, final GateIris iris, final Canvas canvas)
     {
         if ((stage == 0) && (steps > 0))
         {
             canvas.kawoosh();
         }
-        if (canvas.irisShut())
+        if (iris.isGateIrisActive())
         {
             canvas.undrawAll();
             canvas.settleBehindIris();

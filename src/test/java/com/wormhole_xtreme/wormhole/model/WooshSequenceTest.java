@@ -65,7 +65,6 @@ class WooshSequenceTest
         final java.util.List<String> calls = new java.util.ArrayList<>();
         boolean shut;
 
-        @Override public boolean irisShut() { return shut; }
         @Override public void kawoosh() { calls.add("kawoosh"); }
         @Override public void draw(final int index) { calls.add("out " + index); }
         @Override public void undraw(final int index) { calls.add("back " + index); }
@@ -85,7 +84,7 @@ class WooshSequenceTest
             {
                 canvas.shut = !canvas.shut;
             }
-            stage = WooshSequence.play(stage, steps, canvas);
+            stage = WooshSequence.play(stage, steps, () -> canvas.shut, canvas);
         }
         return canvas.calls;
     }

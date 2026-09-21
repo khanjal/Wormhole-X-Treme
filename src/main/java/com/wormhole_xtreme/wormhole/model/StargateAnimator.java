@@ -65,7 +65,7 @@ class StargateAnimator
         // With no waves a leftover counter means nothing, and would read as a negative stage.
         final int stage = (waveCount == 0) ? 0
             : WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.isGateAnimationRemoving(), waveCount);
-        final int next = WooshSequence.play(stage, waveCount, new GateCanvas(gate, wooshMaterial));
+        final int next = WooshSequence.play(stage, waveCount, gate, new GateCanvas(gate, wooshMaterial));
         if (next < 0)
         {
             return;
@@ -79,12 +79,6 @@ class StargateAnimator
     /** A real gate's side of the woosh: drawn to nearby clients, the sound played at the gate. */
     private record GateCanvas(Stargate gate, Material wooshMaterial) implements WooshSequence.Canvas
     {
-        @Override
-        public boolean irisShut()
-        {
-            return gate.isGateIrisActive();
-        }
-
         @Override
         public void kawoosh()
         {
