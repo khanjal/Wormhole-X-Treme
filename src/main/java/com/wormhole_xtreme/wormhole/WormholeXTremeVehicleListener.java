@@ -790,8 +790,9 @@ class WormholeXTremeVehicleListener implements Listener
      * Puts a vehicle back out at the gate it came from, the far iris being shut.
      *
      * <p>The arrival point is the source gate's own, not the target's: there is nowhere to
-     * arrive. The vehicle is marked as recently teleported first, so the move it is about to
-     * make does not read as another trip through the gate.
+     * arrive, so it is stepped clear along the source gate's facing too. Not passed through
+     * {@code findSafePlayerLocation}: a rail is passable, so the search drops the cart back
+     * onto it and undoes the lift, and the forward path does not use it either.
      */
     private static void bounceOffClosedIris(final Stargate st, final Vehicle veh)
     {
@@ -799,7 +800,7 @@ class WormholeXTremeVehicleListener implements Listener
             ? st.getGateMinecartTeleportLocation()
             : st.getGatePlayerTeleportLocation();
         final Location safeIrisTarget = (irisTarget != null)
-            ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
+            ? forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0)
             : irisTarget;
         // Marked before the move so it does not read as another trip through the gate.
         markVehicleRecentlyTeleported(veh.getUniqueId());

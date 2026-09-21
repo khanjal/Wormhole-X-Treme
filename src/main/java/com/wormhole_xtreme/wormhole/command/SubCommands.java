@@ -31,6 +31,7 @@ public final class SubCommands
     private static final String FALSE = "false";
     private static final String BUILD = "build";
     private static final String REMOVE = "remove";
+    private static final String COMPLETE = "complete";
     private static final String REGENERATE = "regenerate";
     private static final String REGEN = "regen";
     private static final String OWNER = "owner";
@@ -159,6 +160,17 @@ public final class SubCommands
         {
             return completer == null ? Collections.<String>emptyList() : completer.complete(sender, args);
         }
+
+        /**
+         * Whether this subcommand tries to complete its arguments at all.
+         *
+         * <p>Distinct from getting nothing back from {@link #completeArgs}, which is the
+         * ordinary answer when the word being typed is a gate name on a server with no gates.
+         * This says whether anyone ever wrote a completer, which is what a guard test can ask.
+         *
+         * @return true if it has one
+         */
+        public boolean completesArguments() { return completer != null; }
     }
 
     private static final Map<String, Entry> BY_NAME = new LinkedHashMap<>();
@@ -181,21 +193,31 @@ public final class SubCommands
         return none();
     };
 
-    /** Completes a gate name, then a free value the plugin cannot guess. */
-    private static final ArgCompleter GATE_THEN_VALUE = (sender, args) -> args.length == 2 ? gateNames(args[1]) : none();
 
     static
     {
         // --- Gate lifecycle -------------------------------------------------
         register("list", aliases(), "/wormhole list [network]", new WXList(), true, (sender, args) ->
             args.length == 2 ? networkNames(args[1]) : none());
-        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true, null);
-        register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
+        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true,
+            (sender, args) -> completeGateBuild(asGateVerb(args)));
+        register(COMPLETE, aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
-        register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
+        register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true,
+            (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                // Taking the blocks down as well is the one thing the command does not do by
+                // default, and the only word it takes here.
+                return args.length == 3 ? prefixed(args[2], "-destroy") : none();
+            });
         register(REGEN, aliases(REGENERATE), "/wormhole regen <gate> [-shape <shape>] [-fill] [-water] | [-water] | -all",
-            new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
+            new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false,
+            (sender, args) -> completeGateRegenerate(asGateVerb(args)));
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
         // --- Travel ---------------------------------------------------------
@@ -211,8 +233,23 @@ public final class SubCommands
 
         // --- Per-gate settings ----------------------------------------------
         register(OWNER, aliases(), "/wormhole owner <gate> [player]",
-            new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, GATE_THEN_VALUE);
-        register("idc", aliases(), "/wormhole idc <gate> [code|-clear]", new WXIDC(), true, GATE_THEN_VALUE);
+            new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                return args.length == 3 ? playerNames(args[2]) : none();
+            });
+        register("idc", aliases(), "/wormhole idc <gate> [code|-clear]", new WXIDC(), true, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                // The code itself is theirs to invent; -clear is the one word that is ours.
+                return args.length == 3 ? prefixed(args[2], "-clear") : none();
+            });
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
         register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|-confirm]",
@@ -253,7 +290,19 @@ public final class SubCommands
                 });
         }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
-            new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
+            new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return gateNames(args[1]);
+                }
+                if (args.length != 3)
+                {
+                    return none();
+                }
+                return prefixed(args[2], com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand
+                    .depths().toArray(new String[0]));
+            });
 
         // --- Transport rings --------------------------------------------------
         register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
@@ -320,7 +369,7 @@ public final class SubCommands
         register(FREYA, aliases(), "/wormhole freya [on|off]",
             new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
 
-        hide("list", BUILD, "complete", REMOVE, REGEN, "refresh", "go", "force",
+        hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict", FREYA);
@@ -367,8 +416,76 @@ public final class SubCommands
             // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
         }
-        // Every other verb takes a gate name first, and nothing after it worth guessing at.
-        return args.length == 3 ? gateNames(args[2]) : none();
+        return completeFlatVerb(sender, args);
+    }
+
+    /**
+     * Completions for a {@code gate} verb that is also a flat subcommand under the same name.
+     *
+     * <p>Everything left here -- {@code list}, {@code go}, {@code force}, {@code remove},
+     * {@code complete}, {@code import} -- moved under {@code gate} from a name that is still
+     * registered and still knows what its own arguments are. Asking it is what keeps one
+     * completer per command: the fall-through this replaced offered a gate name in every one of
+     * these slots, so {@code gate list} offered gates where the command wants a network, and
+     * {@code gate complete} offered existing gates in the slot for a name that must be new.
+     *
+     * @param sender
+     *            whoever is typing
+     * @param args
+     *            the full argument array, {@code gate} at index 0
+     * @return whatever the flat command would offer for the same words
+     */
+    private static List<String> completeFlatVerb(final CommandSender sender, final String[] args)
+    {
+        final String verb = args[1].toLowerCase(Locale.ROOT);
+        // create is complete's second name, accepted by the handler but not registered as a
+        // subcommand of its own, so there is no entry to look up under it.
+        final String flatName = "create".equals(verb) ? COMPLETE : verb;
+        // Only the verbs gate actually dispatches. Without this, a word that happens to name
+        // some other subcommand -- gate set, gate timeout -- would complete as that one, and
+        // then be refused the moment it was run.
+        if (!com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs().contains(flatName)
+            && !"delete".equals(verb))
+        {
+            return none();
+        }
+        final Entry flat = BY_NAME.get(flatName);
+        return flat == null ? none() : flat.completeArgs(sender, asFlatCommand(args));
+    }
+
+    /**
+     * Reads a {@code gate} verb's arguments as though the verb had been typed on its own.
+     *
+     * <p>The mirror of {@link #asGateVerb}: one leading word is all that separates the two
+     * shapes, so dropping it lets the flat entry's completer index from where it expects.
+     *
+     * @param args
+     *            the {@code gate} form, with {@code gate} in front
+     * @return the same arguments without it
+     */
+    private static String[] asFlatCommand(final String[] args)
+    {
+        return java.util.Arrays.copyOfRange(args, 1, args.length);
+    }
+
+    /**
+     * Reads a standalone subcommand's arguments as though they had been typed after {@code gate}.
+     *
+     * <p>The older top-level names are aliases of a {@code gate} verb -- {@code /wormhole build}
+     * is {@code /wormhole gate build} -- so they should complete identically rather than each
+     * carrying a second copy of the same candidates. The verb completers index from
+     * {@code args[1]}, so one leading word is all that separates the two shapes.
+     *
+     * @param args
+     *            the standalone form, verb first
+     * @return the same arguments with {@code gate} in front
+     */
+    private static String[] asGateVerb(final String[] args)
+    {
+        final String[] shifted = new String[args.length + 1];
+        shifted[0] = "gate";
+        System.arraycopy(args, 0, shifted, 1, args.length);
+        return shifted;
     }
 
     /**
