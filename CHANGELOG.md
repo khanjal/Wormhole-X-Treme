@@ -100,6 +100,32 @@ The plugin API is in [docs/API.md](docs/API.md).
   to match. `[S:C]` can, so a shape can grow chevrons without anyone regenerating anything. See
   [docs/GATES.md](docs/GATES.md).
 
+### Quantum mirrors
+
+**Fixed**
+
+- **What a small mirror drew no longer hangs outside its opening as you move.** A redraw sends
+  only the blocks visible through the opening from where the eye is now, and blocks that go out of
+  sight stay on the client until the next redraw takes them away. At a mirror one or two banners
+  wide a single step changes a large share of what is visible, and there is only the one block of
+  wall `mirror create` requires to hide the difference behind, so for a redraw or two it stood in
+  the open.
+
+  An opening of six blocks or fewer -- the sizes a one or two banner mirror has -- is now redrawn
+  twenty times a second as the viewer moves rather than ten. That is affordable because a small
+  opening is what makes it cheap: fewer blocks pass the clip, so there is less to project. The cost
+  cap is unchanged, so a redraw that turns out slow still rests three times as long as it took and
+  no viewer can spend more of the main thread than before.
+
+  The redraw that catches a viewer up after they stop gets the same pace. It had its own floor
+  of two ticks, so stopping just inside a small opening's rest was still drawn a hundred
+  milliseconds later -- the moment the lingering shows most. It waits one tick now.
+
+  Torch flames, candles and campfires beside the opening will still outlive their block by up to a
+  second: those particles are spawned on the client and the server cannot recall one. Keeping
+  effects off a small window's edge blocks, and clipping ahead of the viewer's movement, are the
+  two directions still open on this.
+
 ### Performance
 
 - **Finding the gate nearest somebody no longer copies and sorts every gate on the server.**
