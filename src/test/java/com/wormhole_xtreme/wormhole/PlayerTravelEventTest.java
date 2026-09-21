@@ -164,6 +164,23 @@ class PlayerTravelEventTest
         assertNotNull(event.getArrival(), "listeners should be told where the player lands");
     }
 
+    /**
+     * A far gate with no arrival point announces no trip and moves nobody.
+     *
+     * <p>The arrival point was never checked, so the trip was announced with no arrival and
+     * the player teleported to null, which Bukkit refuses with an exception.
+     */
+    @Test
+    void aFarGateWithNoArrivalPointSendsNobody()
+    {
+        destination.setGatePlayerTeleportLocation(null);
+
+        walkIn();
+
+        assertNull(theTravelEvent(), "there is nowhere to announce a trip to");
+        verify(player, never()).teleport(org.mockito.ArgumentMatchers.<Location>any());
+    }
+
     @Test
     void anUncancelledTripGoesAhead()
     {

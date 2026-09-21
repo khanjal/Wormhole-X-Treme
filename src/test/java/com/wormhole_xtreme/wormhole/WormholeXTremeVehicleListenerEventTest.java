@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.mockito.ArgumentMatchers;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -470,5 +472,87 @@ class WormholeXTremeVehicleListenerEventTest
         verify(mockScheduler, never()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(3L));
 
         StargateManager.removeBlockIndex(ch);
+    }
+
+    /**
+     * Rolls an empty cart from just outside into the portal cell of a dialled gate.
+     *
+     * @param src
+     *            the gate rolled into, already targeted
+     * @return the cart
+     */
+    private static Minecart rollInto(final Stargate src, final World world)
+    {
+        final int bx = 10, by = 64, bz = 20;
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+        new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart,
+            new Location(world, bx + 0.5, by, bz - 0.5), new Location(world, bx + 0.5, by, bz + 0.5)));
+        StargateManager.removeBlockIndex(ch);
+        return cart;
+    }
+
+    /**
+     * A far gate with no arrival point sends no cart anywhere.
+     *
+     * <p>Neither of its arrival points was checked, so the cart was stopped and then
+     * teleported to null, which Bukkit refuses with an exception on every tick it rolled.
+     */
+    @Test
+    void aFarGateWithNoArrivalPointSendsNoCart()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateFacing(BlockFace.EAST);
+        final Stargate target = new Stargate();
+        target.setGateFacing(BlockFace.NORTH);
+        StargateTestSupport.target(src, target);
+
+        final Minecart cart = rollInto(src, world);
+
+        verify(cart, never()).teleport(ArgumentMatchers.<Location>any());
+        verify(cart, never()).setVelocity(any(Vector.class));
+    }
+
+    /**
+     * A cart bounced off a far iris by a gate with no arrival point of its own stays put.
+     *
+     * <p>The bounce read the source gate's arrival point and teleported to it whether or not
+     * there was one.
+     */
+    @Test
+    void aBounceWithNowhereToGoLeavesTheCartWhereItStopped()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateFacing(BlockFace.EAST);
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        target.setGateIrisActive(true);
+        StargateTestSupport.target(src, target);
+
+        final Minecart cart = rollInto(src, world);
+
+        verify(cart, never()).teleport(ArgumentMatchers.<Location>any());
     }
 }

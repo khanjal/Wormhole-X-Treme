@@ -1177,11 +1177,8 @@ public final class StargateHelper
             {
                 chosen = aboveRa;
             }
-            if (chosen != null)
-            {
-                gate.setGateRedstoneDialActivationBlock(chosen);
-                gate.setGateRedstonePowered(true);
-            }
+            gate.setGateRedstoneDialActivationBlock(chosen);
+            gate.setGateRedstonePowered(true);
         }
         catch (final RuntimeException ignore)
         {
