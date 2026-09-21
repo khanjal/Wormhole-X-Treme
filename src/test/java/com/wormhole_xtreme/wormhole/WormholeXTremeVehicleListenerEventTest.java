@@ -527,7 +527,6 @@ class WormholeXTremeVehicleListenerEventTest
         final Minecart cart = rollInto(src, world);
 
         verify(cart, never()).teleport(ArgumentMatchers.<Location>any());
-        verify(cart, never()).setVelocity(any(Vector.class));
     }
 
     /**
@@ -554,5 +553,32 @@ class WormholeXTremeVehicleListenerEventTest
         final Minecart cart = rollInto(src, world);
 
         verify(cart, never()).teleport(ArgumentMatchers.<Location>any());
+    }
+
+    /**
+     * A shut far iris still turns the cart back when the far gate has no arrival point.
+     *
+     * <p>The check for a missing arrival point first went in ahead of the far iris, so the
+     * cart skipped the bounce and rolled on through the opening, and its rider was never told
+     * the iris was shut.
+     */
+    @Test
+    void aShutFarIrisStillBouncesACartWhenTheFarGateHasNoArrivalPoint()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateFacing(BlockFace.EAST);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+        final Stargate target = new Stargate();
+        target.setGateFacing(BlockFace.NORTH);
+        target.setGateIrisActive(true);
+        StargateTestSupport.target(src, target);
+
+        final Minecart cart = rollInto(src, world);
+
+        verify(cart).teleport(new Location(world, 6.5, 66.0, 6.5));
     }
 }

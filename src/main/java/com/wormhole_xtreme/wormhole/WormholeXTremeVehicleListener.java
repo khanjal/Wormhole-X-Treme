@@ -618,11 +618,6 @@ class WormholeXTremeVehicleListener implements Listener
         final Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
             ? st.getGateTarget().getGateMinecartTeleportLocation()
             : st.getGateTarget().getGatePlayerTeleportLocation();
-        // A far gate with no arrival point has nowhere to put the cart, and teleport(null) throws.
-        if (target == null)
-        {
-            return false;
-        }
         final Vehicle veh = event.getVehicle();
         if (veh == null)
         {
@@ -634,6 +629,12 @@ class WormholeXTremeVehicleListener implements Listener
         // Riders whose cooldown and arrival mark are owed once the trip actually happens.
         final List<Player> pendingRestrictions = new ArrayList<>();
         if (!admitVehiclePassengers(st, veh, passengers, pendingRestrictions, gatenetwork))
+        {
+            return false;
+        }
+        // After the far iris has had its say, and before any trip is announced: a far gate with
+        // no arrival point has nowhere to put the cart, and teleport(null) throws.
+        if (target == null)
         {
             return false;
         }
