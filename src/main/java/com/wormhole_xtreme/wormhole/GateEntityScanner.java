@@ -220,8 +220,10 @@ public final class GateEntityScanner implements Runnable
      */
     static void splatAtIdleIris(final Stargate gate)
     {
-        // An open gate is the other sweep's; this one is only for the drawing over an idle gate.
-        if ((gate == null) || gate.isGateActive() || !gate.isGateIrisActive() || !gate.isGateIrisDrawn()
+        // A gate sending somewhere is the other sweep's; this one takes every other drawn iris,
+        // the far end of a wormhole included, which has no target and so no sweep of its own.
+        if ((gate == null) || (gate.isGateActive() && (gate.getGateTarget() != null))
+            || !gate.isGateIrisActive() || !gate.isGateIrisDrawn()
             || !StargateManager.isRegistered(gate))
         {
             return;

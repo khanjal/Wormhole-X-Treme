@@ -300,8 +300,9 @@ class ProjectileGateTracker implements Listener
         {
             return false;
         }
-        // An idle gate's shut iris stops an arrow the way an open one's does.
-        if (!gate.isGateActive() && gate.isGateIrisActive() && gate.isGateIrisDrawn())
+        // Any drawn shut iris stops an arrow: idle, dialling out, or the far end of a wormhole,
+        // which is active with no target of its own and so never reaches the send below.
+        if (gate.isGateIrisActive() && gate.isGateIrisDrawn())
         {
             projectile.remove();
             return true;

@@ -475,4 +475,27 @@ class ProjectileGateTrackerTest
         // Nothing in flight means the per-tick pass touches the world at all.
         verifyNoInteractions(world);
     }
+
+    /**
+     * The far end of a wormhole stops an arrow at its shut iris.
+     *
+     * <p>That gate is active with no target of its own. The idle-gate check skipped it for being
+     * active, and the crossing check below it gave up for having no target, so an arrow flew
+     * straight through an iris every client showed shut.
+     */
+    @Test
+    void anArrowAtTheFarEndsShutIrisIsStopped()
+    {
+        StargateTestSupport.target(origin, null);
+        origin.setGateIrisActive(true);
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
+
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
+    }
 }

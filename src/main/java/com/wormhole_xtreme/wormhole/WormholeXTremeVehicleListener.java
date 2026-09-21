@@ -817,7 +817,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             // Marked before the move so it does not read as another trip through the gate.
             markVehicleRecentlyTeleported(veh.getUniqueId());
-            veh.teleport(forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
+            putBack(veh, forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
@@ -838,7 +838,25 @@ class WormholeXTremeVehicleListener implements Listener
         // at from either side, and the front is the far side for a cart coming from behind.
         markVehicleRecentlyTeleported(veh.getUniqueId());
         veh.setVelocity(nospeed);
-        veh.teleport(event.getFrom());
+        putBack(veh, event.getFrom());
+    }
+
+    /**
+     * Moves a turned-back vehicle, riders and all.
+     *
+     * <p>An occupied one goes the way the forward trip carries one, riders re-seated after it;
+     * a plain teleport is not relied on to bring anybody with it.
+     */
+    private static void putBack(final Vehicle veh, final Location to)
+    {
+        if (veh.getPassengers().isEmpty())
+        {
+            veh.teleport(to);
+        }
+        else
+        {
+            teleportOccupiedVehicle(veh, to, nospeed);
+        }
     }
 
     /**
@@ -867,7 +885,7 @@ class WormholeXTremeVehicleListener implements Listener
         veh.setVelocity(nospeed);
         if (back != null)
         {
-            veh.teleport(forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
+            putBack(veh, forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
         }
     }
 

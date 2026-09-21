@@ -545,4 +545,51 @@ class DrawnIrisHoldsShutTest
             halfLoaded.setGateIrisActive(false);
         }
     }
+
+    /**
+     * The far end of a wormhole destroys an item at its shut iris too.
+     *
+     * <p>That gate is active with no target of its own, so the open-gate sweep, which only takes
+     * gates sending somewhere, never reached it, and the idle sweep skipped it for being active.
+     * Items sat in its opening behind the drawing.
+     */
+    @Test
+    void anItemAtTheFarEndsShutIrisIsDestroyed()
+    {
+        gate.setGateActive(true);
+        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+
+        GateEntityScanner.create().run();
+
+        verify(item).remove();
+    }
+
+    /**
+     * A cart with a rider is turned back the way the forward trip carries one, rider re-seated.
+     *
+     * <p>A plain teleport is not relied on to bring its passengers along; the forward path has
+     * its own for that, which books the re-seat a few ticks later. The bounce used a plain one.
+     */
+    @Test
+    void aRiddenCartTurnedBackAtAShutIrisHasItsRiderReseated() throws Exception
+    {
+        final org.bukkit.entity.Minecart cart = cartAt();
+        final Player rider = mock(Player.class);
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getPassengers()).thenReturn(java.util.List.<org.bukkit.entity.Entity>of(rider));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+
+        try
+        {
+            new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+                cart, new Location(world, BX + 0.5, BY, BZ - 0.5), new Location(world, BX + 0.5, BY, BZ + 0.5)));
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), org.mockito.ArgumentMatchers.eq(5L));
+    }
 }
