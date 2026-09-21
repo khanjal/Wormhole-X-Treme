@@ -610,20 +610,12 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
-        // A vertical gate's own iris is a drawing, and a cart does not believe in drawings:
-        // it rolls into the opening where the old solid iris would have stopped it dead. It
-        // goes nowhere, and it is pushed back out the way it came. Asked before whether the
-        // gate is open, because an idle gate's shut iris is the same drawing over air.
+        // A vertical gate's own iris is a drawing, and a cart does not believe in drawings: it
+        // rolls into the opening where the old solid iris would have stopped it dead. Asked
+        // before whether the gate is open, because an idle gate's shut iris is the same drawing.
         if (st.isGateIrisActive() && st.isGateIrisDrawn())
         {
-            if (st.isGateActive())
-            {
-                bounceOffOwnIris(st, event.getVehicle());
-            }
-            else
-            {
-                stopShortOfIdleIris(event);
-            }
+            stopShortOfOwnIris(event);
             return false;
         }
         // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
@@ -826,17 +818,19 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
     /**
-     * Stops a vehicle rolling into an idle gate whose drawn iris is shut, where it just was.
+     * Stops a vehicle rolling into a gate whose own drawn iris is shut, where it just was.
+     *
+     * <p>Back where it was a move ago, not out in front: a gate can be rolled at from either
+     * side, and the front is through the iris for a cart coming from behind. Not marked as
+     * recently teleported either -- it lands outside the opening, so the move cannot read as an
+     * entry, and a mark would switch this check off for the next second while it is nudged back.
      *
      * @param event
      *            the move that would have taken it into the opening
      */
-    private static void stopShortOfIdleIris(final VehicleMoveEvent event)
+    private static void stopShortOfOwnIris(final VehicleMoveEvent event)
     {
         final Vehicle veh = event.getVehicle();
-        // Back where it was a move ago rather than out in front: an idle gate can be rolled
-        // at from either side, and the front is the far side for a cart coming from behind.
-        markVehicleRecentlyTeleported(veh.getUniqueId());
         veh.setVelocity(nospeed);
         putBack(veh, event.getFrom());
     }
@@ -856,36 +850,6 @@ class WormholeXTremeVehicleListener implements Listener
         else
         {
             teleportOccupiedVehicle(veh, to, nospeed);
-        }
-    }
-
-    /**
-     * Puts a vehicle back out at the gate it rolled into, that gate's own iris being shut.
-     *
-     * <p>The near-side twin of {@link #bounceOffClosedIris}, and it has nothing to do with the
-     * far end: the trip never started. The vehicle is set down one block out in front of this
-     * gate, along this gate's facing, and marked as recently teleported first so the move it
-     * is about to make does not read as another trip through it.
-     *
-     * @param st
-     *            the gate whose iris is shut
-     * @param veh
-     *            the vehicle to put back, which may be null
-     */
-    private static void bounceOffOwnIris(final Stargate st, final Vehicle veh)
-    {
-        if (veh == null)
-        {
-            return;
-        }
-        final Location back = st.getGateMinecartTeleportLocation() != null
-            ? st.getGateMinecartTeleportLocation()
-            : st.getGatePlayerTeleportLocation();
-        markVehicleRecentlyTeleported(veh.getUniqueId());
-        veh.setVelocity(nospeed);
-        if (back != null)
-        {
-            putBack(veh, forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
         }
     }
 

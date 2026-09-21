@@ -428,4 +428,44 @@ class IrisSweepOrderingTest
                 "cell " + cell.getKey() + " was left showing the air the server really has there");
         }
     }
+
+    /**
+     * Opening a drawn iris part-way through its closing sweep does not blank it first.
+     *
+     * <p>The half-finished sweep is called off by sending every cell as it stands. That ran after
+     * the iris flag had already flipped to open, so a drawn iris was "finished" as the air behind
+     * it and vanished in one frame, and the opening sweep then had nothing to be seen taking away.
+     */
+    @Test
+    void openingADrawnIrisMidSweepFinishesTheClosingAsTheIris()
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        // Opening draws the horizon behind the opening, one block either side, so those are air.
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
+        gate.toggleIrisActive(false);
+        final Integer next = pending.keySet().iterator().next();
+        pending.remove(next).run();
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
+        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+        }
+        assertEquals(9, last.size(), "the call-off draws every cell");
+        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        {
+            assertTrue(cell.getValue() != null,
+                "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
+        }
+    }
 }

@@ -167,14 +167,16 @@ class VehicleGateEntryTest
     }
 
     /**
-     * A cart that rolls into its own gate's shut iris is put back out in front of that gate.
+     * A cart that rolls into its own gate's shut iris is put back where it was, and stays out.
      *
      * <p>An upright gate's iris is a drawing, and a cart does not believe in drawings: it rolls
-     * straight into the opening where the old solid iris would have stopped it. Nothing on the
-     * vehicle path asked about the near iris before, because nothing needed to.
+     * straight into the opening where the old solid iris would have stopped it. It used to be
+     * set down out in front along the gate's facing, which for a cart coming from behind is
+     * through the iris, and marked so the listener ignored it for a second: nudged again in that
+     * second, it rolled straight through.
      */
     @Test
-    void aCartThatRollsIntoAShutIrisIsPutBackOutInFrontOfItsOwnGate()
+    void aCartThatRollsIntoItsOwnShutIrisIsPutBackWhereItWasEveryTime()
     {
         src.setGateWorld(world);
         src.setGateFacing(BlockFace.NORTH);
@@ -182,11 +184,14 @@ class VehicleGateEntryTest
         src.setGateIrisActive(true);
 
         rollIn();
+        rollIn();
 
-        final Location landed = whereItLanded();
-        assertEquals(BX + 0.5, landed.getX(), 0.001, "put back at its own gate, not the far one at x=100.5");
-        assertEquals(BZ - 2.5, landed.getZ(), 0.001,
-            "one block out along its own gate's north facing, not the far gate's east one");
+        final ArgumentCaptor<Location> sent = ArgumentCaptor.forClass(Location.class);
+        verify(cart, times(2)).teleport(sent.capture());
+        for (final Location landed : sent.getAllValues())
+        {
+            assertEquals(BZ - 0.5, landed.getZ(), 0.001, "back where it was a move ago, not out in front");
+        }
     }
 
     /** A gate that is not open carries nobody, however far into it they roll. */
