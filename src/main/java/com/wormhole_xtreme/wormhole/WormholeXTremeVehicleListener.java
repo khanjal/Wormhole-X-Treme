@@ -612,6 +612,14 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
+        // A vertical gate's own iris is a drawing, and a cart does not believe in drawings:
+        // it rolls into the opening where the old solid iris would have stopped it dead. It
+        // goes nowhere, and it is pushed back out the way it came.
+        if (st.isGateIrisActive() && st.isGateIrisDrawn())
+        {
+            bounceOffOwnIris(st, event.getVehicle());
+            return false;
+        }
         final String gatenetwork = (st.getGateNetwork() != null)
                 ? st.getGateNetwork().getNetworkName()
                 : "Public";
@@ -799,6 +807,36 @@ class WormholeXTremeVehicleListener implements Listener
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
             st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+        }
+    }
+
+    /**
+     * Puts a vehicle back out at the gate it rolled into, that gate's own iris being shut.
+     *
+     * <p>The near-side twin of {@link #bounceOffClosedIris}, and it has nothing to do with the
+     * far end: the trip never started. The vehicle is set down one block out in front of this
+     * gate, along this gate's facing, and marked as recently teleported first so the move it
+     * is about to make does not read as another trip through it.
+     *
+     * @param st
+     *            the gate whose iris is shut
+     * @param veh
+     *            the vehicle to put back, which may be null
+     */
+    private static void bounceOffOwnIris(final Stargate st, final Vehicle veh)
+    {
+        if (veh == null)
+        {
+            return;
+        }
+        final Location back = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+        markVehicleRecentlyTeleported(veh.getUniqueId());
+        veh.setVelocity(nospeed);
+        if (back != null)
+        {
+            veh.teleport(forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
         }
     }
 

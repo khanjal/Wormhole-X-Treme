@@ -252,12 +252,14 @@ class StargateLifecycle
         final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {
-            // The iris is a real barrier, so it is placed as real server-side blocks
-            // rather than drawn client-side the way the portal is.
+            // Drawn on a vertical gate, real blocks on a horizontal one: see
+            // StargateBlockSetup.irisIsDrawn for why the floor is the exception.
             gate.fillGateIris(gate.getEffectiveIrisMaterial());
             if (sweep)
             {
-                // Blocks first, picture second: the barrier is there before it looks it.
+                // Iris first, sweep second: on a horizontal gate that puts the barrier there
+                // before it looks it, and on a vertical one it settles what the sweep spends
+                // the next second uncovering.
                 StargateIrisAnimator.sweepClosed(gate, uncovered);
             }
             // An opening is one block thick, so the iris fills it and the horizon has nowhere
@@ -272,13 +274,13 @@ class StargateLifecycle
         StargateBlockSetup.sendPortalBackdrop(gate, false);
         if (sweep)
         {
-            // Picture first, blocks second, for the same reason the other way round: the
-            // barrier outlasts the picture of it rather than the other way about.
+            // Sweep first, iris second, for the same reason the other way round: the barrier
+            // outlasts the picture of it rather than the other way about.
             StargateIrisAnimator.sweepOpen(gate, uncovered, () -> gate.fillGateInterior(uncovered));
             return;
         }
         // Opening the iris on an active gate returns the interior to the portal, which also
-        // clears the iris blocks placed above; an inactive one goes back to AIR.
+        // clears the iris -- drawn or placed -- that was over it; an inactive one goes to AIR.
         gate.fillGateInterior(uncovered);
     }
 

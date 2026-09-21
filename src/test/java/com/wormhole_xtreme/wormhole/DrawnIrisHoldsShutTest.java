@@ -1,0 +1,313 @@
+package com.wormhole_xtreme.wormhole;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.UUID;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.util.Vector;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+
+/**
+ * What holds a drawn iris shut now that it is not a wall.
+ *
+ * <p>A vertical gate's iris is a drawing over air. An honest client stops itself at it, which
+ * is what makes it feel solid, but the server has no wall any more: a player who is lagging, a
+ * minecart, an arrow and a dropped item all go straight through a picture. Everything the
+ * blocks used to do for free is code now, and this is that code.
+ *
+ * <p>These are the refusals, one per way in. A horizontal gate keeps its real blocks, so it
+ * keeps being refused by the wall and must not be refused twice.
+ */
+class DrawnIrisHoldsShutTest
+{
+    /** Held: a Location keeps its World weakly, so an inline mock can be collected mid-test. */
+    private World world;
+    private Player player;
+    private Stargate gate;
+    private Stargate destination;
+    private Block portal;
+
+    private static final int BX = 10, BY = 64, BZ = 20;
+
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        GateSpatialIndex.clear();
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+
+        world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        portal = mock(Block.class);
+        when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
+        when(portal.getX()).thenReturn(Integer.valueOf(BX));
+        when(portal.getY()).thenReturn(Integer.valueOf(BY));
+        when(portal.getZ()).thenReturn(Integer.valueOf(BZ));
+        when(portal.getWorld()).thenReturn(world);
+        when(portal.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(portal);
+
+        // The gate somebody is walking into: vertical, idle, iris shut.
+        gate = new Stargate();
+        gate.setGateName("shut");
+        gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        gate.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
+        gate.setGateIrisActive(true);
+        StargateManager.registerStargate(gate);
+        StargateManager.addBlockIndex(portal, gate);
+
+        player = mock(Player.class);
+        when(player.getName()).thenReturn("walker");
+        when(player.isOp()).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        StargateManager.removeStargate(gate);
+        if (destination != null)
+        {
+            StargateManager.removeStargate(destination);
+        }
+        GateSpatialIndex.clear();
+        PluginTestSupport.forgetAllGates();
+        PluginTestSupport.remove();
+    }
+
+    /**
+     * Walks the player from outside the gate into its opening.
+     *
+     * @return the move event, to read the verdict off
+     */
+    private PlayerMoveEvent walkIntoTheOpening()
+    {
+        final Location from = new Location(world, BX + 0.5, BY, BZ - 1.5);
+        final Location to = new Location(world, BX + 0.5, BY, BZ + 0.5);
+        final PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
+        new WormholeXTremePlayerListener().onPlayerMove(event);
+        return event;
+    }
+
+    // -----------------------------------------------------------------------
+    // Walking into one
+    // -----------------------------------------------------------------------
+
+    /**
+     * A shut iris stops a player, even on a gate nobody has dialled.
+     *
+     * <p>The move handler used to walk away from any gate that was not active, which was
+     * right while the iris was a wall: an idle gate with its iris shut was solid whether or
+     * not anything was checking. Drawn, there is nothing there but a picture, so a gate that
+     * has never been dialled is exactly the case that needs asking about.
+     */
+    @Test
+    void aShutIrisStopsSomebodyWalkingIntoAnIdleGate()
+    {
+        assertFalse(gate.isGateActive(), "this gate has not been dialled");
+
+        final PlayerMoveEvent event = walkIntoTheOpening();
+
+        assertTrue(event.isCancelled(), "cancelling the move is what holds them out");
+        verify(player).sendMessage(contains("Iris"));
+    }
+
+    /**
+     * A horizontal gate is left to its wall.
+     *
+     * <p>Its iris is real blocks, which stop the player without anybody being told to. Adding
+     * a refusal on top would mean two mechanisms holding one player back, which is what the
+     * rubber-banding this listener already carries a warning about looked like.
+     */
+    @Test
+    void aHorizontalGateIsLeftToItsRealBlocks()
+    {
+        gate.setGateFacing(BlockFace.UP);
+
+        final PlayerMoveEvent event = walkIntoTheOpening();
+
+        assertFalse(event.isCancelled(), "the blocks refuse this one, not the listener");
+        verify(player, never()).sendMessage(contains("Iris"));
+    }
+
+    /**
+     * Somebody already in the opening can walk out of it.
+     *
+     * <p>Cancelling a move puts the player back where the move started. For somebody standing
+     * in the opening -- the iris shut around them, or they got in before it did -- that is
+     * the opening, so every following move is cancelled too and they are stuck until the
+     * server drops them. That exact mistake has been made in this listener before.
+     */
+    @Test
+    void somebodyCaughtInsideIsNotTrappedThere()
+    {
+        final Location inside = new Location(world, BX + 0.5, BY, BZ + 0.5);
+        final Location out = new Location(world, BX + 0.5, BY, BZ - 0.5);
+        final PlayerMoveEvent event = new PlayerMoveEvent(player, inside, out);
+
+        new WormholeXTremePlayerListener().onPlayerMove(event);
+
+        assertFalse(event.isCancelled(), "a player in the opening has to be able to leave it");
+    }
+
+    // -----------------------------------------------------------------------
+    // Shooting at one
+    // -----------------------------------------------------------------------
+
+    /**
+     * An arrow fired into a shut iris is consumed rather than carried through.
+     *
+     * <p>It used to hit the iris block and stop. With the iris drawn it flies into the cell
+     * and reaches the crossing check, which would send it out of the far gate: shooting
+     * through a shut iris.
+     */
+    @Test
+    void anArrowThatReachesAShutIrisIsConsumed()
+    {
+        final Arrow arrow = arrowAtTheOpening();
+        dial();
+        gate.setGateIrisActive(true);
+
+        assertTrue(GateEntityScanner.sendProjectileThrough(arrow, gate), "the arrow is dealt with here");
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
+    }
+
+    /**
+     * The far gate's iris stops it too.
+     *
+     * <p>Neither end's iris was ever asked about a projectile. A gate that shut its iris after
+     * the wormhole opened went on receiving arrows out of the other end.
+     */
+    @Test
+    void anArrowIsStoppedByTheIrisAtTheFarEndAsWell()
+    {
+        final Arrow arrow = arrowAtTheOpening();
+        dial();
+        gate.setGateIrisActive(false);
+        destination.setGateIrisActive(true);
+
+        assertTrue(GateEntityScanner.sendProjectileThrough(arrow, gate), "the arrow is dealt with here");
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
+    }
+
+    /**
+     * Gives this gate somewhere to send things, so a refusal is a refusal rather than a
+     * gate with nowhere to go.
+     */
+    private void dial()
+    {
+        destination = new Stargate();
+        destination.setGateName("far");
+        destination.setGateWorld(world);
+        destination.setGateFacing(BlockFace.SOUTH);
+        destination.setGateActive(true);
+        destination.setGatePlayerTeleportLocation(new Location(world, 99.5, 70, 99.5));
+        StargateTestSupport.target(gate, destination);
+        gate.setGateActive(true);
+    }
+
+    /**
+     * An arrow in flight, in this gate's opening.
+     *
+     * @return the arrow
+     */
+    private Arrow arrowAtTheOpening()
+    {
+        final Arrow arrow = mock(Arrow.class);
+        when(arrow.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(arrow.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -2.4));
+        when(arrow.isValid()).thenReturn(true);
+        return arrow;
+    }
+
+    // -----------------------------------------------------------------------
+    // Building in one
+    // -----------------------------------------------------------------------
+
+    /**
+     * Nobody builds inside a drawn iris, whatever they are allowed elsewhere.
+     *
+     * <p>An admin may build in a gate's opening -- that is deliberate. Behind a drawn iris it
+     * is not: the cell shows iris to everyone in sight of it, so the block would be invisible,
+     * and the opening being empty is what makes the whole thing work.
+     */
+    @Test
+    void nobodyBuildsBehindADrawnIrisEvenAnAdmin()
+    {
+        assertTrue(WormholeXTremeBlockListener.refusesPlacementIn(player, gate, portal),
+            "an op is still not building inside a shut iris");
+    }
+
+    /**
+     * With the iris open the admin rule is back in charge.
+     */
+    @Test
+    void anAdminMayStillBuildInAnOpenGatesOpening()
+    {
+        gate.setGateIrisActive(false);
+
+        assertFalse(WormholeXTremeBlockListener.refusesPlacementIn(player, gate, portal),
+            "with no iris over it, this is the ordinary opening rule");
+    }
+
+    /**
+     * A block somebody left in the opening can still be broken while the iris is shut.
+     *
+     * <p>#243: a block placed in a portal cell could not be broken again, because the cell is
+     * indexed to the gate and the break came back as gate structure. The fix allows the break
+     * unless the cell holds an iris -- and with a vertical iris drawn over air there is no
+     * iris in the cell to protect, so asking only whether the iris is shut would put the bug
+     * back for as long as somebody kept it closed.
+     */
+    @Test
+    void aStrayBlockIsStillBreakableBehindADrawnIris()
+    {
+        assertTrue(WormholeXTremeBlockListener.isStrayBlockInPortal(gate, portal),
+            "the drawn iris is not a block, so the block in that cell is somebody's");
+    }
+
+    /**
+     * A horizontal gate's shut iris really is a gate block, and stays protected.
+     */
+    @Test
+    void aHorizontalGatesShutIrisIsNotAStrayBlock()
+    {
+        gate.setGateFacing(BlockFace.UP);
+
+        assertFalse(WormholeXTremeBlockListener.isStrayBlockInPortal(gate, portal),
+            "that block is the barrier itself");
+    }
+}

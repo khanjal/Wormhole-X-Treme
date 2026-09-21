@@ -146,8 +146,11 @@ class WormholeXTremeBlockListener implements Listener
      * cell is indexed to the gate, so the break was refused as gate structure and the block
      * was stuck there for good. See #243.
      *
-     * <p>The one thing that really is a gate block in these cells is a closed iris, which
-     * {@code fillGateIris} places for real precisely so nobody can walk through it.
+     * <p>The one thing that really is a gate block in these cells is a horizontal gate's
+     * closed iris, which {@code fillGateIris} places for real precisely so nobody can walk
+     * through it -- or fall through it. A vertical gate's iris is drawn over air, so a solid
+     * block in one of its cells is somebody's however shut the gate is, and asking only
+     * whether the iris was closed would put #243 back for as long as it stayed shut.
      *
      * @param stargate
      *            the gate the cell belongs to
@@ -157,7 +160,44 @@ class WormholeXTremeBlockListener implements Listener
      */
     static boolean isStrayBlockInPortal(final Stargate stargate, final Block block)
     {
-        return isPortalInterior(stargate, block) && !stargate.isGateIrisActive();
+        final boolean builtIris = stargate.isGateIrisActive() && !stargate.isGateIrisDrawn();
+        return isPortalInterior(stargate, block) && !builtIris;
+    }
+
+    /**
+     * Whether a drawn iris is covering this gate's opening.
+     *
+     * <p>Nobody builds in there while it is, whatever they are allowed. The cell looks like
+     * iris to everyone in sight of it, so a block placed in one is a block nobody can see, and
+     * the barrier is a drawing over air precisely so that the opening stays empty.
+     *
+     * @param stargate
+     *            the gate
+     * @return true if the opening is behind a drawn iris
+     */
+    private static boolean irisCovers(final Stargate stargate)
+    {
+        return stargate.isGateIrisActive() && stargate.isGateIrisDrawn();
+    }
+
+    /**
+     * Whether this placement into a gate's opening is refused.
+     *
+     * <p>The decision on its own, so it can be asked without a live server and a real
+     * placement event behind it.
+     *
+     * @param player
+     *            who is placing, or null if this was not a player
+     * @param stargate
+     *            the gate the block was indexed to, or null if it is nobody's
+     * @param block
+     *            the block being placed
+     * @return true if the placement should be cancelled
+     */
+    static boolean refusesPlacementIn(final Player player, final Stargate stargate, final Block block)
+    {
+        return (stargate != null) && isPortalInterior(stargate, block)
+            && (irisCovers(stargate) || !mayBuildInOpening(player, stargate));
     }
 
     /**
@@ -369,10 +409,13 @@ class WormholeXTremeBlockListener implements Listener
             return;
         }
         final Stargate stargate = StargateManager.getGateFromBlock(block);
-        if ((stargate != null) && isPortalInterior(stargate, block) && !mayBuildInOpening(player, stargate))
+        if (refusesPlacementIn(player, stargate, block))
         {
             event.setCancelled(true);
             refusePlace(player, stargate);
+            // Cancelling makes the server tell the client what is really in that cell, which
+            // is air: without this the iris comes off their screen where they clicked.
+            StargateManager.redrawPortalVisualsSoon(player);
             return;
         }
         GatePreviews.blockChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());

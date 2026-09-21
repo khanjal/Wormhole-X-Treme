@@ -515,6 +515,9 @@ public class WormholeXTreme extends JavaPlugin
         }
         // A shape whose light order changed would otherwise leave standing gates on the old one.
         com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade.rebuildAll(StargateManager.getAllGatesUnsorted());
+        // A vertical gate's iris is drawn now, so a world saved by an older version has real
+        // blocks standing in every opening that was shut when it saved.
+        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearAll(StargateManager.getAllGatesUnsorted());
         // Rings load after gates so that a ring overlapping gate blocks is refused against
         // an index that is already populated.
         try
