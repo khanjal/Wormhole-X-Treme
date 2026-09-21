@@ -52,7 +52,19 @@ final class ShippedShapes
      */
     static void updateUntouched(final File directory)
     {
-        final Set<String> shipped = shippedVersions();
+        updateUntouched(directory, shippedVersions());
+    }
+
+    /**
+     * The same, against a given list: with none to go on, nothing can be told apart from an edit.
+     *
+     * @param directory
+     *            the gate shapes folder
+     * @param shipped
+     *            every {@code <file> <sha-256>} line the list holds
+     */
+    static void updateUntouched(final File directory, final Set<String> shipped)
+    {
         if (shipped.isEmpty())
         {
             return;
@@ -138,8 +150,20 @@ final class ShippedShapes
     /** @return every {@code <file> <sha-256>} line the list holds */
     static Set<String> shippedVersions()
     {
+        return shippedVersions(WormholeXTreme.class.getResourceAsStream(SHIPPED_LIST));
+    }
+
+    /**
+     * Reads a shipped list, which a jar built without it does not have.
+     *
+     * @param list
+     *            the list, or null if it is missing
+     * @return every {@code <file> <sha-256>} line it holds, or none
+     */
+    static Set<String> shippedVersions(final InputStream list)
+    {
         final Set<String> versions = new HashSet<>();
-        try (final InputStream is = WormholeXTreme.class.getResourceAsStream(SHIPPED_LIST))
+        try (final InputStream is = list)
         {
             if (is == null)
             {

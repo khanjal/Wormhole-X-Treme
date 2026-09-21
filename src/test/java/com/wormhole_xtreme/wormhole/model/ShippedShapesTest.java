@@ -180,4 +180,51 @@ class ShippedShapesTest
         verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(java.util.logging.Level.INFO),
             contains("Large.shape has been edited"));
     }
+
+    /** With no shipped list to go on, nothing is replaced: every copy would look edited. */
+    @Test
+    void withNoShippedListNothingIsReplaced() throws Exception
+    {
+        final String old = oldLarge();
+        Files.writeString(new File(dir, "Large.shape").toPath(), old, StandardCharsets.UTF_8);
+
+        ShippedShapes.updateUntouched(dir, java.util.Set.of());
+
+        assertEquals(old, read("Large.shape"));
+        assertFalse(new File(dir, "Large.shape" + ShippedShapes.BACKUP_SUFFIX).exists());
+    }
+
+    /** A jar without the list reads as an empty one, not a failure. */
+    @Test
+    void aMissingShippedListReadsAsEmpty()
+    {
+        assertTrue(ShippedShapes.shippedVersions(null).isEmpty());
+    }
+
+    /** A list that cannot be read is logged, and what was read before the failure is kept. */
+    @Test
+    void anUnreadableShippedListIsLoggedAndKeepsWhatItRead()
+    {
+        final java.io.InputStream failing = new java.io.InputStream()
+        {
+            private final byte[] first = "Large.shape abc\n".getBytes(StandardCharsets.UTF_8);
+            private int at;
+
+            @Override
+            public int read() throws java.io.IOException
+            {
+                if (at < first.length)
+                {
+                    return first[at++];
+                }
+                throw new java.io.IOException("disk gone");
+            }
+        };
+
+        final Set<String> read = ShippedShapes.shippedVersions(failing);
+
+        assertTrue(read.contains("Large.shape abc"), "the line before the failure is kept: " + read);
+        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(java.util.logging.Level.WARNING),
+            contains("shipped shape list"), org.mockito.ArgumentMatchers.any(java.io.IOException.class));
+    }
 }
