@@ -14,7 +14,9 @@ code builds and the tests pass, not that the tests test the right thing.
 ## The checklist in every PR description
 
 Every PR description carries the **Reviews** checklist from `.github/pull_request_template.md`:
-the first review, Copilot, the final review, findings handled, Sonar at zero. Tick each box
+who wrote the code, the first review, Copilot, the final review, findings handled, Sonar at
+zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
+PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
 is still owed. A PR is not ready to merge with a box unticked.
 
@@ -57,8 +59,9 @@ reviewer matches it:
 | Fable | Sonnet | Opus |
 | Haiku, or anything else | Sonnet | Fable |
 
-Give it: the repo path, the diff range, that it is read-only (no edits, commits or GitHub
-posts), what the change is meant to do, and to hunt for bugs with a concrete failure scenario
+Give it: the repo path; the diff range as `origin/main...<commit>` after a `git fetch`, never
+a bare `main...`, which in a stale checkout pulls in commits already merged; that it is
+read-only (no edits, commits or GitHub posts); what the change is meant to do, and to hunt for bugs with a concrete failure scenario
 each, including in unchanged code whose assumptions the change broke. Ask for at most 15
 findings with file:line and a confidence, and for it to say plainly if it finds nothing.
 
@@ -71,10 +74,14 @@ Run it in the background and do the CHANGELOG, PMD and test build meanwhile. Whe
 - write down the ones not fixed, with why, in the PR description as possibilities to check
 - say in the PR description which model reviewed it and what became of each finding
 
+If the code then changes well beyond fixes to those findings -- a new approach, a new area --
+run step 1 again on the new commits, and add that run to the checklist's first-review line.
+
 ## 2. When the PR opens: request Copilot, once
 
 Request it once, at open. Never again after follow-up commits: each review spends from a
-monthly allowance, and once that is gone a request gets nothing at all.
+monthly allowance, and once that is gone a request gets nothing at all. An open PR that never
+had it requested -- opened by a session that did not follow this -- gets its one request now.
 
 `gh pr` and `gh issue` need `-R khanjal/Wormhole-X-Treme` in this repo (there are three
 remotes). `gh api` does not take `-R` at all -- it fails with "unknown shorthand flag" -- and
@@ -121,13 +128,12 @@ it has argued for restoring a `catch (Throwable)` this project removed on purpos
 
 ## 4. When Copilot could not review: steps 1 and 6 are the review of record
 
-If the quota is gone, or the PR never had a review requested, the two model reviews (steps 1
-and 6) are what the PR merges on. A review that was requested and has not come back is neither:
-it usually lands 6-15 minutes after the request, so wait for it, and only treat it as gone after
-an hour with the request still showing on the timeline. Do not wait for the allowance to reset, and do not ask whether
-to substitute; the user decided this on 2026-09-21. Say so on the PR, rather than calling it
-reviewed as if Copilot had done it. A PR whose code changed a lot after step 1 gets step 1 again
-on the new commits.
+If the quota is gone -- its review came back with the quota-exhausted body -- or the request
+would not register at all, the two model reviews (steps 1 and 6) are what the PR merges on. A
+review that was requested and has not come back is neither: it usually lands 6-15 minutes after
+the request, so wait for it, and treat it as gone only an hour after the request. Do not wait
+for the allowance to reset, and do not ask whether to substitute; the user decided this on
+2026-09-21. Say so on the PR, rather than calling it reviewed as if Copilot had done it.
 
 ## 5. Sonar: the PR's issues, not the tick
 
@@ -138,10 +144,12 @@ curl -s "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-
 ```
 
 Check first that the analysis is of the branch head -- it lags a push by a few minutes, and a
-stale count reads as current:
+stale count reads as current. `project_analyses/search` ignores `pullRequest` and returns
+main's, so use the pull-request list, whose `commit.sha` for the PR must equal its head:
 
 ```bash
-curl -s "https://sonarcloud.io/api/project_analyses/search?project=khanjal_Wormhole-X-Treme&pullRequest=<n>&ps=1"
+curl -s "https://sonarcloud.io/api/project_pull_requests/list?project=khanjal_Wormhole-X-Treme" \
+  | python -c "import sys,json;[print(p['key'],p['commit']['sha']) for p in json.load(sys.stdin)['pullRequests']]"
 ```
 
 Zero is the bar before merging (see the `sonar-check` skill for the false positives that
@@ -152,7 +160,7 @@ up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
 
 When everything else is done -- findings fixed, CI green, Sonar at zero (step 5), any in-game
 check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code) as
-a sub-agent on the whole PR as it now stands (`main...` the branch head),
+a sub-agent on the whole PR as it now stands (`origin/main...` the branch head, fetched),
 with the same brief as step 1. Tell it what the earlier reviews found and what became of each,
 so it spends its time on what they missed rather than confirming what is already fixed.
 
@@ -162,6 +170,9 @@ checking again after it. Say on the PR that it ran.
 
 ## 7. Merge
 
+- Every box in the PR's Reviews checklist is ticked.
+- Copilot's review, if one came, has been read on all three surfaces (step 3) and each finding
+  fixed or answered.
 - The final review in step 6 has run on the latest commit, or on one the later commits only
   fixed its findings in.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
