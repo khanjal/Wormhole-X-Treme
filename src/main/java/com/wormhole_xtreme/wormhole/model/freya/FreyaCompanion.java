@@ -275,8 +275,8 @@ public final class FreyaCompanion
         }
         final Location owner = player.getLocation();
         final Location at = cat.getLocation();
-        final String world = ((at == null) || (at.getWorld() == null)) ? "?" : at.getWorld().getName();
-        final boolean together = (at != null) && (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
+        final String world = (at.getWorld() == null) ? "?" : at.getWorld().getName();
+        final boolean together = (owner != null) && Objects.equals(at.getWorld(), owner.getWorld());
         return "in " + world + (together ? " " + Math.round(Math.sqrt(at.distanceSquared(owner))) + " blocks away" : ", another world")
             + ", valid " + cat.isValid() + ", dead " + cat.isDead()
             + ", visible by default " + cat.isVisibleByDefault() + ", owner sees her " + player.canSee(cat)
@@ -301,7 +301,7 @@ public final class FreyaCompanion
             return true;
         }
         final Location at = cat.getLocation();
-        if ((owner == null) || (at == null))
+        if (owner == null)
         {
             return false;
         }
@@ -476,7 +476,7 @@ public final class FreyaCompanion
         for (final Cat cat : LIVE.values())
         {
             final Location at = cat.getLocation();
-            if ((at != null) && Objects.equals(at.getWorld(), chest.getWorld())
+            if (Objects.equals(at.getWorld(), chest.getWorld())
                 && (at.distanceSquared(chest) <= CHEST_REACH_SQUARED))
             {
                 cat.setSitting(false);

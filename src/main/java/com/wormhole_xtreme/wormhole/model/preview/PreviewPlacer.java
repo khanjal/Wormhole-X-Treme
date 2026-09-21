@@ -72,7 +72,7 @@ final class PreviewPlacer
             {
                 return Outcome.NOT_LOADED;
             }
-            if ((border != null) && !border.isInside(new Location(world, cell.x(), cell.y(), cell.z())))
+            if (!border.isInside(new Location(world, cell.x(), cell.y(), cell.z())))
             {
                 return Outcome.OUTSIDE_BORDER;
             }

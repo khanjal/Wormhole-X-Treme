@@ -1047,7 +1047,7 @@ public class StargateManager
      */
     public static boolean isPortalBlock(final Block b)
     {
-        if (b == null || b.getWorld() == null)
+        if (b == null)
         {
             return false;
         }

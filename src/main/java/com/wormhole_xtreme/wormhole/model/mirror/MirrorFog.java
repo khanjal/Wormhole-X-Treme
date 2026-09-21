@@ -120,10 +120,6 @@ final class MirrorFog
             return;
         }
         final UUID id = player.getUniqueId();
-        if (id == null)
-        {
-            return;
-        }
         final int wanted = Math.max(LEAST_CHUNKS, ((depth + 15) / 16) + 1);
         final Narrowed was = BEFORE.get(id);
         if (was != null)

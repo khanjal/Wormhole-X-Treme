@@ -311,6 +311,8 @@ public class WorldUtils
      *            block z
      * @return true if a player can stand there
      */
+    // Never null on a server; the null checks are for test worlds that stub no blocks.
+    @SuppressWarnings("java:S2589")
     public static boolean isStandableAt(final World w, final int x, final int y, final int z)
     {
         final Block feet = w.getBlockAt(x, y, z);
