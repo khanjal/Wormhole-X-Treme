@@ -303,6 +303,10 @@ class StargateAnimatorTest
     {
         final Stargate gate = new Stargate();
         gate.setGateActive(true);
+        // Two waves, so the gate has a woosh and its counter means a stage part-way through it.
+        // With none the kawoosh could never play at all, and the check below would hold anyway.
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
         final Block drawn = mock(Block.class);
         final org.bukkit.Location at = new org.bukkit.Location(null, 1, 2, 3);
         when(drawn.getLocation()).thenReturn(at);

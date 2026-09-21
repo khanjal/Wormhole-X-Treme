@@ -1110,12 +1110,14 @@ class GatePreviewsTest
         clearInvocations(owner);
 
         GatePreviews.activate(owner);
-        // Seven chevrons and one woosh stage: behind a shut iris the woosh ends there.
-        for (int step = 0; step < 8; step++)
+        // Seven chevrons, then one woosh stage: behind a shut iris the woosh ends there and books
+        // nothing after it.
+        for (int step = 0; step < 7; step++)
         {
             dialStep.run();
         }
         final int booked = dialDelays.size();
+        dialStep.run();
 
         verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
         verify(owner, never()).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
