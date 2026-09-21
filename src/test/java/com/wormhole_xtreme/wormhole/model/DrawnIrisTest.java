@@ -220,6 +220,59 @@ class DrawnIrisTest
     }
 
     // -----------------------------------------------------------------------
+    // Whose swing is about an iris
+    // -----------------------------------------------------------------------
+
+    /**
+     * Somebody standing at a shut, drawn iris is near enough for their swing to be at it.
+     *
+     * <p>Mining a drawn block gets the client the truth about that cell, which is air, and the
+     * iris comes off their screen in a hole. The swing is the only thing there is to listen for,
+     * and this is what decides whether a swing is worth a redraw.
+     */
+    @Test
+    void aSwingBesideADrawnIrisIsWorthARedraw()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
+        gate.setGateIrisActive(true);
+
+        assertTrue(StargateManager.nearDrawnIris(new Location(world, 10, 64, 23)),
+            "three blocks from the iris is well within reach of it");
+    }
+
+    /**
+     * Somebody well away from it is not.
+     *
+     * <p>A swing is every punch and every attack anybody makes. Redrawing every gate within
+     * the 64 blocks a portal is drawn at, on each of them, would be most of a server's packets.
+     */
+    @Test
+    void aSwingAcrossTheValleyIsNotAboutTheIris()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
+        gate.setGateIrisActive(true);
+
+        assertFalse(StargateManager.nearDrawnIris(new Location(world, 10, 64, 60)),
+            "forty blocks away is inside the drawing range but nowhere near reach");
+    }
+
+    /**
+     * A horizontal gate's iris is real, so nothing about it needs putting back.
+     */
+    @Test
+    void aSwingAtARealIrisNeedsNoRedraw()
+    {
+        gate.setGateFacing(BlockFace.UP);
+        gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
+        gate.setGateIrisActive(true);
+
+        assertFalse(StargateManager.nearDrawnIris(new Location(world, 10, 65, 20)),
+            "standing right on it, but the server has those blocks");
+    }
+
+    // -----------------------------------------------------------------------
     // Redrawing it for somebody who was not there when it shut
     // -----------------------------------------------------------------------
 

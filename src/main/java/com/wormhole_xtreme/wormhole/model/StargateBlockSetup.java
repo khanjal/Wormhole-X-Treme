@@ -1171,19 +1171,7 @@ class StargateBlockSetup
             stillDrawn.add(gate.getGateName());
         }
 
-        // A shut iris is drawn whether or not there is a wormhole behind it, so the gates to
-        // walk are not only the open ones: an idle gate sitting shut is invisible to the loop
-        // above, and its iris would be there for whoever was nearby when it closed and for
-        // nobody else.
-        for (final Stargate gate : StargateManager.getIrisGates())
-        {
-            if (stillDrawn.contains(gate.getGateName()) || !isNearEnoughToRedraw(gate, playerAt))
-            {
-                continue;
-            }
-            sendIrisTo(player, gate);
-            stillDrawn.add(gate.getGateName());
-        }
+        drawIdleIrises(player, playerAt, stillDrawn);
 
         // Anything this player was shown that is not open to them any more has to be taken
         // back. The close-time send only reaches whoever was within range at that moment, and
@@ -1201,6 +1189,35 @@ class StargateBlockSetup
         }
         showing.clear();
         showing.addAll(stillDrawn);
+    }
+
+    /**
+     * Draws the shut iris of every idle gate near a player.
+     *
+     * <p>A shut iris is drawn whether or not there is a wormhole behind it, so the gates to
+     * walk are not only the open ones: an idle gate sitting shut is invisible to the open-gate
+     * loop, and its iris would be there for whoever was nearby when it closed and for nobody
+     * else.
+     *
+     * @param player
+     *            the player to draw for
+     * @param playerAt
+     *            where they are
+     * @param stillDrawn
+     *            the gates already drawn for them this pass, added to as more are
+     */
+    private static void drawIdleIrises(final Player player, final Location playerAt,
+        final Set<String> stillDrawn)
+    {
+        for (final Stargate gate : StargateManager.getIrisGates())
+        {
+            if (stillDrawn.contains(gate.getGateName()) || !isNearEnoughToRedraw(gate, playerAt))
+            {
+                continue;
+            }
+            sendIrisTo(player, gate);
+            stillDrawn.add(gate.getGateName());
+        }
     }
 
     /**

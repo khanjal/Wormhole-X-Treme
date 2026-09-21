@@ -254,6 +254,46 @@ class DrawnIrisHoldsShutTest
     }
 
     // -----------------------------------------------------------------------
+    // Swinging at one
+    // -----------------------------------------------------------------------
+
+    /**
+     * A swing at a drawn iris puts it back, and a flurry of them puts it back once.
+     *
+     * <p>Mining a block the server does not have hands the client the truth about that cell,
+     * which is air, so the iris comes off their screen where they hit it. Nothing else would put
+     * it back until they crossed a chunk boundary. But a swing is also every punch and every
+     * attack, so a player hammering at the gate must not turn each one into a redraw.
+     */
+    @Test
+    void aSwingAtADrawnIrisRedrawsItOnceNotOnEverySwing() throws Exception
+    {
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        when(player.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ - 2.5));
+        final org.bukkit.event.player.PlayerAnimationEvent swing =
+            mock(org.bukkit.event.player.PlayerAnimationEvent.class);
+        when(swing.getPlayer()).thenReturn(player);
+
+        try
+        {
+            final WormholeXTremePlayerListener listener = new WormholeXTremePlayerListener();
+            listener.onPlayerAnimation(swing);
+            listener.onPlayerAnimation(swing);
+            listener.onPlayerAnimation(swing);
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        // One redraw is two scheduled sends, a tick or so apart. Three swings inside the
+        // throttle are still one redraw.
+        verify(scheduler, org.mockito.Mockito.times(2))
+            .scheduleSyncDelayedTask(any(), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    // -----------------------------------------------------------------------
     // Building in one
     // -----------------------------------------------------------------------
 

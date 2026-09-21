@@ -878,24 +878,33 @@ public class StargateManager
         }
         for (final Stargate gate : irisGates)
         {
-            if (!gate.isGateIrisDrawn() || (gate.getGateWorld() == null)
-                || !gate.getGateWorld().equals(at.getWorld()))
-            {
-                continue;
-            }
-            final List<Location> portal = gate.getGatePortalBlocks();
-            if (portal.isEmpty())
-            {
-                continue;
-            }
-            final Location reference = new Location(gate.getGateWorld(),
-                portal.get(0).getBlockX(), portal.get(0).getBlockY(), portal.get(0).getBlockZ());
-            if (at.distanceSquared(reference) <= (IRIS_REACH * IRIS_REACH))
+            if (gate.isGateIrisDrawn() && withinIrisReach(gate, at))
             {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Whether a location is within {@link #IRIS_REACH} of a gate's opening, in the same world.
+     *
+     * @param gate
+     *            the gate
+     * @param at
+     *            the location
+     * @return true if it is close enough to have been swinging at the gate
+     */
+    private static boolean withinIrisReach(final Stargate gate, final Location at)
+    {
+        final List<Location> portal = gate.getGatePortalBlocks();
+        if ((gate.getGateWorld() == null) || !gate.getGateWorld().equals(at.getWorld()) || portal.isEmpty())
+        {
+            return false;
+        }
+        final Location reference = new Location(gate.getGateWorld(),
+            portal.get(0).getBlockX(), portal.get(0).getBlockY(), portal.get(0).getBlockZ());
+        return at.distanceSquared(reference) <= (IRIS_REACH * IRIS_REACH);
     }
 
     /**
