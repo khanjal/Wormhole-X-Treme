@@ -1096,6 +1096,24 @@ class MirrorWindowsTest
             "a small opening buys no cheaper cost cap: a slow redraw still rests three times as long");
     }
 
+    /**
+     * A small opening's catch-up after a stop comes a tick out, not two.
+     *
+     * <p>The catch-up was floored at two ticks whatever the rest, so a viewer who stopped just
+     * inside a small opening's fifty-millisecond rest was still drawn a hundred later -- the
+     * moment the lingering shows most.
+     */
+    @Test
+    void aSmallOpeningCatchesUpAfterOneTick()
+    {
+        assertEquals(1L, MirrorWindows.catchUpTicks(MirrorWindows.SMALL_REDRAW_MILLIS, 40L),
+            "a small opening's catch-up waits one tick");
+        assertEquals(2L, MirrorWindows.catchUpTicks(MirrorWindows.REDRAW_MILLIS, 40L),
+            "a wider one keeps its two");
+        assertEquals(4L, MirrorWindows.catchUpTicks(195L, 10L),
+            "and a slow redraw's catch-up still waits out its whole rest");
+    }
+
     /** How many blocks the viewer's last redraw projected, off the debug line. */
     private static int projectedByTheLastRedraw(final Player viewer)
     {

@@ -117,6 +117,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   cap is unchanged, so a redraw that turns out slow still rests three times as long as it took and
   no viewer can spend more of the main thread than before.
 
+  The redraw that catches a viewer up after they stop gets the same pace. It had its own floor
+  of two ticks, so stopping just inside a small opening's rest was still drawn a hundred
+  milliseconds later -- the moment the lingering shows most. It waits one tick now.
+
   Torch flames, candles and campfires beside the opening will still outlive their block by up to a
   second: those particles are spawned on the client and the server cannot recall one. Keeping
   effects off a small window's edge blocks, and clipping ahead of the viewer's movement, are the

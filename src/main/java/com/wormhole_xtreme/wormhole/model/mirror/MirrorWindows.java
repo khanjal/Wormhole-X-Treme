@@ -1174,6 +1174,22 @@ public final class MirrorWindows
             && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing));
     }
 
+    /**
+     * How many ticks until a deferred move is drawn: not before the rest is up, and no later
+     * than the pace allows, so a small opening's catch-up comes a tick out rather than two.
+     *
+     * @param restMillis
+     *            the viewer's rest after their last redraw
+     * @param elapsedMillis
+     *            how long ago that redraw was
+     * @return the delay in ticks
+     */
+    static long catchUpTicks(final long restMillis, final long elapsedMillis)
+    {
+        final long floor = (restMillis <= SMALL_REDRAW_MILLIS) ? 1L : REDRAW_TICKS;
+        return Math.max(floor, ((restMillis - elapsedMillis) + 49L) / 50L);
+    }
+
     /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
     private static void catchUpLater(final Player player, final MirrorDrawing view)
     {
@@ -1183,9 +1199,7 @@ public final class MirrorWindows
         }
         try
         {
-            // Not before the viewer's rest is up: a slow redraw's rest is longer than two ticks.
-            final long left = view.rest - (now() - view.composedAt);
-            final long ticks = Math.max(REDRAW_TICKS, (left + 49L) / 50L);
+            final long ticks = catchUpTicks(view.rest, now() - view.composedAt);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
                 () -> catchUp(player), ticks);
             view.catchUpQueued = true;
