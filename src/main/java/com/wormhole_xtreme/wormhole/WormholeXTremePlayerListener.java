@@ -773,6 +773,11 @@ class WormholeXTremePlayerListener implements Listener
     {
         final BlockFace exitFacing = stargate.getGateTarget().getGateFacing();
         final Location riddenTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, exitFacing, 1.0, 1.0);
+        // forwardAndUp hands a null straight back; the caller has already refused one.
+        if (riddenTarget == null)
+        {
+            return false;
+        }
         final Vector exitVelocity = aimMountAtExit(riddenTarget, exitFacing, ridden);
 
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
