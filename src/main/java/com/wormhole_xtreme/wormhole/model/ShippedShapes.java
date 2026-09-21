@@ -4,63 +4,134 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
- * The bundled gate shapes, and which of a server's copies differ from this version's.
+ * Brings the bundled gate shapes on a server up to this version, unless someone edited them.
  *
- * <p>A shape file is written once and never overwritten, since an admin may have edited it, so
- * an upgraded server keeps the old ones. Each that differs is named in the log for the admin to
- * decide on; nothing here changes a file.
+ * <p>Shapes are written out once and never overwritten, so a server that upgraded kept the old
+ * geometry and light order for good. A copy that matches, line for line, a version some release
+ * shipped was never touched by hand, and is replaced; anything else is left alone.
  */
 final class ShippedShapes
 {
-    /** The bundled shapes, written out when missing. */
+    /** The bundled shapes, written out when missing and updated when untouched. */
     static final List<String> NAMES = List.of("Standard.shape", "StandardSignDial.shape", "Minimal.shape",
         "MinimalSignDial.shape", "Horizontal.shape", "HorizontalSignDial.shape",
         "Large.shape", "Grand.shape", "Massive.shape");
 
+    /** The list of every shipped version, as {@code <file> <sha-256>} lines. */
+    static final String SHIPPED_LIST = "/shapes/shipped-shapes.txt";
+
+    /** What a replaced copy is renamed to, beside the new one. */
+    static final String BACKUP_SUFFIX = ".old";
+
+    /** Where the new copy is written before it takes the old one's place. */
+    static final String INCOMING_SUFFIX = ".new";
+
     private ShippedShapes() {}
 
     /**
-     * Logs each bundled shape whose copy in the folder differs from this version's.
+     * Replaces each bundled shape the folder holds as some earlier release wrote it.
      *
      * @param directory
      *            the gate shapes folder
-     * @return how many differ
      */
-    static int reportDiffering(final File directory)
+    static void updateUntouched(final File directory)
     {
-        int differing = 0;
+        updateUntouched(directory, shippedVersions());
+    }
+
+    /**
+     * The same, against a given list: with none to go on, nothing can be told apart from an edit.
+     *
+     * @param directory
+     *            the gate shapes folder
+     * @param shipped
+     *            every {@code <file> <sha-256>} line the list holds
+     */
+    static void updateUntouched(final File directory, final Set<String> shipped)
+    {
+        if (shipped.isEmpty())
+        {
+            return;
+        }
         for (final String name : NAMES)
         {
-            final File file = new File(directory, name);
-            final String bundled = bundled(name);
-            if (!file.isFile() || (bundled == null))
+            updateOne(directory, name, shipped);
+        }
+    }
+
+    /**
+     * Replaces one bundled shape if the folder holds it as some earlier release wrote it.
+     *
+     * <p>The new copy is written beside it first, the old one copied to {@code .old}, and only
+     * then the new one moved over it, so at no point is there no shape: a failure anywhere
+     * leaves the old one in place. A {@code .old} that is not itself a shipped version is
+     * somebody's own backup, and is never overwritten -- that shape is left for this start.
+     */
+    private static void updateOne(final File directory, final String name, final Set<String> shipped)
+    {
+        final File file = new File(directory, name);
+        final String current = bundled(name);
+        if (!file.isFile() || (current == null))
+        {
+            return;
+        }
+        final java.nio.file.Path incoming = new File(directory, name + INCOMING_SUFFIX).toPath();
+        final File backup = new File(directory, name + BACKUP_SUFFIX);
+        try
+        {
+            final String onDisk = hash(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+            if (onDisk.equals(hash(current)))
             {
-                continue;
+                return;
             }
+            if (!shipped.contains(name + " " + onDisk))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
+                    + " has been edited, so it was left as it is. Delete it and restart to get this version's.");
+                return;
+            }
+            if (backup.isFile() && !shipped.contains(name + " "
+                + hash(Files.readString(backup.toPath(), StandardCharsets.UTF_8))))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
+                    + " was not updated, because " + name + BACKUP_SUFFIX
+                    + " is not one this plugin wrote. Move it aside and restart to update.");
+                return;
+            }
+            Files.writeString(incoming, current, StandardCharsets.UTF_8);
+            Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(incoming, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Updated gate shape " + name
+                + " to this version; the old one is kept as " + name + BACKUP_SUFFIX + ".");
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not update gate shape " + name, e);
             try
             {
-                if (!normalised(Files.readString(file.toPath(), StandardCharsets.UTF_8)).equals(bundled))
-                {
-                    differing++;
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
-                        + " differs from this version's. If you did not edit it, delete it and restart to take the new one.");
-                }
+                Files.deleteIfExists(incoming);
             }
-            catch (final IOException e)
+            catch (final IOException ignore)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not read gate shape " + name, e);
+                // Best effort: a stray .new file is harmless, and the next start tries again.
             }
         }
-        return differing;
     }
 
     /** @return the bundled copy of a shape with LF line endings, or null if the jar lacks it */
@@ -73,6 +144,59 @@ final class ShippedShapes
         catch (final IOException e)
         {
             return null;
+        }
+    }
+
+    /** @return every {@code <file> <sha-256>} line the list holds */
+    static Set<String> shippedVersions()
+    {
+        return shippedVersions(WormholeXTreme.class.getResourceAsStream(SHIPPED_LIST));
+    }
+
+    /**
+     * Reads a shipped list, which a jar built without it does not have.
+     *
+     * @param list
+     *            the list, or null if it is missing
+     * @return every {@code <file> <sha-256>} line it holds, or none
+     */
+    static Set<String> shippedVersions(final InputStream list)
+    {
+        final Set<String> versions = new HashSet<>();
+        try (final InputStream is = list)
+        {
+            if (is == null)
+            {
+                return versions;
+            }
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            String line;
+            while ((line = reader.readLine()) != null)
+            {
+                if (!line.isBlank() && !line.startsWith("#"))
+                {
+                    versions.add(line.trim());
+                }
+            }
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not read the shipped shape list", e);
+        }
+        return versions;
+    }
+
+    /** @return the SHA-256 of a shape's text, line endings aside */
+    static String hash(final String text)
+    {
+        try
+        {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(normalised(text).getBytes(StandardCharsets.UTF_8)));
+        }
+        catch (final NoSuchAlgorithmException e)
+        {
+            throw new IllegalStateException("SHA-256 is missing from this Java", e);
         }
     }
 
