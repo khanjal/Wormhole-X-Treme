@@ -74,6 +74,8 @@ public final class HiddenEntities
      *            the entity type
      * @return the entity, or null if the world refused it
      */
+    // A spawn that answers nothing is a tested contract here, whatever the annotation says.
+    @SuppressWarnings("java:S2589")
     public static <T extends Entity> T spawnFor(final Plugin plugin, final Player viewer, final Location at,
         final Class<T> type, final Consumer<? super T> setup)
     {

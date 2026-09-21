@@ -161,10 +161,6 @@ class ProjectileGateTracker implements Listener
     public void onProjectileHit(final ProjectileHitEvent event)
     {
         final Projectile projectile = event.getEntity();
-        if (projectile == null)
-        {
-            return;
-        }
         hit.put(projectile.getUniqueId(), Integer.valueOf(tick));
     }
 

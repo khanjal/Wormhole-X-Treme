@@ -102,10 +102,12 @@ class WormholeXTremePlayerListener implements Listener
      *            the entity being ridden
      * @return a portal block of an active gate, or null if the mount is not in one
      */
+    // Never null on a server; the box check is for mock mounts that stub none.
+    @SuppressWarnings("java:S2589")
     private static Block findActiveGatePortalBlockAtMount(final Entity mount)
     {
         final Location ml = mount.getLocation();
-        if (ml == null || ml.getWorld() == null)
+        if (ml.getWorld() == null)
         {
             return null;
         }
@@ -329,11 +331,6 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        if (player == null)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "handlePlayerMoveEvent: event player is null, ignoring event.");
-            return false;
-        }
         logCrossing(event, player);
 
         final Location toLocFinal = event.getTo();
@@ -555,6 +552,11 @@ class WormholeXTremePlayerListener implements Listener
         }
 
         final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+        // A far gate with no arrival point has nowhere to put anybody, and teleport(null) throws.
+        if (target == null)
+        {
+            return false;
+        }
         if (refusedForCrossWorld(player, gateBlockFinal, target))
         {
             return false;
@@ -837,6 +839,11 @@ class WormholeXTremePlayerListener implements Listener
     {
         final BlockFace exitFacing = stargate.getGateTarget().getGateFacing();
         final Location riddenTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, exitFacing, 1.0, 1.0);
+        // forwardAndUp hands a null straight back; the caller has already refused one.
+        if (riddenTarget == null)
+        {
+            return false;
+        }
         final Vector exitVelocity = aimMountAtExit(riddenTarget, exitFacing, ridden);
 
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.

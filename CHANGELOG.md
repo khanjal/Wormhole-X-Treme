@@ -81,6 +81,12 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
   at the gate it came from but stepped out the way the *far* gate faces, so unless the two
   gates faced the same way it could land in the frame, the ground or a wall.
+- **A gate with no arrival point no longer throws when somebody walks or rolls into it.**
+  Nothing checked that the far gate had an arrival point before teleporting to it, and
+  Bukkit refuses a teleport to nowhere with an exception, on every tick a cart kept
+  rolling. A healthy gate always has one; a damaged save need not. The trip is simply
+  not made now, and a cart bounced off a far iris by such a gate is left where it
+  stopped. SonarCloud found all three.
 
 ### Commands
 
@@ -112,6 +118,32 @@ The plugin API is in [docs/API.md](docs/API.md).
   block, so a shape cannot gain a chevron position without every gate already built to it failing
   to match. `[S:C]` can, so a shape can grow chevrons without anyone regenerating anything. See
   [docs/GATES.md](docs/GATES.md).
+
+### Quantum mirrors
+
+**Fixed**
+
+- **What a small mirror drew no longer hangs outside its opening as you move.** A redraw sends
+  only the blocks visible through the opening from where the eye is now, and blocks that go out of
+  sight stay on the client until the next redraw takes them away. At a mirror one or two banners
+  wide a single step changes a large share of what is visible, and there is only the one block of
+  wall `mirror create` requires to hide the difference behind, so for a redraw or two it stood in
+  the open.
+
+  An opening of six blocks or fewer -- the sizes a one or two banner mirror has -- is now redrawn
+  twenty times a second as the viewer moves rather than ten. That is affordable because a small
+  opening is what makes it cheap: fewer blocks pass the clip, so there is less to project. The cost
+  cap is unchanged, so a redraw that turns out slow still rests three times as long as it took and
+  no viewer can spend more of the main thread than before.
+
+  The redraw that catches a viewer up after they stop gets the same pace. It had its own floor
+  of two ticks, so stopping just inside a small opening's rest was still drawn a hundred
+  milliseconds later -- the moment the lingering shows most. It waits one tick now.
+
+  Torch flames, candles and campfires beside the opening will still outlive their block by up to a
+  second: those particles are spawned on the client and the server cannot recall one. Keeping
+  effects off a small window's edge blocks, and clipping ahead of the viewer's movement, are the
+  two directions still open on this.
 
 ### Performance
 

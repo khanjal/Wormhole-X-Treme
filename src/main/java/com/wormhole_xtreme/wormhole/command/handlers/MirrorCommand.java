@@ -391,6 +391,8 @@ public class MirrorCommand implements SubCommand
      * <p>Along the wall to either side, facing the same way, and not already a mirror; the right
      * one first, looking at the wall, if there are two.
      */
+    // Never null on a server; the null checks are for test worlds that stub no blocks.
+    @SuppressWarnings("java:S2589")
     private static Block partnerOf(final Block block)
     {
         if (!(block.getBlockData() instanceof org.bukkit.block.data.Directional directional))

@@ -459,7 +459,7 @@ class WormholeXTremeBlockListener implements Listener
         final Player player = event.getPlayer();
         // A stray block in the ring is not the gate's, so DAMAGE does not gate it -- and
         // without this the break onBlockBreak now allows could never be started. #243.
-        if ((stargate != null) && (player != null) && !isStrayBlockInPortal(stargate, event.getBlock())
+        if ((stargate != null) && !isStrayBlockInPortal(stargate, event.getBlock())
             && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE))
         {
             event.setCancelled(true);

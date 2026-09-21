@@ -57,10 +57,6 @@ class StargateBlockSetup
         final BlockFace toward = gate.getGateFacing();
         final Block nameSign = gate.getGateNameBlockHolder();
         final Block placeBlock = nameSign.getRelative(toward);
-        if (placeBlock == null)
-        {
-            return;
-        }
 
         if (create)
         {
@@ -1476,6 +1472,8 @@ class StargateBlockSetup
      *            the player
      * @return their live set of gate names, created empty if this is the first time
      */
+    // Never null on a server; mock players with no UUID would otherwise throw from the map.
+    @SuppressWarnings("java:S2583")
     private static Set<String> drawnFor(final Player player)
     {
         final java.util.UUID uuid = player.getUniqueId();

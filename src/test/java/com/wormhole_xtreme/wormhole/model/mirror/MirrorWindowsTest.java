@@ -1060,9 +1060,58 @@ class MirrorWindowsTest
     void aSlowRedrawEarnsARestThreeTimesAsLong()
     {
         MirrorWindows.restFactor = 3L;
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L), "a quick redraw keeps the pace");
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(30L), "so does one under a third of it");
-        assertEquals(195L, MirrorWindows.restAfter(65L), "sixty-five milliseconds rests nearly two hundred");
+        final int wide = MirrorWindows.SMALL_OPEN + 1;
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, wide), "a quick redraw keeps the pace");
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(30L, wide),
+            "so does one under a third of it");
+        assertEquals(195L, MirrorWindows.restAfter(65L, wide), "sixty-five milliseconds rests nearly two hundred");
+    }
+
+    /**
+     * A small opening is redrawn twice as often, so what it drew does not linger past its edges.
+     *
+     * <p>Moving in front of a mirror one or two banners wide, blocks that had gone out of sight
+     * stayed on the client until the next redraw took them away, which at ten a second could leave
+     * them standing outside the opening for a redraw or two -- clearest as torch flames and smoke
+     * hanging in the air beside the banner. A small opening changes a large share of what it shows
+     * for a small head movement, and is cheap to draw, so it earns a shorter gap.
+     *
+     * <p>The cost cap is deliberately left alone: a redraw that turns out slow rests the same
+     * multiple of what it took whatever the opening's size, so this cannot become a way for one
+     * viewer to spend more of the main thread than the deep-mirror case already allows.
+     */
+    @Test
+    void aSmallOpeningIsRedrawnTwiceAsOften()
+    {
+        MirrorWindows.restFactor = 3L;
+        assertEquals(MirrorWindows.SMALL_REDRAW_MILLIS, MirrorWindows.restAfter(0L, 1),
+            "a one block opening is drawn twice as often");
+        assertEquals(MirrorWindows.SMALL_REDRAW_MILLIS, MirrorWindows.restAfter(0L, MirrorWindows.SMALL_OPEN),
+            "so is the largest opening that still counts as small");
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, MirrorWindows.SMALL_OPEN + 1),
+            "one block bigger keeps the ten a second every window had before");
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, 0),
+            "and so does a viewer whose opening size is not known");
+        assertEquals(195L, MirrorWindows.restAfter(65L, 1),
+            "a small opening buys no cheaper cost cap: a slow redraw still rests three times as long");
+    }
+
+    /**
+     * A small opening's catch-up after a stop comes a tick out, not two.
+     *
+     * <p>The catch-up was floored at two ticks whatever the rest, so a viewer who stopped just
+     * inside a small opening's fifty-millisecond rest was still drawn a hundred later -- the
+     * moment the lingering shows most.
+     */
+    @Test
+    void aSmallOpeningCatchesUpAfterOneTick()
+    {
+        assertEquals(1L, MirrorWindows.catchUpTicks(MirrorWindows.SMALL_REDRAW_MILLIS, 40L),
+            "a small opening's catch-up waits one tick");
+        assertEquals(2L, MirrorWindows.catchUpTicks(MirrorWindows.REDRAW_MILLIS, 40L),
+            "a wider one keeps its two");
+        assertEquals(4L, MirrorWindows.catchUpTicks(195L, 10L),
+            "and a slow redraw's catch-up still waits out its whole rest");
     }
 
     /** How many blocks the viewer's last redraw projected, off the debug line. */
