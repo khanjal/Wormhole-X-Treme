@@ -9,6 +9,22 @@ Every PR here is reviewed three times before it merges: by Sonnet before it open
 once it has, and by Fable on the finished PR just before it merges. Green CI replaces neither: the matrix proves the code builds and the
 tests pass, not that the tests test the right thing.
 
+## The checklist in every PR description
+
+Every PR description carries the **Reviews** checklist from `.github/pull_request_template.md`:
+the first review, Copilot, the final review, findings handled, Sonar at zero. Tick each box
+as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
+is still owed. A PR is not ready to merge with a box unticked.
+
+`gh pr create --body` does **not** apply the template -- GitHub only uses it for PRs opened in
+the web UI -- so paste the checklist into the body yourself, and add it to any open PR that
+lacks it. Update the ticks by editing the body:
+
+```bash
+gh api repos/khanjal/Wormhole-X-Treme/pulls/<n> --jq .body > body.md   # edit, then:
+gh api repos/khanjal/Wormhole-X-Treme/pulls/<n> -X PATCH -F body=@body.md
+```
+
 ## 1. Before the PR opens: a review by a different model
 
 Always, whatever Copilot's quota. The model that wrote the code shares its own wrong
