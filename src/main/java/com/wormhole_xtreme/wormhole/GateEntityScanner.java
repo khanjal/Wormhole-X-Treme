@@ -68,15 +68,7 @@ public final class GateEntityScanner implements Runnable
             // An idle gate's drawn iris is air to the server, so it gets swept too.
             for (final Stargate gate : StargateManager.getIrisGates())
             {
-                try
-                {
-                    splatAtIdleIris(gate);
-                }
-                catch (final RuntimeException t)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                        "Iris sweep failed for gate " + gate.getGateName(), t);
-                }
+                splatAtIdleIrisQuietly(gate);
             }
         }
         catch (final RuntimeException t)
@@ -203,6 +195,20 @@ public final class GateEntityScanner implements Runnable
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate", t);
+        }
+    }
+
+    /** The idle-iris sweep for one gate, which must not end the tick for the gates after it. */
+    private static void splatAtIdleIrisQuietly(final Stargate gate)
+    {
+        try
+        {
+            splatAtIdleIris(gate);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Iris sweep failed for gate " + gate.getGateName(), t);
         }
     }
 

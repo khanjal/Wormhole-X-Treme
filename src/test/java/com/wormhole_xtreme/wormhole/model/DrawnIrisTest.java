@@ -331,9 +331,10 @@ class DrawnIrisTest
         when(walker.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(walker.getLocation()).thenReturn(new Location(world, 10, 64, 26));
 
+        final BlockData iris = mock(BlockData.class);
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(mock(BlockData.class));
+            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(iris);
 
             StargateBlockSetup.refreshPortalVisuals(walker);
         }

@@ -498,7 +498,7 @@ class DrawnIrisHoldsShutTest
      * had nothing behind it and items sat in the opening where no client could see them.
      */
     @Test
-    void anItemAtAnIdleGatesShutIrisIsDestroyed() throws Exception
+    void anItemAtAnIdleGatesShutIrisIsDestroyed()
     {
         final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
 
@@ -509,7 +509,7 @@ class DrawnIrisHoldsShutTest
 
     /** A mob at an idle gate's shut iris is left alone, as it is at an open one. */
     @Test
-    void aMobAtAnIdleGatesShutIrisIsLeftStanding() throws Exception
+    void aMobAtAnIdleGatesShutIrisIsLeftStanding()
     {
         final org.bukkit.entity.Zombie zombie = inTheOpening(org.bukkit.entity.Zombie.class);
 

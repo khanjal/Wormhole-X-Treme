@@ -831,10 +831,6 @@ class WormholeXTremeVehicleListener implements Listener
     private static void stopShortOfIdleIris(final VehicleMoveEvent event)
     {
         final Vehicle veh = event.getVehicle();
-        if ((veh == null) || (event.getFrom() == null))
-        {
-            return;
-        }
         // Back where it was a move ago rather than out in front: an idle gate can be rolled
         // at from either side, and the front is the far side for a cart coming from behind.
         markVehicleRecentlyTeleported(veh.getUniqueId());
