@@ -391,4 +391,41 @@ class IrisSweepOrderingTest
         }
         return Integer.MAX_VALUE;
     }
+
+    /**
+     * A drawn iris ends its closing sweep drawn everywhere, not with rings left open.
+     *
+     * <p>Reported on a Standard gate with the spiral sweep: closing the iris left cells in the
+     * middle open until the player looked away and back. The sweep revealed each ring as "what
+     * is really in the cell", which was the iris while the iris was real blocks -- and is air now
+     * that an upright gate's iris is only drawn. The rest looked shut only because a redraw
+     * happened to paint over most of it.
+     */
+    @Test
+    void aDrawnIrisSweepsClosedToTheIrisInEveryCell()
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        assertTrue(StargateBlockSetup.irisIsDrawn(gate), "an upright gate, whose iris is drawn");
+
+        // The first ring is drawn by the toggle itself, so nothing is cleared in between: what
+        // counts is the last thing each cell was shown.
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
+        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+        }
+        assertEquals(9, last.size(), "every cell of the opening was drawn by the sweep");
+        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        {
+            assertTrue((cell.getValue() != null) && (cell.getValue() != bareOpening),
+                "cell " + cell.getKey() + " was left showing the air the server really has there");
+        }
+    }
 }

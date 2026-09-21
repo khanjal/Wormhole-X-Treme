@@ -46,7 +46,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   refused whether or not the gate has been dialled, and so is a minecart, which is pushed
   back out. An arrow or a dropped item that reaches a shut iris is destroyed, at either end
   of a wormhole or at a gate nobody has dialled. A mob is the exception: it is never sent
-  through a shut iris, but nothing stops one wandering through an idle gate's. Nobody builds
+  through a shut iris, but nothing stops one wandering through an idle gate's. The closing sweep
+  now finishes with the iris in every cell; drawn, it had been uncovering the air behind it a
+  ring at a time, which left holes in the middle until the gate was redrawn. Nobody builds
   in an opening a shut iris covers, operators included. A **horizontal** gate's iris is still
   real blocks — it is a floor, and a floor has to be there to stand on. Gates saved with an
   iris shut have theirs taken out of the world on the first load; nothing to do.
