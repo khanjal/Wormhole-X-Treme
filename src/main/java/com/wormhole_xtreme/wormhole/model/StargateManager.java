@@ -878,7 +878,7 @@ public class StargateManager
         }
         for (final Stargate gate : irisGates)
         {
-            if (gate.isGateIrisDrawn() && withinIrisReach(gate, at))
+            if (gate.isGateIrisDrawn() && isRegistered(gate) && withinIrisReach(gate, at))
             {
                 return true;
             }

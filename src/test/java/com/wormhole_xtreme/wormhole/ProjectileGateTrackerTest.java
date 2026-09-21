@@ -441,6 +441,29 @@ class ProjectileGateTrackerTest
         assertEquals(0, ProjectileGateTracker.trackedCount());
     }
 
+    /**
+     * An arrow shot at an idle gate's shut iris stops there.
+     *
+     * <p>The iris used to be solid blocks, which stopped an arrow whether or not the gate was
+     * dialled. Drawn, it is air to the server, and nothing was even following arrows while no
+     * gate was open, so one flew straight through what every client showed as a closed iris.
+     */
+    @Test
+    void anArrowAtAnIdleGatesShutIrisIsStopped()
+    {
+        origin.setGateActive(false);
+        origin.setGateIrisActive(true);
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
+
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
+    }
+
     @Test
     void anIdleTickCostsNothingWhenNothingIsInFlight()
     {

@@ -1211,7 +1211,9 @@ class StargateBlockSetup
     {
         for (final Stargate gate : StargateManager.getIrisGates())
         {
-            if (stillDrawn.contains(gate.getGateName()) || !isNearEnoughToRedraw(gate, playerAt))
+            // Registered as well: the set follows the flag, which a gate still being loaded has set.
+            if (stillDrawn.contains(gate.getGateName()) || !StargateManager.isRegistered(gate)
+                || !isNearEnoughToRedraw(gate, playerAt))
             {
                 continue;
             }

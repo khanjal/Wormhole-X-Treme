@@ -118,6 +118,16 @@ class ProjectileGateTracker implements Listener
                 return;
             }
         }
+        // A drawn iris over an idle gate is air to the server, so an arrow has to be followed
+        // there too, or it flies through what every client shows as a shut iris.
+        for (final Stargate gate : StargateManager.getIrisGates())
+        {
+            if (gate.isGateIrisDrawn() && StargateManager.isRegistered(gate))
+            {
+                anyGateOpen = true;
+                return;
+            }
+        }
         anyGateOpen = false;
     }
 
@@ -290,11 +300,17 @@ class ProjectileGateTracker implements Listener
     {
         final Stargate gate = StargateManager.getGateFromBlock(
             point.getWorld().getBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()));
-        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null)
+        if ((gate == null) || !gate.isGatePortalBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()))
         {
             return false;
         }
-        if (!gate.isGatePortalBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()))
+        // An idle gate's shut iris stops an arrow the way an open one's does.
+        if (!gate.isGateActive() && gate.isGateIrisActive() && gate.isGateIrisDrawn())
+        {
+            projectile.remove();
+            return true;
+        }
+        if (!gate.isGateActive() || gate.getGateTarget() == null)
         {
             return false;
         }

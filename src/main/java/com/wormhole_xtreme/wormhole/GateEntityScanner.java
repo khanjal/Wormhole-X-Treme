@@ -65,6 +65,19 @@ public final class GateEntityScanner implements Runnable
             {
                 sweepGateQuietly(gate);
             }
+            // An idle gate's drawn iris is air to the server, so it gets swept too.
+            for (final Stargate gate : StargateManager.getIrisGates())
+            {
+                try
+                {
+                    splatAtIdleIris(gate);
+                }
+                catch (final RuntimeException t)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                        "Iris sweep failed for gate " + gate.getGateName(), t);
+                }
+            }
         }
         catch (final RuntimeException t)
         {
@@ -190,6 +203,36 @@ public final class GateEntityScanner implements Runnable
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate", t);
+        }
+    }
+
+    /**
+     * Destroys the loose items standing in an idle gate's opening while its drawn iris is shut.
+     *
+     * @param gate
+     *            the gate to sweep
+     */
+    static void splatAtIdleIris(final Stargate gate)
+    {
+        // An open gate is the other sweep's; this one is only for the drawing over an idle gate.
+        if ((gate == null) || gate.isGateActive() || !gate.isGateIrisActive() || !gate.isGateIrisDrawn()
+            || !StargateManager.isRegistered(gate))
+        {
+            return;
+        }
+        final World world = gate.getGateWorld();
+        final BoundingBox bounds = gate.getGatePortalBounds();
+        if ((world == null) || (bounds == null))
+        {
+            return;
+        }
+        for (final Entity entity : world.getNearbyEntities(bounds))
+        {
+            final Location at = entity.getLocation();
+            if (gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+            {
+                splatOnIris(entity);
+            }
         }
     }
 

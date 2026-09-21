@@ -606,18 +606,29 @@ class WormholeXTremeVehicleListener implements Listener
         // portal material is drawn to clients only, so travellers are not subject to its
         // physics — which means the material comparison never matched and no vehicle ever
         // made it through. The player and entity paths already ask the gate.
-        // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
-        if ((st == null) || !st.isGateActive() || (st.getGateTarget() == null)
-            || !StargateManager.isPortalBlock(ch))
+        if ((st == null) || !StargateManager.isPortalBlock(ch))
         {
             return false;
         }
         // A vertical gate's own iris is a drawing, and a cart does not believe in drawings:
         // it rolls into the opening where the old solid iris would have stopped it dead. It
-        // goes nowhere, and it is pushed back out the way it came.
+        // goes nowhere, and it is pushed back out the way it came. Asked before whether the
+        // gate is open, because an idle gate's shut iris is the same drawing over air.
         if (st.isGateIrisActive() && st.isGateIrisDrawn())
         {
-            bounceOffOwnIris(st, event.getVehicle());
+            if (st.isGateActive())
+            {
+                bounceOffOwnIris(st, event.getVehicle());
+            }
+            else
+            {
+                stopShortOfIdleIris(event);
+            }
+            return false;
+        }
+        // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
+        if (!st.isGateActive() || (st.getGateTarget() == null))
+        {
             return false;
         }
         final String gatenetwork = (st.getGateNetwork() != null)
@@ -809,6 +820,26 @@ class WormholeXTremeVehicleListener implements Listener
         {
             st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
         }
+    }
+
+    /**
+     * Stops a vehicle rolling into an idle gate whose drawn iris is shut, where it just was.
+     *
+     * @param event
+     *            the move that would have taken it into the opening
+     */
+    private static void stopShortOfIdleIris(final VehicleMoveEvent event)
+    {
+        final Vehicle veh = event.getVehicle();
+        if ((veh == null) || (event.getFrom() == null))
+        {
+            return;
+        }
+        // Back where it was a move ago rather than out in front: an idle gate can be rolled
+        // at from either side, and the front is the far side for a cart coming from behind.
+        markVehicleRecentlyTeleported(veh.getUniqueId());
+        veh.setVelocity(nospeed);
+        veh.teleport(event.getFrom());
     }
 
     /**

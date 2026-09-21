@@ -236,6 +236,7 @@ class DrawnIrisTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.setGateIrisActive(true);
+        StargateManager.registerStargate(gate);
 
         assertTrue(StargateManager.nearDrawnIris(new Location(world, 10, 64, 23)),
             "three blocks from the iris is well within reach of it");
@@ -253,6 +254,7 @@ class DrawnIrisTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.setGateIrisActive(true);
+        StargateManager.registerStargate(gate);
 
         assertFalse(StargateManager.nearDrawnIris(new Location(world, 10, 64, 60)),
             "forty blocks away is inside the drawing range but nowhere near reach");
@@ -267,6 +269,7 @@ class DrawnIrisTest
         gate.setGateFacing(BlockFace.UP);
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.setGateIrisActive(true);
+        StargateManager.registerStargate(gate);
 
         assertFalse(StargateManager.nearDrawnIris(new Location(world, 10, 65, 20)),
             "standing right on it, but the server has those blocks");
@@ -306,5 +309,39 @@ class DrawnIrisTest
         }
 
         verify(walker).sendBlockChange(any(Location.class), eq(iris));
+    }
+
+    /**
+     * A gate the server never registered is not drawn, however its flag reads.
+     *
+     * <p>Loading sets the flag partway through reading a gate file, and that alone files the
+     * gate in the iris set. One whose file then fails to load was drawn as a shut iris over its
+     * cells for everybody nearby until restart.
+     */
+    @Test
+    void aGateThatNeverRegisteredIsNotDrawn()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
+        gate.setGateIrisActive(true);
+        assertTrue(StargateManager.getIrisGates().contains(gate), "the flag alone files it");
+
+        final Player walker = mock(Player.class);
+        when(walker.isOnline()).thenReturn(true);
+        when(walker.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(walker.getLocation()).thenReturn(new Location(world, 10, 64, 26));
+
+        try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
+        {
+            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(mock(BlockData.class));
+
+            StargateBlockSetup.refreshPortalVisuals(walker);
+        }
+        finally
+        {
+            gate.setGateIrisActive(false);
+        }
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 }

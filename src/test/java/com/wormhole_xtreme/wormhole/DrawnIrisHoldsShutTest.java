@@ -431,4 +431,118 @@ class DrawnIrisHoldsShutTest
         assertFalse(WormholeXTremeBlockListener.isStrayBlockInPortal(gate, portal),
             "that block is the barrier itself");
     }
+
+    // -----------------------------------------------------------------------
+    // An idle gate, for everything that is not a player
+    // -----------------------------------------------------------------------
+
+    /**
+     * A cart rolling at an idle gate's shut iris is stopped where it was, not let through.
+     *
+     * <p>The cart path walked away from any gate that was not dialled, which was right while
+     * the iris was solid. Drawn, the opening is air, and a cart on a rail through the ring
+     * rolled straight through the closed iris.
+     */
+    @Test
+    void aCartAtAnIdleGatesShutIrisIsStoppedWhereItWas() throws Exception
+    {
+        final org.bukkit.entity.Minecart cart = cartAt();
+        final Location from = new Location(world, BX + 0.5, BY, BZ - 0.5);
+        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+
+        try
+        {
+            new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+                cart, from, new Location(world, BX + 0.5, BY, BZ + 0.5)));
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        verify(cart).teleport(from);
+        verify(cart).setVelocity(new Vector(0, 0, 0));
+    }
+
+    /** With the iris open an idle gate is an empty ring, and a cart rolls on through it. */
+    @Test
+    void aCartAtAnIdleGateWithItsIrisOpenRollsOn()
+    {
+        gate.setGateIrisActive(false);
+        final org.bukkit.entity.Minecart cart = cartAt();
+
+        new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+            cart, new Location(world, BX + 0.5, BY, BZ - 0.5), new Location(world, BX + 0.5, BY, BZ + 0.5)));
+
+        verify(cart, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * A cart with nobody in it, rolling east.
+     *
+     * @return the cart
+     */
+    private org.bukkit.entity.Minecart cartAt()
+    {
+        final org.bukkit.entity.Minecart cart = mock(org.bukkit.entity.Minecart.class);
+        when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(0, 0, 1));
+        return cart;
+    }
+
+    /**
+     * An item dropped into an idle gate's shut iris is destroyed, the same as at an open one.
+     *
+     * <p>The entity sweep only ever walked the open gates, so the drawing over an idle gate
+     * had nothing behind it and items sat in the opening where no client could see them.
+     */
+    @Test
+    void anItemAtAnIdleGatesShutIrisIsDestroyed() throws Exception
+    {
+        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+
+        GateEntityScanner.create().run();
+
+        verify(item).remove();
+    }
+
+    /** A mob at an idle gate's shut iris is left alone, as it is at an open one. */
+    @Test
+    void aMobAtAnIdleGatesShutIrisIsLeftStanding() throws Exception
+    {
+        final org.bukkit.entity.Zombie zombie = inTheOpening(org.bukkit.entity.Zombie.class);
+
+        GateEntityScanner.create().run();
+
+        verify(zombie, never()).remove();
+    }
+
+    /**
+     * A gate that was never registered draws no iris and answers no swing.
+     *
+     * <p>Setting the flag is what files a gate in the iris set, and loading sets it partway
+     * through reading a gate file. One that then fails to load is never registered and never
+     * removed, so without the check it went on drawing a shut iris over its cells until restart.
+     */
+    @Test
+    void aGateNeverRegisteredIsNotTakenForAShutIris()
+    {
+        gate.setGateIrisActive(false);
+        final Stargate halfLoaded = new Stargate();
+        halfLoaded.setGateName("half");
+        halfLoaded.setGateWorld(world);
+        halfLoaded.setGateFacing(BlockFace.NORTH);
+        halfLoaded.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
+        halfLoaded.setGateIrisActive(true);
+        try
+        {
+            assertFalse(StargateManager.nearDrawnIris(new Location(world, BX + 0.5, BY, BZ - 1.5)),
+                "a gate the server does not have is no iris to swing at");
+        }
+        finally
+        {
+            halfLoaded.setGateIrisActive(false);
+        }
+    }
 }
