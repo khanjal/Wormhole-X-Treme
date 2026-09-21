@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -464,7 +465,7 @@ class IrisSweepOrderingTest
         assertEquals(9, last.size(), "the call-off draws every cell");
         for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
         {
-            assertTrue(cell.getValue() != null,
+            assertNotNull(cell.getValue(),
                 "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
         }
     }
