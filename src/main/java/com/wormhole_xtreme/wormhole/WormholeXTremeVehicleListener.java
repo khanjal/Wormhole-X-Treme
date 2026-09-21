@@ -871,6 +871,11 @@ class WormholeXTremeVehicleListener implements Listener
     {
         final Vector newSpeed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
         final Location safeTarget = forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0);
+        // forwardAndUp hands a null straight back; the caller has already refused one.
+        if (safeTarget == null)
+        {
+            return false;
+        }
         faceTheWayItIsGoing(safeTarget, newSpeed, st.getGateTarget().getGateFacing());
         if (veh != null)
         {
