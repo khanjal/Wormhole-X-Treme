@@ -1120,6 +1120,28 @@ class GatePreviewsTest
     }
 
     /**
+     * Closing the iris partway through the kawoosh takes back what of it is already out.
+     *
+     * <p>The steps still to come are skipped behind the closed iris, but the first had already
+     * been sent, and it stood in front of the iris until the woosh drew back a second later.
+     */
+    @Test
+    void closingTheIrisMidKawooshTakesBackWhatIsOut()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 8; step++)
+        {
+            dialStep.run();
+        }
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+
+        GatePreviews.iris(owner);
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /**
      * The horizon is still being sent while the iris sweeps over it.
      *
      * <p>The assertion the one above cannot make by counting: that the water is there *during*

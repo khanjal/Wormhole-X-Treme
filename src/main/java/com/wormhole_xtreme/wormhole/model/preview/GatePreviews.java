@@ -400,6 +400,12 @@ public final class GatePreviews
         // iris stood in the horizon's place rather than in front of it -- and that is what
         // replaced the water with air a beat before the first ring of the sweep arrived.
         // The opening's displays cover it now, the way a real gate's iris does.
+        // The kawoosh is another matter: it stands on or past the iris, where nothing covers it,
+        // so whatever of it is out when the iris shuts goes at once.
+        if (preview.irisClosed())
+        {
+            takeBack(owner, preview, preview.woosh());
+        }
         sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         // Restyles and draws for itself, a ring at a time. Doing either here as well would
