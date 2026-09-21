@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.InputStream;
@@ -174,8 +177,7 @@ class ShippedShapesTest
 
         ShippedShapes.updateUntouched(dir);
 
-        org.mockito.Mockito.verify(WormholeXTreme.getThisPlugin()).prettyLog(
-            org.mockito.ArgumentMatchers.eq(java.util.logging.Level.INFO),
-            org.mockito.ArgumentMatchers.contains("Large.shape has been edited"));
+        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(java.util.logging.Level.INFO),
+            contains("Large.shape has been edited"));
     }
 }
