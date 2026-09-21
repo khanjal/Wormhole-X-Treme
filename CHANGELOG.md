@@ -61,6 +61,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   method that had already changed the gate's state before anything checked whether it had
   changed, so the iris was judged never to move. Nothing to do; the sounds you have configured
   start working.
+- **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
+  at the gate it came from but stepped out the way the *far* gate faces, so unless the two
+  gates faced the same way it could land in the frame, the ground or a wall.
 
 ### For shape authors
 
