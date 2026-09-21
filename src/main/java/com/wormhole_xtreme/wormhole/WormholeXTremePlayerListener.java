@@ -1014,7 +1014,7 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerAnimation(final org.bukkit.event.player.PlayerAnimationEvent event)
     {
         final Player player = event.getPlayer();
-        if ((player == null) || !StargateManager.nearDrawnIris(player.getLocation()))
+        if (!StargateManager.nearDrawnIris(player.getLocation()))
         {
             return;
         }

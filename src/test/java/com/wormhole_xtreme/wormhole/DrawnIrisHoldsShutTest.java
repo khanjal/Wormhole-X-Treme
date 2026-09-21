@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -254,6 +256,86 @@ class DrawnIrisHoldsShutTest
     }
 
     // -----------------------------------------------------------------------
+    // Things drifting into one
+    // -----------------------------------------------------------------------
+
+    /**
+     * Puts one entity of this type in the opening, as the only thing the sweep will find.
+     *
+     * @param type
+     *            the entity interface to mock
+     * @return the entity
+     */
+    private <T extends org.bukkit.entity.Entity> T inTheOpening(final Class<T> type)
+    {
+        final T entity = mock(type);
+        when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(entity.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        when(entity.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
+        when(entity.isInsideVehicle()).thenReturn(false);
+        when(entity.isValid()).thenReturn(true);
+        when(entity.getVelocity()).thenReturn(new Vector(0, 0, -1));
+        when(world.getNearbyEntities(any(org.bukkit.util.BoundingBox.class)))
+            .thenReturn(java.util.Collections.<org.bukkit.entity.Entity>singletonList(entity));
+        return entity;
+    }
+
+    /**
+     * A dropped item that reaches a shut iris at the far end is destroyed, not delivered.
+     *
+     * <p>The entity sweep never asked about either iris. A gate that shut its iris after the
+     * wormhole opened went on receiving whatever was tipped into the other end.
+     */
+    @Test
+    void anItemSentAtAShutIrisIsDestroyedRatherThanDelivered() throws Exception
+    {
+        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        dial();
+        gate.setGateIrisActive(false);
+        destination.setGateIrisActive(true);
+        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+
+        try
+        {
+            GateEntityScanner.create().run();
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        verify(item).remove();
+        verify(item, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * Anything alive is simply not sent, rather than being destroyed.
+     *
+     * <p>A cow that wanders into a shut gate is a cow standing in a gate. Destroying whatever
+     * reaches the iris is for loose items; applied to mobs it would be a gate that kills.
+     */
+    @Test
+    void aMobAtAShutIrisIsLeftStandingRatherThanDestroyed() throws Exception
+    {
+        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        dial();
+        gate.setGateIrisActive(true);
+        final org.bukkit.entity.Zombie zombie = inTheOpening(org.bukkit.entity.Zombie.class);
+
+        try
+        {
+            GateEntityScanner.create().run();
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        verify(zombie, never()).remove();
+        verify(zombie, never()).teleport(any(Location.class));
+    }
+
+    // -----------------------------------------------------------------------
     // Swinging at one
     // -----------------------------------------------------------------------
 
@@ -289,8 +371,7 @@ class DrawnIrisHoldsShutTest
 
         // One redraw is two scheduled sends, a tick or so apart. Three swings inside the
         // throttle are still one redraw.
-        verify(scheduler, org.mockito.Mockito.times(2))
-            .scheduleSyncDelayedTask(any(), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong());
+        verify(scheduler, times(2)).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
     }
 
     // -----------------------------------------------------------------------

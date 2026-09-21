@@ -147,6 +147,33 @@ class BuiltIrisUpgradeTest
     }
 
     /**
+     * The start-up sweep counts the gates it cleared, and one bad gate does not stop it.
+     *
+     * <p>It runs over every gate on the server while the plugin is enabling. A gate whose
+     * world throws on a block read must cost that gate its tidy-up, not the gates after it --
+     * and not the server its start.
+     */
+    @Test
+    void theStartUpSweepCarriesOnPastAGateThatThrows()
+    {
+        final Stargate broken = new Stargate();
+        broken.setGateName("Broken");
+        final World brokenWorld = mock(World.class);
+        when(brokenWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(brokenWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenThrow(new IllegalStateException("unloaded"));
+        broken.setGateWorld(brokenWorld);
+        broken.setGateFacing(BlockFace.NORTH);
+        broken.setGateIrisActive(true);
+        broken.getGatePortalBlocks().add(new Location(brokenWorld, 0, 64, 0));
+        final Block left = cellHolding(64, Material.STONE);
+
+        final int cleared = BuiltIrisUpgrade.clearAll(java.util.List.of(broken, gate));
+
+        assertEquals(1, cleared, "the gate after the broken one is still cleared, and counted");
+        verify(left).setType(Material.AIR);
+    }
+
+    /**
      * A gate whose iris is open has nothing standing in it to clear.
      */
     @Test
