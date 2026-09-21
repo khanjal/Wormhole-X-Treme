@@ -937,31 +937,62 @@ public final class GatePreviews
             }
             return;
         }
+        // The same sequence a real gate plays, iris and all; only the drawing is the preview's.
         final int stage = preview.wooshStage();
-        final int steps = preview.lastWoosh();
-        if ((stage == 0) && (steps > 0))
+        final int next = WooshSequence.play(stage, preview.lastWoosh(), new PreviewCanvas(owner, preview));
+        preview.wooshStage((next < 0) ? (stage + 1) : next);
+        if (next >= 0)
+        {
+            next(owner, preview, preview.shape().getShapeWooshTicks());
+        }
+    }
+
+    /** A preview's side of the woosh: fake blocks for whoever is watching, the sound at the preview. */
+    private record PreviewCanvas(Player owner, GatePreview preview) implements WooshSequence.Canvas
+    {
+        @Override
+        public boolean irisShut()
+        {
+            return preview.irisClosed();
+        }
+
+        @Override
+        public void kawoosh()
         {
             sound(owner, preview, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
         }
-        final WooshSequence.Step now = WooshSequence.at(stage, steps);
-        preview.wooshStage(stage + 1);
-        if (now.move() == WooshSequence.Move.OUT)
+
+        @Override
+        public void draw(final int index)
         {
-            send(owner, preview, wooshStep(preview, now.index()));
+            send(owner, preview, wooshStep(preview, index));
         }
-        else if (now.move() == WooshSequence.Move.BACK)
+
+        @Override
+        public void undraw(final int index)
         {
-            takeBack(owner, preview, wooshStep(preview, now.index()));
+            takeBack(owner, preview, wooshStep(preview, index));
         }
-        // Settled in the same step as the shallowest woosh step is taken back, as a real gate does.
-        if ((now.move() == WooshSequence.Move.SETTLE)
-            || (WooshSequence.at(stage + 1, steps).move() == WooshSequence.Move.SETTLE))
+
+        @Override
+        public void undrawAll()
+        {
+            takeBack(owner, preview, preview.woosh());
+        }
+
+        @Override
+        public void settle()
         {
             preview.open(true);
-            draw(owner, preview);
-            return;
+            GatePreviews.draw(owner, preview);
         }
-        next(owner, preview, preview.shape().getShapeWooshTicks());
+
+        @Override
+        public void settleBehindIris()
+        {
+            // Open all the same: the opening is drawn behind the iris, and its displays cover it.
+            settle();
+        }
     }
 
     /** Locks the next chevron, with its sound, and books what follows it. */
