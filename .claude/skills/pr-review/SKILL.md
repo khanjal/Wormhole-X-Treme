@@ -88,10 +88,10 @@ before calling a PR reviewed.
 Treat Copilot's findings as informed, not authoritative. Check each against the current code;
 it has argued for restoring a `catch (Throwable)` this project removed on purpose.
 
-## 4. When Copilot could not review: step 1 is the review of record
+## 4. When Copilot could not review: steps 1 and 5 are the review of record
 
-If the quota is gone, or the PR never had a review requested, the different-model review from
-step 1 is what the PR merges on. Do not wait for the allowance to reset, and do not ask whether
+If the quota is gone, or the PR never had a review requested, the Sonnet review from step 1 and
+the Fable review from step 5 are what the PR merges on. Do not wait for the allowance to reset, and do not ask whether
 to substitute; the user decided this on 2026-09-21. Say so on the PR, rather than calling it
 reviewed as if Copilot had done it. A PR whose code changed a lot after step 1 gets step 1 again
 on the new commits.
