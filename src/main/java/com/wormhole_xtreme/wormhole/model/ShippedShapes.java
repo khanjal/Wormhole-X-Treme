@@ -39,6 +39,9 @@ final class ShippedShapes
     /** What a replaced copy is renamed to, beside the new one. */
     static final String BACKUP_SUFFIX = ".old";
 
+    /** Where the new copy is written before it takes the old one's place. */
+    static final String INCOMING_SUFFIX = ".new";
+
     private ShippedShapes() {}
 
     /**
@@ -56,36 +59,56 @@ final class ShippedShapes
         }
         for (final String name : NAMES)
         {
-            final File file = new File(directory, name);
-            final String current = bundled(name);
-            if (!file.isFile() || (current == null))
+            updateOne(directory, name, shipped);
+        }
+    }
+
+    /**
+     * Replaces one bundled shape if the folder holds it as some earlier release wrote it.
+     *
+     * <p>The new copy is written beside it first and only then swapped in, so a write that fails
+     * -- a full disk, a file held open on Windows -- leaves the old one where it was rather than
+     * already moved aside with nothing in its place.
+     */
+    private static void updateOne(final File directory, final String name, final Set<String> shipped)
+    {
+        final File file = new File(directory, name);
+        final String current = bundled(name);
+        if (!file.isFile() || (current == null))
+        {
+            return;
+        }
+        final java.nio.file.Path incoming = new File(directory, name + INCOMING_SUFFIX).toPath();
+        try
+        {
+            final String onDisk = hash(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+            if (onDisk.equals(hash(current)))
             {
-                continue;
+                return;
             }
+            if (!shipped.contains(name + " " + onDisk))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
+                    + " has been edited, so it was left as it is. Delete it and restart to get this version's.");
+                return;
+            }
+            Files.writeString(incoming, current, StandardCharsets.UTF_8);
+            Files.move(file.toPath(), new File(directory, name + BACKUP_SUFFIX).toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
+            Files.move(incoming, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Updated gate shape " + name
+                + " to this version; the old one is kept as " + name + BACKUP_SUFFIX + ".");
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not update gate shape " + name, e);
             try
             {
-                final String onDisk = hash(Files.readString(file.toPath(), StandardCharsets.UTF_8));
-                if (onDisk.equals(hash(current)))
-                {
-                    continue;
-                }
-                if (shipped.contains(name + " " + onDisk))
-                {
-                    Files.move(file.toPath(), new File(directory, name + BACKUP_SUFFIX).toPath(),
-                        StandardCopyOption.REPLACE_EXISTING);
-                    Files.writeString(file.toPath(), current, StandardCharsets.UTF_8);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Updated gate shape " + name
-                        + " to this version; the old one is kept as " + name + BACKUP_SUFFIX + ".");
-                }
-                else
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate shape " + name
-                        + " has been edited, so it was left as it is. Delete it and restart to get this version's.");
-                }
+                Files.deleteIfExists(incoming);
             }
-            catch (final IOException e)
+            catch (final IOException ignore)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not update gate shape " + name, e);
+                // Best effort: a stray .new file is harmless, and the next start tries again.
             }
         }
     }

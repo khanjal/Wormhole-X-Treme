@@ -121,4 +121,27 @@ class ShippedShapesTest
         assertEquals(current, read("Standard.shape"));
         assertFalse(new File(dir, "Standard.shape" + ShippedShapes.BACKUP_SUFFIX).exists());
     }
+
+    /**
+     * A new copy that cannot be written leaves the old one where it was.
+     *
+     * <p>The old copy used to be moved aside first and the new one written after, so a failed
+     * write -- a full disk, a file held open on Windows -- left no shape there at all. A folder
+     * standing where the new copy would be written makes that write fail here.
+     */
+    @Test
+    void aShapeThatCannotBeRewrittenIsLeftWhereItWas() throws Exception
+    {
+        final String old = oldLarge();
+        Files.writeString(new File(dir, "Large.shape").toPath(), old, StandardCharsets.UTF_8);
+        final File blocked = new File(dir, "Large.shape" + ShippedShapes.INCOMING_SUFFIX);
+        assertTrue(blocked.mkdirs());
+        assertTrue(new File(blocked, "in-the-way").createNewFile());
+
+        ShippedShapes.updateUntouched(dir);
+
+        assertEquals(old, read("Large.shape"), "the old copy is still in place");
+        assertFalse(new File(dir, "Large.shape" + ShippedShapes.BACKUP_SUFFIX).exists(),
+            "and was never moved aside");
+    }
 }
