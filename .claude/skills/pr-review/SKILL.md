@@ -28,6 +28,16 @@ review as a sub-agent with a model override -- the Agent tool's `model` paramete
 
 Each took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens are cheaper.
 
+**Neither review is ever by the model that wrote the code.** The pairing above assumes Opus
+wrote it, the usual case. If it was written with a different model, swap in Opus for whichever
+reviewer matches it:
+
+| Written by | First review (step 1) | Final review (step 5) |
+|---|---|---|
+| Opus | Sonnet | Fable |
+| Sonnet | Opus | Fable |
+| Fable | Sonnet | Opus |
+
 Give it: the repo path, the diff range, that it is read-only (no edits, commits or GitHub
 posts), what the change is meant to do, and to hunt for bugs with a concrete failure scenario
 each, including in unchanged code whose assumptions the change broke. Ask for at most 15
