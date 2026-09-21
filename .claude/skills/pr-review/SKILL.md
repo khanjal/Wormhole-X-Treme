@@ -1,12 +1,12 @@
 ---
 name: pr-review
-description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a Sonnet review on every PR before it opens, and a Fable one as well on the larger ones, never by the model that wrote the code; then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
+description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a Sonnet review on every PR before it opens, and a Fable review of the finished PR before every merge, never by the model that wrote the code; then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
 ---
 
 # Reviewing a pull request before it merges
 
-Every PR here is reviewed twice before it merges: by a different model before it opens, and
-by Copilot once it has. Green CI replaces neither: the matrix proves the code builds and the
+Every PR here is reviewed three times before it merges: by Sonnet before it opens, by Copilot
+once it has, and by Fable on the finished PR just before it merges. Green CI replaces neither: the matrix proves the code builds and the
 tests pass, not that the tests test the right thing.
 
 ## 1. Before the PR opens: a review by a different model
@@ -16,19 +16,17 @@ assumptions, so a review by the same model misses exactly the bugs that matter m
 review as a sub-agent with a model override -- the Agent tool's `model` parameter -- not as
 `/code-review` in the session that wrote the code.
 
-- **`sonnet` (Sonnet 5) on every PR.** The immediate review, whatever the size. On
-  2026-09-21 it reviewed #412 blind and found the bug the user had just hit in-game, a second
-  serious one (arrows through the far end's iris), and a third nobody else saw (a per-gate
-  entity scan every second), with no false positives. Neither the writing session nor its own
-  `/code-review` had found any of them.
-- **`fable` (Fable 5.1) as well, on the larger ones** -- several hundred changed lines, or a
-  change to how something behaves for players across several paths. On the same blind test it
-  found both serious bugs too, plus three edge cases Sonnet missed (ridden carts, fast movement,
-  ender pearls), and missed the scan cost Sonnet caught. Each saw something the other did not,
-  which is the case for running both when a PR is big enough to hide more than one.
+- **`sonnet` (Sonnet 5), before the PR opens.** The quick first pass. On 2026-09-21 it reviewed
+  #412 blind and found the bug the user had just hit in-game, a second serious one (arrows
+  through the far end's iris), and a third nobody else saw (a per-gate entity scan every
+  second), with no false positives. Neither the writing session nor its own `/code-review` had
+  found any of them.
+- **`fable` (Fable 5.1), before merging -- step 5.** On the same blind test it found both
+  serious bugs too, plus three edge cases Sonnet missed (ridden carts, fast movement, ender
+  pearls). It goes last so it reviews everything, fixes included: a fix for one review's
+  finding is new code nobody has reviewed yet.
 
-Both took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens are cheaper.
-Run the two in parallel when both are due.
+Each took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens are cheaper.
 
 Give it: the repo path, the diff range, that it is read-only (no edits, commits or GitHub
 posts), what the change is meant to do, and to hunt for bugs with a concrete failure scenario
@@ -98,7 +96,17 @@ to substitute; the user decided this on 2026-09-21. Say so on the PR, rather tha
 reviewed as if Copilot had done it. A PR whose code changed a lot after step 1 gets step 1 again
 on the new commits.
 
-## 5. Sonar: the PR's issues, not the tick
+## 5. Last, on every PR: Fable on the finished PR
+
+When everything else is done -- findings fixed, CI green, Sonar at zero, any in-game check
+passed -- run a `fable` sub-agent on the whole PR as it now stands (`main...` the branch head),
+with the same brief as step 1. Tell it what the earlier reviews found and what became of each,
+so it spends its time on what they missed rather than confirming what is already fixed.
+
+Handle its findings the way step 1 says. A fix it prompts is small by then, and does not need a
+further Fable pass unless it changes behaviour well beyond the finding. Say on the PR that it ran.
+
+## 6. Sonar: the PR's issues, not the tick
 
 A green Sonar check can hide an open issue. Read the count directly:
 
@@ -110,8 +118,10 @@ Zero is the bar before merging (see the `sonar-check` skill for the false positi
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
 up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
 
-## 6. Merge
+## 7. Merge
 
+- The Fable review in step 5 has run on the latest commit, or on one the later commits only
+  fixed its findings in.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
   refusing a download (HTTP 429 from Maven Central) is infrastructure: re-run the failed job.
 - Squash merge, which is what the history uses.
