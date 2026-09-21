@@ -60,6 +60,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   a dialled preview replaced the water with air a beat before the first ring of the sweep
   arrived, so the wormhole read as having closed rather than been covered. It now behaves the
   way a real gate does, which also means a glass iris shows water through it on both.
+- **A preview dialled behind its own closed iris sends no kawoosh.** Every woosh step lands on
+  or past the iris, so a real gate draws none of them with it shut; the preview drew all three
+  out and back through it. The sound still plays, and the wormhole still forms behind the iris.
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
   played for a player: the lever, the commands and dialling all reached the iris through one
   method that had already changed the gate's state before anything checked whether it had

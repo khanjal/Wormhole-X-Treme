@@ -945,7 +945,9 @@ public final class GatePreviews
         }
         final WooshSequence.Step now = WooshSequence.at(stage, steps);
         preview.wooshStage(stage + 1);
-        if (now.move() == WooshSequence.Move.OUT)
+        // Every woosh step lands on or past the iris, so a closed one hides them all, as on a
+        // real gate. The sound still plays: the wormhole forms, just behind the iris.
+        if ((now.move() == WooshSequence.Move.OUT) && !preview.irisClosed())
         {
             send(owner, preview, wooshStep(preview, now.index()));
         }

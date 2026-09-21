@@ -1095,6 +1095,31 @@ class GatePreviewsTest
     }
 
     /**
+     * Dialling behind a closed iris sends no kawoosh.
+     *
+     * <p>Every woosh step lands on or past the iris, so a real gate draws none of them with it
+     * shut (#404). The preview drew all three out and back through its own closed iris. The
+     * opening is still sent, as it is under any closed iris, for the displays to cover.
+     */
+    @Test
+    void dialingBehindAClosedIrisSendsNoKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(owner);
+
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        verify(owner, never()).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /**
      * The horizon is still being sent while the iris sweeps over it.
      *
      * <p>The assertion the one above cannot make by counting: that the water is there *during*
