@@ -1,13 +1,15 @@
 ---
 name: pr-review
-description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a Sonnet review on every PR before it opens, and a Fable review of the finished PR before every merge, never by the model that wrote the code; then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
+description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a model review before it opens and another of the finished PR before it merges, never by the model that wrote the code (usually Sonnet, then Fable); then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
 ---
 
 # Reviewing a pull request before it merges
 
-Every PR here is reviewed three times before it merges: by Sonnet before it opens, by Copilot
-once it has, and by Fable on the finished PR just before it merges. Green CI replaces neither: the matrix proves the code builds and the
-tests pass, not that the tests test the right thing.
+Every PR here is reviewed three times before it merges: by a model before it opens, by Copilot
+once it has, and by a model again on the finished PR just before it merges. Neither model review
+is ever by the model that wrote the code: when Opus wrote it, the usual case, that is Sonnet then
+Fable; the table in step 1 has the rest. Green CI replaces none of them: the matrix proves the
+code builds and the tests pass, not that the tests test the right thing.
 
 ## The checklist in every PR description
 
@@ -37,7 +39,7 @@ review as a sub-agent with a model override -- the Agent tool's `model` paramete
   through the far end's iris), and a third nobody else saw (a per-gate entity scan every
   second), with no false positives. Neither the writing session nor its own `/code-review` had
   found any of them.
-- **`fable` (Fable 5.1), before merging -- step 5.** On the same blind test it found both
+- **`fable` (Fable 5.1), before merging -- step 6.** On the same blind test it found both
   serious bugs too, plus three edge cases Sonnet missed (ridden carts, fast movement, ender
   pearls). It goes last so it reviews everything, fixes included: a fix for one review's
   finding is new code nobody has reviewed yet.
@@ -48,11 +50,12 @@ Each took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens 
 wrote it, the usual case. If it was written with a different model, swap in Opus for whichever
 reviewer matches it:
 
-| Written by | First review (step 1) | Final review (step 5) |
+| Written by | First review (step 1) | Final review (step 6) |
 |---|---|---|
 | Opus | Sonnet | Fable |
 | Sonnet | Opus | Fable |
-| Fable | Sonnet | Opus |
+| Fable | Sonnet | Opus |
+| Haiku, or anything else | Sonnet | Fable |
 
 Give it: the repo path, the diff range, that it is read-only (no edits, commits or GitHub
 posts), what the change is meant to do, and to hunt for bugs with a concrete failure scenario
@@ -73,8 +76,10 @@ Run it in the background and do the CHANGELOG, PMD and test build meanwhile. Whe
 Request it once, at open. Never again after follow-up commits: each review spends from a
 monthly allowance, and once that is gone a request gets nothing at all.
 
-`gh` needs `-R khanjal/Wormhole-X-Treme` in this repo (there are three remotes). Request the
-review with the GraphQL mutation, naming the reviewer bot by its node id:
+`gh pr` and `gh issue` need `-R khanjal/Wormhole-X-Treme` in this repo (there are three
+remotes). `gh api` does not take `-R` at all -- it fails with "unknown shorthand flag" -- and
+does not need it, because its paths name the repo. Request the review with the GraphQL mutation,
+naming the reviewer bot by its node id:
 
 ```bash
 gh api repos/khanjal/Wormhole-X-Treme/pulls/<n> --jq .node_id
@@ -114,25 +119,17 @@ before calling a PR reviewed.
 Treat Copilot's findings as informed, not authoritative. Check each against the current code;
 it has argued for restoring a `catch (Throwable)` this project removed on purpose.
 
-## 4. When Copilot could not review: steps 1 and 5 are the review of record
+## 4. When Copilot could not review: steps 1 and 6 are the review of record
 
-If the quota is gone, or the PR never had a review requested, the Sonnet review from step 1 and
-the Fable review from step 5 are what the PR merges on. Do not wait for the allowance to reset, and do not ask whether
+If the quota is gone, or the PR never had a review requested, the two model reviews (steps 1
+and 6) are what the PR merges on. A review that was requested and has not come back is neither:
+it usually lands 6-15 minutes after the request, so wait for it, and only treat it as gone after
+an hour with the request still showing on the timeline. Do not wait for the allowance to reset, and do not ask whether
 to substitute; the user decided this on 2026-09-21. Say so on the PR, rather than calling it
 reviewed as if Copilot had done it. A PR whose code changed a lot after step 1 gets step 1 again
 on the new commits.
 
-## 5. Last, on every PR: Fable on the finished PR
-
-When everything else is done -- findings fixed, CI green, Sonar at zero, any in-game check
-passed -- run a `fable` sub-agent on the whole PR as it now stands (`main...` the branch head),
-with the same brief as step 1. Tell it what the earlier reviews found and what became of each,
-so it spends its time on what they missed rather than confirming what is already fixed.
-
-Handle its findings the way step 1 says. A fix it prompts is small by then, and does not need a
-further Fable pass unless it changes behaviour well beyond the finding. Say on the PR that it ran.
-
-## 6. Sonar: the PR's issues, not the tick
+## 5. Sonar: the PR's issues, not the tick
 
 A green Sonar check can hide an open issue. Read the count directly:
 
@@ -140,13 +137,32 @@ A green Sonar check can hide an open issue. Read the count directly:
 curl -s "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=<n>&resolved=false"
 ```
 
+Check first that the analysis is of the branch head -- it lags a push by a few minutes, and a
+stale count reads as current:
+
+```bash
+curl -s "https://sonarcloud.io/api/project_analyses/search?project=khanjal_Wormhole-X-Treme&pullRequest=<n>&ps=1"
+```
+
 Zero is the bar before merging (see the `sonar-check` skill for the false positives that
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
 up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
 
+## 6. Last, on every PR: the final review of the finished PR
+
+When everything else is done -- findings fixed, CI green, Sonar at zero (step 5), any in-game
+check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code) as
+a sub-agent on the whole PR as it now stands (`main...` the branch head),
+with the same brief as step 1. Tell it what the earlier reviews found and what became of each,
+so it spends its time on what they missed rather than confirming what is already fixed.
+
+Handle its findings the way step 1 says. A fix it prompts is small by then, and does not need a
+further final review unless it changes behaviour well beyond the finding; Sonar (step 5) does need
+checking again after it. Say on the PR that it ran.
+
 ## 7. Merge
 
-- The Fable review in step 5 has run on the latest commit, or on one the later commits only
+- The final review in step 6 has run on the latest commit, or on one the later commits only
   fixed its findings in.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
   refusing a download (HTTP 429 from Maven Central) is infrastructure: re-run the failed job.
