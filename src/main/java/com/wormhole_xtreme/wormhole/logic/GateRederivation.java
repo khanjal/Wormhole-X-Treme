@@ -946,10 +946,6 @@ public final class GateRederivation
      */
     private static boolean sameWorld(final Block current, final Block derived)
     {
-        if ((current.getWorld() == null) || (derived.getWorld() == null))
-        {
-            return current.getWorld() == derived.getWorld();
-        }
         return current.getWorld().getName().equals(derived.getWorld().getName());
     }
 }

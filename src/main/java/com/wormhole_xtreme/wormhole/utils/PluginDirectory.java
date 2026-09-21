@@ -48,6 +48,8 @@ public final class PluginDirectory
      *            folder itself
      * @return the resolved file, which may not exist yet
      */
+    // The data-folder null check below is only reachable with a mock plugin, and is kept on purpose.
+    @SuppressWarnings("java:S2589")
     public static File resolve(final String fallbackPluginFolder, final String... segments)
     {
         try
