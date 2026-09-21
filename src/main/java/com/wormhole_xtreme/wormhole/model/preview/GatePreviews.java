@@ -396,10 +396,10 @@ public final class GatePreviews
             return Control.NOT_LOOKING;
         }
         preview.irisClosed(!preview.irisClosed());
-        if (preview.irisClosed())
-        {
-            takeBack(owner, preview, preview.opening());
-        }
+        // The wormhole is not taken back when the iris shuts. It used to be, from when the
+        // iris stood in the horizon's place rather than in front of it -- and that is what
+        // replaced the water with air a beat before the first ring of the sweep arrived.
+        // The opening's displays cover it now, the way a real gate's iris does.
         sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         // Restyles and draws for itself, a ring at a time. Doing either here as well would
@@ -1268,8 +1268,14 @@ public final class GatePreviews
             }
             spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
         }
-        if (preview.open() && !preview.irisClosed())
+        if (preview.open())
         {
+            // Sent whatever the iris is doing. The opening's displays stand in front of
+            // these blocks, so a closed iris hides the horizon without the horizon having
+            // to be taken away -- which is what a real gate does too, and is the only way
+            // a sweep has anything to sweep over. Dropping it the moment the iris shut
+            // replaced the water with air a beat before the first ring arrived, so the
+            // wormhole looked like it had closed rather than been covered.
             send(owner, preview, preview.opening());
         }
         drawButton(owner, preview);

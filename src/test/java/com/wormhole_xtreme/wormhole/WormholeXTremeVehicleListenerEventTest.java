@@ -93,8 +93,8 @@ class WormholeXTremeVehicleListenerEventTest
      * because dispatchVehicleTeleport used to carry its own copy of this branch, and only
      * mutating it revealed the copy could not run.
      *
-     * <p>The location comes from the source gate while the facing used to step it clear
-     * comes from the target, which reads like a mistake and is what ships today.
+     * <p>Only X is asserted, and a step north never moves X; where the step points is
+     * {@link #aBouncedCartStepsOutAlongTheSourceGatesOwnFacing}.
      */
     @Test
     void aClosedFarIrisPutsTheVehicleOutAtTheSourceGate()
@@ -150,6 +150,66 @@ class WormholeXTremeVehicleListenerEventTest
         StargateManager.removeBlockIndex(ch);
     }
 
+
+    /**
+     * A bounced cart is stepped clear of the gate it came back to, not of the far one.
+     *
+     * <p>The bounce used to take the source gate's arrival point and step it out along the
+     * target's facing. With the gates facing different ways that put the cart a block off
+     * in an unrelated direction: into the frame, the ground, or a wall.
+     */
+    @Test
+    void aBouncedCartStepsOutAlongTheSourceGatesOwnFacing()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 10, by = 64, bz = 20;
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateFacing(BlockFace.EAST);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        target.setGateIrisActive(true);
+
+        StargateTestSupport.target(src, target);
+
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
+
+        final org.mockito.ArgumentCaptor<Location> sent =
+            org.mockito.ArgumentCaptor.forClass(Location.class);
+        verify(cart, atLeastOnce()).teleport(sent.capture());
+        final Location arrival = sent.getValue();
+        assertEquals(6.5, arrival.getX(), 0.001, "one block east, the way the source gate faces");
+        assertEquals(66.0, arrival.getY(), 0.001, "lifted one block clear");
+        assertEquals(6.5, arrival.getZ(), 0.001, "not stepped north, the way the far gate faces");
+
+        StargateManager.removeBlockIndex(ch);
+    }
 
     /**
      * A rider meeting a closed far iris is told so, and put out where the cart is.
