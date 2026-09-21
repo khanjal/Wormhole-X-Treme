@@ -124,7 +124,7 @@ class WormholeXTremeRedstoneListener implements Listener
      */
     private static boolean isActionableRisingEdge(final BlockRedstoneEvent event)
     {
-        if ((event == null) || (event.getBlock() == null))
+        if (event == null)
         {
             return false;
         }

@@ -148,10 +148,6 @@ public final class GateEvents
                 replacement.accept(event);
                 return;
             }
-            if (Bukkit.getServer() == null)
-            {
-                return;
-            }
             Bukkit.getPluginManager().callEvent(event);
         }
         catch (final RuntimeException e)
