@@ -1137,6 +1137,29 @@ class GatePreviewsTest
         return viewer;
     }
 
+    /**
+     * The display spawned at a cell, offset along the facing.
+     *
+     * @return the display, or null if nothing was spawned there
+     */
+    private BlockDisplay displayAt(final Cell cell, final int steps)
+    {
+        final BlockFace facing = previewFacing();
+        final int x = cell.x() + (steps * facing.getModX());
+        final int y = cell.y() + (steps * facing.getModY());
+        final int z = cell.z() + (steps * facing.getModZ());
+        for (int i = 0; i < creation.places.size(); i++)
+        {
+            final Location at = creation.places.get(i);
+            if ((at.getBlockX() == x) && (at.getBlockY() == y) && (at.getBlockZ() == z)
+                && (creation.created.get(i) instanceof BlockDisplay display))
+            {
+                return display;
+            }
+        }
+        return null;
+    }
+
     /** Whether a display was ever spawned at a cell, offset along the facing. */
     private boolean spawnedAt(final Cell cell, final int steps)
     {
@@ -1193,6 +1216,27 @@ class GatePreviewsTest
         assertTrue(wormholeSendsAlong(behind, 0) > 0, "and the wormhole is in the ring for them");
         assertEquals(0, wormholeSendsAlong(behind, -1),
             "not a block behind it, which from where they stand is in front of the iris");
+    }
+
+    /**
+     * A viewer behind is shown the iris beyond the ring, and not the one in it.
+     *
+     * <p>Both sets stand while a preview is stacked, so which one a viewer sees is the whole of
+     * what makes the two sides different. Shown both, somebody behind the gate would see two
+     * irises; shown the ring's alone, they would see the front's picture.
+     */
+    @Test
+    void aViewerBehindIsShownTheIrisBeyondTheRingAndNotTheOneInIt()
+    {
+        openThePreview();
+        final Player behind = viewerAlong("Bea", -4);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        final Cell cell = openingCells().get(0);
+        verify(behind, atLeastOnce()).showEntity(plugin, displayAt(cell, 1));
+        verify(behind, atLeastOnce()).hideEntity(plugin, displayAt(cell, 0));
     }
 
     /**
