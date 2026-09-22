@@ -68,9 +68,14 @@ class GateDetectionTest
         // which is what makes a [C] cell mean the same as an [S] one. That was read out of
         // whatever the previous test class happened to leave in the registry's one static
         // reference -- and since nothing clears it and surefire orders classes by the
-        // filesystem, which machine ran the suite decided whether this class passed. A run
-        // that landed GateFrameMaterialTest's lapis-only palette, or any palette carrying a
-        // chevron, in front of these turned every detection here into null.
+        // filesystem, which machine ran the suite decided whether this class passed.
+        //
+        // What breaks these is an obsidian palette that carries a chevron, and one is a file
+        // away: UnlitChevronTest loads the shipped config.yml, whose Standard group names
+        // REDSTONE_LAMP, and walks off with it still loaded. Detection then wants lamp at the
+        // [C] cells these tests built out of obsidian, and every gate here reads as not a
+        // gate. A palette for some other material is harmless by contrast: the structure
+        // material is answered from the shape's own before the registry is ever asked.
         //
         // Loading nothing gives the built-in obsidian palette with no chevron: the state
         // these tests were written against, now asked for rather than inherited.

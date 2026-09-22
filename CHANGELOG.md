@@ -50,8 +50,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   `gate-iris-sweep-max-ticks` is the longest a whole crossing may take, twenty ticks by default;
   a gate with more rings than fit inside it covers several of them per step rather than slowing
   down. It is a ceiling rather than a pace: a small gate still crosses quicker than a big one,
-  it is the six-second crossing that is gone. Nothing to change -- every shape but `Massive`
-  and `Grand` was already inside the limit, and `0` is the old behaviour.
+  it is the six-second crossing that is gone. At the default pace only `Massive` and `Grand`
+  reach the limit, so most servers see no change; one that raised `gate-iris-step-ticks` will,
+  because the limit is spent sooner at a slower pace -- `0` turns it off and puts back a step
+  per ring however big the gate.
 - **Bundled shapes nobody edited are updated at startup again.** A copy matching a version
   some release shipped is replaced, the old one kept as `<name>.shape.old`; an edited copy is
   left alone and named in the log, as before. 1.7 only named every copy that differed.

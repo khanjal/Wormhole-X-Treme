@@ -451,6 +451,39 @@ class IrisSweepTest
     }
 
     /**
+     * A band is whole rings side by side, not a sample taken across the opening.
+     *
+     * <p>The count the test above pins says nothing about which cells went where: cutting the
+     * steps round-robin rather than in runs gives exactly as many bands, loses no cell, and
+     * still reverses cleanly -- and draws an iris that arrives as scattered stripes across the
+     * whole opening instead of closing in from the rim. What makes a band a band is that it is
+     * contiguous, so every cell of one is at least as far out as every cell of the next.
+     */
+    @Test
+    void aMergedBandIsWholeRingsSideBySide()
+    {
+        final List<List<Location>> bands = IrisSweep.closingOrder(nineteenByNineteen(), IrisSweep.Style.SWEEP, 10);
+
+        double nearestSoFar = Double.MAX_VALUE;
+        for (int i = 0; i < bands.size(); i++)
+        {
+            double nearest = Double.MAX_VALUE;
+            double furthest = 0;
+            for (final Location cell : bands.get(i))
+            {
+                final double distance = (cell.getBlockX() * cell.getBlockX())
+                    + (cell.getBlockY() * cell.getBlockY());
+                nearest = Math.min(nearest, distance);
+                furthest = Math.max(furthest, distance);
+            }
+            assertTrue(furthest <= nearestSoFar,
+                "band " + i + " reaches further out than the band before it ended, so the iris "
+                    + "arrives in stripes rather than closing in from the rim");
+            nearestSoFar = nearest;
+        }
+    }
+
+    /**
      * A nineteen-by-nineteen opening: wider than any shape this plugin ships, and so with more
      * rings than any sensible cap.
      */
