@@ -371,12 +371,22 @@ class UnlitChevronTest
                 java.nio.charset.StandardCharsets.UTF_8)));
         final java.util.Map<String, Object> section = YamlMaps.asMap(root.get("gate-material-groups"));
 
+        final java.util.concurrent.atomic.AtomicReference<Object> state =
+            com.wormhole_xtreme.wormhole.PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
+        final Object previous = state.get();
         MaterialGroupRegistry.load(section);
-
-        assertEquals(Material.REDSTONE_LAMP,
-            MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getChevronMaterial(),
-            "the shipped Standard palette should let an obsidian gate be built with lamp "
-                + "chevrons without the server owner editing any file");
+        try
+        {
+            assertEquals(Material.REDSTONE_LAMP,
+                MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getChevronMaterial(),
+                "the shipped Standard palette should let an obsidian gate be built with lamp "
+                    + "chevrons without the server owner editing any file");
+        }
+        finally
+        {
+            // A lamp chevron left behind makes the next plain-obsidian [C] gate undetectable.
+            state.set(previous);
+        }
     }
 
     /**
