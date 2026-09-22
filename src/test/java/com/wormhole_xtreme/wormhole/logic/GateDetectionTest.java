@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
@@ -59,6 +60,8 @@ class GateDetectionTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
+        // The built-in palette, which names no chevron; whatever the last class loaded might.
+        MaterialGroupRegistry.load(null);
 
         placed.clear();
         blocks.clear();
@@ -146,7 +149,7 @@ class GateDetectionTest
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
             }
-            // No palette is registered here, so a [C] cell means the same as [S].
+            // The palette set up here names no chevron, so a [C] cell means the same as [S].
             for (final Integer[] pos : layer.getLayerChevronPositions())
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
@@ -379,7 +382,8 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
-        assertNotNull(found);
+        assertNotNull(found, () -> "a [C] gate of plain frame should be found while no palette "
+            + "names a chevron, but obsidian's names " + obsidianChevron());
 
         int expected = 0;
         final List<StargateShapeLayer> layers = s.getShapeLayers();
@@ -393,6 +397,13 @@ class GateDetectionTest
         }
         assertEquals(expected, found.getGateStructureBlocks().size(),
             "a chevron cell is a frame block for every purpose except its material");
+    }
+
+    /** What the obsidian palette asks a chevron to be built from, if anything. */
+    private static Material obsidianChevron()
+    {
+        final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN);
+        return group == null ? null : group.getChevronMaterial();
     }
 
     /** The portal interior is recorded too, and it is what the wormhole is drawn over. */
