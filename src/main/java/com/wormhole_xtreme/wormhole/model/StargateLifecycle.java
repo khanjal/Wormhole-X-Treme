@@ -95,6 +95,9 @@ class StargateLifecycle
         {
             gate.fillGateInterior(Material.AIR);
         }
+        // Here as well as in drawIris: an iris shut against its default reaches neither branch
+        // above, and its layers would outlive the wormhole they were drawn around.
+        StargateBlockSetup.takeBackLayers(gate);
 
         if (timer)
         {
@@ -255,23 +258,39 @@ class StargateLifecycle
             // Drawn on a vertical gate, real blocks on a horizontal one: see
             // StargateBlockSetup.irisIsDrawn for why the floor is the exception.
             gate.fillGateIris(gate.getEffectiveIrisMaterial());
+            if (!gate.isGateActive())
+            {
+                // No wormhole, so nothing to layer: whatever was drawn either side of the ring
+                // while there was one comes down with it.
+                StargateBlockSetup.takeBackLayers(gate);
+            }
+            else
+            {
+                // An opening is one block thick, so the iris fills it and the horizon has
+                // nowhere left inside the ring. Shown a block behind instead, where a glass
+                // iris lets it through from the front.
+                StargateBlockSetup.sendPortalBackdrop(gate, true);
+            }
+            // A drawn iris over a wormhole is then restacked for each viewer, so anybody behind
+            // the gate sees the horizon in the ring and the iris beyond it. After the sweep, not
+            // before: the sweep draws the ring cell by cell and would paint over it.
+            final Runnable layer = () -> StargateBlockSetup.sendLayered(gate);
             if (sweep)
             {
                 // Iris first, sweep second: on a horizontal gate that puts the barrier there
                 // before it looks it, and on a vertical one it settles what the sweep spends
                 // the next second uncovering.
-                StargateIrisAnimator.sweepClosed(gate, uncovered);
+                StargateIrisAnimator.sweepClosed(gate, uncovered, layer);
             }
-            // An opening is one block thick, so the iris fills it and the horizon has nowhere
-            // left inside the ring. Shown a block behind instead, where a glass iris lets it
-            // through from the front and anybody round the back can see it plainly.
-            if (gate.isGateActive())
+            else
             {
-                StargateBlockSetup.sendPortalBackdrop(gate, true);
+                layer.run();
             }
             return;
         }
-        StargateBlockSetup.sendPortalBackdrop(gate, false);
+        // Both layers, not only the one behind: a viewer round the back was shown the iris a
+        // block in front of the ring, and nothing else would take it back.
+        StargateBlockSetup.takeBackLayers(gate);
         if (sweep)
         {
             // Sweep first, iris second, for the same reason the other way round: the barrier
@@ -296,13 +315,12 @@ class StargateLifecycle
         // Read before the state is changed, so a call that asks for what is already true is
         // silent rather than announcing an iris that did not move.
         final boolean moved = gate.isGateIrisActive() != irisActive;
-        // A sweep still part-way through is stale the moment the iris moves again. Called off
-        // before the flag moves, so it finishes as the iris it was heading to -- after, a closing
-        // sweep on a drawn iris was finished as the air behind it.
-        if (moved)
-        {
-            StargateIrisAnimator.cancel(gate);
-        }
+        // A sweep still part-way through is stale the moment the iris is redrawn, which it is
+        // below whether or not it moved: left running, its next ring paints over the picture the
+        // redraw settles, such as the layers a shutdown onto a default-shut iris hands back.
+        // Called off before the flag moves, so it finishes as the iris it was heading to --
+        // after, a closing sweep on a drawn iris was finished as the air behind it.
+        StargateIrisAnimator.cancel(gate);
         gate.setGateIrisActive(irisActive);
         if (moved)
         {

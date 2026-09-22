@@ -98,6 +98,21 @@ public final class StargateIrisAnimator
      */
     static void sweepClosed(final Stargate gate, final Material under)
     {
+        sweepClosed(gate, under, null);
+    }
+
+    /**
+     * The same, with something to do once the last ring has arrived.
+     *
+     * @param gate
+     *            the gate, with its iris already standing
+     * @param under
+     *            what the opening looked like before the iris closed
+     * @param afterwards
+     *            run once the sweep finishes, or null; not run if it is called off
+     */
+    static void sweepClosed(final Stargate gate, final Material under, final Runnable afterwards)
+    {
         final List<List<Location>> rings =
             IrisSweep.closingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
                 ConfigManager.getGateIrisMaxSteps());
@@ -108,7 +123,7 @@ public final class StargateIrisAnimator
             StargateBlockSetup.sendCells(gate, ring, under);
         }
         // Then each ring is let through to the truth, which is the iris already standing there.
-        step(gate, rings, 0, irisAsItStands(gate), null);
+        step(gate, rings, 0, irisAsItStands(gate), afterwards);
     }
 
     /**

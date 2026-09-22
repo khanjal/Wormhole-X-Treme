@@ -78,6 +78,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.
   The horizon is shown a block behind the iris now, so it reads through the glass and from
   the back. Nothing is drawn where you have built.
+- **From behind an upright gate, the horizon is in front of the iris, not behind it.** A
+  shut iris over an open wormhole showed everyone the horizon a block behind the ring, which
+  from the back is the viewer's own side. Now whichever layer is nearer takes the ring: the
+  iris from the front, the horizon from behind, and they swap as you walk round. The horizon
+  no longer hangs behind a gate after its wormhole closes with the iris shut.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole

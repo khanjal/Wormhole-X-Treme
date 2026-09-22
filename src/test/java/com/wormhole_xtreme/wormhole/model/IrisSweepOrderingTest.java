@@ -129,6 +129,8 @@ class IrisSweepOrderingTest
         // the sweep's whole visible effect goes unobserved -- which is how an opening sweep
         // that drew the iris back over itself passed for a while.
         watcher = mock(Player.class);
+        // A real player always has one, and the layering files what it has drawn them under it.
+        when(watcher.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(watcher.getLocation()).thenReturn(new Location(world, 0, 64, 3));
         when(world.getPlayers()).thenReturn(List.of(watcher));
 
@@ -317,6 +319,29 @@ class IrisSweepOrderingTest
     }
 
     /**
+     * Setting the iris to the state it is already in still calls off a sweep that is running.
+     *
+     * <p>The iris is redrawn either way, and a sweep left running paints its next ring over the
+     * redrawn picture. The case that shows it is a gate closing onto an iris that defaults shut
+     * while its closing sweep is still going: shutdown asks for the iris it already has, hands
+     * back the layers drawn either side of the ring, and the stale sweep then repainted the
+     * ring over them for everyone, front and back alike.
+     */
+    @Test
+    void settingTheIrisItAlreadyHasCallsOffARunningSweep()
+    {
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a closing sweep is running");
+        final boolean shut = gate.isGateIrisActive();
+
+        StargateLifecycle.setIrisState(gate, shut);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate),
+            "a redraw to the same state must not leave the old sweep painting over it");
+        assertTrue(pending.isEmpty(), "and its next step is not left booked: " + pending.keySet());
+    }
+
+    /**
      * An opening sweep is actually seen to uncover the gate.
      *
      * <p>The iris blocks stay where they are until the sweep ends, so a step that sends what is
@@ -462,6 +487,11 @@ class IrisSweepOrderingTest
     {
         gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
         assertTrue(StargateBlockSetup.irisIsDrawn(gate), "an upright gate, whose iris is drawn");
+        // The layer positions a block either side of the ring, which a shut iris hands back.
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
 
         // The first ring is drawn by the toggle itself, so nothing is cleared in between: what
         // counts is the last thing each cell was shown.
@@ -475,7 +505,11 @@ class IrisSweepOrderingTest
         for (int i = 0; i < where.getAllValues().size(); i++)
         {
             final Location at = where.getAllValues().get(i);
-            last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+            // The ring only: the cells either side of it are the layers, not the sweep's.
+            if (at.getBlockZ() == 0)
+            {
+                last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+            }
         }
         assertEquals(9, last.size(), "every cell of the opening was drawn by the sweep");
         for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
