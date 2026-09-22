@@ -1293,9 +1293,10 @@ class GatePreviewsTest
         final BlockFace facing = previewFacing();
         final Location front = new Location(world, cell.x() + (4 * facing.getModX()) + 0.5,
             cell.y() + (4 * facing.getModY()), cell.z() + (4 * facing.getModZ()) + 0.5);
-        when(walker.getLocation()).thenReturn(front);
-        when(walker.getEyeLocation()).thenReturn(front);
-        GatePreviews.moved(walker);
+        // Where the step ends, which is what the move event carries: a player is still reported
+        // at the step they are leaving while it is being handled, so their own location would
+        // say they are still behind the gate.
+        GatePreviews.moved(walker, front);
 
         assertTrue(wormholeSendsAlong(walker, -1) > 0,
             "from the front the wormhole belongs a block behind the ring, and the step is what says so");
@@ -1367,6 +1368,59 @@ class GatePreviewsTest
 
         verify(late, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
         assertTrue(wormholeSendsAlong(late, -1) > 0, "and their wormhole is behind the ring, where they stand to see it");
+    }
+
+    /**
+     * Somebody who is not shown a preview is not drawn one by walking past it.
+     *
+     * <p>The restack ran for any player in the world. A passer-by was shown one of the two iris
+     * sets -- entities hidden from everybody until somebody is told to see them -- and sent the
+     * wormhole, and nothing would ever take either back: every teardown path reaches only the
+     * people watching. Somebody else's unshared build site would appear as a floating iris.
+     */
+    @Test
+    void walkingPastAPreviewNobodyHasSharedShowsItToNobody()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final Player passerBy = onlineHere("Pat");
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+
+        GatePreviews.moved(passerBy, new Location(world, cell.x() + (4 * facing.getModX()) + 0.5,
+            cell.y() + (4 * facing.getModY()), cell.z() + (4 * facing.getModZ()) + 0.5));
+
+        verify(passerBy, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(passerBy, never()).showEntity(eq(plugin), any(BlockDisplay.class));
+    }
+
+    /**
+     * A cell with nothing beyond the ring keeps its iris in the ring, for a viewer behind too.
+     *
+     * <p>Without room for two layers there is no stacking to do at that cell: the iris stays
+     * where it is and no wormhole is shown. Hiding the ring's display from a viewer behind
+     * anyway left that cell showing water with no iris over it -- a shut gate reading as an
+     * open one, which is the one thing the layering must never do.
+     */
+    @Test
+    void aCellWithNoRoomBeyondKeepsItsIrisInTheRingFromBehind()
+    {
+        openThePreview();
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        // Something built where that cell's iris would go for a viewer behind.
+        standing.put(List.of(cell.x() + facing.getModX(), cell.y() + facing.getModY(),
+            cell.z() + facing.getModZ()), Material.STONE);
+        final Player behind = viewerAlong("Bea", -4);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertFalse(spawnedAt(cell, 1), "nothing to stand in: the iris keeps the ring at that cell");
+        verify(behind, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
+        assertTrue(handBacksAlong(behind, 0) > 0,
+            "and the wormhole the sweep sent there is taken back, so no water shows through the iris");
     }
 
     /**

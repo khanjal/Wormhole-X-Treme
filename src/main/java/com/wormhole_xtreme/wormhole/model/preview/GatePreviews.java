@@ -797,8 +797,14 @@ public final class GatePreviews
                 preview.remove();
             });
         }
-        // Shown again when they are back; a relog forgets what the client was shown.
-        PREVIEWS.values().forEach(theirs -> theirs.forEach(preview -> preview.shownTo().remove(owner)));
+        // Shown again when they are back; a relog forgets what the client was shown. The side
+        // they were drawn from goes with it, or it is read later as "was drawn stacked" for
+        // somebody who has not been drawn at all since.
+        PREVIEWS.values().forEach(theirs -> theirs.forEach(preview ->
+        {
+            preview.shownTo().remove(owner);
+            preview.sides().remove(owner);
+        }));
     }
 
     /**
@@ -1175,13 +1181,8 @@ public final class GatePreviews
             if (!wanted.contains(id))
             {
                 preview.shownTo().remove(id);
+                takeBackFromViewer(online.apply(id), preview);
                 preview.sides().remove(id);
-                final Player gone = online.apply(id);
-                if ((gone != null) && preview.world().equals(gone.getWorld()))
-                {
-                    preview.standingDisplays().forEach(display -> gone.hideEntity(WormholeXTreme.getThisPlugin(), display));
-                    takeBackFrom(gone, preview, sentCells(preview));
-                }
             }
         }
         for (final UUID id : wanted)
@@ -1190,6 +1191,30 @@ public final class GatePreviews
             {
                 showToNewViewer(online.apply(id), preview);
             }
+        }
+    }
+
+    /**
+     * Takes a preview off one viewer who is not being shown it any more.
+     *
+     * @param gone
+     *            the viewer, which may be null if they are offline
+     * @param preview
+     *            the preview
+     */
+    private static void takeBackFromViewer(final Player gone, final GatePreview preview)
+    {
+        if ((gone == null) || !preview.world().equals(gone.getWorld()))
+        {
+            return;
+        }
+        preview.standingDisplays().forEach(display -> gone.hideEntity(WormholeXTreme.getThisPlugin(), display));
+        takeBackFrom(gone, preview, sentCells(preview));
+        // Only if they had a side, and before it is forgotten: a viewer drawn from the front
+        // had their wormhole a block off the ring, which the cells above know nothing about.
+        if (preview.sides().containsKey(gone.getUniqueId()))
+        {
+            handBackOffsets(gone, preview);
         }
     }
 
@@ -1345,7 +1370,7 @@ public final class GatePreviews
         // gate settles its layers after the sweep too.
         return preview.open() && preview.irisClosed() && (facing != null)
             && (facing != BlockFace.UP) && (facing != BlockFace.DOWN)
-            && !preview.sweeping();
+            && !preview.opening().isEmpty() && !preview.sweeping();
     }
 
     /**
@@ -1426,7 +1451,22 @@ public final class GatePreviews
      */
     private static void sendStackedTo(final Player viewer, final GatePreview preview)
     {
-        final boolean front = seesFront(viewer, preview);
+        sendStackedTo(viewer, preview, viewer.getLocation());
+    }
+
+    /**
+     * The same, judged from a given position.
+     *
+     * @param viewer
+     *            the viewer
+     * @param preview
+     *            the preview, which should be stacked
+     * @param from
+     *            where they are viewing from
+     */
+    private static void sendStackedTo(final Player viewer, final GatePreview preview, final Location from)
+    {
+        final boolean front = seesFront(preview, from);
         final BlockData portal = blockData.apply(preview.palette().portal());
         for (final Cell cell : preview.opening())
         {
@@ -1436,6 +1476,13 @@ public final class GatePreviews
                 preview.sent().add(GatePreview.key(cell));
                 viewer.sendBlockChange(new Location(preview.world(),
                     here.horizon().x(), here.horizon().y(), here.horizon().z()), portal);
+            }
+            else
+            {
+                // No room for two layers at this cell, so the iris keeps the ring and there is
+                // no wormhole to show. The sweep sent the ring to everybody, and leaving it
+                // shows water through a glass iris where a gate shows none.
+                takeBackAt(viewer, preview, new IrisLayering.At(cell.x(), cell.y(), cell.z()));
             }
             // The cell the other side's wormhole would be in, handed back in case they have
             // just come round from there.
@@ -1498,8 +1545,24 @@ public final class GatePreviews
      */
     private static boolean seesFront(final Player viewer, final GatePreview preview)
     {
+        return seesFront(preview, viewer.getLocation());
+    }
+
+    /**
+     * The same, from a given position rather than where the viewer is reported to be.
+     *
+     * <p>A move event fires with the player still at the step they are leaving, which is why the
+     * gate's own relayering takes the move's destination. Judged from the same place here.
+     *
+     * @param preview
+     *            the preview
+     * @param at
+     *            where they are viewing from
+     * @return true in front, false behind
+     */
+    private static boolean seesFront(final GatePreview preview, final Location at)
+    {
         final Cell first = preview.opening().get(0);
-        final Location at = viewer.getLocation();
         return IrisLayering.seesFront(preview.grid().facing(),
             new IrisLayering.At(first.x(), first.y(), first.z()), at.getX(), at.getY(), at.getZ());
     }
@@ -1549,8 +1612,21 @@ public final class GatePreviews
      */
     private static void applySideFor(final Player viewer, final GatePreview preview, final boolean behind)
     {
-        show(viewer, behind ? preview.beyondDisplays() : preview.openingDisplays(), true);
-        show(viewer, behind ? preview.openingDisplays() : preview.beyondDisplays(), false);
+        if (!behind)
+        {
+            show(viewer, preview.openingDisplays(), true);
+            show(viewer, preview.beyondDisplays(), false);
+            return;
+        }
+        // Cell by cell from behind, because a cell with nothing beyond the ring to stand in
+        // keeps its iris in the ring. Hiding the ring's display there whatever the far one is
+        // left that cell showing the wormhole with no iris over it: a shut gate reading as open.
+        for (int i = 0; i < preview.openingDisplays().size(); i++)
+        {
+            final BlockDisplay beyond = preview.beyondDisplays().get(i);
+            show(viewer, preview.openingDisplays().get(i), beyond == null);
+            show(viewer, beyond, true);
+        }
     }
 
     /** Shows or hides a set of displays for one viewer. */
@@ -1558,18 +1634,24 @@ public final class GatePreviews
     {
         for (final BlockDisplay display : displays)
         {
-            if (display == null)
-            {
-                continue;
-            }
-            if (shown)
-            {
-                viewer.showEntity(WormholeXTreme.getThisPlugin(), display);
-            }
-            else
-            {
-                viewer.hideEntity(WormholeXTreme.getThisPlugin(), display);
-            }
+            show(viewer, display, shown);
+        }
+    }
+
+    /** Shows or hides one display for one viewer, if it is standing. */
+    private static void show(final Player viewer, final BlockDisplay display, final boolean shown)
+    {
+        if (display == null)
+        {
+            return;
+        }
+        if (shown)
+        {
+            viewer.showEntity(WormholeXTreme.getThisPlugin(), display);
+        }
+        else
+        {
+            viewer.hideEntity(WormholeXTreme.getThisPlugin(), display);
         }
     }
 
@@ -1583,37 +1665,44 @@ public final class GatePreviews
      * @param player
      *            the player who moved
      */
-    public static void moved(final Player player)
+    public static void moved(final Player player, final Location to)
     {
-        if ((player == null) || !player.isOnline())
+        if ((player == null) || (to == null) || !player.isOnline())
         {
             return;
         }
-        for (final List<GatePreview> mine : PREVIEWS.values())
+        for (final Map.Entry<UUID, List<GatePreview>> owned : PREVIEWS.entrySet())
         {
-            for (final GatePreview preview : mine)
+            // Only a preview this player is actually shown. Without that, walking past
+            // somebody's unshared preview revealed its iris and sent its wormhole -- displays
+            // HiddenEntities had hidden from everybody, and blocks nothing would take back,
+            // since every teardown path only reaches the people watching.
+            final boolean watches = owned.getKey().equals(player.getUniqueId());
+            for (final GatePreview preview : owned.getValue())
             {
-                restackIfCrossed(player, preview);
+                if (watches || preview.shownTo().contains(player.getUniqueId()))
+                {
+                    restackIfCrossed(player, preview, to);
+                }
             }
         }
     }
 
     /** Redraws one preview for a player if they have crossed its plane since it was drawn. */
-    private static void restackIfCrossed(final Player player, final GatePreview preview)
+    private static void restackIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
-        if (!stacks(preview) || !preview.world().equals(player.getWorld())
-            || preview.opening().isEmpty())
+        if (!stacks(preview) || !preview.world().equals(player.getWorld()))
         {
             return;
         }
-        final boolean front = seesFront(player, preview);
+        final boolean front = seesFront(preview, to);
         final Boolean drawnFrom = preview.sides().get(player.getUniqueId());
         if ((drawnFrom != null) && (drawnFrom.booleanValue() == front))
         {
             return;
         }
         applySideFor(player, preview, !front);
-        sendStackedTo(player, preview);
+        sendStackedTo(player, preview, to);
     }
 
     /**
@@ -1914,6 +2003,15 @@ public final class GatePreviews
             if (display != null)
             {
                 display.setBlock(dataFor(preview, preview.cells().get(i)));
+            }
+        }
+        // The iris beyond the ring wears the same block: restyling only the ring's set left a
+        // viewer behind the gate looking at the palette the preview had before.
+        for (final BlockDisplay display : preview.beyondDisplays())
+        {
+            if (display != null)
+            {
+                display.setBlock(openingData(preview));
             }
         }
         for (final BlockDisplay display : preview.openingDisplays())
