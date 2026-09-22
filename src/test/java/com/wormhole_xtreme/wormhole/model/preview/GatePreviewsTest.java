@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -181,7 +183,9 @@ class GatePreviewsTest
                 (standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2))) == null) ? Material.AIR
                     : standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)))));
             final List<Integer> at = List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2));
-            when(block.getType()).thenReturn(standing.get(at));
+            // AIR rather than null where nothing stands: that is what a real block answers, and
+            // the layering asks whether a cell is air before drawing into it.
+            when(block.getType()).thenReturn(standing.getOrDefault(at, Material.AIR));
             Mockito.doAnswer(set ->
             {
                 written.add(at);
@@ -1067,9 +1071,10 @@ class GatePreviewsTest
      * first ring of the sweep arrived, so the wormhole read as having closed rather than been
      * covered -- and a sweep over empty air is a sweep over nothing.
      *
-     * <p>The opening's displays stand in front of the sent blocks, so a closed iris hides the
-     * horizon without it having to go anywhere. That is what a real gate does, and it is what
-     * makes a glass iris show water through it on both.
+     * <p>Since the preview stacks its layers, "covered" means the wormhole moves a block behind
+     * the ring for a viewer in front, exactly as a real gate's does -- not that it is taken
+     * away. Through a glass iris it reads the same either way; what must never happen is the
+     * opening going empty.
      */
     @Test
     void aClosingIrisCoversTheWormholeAndClearingTakesItBack()
@@ -1084,14 +1089,176 @@ class GatePreviewsTest
 
         GatePreviews.iris(owner);
         finishIrisSweep();
-        verify(owner, times(takenBackByTheWoosh)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        assertTrue(wormholeSendsAlong(owner, -1) > 0,
+            "the wormhole moved a block behind the ring rather than being taken away");
 
         GatePreviews.iris(owner);
         finishIrisSweep();
-        verify(owner, atLeast(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        assertTrue(wormholeSendsAlong(owner, 0) > 0, "and comes back to the ring when the iris opens");
 
         assertEquals(1, GatePreviews.clearAll(owner));
-        verify(owner, times(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(owner, atLeast(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+    }
+
+    /** The preview's opening cells, as the blueprint lays them out for the fixture's preview. */
+    private List<Cell> openingCells()
+    {
+        return GateBlueprint.openingOf(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+    }
+
+    /** The facing of the fixture's preview: the way its DHD's button faces, back at the owner. */
+    private BlockFace previewFacing()
+    {
+        return GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH).facing();
+    }
+
+    /** Opens the fixture's preview, with its wormhole showing. */
+    private void openThePreview()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+    }
+
+    /** A shared viewer standing the given number of blocks along the facing from the opening. */
+    private Player viewerAlong(final String name, final int steps)
+    {
+        final Player viewer = onlineHere(name);
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location at = new Location(world, cell.x() + (steps * facing.getModX()) + 0.5,
+            cell.y() + (steps * facing.getModY()), cell.z() + (steps * facing.getModZ()) + 0.5);
+        when(viewer.getLocation()).thenReturn(at);
+        when(viewer.getEyeLocation()).thenReturn(at);
+        GatePreviews.share(owner, viewer);
+        return viewer;
+    }
+
+    /** Whether a display was ever spawned at a cell, offset along the facing. */
+    private boolean spawnedAt(final Cell cell, final int steps)
+    {
+        final BlockFace facing = previewFacing();
+        final int x = cell.x() + (steps * facing.getModX());
+        final int y = cell.y() + (steps * facing.getModY());
+        final int z = cell.z() + (steps * facing.getModZ());
+        return creation.places.stream().anyMatch(
+            at -> (at.getBlockX() == x) && (at.getBlockY() == y) && (at.getBlockZ() == z));
+    }
+
+    /**
+     * How many of the wormhole's block changes to a viewer landed on the opening's own cells,
+     * or on the cells a given number of steps along the facing from them.
+     *
+     * <p>Counted over the whole ring rather than one cell of it: a cell whose far side is not
+     * free keeps the iris in the ring and shows no wormhole at all, which is the intended
+     * fallback and not something an assertion about one cell should trip over.
+     */
+    private long wormholeSendsAlong(final Player viewer, final int steps)
+    {
+        final BlockFace facing = previewFacing();
+        final Set<List<Integer>> wanted = new HashSet<>();
+        for (final Cell cell : openingCells())
+        {
+            wanted.add(List.of(cell.x() + (steps * facing.getModX()), cell.y() + (steps * facing.getModY()),
+                cell.z() + (steps * facing.getModZ())));
+        }
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(viewer, atLeastOnce()).sendBlockChange(where.capture(), eq(data.get(Material.WATER)));
+        return where.getAllValues().stream()
+            .filter(at -> wanted.contains(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()))).count();
+    }
+
+    /**
+     * A viewer behind a shut iris sees the wormhole in the ring, with the iris beyond it.
+     *
+     * <p>The real gate has read this way since #424; the preview showed everyone the front's
+     * picture, which from behind is the wormhole a block the wrong side of the iris. A preview
+     * that rehearses the gate has to rehearse this too.
+     */
+    @Test
+    void aViewerBehindSeesTheWormholeInTheRingAndTheIrisBeyondIt()
+    {
+        openThePreview();
+        final Player behind = viewerAlong("Bea", -4);
+        clearInvocations(behind);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(spawnedAt(openingCells().get(0), 1),
+            "an iris display stands a block along the facing, which is what a viewer behind sees");
+        assertTrue(wormholeSendsAlong(behind, 0) > 0, "and the wormhole is in the ring for them");
+        assertEquals(0, wormholeSendsAlong(behind, -1),
+            "not a block behind it, which from where they stand is in front of the iris");
+    }
+
+    /**
+     * The owner, in front, keeps the iris in the ring and the wormhole behind it.
+     */
+    @Test
+    void aViewerInFrontKeepsTheIrisInTheRing()
+    {
+        openThePreview();
+        clearInvocations(owner);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(wormholeSendsAlong(owner, -1) > 0, "the wormhole is a block behind the ring for them");
+    }
+
+    /**
+     * Walking round a stacked preview restacks it for that viewer.
+     *
+     * <p>A preview redraws itself every hundred ticks, which cannot follow somebody walking
+     * round one: without the move hook they would keep the other side's picture for up to five
+     * seconds, or until something else redrew.
+     */
+    @Test
+    void walkingRoundAStackedPreviewRestacksItForThatViewer()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(walker);
+
+        // Round to the front, where the wormhole belongs a block behind the ring instead.
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location front = new Location(world, cell.x() + (4 * facing.getModX()) + 0.5,
+            cell.y() + (4 * facing.getModY()), cell.z() + (4 * facing.getModZ()) + 0.5);
+        when(walker.getLocation()).thenReturn(front);
+        when(walker.getEyeLocation()).thenReturn(front);
+        GatePreviews.moved(walker);
+
+        assertTrue(wormholeSendsAlong(walker, -1) > 0,
+            "from the front the wormhole belongs a block behind the ring, and the step is what says so");
+    }
+
+    /**
+     * A preview is not stacked while its iris is sweeping across.
+     *
+     * <p>The sweep covers the wormhole ring by ring, so the wormhole has to stay in the ring for
+     * it to be seen covering anything. Moving it behind the gate at the first ring empties the
+     * opening for the length of the sweep, which is what the report above looked like.
+     */
+    @Test
+    void aPreviewIsNotStackedUntilItsSweepHasCrossed()
+    {
+        openThePreview();
+        viewerAlong("Sam", -4);
+
+        GatePreviews.iris(owner);
+
+        assertFalse(spawnedAt(openingCells().get(0), 1), "no iris beyond the ring while the sweep is crossing");
+
+        finishIrisSweep();
+
+        assertTrue(spawnedAt(openingCells().get(0), 1), "and it stands once the sweep is over");
     }
 
     /**
@@ -1346,6 +1513,8 @@ class GatePreviewsTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getName()).thenReturn(name);
         when(player.getWorld()).thenReturn(world);
+        // Online, as somebody standing in the world is: the move hook asks before it redraws.
+        when(player.isOnline()).thenReturn(true);
         others.put(player.getUniqueId(), player);
         return player;
     }

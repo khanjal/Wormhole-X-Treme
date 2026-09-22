@@ -16,6 +16,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.BlockDisplay;
@@ -39,6 +40,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -1259,26 +1261,300 @@ public final class GatePreviews
             }
             preview.finished(built && clear);
         }
+        final boolean stacked = stacks(preview);
         for (int i = 0; i < preview.opening().size(); i++)
         {
             if (!preview.irisShownAt(i))
             {
                 GatePreview.removeAt(preview.openingDisplays(), i);
+                GatePreview.removeAt(preview.beyondDisplays(), i);
                 continue;
             }
             spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
+            spawnBeyond(owner, preview, i, stacked);
         }
         if (preview.open())
         {
-            // Sent whatever the iris is doing. The opening's displays stand in front of
-            // these blocks, so a closed iris hides the horizon without the horizon having
-            // to be taken away -- which is what a real gate does too, and is the only way
-            // a sweep has anything to sweep over. Dropping it the moment the iris shut
-            // replaced the water with air a beat before the first ring arrived, so the
-            // wormhole looked like it had closed rather than been covered.
-            send(owner, preview, preview.opening());
+            if (stacked)
+            {
+                // Each viewer gets the wormhole where it belongs for their side: behind the
+                // ring from the front, in the ring from behind.
+                watching(owner, preview).forEach(viewer -> sendStackedTo(viewer, preview));
+            }
+            else
+            {
+                // Sent whatever the iris is doing. The opening's displays stand in front of
+                // these blocks, so a closed iris hides the horizon without the horizon having
+                // to be taken away -- which is what a real gate does too, and is the only way
+                // a sweep has anything to sweep over. Dropping it the moment the iris shut
+                // replaced the water with air a beat before the first ring arrived, so the
+                // wormhole looked like it had closed rather than been covered.
+                send(owner, preview, preview.opening());
+            }
         }
+        applySides(owner, preview, stacked);
         drawButton(owner, preview);
+    }
+
+    /**
+     * Whether a preview's opening is drawn in two layers, so differently from each side.
+     *
+     * <p>The same question a real gate asks: a wormhole showing, an iris over it, and a gate
+     * that stands upright. A preview of a horizontal shape keeps its iris in the ring, as the
+     * gate does, because there is no in front or behind to stack along.
+     *
+     * @param preview
+     *            the preview
+     * @return true if its iris and wormhole are stacked per viewer
+     */
+    private static boolean stacks(final GatePreview preview)
+    {
+        final BlockFace facing = preview.grid().facing();
+        // Not while a sweep is crossing. The sweep covers the wormhole ring by ring, so the
+        // wormhole has to stay in the ring for it to be seen covering anything; moving it
+        // behind the gate at the first ring empties the opening for the length of the sweep,
+        // which is what "the water vanished a beat before the iris arrived" looked like. The
+        // gate settles its layers after the sweep too.
+        return preview.open() && preview.irisClosed() && (facing != null)
+            && (facing != BlockFace.UP) && (facing != BlockFace.DOWN)
+            && !preview.sweeping();
+    }
+
+    /**
+     * Where the layers go for one opening cell, for a viewer on the given side.
+     *
+     * <p>Through {@link IrisLayering}, the same decision a real gate makes, so the two cannot
+     * drift apart. Only the drawing differs: a preview's iris is block displays, which show no
+     * liquid, so its wormhole is the fake block and its iris is the entity.
+     *
+     * @param preview
+     *            the preview
+     * @param cell
+     *            the opening cell
+     * @param front
+     *            whether the viewer is in front
+     * @return where the iris and the wormhole go for them
+     */
+    private static IrisLayering.Placement placed(final GatePreview preview, final Cell cell, final boolean front)
+    {
+        return IrisLayering.place(new IrisLayering.At(cell.x(), cell.y(), cell.z()),
+            preview.grid().facing(), front, at -> freeForLayer(preview, at));
+    }
+
+    /** Whether a layer may be drawn at a position: real air, in a chunk that is loaded. */
+    private static boolean freeForLayer(final GatePreview preview, final IrisLayering.At at)
+    {
+        if (!preview.world().isChunkLoaded(at.x() >> 4, at.z() >> 4))
+        {
+            return false;
+        }
+        return MaterialUtils.isAirMaterial(preview.world().getBlockAt(at.x(), at.y(), at.z()).getType());
+    }
+
+    /**
+     * Spawns, or clears, the iris display a block along the facing for one opening cell.
+     *
+     * <p>Two sets of iris displays stand while a preview is stacked -- one in the ring, one
+     * beyond it -- and each viewer is shown exactly one, which is what lets the same preview
+     * read correctly from both sides at once.
+     *
+     * @param owner
+     *            the preview's owner
+     * @param preview
+     *            the preview
+     * @param index
+     *            the opening cell's index
+     * @param stacked
+     *            whether the preview is stacked at all
+     */
+    private static void spawnBeyond(final Player owner, final GatePreview preview, final int index,
+        final boolean stacked)
+    {
+        final Cell cell = preview.opening().get(index);
+        final IrisLayering.At beyond = stacked
+            ? placed(preview, cell, false).iris() : null;
+        // Null, or the ring itself when there was no room beyond it: either way there is no
+        // second display to stand, and the viewer behind sees the ring one like everybody else.
+        if ((beyond == null) || ((beyond.x() == cell.x()) && (beyond.y() == cell.y()) && (beyond.z() == cell.z())))
+        {
+            GatePreview.removeAt(preview.beyondDisplays(), index);
+            return;
+        }
+        spawnMissing(owner, preview, preview.beyondDisplays(), index, preview.world(),
+            new Cell(beyond.x(), beyond.y(), beyond.z(), cell.part(), cell.wave(), cell.dhd(), cell.layer()),
+            openingData(preview));
+    }
+
+    /**
+     * Sends one viewer a stacked preview's wormhole where it belongs for their side.
+     *
+     * <p>Behind the ring from the front, in the ring from behind. The cells the other side uses
+     * are handed back, so a viewer who has walked round is not left with both.
+     *
+     * @param viewer
+     *            the viewer
+     * @param preview
+     *            the preview, which should be stacked
+     */
+    private static void sendStackedTo(final Player viewer, final GatePreview preview)
+    {
+        final boolean front = seesFront(viewer, preview);
+        final BlockData portal = blockData.apply(preview.palette().portal());
+        for (final Cell cell : preview.opening())
+        {
+            final IrisLayering.Placement here = placed(preview, cell, front);
+            if (here.horizon() != null)
+            {
+                preview.sent().add(GatePreview.key(cell));
+                viewer.sendBlockChange(new Location(preview.world(),
+                    here.horizon().x(), here.horizon().y(), here.horizon().z()), portal);
+            }
+            // The cell the other side's wormhole would be in, handed back in case they have
+            // just come round from there.
+            final IrisLayering.Placement other = placed(preview, cell, !front);
+            if ((other.horizon() != null) && !other.horizon().equals(here.horizon()))
+            {
+                takeBackAt(viewer, preview, other.horizon());
+            }
+        }
+        preview.sides().put(viewer.getUniqueId(), Boolean.valueOf(front));
+    }
+
+    /** Shows one viewer what really stands at a layer position, where its chunk is loaded. */
+    private static void takeBackAt(final Player viewer, final GatePreview preview, final IrisLayering.At at)
+    {
+        if (!preview.world().isChunkLoaded(at.x() >> 4, at.z() >> 4))
+        {
+            return;
+        }
+        viewer.sendBlockChange(new Location(preview.world(), at.x(), at.y(), at.z()),
+            preview.world().getBlockAt(at.x(), at.y(), at.z()).getBlockData());
+    }
+
+    /**
+     * Whether a viewer is in front of a preview's opening.
+     *
+     * @param viewer
+     *            the viewer
+     * @param preview
+     *            the preview
+     * @return true in front, false behind
+     */
+    private static boolean seesFront(final Player viewer, final GatePreview preview)
+    {
+        final Cell first = preview.opening().get(0);
+        final Location at = viewer.getLocation();
+        return IrisLayering.seesFront(preview.grid().facing(),
+            new IrisLayering.At(first.x(), first.y(), first.z()), at.getX(), at.getY(), at.getZ());
+    }
+
+    /**
+     * Shows each viewer the iris set that belongs to their side.
+     *
+     * <p>Both sets stand while a preview is stacked; a viewer sees one. Unstacked, the ring set
+     * is everybody's, which is what a preview has always shown.
+     *
+     * @param owner
+     *            the preview's owner
+     * @param preview
+     *            the preview
+     * @param stacked
+     *            whether it is stacked
+     */
+    private static void applySides(final Player owner, final GatePreview preview, final boolean stacked)
+    {
+        for (final Player viewer : watching(owner, preview))
+        {
+            if (stacked)
+            {
+                applySideFor(viewer, preview, !seesFront(viewer, preview));
+            }
+            else if (preview.sides().remove(viewer.getUniqueId()) != null)
+            {
+                // Stacked until a moment ago: whoever was behind it was shown the set beyond
+                // the ring, and the ring's own set is everybody's again.
+                applySideFor(viewer, preview, false);
+            }
+        }
+    }
+
+    /**
+     * Shows one viewer one of the two iris sets and hides the other.
+     *
+     * @param viewer
+     *            the viewer
+     * @param preview
+     *            the preview
+     * @param behind
+     *            true to show the set beyond the ring, false for the ring's own
+     */
+    private static void applySideFor(final Player viewer, final GatePreview preview, final boolean behind)
+    {
+        show(viewer, behind ? preview.beyondDisplays() : preview.openingDisplays(), true);
+        show(viewer, behind ? preview.openingDisplays() : preview.beyondDisplays(), false);
+    }
+
+    /** Shows or hides a set of displays for one viewer. */
+    private static void show(final Player viewer, final List<BlockDisplay> displays, final boolean shown)
+    {
+        for (final BlockDisplay display : displays)
+        {
+            if (display == null)
+            {
+                continue;
+            }
+            if (shown)
+            {
+                viewer.showEntity(WormholeXTreme.getThisPlugin(), display);
+            }
+            else
+            {
+                viewer.hideEntity(WormholeXTreme.getThisPlugin(), display);
+            }
+        }
+    }
+
+    /**
+     * Restacks any preview whose plane a player has just crossed.
+     *
+     * <p>A preview redraws itself every five seconds, which cannot follow somebody walking round
+     * one. This is the preview's half of what the move listener does for a real gate, and like
+     * it, only a step that changes which side they are on costs anything.
+     *
+     * @param player
+     *            the player who moved
+     */
+    public static void moved(final Player player)
+    {
+        if ((player == null) || !player.isOnline())
+        {
+            return;
+        }
+        for (final List<GatePreview> mine : PREVIEWS.values())
+        {
+            for (final GatePreview preview : mine)
+            {
+                restackIfCrossed(player, preview);
+            }
+        }
+    }
+
+    /** Redraws one preview for a player if they have crossed its plane since it was drawn. */
+    private static void restackIfCrossed(final Player player, final GatePreview preview)
+    {
+        if (!stacks(preview) || !preview.world().equals(player.getWorld())
+            || preview.opening().isEmpty())
+        {
+            return;
+        }
+        final boolean front = seesFront(player, preview);
+        final Boolean drawnFrom = preview.sides().get(player.getUniqueId());
+        if ((drawnFrom != null) && (drawnFrom.booleanValue() == front))
+        {
+            return;
+        }
+        applySideFor(player, preview, !front);
+        sendStackedTo(player, preview);
     }
 
     /**
@@ -1308,6 +1584,9 @@ public final class GatePreviews
         // takes them away. Either way the set ends agreeing with irisClosed.
         preview.irisShownEverywhere(!preview.irisClosed());
         restyle(preview);
+        // Marked before the first ring: the layers stay where they are until the sweep ends,
+        // and the first draw is part of the sweep.
+        preview.sweeping(true);
         stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.irisClosed()), 0);
     }
 
@@ -1360,7 +1639,16 @@ public final class GatePreviews
     {
         if ((ring >= rings.size()) || !stillHeld(preview))
         {
+            final boolean finished = ring >= rings.size();
             irisSweeps.remove(preview);
+            preview.sweeping(false);
+            if (finished && stillHeld(preview))
+            {
+                // Dropped from the sweep map first, so this draw is the one that stacks: the
+                // wormhole moves behind the ring, and a viewer round the back gets it in the
+                // ring with the iris beyond, now that there is no sweep left to cover.
+                draw(owner, preview);
+            }
             return;
         }
         for (final int cell : rings.get(ring))
@@ -1415,6 +1703,7 @@ public final class GatePreviews
     static void cancelIrisSweep(final GatePreview preview)
     {
         final BukkitTask task = irisSweeps.remove(preview);
+        preview.sweeping(false);
         if (task != null)
         {
             task.cancel();

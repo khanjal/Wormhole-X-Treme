@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -51,6 +52,12 @@ final class GatePreview
     private final List<BlockDisplay> openingDisplays;
     /** In step with {@link #opening}; the guide's marks where something is in the way. */
     private final List<BlockDisplay> blockedDisplays;
+    /** The iris a block along the facing, which is where a viewer behind the gate is shown it. */
+    private final List<BlockDisplay> beyondDisplays;
+    /** Which side each viewer was last drawn from: true for the front, the side the gate faces. */
+    private final Map<UUID, Boolean> sides = new HashMap<>();
+    /** Whether an iris sweep is crossing, during which the layers are left where they are. */
+    private boolean sweeping;
     private final int lastWave;
     /** The shape layers something is built in, front to back as the shape numbers them. */
     private final List<Integer> builtLayers;
@@ -107,6 +114,7 @@ final class GatePreview
         this.displays = new ArrayList<>(Collections.nCopies(cells.size(), (BlockDisplay) null));
         this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         this.blockedDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
+        this.beyondDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         // A preview dials nowhere, so its other-world chevron stays dark.
         lastWave = Math.min(cells.stream().mapToInt(Cell::wave).max().orElse(0), Stargate.LOCAL_CHEVRONS);
         builtLayers = cells.stream().map(Cell::layer).distinct().sorted().toList();
@@ -236,6 +244,35 @@ final class GatePreview
         return blockedDisplays;
     }
 
+    /** @return the iris displays a block along the facing, shown to viewers behind the gate */
+    List<BlockDisplay> beyondDisplays()
+    {
+        return beyondDisplays;
+    }
+
+    /** @return which side each viewer was last drawn from, true for the front */
+    Map<UUID, Boolean> sides()
+    {
+        return sides;
+    }
+
+    /** @return true while an iris sweep is crossing this preview */
+    boolean sweeping()
+    {
+        return sweeping;
+    }
+
+    /**
+     * Says whether a sweep is crossing.
+     *
+     * @param crossing
+     *            true while one is
+     */
+    void sweeping(final boolean crossing)
+    {
+        sweeping = crossing;
+    }
+
     Map<UUID, String> sharedWith()
     {
         return sharedWith;
@@ -260,7 +297,7 @@ final class GatePreview
     List<BlockDisplay> standingDisplays()
     {
         final List<BlockDisplay> all = new ArrayList<>();
-        for (final List<BlockDisplay> shown : List.of(displays, openingDisplays, blockedDisplays))
+        for (final List<BlockDisplay> shown : List.of(displays, openingDisplays, blockedDisplays, beyondDisplays))
         {
             shown.stream().filter(java.util.Objects::nonNull).forEach(all::add);
         }
@@ -530,6 +567,7 @@ final class GatePreview
         clear(displays);
         clear(openingDisplays);
         clear(blockedDisplays);
+        clear(beyondDisplays);
         removeButton();
     }
 
