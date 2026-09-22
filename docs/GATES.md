@@ -463,6 +463,16 @@ bought with that work: a crash leaves nothing standing in the world, and the bar
 longer nailed to the cells the portal occupies, which is what lets it be stacked against the
 horizon from whichever side the viewer is on.
 
+**The two layers are stacked per viewer.** With a wormhole open behind a shut iris, the nearer
+layer to each viewer takes the ring and the other goes a block further off: from the front the
+iris is in the ring and the horizon behind it, from behind the horizon is in the ring and the
+iris beyond it. Keeping the far layer on the far side is not only for looks — a drawn liquid
+on a player's own side of the gate gives their client swim physics the server does not agree
+with. The side is judged from the facing, remembered per player, and redrawn on every refresh,
+after the closing sweep, and on the step that crosses the gate's plane. Only cells that are
+really air are drawn in, and both layer positions are handed back whenever the gate stops
+being layered.
+
 **A horizontal gate's iris stays real blocks.** Its opening is a floor. A drawn floor is air as
 far as the server is concerned: the client holds the player up on it, the server sees somebody
 hovering over nothing, and a server that does not allow flight kicks them for it a few seconds

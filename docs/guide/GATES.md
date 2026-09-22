@@ -334,10 +334,18 @@ A wider gate has more rings, so it takes longer to sweep than a small one — `M
 default is about a second, `Standard` rather less.
 
 **A closed iris does not take the wormhole away.** An opening is one block thick, so a closed
-iris fills it and the event horizon has nowhere left inside the ring. It is shown one block
-behind instead: a glass iris (`Atlantis`, `Universe`) lets it through from the front, and
-anyone walking round the back sees the portal plainly. Nothing is drawn there if you have
-built behind the gate -- you see what you built.
+iris and the event horizon cannot both fit in it. On an upright gate each of them is drawn
+where it belongs for whoever is looking:
+
+| Standing | In the ring | One block further off |
+|---|---|---|
+| In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through |
+| Behind | the horizon | the iris |
+
+Walk round the gate and the two swap as you pass its plane. Nothing is drawn where you have
+built -- you see what you built -- and a gate with something built right in front of it just
+shows the iris in the ring from behind. A horizontal gate's iris is real blocks, so it stays
+in the ring and the horizon is shown underneath.
 
 **The sweep is only the picture.** The iris is settled in one go, and the sweep is drawn on
 clients the same way the portal is. So a gate is never partly shut: closing, the barrier is
