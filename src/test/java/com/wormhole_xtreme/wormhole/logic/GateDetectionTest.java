@@ -23,6 +23,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,11 +55,34 @@ class GateDetectionTest
     private final Map<String, Block> blocks = new HashMap<>();
     private World world;
 
+    /** Whatever the class before this one left in the registry, put back in {@link #putTheRegistryBack}. */
+    private Object registryBefore;
+
     @BeforeEach
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
+        // The built-in palette, which names no chevron; whatever the last class loaded might.
+        MaterialGroupRegistry.load(null);
+
+        // Every test here builds an obsidian gate and expects the palette to name no chevron,
+        // which is what makes a [C] cell mean the same as an [S] one. That was read out of
+        // whatever the previous test class happened to leave in the registry's one static
+        // reference -- and since nothing clears it and surefire orders classes by the
+        // filesystem, which machine ran the suite decided whether this class passed.
+        //
+        // What breaks these is an obsidian palette that carries a chevron, and one is a file
+        // away: UnlitChevronTest loads the shipped config.yml, whose Standard group names
+        // REDSTONE_LAMP, and walks off with it still loaded. Detection then wants lamp at the
+        // [C] cells these tests built out of obsidian, and every gate here reads as not a
+        // gate. A palette for some other material is harmless by contrast: the structure
+        // material is answered from the shape's own before the registry is ever asked.
+        //
+        // Loading nothing gives the built-in obsidian palette with no chevron: the state
+        // these tests were written against, now asked for rather than inherited.
+        registryBefore = registryState().get();
+        MaterialGroupRegistry.load(null);
 
         placed.clear();
         blocks.clear();
@@ -68,6 +92,18 @@ class GateDetectionTest
             blockAt(inv.getArgument(0, Integer.class).intValue(),
                     inv.getArgument(1, Integer.class).intValue(),
                     inv.getArgument(2, Integer.class).intValue()));
+    }
+
+    /**
+     * Puts the registry back as it was found, so guarding this class does not disturb the next.
+     *
+     * @throws Exception
+     *             if the field was renamed
+     */
+    @AfterEach
+    void putTheRegistryBack() throws Exception
+    {
+        registryState().set(registryBefore);
     }
 
     private static String key(final int x, final int y, final int z)
@@ -146,7 +182,7 @@ class GateDetectionTest
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
             }
-            // No palette is registered here, so a [C] cell means the same as [S].
+            // The palette set up here names no chevron, so a [C] cell means the same as [S].
             for (final Integer[] pos : layer.getLayerChevronPositions())
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
@@ -379,7 +415,8 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
-        assertNotNull(found);
+        assertNotNull(found, "a [C] gate of plain frame should be found while no palette names a "
+            + "chevron; if the palette does, [C] demands that material instead");
 
         int expected = 0;
         final List<StargateShapeLayer> layers = s.getShapeLayers();

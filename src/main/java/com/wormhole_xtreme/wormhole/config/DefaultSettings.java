@@ -119,7 +119,8 @@ class DefaultSettings
             new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate, pitched down a little since it is a shield rather than a door.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening.", SECTION),
             new Setting(ConfigKeys.GATE_IRIS_ANIMATION, "sweep", "How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.", SECTION),
-            new Setting(ConfigKeys.GATE_IRIS_STEP_TICKS, 2, "Ticks between one ring of an iris sweep and the next, 1 to 20. A wider gate has more rings, so it takes longer to sweep than a small one.", SECTION),
+            new Setting(ConfigKeys.GATE_IRIS_STEP_TICKS, 2, "Ticks between one ring of an iris sweep and the next, 1 to 20. A wider gate has more rings, so it would take longer to cross than a small one; gate-iris-sweep-max-ticks is what stops it.", SECTION),
+            new Setting(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 20, "The longest a whole iris crossing may take, in ticks, 0 to 200. A gate with more rings than fit in that time covers several of them per step instead of slowing down. A limit too short for two steps at that pace still gets two. 0 for no limit, which is a step per ring however big the gate.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop", "The soft running water an open wormhole makes while it stands there.", SECTION),
             new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70, "How often the ambient water repeats, in ticks. A little under the sound's own length, so it runs continuously.", SECTION)),
 
