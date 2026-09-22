@@ -59,6 +59,8 @@ class GateDetectionTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
+        // The built-in palette, which names no chevron; whatever the last class loaded might.
+        MaterialGroupRegistry.load(null);
 
         placed.clear();
         blocks.clear();
@@ -146,7 +148,7 @@ class GateDetectionTest
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
             }
-            // No palette is registered here, so a [C] cell means the same as [S].
+            // The palette set up here names no chevron, so a [C] cell means the same as [S].
             for (final Integer[] pos : layer.getLayerChevronPositions())
             {
                 place(ox, oy, oz, facing, right, layerIdx, pos, struct);
@@ -379,7 +381,8 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
-        assertNotNull(found);
+        assertNotNull(found, "a [C] gate of plain frame should be found while no palette names a "
+            + "chevron; if the palette does, [C] demands that material instead");
 
         int expected = 0;
         final List<StargateShapeLayer> layers = s.getShapeLayers();
