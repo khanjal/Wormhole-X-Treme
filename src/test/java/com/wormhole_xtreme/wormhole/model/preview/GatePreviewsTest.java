@@ -1418,9 +1418,55 @@ class GatePreviewsTest
         finishIrisSweep();
 
         assertFalse(spawnedAt(cell, 1), "nothing to stand in: the iris keeps the ring at that cell");
-        verify(behind, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
+        // Never hidden, rather than shown at least once: spawning a display shows it to every
+        // watcher, so "was shown" is true whatever the side does with it afterwards.
+        verify(behind, never()).hideEntity(plugin, displayAt(cell, 0));
         assertTrue(handBacksAlong(behind, 0) > 0,
             "and the wormhole the sweep sent there is taken back, so no water shows through the iris");
+    }
+
+    /**
+     * Stopping sharing a stacked preview takes back the wormhole drawn off the ring.
+     *
+     * <p>What is handed back on unsharing is the cells the preview sent, which are the opening's
+     * own. A viewer drawn from the front had theirs a block behind the ring, so it stayed on
+     * their screen after the preview was gone from it.
+     */
+    @Test
+    void unsharingAStackedPreviewTakesBackTheWormholeOffTheRing()
+    {
+        openThePreview();
+        final Player lee = viewerAlong("Lee", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(lee);
+
+        // Sharing again is how sharing is stopped.
+        GatePreviews.share(owner, lee);
+
+        assertTrue(handBacksAlong(lee, -1) > 0, "the cell their wormhole stood in goes back with the rest");
+    }
+
+    /**
+     * Restyling a stacked preview dresses the iris beyond the ring too.
+     *
+     * <p>Both sets are the same iris, and only one of them was restyled: a viewer behind the
+     * gate went on looking at the block the preview wore before.
+     */
+    @Test
+    void restylingAStackedPreviewDressesTheIrisBeyondTheRing()
+    {
+        openThePreview();
+        viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final BlockDisplay beyond = displayAt(openingCells().get(0), 1);
+        clearInvocations(beyond);
+
+        assertEquals(GatePreviews.Control.CHANGED,
+            GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.IRON_BLOCK));
+
+        verify(beyond, atLeastOnce()).setBlock(data.get(Material.IRON_BLOCK));
     }
 
     /**
