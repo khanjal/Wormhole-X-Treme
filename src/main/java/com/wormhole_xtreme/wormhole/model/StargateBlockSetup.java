@@ -1373,10 +1373,9 @@ class StargateBlockSetup
             return true;
         }
         final Location p = gate.getGatePortalBlocks().get(0);
-        final double along = ((eye.getX() - (p.getBlockX() + 0.5)) * facing.getModX())
-            + ((eye.getY() - (p.getBlockY() + 0.5)) * facing.getModY())
-            + ((eye.getZ() - (p.getBlockZ() + 0.5)) * facing.getModZ());
-        return along >= 0;
+        return IrisLayering.seesFront(facing,
+            new IrisLayering.At(p.getBlockX(), p.getBlockY(), p.getBlockZ()),
+            eye.getX(), eye.getY(), eye.getZ());
     }
 
     /**
@@ -1509,41 +1508,26 @@ class StargateBlockSetup
     static void sendLayeredTo(final Player player, final Stargate gate, final Location from)
     {
         final List<Location> ring = gate.getGatePortalBlocks();
-        final List<Location> behind = portalBackdropCells(gate);
-        final List<Location> ahead = portalForecourtCells(gate);
-        if (ring.isEmpty() || (behind.size() != ring.size()) || (ahead.size() != ring.size()))
+        if (ring.isEmpty() || (gate.getGateFacing() == null))
         {
             return;
         }
         final boolean front = seesFront(gate, from);
-        final List<Location> far = front ? behind : ahead;
-        final List<Location> near = front ? ahead : behind;
         final BlockData iris = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
         final BlockData horizon = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
-        for (int i = 0; i < ring.size(); i++)
+        for (final Location bc : ring)
         {
-            final Location cell = new Location(gate.getGateWorld(),
-                ring.get(i).getBlockX(), ring.get(i).getBlockY(), ring.get(i).getBlockZ());
-            final Location farCell = far.get(i);
-            final boolean farFree = backdropIsFree(farCell);
-            if (front)
+            // Where the layers go is the same decision a preview makes, so it is made in one
+            // place; this only draws it.
+            final IrisLayering.Placement placed = IrisLayering.place(
+                new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                gate.getGateFacing(), front, at -> backdropIsFree(located(gate, at)));
+            player.sendBlockChange(located(gate, placed.iris()), iris);
+            if (placed.horizon() != null)
             {
-                player.sendBlockChange(cell, iris);
-                if (farFree)
-                {
-                    player.sendBlockChange(farCell, horizon);
-                }
+                player.sendBlockChange(located(gate, placed.horizon()), horizon);
             }
-            else if (farFree)
-            {
-                player.sendBlockChange(cell, horizon);
-                player.sendBlockChange(farCell, iris);
-            }
-            else
-            {
-                player.sendBlockChange(cell, iris);
-            }
-            sendTruthIfFree(player, near.get(i));
+            sendTruthIfFree(player, located(gate, placed.handBack()));
         }
         if (gate.isGateLightsActive())
         {
@@ -1683,6 +1667,20 @@ class StargateBlockSetup
      * @param at
      *            the cell
      */
+    /**
+     * A layering position as a location in the gate's world.
+     *
+     * @param gate
+     *            the gate
+     * @param at
+     *            the position
+     * @return the location
+     */
+    private static Location located(final Stargate gate, final IrisLayering.At at)
+    {
+        return new Location(gate.getGateWorld(), at.x(), at.y(), at.z());
+    }
+
     private static void sendTruthIfFree(final Player player, final Location at)
     {
         if (backdropIsFree(at))
