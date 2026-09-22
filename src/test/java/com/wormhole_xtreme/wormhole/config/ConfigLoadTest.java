@@ -49,7 +49,7 @@ class ConfigLoadTest
     @AfterEach
     void tearDown() throws Exception
     {
-        // A loaded config seeds the example groups, whose Standard has chevrons; later tests expect none.
+        // A loaded config seeds the example groups, whose Standard has chevrons; this class's other tests expect none.
         com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
