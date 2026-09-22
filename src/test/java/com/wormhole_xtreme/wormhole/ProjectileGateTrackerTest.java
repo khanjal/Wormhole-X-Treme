@@ -441,6 +441,29 @@ class ProjectileGateTrackerTest
         assertEquals(0, ProjectileGateTracker.trackedCount());
     }
 
+    /**
+     * An arrow shot at an idle gate's shut iris stops there.
+     *
+     * <p>The iris used to be solid blocks, which stopped an arrow whether or not the gate was
+     * dialled. Drawn, it is air to the server, and nothing was even following arrows while no
+     * gate was open, so one flew straight through what every client showed as a closed iris.
+     */
+    @Test
+    void anArrowAtAnIdleGatesShutIrisIsStopped()
+    {
+        origin.setGateActive(false);
+        origin.setGateIrisActive(true);
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
+
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
+    }
+
     @Test
     void anIdleTickCostsNothingWhenNothingIsInFlight()
     {
@@ -451,5 +474,28 @@ class ProjectileGateTrackerTest
 
         // Nothing in flight means the per-tick pass touches the world at all.
         verifyNoInteractions(world);
+    }
+
+    /**
+     * The far end of a wormhole stops an arrow at its shut iris.
+     *
+     * <p>That gate is active with no target of its own. The idle-gate check skipped it for being
+     * active, and the crossing check below it gave up for having no target, so an arrow flew
+     * straight through an iris every client showed shut.
+     */
+    @Test
+    void anArrowAtTheFarEndsShutIrisIsStopped()
+    {
+        StargateTestSupport.target(origin, null);
+        origin.setGateIrisActive(true);
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
+
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(arrow).remove();
+        verify(world, never()).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(),
+            any(Class.class));
     }
 }

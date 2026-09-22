@@ -298,7 +298,8 @@ Signs repaint when next written — a dial sign on the next click, a name sign o
 ## The iris
 
 An iris closes over a gate to block travel. Anyone walking into a gate whose far end has its iris
-closed is bounced back with "Remote Iris is locked!".
+closed is bounced back with "Remote Iris is locked!", and walking into a gate whose own iris is
+closed gets you nowhere at all, dialled or idle.
 
 ![The iris closed, in each of the four palettes](../images/gates/standard-palettes-iris.png)
 
@@ -356,10 +357,28 @@ behind instead: a glass iris (`Atlantis`, `Universe`) lets it through from the f
 anyone walking round the back sees the portal plainly. Nothing is drawn there if you have
 built behind the gate -- you see what you built.
 
-**The sweep is only the picture.** The iris blocks themselves are placed and removed in one go,
-as they always were, and the sweep is drawn on clients the same way the portal is. So a gate is
-never partly shut: closing, the barrier is there before it looks it; opening, it outlasts the
-picture of it. Nothing can walk through an iris that appears to still be arriving.
+**The sweep is only the picture.** The iris is settled in one go, and the sweep is drawn on
+clients the same way the portal is. So a gate is never partly shut: closing, the barrier is
+there before it looks it; opening, it outlasts the picture of it. Nothing can walk through an
+iris that appears to still be arriving.
+
+### What an iris is made of
+
+**An upright gate's iris is drawn, not built.** The server keeps the opening empty and sends
+every nearby client the iris to look at, the same way the event horizon has always worked. So
+a server that dies with an iris shut leaves nothing standing in the gate, and a block somebody
+left in the opening can still be broken out while the iris is closed.
+
+It still holds. Walking into one is refused, a minecart is pushed back out, and an arrow or a
+dropped item that reaches a shut iris — at either end of a wormhole — is destroyed rather than
+carried through. Nobody builds in an opening a shut iris covers, operators included.
+
+**A horizontal gate's iris is real blocks**, because it is a floor and a floor has to be there
+to stand on. Everything above about it being drawn applies to upright gates only.
+
+Gates saved with an iris shut by an earlier version have those blocks taken out of the world
+the first time the gate loads, or the first time somebody walks up to it. There is nothing to
+do about it.
 
 ## Redstone
 

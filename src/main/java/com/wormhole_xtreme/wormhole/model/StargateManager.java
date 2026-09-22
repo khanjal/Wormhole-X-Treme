@@ -92,6 +92,14 @@ public class StargateManager
     private static final java.util.Set<Stargate> openGatesView =
         java.util.Collections.unmodifiableSet(openGates);
 
+    /** The gates currently showing an iris. */
+    private static final java.util.Set<Stargate> irisGates =
+        java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /** The read-only view of the gates showing an iris. */
+    private static final java.util.Set<Stargate> irisGatesView =
+        java.util.Collections.unmodifiableSet(irisGates);
+
 
     /**
      * This method adds a stargate that has been activated but not dialed by a player.
@@ -203,6 +211,11 @@ public class StargateManager
     protected static void addStargate(final Stargate s)
     {
         getStargateList().put(normalizeGateName(s.getGateName()), s);
+        // A gate can arrive here already shut -- loaded from disk, or handed back after a
+        // refresh deregistered it -- and the iris set is otherwise only written when the flag
+        // moves, which it does not on either of those paths. Without this its iris is never
+        // drawn for anybody until somebody flips the lever.
+        setGateIrisState(s, s.isGateIrisActive());
         for (final Location b : s.getGateStructureBlocks())
         {
             indexBlockLocation(b, s);
@@ -698,6 +711,46 @@ public class StargateManager
     }
 
     /**
+     * Records whether a gate is currently showing an iris.
+     *
+     * <p>Called from {@link Stargate#setGateIrisActive(boolean)}, the one writer of the flag,
+     * so the set cannot drift from it.
+     *
+     * <p>Kept apart from the open set because the two do not line up: an idle gate can sit
+     * with its iris shut for days, and it still has to be drawn for whoever walks up to it.
+     *
+     * @param gate
+     *            the gate
+     * @param shut
+     *            whether its iris is shut
+     */
+    static void setGateIrisState(final Stargate gate, final boolean shut)
+    {
+        if (shut)
+        {
+            irisGates.add(gate);
+        }
+        else
+        {
+            irisGates.remove(gate);
+        }
+    }
+
+    /**
+     * The gates currently showing an iris.
+     *
+     * <p>A vertical gate's iris is drawn on clients rather than placed in the world, so it
+     * has to be redrawn for anyone who was not nearby when it shut or whose client has since
+     * reloaded the chunk. This is the set to walk for that.
+     *
+     * @return an unmodifiable view of the gates whose iris is shut
+     */
+    public static java.util.Set<Stargate> getIrisGates()
+    {
+        return irisGatesView;
+    }
+
+    /**
      * Whether the registry holds this exact gate under its own name.
      *
      * <p>The open set follows {@code gateActive} exactly and says nothing about registration,
@@ -798,6 +851,98 @@ public class StargateManager
     public static void refreshPortalVisuals(final Player player)
     {
         StargateBlockSetup.refreshPortalVisuals(player);
+    }
+
+    /** The ticks after an interaction at which a drawing is put back. */
+    private static final long[] REDRAW_AFTER_TICKS = {1L, 5L};
+
+    /** How close a player has to be to a drawn iris for their swing to be about it. */
+    private static final double IRIS_REACH = 16.0;
+
+    /**
+     * Whether a player standing here is near enough to a drawn iris to have hit one.
+     *
+     * <p>Deliberately generous -- a gate is bigger than a player's reach, and this only
+     * decides whether a redraw is worth sending -- but far tighter than the 64 blocks a
+     * portal is drawn at, because it is asked on every swing of an arm.
+     *
+     * @param at
+     *            where the player is
+     * @return true if a gate with a drawn, shut iris is within reach of them
+     */
+    public static boolean nearDrawnIris(final Location at)
+    {
+        if (at == null)
+        {
+            return false;
+        }
+        for (final Stargate gate : irisGates)
+        {
+            if (gate.isGateIrisDrawn() && isRegistered(gate) && withinIrisReach(gate, at))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a location is within {@link #IRIS_REACH} of a gate's opening, in the same world.
+     *
+     * @param gate
+     *            the gate
+     * @param at
+     *            the location
+     * @return true if it is close enough to have been swinging at the gate
+     */
+    private static boolean withinIrisReach(final Stargate gate, final Location at)
+    {
+        final List<Location> portal = gate.getGatePortalBlocks();
+        if ((gate.getGateWorld() == null) || !gate.getGateWorld().equals(at.getWorld()) || portal.isEmpty())
+        {
+            return false;
+        }
+        final Location reference = new Location(gate.getGateWorld(),
+            portal.get(0).getBlockX(), portal.get(0).getBlockY(), portal.get(0).getBlockZ());
+        return at.distanceSquared(reference) <= (IRIS_REACH * IRIS_REACH);
+    }
+
+    /**
+     * Puts back what a player's client has just thrown away.
+     *
+     * <p>A drawn iris is a block the server does not have, so anything that makes the client
+     * ask the server about that cell -- mining at it, placing into it -- is answered with the
+     * truth, which is air, and the iris comes off their screen in a hole the size of what they
+     * touched. Nothing else would put it back until they crossed a chunk boundary.
+     *
+     * <p>Twice, a tick or so apart: the first send races the server's own correction, and the
+     * second is the one that sticks.
+     *
+     * @param player
+     *            the player whose drawing needs putting back
+     */
+    public static void redrawPortalVisualsSoon(final Player player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+        for (final long delay : REDRAW_AFTER_TICKS)
+        {
+            try
+            {
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+                    WormholeXTreme.getThisPlugin(),
+                    () -> refreshPortalVisuals(player),
+                    delay);
+            }
+            catch (final RuntimeException ignore)
+            {
+                // No scheduler yet, during startup or in tests. Nothing is drawn at that
+                // point either, so there is nothing to put back.
+                return;
+            }
+        }
     }
 
     /**
@@ -1230,6 +1375,10 @@ public class StargateManager
         // and left the sweeps that walk the open gates working on something that no longer
         // exists — humming, redrawing a portal, and now sending entities through it.
         s.setGateActive(false);
+        // The same leak one line up, for the iris set. Cleared here rather than by opening the
+        // iris, because this path is also how a refresh hands a gate back: the flag has to
+        // survive that, and addStargate puts the gate back in the set when it returns.
+        setGateIrisState(s, false);
         StargateDBManager.removeStargate(s);
         detachFromNetwork(s);
         unindexGateBlocks(s);

@@ -108,7 +108,23 @@ public final class StargateIrisAnimator
             StargateBlockSetup.sendCells(gate, ring, under);
         }
         // Then each ring is let through to the truth, which is the iris already standing there.
-        step(gate, rings, 0, null, null);
+        step(gate, rings, 0, irisAsItStands(gate), null);
+    }
+
+    /**
+     * What a closed iris's cells should be shown as once a ring is let through.
+     *
+     * <p>Null, for the block really there, when the iris is built. A drawn iris is air on the
+     * server, so sending the real block uncovered the opening a ring at a time instead.
+     *
+     * @param gate
+     *            the gate
+     * @return the iris material if it is drawn, or null to send the real blocks
+     */
+    private static Material irisAsItStands(final Stargate gate)
+    {
+        return (gate.isGateIrisActive() && StargateBlockSetup.irisIsDrawn(gate))
+            ? gate.getEffectiveIrisMaterial() : null;
     }
 
     /**
@@ -190,7 +206,7 @@ public final class StargateIrisAnimator
         }
         if ((gate != null) && (gate.getGateWorld() != null))
         {
-            StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), null);
+            StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
         }
     }
 

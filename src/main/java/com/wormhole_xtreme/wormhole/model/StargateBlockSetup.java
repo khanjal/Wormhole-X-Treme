@@ -1145,7 +1145,7 @@ class StargateBlockSetup
             return;
         }
         final Location playerAt = player.getLocation();
-        final Set<String> stillOpen = new HashSet<>();
+        final Set<String> stillDrawn = new HashSet<>();
 
         for (final Stargate gate : StargateManager.getOpenGates())
         {
@@ -1158,13 +1158,16 @@ class StargateBlockSetup
                 // Its opening is full of iris, so what this player is owed is the horizon
                 // behind it rather than over it.
                 sendPortalBackdropTo(player, gate, true);
+                sendIrisTo(player, gate);
             }
             else
             {
                 sendPortalTo(player, gate);
             }
-            stillOpen.add(gate.getGateName());
+            stillDrawn.add(gate.getGateName());
         }
+
+        drawIdleIrises(player, playerAt, stillDrawn);
 
         // Anything this player was shown that is not open to them any more has to be taken
         // back. The close-time send only reaches whoever was within range at that moment, and
@@ -1175,13 +1178,44 @@ class StargateBlockSetup
         final Set<String> showing = drawnFor(player);
         for (final String name : showing)
         {
-            if (!stillOpen.contains(name))
+            if (!stillDrawn.contains(name))
             {
                 undrawFor(player, StargateManager.getStargate(name));
             }
         }
         showing.clear();
-        showing.addAll(stillOpen);
+        showing.addAll(stillDrawn);
+    }
+
+    /**
+     * Draws the shut iris of every idle gate near a player.
+     *
+     * <p>A shut iris is drawn whether or not there is a wormhole behind it, so the gates to
+     * walk are not only the open ones: an idle gate sitting shut is invisible to the open-gate
+     * loop, and its iris would be there for whoever was nearby when it closed and for nobody
+     * else.
+     *
+     * @param player
+     *            the player to draw for
+     * @param playerAt
+     *            where they are
+     * @param stillDrawn
+     *            the gates already drawn for them this pass, added to as more are
+     */
+    private static void drawIdleIrises(final Player player, final Location playerAt,
+        final Set<String> stillDrawn)
+    {
+        for (final Stargate gate : StargateManager.getIrisGates())
+        {
+            // Registered as well: the set follows the flag, which a gate still being loaded has set.
+            if (stillDrawn.contains(gate.getGateName()) || !StargateManager.isRegistered(gate)
+                || !isNearEnoughToRedraw(gate, playerAt))
+            {
+                continue;
+            }
+            sendIrisTo(player, gate);
+            stillDrawn.add(gate.getGateName());
+        }
     }
 
     /**
@@ -1203,6 +1237,42 @@ class StargateBlockSetup
         }
         // The chevrons are a drawing too now, so somebody who arrives after the gate
         // dialled would otherwise find a lit wormhole in an unlit frame.
+        if (gate.isGateLightsActive())
+        {
+            sendLights(player, gate, true);
+        }
+    }
+
+    /**
+     * Sends one player a gate's shut iris.
+     *
+     * <p>Only for an iris that is drawn. A horizontal gate's is real blocks, which the client
+     * gets from the chunk like any other block and which drawing over would do nothing for.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the gate whose iris is shut
+     */
+    private static void sendIrisTo(final Player player, final Stargate gate)
+    {
+        if (!irisIsDrawn(gate))
+        {
+            return;
+        }
+        // A player near enough to be drawn to is a player whose chunks are loaded, which is
+        // the moment an older world's built iris can be taken out. It matches nothing once it
+        // has run, so it costs a type check per cell after that.
+        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
+        final BlockData irisData = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
+        for (final Location bc : gate.getGatePortalBlocks())
+        {
+            player.sendBlockChange(
+                new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                irisData);
+        }
+        // Chevrons stay lit behind a shut iris on an open gate, and a player who arrives after
+        // it shut is owed those too -- the portal path sends them, and this one skips it.
         if (gate.isGateLightsActive())
         {
             sendLights(player, gate, true);
@@ -1445,10 +1515,9 @@ class StargateBlockSetup
      */
     static boolean shouldRedrawFor(final Stargate gate, final Location playerAt)
     {
-        // An iris is made of real blocks, which the client gets from the chunk like any
-        // other block. Redrawing the portal here would paint it over the iris the gate is
-        // currently closed with. What such a gate shows instead is the backdrop, which
-        // refreshPortalVisuals asks for separately.
+        // Redrawing the portal here would paint water over the iris the gate is currently
+        // shut with. What such a gate shows instead is the iris and the backdrop behind it,
+        // which refreshPortalVisuals asks for separately.
         return !gate.isGateIrisActive() && isNearEnoughToRedraw(gate, playerAt);
     }
 
@@ -1502,8 +1571,9 @@ class StargateBlockSetup
      * or buoyancy in a water portal, no burning in a lava one. {@code material} is
      * what nearby clients are shown instead, so the portal still looks solid.
      * <p>
-     * This is deliberately <em>not</em> how the iris is drawn: see
-     * {@link #fillGateIris(Stargate, Material)}.
+     * A vertical gate's iris is drawn through here too, with the iris material in place of
+     * the portal's: see {@link #fillGateIris(Stargate, Material)} for which irises are
+     * drawn and which are built.
      *
      * @param gate     the gate
      * @param material the appearance to show clients; {@link Material#AIR} clears the portal
@@ -1519,20 +1589,50 @@ class StargateBlockSetup
     }
 
     /**
-     * Fills every portal block with a real, solid iris block.
-     * <p>
-     * The iris is the gate's barrier, so unlike the portal it must exist server-side:
-     * a client-only iris would let a traveller walk straight through a closed one, and
-     * would drop anything standing on a horizontal gate's iris. Placing real blocks
-     * also makes the server send its own block updates, which clears any portal visual
-     * clients were still showing for these positions.
+     * Whether a gate's iris is drawn to clients rather than built out of real blocks.
+     *
+     * <p>A vertical gate's iris is a wall, and a wall is something a client stops itself at:
+     * the drawing is enough to stand at, and the refusals in the move, entity and projectile
+     * paths are what actually hold it shut. Drawing it means a crash leaves nothing behind,
+     * and means it can be moved about for the viewer, which real blocks in one set of cells
+     * can never be.
+     *
+     * <p>A horizontal gate's iris is a floor, and a floor is not something a client can hold
+     * up on its own: to the server the player is then standing on air, which is a kick for
+     * flying on a server that does not allow it. Those stay real.
+     *
+     * @param gate
+     *            the gate
+     * @return true if this gate's iris is a drawing
+     */
+    static boolean irisIsDrawn(final Stargate gate)
+    {
+        final BlockFace facing = (gate == null) ? null : gate.getGateFacing();
+        return (facing != null) && (facing != BlockFace.UP) && (facing != BlockFace.DOWN);
+    }
+
+    /**
+     * Puts the iris over a gate's opening, as a drawing or as real blocks.
+     *
+     * <p>Drawn for a vertical gate, in the same way and through the same bookkeeping as the
+     * portal: the server keeps AIR in the opening and every nearby client is sent the iris
+     * material for those cells. Built out of real blocks for a horizontal one, where the iris
+     * has to hold a player's weight up. {@link #irisIsDrawn} has the reasoning for both.
      *
      * @param gate     the gate
-     * @param material the iris material to place
+     * @param material the iris material to show or to place
      */
     static void fillGateIris(final Stargate gate, final Material material)
     {
         clearIrisPath(gate);
+        if (irisIsDrawn(gate))
+        {
+            // Air on the server, iris on the client. fillGateInterior already does exactly
+            // that, and going through it keeps the drawn-for bookkeeping in one place, so
+            // the iris is taken back from a client by the same path the portal is.
+            fillGateInterior(gate, material);
+            return;
+        }
         for (final Location bc : gate.getGatePortalBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
@@ -1541,14 +1641,18 @@ class StargateBlockSetup
     }
 
     /**
-     * Moves anyone standing in the gate opening clear before the iris fills it with blocks.
+     * Moves anyone standing in the gate opening clear before the iris covers it.
      *
-     * <p>The iris is real blocks, and {@link #fillGateIris} placed them without looking at
-     * who was there. Every path that closes an iris can therefore land solid blocks inside a
-     * player: the gate shutting down onto an iris that defaults closed, an activation timing
-     * out, someone flipping the iris lever, or an IDC being cleared. A traveller walking into
-     * the event horizon as the far gate times out is the case that gets reported, because it
-     * needs no bad timing on anyone's part -- the shutdown timer picks the moment.
+     * <p>A horizontal gate's iris is real blocks, and {@link #fillGateIris} places them
+     * without looking at who was there. Every path that closes an iris can therefore land
+     * solid blocks inside a player: the gate shutting down onto an iris that defaults closed,
+     * an activation timing out, someone flipping the iris lever, or an IDC being cleared. A
+     * traveller walking into the event horizon as the far gate times out is the case that
+     * gets reported, because it needs no bad timing on anyone's part -- the shutdown timer
+     * picks the moment.
+     *
+     * <p>A drawn iris cannot bury anybody, and is cleared for anyway: a player left inside one
+     * is a player standing in the middle of what everyone else sees as a shut gate.
      *
      * <p>The iris still closes. It is a barrier, and one that could be held open by standing
      * in it would be worth nothing; the occupants are moved rather than the closure refused.

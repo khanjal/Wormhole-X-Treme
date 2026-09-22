@@ -166,6 +166,34 @@ class VehicleGateEntryTest
         return sent.getValue();
     }
 
+    /**
+     * A cart that rolls into its own gate's shut iris is put back where it was, and stays out.
+     *
+     * <p>An upright gate's iris is a drawing, and a cart does not believe in drawings: it rolls
+     * straight into the opening where the old solid iris would have stopped it. It used to be
+     * set down out in front along the gate's facing, which for a cart coming from behind is
+     * through the iris, and marked so the listener ignored it for a second: nudged again in that
+     * second, it rolled straight through.
+     */
+    @Test
+    void aCartThatRollsIntoItsOwnShutIrisIsPutBackWhereItWasEveryTime()
+    {
+        src.setGateWorld(world);
+        src.setGateFacing(BlockFace.NORTH);
+        src.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
+        src.setGateIrisActive(true);
+
+        rollIn();
+        rollIn();
+
+        final ArgumentCaptor<Location> sent = ArgumentCaptor.forClass(Location.class);
+        verify(cart, times(2)).teleport(sent.capture());
+        for (final Location landed : sent.getAllValues())
+        {
+            assertEquals(BZ - 0.5, landed.getZ(), 0.001, "back where it was a move ago, not out in front");
+        }
+    }
+
     /** A gate that is not open carries nobody, however far into it they roll. */
     @Test
     void aGateThatIsNotOpenCarriesNoVehicle()

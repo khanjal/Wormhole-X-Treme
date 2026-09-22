@@ -213,6 +213,24 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static boolean refuseGateEntry(final Player player, final Stargate stargate)
     {
+        return refuseWithReminder(player, stargate,
+            ConfigManager.MessageStrings.PLAYER_RECENT_ARRIVAL.toString());
+    }
+
+    /**
+     * Refuses a step into a gate, saying why no more often than it is worth saying.
+     *
+     * @param player
+     *            the player to hold back
+     * @param stargate
+     *            the gate they may not enter
+     * @param message
+     *            what to tell them
+     * @return true, so the caller cancels the move event
+     */
+    private static boolean refuseWithReminder(final Player player, final Stargate stargate,
+        final String message)
+    {
         final java.util.UUID id = player.getUniqueId();
         final String gateName = stargate.getGateName();
         final long now = System.currentTimeMillis();
@@ -222,10 +240,49 @@ class WormholeXTremePlayerListener implements Listener
         if ((last == null) || !last.gateName.equals(gateName)
             || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PLAYER_RECENT_ARRIVAL.toString());
+            player.sendMessage(message);
         }
         recentGateRefusals.put(id, new RecentGateRefusal(gateName, now));
         return true;
+    }
+
+    /**
+     * Holds a player out of a gate whose own iris is shut.
+     *
+     * <p>Nothing used to need this: the iris was real blocks, and a wall does not have to be
+     * told to keep somebody out. A vertical gate's iris is a drawing now, and a drawing is
+     * only as solid as the client that believes in it -- which is enough for an honest player
+     * walking into it, and nothing at all for one who is lagging, riding something, or running
+     * a client that does not draw the iris it was sent.
+     *
+     * <p>A horizontal gate's iris is still real blocks, so this leaves those alone: the wall
+     * refuses them, the same as it always did.
+     *
+     * @param event
+     *            the move being considered
+     * @param player
+     *            the player walking in
+     * @param stargate
+     *            the gate they are stepping into
+     * @return true if the move should be cancelled
+     */
+    private static boolean refusedByOwnIris(final PlayerMoveEvent event, final Player player,
+        final Stargate stargate)
+    {
+        if (!stargate.isGateIrisActive() || !stargate.isGateIrisDrawn())
+        {
+            return false;
+        }
+        // Somebody already standing in the opening -- the iris shut around them, or they got
+        // in before it did -- is left free to walk out. Refusing their every move is what
+        // would trap them there, which is the mistake holdBackCancelledTraveller exists to
+        // remember.
+        if (!holdBackCancelledTraveller(event, stargate))
+        {
+            return false;
+        }
+        return refuseWithReminder(player, stargate,
+            ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris is locked!");
     }
 
     /**
@@ -292,6 +349,15 @@ class WormholeXTremePlayerListener implements Listener
                 gateBlockFinal = mountBlock;
                 stargate = StargateManager.getGateFromBlock(mountBlock);
             }
+        }
+
+        // Asked before the gate is asked to be open, because a shut iris keeps people out of
+        // an idle gate too -- and an idle gate is exactly what the checks below walk away
+        // from.
+        if ((stargate != null) && StargateManager.isPortalBlock(gateBlockFinal)
+            && refusedByOwnIris(event, player, stargate))
+        {
+            return true;
         }
 
         // Everything past here is about what to do about the gate the player stepped into,
@@ -930,6 +996,45 @@ class WormholeXTremePlayerListener implements Listener
         }
     }
 
+    /** How long a player's swing holds off the next iris redraw, in milliseconds. */
+    private static final long IRIS_REDRAW_THROTTLE_MILLIS = 500L;
+
+    /** When each player last had a drawn iris put back after swinging at one. */
+    private static final java.util.Map<java.util.UUID, Long> recentIrisRedraws =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Puts a drawn iris back after somebody takes a swing at it.
+     *
+     * <p>Mining at a block the server does not have gets the client the truth about that cell,
+     * which is air, and the iris comes off their screen in a hole. No event fires for the
+     * break itself -- there is nothing there to break -- so the swing is what there is to
+     * listen for.
+     *
+     * <p>Throttled, and asked only of players standing near a gate whose iris is drawn: an arm
+     * swing is also every punch, every attack and every left click anybody makes.
+     *
+     * @param event
+     *            the swing
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerAnimation(final org.bukkit.event.player.PlayerAnimationEvent event)
+    {
+        final Player player = event.getPlayer();
+        if (!StargateManager.nearDrawnIris(player.getLocation()))
+        {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        final Long last = recentIrisRedraws.get(player.getUniqueId());
+        if ((last != null) && ((now - last) < IRIS_REDRAW_THROTTLE_MILLIS))
+        {
+            return;
+        }
+        recentIrisRedraws.put(player.getUniqueId(), now);
+        StargateManager.redrawPortalVisualsSoon(player);
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.event.player.PlayerListener#onPlayerInteract(org.bukkit.event.player.PlayerInteractEvent)
      */
@@ -1404,6 +1509,7 @@ class WormholeXTremePlayerListener implements Listener
     {
         portalFlightGranted.remove(event.getPlayer().getUniqueId());
         recentGateRefusals.remove(event.getPlayer().getUniqueId());
+        recentIrisRedraws.remove(event.getPlayer().getUniqueId());
         // A client that has gone takes its drawings with it, and the next one to log in on
         // that account gets fresh chunks anyway.
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(

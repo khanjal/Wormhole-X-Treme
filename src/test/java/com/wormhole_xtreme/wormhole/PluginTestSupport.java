@@ -129,6 +129,13 @@ public final class PluginTestSupport
         {
             gate.setGateActive(false);
         }
+        // The iris set is the same shape of state as the open set, and leaks the same way: a
+        // gate left shut by one test is a gate every later test in the fork has to draw an
+        // iris for, in a world its own test has finished with.
+        for (final Stargate gate : new java.util.ArrayList<>(StargateManager.getIrisGates()))
+        {
+            gate.setGateIrisActive(false);
+        }
         try
         {
             for (final String name : GATE_STATICS)
