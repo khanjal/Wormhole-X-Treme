@@ -325,8 +325,9 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
 
-Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
-`rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
+Each takes as many steps as it has pieces to cross, up to the budget below, so at the same
+`gate-iris-step-ticks` a `rows` iris is usually quicker than a `sweep` one -- a gate has fewer
+rows than rings, until both are big enough to be capped. Raise the ticks
 for the style you settle on rather than expecting them to match. A name the plugin does not
 know falls back to `sweep`, so a typo costs you the style and not the iris.
 
