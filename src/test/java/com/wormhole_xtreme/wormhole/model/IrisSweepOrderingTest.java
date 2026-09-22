@@ -262,6 +262,29 @@ class IrisSweepOrderingTest
     }
 
     /**
+     * Setting the iris to the state it is already in still calls off a sweep that is running.
+     *
+     * <p>The iris is redrawn either way, and a sweep left running paints its next ring over the
+     * redrawn picture. The case that shows it is a gate closing onto an iris that defaults shut
+     * while its closing sweep is still going: shutdown asks for the iris it already has, hands
+     * back the layers drawn either side of the ring, and the stale sweep then repainted the
+     * ring over them for everyone, front and back alike.
+     */
+    @Test
+    void settingTheIrisItAlreadyHasCallsOffARunningSweep()
+    {
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a closing sweep is running");
+        final boolean shut = gate.isGateIrisActive();
+
+        StargateLifecycle.setIrisState(gate, shut);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate),
+            "a redraw to the same state must not leave the old sweep painting over it");
+        assertTrue(pending.isEmpty(), "and its next step is not left booked: " + pending.keySet());
+    }
+
+    /**
      * An opening sweep is actually seen to uncover the gate.
      *
      * <p>The iris blocks stay where they are until the sweep ends, so a step that sends what is

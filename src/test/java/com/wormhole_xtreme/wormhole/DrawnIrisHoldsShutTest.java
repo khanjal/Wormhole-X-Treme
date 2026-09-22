@@ -336,6 +336,56 @@ class DrawnIrisHoldsShutTest
     }
 
     // -----------------------------------------------------------------------
+    // Walking round one
+    // -----------------------------------------------------------------------
+
+    /**
+     * Stepping behind a shut iris over an open wormhole restacks it from that side.
+     *
+     * <p>From behind, the horizon takes the ring and the iris goes a block further off. Nothing
+     * but the move listener notices somebody walking round a gate, so without its hook a player
+     * goes on seeing the front's picture from the back until they happen to cross a chunk.
+     */
+    @Test
+    void steppingBehindAnOpenGatesShutIrisRestacksItFromThere()
+    {
+        dial();
+        gate.setGateIrisActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.IRON_BLOCK);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        when(player.isOnline()).thenReturn(true);
+        // Everything else in this fixture is the gate's portal block; where the step lands is not.
+        final Block ground = mock(Block.class);
+        when(ground.getLocation()).thenReturn(new Location(world, BX, BY, BZ + 1));
+        when(ground.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(BX, BY, BZ + 1)).thenReturn(ground);
+        final org.bukkit.block.data.BlockData horizon = mock(org.bukkit.block.data.BlockData.class);
+        final org.bukkit.block.data.BlockData iris = mock(org.bukkit.block.data.BlockData.class);
+
+        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
+            org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        {
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(Material.WATER))
+                .thenReturn(horizon);
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(Material.IRON_BLOCK))
+                .thenReturn(iris);
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.isAirMaterial(Material.AIR))
+                .thenReturn(true);
+
+            // North-facing, so the front is the smaller z. One step from in front to behind: the
+            // side has to be judged from where the step ends, not where it began.
+            new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(player,
+                new Location(world, BX + 0.5, BY, BZ - 1.5), new Location(world, BX + 0.5, BY, BZ + 1.5)));
+        }
+
+        verify(player).sendBlockChange(org.mockito.ArgumentMatchers.argThat(
+            at -> (at != null) && (at.getBlockZ() == BZ)), org.mockito.ArgumentMatchers.eq(horizon));
+        verify(player).sendBlockChange(org.mockito.ArgumentMatchers.argThat(
+            at -> (at != null) && (at.getBlockZ() == BZ - 1)), org.mockito.ArgumentMatchers.eq(iris));
+    }
+
+    // -----------------------------------------------------------------------
     // Swinging at one
     // -----------------------------------------------------------------------
 

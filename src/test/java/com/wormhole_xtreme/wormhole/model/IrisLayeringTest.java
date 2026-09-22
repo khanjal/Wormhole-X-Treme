@@ -270,6 +270,67 @@ class IrisLayeringTest
     }
 
     /**
+     * Shutting an idle gate's iris hands back what was drawn either side of its ring.
+     *
+     * <p>A gate that was layered while its wormhole was open is left with the layers on clients'
+     * screens once the wormhole goes. Shutting the iris on an idle gate is the moment there is
+     * certainly nothing to stack, so it is where they come down.
+     */
+    @Test
+    void shuttingTheIrisOnAnIdleGateHandsTheLayersBack()
+    {
+        standAt(Z - 4);
+        gate.setGateActive(false);
+        gate.setGateIrisActive(false);
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+        try
+        {
+            StargateLifecycle.setIrisState(gate, true);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+    }
+
+    /**
+     * A wormhole closing under a shut iris takes its layers with it, whatever the iris defaults to.
+     *
+     * <p>Shutdown only touches the iris when it defaults shut or is already open. One shut
+     * against an open default reaches neither branch, and without its own hand-back the horizon
+     * would go on hanging behind a gate that has closed.
+     */
+    @Test
+    void aWormholeClosingUnderAShutIrisTakesItsLayersWithIt() throws Exception
+    {
+        standAt(Z - 4);
+        gate.setGateIrisDefaultActive(false);
+        gate.setGatePlayerTeleportLocation(new Location(world, X + 0.5, Y, Z - 1.5));
+        final Stargate quiet = org.mockito.Mockito.spy(gate);
+        org.mockito.Mockito.doNothing().when(quiet).toggleDialLeverState(org.mockito.ArgumentMatchers.anyBoolean());
+        org.mockito.Mockito.doNothing().when(quiet).toggleRedstoneGateActivatedPower();
+        org.mockito.Mockito.doNothing().when(quiet).lightStargate(org.mockito.ArgumentMatchers.anyBoolean());
+        com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(e -> { });
+        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
+            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            quiet.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(null);
+        }
+
+        assertTrue(quiet.isGateIrisActive(), "the iris was left shut, against its open default");
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+    }
+
+    /**
      * A horizontal gate is never layered.
      *
      * <p>Its iris is real blocks, a floor, and cannot be moved for anybody.

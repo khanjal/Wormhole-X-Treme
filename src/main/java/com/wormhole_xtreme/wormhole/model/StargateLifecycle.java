@@ -315,13 +315,12 @@ class StargateLifecycle
         // Read before the state is changed, so a call that asks for what is already true is
         // silent rather than announcing an iris that did not move.
         final boolean moved = gate.isGateIrisActive() != irisActive;
-        // A sweep still part-way through is stale the moment the iris moves again. Called off
-        // before the flag moves, so it finishes as the iris it was heading to -- after, a closing
-        // sweep on a drawn iris was finished as the air behind it.
-        if (moved)
-        {
-            StargateIrisAnimator.cancel(gate);
-        }
+        // A sweep still part-way through is stale the moment the iris is redrawn, which it is
+        // below whether or not it moved: left running, its next ring paints over the picture the
+        // redraw settles, such as the layers a shutdown onto a default-shut iris hands back.
+        // Called off before the flag moves, so it finishes as the iris it was heading to --
+        // after, a closing sweep on a drawn iris was finished as the air behind it.
+        StargateIrisAnimator.cancel(gate);
         gate.setGateIrisActive(irisActive);
         if (moved)
         {
