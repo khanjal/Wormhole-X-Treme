@@ -1111,6 +1111,11 @@ public final class GatePreviews
     {
         takeBack(owner, preview, preview.woosh());
         takeBack(owner, preview, preview.opening());
+        // A stacked wormhole stood a block off the ring, which the cells above do not cover.
+        // Only for viewers who were drawn stacked: everybody else was only ever sent the ring.
+        watching(owner, preview).stream()
+            .filter(viewer -> preview.sides().containsKey(viewer.getUniqueId()))
+            .forEach(viewer -> handBackOffsets(viewer, preview));
     }
 
     /** The cells a fake block stands at now. */
@@ -1170,6 +1175,7 @@ public final class GatePreviews
             if (!wanted.contains(id))
             {
                 preview.shownTo().remove(id);
+                preview.sides().remove(id);
                 final Player gone = online.apply(id);
                 if ((gone != null) && preview.world().equals(gone.getWorld()))
                 {
@@ -1184,7 +1190,19 @@ public final class GatePreviews
             {
                 final Player viewer = online.apply(id);
                 preview.standingDisplays().forEach(display -> viewer.showEntity(WormholeXTreme.getThisPlugin(), display));
-                sendTo(viewer, preview, sentCells(preview));
+                if (stacks(preview))
+                {
+                    // Both iris sets are standing, and showing everything would hand them both.
+                    // Their own side settles which one they keep, and where their wormhole goes:
+                    // the ring cells the audience is otherwise caught up with are the wrong ones
+                    // for somebody in front.
+                    applySideFor(viewer, preview, !seesFront(viewer, preview));
+                    sendStackedTo(viewer, preview);
+                }
+                else
+                {
+                    sendTo(viewer, preview, sentCells(preview));
+                }
             }
         }
     }
@@ -1420,6 +1438,34 @@ public final class GatePreviews
         preview.sides().put(viewer.getUniqueId(), Boolean.valueOf(front));
     }
 
+    /**
+     * Hands one viewer back both cells a stacked wormhole could have been drawn in.
+     *
+     * <p>A stacked wormhole is sent a block off the ring, and everything that takes a preview's
+     * blocks back works from the opening's own cells -- so nothing else knows about the cell
+     * that was actually written. Called when a preview stops being stacked and when it is taken
+     * away entirely.
+     *
+     * @param viewer
+     *            the viewer
+     * @param preview
+     *            the preview
+     */
+    private static void handBackOffsets(final Player viewer, final GatePreview preview)
+    {
+        final BlockFace facing = preview.grid().facing();
+        if (facing == null)
+        {
+            return;
+        }
+        for (final Cell cell : preview.opening())
+        {
+            final IrisLayering.At ring = new IrisLayering.At(cell.x(), cell.y(), cell.z());
+            takeBackAt(viewer, preview, ring.moved(facing, 1));
+            takeBackAt(viewer, preview, ring.moved(facing, -1));
+        }
+    }
+
     /** Shows one viewer what really stands at a layer position, where its chunk is loaded. */
     private static void takeBackAt(final Player viewer, final GatePreview preview, final IrisLayering.At at)
     {
@@ -1472,8 +1518,11 @@ public final class GatePreviews
             else if (preview.sides().remove(viewer.getUniqueId()) != null)
             {
                 // Stacked until a moment ago: whoever was behind it was shown the set beyond
-                // the ring, and the ring's own set is everybody's again.
+                // the ring, and the ring's own set is everybody's again. The wormhole was drawn
+                // a block off the ring for them as well, and the ring cells the unstacked draw
+                // sends say nothing about that one, so it is handed back here.
                 applySideFor(viewer, preview, false);
+                handBackOffsets(viewer, preview);
             }
         }
     }

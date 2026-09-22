@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1160,6 +1159,25 @@ class GatePreviewsTest
         return null;
     }
 
+    /**
+     * How many of a viewer's hand-backs -- block changes to what really stands there, which in
+     * this fixture is air -- landed on the cells a given number of steps along the facing.
+     */
+    private long handBacksAlong(final Player viewer, final int steps)
+    {
+        final BlockFace facing = previewFacing();
+        final Set<List<Integer>> wanted = new HashSet<>();
+        for (final Cell cell : openingCells())
+        {
+            wanted.add(List.of(cell.x() + (steps * facing.getModX()), cell.y() + (steps * facing.getModY()),
+                cell.z() + (steps * facing.getModZ())));
+        }
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(viewer, atLeastOnce()).sendBlockChange(where.capture(), eq(data.get(Material.AIR)));
+        return where.getAllValues().stream()
+            .filter(at -> wanted.contains(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()))).count();
+    }
+
     /** Whether a display was ever spawned at a cell, offset along the facing. */
     private boolean spawnedAt(final Cell cell, final int steps)
     {
@@ -1281,6 +1299,74 @@ class GatePreviewsTest
 
         assertTrue(wormholeSendsAlong(walker, -1) > 0,
             "from the front the wormhole belongs a block behind the ring, and the step is what says so");
+    }
+
+    /**
+     * Re-opening the iris takes back the wormhole a stacked preview drew off the ring.
+     *
+     * <p>Everything that hands a preview's blocks back works from the opening's own cells, and a
+     * stacked wormhole is not in them: it is a block behind the ring for a viewer in front. The
+     * sent set recorded the ring cell rather than the one actually written, so opening the iris
+     * again left a water block hanging a block behind the gate until the chunk reloaded.
+     */
+    @Test
+    void openingTheIrisAgainTakesBackTheWormholeDrawnOffTheRing()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(owner);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(handBacksAlong(owner, -1) > 0,
+            "the cell the stacked wormhole was drawn in is handed back, not just the ring");
+    }
+
+    /**
+     * Clearing a stacked preview takes back the wormhole it drew off the ring.
+     */
+    @Test
+    void clearingAStackedPreviewTakesBackTheWormholeOffTheRing()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(owner);
+
+        assertEquals(1, GatePreviews.clearAll(owner));
+
+        assertTrue(handBacksAlong(owner, -1) > 0, "the block behind the ring goes back with the rest");
+    }
+
+    /**
+     * Somebody shared a stacked preview gets their own side of it, not both irises.
+     *
+     * <p>Sharing shows a new viewer every display standing and catches them up on the blocks
+     * sent, neither of which knows about sides: they were handed both iris sets -- one of them
+     * a stray block right in front of them -- and the wormhole in the ring, which is the wrong
+     * cell for anybody in front.
+     */
+    @Test
+    void sharingAStackedPreviewGivesTheNewViewerTheirOwnSide()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        // In front, where the owner is: the iris beyond the ring is not theirs to see.
+        final Player late = onlineHere("Lee");
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location front = new Location(world, cell.x() + (4 * facing.getModX()) + 0.5,
+            cell.y() + (4 * facing.getModY()), cell.z() + (4 * facing.getModZ()) + 0.5);
+        when(late.getLocation()).thenReturn(front);
+        when(late.getEyeLocation()).thenReturn(front);
+        GatePreviews.share(owner, late);
+
+        verify(late, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
+        assertTrue(wormholeSendsAlong(late, -1) > 0, "and their wormhole is behind the ring, where they stand to see it");
     }
 
     /**

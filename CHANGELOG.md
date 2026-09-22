@@ -36,6 +36,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
+- **A preview's shut iris stacks against its wormhole from whichever side you stand**, as a
+  real gate's does: the iris in the ring with the wormhole behind it from the front, the
+  wormhole in the ring with the iris beyond it from behind, swapping as you walk round. Two
+  people either side of the same preview each see their own side.
 
 **Changed**
 
