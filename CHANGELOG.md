@@ -44,6 +44,13 @@ The plugin API is in [docs/API.md](docs/API.md).
   than counting what it would take to build — so a typo quietly did the other thing. The list
   already called itself "needs" in its own first line. `materials` still works and is no longer
   offered in tab completion; nothing to change unless you want to.
+- **A big gate's iris closes as fast as a small one's.** The sweep had a pace per ring and no
+  limit on how many rings there were to pace, so a wide gate simply took longer: `Grand` closed
+  in six seconds and `Massive` in three, where `Standard` took half of one.
+  `gate-iris-sweep-max-ticks` is the longest a whole crossing may take, twenty ticks by default;
+  a gate with more rings than fit inside it covers several of them per step rather than slowing
+  down. Nothing to change -- every shape but `Massive` and `Grand` was already inside it, and
+  `0` is the old behaviour.
 - **Bundled shapes nobody edited are updated at startup again.** A copy matching a version
   some release shipped is replaced, the old one kept as `<name>.shape.old`; an edited copy is
   left alone and named in the log, as before. 1.7 only named every copy that differed.
