@@ -1287,8 +1287,9 @@ public final class GatePreviews
      * <p>The preview is display entities rather than blocks, so none of the care a real gate
      * needs applies -- there is nothing here to walk through, and no {@code BlockPhysicsEvent}
      * to raise. What matters is that it looks the same: the same rings in the same order at the
-     * same pace, from {@link IrisSweep} and {@code gate-iris-step-ticks}, so a preview is a
-     * rehearsal of the gate rather than an approximation of one.
+     * same pace, from {@link IrisSweep}, {@code gate-iris-step-ticks} and the same
+     * {@code gate-iris-sweep-max-ticks} that merges a big gate's rings into bands, so a preview
+     * is a rehearsal of the gate rather than an approximation of one.
      *
      * <p>Instant when the setting says so, or when there is no scheduler to book a step with.
      */
@@ -1337,8 +1338,9 @@ public final class GatePreviews
             index.put(at, i);
         }
         final IrisSweep.Style style = ConfigManager.getGateIrisStyle();
+        final int maxSteps = ConfigManager.getGateIrisMaxSteps();
         final List<List<Location>> rings = closing
-            ? IrisSweep.closingOrder(places, style) : IrisSweep.openingOrder(places, style);
+            ? IrisSweep.closingOrder(places, style, maxSteps) : IrisSweep.openingOrder(places, style, maxSteps);
         final List<List<Integer>> out = new ArrayList<>(rings.size());
         for (final List<Location> ring : rings)
         {
