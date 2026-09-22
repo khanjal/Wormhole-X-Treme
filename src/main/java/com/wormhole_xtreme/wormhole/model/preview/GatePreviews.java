@@ -1188,23 +1188,33 @@ public final class GatePreviews
         {
             if (preview.shownTo().add(id))
             {
-                final Player viewer = online.apply(id);
-                preview.standingDisplays().forEach(display -> viewer.showEntity(WormholeXTreme.getThisPlugin(), display));
-                if (stacks(preview))
-                {
-                    // Both iris sets are standing, and showing everything would hand them both.
-                    // Their own side settles which one they keep, and where their wormhole goes:
-                    // the ring cells the audience is otherwise caught up with are the wrong ones
-                    // for somebody in front.
-                    applySideFor(viewer, preview, !seesFront(viewer, preview));
-                    sendStackedTo(viewer, preview);
-                }
-                else
-                {
-                    sendTo(viewer, preview, sentCells(preview));
-                }
+                showToNewViewer(online.apply(id), preview);
             }
         }
+    }
+
+    /**
+     * Catches one viewer up on a preview they have just been shown.
+     *
+     * @param viewer
+     *            the new viewer
+     * @param preview
+     *            the preview
+     */
+    private static void showToNewViewer(final Player viewer, final GatePreview preview)
+    {
+        preview.standingDisplays().forEach(display -> viewer.showEntity(WormholeXTreme.getThisPlugin(), display));
+        if (stacks(preview))
+        {
+            // Both iris sets are standing, and showing everything would hand them both. Their
+            // own side settles which one they keep, and where their wormhole goes: the ring
+            // cells the audience is otherwise caught up with are the wrong ones for somebody
+            // in front.
+            applySideFor(viewer, preview, !seesFront(viewer, preview));
+            sendStackedTo(viewer, preview);
+            return;
+        }
+        sendTo(viewer, preview, sentCells(preview));
     }
 
     /** The owner's preview their line of sight meets first, or null. */
