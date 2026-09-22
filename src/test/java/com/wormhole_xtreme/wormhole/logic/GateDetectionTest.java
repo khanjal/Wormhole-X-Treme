@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
@@ -382,8 +381,8 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
-        assertNotNull(found, () -> "a [C] gate of plain frame should be found while no palette "
-            + "names a chevron, but obsidian's names " + obsidianChevron());
+        assertNotNull(found, "a [C] gate of plain frame should be found while no palette names a "
+            + "chevron; if the palette does, [C] demands that material instead");
 
         int expected = 0;
         final List<StargateShapeLayer> layers = s.getShapeLayers();
@@ -397,13 +396,6 @@ class GateDetectionTest
         }
         assertEquals(expected, found.getGateStructureBlocks().size(),
             "a chevron cell is a frame block for every purpose except its material");
-    }
-
-    /** What the obsidian palette asks a chevron to be built from, if anything. */
-    private static Material obsidianChevron()
-    {
-        final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN);
-        return group == null ? null : group.getChevronMaterial();
     }
 
     /** The portal interior is recorded too, and it is what the wormhole is drawn over. */

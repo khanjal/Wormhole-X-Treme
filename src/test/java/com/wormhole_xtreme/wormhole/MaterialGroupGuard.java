@@ -34,7 +34,12 @@ public final class MaterialGroupGuard implements BeforeAllCallback, AfterAllCall
     @Override
     public void afterAll(final ExtensionContext context) throws Exception
     {
-        state().set(context.getStore(NAMESPACE).get("state"));
+        // Absent if an earlier before-callback threw, and null would break every later class.
+        final Object previous = context.getStore(NAMESPACE).get("state");
+        if (previous != null)
+        {
+            state().set(previous);
+        }
     }
 
     private static AtomicReference<Object> state() throws ReflectiveOperationException
