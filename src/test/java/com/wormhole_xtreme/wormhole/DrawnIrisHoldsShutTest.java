@@ -360,6 +360,16 @@ class DrawnIrisHoldsShutTest
         when(ground.getLocation()).thenReturn(new Location(world, BX, BY, BZ + 1));
         when(ground.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(BX, BY, BZ + 1)).thenReturn(ground);
+        // Where the iris goes for a viewer behind: air, and nobody else's opening. Everything
+        // else in this fixture answers with the gate's own portal block, which is not free.
+        final Block beyond = mock(Block.class);
+        when(beyond.getLocation()).thenReturn(new Location(world, BX, BY, BZ - 1));
+        when(beyond.getType()).thenReturn(Material.AIR);
+        when(beyond.getX()).thenReturn(Integer.valueOf(BX));
+        when(beyond.getY()).thenReturn(Integer.valueOf(BY));
+        when(beyond.getZ()).thenReturn(Integer.valueOf(BZ - 1));
+        when(beyond.getWorld()).thenReturn(world);
+        when(world.getBlockAt(BX, BY, BZ - 1)).thenReturn(beyond);
         final org.bukkit.block.data.BlockData horizon = mock(org.bukkit.block.data.BlockData.class);
         final org.bukkit.block.data.BlockData iris = mock(org.bukkit.block.data.BlockData.class);
 

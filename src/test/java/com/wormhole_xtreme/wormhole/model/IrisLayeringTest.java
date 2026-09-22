@@ -77,17 +77,10 @@ class IrisLayeringTest
         materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
         materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
 
-        final Block ring = mock(Block.class);
+        final Block ring = blockAt(Z, null);
         when(ring.getType()).thenReturn(Material.AIR);
-        when(world.getBlockAt(X, Y, Z)).thenReturn(ring);
-        final Block behind = mock(Block.class);
-        when(behind.getType()).thenReturn(Material.AIR);
-        when(behind.getBlockData()).thenReturn(truthBehind);
-        when(world.getBlockAt(X, Y, Z + 1)).thenReturn(behind);
-        ahead = mock(Block.class);
-        when(ahead.getType()).thenReturn(Material.AIR);
-        when(ahead.getBlockData()).thenReturn(truthAhead);
-        when(world.getBlockAt(X, Y, Z - 1)).thenReturn(ahead);
+        blockAt(Z + 1, truthBehind);
+        ahead = blockAt(Z - 1, truthAhead);
 
         gate = new Stargate();
         gate.setGateName("Layered");
@@ -115,6 +108,35 @@ class IrisLayeringTest
         materials.close();
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * An air block at X, Y, z, which knows where it is.
+     *
+     * <p>Its coordinates matter: whether a cell is free to draw a layer in asks the block index
+     * what gate claims it, and the index answers by position.
+     *
+     * @param z
+     *            the cell's z
+     * @param truth
+     *            the block data a hand-back should send, or null if the test never checks
+     * @return the block
+     */
+    private Block blockAt(final int z, final BlockData truth)
+    {
+        final Block block = mock(Block.class);
+        when(block.getType()).thenReturn(Material.AIR);
+        when(block.getX()).thenReturn(Integer.valueOf(X));
+        when(block.getY()).thenReturn(Integer.valueOf(Y));
+        when(block.getZ()).thenReturn(Integer.valueOf(z));
+        when(block.getWorld()).thenReturn(world);
+        when(block.getLocation()).thenReturn(new Location(world, X, Y, z));
+        if (truth != null)
+        {
+            when(block.getBlockData()).thenReturn(truth);
+        }
+        when(world.getBlockAt(X, Y, z)).thenReturn(block);
+        return block;
     }
 
     /** Matches a location by its block, whatever its world. */
@@ -205,22 +227,72 @@ class IrisLayeringTest
     }
 
     /**
-     * Walking round the back takes the front's horizon away.
+     * A rear draw hands back the cell the front's horizon uses.
      *
-     * <p>Each side's picture uses one of the two layer cells. A viewer who has seen both would
-     * otherwise keep the first one's horizon hanging behind the gate after walking round it.
+     * <p>Sent every time rather than only after a crossing, because the draw does not know what
+     * this viewer was shown before: a player who has just walked round would otherwise keep the
+     * front's horizon hanging behind the gate. The crossing itself is
+     * {@link #crossingThePlaneRestacksTheGateAndWanderingDoesNot}.
      */
     @Test
-    void walkingRoundTheBackTakesTheFrontsHorizonAway()
+    void aRearDrawHandsBackTheCellTheFrontsHorizonUses()
     {
-        standAt(Z - 4);
-        StargateBlockSetup.sendLayeredTo(viewer, gate);
-        clearInvocations(viewer);
-
         standAt(Z + 4);
+
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+    }
+
+    /**
+     * A gate that has stopped being layered has both cells handed back on the next refresh.
+     *
+     * <p>The hand-back when a wormhole closes reaches whoever is in drawing range at that
+     * moment, and a client holds a chunk far past that. Walk away, let the gate close behind
+     * you, walk back: the refresh redraws the idle gate's iris in the ring and used to leave
+     * the layers alone -- a sheet of water behind the gate, and worse, a solid iris block in
+     * the cell travellers arrive in, which the viewer's own client will not let them walk
+     * through.
+     */
+    @Test
+    void comingBackToAGateThatHasClosedHandsBothLayersBack()
+    {
+        standAt(Z - 4);
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+        StargateManager.registerStargate(gate);
+        clearInvocations(viewer);
+        // The wormhole closed while they were away, out of range of the hand-back.
+        gate.setGateActive(false);
+
+        StargateBlockSetup.refreshPortalVisuals(viewer);
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+    }
+
+    /**
+     * A neighbouring gate's opening is not a free cell to draw a layer in.
+     *
+     * <p>An upright gate's ring is air on the server now that its iris is drawn, so "is it air"
+     * stopped being enough: two gates built a block apart would draw this one's horizon over
+     * that one's iris, and hand back air over it when the layers came down.
+     */
+    @Test
+    void anotherGatesOpeningIsNotFreeToDrawIn()
+    {
+        standAt(Z - 4);
+        final Stargate neighbour = new Stargate();
+        neighbour.setGateName("Neighbour");
+        neighbour.setGateWorld(world);
+        neighbour.setGateFacing(BlockFace.SOUTH);
+        neighbour.getGatePortalBlocks().add(new Location(world, X, Y, Z + 1));
+        StargateManager.registerStargate(neighbour);
+        StargateManager.addBlockIndex(world.getBlockAt(X, Y, Z + 1), neighbour);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
     }
 
     // -----------------------------------------------------------------------

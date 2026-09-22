@@ -49,8 +49,7 @@ public final class IrisLayering
      *            iris has the ring to itself
      * @param handBack
      *            the layer position this viewer is not using, which is theirs to be given back
-     *            in case they have just come round from the other side; null when the cell is
-     *            not one a layer could be drawn in
+     *            in case they have just come round from the other side; never null
      */
     public record Placement(At iris, At horizon, At handBack)
     {

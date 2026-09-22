@@ -1172,6 +1172,7 @@ class StargateBlockSetup
         }
 
         drawIdleIrises(player, playerAt, stillDrawn);
+        takeBackStaleLayers(player, playerAt);
 
         // Anything this player was shown that is not open to them any more has to be taken
         // back. The close-time send only reaches whoever was within range at that moment, and
@@ -1219,6 +1220,42 @@ class StargateBlockSetup
             }
             sendIrisTo(player, gate);
             stillDrawn.add(gate.getGateName());
+        }
+    }
+
+    /**
+     * Hands back the layers of any gate this player was layered for that is not layered now.
+     *
+     * <p>The close-time hand-back reaches whoever is within drawing range at that moment, and a
+     * client holds a chunk far past that: somebody who walks away, lets the wormhole close
+     * behind them and walks back keeps both layer cells. The horizon one is a sheet of water
+     * hanging behind a gate. The iris one is worse -- a solid block in the cell travellers
+     * arrive in, which their own client will not let them walk through.
+     *
+     * <p>Their remembered side says which gates to ask about, so this costs nothing for a
+     * player who has never been near a layered gate.
+     *
+     * @param player
+     *            the player being refreshed
+     * @param playerAt
+     *            where they are
+     */
+    private static void takeBackStaleLayers(final Player player, final Location playerAt)
+    {
+        final java.util.Map<String, Boolean> sides = LAYER_SIDE.get(player.getUniqueId());
+        if ((sides == null) || sides.isEmpty())
+        {
+            return;
+        }
+        for (final String name : sides.keySet().toArray(new String[0]))
+        {
+            final Stargate gate = StargateManager.getStargate(name);
+            // Only once they are near enough to be drawn to again: reading a block in a chunk
+            // nobody has loaded would pull it in, and they are owed nothing while out of range.
+            if ((gate != null) && !isLayered(gate) && isNearEnoughToRedraw(gate, playerAt))
+            {
+                takeBackLayersFor(player, gate);
+            }
         }
     }
 
@@ -1391,8 +1428,15 @@ class StargateBlockSetup
      */
     private static boolean backdropIsFree(final Location at)
     {
-        return MaterialUtils.isAirMaterial(
-            at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getType());
+        final Block block = at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ());
+        if (!MaterialUtils.isAirMaterial(block.getType()))
+        {
+            return false;
+        }
+        // Air is not enough any more. A gate's opening is server-side air since its iris became
+        // a drawing, so two gates built a block apart would draw their layers into each other's
+        // rings -- and hand back air over the neighbour's iris when they were taken back.
+        return !StargateManager.isPortalBlock(block);
     }
 
     /**
@@ -1513,6 +1557,10 @@ class StargateBlockSetup
             return;
         }
         final boolean front = seesFront(gate, from);
+        // A player near enough to be drawn to is a player whose chunks are loaded, which is the
+        // moment an older world's built iris can be taken out. The unlayered path does it in
+        // sendIrisTo; a layered gate reaches neither that nor fillGateIris again.
+        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
         final BlockData iris = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
         final BlockData horizon = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
         for (final Location bc : ring)
@@ -1624,16 +1672,18 @@ class StargateBlockSetup
         {
             return;
         }
-        final java.util.Map<String, Boolean> sides = sideFor(player);
         for (final Stargate gate : StargateManager.getOpenGates())
         {
             if (!isLayered(gate) || !isNearEnoughToRedraw(gate, to))
             {
                 continue;
             }
+            // Read here rather than before the loop: this runs on every step every player takes,
+            // and filing an empty map for somebody who is nowhere near a layered gate is an
+            // allocation on the hottest event there is.
             // Feet rather than eye: only upright gates are layered, and which side of one a
             // player is on does not depend on how tall they are.
-            final Boolean drawnFrom = sides.get(gate.getGateName());
+            final Boolean drawnFrom = sideFor(player).get(gate.getGateName());
             if ((drawnFrom == null) || (drawnFrom.booleanValue() != seesFront(gate, to)))
             {
                 sendLayeredTo(player, gate, to);
@@ -1644,6 +1694,10 @@ class StargateBlockSetup
 
     /**
      * The sides one player has been drawn each layered gate from.
+     *
+     * <p>No guard on the uuid, unlike {@link #drawnFor}: Bukkit declares it non-null, and Sonar
+     * refuses a check that can never fire in code this new. The older one keeps its guard, and
+     * its suppression, because tests were written against it.
      *
      * @param player
      *            the player
