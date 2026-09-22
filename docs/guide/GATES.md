@@ -317,6 +317,9 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 | `gate-iris-step-ticks` | `2` | Ticks between one step and the next, 1 to 20 |
 | `gate-iris-sweep-max-ticks` | `20` | The longest a whole crossing may take, 0 to 200; `0` for no limit |
 
+A crossing always gets at least two steps, so a limit too short for two at the pace you have
+set is spent rather than kept: the two settings together are what decide the longest crossing.
+
 | Style | How it crosses |
 |---|---|
 | `sweep` | Rings, in from the rim and out from the middle |
@@ -334,10 +337,11 @@ not the iris.
 A wider gate has more rings than a small one, so at a fixed pace it would take proportionally
 longer to cross: `Standard` has five rings and `Grand` sixty-one, which at the default pace is
 half a second against six. `gate-iris-sweep-max-ticks` is what stops that. A gate with more
-rings than fit inside it covers several of them per step rather than taking longer, so every
-gate on the server crosses in about the same time whatever its size -- a second, at the
-defaults. Small gates are already inside the limit and are untouched by it; of the shapes this
-plugin ships, only `Massive` and `Grand` have rings enough to be merged.
+rings than fit inside it covers several of them per step rather than taking longer, so nothing
+on the server crosses in more than the limit -- about a second, at the defaults, where `Grand`
+took six. It is a ceiling and not a pace, so a small gate is still the quicker one. Gates
+already inside the limit are untouched by it; of the shapes this plugin ships, only `Massive`
+and `Grand` have rings enough to be merged.
 
 Set it to `0` for a step per ring however big the gate, which is what versions before 1.8 did.
 
