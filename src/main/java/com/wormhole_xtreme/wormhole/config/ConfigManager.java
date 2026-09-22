@@ -116,6 +116,9 @@ public class ConfigManager
 
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
+
+        /** The longest a whole iris crossing may take, whatever the gate's size. */
+        GATE_IRIS_SWEEP_MAX_TICKS,
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
@@ -1056,6 +1059,46 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
         final int configured = (s != null) ? s.getIntValue() : 2;
         return Math.min(20, Math.max(1, configured));
+    }
+
+    /**
+     * The longest a whole iris crossing may take, however big the gate.
+     *
+     * <p>{@code gate-iris-step-ticks} is a pace and not a duration, and how many steps there are
+     * to pace is the opening's geometry: {@code Standard} has five rings and {@code Grand} has
+     * sixty-one, so at the same setting one closes in half a second and the other in six. The
+     * pace cannot answer that -- a step is a tick at the very least -- so this is the other end
+     * of it, and the steps are merged into bands to keep to it.
+     *
+     * <p>Zero for no limit, which is what every version before this one did.
+     *
+     * @return ticks, 0 to 200
+     */
+    public static int getGateIrisSweepMaxTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 20;
+        return Math.min(200, Math.max(0, configured));
+    }
+
+    /**
+     * The most steps an iris sweep may be drawn in at the configured pace.
+     *
+     * <p>Floored at two rather than one wherever there is a limit at all: a crossing of one step
+     * is the instant iris written the long way round, and a server that asked for a fast sweep
+     * asked for a fast sweep rather than for no sweep. That is the same reasoning
+     * {@link #getGateIrisStepTicks} floors at one tick for.
+     *
+     * @return the most steps, or 0 for a step per ring however many that is
+     */
+    public static int getGateIrisMaxSteps()
+    {
+        final int ticks = getGateIrisSweepMaxTicks();
+        if (ticks <= 0)
+        {
+            return 0;
+        }
+        return Math.max(2, ticks / getGateIrisStepTicks());
     }
 
     /**
