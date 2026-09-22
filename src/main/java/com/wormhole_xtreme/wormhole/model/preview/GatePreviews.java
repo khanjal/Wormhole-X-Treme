@@ -1323,7 +1323,7 @@ public final class GatePreviews
      *            the preview
      * @param closing
      *            true for the closing order, rim first
-     * @return one list of indexes per ring
+     * @return one list of indexes per frame, each a ring or several on a big opening
      */
     private static List<List<Integer>> ringsOfOpening(final GatePreview preview, final boolean closing)
     {

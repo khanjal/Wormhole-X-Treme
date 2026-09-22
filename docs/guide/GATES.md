@@ -331,8 +331,8 @@ rows than rings, until both are big enough to be capped. Raise the ticks
 for the style you settle on rather than expecting them to match. A name the plugin does not
 know falls back to `sweep`, so a typo costs you the style and not the iris.
 
-A wider gate has more rings, but none takes longer than `gate-iris-sweep-ticks`: a gate with
-more steps than fit crosses several at once. At the defaults that is ten steps, so `Standard`
+A wider gate has more rings, but none takes longer than `gate-iris-sweep-ticks` (or one step,
+if that is set shorter than a step): a gate with more steps than fit crosses several at once. At the defaults that is ten steps, so `Standard`
 (five) and `Large` (seven) sweep a ring at a time in half a second or so, and `Massive` and
 `Grand` close in a second rather than three and six.
 

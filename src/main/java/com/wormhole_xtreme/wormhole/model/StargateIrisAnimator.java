@@ -10,7 +10,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Draws an iris arriving or drawing back a ring at a time.
+ * Draws an iris arriving or drawing back a ring at a time, or several rings a frame on a gate
+ * too big to fit {@code gate-iris-sweep-ticks}.
  *
  * <h2>The blocks are not what sweeps</h2>
  *
