@@ -1,0 +1,295 @@
+package com.wormhole_xtreme.wormhole.model;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+
+/**
+ * A shut iris over an open wormhole, stacked from whichever side it is seen.
+ *
+ * <p>An upright gate's iris is drawn, so it can be put where each viewer needs it. From the
+ * front the iris is in the ring and the horizon a block behind; from behind it is the other
+ * way about, the horizon in the ring and the iris a block further off. Before this the horizon
+ * was drawn a block behind for everybody, which put it on the near side for anyone round the
+ * back -- in front of the iris instead of behind it, and in the cells they could walk into.
+ *
+ * <p>The gate faces north, so its front is the smaller-z side. The ring is at z=20, the cell
+ * behind it at z=21 and the one in front at z=19.
+ */
+class IrisLayeringTest
+{
+    private static final int X = 10, Y = 64, Z = 20;
+
+    /** Held: a Location keeps its World weakly, so an inline mock can be collected mid-test. */
+    private World world;
+    private Stargate gate;
+    private Player viewer;
+    private BlockData iris;
+    private BlockData horizon;
+    private BlockData truthBehind;
+    private BlockData truthAhead;
+    private Block ahead;
+    private MockedStatic<MaterialUtils> materials;
+
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install();
+        world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+
+        iris = mock(BlockData.class);
+        horizon = mock(BlockData.class);
+        truthBehind = mock(BlockData.class);
+        truthAhead = mock(BlockData.class);
+        materials = mockStatic(MaterialUtils.class);
+        materials.when(() -> MaterialUtils.drawnAs(Material.IRON_BLOCK)).thenReturn(iris);
+        materials.when(() -> MaterialUtils.drawnAs(Material.WATER)).thenReturn(horizon);
+        materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
+        materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
+
+        final Block ring = mock(Block.class);
+        when(ring.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(X, Y, Z)).thenReturn(ring);
+        final Block behind = mock(Block.class);
+        when(behind.getType()).thenReturn(Material.AIR);
+        when(behind.getBlockData()).thenReturn(truthBehind);
+        when(world.getBlockAt(X, Y, Z + 1)).thenReturn(behind);
+        ahead = mock(Block.class);
+        when(ahead.getType()).thenReturn(Material.AIR);
+        when(ahead.getBlockData()).thenReturn(truthAhead);
+        when(world.getBlockAt(X, Y, Z - 1)).thenReturn(ahead);
+
+        gate = new Stargate();
+        gate.setGateName("Layered");
+        gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.NORTH);
+        // Its own materials, so the iris and the horizon can be told apart in what is sent;
+        // per-gate materials only count on a gate marked custom.
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.IRON_BLOCK);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        gate.getGatePortalBlocks().add(new Location(world, X, Y, Z));
+        gate.setGateActive(true);
+        gate.setGateIrisActive(true);
+
+        viewer = mock(Player.class);
+        when(viewer.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(viewer.isOnline()).thenReturn(true);
+        when(viewer.getWorld()).thenReturn(world);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        materials.close();
+        PluginTestSupport.forgetAllGates();
+        PluginTestSupport.remove();
+    }
+
+    /** Matches a location by its block, whatever its world. */
+    private static Location at(final int z)
+    {
+        return argThat(l -> (l != null) && (l.getBlockX() == X) && (l.getBlockY() == Y) && (l.getBlockZ() == z));
+    }
+
+    private void standAt(final int z)
+    {
+        when(viewer.getLocation()).thenReturn(new Location(world, X + 0.5, Y, z + 0.5));
+    }
+
+    // -----------------------------------------------------------------------
+    // Which side
+    // -----------------------------------------------------------------------
+
+    /**
+     * The front is the side the gate faces, and behind is the other.
+     *
+     * <p>Get the sign wrong and every viewer sees the other side's picture: the horizon in front
+     * of the iris from the front, which hides the very barrier it was meant to be behind.
+     */
+    @Test
+    void theFrontIsTheSideTheGateFaces()
+    {
+        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, X + 0.5, Y, Z - 3.0)),
+            "a north-facing gate's front is to the north, the smaller z");
+        assertFalse(StargateBlockSetup.seesFront(gate, new Location(world, X + 0.5, Y, Z + 4.0)),
+            "and three blocks the other way is behind it");
+    }
+
+    // -----------------------------------------------------------------------
+    // What each side sees
+    // -----------------------------------------------------------------------
+
+    /**
+     * From the front: iris in the ring, horizon a block behind it.
+     */
+    @Test
+    void fromTheFrontTheIrisIsInTheRingAndTheHorizonBehindIt()
+    {
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer).sendBlockChange(at(Z + 1), eq(horizon));
+        verify(viewer, never()).sendBlockChange(at(Z - 1), eq(iris));
+    }
+
+    /**
+     * From behind: horizon in the ring, iris a block further off.
+     *
+     * <p>The whole point of the step. Before it, the horizon was a block behind the ring for
+     * everybody, which for somebody round the back is the side they are standing on.
+     */
+    @Test
+    void fromBehindTheHorizonIsInTheRingAndTheIrisBeyondIt()
+    {
+        standAt(Z + 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(iris));
+        verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
+     * From behind, with something built where the iris would go, the iris stays in the ring.
+     *
+     * <p>Only air is drawn in. Without room for the iris beyond the ring there is no layering to
+     * be had, and drawing the horizon in the ring anyway would leave a viewer looking at a shut
+     * gate through what looks like an open one.
+     */
+    @Test
+    void fromBehindWithNoRoomBeyondTheIrisStaysInTheRing()
+    {
+        standAt(Z + 4);
+        when(ahead.getType()).thenReturn(Material.STONE);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer, never()).sendBlockChange(at(Z - 1), any(BlockData.class));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+    }
+
+    /**
+     * Walking round the back takes the front's horizon away.
+     *
+     * <p>Each side's picture uses one of the two layer cells. A viewer who has seen both would
+     * otherwise keep the first one's horizon hanging behind the gate after walking round it.
+     */
+    @Test
+    void walkingRoundTheBackTakesTheFrontsHorizonAway()
+    {
+        standAt(Z - 4);
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+        clearInvocations(viewer);
+
+        standAt(Z + 4);
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+    }
+
+    // -----------------------------------------------------------------------
+    // Crossing the plane
+    // -----------------------------------------------------------------------
+
+    /**
+     * Crossing the gate's plane restacks it, and moving about on one side does not.
+     *
+     * <p>Asked on every step that changes block, so it must cost nothing on a step that does
+     * not cross, and the one step that does must redraw -- or a player who walks round a gate
+     * goes on seeing the other side's picture until they cross a chunk.
+     */
+    @Test
+    void crossingThePlaneRestacksTheGateAndWanderingDoesNot()
+    {
+        StargateManager.registerStargate(gate);
+        standAt(Z - 4);
+        StargateBlockSetup.relayerFor(viewer, new Location(world, X + 0.5, Y, Z - 3.5));
+        clearInvocations(viewer);
+
+        StargateBlockSetup.relayerFor(viewer, new Location(world, X + 1.5, Y, Z - 2.5));
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        StargateBlockSetup.relayerFor(viewer, new Location(world, X + 0.5, Y, Z + 2.5));
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(iris));
+    }
+
+    // -----------------------------------------------------------------------
+    // Taking it back
+    // -----------------------------------------------------------------------
+
+    /**
+     * When the wormhole goes, both layers go with it.
+     *
+     * <p>The horizon a block behind a shut iris was never taken back when the gate went idle, so
+     * it hung there for anyone who had been watching. With the iris a block in front for
+     * viewers behind, there are two cells to hand back, not one.
+     */
+    @Test
+    void takingTheLayersBackHandsBothCellsTheirRealBlocks()
+    {
+        standAt(Z - 4);
+
+        StargateBlockSetup.takeBackLayers(gate);
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+    }
+
+    /**
+     * A horizontal gate is never layered.
+     *
+     * <p>Its iris is real blocks, a floor, and cannot be moved for anybody.
+     */
+    @Test
+    void aHorizontalGateIsNotLayered()
+    {
+        gate.setGateFacing(BlockFace.UP);
+
+        assertFalse(StargateBlockSetup.isLayered(gate), "a built iris stays where it is built");
+    }
+
+    /**
+     * An idle gate with its iris shut is not layered either: there is no horizon to stack.
+     */
+    @Test
+    void anIdleGateIsNotLayered()
+    {
+        gate.setGateActive(false);
+
+        assertFalse(StargateBlockSetup.isLayered(gate), "no wormhole, nothing behind the iris");
+    }
+}

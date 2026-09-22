@@ -407,6 +407,11 @@ class IrisSweepOrderingTest
     {
         gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
         assertTrue(StargateBlockSetup.irisIsDrawn(gate), "an upright gate, whose iris is drawn");
+        // The layer positions a block either side of the ring, which a shut iris hands back.
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
 
         // The first ring is drawn by the toggle itself, so nothing is cleared in between: what
         // counts is the last thing each cell was shown.
@@ -420,7 +425,11 @@ class IrisSweepOrderingTest
         for (int i = 0; i < where.getAllValues().size(); i++)
         {
             final Location at = where.getAllValues().get(i);
-            last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+            // The ring only: the cells either side of it are the layers, not the sweep's.
+            if (at.getBlockZ() == 0)
+            {
+                last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+            }
         }
         assertEquals(9, last.size(), "every cell of the opening was drawn by the sweep");
         for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())

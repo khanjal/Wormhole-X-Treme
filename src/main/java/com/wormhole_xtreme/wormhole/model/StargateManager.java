@@ -908,6 +908,21 @@ public class StargateManager
     }
 
     /**
+     * Restacks any shut iris over an open wormhole whose plane a player has just crossed.
+     *
+     * <p>See {@link StargateBlockSetup#relayerFor(Player, Location)}.
+     *
+     * @param player
+     *            the player who moved
+     * @param to
+     *            where the move ends
+     */
+    public static void relayerFor(final Player player, final Location to)
+    {
+        StargateBlockSetup.relayerFor(player, to);
+    }
+
+    /**
      * Puts back what a player's client has just thrown away.
      *
      * <p>A drawn iris is a block the server does not have, so anything that makes the client

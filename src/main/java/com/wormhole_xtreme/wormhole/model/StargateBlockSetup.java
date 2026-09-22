@@ -1153,12 +1153,16 @@ class StargateBlockSetup
             {
                 continue;
             }
-            if (gate.isGateIrisActive())
+            if (isLayered(gate))
             {
-                // Its opening is full of iris, so what this player is owed is the horizon
-                // behind it rather than over it.
+                // Iris and horizon, stacked from whichever side this player is on.
+                sendLayeredTo(player, gate);
+            }
+            else if (gate.isGateIrisActive())
+            {
+                // A built iris, on a horizontal gate: the blocks are the iris, so all that is
+                // owed is the horizon behind them.
                 sendPortalBackdropTo(player, gate, true);
-                sendIrisTo(player, gate);
             }
             else
             {
@@ -1300,6 +1304,37 @@ class StargateBlockSetup
      */
     static List<Location> portalBackdropCells(final Stargate gate)
     {
+        return offsetCells(gate, -1);
+    }
+
+    /**
+     * The cells one block in front of each portal cell, where somebody behind the gate is shown
+     * the iris.
+     *
+     * <p>The mirror of {@link #portalBackdropCells}. From behind, the horizon takes the ring and
+     * the iris goes a block further off, so the layer nearer the viewer is always the one in
+     * the ring and the far one never lands on their own side of the gate.
+     *
+     * @param gate
+     *            the gate
+     * @return the cells, in the same order as the portal cells; empty without a facing
+     */
+    static List<Location> portalForecourtCells(final Stargate gate)
+    {
+        return offsetCells(gate, 1);
+    }
+
+    /**
+     * Each portal cell moved one block along the gate's facing, or against it.
+     *
+     * @param gate
+     *            the gate
+     * @param sign
+     *            1 for along the facing, -1 for against it
+     * @return the cells, index for index with the portal cells
+     */
+    private static List<Location> offsetCells(final Stargate gate, final int sign)
+    {
         final List<Location> cells = new ArrayList<>();
         if ((gate == null) || (gate.getGateWorld() == null) || (gate.getGateFacing() == null))
         {
@@ -1309,11 +1344,39 @@ class StargateBlockSetup
         for (final Location portal : gate.getGatePortalBlocks())
         {
             cells.add(new Location(gate.getGateWorld(),
-                (double) portal.getBlockX() - facing.getModX(),
-                (double) portal.getBlockY() - facing.getModY(),
-                (double) portal.getBlockZ() - facing.getModZ()));
+                (double) portal.getBlockX() + (sign * facing.getModX()),
+                (double) portal.getBlockY() + (sign * facing.getModY()),
+                (double) portal.getBlockZ() + (sign * facing.getModZ())));
         }
         return cells;
+    }
+
+    /**
+     * Whether somebody at this eye position is looking at a gate's front, the side the woosh
+     * comes out of.
+     *
+     * <p>Measured from the middle of the first portal cell. Every shipped opening is one
+     * block thick, so any cell gives the same answer. Standing in the plane itself counts as
+     * the front, the view a gate has always had.
+     *
+     * @param gate
+     *            the gate
+     * @param eye
+     *            the viewer's eye
+     * @return true in front of the gate or in its plane, false behind it
+     */
+    static boolean seesFront(final Stargate gate, final Location eye)
+    {
+        final BlockFace facing = gate.getGateFacing();
+        if ((facing == null) || (eye == null) || gate.getGatePortalBlocks().isEmpty())
+        {
+            return true;
+        }
+        final Location p = gate.getGatePortalBlocks().get(0);
+        final double along = ((eye.getX() - (p.getBlockX() + 0.5)) * facing.getModX())
+            + ((eye.getY() - (p.getBlockY() + 0.5)) * facing.getModY())
+            + ((eye.getZ() - (p.getBlockZ() + 0.5)) * facing.getModZ());
+        return along >= 0;
     }
 
     /**
@@ -1388,6 +1451,248 @@ class StargateBlockSetup
     }
 
     /**
+     * Which side of each layered gate each player was last drawn it from.
+     *
+     * <p>A layered gate looks different from front and back, so crossing its plane has to
+     * redraw it; remembering the side is how a move that did not cross is told apart cheaply.
+     */
+    private static final java.util.Map<java.util.UUID, java.util.Map<String, Boolean>> LAYER_SIDE =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Whether a gate's opening is drawn in two layers, iris and horizon, and so differently
+     * from each side.
+     *
+     * @param gate
+     *            the gate
+     * @return true for an open gate whose drawn iris is shut
+     */
+    static boolean isLayered(final Stargate gate)
+    {
+        return (gate != null) && gate.isGateActive() && gate.isGateIrisActive() && irisIsDrawn(gate);
+    }
+
+    /**
+     * Sends one player a layered gate as it looks from where they stand.
+     *
+     * <p>From the front the iris is in the ring and the horizon a block behind it. From behind it
+     * is the other way about: the horizon takes the ring and the iris goes a block further off.
+     * The nearer layer is always the one in the ring, so neither ever lands on the viewer's own
+     * side -- a drawn liquid there would give their client swim physics the server does not
+     * agree with.
+     *
+     * <p>Only cells that are really air are drawn in, as {@link #backdropIsFree} explains. A
+     * viewer behind the gate whose far cell is not free gets the iris in the ring and nothing
+     * behind it. Whatever the other side's layer was is handed back, so a player who has just
+     * walked round the gate is not left with both pictures.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the gate, which should be layered
+     */
+    static void sendLayeredTo(final Player player, final Stargate gate)
+    {
+        sendLayeredTo(player, gate, player.getLocation());
+    }
+
+    /**
+     * The same, judged from a given position rather than where the player is reported to be.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the gate, which should be layered
+     * @param from
+     *            where the player is viewing from
+     */
+    static void sendLayeredTo(final Player player, final Stargate gate, final Location from)
+    {
+        final List<Location> ring = gate.getGatePortalBlocks();
+        final List<Location> behind = portalBackdropCells(gate);
+        final List<Location> ahead = portalForecourtCells(gate);
+        if (ring.isEmpty() || (behind.size() != ring.size()) || (ahead.size() != ring.size()))
+        {
+            return;
+        }
+        final boolean front = seesFront(gate, from);
+        final List<Location> far = front ? behind : ahead;
+        final List<Location> near = front ? ahead : behind;
+        final BlockData iris = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
+        final BlockData horizon = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
+        for (int i = 0; i < ring.size(); i++)
+        {
+            final Location cell = new Location(gate.getGateWorld(),
+                ring.get(i).getBlockX(), ring.get(i).getBlockY(), ring.get(i).getBlockZ());
+            final Location farCell = far.get(i);
+            final boolean farFree = backdropIsFree(farCell);
+            if (front)
+            {
+                player.sendBlockChange(cell, iris);
+                if (farFree)
+                {
+                    player.sendBlockChange(farCell, horizon);
+                }
+            }
+            else if (farFree)
+            {
+                player.sendBlockChange(cell, horizon);
+                player.sendBlockChange(farCell, iris);
+            }
+            else
+            {
+                player.sendBlockChange(cell, iris);
+            }
+            sendTruthIfFree(player, near.get(i));
+        }
+        if (gate.isGateLightsActive())
+        {
+            sendLights(player, gate, true);
+        }
+        sideFor(player).put(gate.getGateName(), front);
+    }
+
+    /**
+     * Sends a layered gate to everybody near enough to see it, each from their own side.
+     *
+     * @param gate
+     *            the gate
+     */
+    static void sendLayered(final Stargate gate)
+    {
+        if (!isLayered(gate) || (gate.getGateWorld() == null))
+        {
+            return;
+        }
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                sendLayeredTo(player, gate);
+                drawnFor(player).add(gate.getGateName());
+            }
+        }
+    }
+
+    /**
+     * Hands the real blocks back in both layer positions, for everybody near the gate.
+     *
+     * <p>Called whenever a gate stops being layered: its iris opens, or it goes idle with the
+     * iris still shut. Before this the horizon drawn behind a shut iris was never taken back
+     * when the wormhole closed under it, so a gate that went idle kept a sheet of water hanging
+     * behind it for anyone who had been watching.
+     *
+     * @param gate
+     *            the gate
+     */
+    static void takeBackLayers(final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateWorld() == null))
+        {
+            return;
+        }
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                takeBackLayersFor(player, gate);
+            }
+        }
+    }
+
+    /**
+     * The same, for one player.
+     *
+     * @param player
+     *            the player
+     * @param gate
+     *            the gate
+     */
+    private static void takeBackLayersFor(final Player player, final Stargate gate)
+    {
+        for (final Location at : portalBackdropCells(gate))
+        {
+            sendTruthIfFree(player, at);
+        }
+        for (final Location at : portalForecourtCells(gate))
+        {
+            sendTruthIfFree(player, at);
+        }
+        sideFor(player).remove(gate.getGateName());
+    }
+
+    /**
+     * Redraws any layered gate a player has just crossed the plane of.
+     *
+     * <p>Called on moves that change block. Walks the open gates, which is a short list, and
+     * only sends anything when the side the player is on differs from the side they were drawn
+     * from -- which a player walking about in front of a gate never does.
+     *
+     * @param player
+     *            the player who moved
+     * @param to
+     *            where the move ends, which the player is not yet reported at while the move
+     *            event is being handled
+     */
+    public static void relayerFor(final Player player, final Location to)
+    {
+        if ((player == null) || (to == null) || !player.isOnline())
+        {
+            return;
+        }
+        final java.util.Map<String, Boolean> sides = sideFor(player);
+        for (final Stargate gate : StargateManager.getOpenGates())
+        {
+            if (!isLayered(gate) || !isNearEnoughToRedraw(gate, to))
+            {
+                continue;
+            }
+            // Feet rather than eye: only upright gates are layered, and which side of one a
+            // player is on does not depend on how tall they are.
+            final Boolean drawnFrom = sides.get(gate.getGateName());
+            if ((drawnFrom == null) || (drawnFrom.booleanValue() != seesFront(gate, to)))
+            {
+                sendLayeredTo(player, gate, to);
+                drawnFor(player).add(gate.getGateName());
+            }
+        }
+    }
+
+    /**
+     * The sides one player has been drawn each layered gate from.
+     *
+     * @param player
+     *            the player
+     * @return their live map, created empty if this is the first time
+     */
+    private static java.util.Map<String, Boolean> sideFor(final Player player)
+    {
+        final java.util.UUID uuid = player.getUniqueId();
+        if (uuid == null)
+        {
+            return new java.util.HashMap<>();
+        }
+        return LAYER_SIDE.computeIfAbsent(uuid, key -> new java.util.concurrent.ConcurrentHashMap<>());
+    }
+
+    /**
+     * Sends one player the real block in a cell, if the cell is one a layer could be drawn in.
+     *
+     * @param player
+     *            the player
+     * @param at
+     *            the cell
+     */
+    private static void sendTruthIfFree(final Player player, final Location at)
+    {
+        if (backdropIsFree(at))
+        {
+            player.sendBlockChange(at,
+                at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getBlockData());
+        }
+    }
+
+    /**
      * Shows one player the real blocks behind a portal they are still being shown.
      *
      * <p>Read from the world rather than assumed to be air: a gate that closed onto a default
@@ -1412,6 +1717,9 @@ class StargateBlockSetup
                 .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             player.sendBlockChange(real.getLocation(), real.getBlockData());
         }
+        // The layers a block either side of the ring are drawings too, and outlive the ring's
+        // if nobody takes them back.
+        takeBackLayersFor(player, gate);
         sendLights(player, gate, false);
     }
 
@@ -1498,6 +1806,7 @@ class StargateBlockSetup
     public static void forgetDrawn(final java.util.UUID uuid)
     {
         DRAWN.remove(uuid);
+        LAYER_SIDE.remove(uuid);
     }
 
     /**

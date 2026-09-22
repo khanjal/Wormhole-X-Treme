@@ -1119,6 +1119,12 @@ class WormholeXTremePlayerListener implements Listener
         // A window mirror's view depends on where the eye is, so it follows the step.
         com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.moved(event.getPlayer(),
             event.getTo());
+        // A shut iris over an open wormhole looks different from each side, so crossing a
+        // gate's plane restacks it. Only on a change of block: a plane is crossed at one.
+        if (hasChangedBlockCoordinates(event.getFrom(), event.getTo()))
+        {
+            StargateManager.relayerFor(event.getPlayer(), event.getTo());
+        }
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {
             // Crossing into a chunk the client has not held before means the client is
