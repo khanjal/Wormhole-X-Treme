@@ -36,6 +36,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
+- **A big gate's iris no longer takes seconds to cross.** `gate-iris-sweep-ticks` (default
+  20, a second) caps the whole sweep: a gate with more rings than fit crosses several at once.
+  `Grand` goes from sixty-one steps to ten; `Standard` and `Large` are unchanged.
 
 **Changed**
 

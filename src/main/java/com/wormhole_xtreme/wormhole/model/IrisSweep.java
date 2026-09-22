@@ -141,6 +141,79 @@ public final class IrisSweep
     }
 
     /**
+     * The closing order, crossed in no more than {@code frames} steps.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @param frames
+     *            the most steps it may take
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> closingOrder(final List<Location> cells, final Style style,
+        final int frames)
+    {
+        // Folded before it is reversed, so closing stays opening run backwards frame for frame.
+        final List<List<Location>> steps = openingOrder(cells, style, frames);
+        java.util.Collections.reverse(steps);
+        return steps;
+    }
+
+    /**
+     * The opening order, crossed in no more than {@code frames} steps.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @param frames
+     *            the most steps it may take
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> openingOrder(final List<Location> cells, final Style style,
+        final int frames)
+    {
+        return fitTo(openingOrder(cells, style), frames);
+    }
+
+    /**
+     * Folds a sweep's steps into at most {@code frames}, keeping their order.
+     *
+     * <p>Neighbouring steps are merged, as evenly as the counts allow, so a big opening crosses
+     * several rings a frame while a small one keeps a frame per ring. The pace cannot go below
+     * a tick, so capping the steps is the only way a {@code Grand} closes about as fast as a
+     * {@code Standard}.
+     *
+     * @param steps
+     *            the steps, the first drawn first
+     * @param frames
+     *            the most frames to use; below one is taken as one
+     * @return the steps unchanged if they already fit, otherwise one merged list per frame
+     */
+    static List<List<Location>> fitTo(final List<List<Location>> steps, final int frames)
+    {
+        final int budget = Math.max(1, frames);
+        if (steps.size() <= budget)
+        {
+            return steps;
+        }
+        final List<List<Location>> out = new ArrayList<>(budget);
+        for (int i = 0; i < budget; i++)
+        {
+            final int from = (int) (((long) i * steps.size()) / budget);
+            final int to = (int) ((((long) i + 1) * steps.size()) / budget);
+            final List<Location> frame = new ArrayList<>();
+            for (int s = from; s < to; s++)
+            {
+                frame.addAll(steps.get(s));
+            }
+            out.add(frame);
+        }
+        return out;
+    }
+
+    /**
      * The cells grouped by how far they sit from the centre, nearest ring first.
      *
      * @param cells

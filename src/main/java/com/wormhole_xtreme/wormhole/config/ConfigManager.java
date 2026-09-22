@@ -116,6 +116,9 @@ public class ConfigManager
 
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
+
+        /** The longest a whole iris sweep may take, in ticks, whatever the size of the gate. */
+        GATE_IRIS_SWEEP_TICKS,
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
@@ -1056,6 +1059,33 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
         final int configured = (s != null) ? s.getIntValue() : 2;
         return Math.min(20, Math.max(1, configured));
+    }
+
+    /**
+     * The longest a whole iris sweep may take, in ticks.
+     *
+     * @return ticks, between 1 and 100
+     */
+    public static int getGateIrisSweepTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_SWEEP_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 20;
+        return Math.min(100, Math.max(1, configured));
+    }
+
+    /**
+     * How many steps an iris sweep may take, whatever the size of the gate.
+     *
+     * <p>A sweep takes a step per distinct distance from the centre, which on a {@code Grand}
+     * is sixty-one steps -- six seconds at the default pace, and longer in a preview that
+     * redraws itself on every one. The budget caps the steps rather than the pace, because the
+     * pace cannot go below a tick.
+     *
+     * @return steps, at least 1
+     */
+    public static int getGateIrisSweepFrames()
+    {
+        return Math.max(1, getGateIrisSweepTicks() / getGateIrisStepTicks());
     }
 
     /**

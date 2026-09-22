@@ -315,6 +315,7 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 |---|---|---|
 | `gate-iris-animation` | `sweep` | Which way it crosses, below, or `instant` for no animation |
 | `gate-iris-step-ticks` | `2` | Ticks between one step and the next, 1 to 20 |
+| `gate-iris-sweep-ticks` | `20` | The longest the whole crossing may take, 1 to 100 |
 
 | Style | How it crosses |
 |---|---|
@@ -329,8 +330,10 @@ Each takes as many steps as it has pieces to cross, so at the same `gate-iris-st
 for the style you settle on rather than expecting them to match. A name the plugin does not
 know falls back to `sweep`, so a typo costs you the style and not the iris.
 
-A wider gate has more rings, so it takes longer to sweep than a small one — `Massive` at the
-default is about a second, `Standard` rather less.
+A wider gate has more rings, but none takes longer than `gate-iris-sweep-ticks`: a gate with
+more steps than fit crosses several at once. At the defaults that is ten steps, so `Standard`
+(five) and `Large` (seven) sweep a ring at a time in half a second or so, and `Massive` and
+`Grand` close in a second rather than three and six.
 
 **A closed iris does not take the wormhole away.** An opening is one block thick, so a closed
 iris fills it and the event horizon has nowhere left inside the ring. It is shown one block
