@@ -129,6 +129,8 @@ class IrisSweepOrderingTest
         // the sweep's whole visible effect goes unobserved -- which is how an opening sweep
         // that drew the iris back over itself passed for a while.
         watcher = mock(Player.class);
+        // A real player always has one, and the layering files what it has drawn them under it.
+        when(watcher.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(watcher.getLocation()).thenReturn(new Location(world, 0, 64, 3));
         when(world.getPlayers()).thenReturn(List.of(watcher));
 

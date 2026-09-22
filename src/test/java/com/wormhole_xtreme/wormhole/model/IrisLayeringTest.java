@@ -3,12 +3,15 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -305,15 +308,15 @@ class IrisLayeringTest
      * would go on hanging behind a gate that has closed.
      */
     @Test
-    void aWormholeClosingUnderAShutIrisTakesItsLayersWithIt() throws Exception
+    void aWormholeClosingUnderAShutIrisTakesItsLayersWithIt()
     {
         standAt(Z - 4);
         gate.setGateIrisDefaultActive(false);
         gate.setGatePlayerTeleportLocation(new Location(world, X + 0.5, Y, Z - 1.5));
-        final Stargate quiet = org.mockito.Mockito.spy(gate);
-        org.mockito.Mockito.doNothing().when(quiet).toggleDialLeverState(org.mockito.ArgumentMatchers.anyBoolean());
-        org.mockito.Mockito.doNothing().when(quiet).toggleRedstoneGateActivatedPower();
-        org.mockito.Mockito.doNothing().when(quiet).lightStargate(org.mockito.ArgumentMatchers.anyBoolean());
+        final Stargate quiet = spy(gate);
+        doNothing().when(quiet).toggleDialLeverState(anyBoolean());
+        doNothing().when(quiet).toggleRedstoneGateActivatedPower();
+        doNothing().when(quiet).lightStargate(anyBoolean());
         com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(e -> { });
         try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
             mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))

@@ -1651,22 +1651,10 @@ class StargateBlockSetup
      */
     private static java.util.Map<String, Boolean> sideFor(final Player player)
     {
-        final java.util.UUID uuid = player.getUniqueId();
-        if (uuid == null)
-        {
-            return new java.util.HashMap<>();
-        }
-        return LAYER_SIDE.computeIfAbsent(uuid, key -> new java.util.concurrent.ConcurrentHashMap<>());
+        return LAYER_SIDE.computeIfAbsent(player.getUniqueId(),
+            key -> new java.util.concurrent.ConcurrentHashMap<>());
     }
 
-    /**
-     * Sends one player the real block in a cell, if the cell is one a layer could be drawn in.
-     *
-     * @param player
-     *            the player
-     * @param at
-     *            the cell
-     */
     /**
      * A layering position as a location in the gate's world.
      *
@@ -1681,6 +1669,14 @@ class StargateBlockSetup
         return new Location(gate.getGateWorld(), at.x(), at.y(), at.z());
     }
 
+    /**
+     * Sends one player the real block in a cell, if the cell is one a layer could be drawn in.
+     *
+     * @param player
+     *            the player
+     * @param at
+     *            the cell
+     */
     private static void sendTruthIfFree(final Player player, final Location at)
     {
         if (backdropIsFree(at))
