@@ -102,7 +102,24 @@ public final class IrisSweep
      */
     public static List<List<Location>> closingOrder(final List<Location> cells, final Style style)
     {
-        final List<List<Location>> steps = openingOrder(cells, style);
+        return closingOrder(cells, style, 0);
+    }
+
+    /**
+     * The opening's cells in the order a closing iris covers them, in at most so many steps.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @param maxSteps
+     *            the most steps to cross in, or 0 for a step per ring however many that is
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> closingOrder(final List<Location> cells, final Style style,
+        final int maxSteps)
+    {
+        final List<List<Location>> steps = openingOrder(cells, style, maxSteps);
         java.util.Collections.reverse(steps);
         return steps;
     }
@@ -138,6 +155,90 @@ public final class IrisSweep
             return spiral(cells);
         }
         return rings(cells, style);
+    }
+
+    /**
+     * The opening's cells in the order an opening iris uncovers them, in at most so many steps.
+     *
+     * <p>How many steps an opening has is its geometry: a wide gate has more rings than a small
+     * one, so at a fixed pace per step it takes proportionally longer to cross. That is the
+     * wrong way round -- a big gate is exactly the one somebody is waiting on the iris of --
+     * and it cannot be fixed by the pace, because a step cannot be shorter than a tick.
+     *
+     * <p>So the steps themselves are merged: adjacent rings are joined into bands until there
+     * are few enough of them, which is what keeps the crossing the same length whatever the
+     * gate. The cells and their order are untouched -- a band is still covered from the rim in
+     * or drawn back from the middle out -- and each band is still drawn in one tick, so this
+     * changes how much of the iris arrives at once and nothing else.
+     *
+     * @param cells
+     *            the cells the iris is made of, in any order
+     * @param style
+     *            how it crosses
+     * @param maxSteps
+     *            the most steps to cross in, or 0 for a step per ring however many that is
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> openingOrder(final List<Location> cells, final Style style,
+        final int maxSteps)
+    {
+        return atMost(openingOrder(cells, style), maxSteps);
+    }
+
+    /**
+     * Joins adjacent steps together until there are no more than so many.
+     *
+     * @param steps
+     *            the steps, in the order they are drawn
+     * @param maxSteps
+     *            the most to leave, or 0 to leave them alone
+     * @return the steps, merged if there were too many
+     */
+    private static List<List<Location>> atMost(final List<List<Location>> steps, final int maxSteps)
+    {
+        if ((maxSteps <= 0) || (steps.size() <= maxSteps))
+        {
+            return steps;
+        }
+        final List<List<Location>> merged = new ArrayList<>(maxSteps);
+        for (final List<List<Location>> band : cut(steps, maxSteps))
+        {
+            final List<Location> cells = new ArrayList<>();
+            for (final List<Location> step : band)
+            {
+                cells.addAll(step);
+            }
+            merged.add(cells);
+        }
+        return merged;
+    }
+
+    /**
+     * Cuts a list into that many pieces, by position rather than by a fixed size.
+     *
+     * <p>Rounding a piece size up loses a piece whenever it does not divide evenly, which is
+     * what once made the spiral cross faster than every other style at the same setting. Cutting
+     * by position instead gives exactly the number asked for, the odd remainder spread through
+     * them rather than left at one end.
+     *
+     * @param <T>
+     *            what is being cut up
+     * @param items
+     *            the list
+     * @param wanted
+     *            how many pieces, at least one
+     * @return the pieces, in order; some may be empty if there are fewer items than pieces
+     */
+    private static <T> List<List<T>> cut(final List<T> items, final int wanted)
+    {
+        final List<List<T>> pieces = new ArrayList<>(wanted);
+        for (int i = 0; i < wanted; i++)
+        {
+            final int from = (int) (((long) i * items.size()) / wanted);
+            final int to = (int) ((((long) i + 1) * items.size()) / wanted);
+            pieces.add(new ArrayList<>(items.subList(from, to)));
+        }
+        return pieces;
     }
 
     /**
@@ -254,10 +355,9 @@ public final class IrisSweep
      */
     private static List<List<Location>> spiral(final List<Location> cells)
     {
-        final List<List<Location>> steps = new ArrayList<>();
         if ((cells == null) || cells.isEmpty())
         {
-            return steps;
+            return new ArrayList<>();
         }
         final double[] centre = centreOf(cells);
         final List<Location> wound = new ArrayList<>(cells);
@@ -265,14 +365,7 @@ public final class IrisSweep
         // Exactly as many steps as the sweep makes, cut by position rather than by a fixed
         // size: rounding a chunk size up loses a step whenever it does not divide evenly,
         // which made the spiral cross faster than every other style on the same setting.
-        final int wanted = Math.min(wound.size(), Math.max(1, rings(cells, Style.SWEEP).size()));
-        for (int i = 0; i < wanted; i++)
-        {
-            final int from = (int) (((long) i * wound.size()) / wanted);
-            final int to = (int) ((((long) i + 1) * wound.size()) / wanted);
-            steps.add(new ArrayList<>(wound.subList(from, to)));
-        }
-        return steps;
+        return cut(wound, Math.min(wound.size(), Math.max(1, rings(cells, Style.SWEEP).size())));
     }
 
     /**

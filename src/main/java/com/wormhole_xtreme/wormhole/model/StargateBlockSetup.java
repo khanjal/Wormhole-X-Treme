@@ -1163,6 +1163,7 @@ class StargateBlockSetup
                 // A built iris, on a horizontal gate: the blocks are the iris, so all that is
                 // owed is the horizon behind them.
                 sendPortalBackdropTo(player, gate, true);
+                sendIrisTo(player, gate);
             }
             else
             {

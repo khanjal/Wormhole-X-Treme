@@ -170,6 +170,61 @@ class IrisSweepOrderingTest
         PluginTestSupport.remove();
     }
 
+    /**
+     * Grows the opening to a square of this radius, the way the fixture builds its own.
+     *
+     * @param radius
+     *            how far out from the middle, so a radius of nine is nineteen by nineteen
+     */
+    private void widenOpeningTo(final int radius)
+    {
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                if ((Math.abs(x) <= 1) && (Math.abs(y) <= 1))
+                {
+                    continue; // the fixture's own three-by-three
+                }
+                final Location at = new Location(world, x, 64 + y, 0);
+                gate.getGatePortalBlocks().add(at);
+                final Block block = mock(Block.class);
+                when(block.getLocation()).thenReturn(at);
+                when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
+                doAnswer(i ->
+                {
+                    events.add("block:" + i.getArgument(0));
+                    return null;
+                }).when(block).setType(any(Material.class));
+            }
+        }
+    }
+
+    /**
+     * A gate wider than the limit sweeps in the limit's steps, not one per ring.
+     *
+     * <p>The cap is arithmetic in {@link IrisSweep} and a setting in {@code ConfigManager}, and
+     * both are pinned on their own. What nothing pinned is the wire between them: this is the
+     * only place a real gate's iris asks for it, and the fixtures everywhere else are small
+     * enough to sit inside the cap, so dropping the argument here left every test passing and
+     * every big gate back to taking six seconds.
+     */
+    @Test
+    void aGateWiderThanTheLimitSweepsInTheLimitsSteps()
+    {
+        widenOpeningTo(9);
+        final int cap = com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisMaxSteps();
+        assertTrue(IrisSweep.closingRings(gate.getGatePortalBlocks()).size() > cap,
+            "a nineteen-wide opening must have more rings than the cap, or this proves nothing");
+
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+
+        assertEquals(cap, events.stream().filter("booked"::equals).count(),
+            "a step is booked per band drawn, so a gate with more rings than the cap must still "
+                + "book only the cap's worth -- one per ring is the crossing the cap exists to stop");
+    }
+
     /** Runs every step the sweep has booked, including ones booked by those steps. */
     private void runSweepToCompletion()
     {

@@ -316,6 +316,12 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 |---|---|---|
 | `gate-iris-animation` | `sweep` | Which way it crosses, below, or `instant` for no animation |
 | `gate-iris-step-ticks` | `2` | Ticks between one step and the next, 1 to 20 |
+| `gate-iris-sweep-max-ticks` | `20` | The longest a whole crossing may take, 0 to 200; `0` for no limit |
+
+The two settings together decide the longest crossing: the limit divided by the pace is how
+many steps there may be. A limit too short for two steps at the pace you have set still gets
+two, so a very short limit against a slow pace runs longer than the limit says. An opening with
+only one ring -- `Minimal` -- is one step whatever either says.
 
 | Style | How it crosses |
 |---|---|
@@ -327,11 +333,23 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 
 Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
 `rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
-for the style you settle on rather than expecting them to match. A name the plugin does not
-know falls back to `sweep`, so a typo costs you the style and not the iris.
+for the style you settle on rather than expecting them to match, and raise
+`gate-iris-sweep-max-ticks` with them: past the limit a slower pace merges steps instead of
+lengthening the crossing. A name the plugin does not know falls back to `sweep`, so a typo
+costs you the style and not the iris.
 
-A wider gate has more rings, so it takes longer to sweep than a small one — `Massive` at the
-default is about a second, `Standard` rather less.
+A wider gate has more rings than a small one, so at a fixed pace it would take proportionally
+longer to cross: `Standard` has five rings and `Grand` sixty-one, which at the default pace is
+half a second against six. `gate-iris-sweep-max-ticks` is what stops that. A gate with more
+rings than fit inside it covers several of them per step rather than taking longer, so nothing
+on the server crosses in more than the limit -- about a second, at the defaults, where `Grand`
+took six. It is a ceiling and not a pace, so a small gate is still the quicker one. Gates
+already inside the limit are untouched by it: at the default pace that is every shape this
+plugin ships but `Massive` and `Grand`, and at a slower pace it is fewer of them.
+
+Set it to `0` for a step per ring however big the gate, which is what versions before 1.8 did.
+A server that had raised `gate-iris-step-ticks` is the one most likely to want that, since a
+slower pace reaches the limit on smaller gates.
 
 **A closed iris does not take the wormhole away.** An opening is one block thick, so a closed
 iris and the event horizon cannot both fit in it. On an upright gate each of them is drawn

@@ -369,4 +369,134 @@ class IrisSweepTest
         assertEquals(1, rings.get(0).size());
         assertSame(one.get(0), rings.get(0).get(0), "and it is the cell it was given, not a copy");
     }
+
+    /**
+     * A gate wide enough to have more rings than the cap crosses in the cap's worth of steps.
+     *
+     * <p>The pace is per step and the number of steps is the opening's geometry, so before this
+     * a big gate simply took longer: {@code Standard} has five rings and {@code Grand} has
+     * sixty-one, which at the default two ticks a step is half a second against six. Somebody
+     * waiting on the iris of a gate they built big is the last person who should wait longest.
+     */
+    @Test
+    void anOpeningWithMoreRingsThanTheCapCrossesInTheCapsSteps()
+    {
+        final List<Location> cells = nineteenByNineteen();
+
+        assertTrue(IrisSweep.closingOrder(cells, IrisSweep.Style.SWEEP).size() > 10,
+            "a nineteen-wide opening should have more rings than the cap, or this proves nothing");
+        assertEquals(10, IrisSweep.closingOrder(cells, IrisSweep.Style.SWEEP, 10).size());
+    }
+
+    /**
+     * Merging steps does not lose or repeat a cell, whatever the style.
+     *
+     * <p>A cell dropped on the way into a band is a hole in a closed iris that nothing else
+     * would put back, since the sweep is the only thing that draws those cells.
+     */
+    @Test
+    void mergingStillCoversEveryCellExactlyOnce()
+    {
+        for (final IrisSweep.Style style : IrisSweep.Style.values())
+        {
+            final List<Location> cells = nineteenByNineteen();
+            final List<Location> swept = flatten(IrisSweep.closingOrder(cells, style, 10));
+
+            assertEquals(cells.size(), swept.size(), style + " covered a different number of cells");
+            assertTrue(swept.containsAll(cells), style + " dropped a cell when its steps were merged");
+        }
+    }
+
+    /**
+     * A merged crossing still runs rim inwards, and opens on the same bands run backwards.
+     *
+     * <p>The bands are cut once and reversed, rather than cut separately for each direction: an
+     * iris that closed in four bands and opened in five would be two animations rather than one
+     * played each way, and the one that ends is the one a player just watched arrive.
+     */
+    @Test
+    void aMergedOpeningIsTheMergedClosingRunBackwards()
+    {
+        final List<Location> cells = nineteenByNineteen();
+        final List<List<Location>> closing = IrisSweep.closingOrder(cells, IrisSweep.Style.SWEEP, 6);
+        final List<List<Location>> opening = IrisSweep.openingOrder(cells, IrisSweep.Style.SWEEP, 6);
+
+        assertEquals(closing.size(), opening.size());
+        for (int i = 0; i < closing.size(); i++)
+        {
+            assertEquals(closing.get(i), opening.get(opening.size() - 1 - i),
+                "band " + i + " from the rim is band " + i + " from the end of the opening sweep");
+        }
+        assertTrue(closing.get(closing.size() - 1).contains(at(0, 0, 0)),
+            "and the middle is still what a merged closing covers last");
+    }
+
+    /**
+     * A cap no smaller than the rings leaves them alone, and no cap at all leaves them alone.
+     *
+     * <p>Which is what keeps every gate small enough to cross inside the limit animating exactly
+     * as it did before -- most of them, including every shape this plugin ships but two.
+     */
+    @Test
+    void aCapItAlreadyFitsInsideChangesNothing()
+    {
+        final List<List<Location>> rings = IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SWEEP);
+
+        assertEquals(rings, IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SWEEP, rings.size()),
+            "a cap it exactly meets");
+        assertEquals(rings, IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SWEEP, rings.size() + 5),
+            "and a cap it is well inside");
+        assertEquals(rings, IrisSweep.closingOrder(fiveByFive(), IrisSweep.Style.SWEEP, 0),
+            "and no cap at all, which is what every version before this one did");
+    }
+
+    /**
+     * A band is whole rings side by side, not a sample taken across the opening.
+     *
+     * <p>The count the test above pins says nothing about which cells went where: cutting the
+     * steps round-robin rather than in runs gives exactly as many bands, loses no cell, and
+     * still reverses cleanly -- and draws an iris that arrives as scattered stripes across the
+     * whole opening instead of closing in from the rim. What makes a band a band is that it is
+     * contiguous, so every cell of one is at least as far out as every cell of the next.
+     */
+    @Test
+    void aMergedBandIsWholeRingsSideBySide()
+    {
+        final List<List<Location>> bands = IrisSweep.closingOrder(nineteenByNineteen(), IrisSweep.Style.SWEEP, 10);
+
+        double nearestSoFar = Double.MAX_VALUE;
+        for (int i = 0; i < bands.size(); i++)
+        {
+            double nearest = Double.MAX_VALUE;
+            double furthest = 0;
+            for (final Location cell : bands.get(i))
+            {
+                final double distance = (cell.getBlockX() * cell.getBlockX())
+                    + (cell.getBlockY() * cell.getBlockY());
+                nearest = Math.min(nearest, distance);
+                furthest = Math.max(furthest, distance);
+            }
+            assertTrue(furthest <= nearestSoFar,
+                "band " + i + " reaches further out than the band before it ended, so the iris "
+                    + "arrives in stripes rather than closing in from the rim");
+            nearestSoFar = nearest;
+        }
+    }
+
+    /**
+     * A nineteen-by-nineteen opening: wider than any shape this plugin ships, and so with more
+     * rings than any sensible cap.
+     */
+    private static List<Location> nineteenByNineteen()
+    {
+        final List<Location> cells = new ArrayList<>();
+        for (int x = -9; x <= 9; x++)
+        {
+            for (int y = -9; y <= 9; y++)
+            {
+                cells.add(at(x, y, 0));
+            }
+        }
+        return cells;
+    }
 }
