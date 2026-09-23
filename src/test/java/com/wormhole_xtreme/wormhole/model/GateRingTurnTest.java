@@ -190,8 +190,9 @@ class GateRingTurnTest
     }
 
     /**
-     * Every pattern locks the first chevron on the same tick, and NONE locks it at once without a
-     * turn. Only TOP's rest after a lock adds time, from the second glyph on.
+     * Every pattern locks the first chevron once its turn is done: on the chevron's own interval,
+     * but for UNIVERSE, whose turns run past a whole lap at their own pace, and NONE, which locks
+     * it at once without a turn. TOP's rest after a lock adds time from the second glyph on.
      */
     @Test
     void everyPatternLocksTheChevronOnTheSameTick()
@@ -205,7 +206,12 @@ class GateRingTurnTest
                     com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, pattern.name());
                 final Stargate gate = standardGate();
                 final int ticks = (pattern == com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
-                    ? 0 : gate.getEffectiveLightTicks();
+                    ? 0 : StargateAnimator.spinOf(gate).frames(pattern, 1, gate.getEffectiveLightTicks());
+                if ((pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
+                    && (pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.UNIVERSE))
+                {
+                    assertEquals(gate.getEffectiveLightTicks(), ticks, pattern + " keeps the chevron's interval");
+                }
                 try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
                      MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
                 {
@@ -284,7 +290,8 @@ class GateRingTurnTest
             try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
                  MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
             {
-                for (int tick = 0; tick < gate.getEffectiveLightTicks(); tick++)
+                final int frames = StargateAnimator.spinOf(gate).frames(DialSpinPattern.UNIVERSE, 1, gate.getEffectiveLightTicks());
+                for (int tick = 0; tick < frames; tick++)
                 {
                     StargateAnimator.lightStargate(gate, true);
                 }

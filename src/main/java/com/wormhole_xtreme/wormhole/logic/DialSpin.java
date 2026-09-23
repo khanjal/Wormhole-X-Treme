@@ -206,7 +206,26 @@ public final class DialSpin
      */
     public int frames(final DialSpinPattern pattern, final int glyph, final int interval)
     {
-        return hold(pattern, glyph) + Math.max(1, interval);
+        return hold(pattern, glyph) + travel(pattern, glyph, interval);
+    }
+
+    /** The most of the ring a {@link DialSpinPattern#UNIVERSE} turn covers in a tick, as a fraction: past it, it reads as flicker. */
+    private static final int UNIVERSE_PACE = 16;
+
+    /**
+     * Ticks a glyph's light travels: the chevron's interval, or for UNIVERSE, whose turns run past
+     * a whole lap, as long as its pace needs.
+     */
+    private int travel(final DialSpinPattern pattern, final int glyph, final int interval)
+    {
+        final int ticks = Math.max(1, interval);
+        if (pattern != DialSpinPattern.UNIVERSE)
+        {
+            return ticks;
+        }
+        // One more than the steps, as the first tick is where it starts.
+        final int paced = (int) Math.ceil((Math.abs(turn(glyph)) * (double) UNIVERSE_PACE) / ring.size()) + 1;
+        return Math.max(ticks, paced);
     }
 
     /**
@@ -226,7 +245,7 @@ public final class DialSpin
     public Set<Cell> frame(final DialSpinPattern pattern, final int glyph, final int frame, final int interval)
     {
         final int hold = hold(pattern, glyph);
-        return (frame < hold) ? topChevron() : lit(pattern, glyph, frame - hold, Math.max(1, interval));
+        return (frame < hold) ? topChevron() : lit(pattern, glyph, frame - hold, travel(pattern, glyph, interval));
     }
 
     /**
@@ -274,9 +293,8 @@ public final class DialSpin
     }
 
     /**
-     * How many cells, signed, the ring turns for a glyph: from where the last left it to where
-     * this one's chevron stands at the top, the way {@link #alternating} says, and a whole turn
-     * when it is there already.
+     * How many cells, signed, the ring turns for a glyph: a whole turn, then on from where the last
+     * left it to where this one's chevron stands at the top, the way {@link #alternating} says.
      */
     private int turn(final int glyph)
     {
@@ -284,9 +302,9 @@ public final class DialSpin
         final int ahead = Math.floorMod(turned(glyph) - turned(glyph - 1), n);
         if (alternating(glyph) > 0)
         {
-            return (ahead == 0) ? n : ahead;
+            return n + ahead;
         }
-        return ahead - n;
+        return -n - ((ahead == 0) ? 0 : (n - ahead));
     }
 
     /**

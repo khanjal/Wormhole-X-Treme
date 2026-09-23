@@ -202,11 +202,18 @@ class DialSpinPatternTest
         assertTrue(spin.rest(DialSpinPattern.TOP, 7, 7).isEmpty(), "the last lock is the top chevron's own light");
         for (final DialSpinPattern pattern : DialSpinPattern.values())
         {
-            if ((pattern != DialSpinPattern.TOP) && (pattern != DialSpinPattern.NONE))
+            // UNIVERSE keeps its own pace; see its own test.
+            if ((pattern != DialSpinPattern.TOP) && (pattern != DialSpinPattern.NONE) && (pattern != DialSpinPattern.UNIVERSE))
             {
                 assertEquals(TICKS, spin.frames(pattern, 2, TICKS), pattern + " sets off at once");
             }
         }
+    }
+
+    /** The first of a set, in the order it was built. */
+    private static Cell first(final Set<Cell> cells)
+    {
+        return cells.iterator().next();
     }
 
     /** The ring's cells in the chevrons given. */
@@ -248,6 +255,22 @@ class DialSpinPatternTest
             }
             assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7), spin.rest(DialSpinPattern.UNIVERSE, 7, 7),
                 name + ": every chevron back in its own place");
+            final int n = spin.ring().size();
+            for (int glyph = 1; glyph <= 7; glyph++)
+            {
+                final int frames = spin.frames(DialSpinPattern.UNIVERSE, glyph, TICKS);
+                assertTrue(frames >= 16, name + " glyph " + glyph + ": a whole turn and more, at a sixteenth a tick, not " + frames);
+                int travelled = 0;
+                for (int tick = 1; tick < frames; tick++)
+                {
+                    final int step = Math.floorMod(spin.ring().indexOf(first(spin.frame(DialSpinPattern.UNIVERSE, glyph, tick, TICKS)))
+                        - spin.ring().indexOf(first(spin.frame(DialSpinPattern.UNIVERSE, glyph, tick - 1, TICKS))), n);
+                    final int moved = Math.min(step, n - step);
+                    assertTrue(moved <= ((n + 15) / 16), name + " glyph " + glyph + " tick " + tick + ": no jump of " + moved);
+                    travelled += moved;
+                }
+                assertTrue(travelled >= n, name + " glyph " + glyph + ": turned " + travelled + " of " + n);
+            }
             assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7, 8), spin.rest(DialSpinPattern.UNIVERSE, 8, 8),
                 name + ": and another world's eighth locks in its own place after them");
         }
