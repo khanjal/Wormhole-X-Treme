@@ -49,7 +49,12 @@ public final class IrisLayering
         /** The middle of this block, where a sight line is measured to. */
         private double middle(final int axis)
         {
-            return 0.5 + (axis == 0 ? x : (axis == 1 ? y : z));
+            return 0.5 + switch (axis)
+            {
+                case 0 -> x;
+                case 1 -> y;
+                default -> z;
+            };
         }
     }
 
@@ -68,7 +73,12 @@ public final class IrisLayering
         /** This eye's coordinate on one axis. */
         private double on(final int axis)
         {
-            return axis == 0 ? x : (axis == 1 ? y : z);
+            return switch (axis)
+            {
+                case 0 -> x;
+                case 1 -> y;
+                default -> z;
+            };
         }
     }
 
@@ -280,7 +290,12 @@ public final class IrisLayering
     /** The facing's step on one axis. */
     private static int mod(final BlockFace facing, final int axis)
     {
-        return axis == 0 ? facing.getModX() : (axis == 1 ? facing.getModY() : facing.getModZ());
+        return switch (axis)
+        {
+            case 0 -> facing.getModX();
+            case 1 -> facing.getModY();
+            default -> facing.getModZ();
+        };
     }
 
     /** How far along the facing the middle of a block lies. */
