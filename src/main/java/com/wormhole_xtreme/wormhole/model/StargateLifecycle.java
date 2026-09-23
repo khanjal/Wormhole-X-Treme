@@ -278,14 +278,8 @@ class StargateLifecycle
                 // picture the layering exists to avoid.
                 StargateBlockSetup.sendPortalBackdrop(gate, true);
             }
-            else
-            {
-                // The far layer, before the sweep rather than after it. A ring of see-through
-                // iris arriving over nothing shows the landscape, so a glass gate spent its
-                // whole animation apparently erasing its own wormhole and then produced it
-                // again in one pop at the end. The iris itself is still the sweep's to draw.
-                StargateBlockSetup.sendHorizonBehind(gate);
-            }
+            // A drawn iris needs nothing here: the sweep brings the far layer in with each
+            // ring that covers it, and sendLayered below settles the lot afterwards.
             // A drawn iris over a wormhole is then restacked for each viewer, so anybody behind
             // the gate sees the horizon in the ring and the iris beyond it. After the sweep, not
             // before: the sweep draws the ring cell by cell and would paint over it.
@@ -303,16 +297,26 @@ class StargateLifecycle
             }
             return;
         }
-        // Both layers, not only the one behind: a viewer round the back was shown the iris a
-        // block in front of the ring, and nothing else would take it back.
-        StargateBlockSetup.takeBackLayers(gate);
         if (sweep)
         {
             // Sweep first, iris second, for the same reason the other way round: the barrier
             // outlasts the picture of it rather than the other way about.
-            StargateIrisAnimator.sweepOpen(gate, uncovered, () -> gate.fillGateInterior(uncovered));
+            //
+            // The layers come down at the end rather than here. The sweep takes the far one
+            // back a ring at a time as each ring uncovers, so the wormhole stays behind the
+            // iris right up until that piece of iris goes; taking the lot away first left a
+            // see-through iris opening onto the landscape, which is the closing sweep's bug
+            // read backwards.
+            StargateIrisAnimator.sweepOpen(gate, uncovered, () ->
+            {
+                gate.fillGateInterior(uncovered);
+                StargateBlockSetup.takeBackLayers(gate);
+            });
             return;
         }
+        // Both layers, not only the one behind: a viewer round the back was shown the iris a
+        // block in front of the ring, and nothing else would take it back.
+        StargateBlockSetup.takeBackLayers(gate);
         // Opening the iris on an active gate returns the interior to the portal, which also
         // clears the iris -- drawn or placed -- that was over it; an inactive one goes to AIR.
         gate.fillGateInterior(uncovered);

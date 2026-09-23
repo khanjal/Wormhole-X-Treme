@@ -1782,23 +1782,30 @@ class StargateBlockSetup
     }
 
     /**
-     * Puts the horizon behind the ring before a sweep starts, without drawing the iris.
+     * Shows or takes back the far layer for some of a gate's cells, without touching the ring.
      *
-     * <p>A closing sweep paints the opening as it was a moment ago and then lets the iris
-     * through a ring at a time, and only stacks the layers once it has finished. Behind an
-     * opaque iris that is invisible and does not matter. Behind a see-through one it very much
-     * does: every ring that arrived was a pane of glass with nothing behind it, so a gate spent
-     * its whole animation showing the landscape through its own iris and then produced the
-     * wormhole in a single pop at the end.
+     * <p>A sweep draws the iris a ring at a time, and the layers used to be stacked only once
+     * it had finished. Behind an opaque iris that is invisible. Behind a see-through one every
+     * ring that arrived was a pane of glass with nothing behind it, so a gate spent its whole
+     * animation showing the landscape through its own iris; opening, the same the other way
+     * round, because the far layer came down before the first ring uncovered.
+     *
+     * <p>So the far layer follows the sweep, ring by ring: it arrives with the iris that covers
+     * it and leaves with the iris that uncovers it, and the wormhole in the ring is never
+     * touched by any of it. The ring is the sweep's own to paint.
      *
      * <p>Only the far layer, and only for whoever has one. A viewer behind the gate keeps the
      * horizon in the ring, which is what the sweep is already painting there, so they are left
      * alone rather than sent a second copy of it.
      *
      * @param gate
-     *            the gate, whose iris is about to sweep shut
+     *            the gate, whose iris is sweeping
+     * @param only
+     *            the ring cells this step covers, or null for all of them
+     * @param show
+     *            true as a ring is covered, false as one is uncovered
      */
-    static void sendHorizonBehind(final Stargate gate)
+    static void horizonBehind(final Stargate gate, final List<Location> only, final boolean show)
     {
         if (!isLayered(gate) || (gate.getGateWorld() == null))
         {
@@ -1807,24 +1814,57 @@ class StargateBlockSetup
         final Material portal = gate.getEffectivePortalMaterial();
         final Material irisMaterial = gate.getEffectiveIrisMaterial();
         final List<Location> ring = gate.getGatePortalBlocks();
+        final Set<IrisLayering.At> wanted = (only == null) ? null : new HashSet<>(asPositions(only));
         for (final Player player : gate.getGateWorld().getPlayers())
         {
-            if (!isNearEnoughToRedraw(gate, player.getLocation()))
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                horizonBehindFor(player, gate, ring, wanted, show, portal, irisMaterial);
+            }
+        }
+    }
+
+    /**
+     * The same for one player, whose own side decides whether they have a far layer at all.
+     *
+     * @param player
+     *            the player
+     * @param gate
+     *            the gate
+     * @param ring
+     *            its portal cells, in placement order
+     * @param wanted
+     *            the cells this step covers, or null for all of them
+     * @param show
+     *            true to draw the far layer, false to hand it back
+     * @param portal
+     *            the gate's portal material
+     * @param irisMaterial
+     *            what its iris is drawn in
+     */
+    private static void horizonBehindFor(final Player player, final Stargate gate,
+        final List<Location> ring, final Set<IrisLayering.At> wanted, final boolean show,
+        final Material portal, final Material irisMaterial)
+    {
+        final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
+        for (int i = 0; i < layers.size(); i++)
+        {
+            final Location bc = ring.get(i);
+            final IrisLayering.At cell =
+                new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final IrisLayering.At where = layers.get(i).horizon();
+            if ((where == null) || where.equals(cell) || ((wanted != null) && !wanted.contains(cell)))
             {
                 continue;
             }
-            final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
-            for (int i = 0; i < layers.size(); i++)
+            if (show)
             {
-                final Location bc = ring.get(i);
-                final IrisLayering.At cell =
-                    new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-                final IrisLayering.At where = layers.get(i).horizon();
-                if ((where != null) && !where.equals(cell))
-                {
-                    player.sendBlockChange(located(gate, where),
-                        MaterialUtils.drawnAs(DrawnHorizon.materialFor(portal, irisMaterial, cell, true)));
-                }
+                player.sendBlockChange(located(gate, where),
+                    MaterialUtils.drawnAs(DrawnHorizon.materialFor(portal, irisMaterial, cell, true)));
+            }
+            else
+            {
+                sendTruthIfFree(player, located(gate, where));
             }
         }
     }

@@ -507,6 +507,15 @@ yellow iris was tried in a world and is not drawn either, which narrows the rule
 the fluid-face reading alone would: a translucent block does not show another translucent block
 behind it, whatever they are. Ice is solid and nothing can cull it.
 
+**The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
+with the ring that uncovers it, and the wormhole in the ring is never touched — that is the
+sweep's own to paint. Drawn all at once before the sweep, a gate shows the wormhole twice over
+for the length of its animation; drawn after it, every ring of a see-through iris arrives with
+the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
+two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
+so both sweeps say which cells they have just reached and `StargateBlockSetup.horizonBehind`
+moves only those.
+
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
 (`gate-iris-horizon-ticks`, ten by default, `0` to leave it still), which gives the surface

@@ -770,14 +770,14 @@ class IrisLayeringTest
      * the iris is not drawn yet, because drawing that is the sweep's whole job.
      */
     @Test
-    void theHorizonIsBehindTheRingBeforeTheSweepStarts()
+    void theHorizonGoesBehindTheRingAsTheIrisCoversIt()
     {
         final BlockData ice = mock(BlockData.class);
         final BlockData packed = mock(BlockData.class);
         glassIris(ice, packed);
         standAt(Z - 4);
 
-        StargateBlockSetup.sendHorizonBehind(gate);
+        StargateBlockSetup.horizonBehind(gate, null, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
         verify(viewer, never()).sendBlockChange(any(Location.class), eq(iris));
@@ -793,16 +793,55 @@ class IrisLayeringTest
      * arrangement exists to avoid.
      */
     @Test
-    void aViewerBehindIsSentNoHorizonBeforeTheSweep()
+    void aViewerBehindIsSentNoFarHorizonBySweeping()
     {
         final BlockData ice = mock(BlockData.class);
         final BlockData packed = mock(BlockData.class);
         glassIris(ice, packed);
         standAt(Z + 4);
 
-        StargateBlockSetup.sendHorizonBehind(gate);
+        StargateBlockSetup.horizonBehind(gate, null, true);
 
         verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * Only the cells the sweep has reached get their far layer, and only theirs lose it.
+     *
+     * <p>The whole point of following the sweep rather than running before or after it: the
+     * wormhole moves behind the iris one ring at a time, so a cell the iris has not covered yet
+     * is still showing it in the ring and must not have it behind as well. Drawn for every cell
+     * at once, a gate would show the wormhole twice over for the length of its own animation.
+     *
+     * <p>Two cells, and only one of them named. The other is the control: nothing it holds may
+     * move because its neighbour's ring came round.
+     */
+    @Test
+    void onlyTheCellsTheSweepNamesGetTheirFarLayer()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
+        blockAt(X + 1, Z, null);
+        blockAt(X + 1, Z + 1, truthBehind);
+        blockAt(X + 1, Z - 1, truthAhead);
+        gate.getGatePortalBlocks().add(new Location(world, X + 1, Y, Z));
+        gate.getGateStructureBlocks().add(new Location(world, X + 2, Y, Z));
+        standAt(Z - 4);
+
+        StargateBlockSetup.horizonBehind(gate, List.of(new Location(world, X, Y, Z)), true);
+
+        verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
+        verify(viewer, never()).sendBlockChange(
+            argThat(l -> (l != null) && (l.getBlockX() == (X + 1))), any(BlockData.class));
+
+        // And the same going the other way, as a ring uncovers.
+        clearInvocations(viewer);
+        StargateBlockSetup.horizonBehind(gate, List.of(new Location(world, X, Y, Z)), false);
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer, never()).sendBlockChange(
+            argThat(l -> (l != null) && (l.getBlockX() == (X + 1))), any(BlockData.class));
     }
 
     /**
