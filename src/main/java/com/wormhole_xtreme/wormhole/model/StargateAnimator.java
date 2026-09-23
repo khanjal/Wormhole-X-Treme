@@ -56,135 +56,136 @@ class StargateAnimator
         {
             return;
         }
-        if (gate.isGateIrisActive())
-        {
-            // A wormhole behind a closed iris is heard and not seen. Every wave is the portal
-            // face pushed out along the gate's facing, so all of them land on or past the iris
-            // -- drawing them put the kawoosh straight through a shut gate, which is the one
-            // thing an iris is for.
-            //
-            // Settling is skipped for the same reason and a sharper one: it draws the event
-            // horizon over the portal cells, which on a 2D gate are exactly where the iris
-            // blocks stand. The client would be shown water over stone the server still has
-            // there, and would go on believing it until something else refreshed those blocks.
-            //
-            // The sound still plays. The wormhole really has formed; it is only the sight of
-            // it that the iris is in the way of. Opening the iris later draws the portal
-            // through setIrisState, which is where an active gate gets its water back.
-            GateSounds.kawoosh(gate);
-            gate.setGateAnimationStep3D(0);
-            gate.setGateAnimationRemoving(false);
-            return;
-        }
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
-        final int waveCount = wooshWaveCount(gate);
-
-        if (waveCount <= 0)
+        // A shape with no authored waves and no WOOSH_DEPTH to derive any from has none, and
+        // settles straight into the open portal.
+        final int waveCount = Math.max(0, wooshWaveCount(gate));
+        // The gate keeps its place as a step and a direction; the sequence a build preview plays
+        // too decides what that stage draws, whether the iris hides it, and what comes next.
+        // With no waves a leftover counter means nothing, and would read as a negative stage.
+        final int stage = (waveCount == 0) ? 0
+            : WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.isGateAnimationRemoving(), waveCount);
+        final int next = WooshSequence.play(stage, waveCount, gate, new GateCanvas(gate, wooshMaterial));
+        if (next < 0)
         {
-            // Nothing to animate: a shape with no authored waves and no WOOSH_DEPTH to
-            // derive any from. Settle straight into the open portal rather than running an
-            // empty retraction, which is what the old 2D path did here by falling through
-            // its own "coming back" branch with nothing ever drawn.
-            settleIntoOpenPortal(gate, wooshMaterial);
             return;
         }
-
-        // The gate keeps its place in the woosh as a step and a direction; the sequence both it and
-        // a build preview follow says what that stage draws and where it goes next.
-        final int stage = WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.isGateAnimationRemoving(),
-            waveCount);
-        // Only zero at the very start of an opening, so this fires once per wormhole rather
-        // than once per frame. Here rather than where the woosh is scheduled, because there
-        // are two paths into that and only one into this.
-        if (stage == 0)
-        {
-            GateSounds.kawoosh(gate);
-        }
-
-        final WooshSequence.Step now = WooshSequence.at(stage, waveCount);
-        final List<Location> wave = wooshWave(gate, now.index());
-        if (wave != null)
-        {
-            showWave(gate, now, wave, wooshMaterial);
-        }
-
-        // Settling comes the stage after step 0 is taken back, not when the counter reaches 1:
-        // ending there skipped undrawing the shallowest step on every opening, which stayed
-        // showing as woosh material for as long as the gate was open.
-        final WooshSequence.Step next = WooshSequence.at(stage + 1, waveCount);
-        if (next.move() == WooshSequence.Move.SETTLE)
-        {
-            settleIntoOpenPortal(gate, wooshMaterial);
-            return;
-        }
-        gate.setGateAnimationStep3D(next.index());
-        gate.setGateAnimationRemoving(next.move() == WooshSequence.Move.BACK);
+        final WooshSequence.Step step = WooshSequence.at(next, waveCount);
+        gate.setGateAnimationStep3D(step.index());
+        gate.setGateAnimationRemoving(step.move() == WooshSequence.Move.BACK);
         scheduleNextWooshTick(gate);
     }
 
-    /**
-     * Draws one woosh step out, or takes it back.
-     *
-     * @param gate
-     *            the gate
-     * @param now
-     *            the stage being played
-     * @param wave
-     *            its blocks
-     * @param wooshMaterial
-     *            what the woosh is drawn as
-     */
-    private static void showWave(final Stargate gate, final WooshSequence.Step now, final List<Location> wave,
-        final Material wooshMaterial)
+    /** A real gate's side of the woosh: drawn to nearby clients, the sound played at the gate. */
+    private record GateCanvas(Stargate gate, Material wooshMaterial) implements WooshSequence.Canvas
     {
-        final boolean out = now.move() == WooshSequence.Move.OUT;
-        if (out)
+        @Override
+        public void kawoosh()
         {
-            // Drawn to nearby clients, not written. Nothing to remember an original for, and
-            // nothing left in the world if the server stops mid-woosh.
-            StargateBlockSetup.drawBlocks(gate, wave, wooshMaterial);
+            GateSounds.kawoosh(gate);
         }
-        else
+
+        @Override
+        public void draw(final int index)
         {
-            // Put back by showing what is really there, which needs no original and cannot
-            // get one wrong.
-            StargateBlockSetup.undrawBlocks(gate, wave);
+            showWave(gate, index, true, wooshMaterial);
         }
-        for (final Location l : wave)
+
+        @Override
+        public void undraw(final int index)
         {
-            final Block block = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+            showWave(gate, index, false, wooshMaterial);
+        }
+
+        @Override
+        public void undrawAll()
+        {
+            undrawLeftoverWoosh(gate);
+        }
+
+        @Override
+        public void settle()
+        {
+            settleIntoOpenPortal(gate, wooshMaterial);
+        }
+
+        @Override
+        public void settleBehindIris()
+        {
+            // Not filled: the horizon drawn over the portal cells would stand where the iris is.
+            // Opening the iris later draws the portal through setIrisState.
+            gate.setGateAnimationStep3D(0);
+            gate.setGateAnimationRemoving(false);
+        }
+
+        /**
+         * Draws one woosh step out, or takes it back.
+         *
+         * @param gate
+         *            the gate
+         * @param now
+         *            the stage being played
+         * @param wave
+         *            its blocks
+         * @param wooshMaterial
+         *            what the woosh is drawn as
+         */
+        private static void showWave(final Stargate gate, final int index, final boolean out,
+            final Material wooshMaterial)
+        {
+            final List<Location> wave = wooshWave(gate, index);
+            if (wave == null)
+            {
+                return;
+            }
             if (out)
             {
-                gate.getGateAnimatedBlocks().add(block);
+                // Drawn to nearby clients, not written. Nothing to remember an original for, and
+                // nothing left in the world if the server stops mid-woosh.
+                StargateBlockSetup.drawBlocks(gate, wave, wooshMaterial);
             }
             else
             {
-                gate.getGateAnimatedBlocks().remove(block);
+                // Put back by showing what is really there, which needs no original and cannot
+                // get one wrong.
+                StargateBlockSetup.undrawBlocks(gate, wave);
             }
+            for (final Location l : wave)
+            {
+                final Block block = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                if (out)
+                {
+                    gate.getGateAnimatedBlocks().add(block);
+                }
+                else
+                {
+                    gate.getGateAnimatedBlocks().remove(block);
+                }
+            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + (out ? " Woosh Adding: " : " Woosh Removing: ")
+                + index + " Woosh Block Size: " + wave.size());
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + (out ? " Woosh Adding: " : " Woosh Removing: ")
-            + now.index() + " Woosh Block Size: " + wave.size());
-    }
 
-    /**
-     * Puts the animation counters back to the start and shows the open portal.
-     *
-     * <p>The end of a retraction and a gate with no waves to animate both arrive here: in
-     * each case the woosh is over, or never happened, and what should be showing is the
-     * portal itself.
-     *
-     * @param gate
-     *            the gate
-     * @param wooshMaterial
-     *            what to fill the portal with
-     */
-    private static void settleIntoOpenPortal(final Stargate gate, final Material wooshMaterial)
-    {
-        gate.setGateAnimationStep3D(0);
-        gate.setGateAnimationRemoving(false);
-        if (gate.isGateLightsActive())
+        /**
+         * Puts the animation counters back to the start and shows the open portal.
+         *
+         * <p>The end of a retraction and a gate with no waves to animate both arrive here: in
+         * each case the woosh is over, or never happened, and what should be showing is the
+         * portal itself.
+         *
+         * @param gate
+         *            the gate
+         * @param wooshMaterial
+         *            what to fill the portal with
+         */
+        private static void settleIntoOpenPortal(final Stargate gate, final Material wooshMaterial)
         {
-            gate.fillGateInterior(wooshMaterial);
+            gate.setGateAnimationStep3D(0);
+            gate.setGateAnimationRemoving(false);
+            if (gate.isGateLightsActive())
+            {
+                gate.fillGateInterior(wooshMaterial);
+            }
         }
     }
 

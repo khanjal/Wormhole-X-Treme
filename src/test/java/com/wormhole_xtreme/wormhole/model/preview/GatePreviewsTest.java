@@ -1095,6 +1095,112 @@ class GatePreviewsTest
     }
 
     /**
+     * Dialling behind a closed iris sends no kawoosh.
+     *
+     * <p>Every woosh step lands on or past the iris, so a real gate draws none of them with it
+     * shut (#404). The preview drew all three out and back through its own closed iris. The
+     * opening is still sent, as it is under any closed iris, for the displays to cover.
+     */
+    @Test
+    void dialingBehindAClosedIrisSendsNoKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(owner);
+
+        GatePreviews.activate(owner);
+        // Seven chevrons, then one woosh stage: behind a shut iris the woosh ends there and books
+        // nothing after it.
+        for (int step = 0; step < 7; step++)
+        {
+            dialStep.run();
+        }
+        final int booked = dialDelays.size();
+        dialStep.run();
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+        verify(owner, never()).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        assertEquals(booked, dialDelays.size(), "and nothing more is booked after it");
+    }
+
+    /**
+     * Closing the iris partway through the kawoosh takes back what of it is already out.
+     *
+     * <p>The steps still to come are skipped behind the closed iris, but the first had already
+     * been sent, and it stood in front of the iris until the woosh drew back a second later. It
+     * goes on the next woosh step now, as it does on a real gate: the two play one sequence.
+     */
+    @Test
+    void closingTheIrisMidKawooshTakesBackWhatIsOut()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 8; step++)
+        {
+            dialStep.run();
+        }
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+
+        GatePreviews.iris(owner);
+        dialStep.run();
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(owner, times(21 + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+    }
+
+    /**
+     * An iris closed while the chevrons are still locking hides the kawoosh that follows.
+     *
+     * <p>What decides is the iris at the moment the woosh would play, not when dialling began.
+     */
+    @Test
+    void anIrisClosedDuringDiallingHidesTheKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        for (int step = 3; step < 8; step++)
+        {
+            dialStep.run();
+        }
+
+        verify(owner, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+    }
+
+    /**
+     * An iris opened while the chevrons are still locking lets the kawoosh through.
+     *
+     * <p>The other way round from the test above: closed when dialling began, open by the time
+     * the woosh plays, so the woosh is drawn.
+     */
+    @Test
+    void anIrisOpenedDuringDiallingLetsTheKawooshThrough()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        for (int step = 3; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        verify(owner, atLeast((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+    }
+
+    /**
      * The horizon is still being sent while the iris sweeps over it.
      *
      * <p>The assertion the one above cannot make by counting: that the water is there *during*

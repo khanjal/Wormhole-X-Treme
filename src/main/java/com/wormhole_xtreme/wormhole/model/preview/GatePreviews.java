@@ -395,17 +395,17 @@ public final class GatePreviews
         {
             return Control.NOT_LOOKING;
         }
-        preview.irisClosed(!preview.irisClosed());
+        preview.setGateIrisActive(!preview.isGateIrisActive());
         // The wormhole is not taken back when the iris shuts. It used to be, from when the
         // iris stood in the horizon's place rather than in front of it -- and that is what
         // replaced the water with air a beat before the first ring of the sweep arrived.
         // The opening's displays cover it now, the way a real gate's iris does.
-        sound(owner, preview, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
+        sound(owner, preview, preview.isGateIrisActive() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         // Restyles and draws for itself, a ring at a time. Doing either here as well would
         // draw the whole iris in the same tick the sweep set out to draw it gradually.
         startIrisSweep(owner, preview);
-        return preview.irisClosed() ? Control.IRIS_CLOSED : Control.IRIS_OPENED;
+        return preview.isGateIrisActive() ? Control.IRIS_CLOSED : Control.IRIS_OPENED;
     }
 
     /**
@@ -937,31 +937,62 @@ public final class GatePreviews
             }
             return;
         }
+        // The same sequence a real gate plays, iris and all; only the drawing is the preview's.
         final int stage = preview.wooshStage();
-        final int steps = preview.lastWoosh();
-        if ((stage == 0) && (steps > 0))
+        final int next = WooshSequence.play(stage, preview.lastWoosh(), preview, new PreviewCanvas(owner, preview));
+        preview.wooshStage((next < 0) ? (stage + 1) : next);
+        if (next >= 0)
+        {
+            next(owner, preview, preview.shape().getShapeWooshTicks());
+        }
+    }
+
+    /** A preview's side of the woosh: fake blocks for whoever is watching, the sound at the preview. */
+    private record PreviewCanvas(Player owner, GatePreview preview) implements WooshSequence.Canvas
+    {
+        @Override
+        public void kawoosh()
         {
             sound(owner, preview, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
         }
-        final WooshSequence.Step now = WooshSequence.at(stage, steps);
-        preview.wooshStage(stage + 1);
-        if (now.move() == WooshSequence.Move.OUT)
+
+        @Override
+        public void draw(final int index)
         {
-            send(owner, preview, wooshStep(preview, now.index()));
+            send(owner, preview, wooshStep(preview, index));
         }
-        else if (now.move() == WooshSequence.Move.BACK)
+
+        @Override
+        public void undraw(final int index)
         {
-            takeBack(owner, preview, wooshStep(preview, now.index()));
+            takeBack(owner, preview, wooshStep(preview, index));
         }
-        // Settled in the same step as the shallowest woosh step is taken back, as a real gate does.
-        if ((now.move() == WooshSequence.Move.SETTLE)
-            || (WooshSequence.at(stage + 1, steps).move() == WooshSequence.Move.SETTLE))
+
+        @Override
+        public void undrawAll()
+        {
+            takeBack(owner, preview, preview.woosh());
+        }
+
+        @Override
+        public void settle()
         {
             preview.open(true);
-            draw(owner, preview);
-            return;
+            GatePreviews.draw(owner, preview);
         }
-        next(owner, preview, preview.shape().getShapeWooshTicks());
+
+        @Override
+        public void settleBehindIris()
+        {
+            // Open all the same: the opening is drawn behind the iris, and its displays cover it.
+            settle();
+        }
+
+        /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
+        private static List<Cell> wooshStep(final GatePreview preview, final int index)
+        {
+            return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
+        }
     }
 
     /** Locks the next chevron, with its sound, and books what follows it. */
@@ -1048,12 +1079,6 @@ public final class GatePreviews
         sound(owner, preview, ConfigManager.getGateSoundActivate(), 1.0f);
         next(owner, preview, preview.shape().getShapeLightTicks());
         return Control.DIALLING;
-    }
-
-    /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
-    private static List<Cell> wooshStep(final GatePreview preview, final int index)
-    {
-        return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
     }
 
     /**
@@ -1299,16 +1324,16 @@ public final class GatePreviews
         final List<Cell> cells = preview.opening();
         if (!ConfigManager.isGateIrisAnimated() || (cells.size() < 2))
         {
-            preview.irisShownEverywhere(preview.irisClosed());
+            preview.irisShownEverywhere(preview.isGateIrisActive());
             restyle(preview);
             draw(owner, preview);
             return;
         }
         // Closing starts from nothing shown and adds rings; opening starts from all of it and
-        // takes them away. Either way the set ends agreeing with irisClosed.
-        preview.irisShownEverywhere(!preview.irisClosed());
+        // takes them away. Either way the set ends agreeing with the iris flag.
+        preview.irisShownEverywhere(!preview.isGateIrisActive());
         restyle(preview);
-        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.irisClosed()), 0);
+        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.isGateIrisActive()), 0);
     }
 
     /**
@@ -1365,7 +1390,7 @@ public final class GatePreviews
         }
         for (final int cell : rings.get(ring))
         {
-            if (preview.irisClosed())
+            if (preview.isGateIrisActive())
             {
                 preview.irisShown().add(cell);
             }
