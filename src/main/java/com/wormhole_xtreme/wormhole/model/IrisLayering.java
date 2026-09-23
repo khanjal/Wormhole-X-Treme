@@ -144,7 +144,9 @@ public final class IrisLayering
     {
         final boolean front = seesFront(facing, ringCell, eye.x(), eye.y(), eye.z());
         final At far = ringCell.moved(facing, front ? -1 : 1);
-        final boolean layered = free.test(far) && hidden(far, ringCell, facing, eye, opening);
+        // Hidden first: it is arithmetic, where free reads a block out of the world. A viewer
+        // round the side of a gate fails it at every cell, and reads nothing at all.
+        final boolean layered = hidden(far, ringCell, facing, eye, opening) && free.test(far);
         if (front)
         {
             // The iris in the ring and the horizon behind it, which is how a gate has always
