@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -153,6 +155,29 @@ class IrisLayeringTest
         }
         when(world.getBlockAt(x, Y, z)).thenReturn(block);
         return block;
+    }
+
+    /**
+     * An air block anywhere, registered with the world so the layering can read it.
+     *
+     * @param x
+     *            the cell's x
+     * @param y
+     *            the cell's y
+     * @param z
+     *            the cell's z
+     */
+    private void airAt(final int x, final int y, final int z)
+    {
+        final Block block = mock(Block.class);
+        when(block.getType()).thenReturn(Material.AIR);
+        when(block.getX()).thenReturn(Integer.valueOf(x));
+        when(block.getY()).thenReturn(Integer.valueOf(y));
+        when(block.getZ()).thenReturn(Integer.valueOf(z));
+        when(block.getWorld()).thenReturn(world);
+        when(block.getLocation()).thenReturn(new Location(world, x, y, z));
+        when(block.getBlockData()).thenReturn(truthBehind);
+        when(world.getBlockAt(x, y, z)).thenReturn(block);
     }
 
     /** Matches a location by its block, whatever its world. */
@@ -372,6 +397,53 @@ class IrisLayeringTest
 
         verify(viewer).sendBlockChange(at(Z), eq(iris));
         verify(viewer).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
+     * A whole Standard gate, stood in front of: every cell gets the horizon a block behind it.
+     *
+     * <p>Every other test here uses an opening one cell wide, which is a poor stand-in for the
+     * thing that goes wrong in a world: 21 cells at 21 different angles from one pair of eyes,
+     * and a ring of blocks with gaps at its corners. Written because a glass iris was showing
+     * the landscape rather than the wormhole and it was not clear whether the horizon was being
+     * drawn and not rendered, or never drawn at all. It is drawn: all 21 of it.
+     *
+     * <p>The layout is {@code Standard.shape}'s own ring layer, S for a gate block and P for
+     * the opening, and the viewer stands where a player would -- a few blocks out, a step off
+     * the gate's middle, feet on the ground below the opening.
+     */
+    @Test
+    void awholeStandardOpeningSendsTheHorizonBehindEveryCell()
+    {
+        final String[] ring = {"IISSSII", "ISPPPSI", "SPPPPPS", "SPPPPPS", "SPPPPPS", "ISPPPSI", "IISSSII"};
+        gate.getGatePortalBlocks().clear();
+        for (int row = 0; row < ring.length; row++)
+        {
+            for (int col = 0; col < ring[row].length(); col++)
+            {
+                final int x = X + col - 3;
+                final int y = Y + 3 - row;
+                // The plane itself and the cells either side of it, all of them open air.
+                airAt(x, y, Z - 1);
+                airAt(x, y, Z);
+                airAt(x, y, Z + 1);
+                if (ring[row].charAt(col) == 'P')
+                {
+                    gate.getGatePortalBlocks().add(new Location(world, x, y, Z));
+                }
+                else if (ring[row].charAt(col) == 'S')
+                {
+                    gate.getGateStructureBlocks().add(new Location(world, x, y, Z));
+                }
+            }
+        }
+        assertEquals(21, gate.getGatePortalBlocks().size(), "the opening this shape really has");
+        when(viewer.getLocation()).thenReturn(new Location(world, X + 1.5, Y - 3, Z - 4.5));
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer, times(21)).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer, times(21)).sendBlockChange(any(Location.class), eq(iris));
     }
 
     /**
