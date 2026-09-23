@@ -357,7 +357,7 @@ where it belongs for whoever is looking:
 
 | Standing | In the ring | One block further off |
 |---|---|---|
-| In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through |
+| In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through, a block further back still |
 | Behind | the horizon | the iris |
 | Round the side, in front | the iris | nothing |
 | Round the side, behind | the horizon | nothing |
@@ -369,6 +369,13 @@ see it standing clear of the ring, so from there the gate drops to one layer and
 other back up as you come round to face it. From behind that leaves the wormhole with no iris
 drawn over it -- which is a picture, not a way through. A shut iris refuses travellers on the
 gate's state, never on what is drawn.
+
+**A see-through iris needs one more block of room.** A stained-glass iris (`Atlantis`,
+`Universe`), or one of ice, tinted glass, slime or honey, stands its two layers two blocks apart
+rather than one, because the game will not draw water against a block of that kind and the
+wormhole would simply not be there. Plain glass does not need this and does not get it. So one
+of those gates wants two blocks of clear air behind it instead of one; with something built in
+the way it shows the iris alone, as any gate does.
 
 Nothing is drawn where you have built -- you see what you built -- and a gate with something
 built right in front of it shows the wormhole alone from behind. A horizontal gate's iris is

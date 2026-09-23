@@ -490,6 +490,18 @@ over a `Standard` opening they hold dead in front from one block to eight, and s
 either side. A single cell with something built beyond it is still its own case, since nothing
 is being seen past the gate there.
 
+**A translucent iris needs a block of air between the layers.** Java Edition draws water and
+the translucent blocks — stained glass, tinted glass, ice, slime, honey — in one pass, and skips
+the face between two of them entirely. A wormhole is a sheet one block thick, so behind a
+stained-glass iris its near face was culled and its far face pointed away from the viewer:
+nothing left to draw, and the gate showed the landscape through its own iris. `IrisLayering.apart`
+answers 2 for such an iris and 1 for everything else, and the gap cell has to be free air like
+the far one — a wormhole drawn behind somebody's wall is worse than none. Plain glass is what
+gave the rule away: it is a cutout rather than a translucent and shows the water perfectly well,
+so it must not be caught by `MaterialUtils.cullsWaterBehindIt` or every glass gate pays for a
+gap it does not need. A preview is exempt: its iris is a display entity, and an entity takes no
+part in block face culling.
+
 **What belongs in the plane is drawn first.** When there is no second layer to be had, the ring
 keeps whichever layer that viewer's side puts there — the iris from the front, the wormhole
 from behind — rather than the iris either way. The iris did keep it either way, so that a shut

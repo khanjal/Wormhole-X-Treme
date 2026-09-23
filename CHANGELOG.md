@@ -95,6 +95,14 @@ The plugin API is in [docs/API.md](docs/API.md).
   picks the second layer back up as you come round to face it -- all of it at once, so a gate
   at an angle is never part one thing and part the other. The gate's own ring counts as
   cover, so standing off to one side of a big one keeps both layers. Previews do the same.
+- **A stained-glass iris shows the wormhole through it again.** Minecraft draws water and
+  stained glass in the same pass and skips the face where two of them touch, so a wormhole
+  drawn right behind an `Atlantis` or `Universe` iris had nothing left to draw and the gate
+  showed the landscape through its own iris. Those irises now stand their two layers a block
+  further apart, with air between for the water to be seen against. Only an iris that does
+  this pays for it -- plain glass never did, and anything opaque hides the wormhole by being
+  opaque. A gate needs the extra block of air free behind it, and one with something built
+  right there shows the iris alone, as before.
 - **The wormhole stays put when you walk along the back of a gate.** With no room for the
   iris beyond the ring -- something built there, or an angle that would leave it standing
   clear of the gate -- the ring used to fall back to the iris, so walking along the back of a
