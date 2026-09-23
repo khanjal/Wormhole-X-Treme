@@ -1720,7 +1720,6 @@ class StargateBlockSetup
         final Material irisMaterial = gate.getEffectiveIrisMaterial();
         final Material portalMaterial = gate.getEffectivePortalMaterial();
         final BlockData iris = MaterialUtils.drawnAs(irisMaterial);
-        final BlockData horizon = MaterialUtils.drawnAs(portalMaterial);
         final List<Location> ring = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
