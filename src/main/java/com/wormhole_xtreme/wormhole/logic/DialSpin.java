@@ -372,35 +372,41 @@ public final class DialSpin
         }
         final List<Cell> path = path(pattern, glyph);
         final int last = path.size() - 1;
-        int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
-        int length = tail();
-        if (pattern == DialSpinPattern.FILL)
+        final int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
+        if (pattern == DialSpinPattern.PEGASUS)
         {
-            length = head + 1;
+            return pegasus(path, glyph, head);
         }
-        else if (pattern == DialSpinPattern.PEGASUS)
+        return run(path, head, (pattern == DialSpinPattern.FILL) ? (head + 1) : tail());
+    }
+
+    /**
+     * A Pegasus step: the run jumps a glyph's width rather than sliding, short of the chevron, and
+     * lands as the chevron alone, not the frame it covered on the way.
+     */
+    private Set<Cell> pegasus(final List<Cell> path, final int glyph, final int head)
+    {
+        final int last = path.size() - 1;
+        final Set<Cell> chevron = chevron(glyph);
+        final Set<Cell> landed = chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
+        // A chevron's cells can sit among frame cells, as Grand's do: short of the first reached.
+        int shortOf = 0;
+        while ((shortOf < last) && !chevron.contains(path.get(shortOf)))
         {
-            // A glyph at a time: the run jumps a glyph's width rather than sliding, and lands as the
-            // chevron alone, not the frame it covered on the way.
-            final Set<Cell> chevron = chevron(glyph);
-            if (head >= last)
-            {
-                return chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
-            }
-            // A chevron's cells can sit among frame cells, as Grand's do: short of the first reached.
-            int shortOf = 0;
-            while ((shortOf < last) && !chevron.contains(path.get(shortOf)))
-            {
-                shortOf++;
-            }
-            length = Math.max(2, ring.size() / GLYPHS);
-            if (shortOf == 0)
-            {
-                // Setting off on the chevron: nowhere short of it to be.
-                return chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
-            }
-            head = Math.min(((head / length) * length) + (length - 1), shortOf - 1);
+            shortOf++;
         }
+        // Landed, or setting off on the chevron with nowhere short of it to be.
+        if ((head >= last) || (shortOf == 0))
+        {
+            return landed;
+        }
+        final int length = Math.max(2, ring.size() / GLYPHS);
+        return run(path, Math.min(((head / length) * length) + (length - 1), shortOf - 1), length);
+    }
+
+    /** The cells of a path from a run's tail up to its head. */
+    private static Set<Cell> run(final List<Cell> path, final int head, final int length)
+    {
         final Set<Cell> lit = new LinkedHashSet<>();
         for (int i = Math.max(0, head - length + 1); i <= head; i++)
         {
