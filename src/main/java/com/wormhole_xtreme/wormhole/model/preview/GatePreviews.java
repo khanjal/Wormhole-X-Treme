@@ -1726,14 +1726,24 @@ public final class GatePreviews
                 applySideFor(viewer, preview, layers);
                 sendStacked(viewer, preview, layers);
             }
-            else if (preview.sides().remove(viewer.getUniqueId()) != null)
+            else if (preview.sides().containsKey(viewer.getUniqueId()))
             {
                 // Stacked until a moment ago: whoever was behind it was shown the set beyond
-                // the ring, and the ring's own set is everybody's again. The wormhole was drawn
-                // a block off the ring for them as well, and the ring cells the unstacked draw
-                // sends say nothing about that one, so it is handed back here.
+                // the ring, and the ring's own set is everybody's again.
                 showRingSet(viewer, preview);
-                handBackOffsets(viewer, preview);
+                // The wormhole was drawn a block off the ring for them as well, and the ring
+                // cells the unstacked draw sends say nothing about that one, so it is handed
+                // back here -- but not in the middle of a sweep. An iris opening is unstacked
+                // from its very first ring, so this handed every cell's far layer back at once
+                // while most of them were still covered: a see-through iris opened onto
+                // nothing, which is the closing sweep's fault read backwards. Mid-sweep the
+                // rings give their own back one at a time and the settle after the last ring
+                // catches whatever is left, which is why the entry stays until then.
+                if (!preview.sweeping())
+                {
+                    preview.sides().remove(viewer.getUniqueId());
+                    handBackOffsets(viewer, preview);
+                }
             }
         }
     }

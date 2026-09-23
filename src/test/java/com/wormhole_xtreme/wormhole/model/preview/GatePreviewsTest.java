@@ -1509,6 +1509,38 @@ class GatePreviewsTest
     }
 
     /**
+     * A see-through iris sweeping open gives the wormhole back a ring at a time, not all at once.
+     *
+     * <p>The mirror of the closing sweep, and it went wrong the same way. An opening iris is
+     * unstacked from its very first ring, and unstacking handed every cell's far layer back
+     * together -- so the ice vanished from the whole opening while most of it was still covered
+     * by glass, and the gate opened onto nothing until each ring's water caught up.
+     *
+     * <p>Asserted mid-sweep, and against the count: some cells have their wormhole back and
+     * some do not, which is the whole claim. All of them at once is the bug.
+     */
+    @Test
+    void aGlassIrisSweepGivesTheWormholeBackARingAtATime()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(front);
+
+        GatePreviews.iris(owner);
+
+        assertFalse(irisPending.isEmpty(),
+            "the opening sweep is still running -- at the end everything is handed back anyway");
+        final long given = handBacksAlong(front, -1);
+        assertTrue(given > 0, "some of the far layer has come back already");
+        assertTrue(given < openingCells().size(),
+            "but not all of it: " + given + " of " + openingCells().size()
+                + " handed back while most of the opening is still covered");
+    }
+
+    /**
      * An opaque iris sweeping shut leaves the wormhole in the ring, where its display covers it.
      *
      * <p>Nothing to move: the display stands in the cell the water is in and hides it, which is
