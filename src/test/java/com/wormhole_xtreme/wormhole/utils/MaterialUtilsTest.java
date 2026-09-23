@@ -62,8 +62,9 @@ class MaterialUtilsTest {
             MaterialUtils.shownBehindGlassAs(Material.WATER, true),
             "the two squares of the checkerboard have to differ, or there is no checkerboard");
 
-        assertEquals(Material.MAGMA_BLOCK, MaterialUtils.shownBehindGlassAs(Material.LAVA, false));
-        assertEquals(Material.NETHERRACK, MaterialUtils.shownBehindGlassAs(Material.LAVA, true));
+        assertEquals(Material.LAVA, MaterialUtils.shownBehindGlassAs(Material.LAVA, false),
+            "lava is not drawn translucent, so it shows through a glass iris as it is");
+        assertEquals(Material.LAVA, MaterialUtils.shownBehindGlassAs(Material.LAVA, true));
 
         assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.WATER, false)),
             "and neither stand-in may be a thing that gets culled itself");

@@ -237,6 +237,13 @@ public final class MaterialUtils {
      * <p>Two of them because one is a flat sheet of a single colour, which reads as ice rather
      * than as water. Laid in a checkerboard they break each other up and pass for a surface.
      *
+     * <p>Water and no other liquid. Lava is not drawn translucent -- the game says so plainly,
+     * and it shows through a stained-glass iris exactly as it is -- so standing in for it would
+     * replace a perfectly good picture with an imitation of it. A portal material that <em>is</em>
+     * translucent and has no stand-in here, {@code NETHER_PORTAL} being the one that ships, is
+     * hidden behind such an iris the same way water was; that wants its own look chosen rather
+     * than a guess made here.
+     *
      * @param horizon
      *            the material the horizon would be, may be null
      * @param alternate
@@ -250,8 +257,6 @@ public final class MaterialUtils {
         switch (horizon) {
             case WATER:
                 return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
-            case LAVA:
-                return alternate ? Material.NETHERRACK : Material.MAGMA_BLOCK;
             default:
                 return horizon;
         }
