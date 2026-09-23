@@ -468,10 +468,25 @@ layer to each viewer takes the ring and the other goes a block further off: from
 iris is in the ring and the horizon behind it, from behind the horizon is in the ring and the
 iris beyond it. Keeping the far layer on the far side is not only for looks — a drawn liquid
 on a player's own side of the gate gives their client swim physics the server does not agree
-with. The side is judged from the facing, remembered per player, and redrawn on every refresh,
-after the closing sweep, and on the step that crosses the gate's plane. Only cells that are
-really air are drawn in, and both layer positions are handed back whenever the gate stops
-being layered.
+with.
+
+**The far layer is only drawn where the gate hides it.** Two layers a block apart read as one
+gate head on and as two slabs from the side, and a flat gate is a single sheet of blocks with
+nothing to hide the second one behind — so from round the side the far layer stood clear of the
+ring with daylight around it. Each cell asks whether the sight line from the viewer to that
+block still crosses the opening: head on it crosses the block's own cell, and as the viewer
+walks round it drifts off the opening, which is exactly when the block would come out from
+behind the gate. A cell that fails it falls back to the iris in the ring and no second layer,
+the same fallback as a cell with something built beyond it. The opening alone counts as cover,
+not the ring of blocks around it: those are a sheet one thick as well, so a sight line grazing
+their edge would still show a sliver, and leaving them out makes them the margin that keeps the
+plain test safe.
+
+What each cell was drawn in is remembered per player and compared on the next step, so a move
+redraws only when it changes the picture. The side alone used to decide that, which is why a
+walk along the front of a gate left the far layer drawn long after the gate had stopped hiding
+it. Layers are also redrawn on every refresh and after the closing sweep. Only cells that are
+really air are drawn in, and every position a viewer is not drawn in is handed back.
 
 **A horizontal gate's iris stays real blocks.** Its opening is a floor. A drawn floor is air as
 far as the server is concerned: the client holds the player up on it, the server sees somebody

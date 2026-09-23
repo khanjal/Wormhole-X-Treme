@@ -261,23 +261,24 @@ public final class IrisLayering
         {
             return null;
         }
-        final int[] cell = new int[3];
+        // The facing's own axis is the ring's by definition -- the crossing is a point in that
+        // plane -- so only the two across it are worked out.
+        final int[] cell = {ringCell.x(), ringCell.y(), ringCell.z()};
         for (int axis = 0; axis < 3; axis++)
         {
-            final double at = eye.on(axis) + (part * (layer.middle(axis) - eye.on(axis)));
-            cell[axis] = (int) Math.floor(at);
+            if (mod(facing, axis) == 0)
+            {
+                cell[axis] = (int) Math.floor(
+                    eye.on(axis) + (part * (layer.middle(axis) - eye.on(axis))));
+            }
         }
-        // Pinned back to the plane's own row on the facing's axis: the arithmetic above lands a
-        // hair either side of it, and a cell a block deep is not one of the opening's.
-        return pinned(new At(cell[0], cell[1], cell[2]), ringCell, facing);
+        return new At(cell[0], cell[1], cell[2]);
     }
 
-    /** A position with its coordinate on the facing's axis taken from the ring plane. */
-    private static At pinned(final At at, final At ringCell, final BlockFace facing)
+    /** The facing's step on one axis. */
+    private static int mod(final BlockFace facing, final int axis)
     {
-        return new At(facing.getModX() == 0 ? at.x() : ringCell.x(),
-            facing.getModY() == 0 ? at.y() : ringCell.y(),
-            facing.getModZ() == 0 ? at.z() : ringCell.z());
+        return axis == 0 ? facing.getModX() : (axis == 1 ? facing.getModY() : facing.getModZ());
     }
 
     /** How far along the facing the middle of a block lies. */
