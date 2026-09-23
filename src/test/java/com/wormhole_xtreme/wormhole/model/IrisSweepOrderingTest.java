@@ -329,6 +329,9 @@ class IrisSweepOrderingTest
 
         gate.toggleIrisActive(false);
 
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "a sweep is actually running -- an undialled gate still sweeps, and without this the"
+                + " assertion below would hold for a gate that never drew anything at all");
         verify(watcher, never()).sendBlockChange(argThat(at -> at.getBlockZ() == -1),
             argThat(drawn -> drawn != truth));
     }

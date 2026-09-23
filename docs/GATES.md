@@ -514,10 +514,16 @@ surface, so the ices are nearly identical and the alternation reads as movement 
 pattern, while a portal is bright violet swirls over a darker ground, so its two are further
 apart and the difference is the point.
 
-**One case the look-alike does not reach.** A horizontal gate's iris is real blocks in the
+**Two cases the look-alike does not reach.** A horizontal gate's iris is real blocks in the
 opening itself rather than a drawing a block off it, so there is no far layer to dress and a
 see-through iris there shows whatever is under the gate. Not a regression — the stacking that
 the stand-in belongs to is an upright gate's to begin with.
+
+And the stand-ins are chosen per material, so only the two that ship have one. A palette's
+`portal` accepts any material, and anything translucent in its own right — plain ice, a stained
+glass, tinted glass, slime, honey — named as a portal material is invisible behind a see-through
+iris the same way. No shipped palette does that, and what a given one *should* look like is a
+choice rather than a guess, so they are left until somebody asks for one.
 
 **The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
 with the ring that uncovers it, and the wormhole in the ring is never touched — that is the

@@ -322,6 +322,13 @@ public final class MaterialUtils {
      * exactly as it is, so standing in for it would replace a good picture with an imitation of
      * one.
      *
+     * <p>And only the two that ship. A palette's {@code portal} accepts any material at all, so
+     * anything on {@link #cullsWaterBehindIt}'s own list -- plain ice, a stained glass, tinted
+     * glass, slime, honey -- named as a portal material is still invisible behind a see-through
+     * iris, because there is no answer here for it. None of the shipped palettes does that, and
+     * a stand-in is a look someone has to choose rather than one worth guessing, so they are
+     * left out until somebody asks.
+     *
      * @param horizon
      *            the material the horizon would be, may be null
      * @param alternate
