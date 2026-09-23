@@ -1404,15 +1404,15 @@ public final class GatePreviews
      *            the opening cell
      * @param eye
      *            where the viewer is looking from
-     * @param opening
-     *            the opening's own cells, which is what the far layer has to hide behind
+     * @param stacked
+     *            whether the preview is layered for this viewer at all
      * @return where the iris and the wormhole go for them
      */
     private static IrisLayering.Placement placed(final GatePreview preview, final Cell cell,
-        final IrisLayering.Eye eye, final Set<IrisLayering.At> opening)
+        final IrisLayering.Eye eye, final boolean stacked)
     {
         return IrisLayering.place(at(cell), preview.grid().facing(), eye,
-            at -> freeForLayer(preview, at), opening::contains);
+            at -> freeForLayer(preview, at), stacked);
     }
 
     /** An opening cell as a plain position. */
@@ -1436,12 +1436,18 @@ public final class GatePreviews
     private static List<IrisLayering.Placement> layersFor(final GatePreview preview, final Location from)
     {
         final IrisLayering.Eye eye = new IrisLayering.Eye(from.getX(), from.getY(), from.getZ());
-        final Set<IrisLayering.At> opening = new HashSet<>();
+        final List<IrisLayering.At> opening = new ArrayList<>();
         preview.opening().forEach(cell -> opening.add(at(cell)));
+        // The whole preview is cover, not just its opening: a viewer off to one side is looking
+        // past the blocks around the ring, the same as at a built gate.
+        final Set<IrisLayering.At> cover = new HashSet<>(opening);
+        preview.cells().forEach(cell -> cover.add(at(cell)));
+        final boolean stacked =
+            IrisLayering.hidesFarLayers(opening, preview.grid().facing(), eye, cover::contains);
         final List<IrisLayering.Placement> layers = new ArrayList<>();
         for (final Cell cell : preview.opening())
         {
-            layers.add(placed(preview, cell, eye, opening));
+            layers.add(placed(preview, cell, eye, stacked));
         }
         return layers;
     }

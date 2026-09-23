@@ -1583,13 +1583,17 @@ class StargateBlockSetup
     {
         final List<IrisLayering.Placement> layers = new ArrayList<>();
         final IrisLayering.Eye eye = new IrisLayering.Eye(from.getX(), from.getY(), from.getZ());
-        final Set<IrisLayering.At> opening = openingCells(gate);
-        for (final Location bc : gate.getGatePortalBlocks())
+        final List<IrisLayering.At> opening = asPositions(gate.getGatePortalBlocks());
+        final Set<IrisLayering.At> cover = new HashSet<>(opening);
+        // The gate's own blocks are cover too. A structure block off the ring's plane can never
+        // be what a sight line crosses, so the whole lot goes in without sorting them out.
+        cover.addAll(asPositions(gate.getGateStructureBlocks()));
+        final boolean stacked =
+            IrisLayering.hidesFarLayers(opening, gate.getGateFacing(), eye, cover::contains);
+        for (final IrisLayering.At cell : opening)
         {
-            layers.add(IrisLayering.place(
-                new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
-                gate.getGateFacing(), eye, at -> backdropIsFree(located(gate, at)),
-                opening::contains));
+            layers.add(IrisLayering.place(cell, gate.getGateFacing(), eye,
+                at -> backdropIsFree(located(gate, at)), stacked));
         }
         return layers;
     }
@@ -1783,18 +1787,18 @@ class StargateBlockSetup
     }
 
     /**
-     * A gate's opening as plain coordinates, for asking whether a sight line still crosses it.
+     * Locations as plain coordinates, for asking whether a sight line still crosses them.
      *
-     * @param gate
-     *            the gate
-     * @return the opening's cells
+     * @param blocks
+     *            the locations
+     * @return their positions, in the same order
      */
-    private static Set<IrisLayering.At> openingCells(final Stargate gate)
+    private static List<IrisLayering.At> asPositions(final List<Location> blocks)
     {
-        final Set<IrisLayering.At> cells = new HashSet<>();
-        for (final Location portal : gate.getGatePortalBlocks())
+        final List<IrisLayering.At> cells = new ArrayList<>(blocks.size());
+        for (final Location block : blocks)
         {
-            cells.add(new IrisLayering.At(portal.getBlockX(), portal.getBlockY(), portal.getBlockZ()));
+            cells.add(new IrisLayering.At(block.getBlockX(), block.getBlockY(), block.getBlockZ()));
         }
         return cells;
     }

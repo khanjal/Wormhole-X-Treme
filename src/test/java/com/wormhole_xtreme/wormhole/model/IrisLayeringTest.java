@@ -124,18 +124,34 @@ class IrisLayeringTest
      */
     private Block blockAt(final int z, final BlockData truth)
     {
+        return blockAt(X, z, truth);
+    }
+
+    /**
+     * The same, in a column beside the gate's own.
+     *
+     * @param x
+     *            the cell's x
+     * @param z
+     *            the cell's z
+     * @param truth
+     *            the block data a hand-back should send, or null if the test never checks
+     * @return the block
+     */
+    private Block blockAt(final int x, final int z, final BlockData truth)
+    {
         final Block block = mock(Block.class);
         when(block.getType()).thenReturn(Material.AIR);
-        when(block.getX()).thenReturn(Integer.valueOf(X));
+        when(block.getX()).thenReturn(Integer.valueOf(x));
         when(block.getY()).thenReturn(Integer.valueOf(Y));
         when(block.getZ()).thenReturn(Integer.valueOf(z));
         when(block.getWorld()).thenReturn(world);
-        when(block.getLocation()).thenReturn(new Location(world, X, Y, z));
+        when(block.getLocation()).thenReturn(new Location(world, x, Y, z));
         if (truth != null)
         {
             when(block.getBlockData()).thenReturn(truth);
         }
-        when(world.getBlockAt(X, Y, z)).thenReturn(block);
+        when(world.getBlockAt(x, Y, z)).thenReturn(block);
         return block;
     }
 
@@ -349,6 +365,53 @@ class IrisLayeringTest
 
         verify(viewer).sendBlockChange(at(Z), eq(iris));
         verify(viewer).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
+     * The blocks around the opening are cover as much as the opening is.
+     *
+     * <p>The same viewing position as {@link #fromOffToTheSideTheGateShowsOneLayerOnly}, with
+     * the gate's own ring put where their sight line crosses. Counting only the opening as
+     * cover took the second layer away from anybody who was not nearly square in front of a
+     * big gate -- through a glass iris that read as the wormhole having gone -- when what they
+     * were looking through the gate past was its ring all along.
+     */
+    @Test
+    void theBlocksAroundTheOpeningAreCoverToo()
+    {
+        gate.getGateStructureBlocks().add(new Location(world, X + 1, Y, Z));
+        standAt(X + 4, Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
+     * One cell seen past the gate takes the second layer off all of them.
+     *
+     * <p>Asked cell by cell, a gate seen from an angle came apart into a patchwork: some cells
+     * with two layers and some fallen back to one, which from behind is a square of bare iris
+     * sitting in the middle of the wormhole. A gate is one picture, so it is one decision.
+     *
+     * <p>The two cells here are deliberately unalike from where the viewer stands: the sight
+     * line to the far layer of the nearer one still crosses the opening, and the line to the
+     * other one's leaves the gate entirely.
+     */
+    @Test
+    void oneCellSeenPastTheGateTakesTheLayerOffAllOfThem()
+    {
+        blockAt(X + 1, Z, null);
+        blockAt(X + 1, Z + 1, truthBehind);
+        blockAt(X + 1, Z - 1, truthAhead);
+        gate.getGatePortalBlocks().add(new Location(world, X + 1, Y, Z));
+        standAt(X + 4, Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
     }
 
     /**

@@ -20,11 +20,12 @@ import org.bukkit.block.BlockFace;
  * layer on the far side is not only for looks: a drawn liquid on a viewer's own side of the
  * gate gives their client swim physics the server does not share.
  *
- * <p>The far layer is only drawn where the opening itself stands between it and the eye. Two
+ * <p>The far layer is only drawn while the gate itself stands between it and the eye. Two
  * layers a block apart read as one picture head on and as two slabs from the side, and a
  * two-dimensional gate is a single sheet of blocks with nothing to hide the second one -- which
  * is what "the water is floating beside the gate" was. Seen from far enough round, a gate goes
- * back to the one layer it can tell the truth with.
+ * back to the one layer it can tell the truth with, and it goes back all at once: see
+ * {@link #hidesFarLayers}.
  */
 public final class IrisLayering
 {
@@ -144,19 +145,17 @@ public final class IrisLayering
      * @param free
      *            whether a position is free to be drawn in: only real air, so that what
      *            somebody has built either side of a gate is what they go on seeing
-     * @param opening
-     *            whether a position in the ring plane is part of the opening, which is what the
-     *            far layer has to hide behind to be drawn at all
+     * @param stacked
+     *            whether this gate is layered for this viewer at all, from
+     *            {@link #hidesFarLayers}
      * @return where this viewer's iris and horizon go
      */
     public static Placement place(final At ringCell, final BlockFace facing, final Eye eye,
-        final Predicate<At> free, final Predicate<At> opening)
+        final Predicate<At> free, final boolean stacked)
     {
         final boolean front = seesFront(facing, ringCell, eye.x(), eye.y(), eye.z());
         final At far = ringCell.moved(facing, front ? -1 : 1);
-        // Hidden first: it is arithmetic, where free reads a block out of the world. A viewer
-        // round the side of a gate fails it at every cell, and reads nothing at all.
-        final boolean layered = hidden(far, ringCell, facing, eye, opening) && free.test(far);
+        final boolean layered = stacked && free.test(far);
         if (front)
         {
             // The iris in the ring and the horizon behind it, which is how a gate has always
@@ -215,16 +214,54 @@ public final class IrisLayering
     }
 
     /**
-     * Whether the opening stands between an eye and a layer a block off the ring plane.
+     * Whether a gate hides the far layer of every one of its cells from this eye.
+     *
+     * <p>All of them or none of them, on purpose. Asked cell by cell, a gate seen from an angle
+     * came apart into a patchwork -- some cells with the two layers and some fallen back to
+     * one, which from behind is a square of bare iris in the middle of the wormhole. A gate is
+     * one picture, so it is one decision: the layers hold while the gate covers all of them,
+     * and the moment any cell would be seen past it the whole gate goes back to a single layer.
+     *
+     * @param opening
+     *            the opening's cells
+     * @param facing
+     *            the gate's facing
+     * @param eye
+     *            where the viewer is looking from
+     * @param cover
+     *            whether a position in the ring plane is part of the gate -- its opening or the
+     *            blocks around it, both of which stand between a viewer and the far layer
+     * @return true if every cell's far layer is hidden
+     */
+    public static boolean hidesFarLayers(final List<At> opening, final BlockFace facing,
+        final Eye eye, final Predicate<At> cover)
+    {
+        if ((facing == null) || opening.isEmpty())
+        {
+            return false;
+        }
+        final boolean front = seesFront(facing, opening.get(0), eye.x(), eye.y(), eye.z());
+        for (final At cell : opening)
+        {
+            if (!hidden(cell.moved(facing, front ? -1 : 1), cell, facing, eye, cover))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether the gate stands between an eye and a layer a block off the ring plane.
      *
      * <p>The test is the sight line from the eye to the middle of that block: where it crosses
-     * the ring plane, is it still inside the opening? Head on it crosses the layer's own cell
-     * and the answer is yes. Step round to the side and the crossing walks off the opening,
-     * which is the moment the block would be seen hanging in the air beside the gate.
+     * the ring plane, is it still on the gate? Head on it crosses the layer's own cell and the
+     * answer is yes. Step round to the side and the crossing walks off the gate, which is the
+     * moment the block would be seen hanging in the air beside it.
      *
-     * <p>The opening alone, not the ring of blocks around it, on purpose: those blocks are a
-     * sheet one thick as well, and a crossing at their very edge leaves a sliver of the far
-     * layer showing past them. The ring is the margin that makes the plain test safe.
+     * <p>The blocks around the opening count as cover, not just the opening: they are what a
+     * viewer standing off to one side is actually looking through the gate past, and counting
+     * only the opening took the layers away from anyone not square in front of a big gate.
      *
      * @param layer
      *            the layer position, a block off the ring plane
@@ -234,15 +271,15 @@ public final class IrisLayering
      *            the gate's facing
      * @param eye
      *            where the viewer is looking from
-     * @param opening
-     *            whether a position in the ring plane is part of the opening
-     * @return true if the opening hides it
+     * @param cover
+     *            whether a position in the ring plane is part of the gate
+     * @return true if the gate hides it
      */
-    static boolean hidden(final At layer, final At ringCell, final BlockFace facing,
-        final Eye eye, final Predicate<At> opening)
+    private static boolean hidden(final At layer, final At ringCell, final BlockFace facing,
+        final Eye eye, final Predicate<At> cover)
     {
         final At crossed = crossing(layer, ringCell, facing, eye);
-        return (crossed != null) && opening.test(crossed);
+        return (crossed != null) && cover.test(crossed);
     }
 
     /**
