@@ -90,14 +90,27 @@ public final class GateBlueprint
          */
         public static Role named(final String word)
         {
+            if (word == null)
+            {
+                return null;
+            }
+            // With or without the leading dash: a role shares its slot with a material group's
+            // name, and the bare form has to go on working for anybody who learnt it.
+            final String typed = word.startsWith("-") ? word.substring(1) : word;
             for (final Role role : values())
             {
-                if (role.word().equalsIgnoreCase(word))
+                if (role.word().equalsIgnoreCase(typed))
                 {
                     return role;
                 }
             }
             return null;
+        }
+
+        /** This role as it is offered and documented: the word with its leading dash. */
+        public String option()
+        {
+            return "-" + word();
         }
     }
 

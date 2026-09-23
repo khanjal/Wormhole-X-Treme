@@ -501,9 +501,32 @@ class GateBuildPreviewCommandTest
             previews.verify(() -> GatePreviews.material(any(Player.class),
                 any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class), any(org.bukkit.Material.class)), never());
         }
-        verify(player).sendMessage(saying(PREVIEW + "material <role> <block>. "
-            + "Roles: frame, chevron, light, portal, iris, sign."));
+        verify(player).sendMessage(saying(PREVIEW + "material -<role> <block>. "
+            + "Roles: -frame, -chevron, -light, -portal, -iris, -sign."));
         verify(player).sendMessage(saying("That is not a block."));
+    }
+
+    /**
+     * A role is taken with its dash, and the bare word still works.
+     *
+     * <p>The slot after {@code material} holds either a group to redress in or one role to
+     * change, so the roles wear a dash to tell them from a group's name. Servers and notes are
+     * full of the bare form, which is not worth breaking over a completion list -- the same
+     * bargain {@code materials} got when it became {@code needs}.
+     */
+    @Test
+    void materialTakesARoleWithOrWithoutItsDash()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            run("gate", "preview", "material", "-iris", "gold_block");
+            run("gate", "preview", "material", "iris", "gold_block");
+
+            previews.verify(() -> GatePreviews.material(any(Player.class),
+                eq(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.IRIS),
+                eq(org.bukkit.Material.GOLD_BLOCK)), times(2));
+        }
     }
 
     /** The controls are the preview node's; an admin without it may clear, and nothing else. */
@@ -529,8 +552,11 @@ class GateBuildPreviewCommandTest
         assertEquals(List.of(ACTIONS.split(" ")),
             gate.completeArgs(player, new String[] { "gate", "preview", "" }));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "" }).contains("preview"));
+        // Roles wear a dash so nothing in this list reads as a material group's name.
         assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "" })
-            .containsAll(List.of("Atlantis", "Standard", "frame", "iris")));
+            .containsAll(List.of("Atlantis", "Standard", "-frame", "-iris")));
+        assertFalse(gate.completeArgs(player, new String[] { "gate", "preview", "material", "" })
+            .contains("iris"), "the bare word still works, but offering it is what made the list unreadable");
         assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "frame", "gold_b" })
             .contains("gold_block"));
         assertTrue(gate.completeArgs(player, new String[] { "gate", "preview", "material", "frame", "" }).isEmpty(),
