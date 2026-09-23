@@ -181,7 +181,8 @@ class PortalBehindTheIrisTest
         final BlockData horizon = mock(BlockData.class);
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(horizon);
+            materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.SOUTH)))
+                .thenReturn(horizon);
             materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
             materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
 

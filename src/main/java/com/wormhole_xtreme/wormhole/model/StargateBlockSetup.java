@@ -696,7 +696,7 @@ class StargateBlockSetup
         }
         // Built only once nobody-is-watching has been ruled out: createBlockData()
         // needs a live server, and the woosh animation calls this every frame.
-        final BlockData blockData = MaterialUtils.drawnAs(material);
+        final BlockData blockData = MaterialUtils.drawnAcross(material, gate.getGateFacing());
         for (final Location bc : portalBlocks)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
@@ -757,7 +757,8 @@ class StargateBlockSetup
         }
         // Built once nobody-is-watching has been ruled out, for the same reason
         // sendPortalVisual does it: createBlockData needs a live server.
-        final BlockData drawn = (material == null) ? null : MaterialUtils.drawnAs(material);
+        final BlockData drawn = (material == null) ? null
+            : MaterialUtils.drawnAcross(material, gate.getGateFacing());
         for (final Location bc : cells)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
@@ -941,7 +942,7 @@ class StargateBlockSetup
         }
         // Built only once nobody-is-watching has been ruled out: createBlockData() needs a
         // live server, and the woosh calls this every frame.
-        final BlockData blockData = MaterialUtils.drawnAs(material);
+        final BlockData blockData = MaterialUtils.drawnAcross(material, gate.getGateFacing());
         for (final Location bc : blocks)
         {
             final Location at = new Location(gate.getGateWorld(),
@@ -1271,7 +1272,8 @@ class StargateBlockSetup
      */
     private static void sendPortalTo(final Player player, final Stargate gate)
     {
-        final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
+        final BlockData blockData =
+            MaterialUtils.drawnAcross(gate.getEffectivePortalMaterial(), gate.getGateFacing());
         for (final Location bc : gate.getGatePortalBlocks())
         {
             player.sendBlockChange(
@@ -1307,7 +1309,8 @@ class StargateBlockSetup
         // the moment an older world's built iris can be taken out. It matches nothing once it
         // has run, so it costs a type check per cell after that.
         com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
-        final BlockData irisData = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
+        final BlockData irisData =
+            MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
         for (final Location bc : gate.getGatePortalBlocks())
         {
             player.sendBlockChange(
@@ -1483,7 +1486,7 @@ class StargateBlockSetup
             return;
         }
         final BlockData horizon = show
-            ? MaterialUtils.drawnAs(gate.getEffectivePortalMaterial()) : null;
+            ? MaterialUtils.drawnAcross(gate.getEffectivePortalMaterial(), gate.getGateFacing()) : null;
         for (final Location at : cells)
         {
             if (!backdropIsFree(at))
@@ -1653,7 +1656,9 @@ class StargateBlockSetup
                 if ((where != null) && !where.equals(cell))
                 {
                     player.sendBlockChange(located(gate, where),
-                        MaterialUtils.drawnAs(DrawnHorizon.materialFor(portal, irisMaterial, cell, true)));
+                        MaterialUtils.drawnAcross(
+                            DrawnHorizon.materialFor(portal, irisMaterial, cell, true),
+                            gate.getGateFacing()));
                 }
             }
         }
@@ -1719,7 +1724,7 @@ class StargateBlockSetup
         com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
         final Material irisMaterial = gate.getEffectiveIrisMaterial();
         final Material portalMaterial = gate.getEffectivePortalMaterial();
-        final BlockData iris = MaterialUtils.drawnAs(irisMaterial);
+        final BlockData iris = MaterialUtils.drawnAcross(irisMaterial, gate.getGateFacing());
         final List<Location> ring = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
@@ -1747,8 +1752,8 @@ class StargateBlockSetup
                 // those it is, is DrawnHorizon's to decide -- asking here as well would be the
                 // same rule in two places, and one of them would eventually be wrong.
                 player.sendBlockChange(located(gate, placed.horizon()),
-                    MaterialUtils.drawnAs(DrawnHorizon.materialFor(portalMaterial, irisMaterial,
-                        cell, !placed.horizon().equals(cell))));
+                    MaterialUtils.drawnAcross(DrawnHorizon.materialFor(portalMaterial, irisMaterial,
+                        cell, !placed.horizon().equals(cell)), gate.getGateFacing()));
             }
         }
         if (gate.isGateLightsActive())
@@ -1860,7 +1865,9 @@ class StargateBlockSetup
             if (show)
             {
                 player.sendBlockChange(located(gate, where),
-                    MaterialUtils.drawnAs(DrawnHorizon.materialFor(portal, irisMaterial, cell, true)));
+                    MaterialUtils.drawnAcross(
+                        DrawnHorizon.materialFor(portal, irisMaterial, cell, true),
+                        gate.getGateFacing()));
             }
             else
             {

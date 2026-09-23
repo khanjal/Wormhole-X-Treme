@@ -41,6 +41,82 @@ public final class MaterialUtils {
     }
 
     /**
+     * Block data for a material drawn across a gate's opening, turned to lie in it.
+     *
+     * <p>{@link #drawnAs(Material)} plus {@link #laidAcross}, which is what every cell of an
+     * opening wants: the wormhole, the iris, the horizon behind one and the woosh.
+     *
+     * @param material
+     *            the material being drawn
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return its block data, lit and turned where either means something
+     */
+    public static org.bukkit.block.data.BlockData drawnAcross(final Material material,
+        final org.bukkit.block.BlockFace gateFacing) {
+        return laidAcross(drawnAs(material), gateFacing);
+    }
+
+    /**
+     * Turns block data to lie in the plane of a gate's opening, where it has a plane to turn.
+     *
+     * <p>{@link org.bukkit.block.data.Orientable} blocks carry an axis, and
+     * {@code createBlockData()} hands back whichever one the game defaults to. That is right for
+     * half the gates in a world and ninety degrees out for the other half: a {@code NETHER_PORTAL}
+     * wormhole drawn from the default shows a thin sliver edge-on instead of a sheet filling the
+     * opening. Which half looks wrong depends only on which way the gate was built, so it stays
+     * invisible until somebody builds the second one.
+     *
+     * <p>The axis is the gate's facing turned sideways, because the opening is the plane the
+     * block has to fill: a gate facing north or south opens across X, one facing east or west
+     * across Z. A horizontal gate gets nothing -- its opening is flat, and an axis names a
+     * horizontal direction, so there is no value that would lie in it. Neither does a block whose
+     * own {@code getAxes()} does not offer the one wanted: a nether portal has X and Z and no Y,
+     * and a block with some other set is better left at its default than forced.
+     *
+     * <p>Written for {@code Orientable} rather than for the portal material, because a log, a
+     * pillar or a bone block named as an iris has exactly the same problem. Only the opening,
+     * though: a frame block stands upright on purpose, and laying the chevrons over sideways to
+     * match the wormhole would be a fix for a bug nobody has.
+     *
+     * @param data
+     *            the block data, turned in place where it can be; may be null
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return the same block data
+     */
+    public static org.bukkit.block.data.BlockData laidAcross(final org.bukkit.block.data.BlockData data,
+        final org.bukkit.block.BlockFace gateFacing) {
+        final org.bukkit.Axis axis = openingAxis(gateFacing);
+        if ((axis != null) && (data instanceof org.bukkit.block.data.Orientable orientable)
+            && orientable.getAxes().contains(axis)) {
+            orientable.setAxis(axis);
+        }
+        return data;
+    }
+
+    /**
+     * The axis an opening runs along, for a gate facing this way.
+     *
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return the axis, or null for a horizontal gate and for anything not a cardinal direction
+     */
+    private static org.bukkit.Axis openingAxis(final org.bukkit.block.BlockFace gateFacing) {
+        if (gateFacing == null) {
+            return null;
+        }
+        switch (gateFacing) {
+            case NORTH, SOUTH:
+                return org.bukkit.Axis.X;
+            case EAST, WEST:
+                return org.bukkit.Axis.Z;
+            default:
+                return null;
+        }
+    }
+
+    /**
      * The same block switched on, where that means anything.
      *
      * <p>A redstone lamp built into a gate frame is a chevron waiting to light: it stands

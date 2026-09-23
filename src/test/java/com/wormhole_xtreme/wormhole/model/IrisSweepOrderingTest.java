@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -66,8 +67,8 @@ class IrisSweepOrderingTest
     private Stargate gate;
     private WormholeXTreme plugin;
     /**
-     * {@code MaterialUtils.drawnAs} goes through {@code Material.createBlockData}, which needs
-     * a live server. Held open for the whole class because every test here has somebody
+     * {@code MaterialUtils.drawnAcross} goes through {@code Material.createBlockData}, which
+     * needs a live server. Held open for the whole class because every test here has somebody
      * watching, and every draw reaches it.
      */
     private MockedStatic<MaterialUtils> materials;
@@ -91,7 +92,7 @@ class IrisSweepOrderingTest
         PluginTestSupport.forgetAllGates();
 
         materials = mockStatic(MaterialUtils.class);
-        materials.when(() -> MaterialUtils.drawnAs(any(Material.class)))
+        materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), any()))
             .thenAnswer(i ->
             {
                 final Material asked = i.getArgument(0);
@@ -280,8 +281,8 @@ class IrisSweepOrderingTest
             .thenReturn(Material.BLUE_ICE);
         materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
             .thenReturn(Material.PACKED_ICE);
-        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_ICE)).thenReturn(ice);
-        materials.when(() -> MaterialUtils.drawnAs(Material.PACKED_ICE)).thenReturn(packed);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
 
         gate.toggleIrisActive(false);
 

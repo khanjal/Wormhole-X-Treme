@@ -1110,7 +1110,8 @@ public final class GatePreviews
     /** Sends one viewer the wormhole at some cells. */
     private static void sendTo(final Player viewer, final GatePreview preview, final List<Cell> cells)
     {
-        final BlockData portal = blockData.apply(preview.palette().portal());
+        final BlockData portal =
+            MaterialUtils.laidAcross(blockData.apply(preview.palette().portal()), preview.grid().facing());
         for (final Cell cell : cells)
         {
             viewer.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()), portal);
@@ -1558,8 +1559,8 @@ public final class GatePreviews
     private static BlockData horizonData(final GatePreview preview, final IrisLayering.At ring,
         final IrisLayering.Placement placed)
     {
-        return blockData.apply(DrawnHorizon.materialFor(preview.palette().portal(),
-            preview.palette().iris(), ring, !ring.equals(placed.horizon())));
+        return MaterialUtils.laidAcross(blockData.apply(DrawnHorizon.materialFor(preview.palette().portal(),
+            preview.palette().iris(), ring, !ring.equals(placed.horizon()))), preview.grid().facing());
     }
 
     /**
@@ -2296,7 +2297,7 @@ public final class GatePreviews
     /** What the opening's displays show: they stand only while the iris is closed. */
     static BlockData openingData(final GatePreview preview)
     {
-        return blockData.apply(preview.palette().iris());
+        return MaterialUtils.laidAcross(blockData.apply(preview.palette().iris()), preview.grid().facing());
     }
 
     /** What a cell is drawn as, with the button and sign turned to face the builder. */
@@ -2308,6 +2309,12 @@ public final class GatePreviews
             && directional.getFaces().contains(preview.grid().facing()))
         {
             directional.setFacing(preview.grid().facing());
+        }
+        // And a cell of the opening is laid in the opening's plane, the way a real gate draws
+        // its wormhole. Only the opening: a frame block stands the way it was built.
+        if (cell.part() == Part.PORTAL)
+        {
+            MaterialUtils.laidAcross(data, preview.grid().facing());
         }
         return data;
     }

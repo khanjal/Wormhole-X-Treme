@@ -77,8 +77,10 @@ class IrisLayeringTest
         truthBehind = mock(BlockData.class);
         truthAhead = mock(BlockData.class);
         materials = mockStatic(MaterialUtils.class);
-        materials.when(() -> MaterialUtils.drawnAs(Material.IRON_BLOCK)).thenReturn(iris);
-        materials.when(() -> MaterialUtils.drawnAs(Material.WATER)).thenReturn(horizon);
+        // drawnAcross, not drawnAs: a cell of the opening is turned to lie in the gate's plane
+        // on the way out. any() for the facing because these tests use several.
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.IRON_BLOCK), any())).thenReturn(iris);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.WATER), any())).thenReturn(horizon);
         materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
         materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
 
@@ -896,15 +898,16 @@ class IrisLayeringTest
     private void glassIris(final BlockData ice, final BlockData packed)
     {
         gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
-        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any()))
+            .thenReturn(iris);
         materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
             .thenReturn(Boolean.TRUE);
         materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
             .thenReturn(Material.BLUE_ICE);
         materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
             .thenReturn(Material.PACKED_ICE);
-        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_ICE)).thenReturn(ice);
-        materials.when(() -> MaterialUtils.drawnAs(Material.PACKED_ICE)).thenReturn(packed);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
     }
 
     /** What was last sent into the cell behind the ring, or null if nothing was. */

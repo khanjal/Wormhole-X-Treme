@@ -545,6 +545,34 @@ class GatePreviewsTest
         assertEquals(STANDARD_BLOCKS, spawned.size(), "the wormhole is fake blocks, not displays");
     }
 
+    /**
+     * A preview's wormhole is laid in the preview's own plane, the way a real gate lays its own.
+     *
+     * <p>The same bug a real gate had: a {@code NETHER_PORTAL} portal material carries an axis,
+     * and the default is right for half the gates and edge-on for the other half. Pinned here as
+     * well as on the gate because the two draw down different paths, and the whole point of
+     * {@code DrawnHorizon} was that a rule living in one of them eventually stops matching the
+     * other.
+     */
+    @Test
+    void aPreviewsWormholeIsLaidInThePreviewsPlane()
+    {
+        final org.bukkit.block.data.Orientable portal = mock(org.bukkit.block.data.Orientable.class);
+        when(portal.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        data.put(Material.WATER, portal);
+
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 10; step++)
+        {
+            dialStep.run();
+        }
+
+        // The builder looks north, so the preview faces south and its opening runs across X.
+        verify(portal, atLeastOnce()).setAxis(org.bukkit.Axis.X);
+        verify(portal, never()).setAxis(org.bukkit.Axis.Z);
+    }
+
     /** -activate on a gate that is open shuts it down: the chevrons go out and the opening is taken back. */
     @Test
     void activatingAnOpenGateShutsItDown()

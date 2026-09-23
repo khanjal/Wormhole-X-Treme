@@ -77,6 +77,13 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
+  block carries the direction its sheet runs in, and nothing set it: a gate built one way got
+  a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
+  gate's own plane now, on real gates and on previews alike, and so is any other block that
+  carries a direction — a log or a bone block named as an iris. Horizontal gates are the
+  exception, having no upright plane to lie in. Nothing to do; existing gates look right on
+  the next redraw.
 - **A closed iris no longer takes the wormhole with it.** An opening is one block thick, so
   a closed iris filled it and the event horizon vanished -- and through a stained-glass iris
   (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.
