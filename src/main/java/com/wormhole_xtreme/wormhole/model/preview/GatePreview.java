@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
  * can be put back when the chunk returns, and so a change of material or state can be drawn
  * again from what each cell should now show.
  */
-final class GatePreview
+final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
 {
     private final World world;
     private final Stargate3DShape shape;
@@ -77,12 +77,12 @@ final class GatePreview
     private Set<Cell> spinCells = Set.of();
     private int wooshStage;
     private boolean open;
-    private boolean irisClosed;
+    private boolean gateIrisActive;
 
     /**
      * Which of the opening's cells are showing iris right now.
      *
-     * <p>Not the same question as {@link #irisClosed}, which is where the iris is *going*. A
+     * <p>Not the same question as {@link #isGateIrisActive}, which is where the iris is *going*. A
      * sweep moves this set a ring at a time, so between the two there is a moment where the
      * iris is logically shut and only half drawn -- which on a preview is exactly the point,
      * since there is nothing here for anybody to walk through.
@@ -394,14 +394,15 @@ final class GatePreview
         open = wormhole;
     }
 
-    boolean irisClosed()
+    @Override
+    public boolean isGateIrisActive()
     {
-        return irisClosed;
+        return gateIrisActive;
     }
 
-    void irisClosed(final boolean closed)
+    void setGateIrisActive(final boolean active)
     {
-        irisClosed = closed;
+        gateIrisActive = active;
     }
 
     boolean plainChevrons()
