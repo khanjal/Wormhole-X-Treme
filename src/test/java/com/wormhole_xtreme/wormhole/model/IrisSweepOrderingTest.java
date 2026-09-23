@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -128,6 +129,8 @@ class IrisSweepOrderingTest
         // the sweep's whole visible effect goes unobserved -- which is how an opening sweep
         // that drew the iris back over itself passed for a while.
         watcher = mock(Player.class);
+        // A real player always has one, and the layering files what it has drawn them under it.
+        when(watcher.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(watcher.getLocation()).thenReturn(new Location(world, 0, 64, 3));
         when(world.getPlayers()).thenReturn(List.of(watcher));
 
@@ -165,6 +168,61 @@ class IrisSweepOrderingTest
         PluginTestSupport.scheduler(null);
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * Grows the opening to a square of this radius, the way the fixture builds its own.
+     *
+     * @param radius
+     *            how far out from the middle, so a radius of nine is nineteen by nineteen
+     */
+    private void widenOpeningTo(final int radius)
+    {
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                if ((Math.abs(x) <= 1) && (Math.abs(y) <= 1))
+                {
+                    continue; // the fixture's own three-by-three
+                }
+                final Location at = new Location(world, x, 64 + y, 0);
+                gate.getGatePortalBlocks().add(at);
+                final Block block = mock(Block.class);
+                when(block.getLocation()).thenReturn(at);
+                when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
+                doAnswer(i ->
+                {
+                    events.add("block:" + i.getArgument(0));
+                    return null;
+                }).when(block).setType(any(Material.class));
+            }
+        }
+    }
+
+    /**
+     * A gate wider than the limit sweeps in the limit's steps, not one per ring.
+     *
+     * <p>The cap is arithmetic in {@link IrisSweep} and a setting in {@code ConfigManager}, and
+     * both are pinned on their own. What nothing pinned is the wire between them: this is the
+     * only place a real gate's iris asks for it, and the fixtures everywhere else are small
+     * enough to sit inside the cap, so dropping the argument here left every test passing and
+     * every big gate back to taking six seconds.
+     */
+    @Test
+    void aGateWiderThanTheLimitSweepsInTheLimitsSteps()
+    {
+        widenOpeningTo(9);
+        final int cap = com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisMaxSteps();
+        assertTrue(IrisSweep.closingRings(gate.getGatePortalBlocks()).size() > cap,
+            "a nineteen-wide opening must have more rings than the cap, or this proves nothing");
+
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+
+        assertEquals(cap, events.stream().filter("booked"::equals).count(),
+            "a step is booked per band drawn, so a gate with more rings than the cap must still "
+                + "book only the cap's worth -- one per ring is the crossing the cap exists to stop");
     }
 
     /** Runs every step the sweep has booked, including ones booked by those steps. */
@@ -258,6 +316,29 @@ class IrisSweepOrderingTest
                 + pending.keySet());
         runSweepToCompletion();
         assertFalse(StargateIrisAnimator.isSweeping(gate), "and the second one finished cleanly");
+    }
+
+    /**
+     * Setting the iris to the state it is already in still calls off a sweep that is running.
+     *
+     * <p>The iris is redrawn either way, and a sweep left running paints its next ring over the
+     * redrawn picture. The case that shows it is a gate closing onto an iris that defaults shut
+     * while its closing sweep is still going: shutdown asks for the iris it already has, hands
+     * back the layers drawn either side of the ring, and the stale sweep then repainted the
+     * ring over them for everyone, front and back alike.
+     */
+    @Test
+    void settingTheIrisItAlreadyHasCallsOffARunningSweep()
+    {
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a closing sweep is running");
+        final boolean shut = gate.isGateIrisActive();
+
+        StargateLifecycle.setIrisState(gate, shut);
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate),
+            "a redraw to the same state must not leave the old sweep painting over it");
+        assertTrue(pending.isEmpty(), "and its next step is not left booked: " + pending.keySet());
     }
 
     /**
@@ -390,5 +471,91 @@ class IrisSweepOrderingTest
             }
         }
         return Integer.MAX_VALUE;
+    }
+
+    /**
+     * A drawn iris ends its closing sweep drawn everywhere, not with rings left open.
+     *
+     * <p>Reported on a Standard gate with the spiral sweep: closing the iris left cells in the
+     * middle open until the player looked away and back. The sweep revealed each ring as "what
+     * is really in the cell", which was the iris while the iris was real blocks -- and is air now
+     * that an upright gate's iris is only drawn. The rest looked shut only because a redraw
+     * happened to paint over most of it.
+     */
+    @Test
+    void aDrawnIrisSweepsClosedToTheIrisInEveryCell()
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        assertTrue(StargateBlockSetup.irisIsDrawn(gate), "an upright gate, whose iris is drawn");
+        // The layer positions a block either side of the ring, which a shut iris hands back.
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
+
+        // The first ring is drawn by the toggle itself, so nothing is cleared in between: what
+        // counts is the last thing each cell was shown.
+        gate.toggleIrisActive(false);
+        runSweepToCompletion();
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
+        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            // The ring only: the cells either side of it are the layers, not the sweep's.
+            if (at.getBlockZ() == 0)
+            {
+                last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+            }
+        }
+        assertEquals(9, last.size(), "every cell of the opening was drawn by the sweep");
+        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        {
+            assertTrue((cell.getValue() != null) && (cell.getValue() != bareOpening),
+                "cell " + cell.getKey() + " was left showing the air the server really has there");
+        }
+    }
+
+    /**
+     * Opening a drawn iris part-way through its closing sweep does not blank it first.
+     *
+     * <p>The half-finished sweep is called off by sending every cell as it stands. That ran after
+     * the iris flag had already flipped to open, so a drawn iris was "finished" as the air behind
+     * it and vanished in one frame, and the opening sweep then had nothing to be seen taking away.
+     */
+    @Test
+    void openingADrawnIrisMidSweepFinishesTheClosingAsTheIris()
+    {
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        // Opening draws the horizon behind the opening, one block either side, so those are air.
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
+        gate.toggleIrisActive(false);
+        final Integer next = pending.keySet().iterator().next();
+        pending.remove(next).run();
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
+        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
+        }
+        assertEquals(9, last.size(), "the call-off draws every cell");
+        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        {
+            assertNotNull(cell.getValue(),
+                "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
+        }
     }
 }

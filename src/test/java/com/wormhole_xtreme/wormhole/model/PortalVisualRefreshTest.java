@@ -142,6 +142,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 102, 64, 100));
 
@@ -160,6 +161,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 900, 64, 900));
 
@@ -175,6 +177,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(false);
 
         StargateBlockSetup.refreshPortalVisuals(player);
@@ -192,6 +195,7 @@ class PortalVisualRefreshTest
         gate.setGateActive(false);
 
         final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 100, 64, 100));
 
@@ -226,6 +230,7 @@ class PortalVisualRefreshTest
             return b;
         });
         final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(here, 102, 64, 100));
         final org.mockito.ArgumentCaptor<Location> sent = org.mockito.ArgumentCaptor.forClass(Location.class);

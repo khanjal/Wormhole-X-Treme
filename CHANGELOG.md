@@ -39,11 +39,34 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Changed**
 
+- **An iris is drawn on clients now, not built out of blocks.** A gate that stands upright
+  keeps air in its opening and sends every nearby client the iris to look at, so a crash
+  leaves nothing standing in a gate the save says is open, and a block somebody left in the
+  opening is breakable again while the iris is shut. It still holds: walking into one is
+  refused whether or not the gate has been dialled, and so is a minecart, which is pushed
+  back out. An arrow or a dropped item that reaches a shut iris is destroyed, at either end
+  of a wormhole or at a gate nobody has dialled. A cart turned back carries its riders back with it. A mob is the exception: it is never sent
+  through a shut iris, but nothing stops one wandering through an idle gate's. The closing sweep
+  now finishes with the iris in every cell; drawn, it had been uncovering the air behind it a
+  ring at a time, which left holes in the middle until the gate was redrawn. Nobody builds
+  in an opening a shut iris covers, operators included. A **horizontal** gate's iris is still
+  real blocks — it is a floor, and a floor has to be there to stand on. Gates saved with an
+  iris shut have theirs taken out of the world on the first load; nothing to do.
 - **`gate preview materials` is now `gate preview needs`.** It sat one letter from
   `gate preview material`, which does something else entirely — redresses the preview rather
   than counting what it would take to build — so a typo quietly did the other thing. The list
   already called itself "needs" in its own first line. `materials` still works and is no longer
   offered in tab completion; nothing to change unless you want to.
+- **A big gate's iris no longer takes seconds to close.** The sweep had a pace per ring and no
+  limit on how many rings there were to pace, so a wide gate simply took longer: `Grand` closed
+  in six seconds and `Massive` in three, where `Standard` took half of one.
+  `gate-iris-sweep-max-ticks` is the longest a whole crossing may take, twenty ticks by default;
+  a gate with more rings than fit inside it covers several of them per step rather than slowing
+  down. It is a ceiling rather than a pace: a small gate still crosses quicker than a big one,
+  it is the six-second crossing that is gone. At the default pace only `Massive` and `Grand`
+  reach the limit, so most servers see no change; one that raised `gate-iris-step-ticks` will,
+  because the limit is spent sooner at a slower pace -- `0` turns it off and puts back a step
+  per ring however big the gate.
 - **Bundled shapes nobody edited are updated at startup again.** A copy matching a version
   some release shipped is replaced, the old one kept as `<name>.shape.old`; an edited copy is
   left alone and named in the log, as before. 1.7 only named every copy that differed.
@@ -55,6 +78,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.
   The horizon is shown a block behind the iris now, so it reads through the glass and from
   the back. Nothing is drawn where you have built.
+- **From behind an upright gate, the horizon is in front of the iris, not behind it.** A
+  shut iris over an open wormhole showed everyone the horizon a block behind the ring, which
+  from the back is the viewer's own side. Now whichever layer is nearer takes the ring: the
+  iris from the front, the horizon from behind, and they swap as you walk round. The horizon
+  no longer hangs behind a gate after its wormhole closes with the iris shut.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole
@@ -63,6 +91,15 @@ The plugin API is in [docs/API.md](docs/API.md).
   a dialled preview replaced the water with air a beat before the first ring of the sweep
   arrived, so the wormhole read as having closed rather than been covered. It now behaves the
   way a real gate does, which also means a glass iris shows water through it on both.
+- **No kawoosh through a closed iris, on a gate or a preview, whenever it closes.** Every
+  woosh step lands on or past the iris, so with it shut none is drawn. The iris is asked at
+  each step of the woosh rather than when dialling began: shut it partway through and what is
+  already out is taken back there and then; open it before the woosh and the woosh plays. The
+  kawoosh is heard either way, once -- the wormhole forms, just out of sight.
+
+  A preview drew all of it through its own closed iris, and a real gate shut mid-woosh left
+  the steps already out on screen and played the kawoosh a second time. The two now play one
+  woosh sequence and differ only in how they draw it, so they cannot drift apart again.
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
   played for a player: the lever, the commands and dialling all reached the iris through one
   method that had already changed the gate's state before anything checked whether it had

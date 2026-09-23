@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
  * @author Dean Bailey (alron)
  * 
  */
-public class Stargate
+public class Stargate implements GateIris
 {
 
     /** The Loaded version, used to determine what version of parser to use. */
@@ -1004,12 +1004,24 @@ public class Stargate
     }
 
     /**
-     * Fills the portal interior with real, solid iris blocks. Unlike
-     * {@link #fillGateInterior(Material)} this places actual server-side blocks,
-     * because the iris has to physically stop travellers.
+     * Whether this gate's iris is drawn on clients rather than built out of real blocks.
+     *
+     * <p>Vertical gates draw it, horizontal ones build it. {@code StargateBlockSetup.irisIsDrawn}
+     * has the reasoning; this is how anything outside the model package asks.
+     *
+     * @return true if the iris is a drawing
+     */
+    public boolean isGateIrisDrawn()
+    {
+        return StargateBlockSetup.irisIsDrawn(this);
+    }
+
+    /**
+     * Puts the iris over the portal interior: drawn on a vertical gate, real blocks on a
+     * horizontal one, where it has to hold a player up.
      *
      * @param material
-     *            the iris material to place
+     *            the iris material to show or to place
      */
     public void fillGateIris(final Material material)
     {
@@ -1550,6 +1562,7 @@ public class Stargate
      * 
      * @return true, if is gate iris active
      */
+    @Override
     public boolean isGateIrisActive()
     {
         return gateIrisActive;
@@ -1900,6 +1913,12 @@ public class Stargate
     public void setGateIrisActive(final boolean gateIrisActive)
     {
         this.gateIrisActive = gateIrisActive;
+        // The same arrangement setGateActive has, and for the same reason: a vertical gate's
+        // iris is a drawing, so somebody who was not nearby when it shut has to be sent it,
+        // and the set of gates to walk for that cannot be allowed to drift from the flag.
+        // Reaching here on load as well is what gets a gate that was saved shut back onto
+        // clients after a restart.
+        StargateManager.setGateIrisState(this, gateIrisActive);
     }
 
     /**

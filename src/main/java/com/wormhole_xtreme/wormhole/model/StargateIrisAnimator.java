@@ -98,8 +98,24 @@ public final class StargateIrisAnimator
      */
     static void sweepClosed(final Stargate gate, final Material under)
     {
+        sweepClosed(gate, under, null);
+    }
+
+    /**
+     * The same, with something to do once the last ring has arrived.
+     *
+     * @param gate
+     *            the gate, with its iris already standing
+     * @param under
+     *            what the opening looked like before the iris closed
+     * @param afterwards
+     *            run once the sweep finishes, or null; not run if it is called off
+     */
+    static void sweepClosed(final Stargate gate, final Material under, final Runnable afterwards)
+    {
         final List<List<Location>> rings =
-            IrisSweep.closingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle());
+            IrisSweep.closingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+                ConfigManager.getGateIrisMaxSteps());
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
         for (final List<Location> ring : rings)
@@ -107,7 +123,23 @@ public final class StargateIrisAnimator
             StargateBlockSetup.sendCells(gate, ring, under);
         }
         // Then each ring is let through to the truth, which is the iris already standing there.
-        step(gate, rings, 0, null, null);
+        step(gate, rings, 0, irisAsItStands(gate), afterwards);
+    }
+
+    /**
+     * What a closed iris's cells should be shown as once a ring is let through.
+     *
+     * <p>Null, for the block really there, when the iris is built. A drawn iris is air on the
+     * server, so sending the real block uncovered the opening a ring at a time instead.
+     *
+     * @param gate
+     *            the gate
+     * @return the iris material if it is drawn, or null to send the real blocks
+     */
+    private static Material irisAsItStands(final Stargate gate)
+    {
+        return (gate.isGateIrisActive() && StargateBlockSetup.irisIsDrawn(gate))
+            ? gate.getEffectiveIrisMaterial() : null;
     }
 
     /**
@@ -125,8 +157,8 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
-        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle()),
-            0, under, afterwards);
+        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+            ConfigManager.getGateIrisMaxSteps()), 0, under, afterwards);
     }
 
     /**
@@ -189,7 +221,7 @@ public final class StargateIrisAnimator
         }
         if ((gate != null) && (gate.getGateWorld() != null))
         {
-            StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), null);
+            StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
         }
     }
 

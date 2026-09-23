@@ -75,15 +75,17 @@ class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    void fillGateIrisPlacesRealServerBlocksNotClientVisuals()
+    void aHorizontalGatesIrisPlacesRealServerBlocksNotClientVisuals()
     {
-        // Regression guard: the iris is the gate's barrier. If it is only drawn
-        // client-side (the way the portal is) a traveller walks straight through a
-        // closed iris, and anything resting on a horizontal gate's iris falls through.
+        // Regression guard: a horizontal gate's iris is a floor, and a floor has to be real.
+        // Drawn, it is air to the server -- the client stands the player on it, the server
+        // sees them hovering, and the floating check kicks them for flying. A vertical gate's
+        // iris is drawn instead: see DrawnIrisTest.
         final World world = mock(World.class);
         final Block b1 = mock(Block.class);
         final Block b2 = mock(Block.class);
         gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.UP);
         gate.getGatePortalBlocks().add(new Location(null, 1, 2, 3));
         gate.getGatePortalBlocks().add(new Location(null, 4, 5, 6));
         when(world.getBlockAt(1, 2, 3)).thenReturn(b1);

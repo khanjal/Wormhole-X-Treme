@@ -290,4 +290,67 @@ class StargateAnimatorTest
             "a gate that cannot animate must not keep a half-finished woosh counter");
         assertFalse(gate.isGateAnimationRemoving());
     }
+
+    /**
+     * An iris shut partway through the woosh takes back what was drawn, and says nothing more.
+     *
+     * <p>The iris was asked on every step, but the branch that answered it only stopped the woosh:
+     * the steps already drawn stayed on screen in front of the shut iris until something else
+     * refreshed those blocks, and the kawoosh, which had already played, played a second time.
+     */
+    @Test
+    void anIrisShutMidWooshTakesBackWhatWasDrawnAndDoesNotReplayTheKawoosh()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        // Two waves, so the gate has a woosh and its counter means a stage part-way through it.
+        // With none the kawoosh could never play at all, and the check below would hold anyway.
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        final Block drawn = mock(Block.class);
+        final org.bukkit.Location at = new org.bukkit.Location(null, 1, 2, 3);
+        when(drawn.getLocation()).thenReturn(at);
+        gate.getGateAnimatedBlocks().add(drawn);
+        gate.setGateAnimationStep3D(1);
+        gate.setGateIrisActive(true);
+
+        try (org.mockito.MockedStatic<StargateBlockSetup> setup = mockStatic(StargateBlockSetup.class);
+             org.mockito.MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.animateOpening(gate);
+
+            setup.verify(() -> StargateBlockSetup.undrawBlocks(gate, java.util.List.of(at)));
+            sounds.verify(() -> GateSounds.kawoosh(gate), never());
+        }
+        finally
+        {
+            gate.setGateIrisActive(false);
+        }
+
+        assertTrue(gate.getGateAnimatedBlocks().isEmpty(), "nothing is left counted as showing");
+        assertEquals(0, gate.getGateAnimationStep3D(), "and the woosh is over");
+    }
+
+    /** An iris already shut when the woosh would begin still lets the kawoosh be heard, once. */
+    @Test
+    void anIrisShutBeforeTheWooshStillPlaysTheKawooshOnce()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        // A woosh to hear: a gate with none makes no kawoosh, iris or not.
+        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.setGateAnimationStep3D(0);
+        gate.setGateIrisActive(true);
+
+        try (org.mockito.MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.animateOpening(gate);
+
+            sounds.verify(() -> GateSounds.kawoosh(gate), times(1));
+        }
+        finally
+        {
+            gate.setGateIrisActive(false);
+        }
+    }
 }

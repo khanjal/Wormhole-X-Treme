@@ -65,6 +65,11 @@ public final class GateEntityScanner implements Runnable
             {
                 sweepGateQuietly(gate);
             }
+            // An idle gate's drawn iris is air to the server, so it gets swept too.
+            for (final Stargate gate : StargateManager.getIrisGates())
+            {
+                splatAtIdleIrisQuietly(gate);
+            }
         }
         catch (final RuntimeException t)
         {
@@ -137,9 +142,15 @@ public final class GateEntityScanner implements Runnable
             return;
         }
 
+        // Either iris being shut stops the trip. The near one used to stop it by being solid
+        // enough that nothing could stand in the opening to be swept; the far one was never
+        // asked at all, which is how items and mobs went on arriving at a gate that had shut
+        // its iris after the wormhole opened.
+        final boolean irisShut = gate.isGateIrisActive() || target.isGateIrisActive();
+
         for (final Entity entity : candidates)
         {
-            sendOneThroughQuietly(entity, gate, arrival, target.getGateFacing());
+            sendOneThroughQuietly(entity, gate, arrival, target.getGateFacing(), irisShut);
         }
     }
 
@@ -157,9 +168,11 @@ public final class GateEntityScanner implements Runnable
      *            where it comes out
      * @param facing
      *            the way the far gate faces, for the direction it arrives travelling
+     * @param irisShut
+     *            whether an iris at either end is covering the way through
      */
     private static void sendOneThroughQuietly(final Entity entity, final Stargate gate,
-        final Location arrival, final org.bukkit.block.BlockFace facing)
+        final Location arrival, final org.bukkit.block.BlockFace facing, final boolean irisShut)
     {
         try
         {
@@ -172,11 +185,83 @@ public final class GateEntityScanner implements Runnable
             {
                 return; // inside the bounding box but not in the wormhole itself
             }
+            if (irisShut)
+            {
+                splatOnIris(entity);
+                return;
+            }
             sendThrough(entity, arrival, facing, null);
         }
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate", t);
+        }
+    }
+
+    /** The idle-iris sweep for one gate, which must not end the tick for the gates after it. */
+    private static void splatAtIdleIrisQuietly(final Stargate gate)
+    {
+        try
+        {
+            splatAtIdleIris(gate);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Iris sweep failed for gate " + gate.getGateName(), t);
+        }
+    }
+
+    /**
+     * Destroys the loose items standing in an idle gate's opening while its drawn iris is shut.
+     *
+     * @param gate
+     *            the gate to sweep
+     */
+    static void splatAtIdleIris(final Stargate gate)
+    {
+        // A gate sending somewhere is the other sweep's; this one takes every other drawn iris,
+        // the far end of a wormhole included, which has no target and so no sweep of its own.
+        if ((gate == null) || (gate.isGateActive() && (gate.getGateTarget() != null))
+            || !gate.isGateIrisActive() || !gate.isGateIrisDrawn()
+            || !StargateManager.isRegistered(gate))
+        {
+            return;
+        }
+        final World world = gate.getGateWorld();
+        final BoundingBox bounds = gate.getGatePortalBounds();
+        if ((world == null) || (bounds == null))
+        {
+            return;
+        }
+        for (final Entity entity : world.getNearbyEntities(bounds))
+        {
+            final Location at = entity.getLocation();
+            if (gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+            {
+                splatOnIris(entity);
+            }
+        }
+    }
+
+    /**
+     * What becomes of something that reaches a shut iris.
+     *
+     * <p>Loose items are destroyed, which is what an iris is for and what keeps a gate that
+     * somebody is tipping hoppers into from filling its opening with a drift of items nobody
+     * can see behind the drawing.
+     *
+     * <p>Anything alive is left where it is. It simply does not travel: a cow that wandered
+     * into a shut gate is a cow standing in a gate, not a dead cow.
+     *
+     * @param entity
+     *            the entity that reached the iris
+     */
+    private static void splatOnIris(final Entity entity)
+    {
+        if (entity instanceof org.bukkit.entity.Item)
+        {
+            entity.remove();
         }
     }
 
@@ -355,6 +440,15 @@ public final class GateEntityScanner implements Runnable
     static boolean sendProjectileThrough(final Projectile projectile, final Stargate gate)
     {
         final Stargate target = gate.getGateTarget();
+        // An arrow that reaches a shut iris stops there, at whichever end the iris is: the
+        // near one it was fired at, or the far one it would otherwise have come out of. It is
+        // consumed rather than dropped, because an iris that leaves a pile of arrows on the
+        // floor in front of it is not much of an iris.
+        if (gate.isGateIrisActive() || target.isGateIrisActive())
+        {
+            projectile.remove();
+            return true;
+        }
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
         if (arrival == null)

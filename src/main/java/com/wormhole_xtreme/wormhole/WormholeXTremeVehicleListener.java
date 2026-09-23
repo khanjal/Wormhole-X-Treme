@@ -606,9 +606,20 @@ class WormholeXTremeVehicleListener implements Listener
         // portal material is drawn to clients only, so travellers are not subject to its
         // physics — which means the material comparison never matched and no vehicle ever
         // made it through. The player and entity paths already ask the gate.
+        if ((st == null) || !StargateManager.isPortalBlock(ch))
+        {
+            return false;
+        }
+        // A vertical gate's own iris is a drawing, and a cart does not believe in drawings: it
+        // rolls into the opening where the old solid iris would have stopped it dead. Asked
+        // before whether the gate is open, because an idle gate's shut iris is the same drawing.
+        if (st.isGateIrisActive() && st.isGateIrisDrawn())
+        {
+            stopShortOfOwnIris(event);
+            return false;
+        }
         // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
-        if ((st == null) || !st.isGateActive() || (st.getGateTarget() == null)
-            || !StargateManager.isPortalBlock(ch))
+        if (!st.isGateActive() || (st.getGateTarget() == null))
         {
             return false;
         }
@@ -798,11 +809,47 @@ class WormholeXTremeVehicleListener implements Listener
         {
             // Marked before the move so it does not read as another trip through the gate.
             markVehicleRecentlyTeleported(veh.getUniqueId());
-            veh.teleport(forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
+            putBack(veh, forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
             st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+        }
+    }
+
+    /**
+     * Stops a vehicle rolling into a gate whose own drawn iris is shut, where it just was.
+     *
+     * <p>Back where it was a move ago, not out in front: a gate can be rolled at from either
+     * side, and the front is through the iris for a cart coming from behind. Not marked as
+     * recently teleported either -- it lands outside the opening, so the move cannot read as an
+     * entry, and a mark would switch this check off for the next second while it is nudged back.
+     *
+     * @param event
+     *            the move that would have taken it into the opening
+     */
+    private static void stopShortOfOwnIris(final VehicleMoveEvent event)
+    {
+        final Vehicle veh = event.getVehicle();
+        veh.setVelocity(nospeed);
+        putBack(veh, event.getFrom());
+    }
+
+    /**
+     * Moves a turned-back vehicle, riders and all.
+     *
+     * <p>An occupied one goes the way the forward trip carries one, riders re-seated after it;
+     * a plain teleport is not relied on to bring anybody with it.
+     */
+    private static void putBack(final Vehicle veh, final Location to)
+    {
+        if (veh.getPassengers().isEmpty())
+        {
+            veh.teleport(to);
+        }
+        else
+        {
+            teleportOccupiedVehicle(veh, to, nospeed);
         }
     }
 
