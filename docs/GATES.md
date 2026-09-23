@@ -509,7 +509,12 @@ behind it, whatever they are. Ice is solid and nothing can cull it.
 
 **The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
 with the ring that uncovers it, and the wormhole in the ring is never touched — that is the
-sweep's own to paint. Drawn all at once before the sweep, a gate shows the wormhole twice over
+sweep's own to paint. A preview needs the same and for a different reason: its iris is a display
+entity standing in the wormhole's own cell rather than a block replacing it, so an opaque one
+hides the water by covering it and needs nothing, while a see-through one hides it without
+replacing it and leaves the cell reading as empty. Only an iris that would hide the liquid pays
+for the move; a sweep runs on every cell of every ring, and a picture nobody can tell apart is
+not worth the packets. Drawn all at once before the sweep, a gate shows the wormhole twice over
 for the length of its animation; drawn after it, every ring of a see-through iris arrives with
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,

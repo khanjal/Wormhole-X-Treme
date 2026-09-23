@@ -112,7 +112,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   wormhole now follows the sweep — it moves behind each ring as that ring is covered, and
   comes back to the ring as that ring uncovers, so the iris always looks like it is covering
   the wormhole rather than replacing it. The wormhole in the ring is never touched by any of
-  this. Behind an opaque iris none of it was ever visible, and nothing there changes.
+  this. Behind an opaque iris none of it was ever visible, and nothing there changes. A
+  preview does the same, for the same reason arrived at differently: its iris is a display
+  standing in the wormhole's own cell rather than a block replacing it, so an opaque one
+  simply hides the water and a see-through one leaves the cell looking empty.
 - **Shutting a drawn iris no longer flashes the wormhole onto your own side of the gate.**
   The horizon was sent a block behind the ring for everybody the moment the iris closed and
   only then stacked per viewer -- after the sweep, if there was one -- so anyone standing

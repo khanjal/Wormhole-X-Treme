@@ -1480,6 +1480,56 @@ class GatePreviewsTest
     }
 
     /**
+     * A see-through iris sweeping shut moves the wormhole behind as it covers, not at the end.
+     *
+     * <p>A preview's iris is a display entity standing in the same cell as the wormhole rather
+     * than a block replacing it, so an opaque one hides the water and needs nothing. A
+     * see-through one does not hide it -- the game declines to draw a liquid behind a
+     * translucent block -- so the cell read as empty and the gate appeared to erase its own
+     * wormhole a ring at a time, then produce it again when the sweep ended and the layers
+     * were finally stacked.
+     *
+     * <p>Asserted with the sweep still running, which is the whole point: at the end it always
+     * looked right.
+     */
+    @Test
+    void aGlassIrisSweepMovesTheWormholeBehindAsItCovers()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        clearInvocations(front);
+
+        GatePreviews.iris(owner);
+
+        assertFalse(irisPending.isEmpty(),
+            "the sweep is still running -- without this the assertion below holds at the end anyway");
+        verify(front, atLeastOnce()).sendBlockChange(any(Location.class),
+            argThat(d -> (d == data.get(Material.BLUE_ICE)) || (d == data.get(Material.PACKED_ICE))));
+    }
+
+    /**
+     * An opaque iris sweeping shut leaves the wormhole in the ring, where its display covers it.
+     *
+     * <p>Nothing to move: the display stands in the cell the water is in and hides it, which is
+     * what a preview has always done. Moving it would be work for a picture nobody can tell
+     * apart, and the sweep runs on every cell of every ring.
+     */
+    @Test
+    void anOpaqueIrisSweepLeavesTheWormholeInTheRing()
+    {
+        openThePreview();
+        final Player front = viewerAlong("Fran", 4);
+        clearInvocations(front);
+
+        GatePreviews.iris(owner);
+
+        assertFalse(irisPending.isEmpty(), "the sweep is still running");
+        assertEquals(0, wormholeSendsAlong(front, -1),
+            "no wormhole is moved off the ring while an opaque iris sweeps");
+    }
+
+    /**
      * A preview behind a see-through iris draws the wormhole as a look-alike, as a gate does.
      *
      * <p>This was exempted at first, on the grounds that a preview's iris is a display entity
