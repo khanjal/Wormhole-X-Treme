@@ -474,6 +474,35 @@ class IrisLayeringTest
         verify(viewer).sendBlockChange(at(Z), eq(iris));
         verify(viewer).sendBlockChange(at(Z + 2), eq(horizon));
         verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
+        // A wider gap is a wider hand-back: the far layer could have been two out either side,
+        // so both of those cells are this viewer's to be given back.
+        verify(viewer).sendBlockChange(at(Z - 2), eq(truthAhead));
+    }
+
+    /**
+     * Something built in the gap takes the second layer away, not just something in the far cell.
+     *
+     * <p>The gap has to be air a viewer can really see through. Checking only the cell the
+     * wormhole goes in would draw it behind whatever somebody had built in between -- a sheet
+     * of water hidden behind their wall, and their wall framed by a gate that looks broken.
+     */
+    @Test
+    void aGlassIrisWithSomethingBuiltInTheGapShowsNoWormhole()
+    {
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        blockAt(X, Z + 2, truthBehind);
+        blockAt(X, Z - 2, truthAhead);
+        // The far cell is free; the one between is not.
+        when(world.getBlockAt(X, Y, Z + 1).getType()).thenReturn(Material.STONE);
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
     }
 
     /**
