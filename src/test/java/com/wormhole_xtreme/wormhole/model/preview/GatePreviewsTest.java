@@ -573,6 +573,28 @@ class GatePreviewsTest
         verify(portal, never()).setAxis(org.bukkit.Axis.Z);
     }
 
+    /**
+     * And so is a preview's shut iris, which stands in displays rather than in sent blocks.
+     *
+     * <p>A separate path from the wormhole above, and the one a nether-portal iris would come
+     * down. The blueprint's own cells are not covered because they cannot be: a blueprint is
+     * frame, chevron, button and dial sign, and the opening is a list of its own.
+     */
+    @Test
+    void aPreviewsShutIrisIsLaidInThePreviewsPlane()
+    {
+        final org.bukkit.block.data.Orientable iris = mock(org.bukkit.block.data.Orientable.class);
+        when(iris.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        data.put(Material.STONE, iris);
+
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        verify(iris, atLeastOnce()).setAxis(org.bukkit.Axis.X);
+        verify(iris, never()).setAxis(org.bukkit.Axis.Z);
+    }
+
     /** -activate on a gate that is open shuts it down: the chevrons go out and the opening is taken back. */
     @Test
     void activatingAnOpenGateShutsItDown()

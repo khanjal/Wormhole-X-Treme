@@ -2310,12 +2310,9 @@ public final class GatePreviews
         {
             directional.setFacing(preview.grid().facing());
         }
-        // And a cell of the opening is laid in the opening's plane, the way a real gate draws
-        // its wormhole. Only the opening: a frame block stands the way it was built.
-        if (cell.part() == Part.PORTAL)
-        {
-            MaterialUtils.laidAcross(data, preview.grid().facing());
-        }
+        // No Orientable branch here on purpose: a blueprint's cells are frame, chevron, button
+        // and dial sign only -- the opening is a list of its own -- so there is nothing in this
+        // one that wants laying in the gate's plane. openingData is where that happens.
         return data;
     }
 
