@@ -1813,6 +1813,43 @@ class GatePreviewsTest
         }
     }
 
+    /**
+     * Shutting a preview down part way through its woosh takes every woosh block back: the owner's
+     * last sight of each block the woosh sent is the real one. Found in-game on the big gates,
+     * whose woosh is long enough to catch.
+     */
+    @Test
+    void shuttingAPreviewMidWooshTakesTheWooshBack() throws Exception
+    {
+        final Stargate3DShape massive = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/Massive.shape")).toArray(new String[0]));
+        GatePreviews.show(owner, massive, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        assertTrue(preview.lastWoosh() > 3, "Massive has a long woosh");
+        GatePreviews.activate(owner);
+        for (int step = 0; (step < 2000) && (preview.wooshStage() < 4); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(4, preview.wooshStage(), "part way out");
+
+        GatePreviews.activate(owner);
+
+        final java.util.Map<List<Integer>, Object> last = new java.util.HashMap<>();
+        for (final org.mockito.invocation.Invocation i : mockingDetails(owner).getInvocations())
+        {
+            if (i.getMethod().getName().equals("sendBlockChange"))
+            {
+                final Location at = i.getArgument(0);
+                last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), i.getArgument(1));
+            }
+        }
+        assertFalse(last.isEmpty(), "the woosh was sent");
+        final List<List<Integer>> left = last.entrySet().stream()
+            .filter(e -> !data.get(Material.AIR).equals(e.getValue())).map(java.util.Map.Entry::getKey).toList();
+        assertEquals(List.of(), left, "woosh blocks still showing");
+    }
+
     /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */
     private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate gate)
     {

@@ -292,11 +292,14 @@ class DialSpinPatternTest
                 final Set<Cell> chevron = onRing(spin, glyph);
                 assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
                 assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
+                final Set<Cell> from = onRing(spin, (glyph == 1) ? 7 : (glyph - 1));
                 for (int tick = 0; tick < TICKS; tick++)
                 {
                     final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
                     assertTrue(lit.equals(chevron) || lit.stream().noneMatch(chevron::contains),
                         name + " glyph " + glyph + " tick " + tick + ": the chevron alone or clear of it");
+                    assertTrue(lit.stream().noneMatch(from::contains),
+                        name + " glyph " + glyph + " tick " + tick + ": clear of the chevron it set off from");
                 }
             }
         }

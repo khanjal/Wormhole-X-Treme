@@ -381,27 +381,32 @@ public final class DialSpin
     }
 
     /**
-     * A Pegasus step: the run jumps a glyph's width rather than sliding, short of the chevron, and
-     * lands as the chevron alone, not the frame it covered on the way.
+     * A Pegasus step: the run jumps a glyph's width rather than sliding, over the frame between the
+     * chevron it sets off from and the one it lands on, and lands as that chevron alone. Neither
+     * chevron is lit with the frame beside it.
      */
     private Set<Cell> pegasus(final List<Cell> path, final int glyph, final int head)
     {
         final int last = path.size() - 1;
         final Set<Cell> chevron = chevron(glyph);
         final Set<Cell> landed = chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
-        // A chevron's cells can sit among frame cells, as Grand's do: short of the first reached.
-        int shortOf = 0;
-        while ((shortOf < last) && !chevron.contains(path.get(shortOf)))
+        final Set<Cell> from = chevron((glyph <= 1) ? Stargate.LOCAL_CHEVRONS : (glyph - 1));
+        // A chevron's cells can sit among frame cells, as Grand's do: up to the first reached.
+        final List<Cell> between = new ArrayList<>();
+        for (int i = 0; (i < last) && !chevron.contains(path.get(i)); i++)
         {
-            shortOf++;
+            if (!from.contains(path.get(i)))
+            {
+                between.add(path.get(i));
+            }
         }
-        // Landed, or setting off on the chevron with nowhere short of it to be.
-        if ((head >= last) || (shortOf == 0))
+        if ((head >= last) || between.isEmpty())
         {
             return landed;
         }
         final int length = Math.max(2, ring.size() / GLYPHS);
-        return run(path, Math.min(((head / length) * length) + (length - 1), shortOf - 1), length);
+        final int at = (int) (((long) head * between.size()) / last);
+        return run(between, Math.min(((at / length) * length) + (length - 1), between.size() - 1), length);
     }
 
     /** The cells of a path from a run's tail up to its head. */
