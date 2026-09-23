@@ -70,9 +70,26 @@ class MaterialUtilsTest {
             "and neither stand-in may be a thing that gets culled itself");
         assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.WATER, true)));
 
-        assertEquals(Material.NETHER_PORTAL,
+        assertEquals(Material.PURPLE_CONCRETE,
             MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, false),
-            "anything that is not a liquid stands in for itself");
+            "a nether portal is translucent too, and was hidden behind a glass iris the way water was");
+        assertEquals(Material.MAGENTA_CONCRETE,
+            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, true),
+            "and the brighter of the two, for the swirls over its darker ground");
+        assertNotEquals(MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, false),
+            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, true),
+            "this checkerboard has to have two squares as well");
+
+        assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, false)),
+            "and neither of these may be a thing that gets culled itself, or the fix fixes nothing");
+        assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, true)));
+
+        assertNotEquals(MaterialUtils.shownBehindGlassAs(Material.WATER, false),
+            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, false),
+            "water and a portal do not stand in for each other: one is a blue surface, one is purple");
+
+        assertEquals(Material.OBSIDIAN, MaterialUtils.shownBehindGlassAs(Material.OBSIDIAN, false),
+            "anything opaque stands in for itself -- it was never at risk of being culled");
         assertNull(MaterialUtils.shownBehindGlassAs(null, false));
     }
 }

@@ -507,13 +507,17 @@ yellow iris was tried in a world and is not drawn either, which narrows the rule
 the fluid-face reading alone would: a translucent block does not show another translucent block
 behind it, whatever they are. Ice is solid and nothing can cull it.
 
-**Two cases it does not reach**, both worth knowing before reading a gate as broken. A
-horizontal gate's iris is real blocks in the opening itself rather than a drawing a block off
-it, so there is no far layer to dress and a see-through iris there shows whatever is under the
-gate. And the stand-in is chosen by material: water has one, and a portal material that is
-itself translucent — `nether_portal` — does not, so behind a stained-glass iris it is hidden
-exactly the way water was. Neither is a regression; both are the fluid rule reaching somewhere
-the look-alike does not.
+**A nether portal needs one too**, and a different one. It is translucent in its own right, so
+behind a stained-glass iris it was hidden exactly the way water was. It gets purple and magenta
+concrete. How alike the two squares should be follows what they stand in for: water is a uniform
+surface, so the ices are nearly identical and the alternation reads as movement rather than as a
+pattern, while a portal is bright violet swirls over a darker ground, so its two are further
+apart and the difference is the point.
+
+**One case the look-alike does not reach.** A horizontal gate's iris is real blocks in the
+opening itself rather than a drawing a block off it, so there is no far layer to dress and a
+see-through iris there shows whatever is under the gate. Not a regression — the stacking that
+the stand-in belongs to is an upright gate's to begin with.
 
 **The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
 with the ring that uncovers it, and the wormhole in the ring is never touched — that is the

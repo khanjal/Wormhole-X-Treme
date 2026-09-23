@@ -299,26 +299,28 @@ public final class MaterialUtils {
     }
 
     /**
-     * What to draw a horizon as when it has to sit behind an iris that would hide the liquid.
+     * What to draw a horizon as when it has to sit behind an iris that would hide it.
      *
-     * <p>Only the face between a fluid and a translucent block is skipped, not everything
-     * behind one -- the world beyond a stained-glass iris is drawn perfectly well, and so is
-     * glass behind water. So the horizon is drawn in something that looks like the liquid and
-     * is not one, and the fluid rule stops applying.
+     * <p>A translucent block is not drawn against another translucent block: the face between
+     * them is skipped, and a wormhole is a sheet one block thick, so behind a stained-glass
+     * iris there is nothing of it left to see. Only that pair, though -- the world beyond such
+     * an iris is drawn perfectly well. So the horizon is drawn in something that looks like the
+     * real thing and is not translucent, and the rule stops applying.
      *
      * <p>The stand-in has to be solid, not merely a different translucent: blue glass behind a
-     * yellow iris was tried in a world and is not drawn either. The two ices are the closest
-     * solid things to water, and nothing can cull either.
+     * yellow iris was tried in a world and is not drawn either.
      *
-     * <p>Two of them because one is a flat sheet of a single colour, which reads as ice rather
-     * than as water. Laid in a checkerboard they break each other up and pass for a surface.
+     * <p>Two of them because one is a flat sheet of a single colour, which reads as a block
+     * rather than as a wormhole. Laid in a checkerboard they break each other up.
      *
-     * <p>Water and no other liquid. Lava is not drawn translucent -- the game says so plainly,
-     * and it shows through a stained-glass iris exactly as it is -- so standing in for it would
-     * replace a perfectly good picture with an imitation of it. A portal material that <em>is</em>
-     * translucent and has no stand-in here, {@code NETHER_PORTAL} being the one that ships, is
-     * hidden behind such an iris the same way water was; that wants its own look chosen rather
-     * than a guess made here.
+     * <p>How alike the two are follows what they stand in for. Water is a uniform surface, so
+     * the two ices are nearly the same and read as movement rather than as a pattern. A nether
+     * portal is not uniform -- bright violet swirls over a darker ground -- so its two are
+     * further apart, and the difference is the point.
+     *
+     * <p>Only what is actually translucent. Lava is not, and shows through a stained-glass iris
+     * exactly as it is, so standing in for it would replace a good picture with an imitation of
+     * one.
      *
      * @param horizon
      *            the material the horizon would be, may be null
@@ -327,10 +329,13 @@ public final class MaterialUtils {
      * @return the stand-in, or the material itself where it needs no standing in for
      */
     public static Material shownBehindGlassAs(final Material horizon, final boolean alternate) {
-        if (horizon != Material.WATER) {
-            return horizon;
+        if (horizon == Material.WATER) {
+            return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
         }
-        return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
+        if (horizon == Material.NETHER_PORTAL) {
+            return alternate ? Material.MAGENTA_CONCRETE : Material.PURPLE_CONCRETE;
+        }
+        return horizon;
     }
 
     /** Returns true if the material represents ice we care about. */
