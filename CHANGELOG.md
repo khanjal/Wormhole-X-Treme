@@ -36,9 +36,16 @@ The plugin API is in [docs/API.md](docs/API.md).
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
+- **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
+  chevron), `universe` (Destiny's: locked glyphs ride round with the ring) and `overshoot`
+  (runs past the chevron and backs onto it). See [the guide](docs/guide/GATES.md#dialling).
 
 **Changed**
 
+- **The default `top` dial rests on the top chevron** for half a second as each chevron locks,
+  before the ring turns again, so a dial takes about three seconds longer. Pick another pattern
+  to keep the old pace.
+- **The last chevron holds two seconds before the kawoosh**, not one.
 - **An iris is drawn on clients now, not built out of blocks.** A gate that stands upright
   keeps air in its opening and sends every nearby client the iris to look at, so a crash
   leaves nothing standing in a gate the save says is open, and a block somebody left in the
