@@ -31,6 +31,8 @@ import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.logging.Level;
+
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -1542,7 +1544,53 @@ public final class GatePreviews
                     here.horizon().x(), here.horizon().y(), here.horizon().z()), portal);
             }
         }
+        logStacked(viewer, preview, layers);
         preview.sides().put(viewer.getUniqueId(), layers);
+    }
+
+    /**
+     * Says what one stacked draw decided, for working out why a preview looks wrong in a world.
+     *
+     * <p>The gate's own {@code logLayers}, for the path a preview takes instead. One line per
+     * draw at {@code log-level: FINE}.
+     *
+     * @param viewer
+     *            who it was drawn for
+     * @param preview
+     *            the preview
+     * @param layers
+     *            what was drawn
+     */
+    private static void logStacked(final Player viewer, final GatePreview preview,
+        final List<IrisLayering.Placement> layers)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE) || layers.isEmpty())
+        {
+            return;
+        }
+        final Cell first = preview.opening().get(0);
+        final IrisLayering.At ring = at(first);
+        final StringBuilder dbg = new StringBuilder(256);
+        dbg.append("Preview layers: For=").append(viewer.getName());
+        dbg.append(" Facing=").append(preview.grid().facing());
+        dbg.append(" Iris=").append(preview.palette().iris());
+        dbg.append(" Portal=").append(preview.palette().portal());
+        dbg.append(" Cells=").append(layers.size());
+        dbg.append(" WithHorizon=").append(layers.stream().filter(p -> p.horizon() != null).count());
+        dbg.append(" WithIris=").append(layers.stream().filter(p -> p.iris() != null).count());
+        dbg.append(" Ring=").append(ring);
+        dbg.append(" FirstIris=").append(layers.get(0).iris());
+        dbg.append(" FirstHorizon=").append(layers.get(0).horizon());
+        dbg.append(" ViewerAt=").append(viewer.getLocation().getBlockX()).append(',')
+            .append(viewer.getLocation().getBlockY()).append(',').append(viewer.getLocation().getBlockZ());
+        for (int step = -1; step <= 1; step += 2)
+        {
+            final IrisLayering.At off = ring.moved(preview.grid().facing(), step);
+            dbg.append(" Off").append(step).append('=').append(off)
+                .append('/').append(freeForLayer(preview, off) ? "free" : "taken");
+        }
+        plugin.prettyLog(Level.FINE, dbg.toString());
     }
 
     /**

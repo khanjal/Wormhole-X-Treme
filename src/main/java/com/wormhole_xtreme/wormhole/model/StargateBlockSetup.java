@@ -1767,13 +1767,19 @@ class StargateBlockSetup
      */
     private static void takeBackLayersFor(final Player player, final Stargate gate)
     {
-        for (final Location at : portalBackdropCells(gate))
+        // Out as far as this gate's layers can reach, both ways. A gate that stands them two
+        // apart for a see-through iris would otherwise leave the far one drawn: a sheet of
+        // water hanging two blocks behind a gate whose wormhole closed long ago.
+        final int apart = layerGap(gate);
+        for (int step = -apart; step <= apart; step++)
         {
-            sendTruthIfFree(player, at);
-        }
-        for (final Location at : portalForecourtCells(gate))
-        {
-            sendTruthIfFree(player, at);
+            if (step != 0)
+            {
+                for (final Location at : offsetCells(gate, step))
+                {
+                    sendTruthIfFree(player, at);
+                }
+            }
         }
         layersDrawnFor(player).remove(gate.getGateName());
     }
