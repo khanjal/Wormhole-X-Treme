@@ -268,6 +268,7 @@ class DialSpinPatternTest
             {
                 final Set<Cell> chevron = onRing(spin, glyph);
                 assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
+                assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
                 for (int tick = 0; tick < TICKS; tick++)
                 {
                     final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
