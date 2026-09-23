@@ -1137,6 +1137,32 @@ class GatePreviewsTest
     }
 
     /**
+     * The same, out to one side of the gate as well as along its facing.
+     *
+     * @param name
+     *            the viewer's name
+     * @param along
+     *            blocks along the facing, negative for behind
+     * @param aside
+     *            blocks across it, along whichever horizontal axis the facing does not use
+     * @return the viewer, already shared the preview
+     */
+    private Player viewerAside(final String name, final int along, final int aside)
+    {
+        final Player viewer = onlineHere(name);
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location at = new Location(world,
+            cell.x() + (along * facing.getModX()) + (facing.getModX() == 0 ? aside : 0) + 0.5,
+            cell.y() + (along * facing.getModY()),
+            cell.z() + (along * facing.getModZ()) + (facing.getModZ() == 0 ? aside : 0) + 0.5);
+        when(viewer.getLocation()).thenReturn(at);
+        when(viewer.getEyeLocation()).thenReturn(at);
+        GatePreviews.share(owner, viewer);
+        return viewer;
+    }
+
+    /**
      * The display spawned at a cell, offset along the facing.
      *
      * @return the display, or null if nothing was spawned there
@@ -1393,6 +1419,37 @@ class GatePreviewsTest
 
         verify(passerBy, never()).sendBlockChange(any(Location.class), any(BlockData.class));
         verify(passerBy, never()).showEntity(eq(plugin), any(BlockDisplay.class));
+    }
+
+    /**
+     * From round the side of a stacked preview, the iris keeps the ring.
+     *
+     * <p>A preview is a sheet of displays with nothing either side to hide a second one behind.
+     * Seen from the side, the iris beyond the ring was a slab standing a block clear of the
+     * gate with daylight around it, and the wormhole a block the other way was another -- the
+     * two layers read as two slabs rather than one gate. The preview collapses to a single
+     * layer from there, as the real gate does.
+     *
+     * @see com.wormhole_xtreme.wormhole.model.IrisLayeringTest
+     */
+    @Test
+    void fromOffToTheSideOfAStackedPreviewTheIrisKeepsTheRing()
+    {
+        openThePreview();
+        final Player side = viewerAside("Sid", -1, 12);
+        clearInvocations(side);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        final Cell cell = openingCells().get(0);
+        verify(side, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
+        // Never hidden, rather than shown at least once: spawning a display shows it to every
+        // watcher, so "was shown" is true whatever the side does with it afterwards.
+        verify(side, never()).hideEntity(plugin, displayAt(cell, 0));
+        assertTrue(handBacksAlong(side, 0) > 0,
+            "and the water the sweep left in the ring goes back, since a viewer round there is"
+                + " shown the iris alone rather than the wormhole under it");
     }
 
     /**

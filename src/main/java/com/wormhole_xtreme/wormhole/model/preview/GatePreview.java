@@ -22,6 +22,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 
@@ -54,8 +55,8 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     private final List<BlockDisplay> blockedDisplays;
     /** The iris a block along the facing, which is where a viewer behind the gate is shown it. */
     private final List<BlockDisplay> beyondDisplays;
-    /** Which side each viewer was last drawn from: true for the front, the side the gate faces. */
-    private final Map<UUID, Boolean> sides = new HashMap<>();
+    /** Where each viewer's layers were last drawn, which is what a later move is compared to. */
+    private final Map<UUID, List<IrisLayering.Placement>> sides = new HashMap<>();
     /** Whether an iris sweep is crossing, during which the layers are left where they are. */
     private boolean sweeping;
     private final int lastWave;
@@ -250,8 +251,8 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
         return beyondDisplays;
     }
 
-    /** @return which side each viewer was last drawn from, true for the front */
-    Map<UUID, Boolean> sides()
+    /** @return where each viewer's layers were last drawn */
+    Map<UUID, List<IrisLayering.Placement>> sides()
     {
         return sides;
     }

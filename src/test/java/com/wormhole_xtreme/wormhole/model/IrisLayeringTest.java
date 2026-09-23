@@ -147,7 +147,20 @@ class IrisLayeringTest
 
     private void standAt(final int z)
     {
-        when(viewer.getLocation()).thenReturn(new Location(world, X + 0.5, Y, z + 0.5));
+        standAt(X, z);
+    }
+
+    /**
+     * The same, off to one side of the gate's own column.
+     *
+     * @param x
+     *            the cell to stand in the middle of, across the gate
+     * @param z
+     *            the cell to stand in the middle of, along the facing
+     */
+    private void standAt(final int x, final int z)
+    {
+        when(viewer.getLocation()).thenReturn(new Location(world, x + 0.5, Y, z + 0.5));
     }
 
     // -----------------------------------------------------------------------
@@ -296,6 +309,68 @@ class IrisLayeringTest
     }
 
     // -----------------------------------------------------------------------
+    // Seen from the side
+    // -----------------------------------------------------------------------
+
+    /**
+     * From far enough round the side, the gate shows one layer and hands the other back.
+     *
+     * <p>Two layers a block apart read as one picture only while the opening is between the
+     * viewer and the far one. Step round the side of a two-dimensional gate -- a single sheet
+     * of blocks, with nothing else to hide anything -- and the far layer is simply a slab of
+     * water hanging in the air beside the gate, which is what this looked like in the world.
+     * A gate seen from there goes back to the one layer it can tell the truth with.
+     */
+    @Test
+    void fromOffToTheSideTheGateShowsOneLayerOnly()
+    {
+        standAt(X + 4, Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+    }
+
+    /**
+     * A step to the side is only a step: the layers hold while the opening still hides them.
+     *
+     * <p>The paired half of {@link #fromOffToTheSideTheGateShowsOneLayerOnly}. Collapsing to one
+     * layer at the first step off the gate's own column would throw the effect away for anyone
+     * not standing dead in front of it.
+     */
+    @Test
+    void aStepOrTwoToTheSideKeepsBothLayers()
+    {
+        standAt(X + 1, Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
+     * From behind and off to the side, the iris stays in the ring.
+     *
+     * <p>The same rule the other way about, and the worse-looking half of it: from behind, the
+     * far layer is the iris itself, so a viewer round the back corner of a gate was shown its
+     * iris standing a block clear of the ring with daylight around it.
+     */
+    @Test
+    void fromBehindAndOffToTheSideTheIrisStaysInTheRing()
+    {
+        standAt(X + 4, Z + 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer, never()).sendBlockChange(at(Z - 1), eq(iris));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+    }
+
+    // -----------------------------------------------------------------------
     // Crossing the plane
     // -----------------------------------------------------------------------
 
@@ -320,6 +395,28 @@ class IrisLayeringTest
         StargateBlockSetup.relayerFor(viewer, new Location(world, X + 0.5, Y, Z + 2.5));
         verify(viewer).sendBlockChange(at(Z), eq(horizon));
         verify(viewer).sendBlockChange(at(Z - 1), eq(iris));
+    }
+
+    /**
+     * Walking round the side redraws too, without ever crossing the plane.
+     *
+     * <p>The quiet half of the same step. While only the side a player was on decided this, a
+     * walk along the front of a gate never redrew anything -- so the far layer stayed drawn
+     * long after the opening had stopped hiding it, and went on hanging beside the gate until
+     * the player happened to cross a chunk or the plane.
+     */
+    @Test
+    void walkingRoundTheSideRedrawsWithoutCrossingThePlane()
+    {
+        StargateManager.registerStargate(gate);
+        standAt(Z - 4);
+        StargateBlockSetup.relayerFor(viewer, new Location(world, X + 0.5, Y, Z - 3.5));
+        clearInvocations(viewer);
+
+        StargateBlockSetup.relayerFor(viewer, new Location(world, X + 4.5, Y, Z - 3.5));
+
+        verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
     }
 
     // -----------------------------------------------------------------------

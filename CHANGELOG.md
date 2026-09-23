@@ -87,6 +87,12 @@ The plugin API is in [docs/API.md](docs/API.md).
   from the back is the viewer's own side. Now whichever layer is nearer takes the ring: the
   iris from the front, the horizon from behind, and they swap as you walk round. The horizon
   no longer hangs behind a gate after its wormhole closes with the iris shut.
+- **Neither layer hangs beside the gate any more.** The two stacked layers are a block apart,
+  which reads as one gate head on and as two slabs from the side -- and a flat gate is a
+  single sheet of blocks, with nothing to hide the second one behind. Walk round far enough
+  and you saw the horizon, or the iris itself, standing clear of the ring with daylight
+  around it. A gate seen from there now shows the iris in the ring and nothing else, and
+  picks the second layer back up as you come round to face it. Previews do the same.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole

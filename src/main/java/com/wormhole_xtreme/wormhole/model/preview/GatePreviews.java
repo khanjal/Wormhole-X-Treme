@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.preview;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -1260,8 +1261,9 @@ public final class GatePreviews
             // own side settles which one they keep, and where their wormhole goes: the ring
             // cells the audience is otherwise caught up with are the wrong ones for somebody
             // in front.
-            applySideFor(viewer, preview, !seesFront(viewer, preview));
-            sendStackedTo(viewer, preview);
+            final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+            applySideFor(viewer, preview, layers);
+            sendStacked(viewer, preview, layers);
             return;
         }
         sendTo(viewer, preview, sentCells(preview));
@@ -1351,24 +1353,15 @@ public final class GatePreviews
             spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
             spawnBeyond(owner, preview, i, stacked);
         }
-        if (preview.open())
+        if (preview.open() && !stacked)
         {
-            if (stacked)
-            {
-                // Each viewer gets the wormhole where it belongs for their side: behind the
-                // ring from the front, in the ring from behind.
-                watching(owner, preview).forEach(viewer -> sendStackedTo(viewer, preview));
-            }
-            else
-            {
-                // Sent whatever the iris is doing. The opening's displays stand in front of
-                // these blocks, so a closed iris hides the horizon without the horizon having
-                // to be taken away -- which is what a real gate does too, and is the only way
-                // a sweep has anything to sweep over. Dropping it the moment the iris shut
-                // replaced the water with air a beat before the first ring arrived, so the
-                // wormhole looked like it had closed rather than been covered.
-                send(owner, preview, preview.opening());
-            }
+            // Sent whatever the iris is doing. The opening's displays stand in front of these
+            // blocks, so a closed iris hides the horizon without the horizon having to be
+            // taken away -- which is what a real gate does too, and is the only way a sweep
+            // has anything to sweep over. Dropping it the moment the iris shut replaced the
+            // water with air a beat before the first ring arrived, so the wormhole looked like
+            // it had closed rather than been covered.
+            send(owner, preview, preview.opening());
         }
         applySides(owner, preview, stacked);
         drawButton(owner, preview);
@@ -1409,14 +1402,48 @@ public final class GatePreviews
      *            the preview
      * @param cell
      *            the opening cell
-     * @param front
-     *            whether the viewer is in front
+     * @param eye
+     *            where the viewer is looking from
+     * @param opening
+     *            the opening's own cells, which is what the far layer has to hide behind
      * @return where the iris and the wormhole go for them
      */
-    private static IrisLayering.Placement placed(final GatePreview preview, final Cell cell, final boolean front)
+    private static IrisLayering.Placement placed(final GatePreview preview, final Cell cell,
+        final IrisLayering.Eye eye, final Set<IrisLayering.At> opening)
     {
-        return IrisLayering.place(new IrisLayering.At(cell.x(), cell.y(), cell.z()),
-            preview.grid().facing(), front, at -> freeForLayer(preview, at));
+        return IrisLayering.place(at(cell), preview.grid().facing(), eye,
+            at -> freeForLayer(preview, at), opening::contains);
+    }
+
+    /** An opening cell as a plain position. */
+    private static IrisLayering.At at(final Cell cell)
+    {
+        return new IrisLayering.At(cell.x(), cell.y(), cell.z());
+    }
+
+    /**
+     * Where every cell of a stacked preview's opening puts its layers, for one position.
+     *
+     * <p>One placement per opening cell, in the opening's own order -- so the list doubles as
+     * what a viewer is holding, to be compared against on their next step.
+     *
+     * @param preview
+     *            the preview, which should be stacked
+     * @param from
+     *            where it is being looked at from
+     * @return the placements
+     */
+    private static List<IrisLayering.Placement> layersFor(final GatePreview preview, final Location from)
+    {
+        final IrisLayering.Eye eye = new IrisLayering.Eye(from.getX(), from.getY(), from.getZ());
+        final Set<IrisLayering.At> opening = new HashSet<>();
+        preview.opening().forEach(cell -> opening.add(at(cell)));
+        final List<IrisLayering.Placement> layers = new ArrayList<>();
+        for (final Cell cell : preview.opening())
+        {
+            layers.add(placed(preview, cell, eye, opening));
+        }
+        return layers;
     }
 
     /** Whether a layer may be drawn at a position: real air, in a chunk that is loaded. */
@@ -1434,7 +1461,9 @@ public final class GatePreviews
      *
      * <p>Two sets of iris displays stand while a preview is stacked -- one in the ring, one
      * beyond it -- and each viewer is shown exactly one, which is what lets the same preview
-     * read correctly from both sides at once.
+     * read correctly from both sides at once. Standing it does not decide that anybody sees
+     * it: a viewer round the side of the gate is shown the ring's set however free the cell
+     * beyond is, which is {@link #applySideFor}'s to work out.
      *
      * @param owner
      *            the preview's owner
@@ -1449,11 +1478,11 @@ public final class GatePreviews
         final boolean stacked)
     {
         final Cell cell = preview.opening().get(index);
-        final IrisLayering.At beyond = stacked
-            ? placed(preview, cell, false).iris() : null;
-        // Null, or the ring itself when there was no room beyond it: either way there is no
-        // second display to stand, and the viewer behind sees the ring one like everybody else.
-        if ((beyond == null) || ((beyond.x() == cell.x()) && (beyond.y() == cell.y()) && (beyond.z() == cell.z())))
+        final IrisLayering.At beyond = stacked && (preview.grid().facing() != null)
+            ? at(cell).moved(preview.grid().facing(), 1) : null;
+        // Nothing to stand where the preview is not stacked, or where whatever is built beyond
+        // the ring leaves no room: the viewer behind sees the ring one like everybody else.
+        if ((beyond == null) || !freeForLayer(preview, beyond))
         {
             GatePreview.removeAt(preview.beyondDisplays(), index);
             return;
@@ -1464,60 +1493,40 @@ public final class GatePreviews
     }
 
     /**
-     * Sends one viewer a stacked preview's wormhole where it belongs for their side.
-     *
-     * <p>Behind the ring from the front, in the ring from behind. The cells the other side uses
-     * are handed back, so a viewer who has walked round is not left with both.
+     * Sends one viewer a set of placements, and remembers them as theirs.
      *
      * @param viewer
      *            the viewer
      * @param preview
      *            the preview, which should be stacked
+     * @param layers
+     *            the placements, one per opening cell
      */
-    private static void sendStackedTo(final Player viewer, final GatePreview preview)
+    private static void sendStacked(final Player viewer, final GatePreview preview,
+        final List<IrisLayering.Placement> layers)
     {
-        sendStackedTo(viewer, preview, viewer.getLocation());
-    }
-
-    /**
-     * The same, judged from a given position.
-     *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview, which should be stacked
-     * @param from
-     *            where they are viewing from
-     */
-    private static void sendStackedTo(final Player viewer, final GatePreview preview, final Location from)
-    {
-        final boolean front = seesFront(preview, from);
+        final BlockFace facing = preview.grid().facing();
         final BlockData portal = blockData.apply(preview.palette().portal());
-        for (final Cell cell : preview.opening())
+        for (int i = 0; i < layers.size(); i++)
         {
-            final IrisLayering.Placement here = placed(preview, cell, front);
+            final Cell cell = preview.opening().get(i);
+            final IrisLayering.Placement here = layers.get(i);
+            // Every cell this viewer's wormhole is not in, handed back first: the ring itself
+            // when the iris has it -- leaving the sweep's water under a glass iris where a gate
+            // shows none -- and the offsets in case they have just come round from the other
+            // side, or stepped far enough round that the layers have collapsed into one.
+            for (final IrisLayering.At back : IrisLayering.handBacks(at(cell), facing, here.horizon()))
+            {
+                takeBackAt(viewer, preview, back);
+            }
             if (here.horizon() != null)
             {
                 preview.sent().add(GatePreview.key(cell));
                 viewer.sendBlockChange(new Location(preview.world(),
                     here.horizon().x(), here.horizon().y(), here.horizon().z()), portal);
             }
-            else
-            {
-                // No room for two layers at this cell, so the iris keeps the ring and there is
-                // no wormhole to show. The sweep sent the ring to everybody, and leaving it
-                // shows water through a glass iris where a gate shows none.
-                takeBackAt(viewer, preview, new IrisLayering.At(cell.x(), cell.y(), cell.z()));
-            }
-            // The cell the other side's wormhole would be in, handed back in case they have
-            // just come round from there.
-            final IrisLayering.Placement other = placed(preview, cell, !front);
-            if ((other.horizon() != null) && !other.horizon().equals(here.horizon()))
-            {
-                takeBackAt(viewer, preview, other.horizon());
-            }
         }
-        preview.sides().put(viewer.getUniqueId(), Boolean.valueOf(front));
+        preview.sides().put(viewer.getUniqueId(), layers);
     }
 
     /**
@@ -1560,43 +1569,12 @@ public final class GatePreviews
     }
 
     /**
-     * Whether a viewer is in front of a preview's opening.
+     * Shows each viewer the preview as it looks from where they stand.
      *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
-     * @return true in front, false behind
-     */
-    private static boolean seesFront(final Player viewer, final GatePreview preview)
-    {
-        return seesFront(preview, viewer.getLocation());
-    }
-
-    /**
-     * The same, from a given position rather than where the viewer is reported to be.
-     *
-     * <p>A move event fires with the player still at the step they are leaving, which is why the
-     * gate's own relayering takes the move's destination. Judged from the same place here.
-     *
-     * @param preview
-     *            the preview
-     * @param at
-     *            where they are viewing from
-     * @return true in front, false behind
-     */
-    private static boolean seesFront(final GatePreview preview, final Location at)
-    {
-        final Cell first = preview.opening().get(0);
-        return IrisLayering.seesFront(preview.grid().facing(),
-            new IrisLayering.At(first.x(), first.y(), first.z()), at.getX(), at.getY(), at.getZ());
-    }
-
-    /**
-     * Shows each viewer the iris set that belongs to their side.
-     *
-     * <p>Both sets stand while a preview is stacked; a viewer sees one. Unstacked, the ring set
-     * is everybody's, which is what a preview has always shown.
+     * <p>Both iris sets stand while a preview is stacked, and each viewer is shown one cell by
+     * cell, along with the wormhole where it belongs for them: behind the ring from the front,
+     * in the ring from behind, and in neither from far enough round the side. Unstacked, the
+     * ring set is everybody's, which is what a preview has always shown.
      *
      * @param owner
      *            the preview's owner
@@ -1611,7 +1589,9 @@ public final class GatePreviews
         {
             if (stacked)
             {
-                applySideFor(viewer, preview, !seesFront(viewer, preview));
+                final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+                applySideFor(viewer, preview, layers);
+                sendStacked(viewer, preview, layers);
             }
             else if (preview.sides().remove(viewer.getUniqueId()) != null)
             {
@@ -1619,7 +1599,7 @@ public final class GatePreviews
                 // the ring, and the ring's own set is everybody's again. The wormhole was drawn
                 // a block off the ring for them as well, and the ring cells the unstacked draw
                 // sends say nothing about that one, so it is handed back here.
-                applySideFor(viewer, preview, false);
+                showRingSet(viewer, preview);
                 handBackOffsets(viewer, preview);
             }
         }
@@ -1632,26 +1612,32 @@ public final class GatePreviews
      *            the viewer
      * @param preview
      *            the preview
-     * @param behind
-     *            true to show the set beyond the ring, false for the ring's own
+     * @param layers
+     *            where their layers go, from {@link #layersFor}
      */
-    private static void applySideFor(final Player viewer, final GatePreview preview, final boolean behind)
+    private static void applySideFor(final Player viewer, final GatePreview preview,
+        final List<IrisLayering.Placement> layers)
     {
-        if (!behind)
-        {
-            show(viewer, preview.openingDisplays(), true);
-            show(viewer, preview.beyondDisplays(), false);
-            return;
-        }
-        // Cell by cell from behind, because a cell with nothing beyond the ring to stand in
-        // keeps its iris in the ring. Hiding the ring's display there whatever the far one is
-        // left that cell showing the wormhole with no iris over it: a shut gate reading as open.
-        for (int i = 0; i < preview.openingDisplays().size(); i++)
+        // Cell by cell, because the two sets are not a viewer's to pick between wholesale. A
+        // cell with nothing beyond the ring to stand in keeps its iris in the ring, and so does
+        // one whose far display the opening no longer hides from where this viewer is: showing
+        // the far one there is the iris seen floating beside the gate, and hiding the ring's as
+        // well leaves that cell's wormhole with no iris over it, a shut gate reading as open.
+        for (int i = 0; i < layers.size(); i++)
         {
             final BlockDisplay beyond = preview.beyondDisplays().get(i);
-            show(viewer, preview.openingDisplays().get(i), beyond == null);
-            show(viewer, beyond, true);
+            final boolean useBeyond = (beyond != null)
+                && !layers.get(i).iris().equals(at(preview.opening().get(i)));
+            show(viewer, preview.openingDisplays().get(i), !useBeyond);
+            show(viewer, beyond, useBeyond);
         }
+    }
+
+    /** Shows one viewer the ring's own iris set, which is what an unstacked preview is. */
+    private static void showRingSet(final Player viewer, final GatePreview preview)
+    {
+        show(viewer, preview.openingDisplays(), true);
+        show(viewer, preview.beyondDisplays(), false);
     }
 
     /** Shows or hides a set of displays for one viewer. */
@@ -1713,21 +1699,20 @@ public final class GatePreviews
         }
     }
 
-    /** Redraws one preview for a player if they have crossed its plane since it was drawn. */
+    /** Redraws one preview for a player whose step changed what it looks like to them. */
     private static void restackIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
         if (!stacks(preview) || !preview.world().equals(player.getWorld()))
         {
             return;
         }
-        final boolean front = seesFront(preview, to);
-        final Boolean drawnFrom = preview.sides().get(player.getUniqueId());
-        if ((drawnFrom != null) && (drawnFrom.booleanValue() == front))
+        final List<IrisLayering.Placement> now = layersFor(preview, to);
+        if (now.equals(preview.sides().get(player.getUniqueId())))
         {
             return;
         }
-        applySideFor(player, preview, !front);
-        sendStackedTo(player, preview, to);
+        applySideFor(player, preview, now);
+        sendStacked(player, preview, now);
     }
 
     /**
