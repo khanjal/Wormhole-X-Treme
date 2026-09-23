@@ -453,9 +453,38 @@ unrelated second gate was switched off early.
 Each palette closes its own block, which is why the iris is a fifth material rather than one
 shared shield.
 
-The iris is a shield, and unlike the portal it is **real blocks** — it has to stop things, and a
-drawing cannot. Opening it on an active gate returns the interior to air with the portal drawn
-over it, which also clears the iris blocks.
+The iris is a shield, and on an upright gate it is **drawn**, the same way the portal is: the
+server keeps the opening empty and each nearby client is sent the iris material for those cells.
+A drawing cannot stop anything by itself, so what the blocks used to do is now explicit — the
+move listener refuses a player entering a gate whose own iris is shut, dialled or idle; a
+minecart is pushed back out; an arrow or a dropped item that reaches a shut iris at either end
+is destroyed; and placement into a covered opening is refused for everybody. Two things are
+bought with that work: a crash leaves nothing standing in the world, and the barrier is no
+longer nailed to the cells the portal occupies, which is what lets it be stacked against the
+horizon from whichever side the viewer is on.
+
+**The two layers are stacked per viewer.** With a wormhole open behind a shut iris, the nearer
+layer to each viewer takes the ring and the other goes a block further off: from the front the
+iris is in the ring and the horizon behind it, from behind the horizon is in the ring and the
+iris beyond it. Keeping the far layer on the far side is not only for looks — a drawn liquid
+on a player's own side of the gate gives their client swim physics the server does not agree
+with. The side is judged from the facing, remembered per player, and redrawn on every refresh,
+after the closing sweep, and on the step that crosses the gate's plane. Only cells that are
+really air are drawn in, and both layer positions are handed back whenever the gate stops
+being layered.
+
+**A horizontal gate's iris stays real blocks.** Its opening is a floor. A drawn floor is air as
+far as the server is concerned: the client holds the player up on it, the server sees somebody
+hovering over nothing, and a server that does not allow flight kicks them for it a few seconds
+later. Nothing in the drawn path can fix that, so those gates keep the blocks.
+
+Opening the iris on an active gate returns the interior to air with the portal drawn over it,
+which also clears whatever the iris was — drawing or blocks.
+
+A world saved before the iris was drawn still has the blocks standing in it. They are cleared
+per gate at load where the chunk is already loaded, and otherwise when the gate is first drawn
+for somebody; only cells holding that gate's own iris material are touched, because a player
+may have built in the opening.
 
 A gate can only take an iris if its shape marks `:IA`. The lever toggles it;
 `/wormhole gate edit <gate> idc <code>` sets the deactivation code, and the default state is
