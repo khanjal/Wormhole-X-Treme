@@ -556,7 +556,7 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code gate preview material <group>|<role> <block>}: the groups and roles, then
+     * Completions for {@code gate preview material <group>|-<role> <block>}: the groups and roles, then
      * block names once something has been typed, since every block at once is not a list anybody reads.
      *
      * @param args
@@ -570,8 +570,9 @@ public final class SubCommands
             final List<String> out = new ArrayList<>(prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry
                 .getGroups().stream().map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
                 .sorted(String.CASE_INSENSITIVE_ORDER).toArray(String[]::new)));
+            // Roles with their dash, so an option is never offered looking like a group's name.
             out.addAll(prefixed(args[3], java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.values())
-                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::word).toArray(String[]::new)));
+                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::option).toArray(String[]::new)));
             return out;
         }
         if ((args.length != 5) || args[4].isEmpty()

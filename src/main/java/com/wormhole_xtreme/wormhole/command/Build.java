@@ -40,7 +40,7 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 /**
  * {@code /wormhole gate build <shape> [group]}, and {@code /wormhole gate preview <action>} on the
  * preview being looked at: {@code clear [-all]}, {@code activate}, {@code iris}, {@code chevrons},
- * {@code dhd}, {@code material <group>|<role> <block>}, {@code needs}, {@code guide},
+ * {@code dhd}, {@code material <group>|-<role> <block>}, {@code needs}, {@code guide},
  * {@code layer [<n>|-next|-all]}, {@code share [<player>|-all]} and {@code place}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
@@ -291,11 +291,13 @@ public class Build implements CommandExecutor
         }
     }
 
-    /** {@code material <group>} or {@code material <role> <block>}; null once it has answered itself. */
+    /** {@code material <group>} or {@code material -<role> <block>}; null once it has answered itself. */
     private static GatePreviews.Control material(final Player player, final String[] args)
     {
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
-        final String roles = Arrays.stream(Role.values()).map(Role::word).collect(Collectors.joining(", "));
+        // Named with their dash, the way they are offered and documented, so the usage line
+        // teaches the form that cannot be mistaken for a material group's name.
+        final String roles = Arrays.stream(Role.values()).map(Role::option).collect(Collectors.joining(", "));
         if (args.length == 2)
         {
             final MaterialGroup group = MaterialGroupRegistry.getGroup(args[1]);
@@ -308,7 +310,7 @@ public class Build implements CommandExecutor
         if (role == null)
         {
             player.sendMessage(error + USAGE + hint(MATERIAL + " <group>") + " or "
-                + hint(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
+                + hint(MATERIAL + " -<role> <block>") + ". Roles: " + roles + ".");
             return null;
         }
         final Material block = Material.matchMaterial(args[2]);

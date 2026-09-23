@@ -359,4 +359,31 @@ class GateBlueprintTest
         assertEquals(Material.IRON_BLOCK, palette.with(GateBlueprint.Role.IRIS, Material.IRON_BLOCK).iris());
         assertEquals(GateBlueprint.Role.CHEVRON, GateBlueprint.Role.named("Chevron"));
     }
+
+    /**
+     * A role is named with a dash, and still answers to the bare word.
+     *
+     * <p>{@code gate preview material} takes either a material group to redress in or one role
+     * to change, in the same slot, so tab completion offered the six roles and every group's
+     * name in one list with nothing to tell them apart. A role is an option rather than a
+     * value, and every other option in these commands wears a dash, so roles wear one too.
+     *
+     * <p>The bare word goes on working. Nobody's muscle memory is worth breaking over a
+     * completion list, which is the same bargain {@code materials} got when it became
+     * {@code needs}.
+     */
+    @Test
+    void aRoleIsNamedWithADashAndStillAnswersToTheBareWord()
+    {
+        assertEquals("-iris", GateBlueprint.Role.IRIS.option());
+        assertEquals(GateBlueprint.Role.IRIS, GateBlueprint.Role.named("-iris"));
+        assertEquals(GateBlueprint.Role.IRIS, GateBlueprint.Role.named("-IRIS"));
+        assertEquals(GateBlueprint.Role.IRIS, GateBlueprint.Role.named("iris"),
+            "the old form, which servers and notes are full of");
+
+        assertNull(GateBlueprint.Role.named("-"), "a dash alone names no role");
+        assertNull(GateBlueprint.Role.named("--iris"), "and one dash is the marker, not any number");
+        assertNull(GateBlueprint.Role.named("Atlantis"), "a group's name is not a role either way");
+        assertNull(GateBlueprint.Role.named(null));
+    }
 }

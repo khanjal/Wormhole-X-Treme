@@ -171,6 +171,12 @@ The plugin API is in [docs/API.md](docs/API.md).
   word, so a typo was accepted and quietly read as the default.
 - **`wooshdepth` offers the six depths it accepts**, `owner` offers the online players, and
   `idc` offers `-clear`.
+- **`gate preview material` names its roles with a dash**: `-frame`, `-chevron`, `-light`,
+  `-portal`, `-iris`, `-sign`. The slot after `material` takes either a material group to
+  redress in or one role to change, so completion offered the six roles and every group's
+  name in a single list with nothing to tell them apart. A role is an option rather than a
+  value, and every other option in these commands wears a dash. The bare word still works
+  and is simply no longer offered.
 - **`build` and `regen` complete the way `gate build` and `gate regen` do.** The flat names
   are still there for anything scripted against them; they kept the shorter completions they
   had before the move, so `build` offered no shapes and `regen` offered none of its flags.
