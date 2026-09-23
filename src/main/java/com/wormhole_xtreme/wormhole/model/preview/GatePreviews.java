@@ -1632,10 +1632,12 @@ public final class GatePreviews
         for (int i = 0; i < layers.size(); i++)
         {
             final BlockDisplay beyond = preview.beyondDisplays().get(i);
-            final boolean useBeyond = (beyond != null)
-                && !layers.get(i).iris().equals(at(preview.opening().get(i)));
-            show(viewer, preview.openingDisplays().get(i), !useBeyond);
-            show(viewer, beyond, useBeyond);
+            final IrisLayering.At iris = layers.get(i).iris();
+            // No iris at all where the wormhole has the ring to itself, which is what a viewer
+            // behind an unlayered gate is shown: neither display is theirs.
+            final boolean inRing = (iris != null) && iris.equals(at(preview.opening().get(i)));
+            show(viewer, preview.openingDisplays().get(i), inRing);
+            show(viewer, beyond, (iris != null) && !inRing);
         }
     }
 

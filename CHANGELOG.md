@@ -95,6 +95,14 @@ The plugin API is in [docs/API.md](docs/API.md).
   picks the second layer back up as you come round to face it -- all of it at once, so a gate
   at an angle is never part one thing and part the other. The gate's own ring counts as
   cover, so standing off to one side of a big one keeps both layers. Previews do the same.
+- **The wormhole stays put when you walk along the back of a gate.** With no room for the
+  iris beyond the ring -- something built there, or an angle that would leave it standing
+  clear of the gate -- the ring used to fall back to the iris, so walking along the back of a
+  gate swapped the wormhole out for a wall of bare iris and back again. Whatever belongs in
+  the plane is drawn first now: the iris from the front, the wormhole from behind, with the
+  other layer added when there is somewhere for it. A gate seen that way shows the wormhole
+  with no iris drawn over it, which is a picture and not a way through -- a shut iris refuses
+  travellers, carts, arrows and dropped items on the gate's state, exactly as before.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole

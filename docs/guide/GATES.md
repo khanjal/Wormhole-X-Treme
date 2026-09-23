@@ -359,15 +359,20 @@ where it belongs for whoever is looking:
 |---|---|---|
 | In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through |
 | Behind | the horizon | the iris |
-| Round the side | the iris | nothing |
+| Round the side, in front | the iris | nothing |
+| Round the side, behind | the horizon | nothing |
 
-Walk round the gate and the two swap as you pass its plane. The second layer only holds while
-the gate is between you and it: from far enough round the side you would see it standing clear
-of the ring, so from there the gate shows the iris alone and picks the other layer back up as
-you come round to face it. Nothing is drawn where you have built -- you see what you built --
-and a gate with something built right in front of it just shows the iris in the ring from
-behind. A horizontal gate's iris is real blocks, so it stays in the ring and the horizon is
-shown underneath.
+Whatever belongs in the plane is drawn first, and the second layer follows when there is
+somewhere to put it. Walk round the gate and the two swap as you pass its plane. The second
+layer only holds while the gate is between you and it: from far enough round the side you would
+see it standing clear of the ring, so from there the gate drops to one layer and picks the
+other back up as you come round to face it. From behind that leaves the wormhole with no iris
+drawn over it -- which is a picture, not a way through. A shut iris refuses travellers on the
+gate's state, never on what is drawn.
+
+Nothing is drawn where you have built -- you see what you built -- and a gate with something
+built right in front of it shows the wormhole alone from behind. A horizontal gate's iris is
+real blocks, so it stays in the ring and the horizon is shown underneath.
 
 **The sweep is only the picture.** The iris is settled in one go, and the sweep is drawn on
 clients the same way the portal is. So a gate is never partly shut: closing, the barrier is

@@ -1433,7 +1433,7 @@ class GatePreviewsTest
      * @see com.wormhole_xtreme.wormhole.model.IrisLayeringTest
      */
     @Test
-    void fromOffToTheSideOfAStackedPreviewTheIrisKeepsTheRing()
+    void fromOffToTheSideOfAStackedPreviewTheWormholeKeepsTheRing()
     {
         openThePreview();
         final Player side = viewerAside("Sid", -1, 12);
@@ -1443,25 +1443,28 @@ class GatePreviewsTest
         finishIrisSweep();
 
         final Cell cell = openingCells().get(0);
+        // Neither iris is theirs: the one beyond the ring would stand clear of the gate, and
+        // the one in the ring is where the wormhole goes for somebody behind it.
         verify(side, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
-        // Never hidden, rather than shown at least once: spawning a display shows it to every
-        // watcher, so "was shown" is true whatever the side does with it afterwards.
-        verify(side, never()).hideEntity(plugin, displayAt(cell, 0));
-        assertTrue(handBacksAlong(side, 0) > 0,
-            "and the water the sweep left in the ring goes back, since a viewer round there is"
-                + " shown the iris alone rather than the wormhole under it");
+        verify(side, atLeastOnce()).hideEntity(plugin, displayAt(cell, 0));
+        assertTrue(wormholeSendsAlong(side, 0) > 0, "and the wormhole is in the ring for them");
     }
 
     /**
-     * A cell with nothing beyond the ring keeps its iris in the ring, for a viewer behind too.
+     * A cell with nothing beyond the ring keeps the wormhole in the ring, for a viewer behind.
      *
-     * <p>Without room for two layers there is no stacking to do at that cell: the iris stays
-     * where it is and no wormhole is shown. Hiding the ring's display from a viewer behind
-     * anyway left that cell showing water with no iris over it -- a shut gate reading as an
-     * open one, which is the one thing the layering must never do.
+     * <p>Without room for two layers there is no stacking to do at that cell. What belongs in
+     * the plane is drawn first and the other layer follows when there is somewhere for it, so
+     * from behind that is the wormhole, with no iris over it.
+     *
+     * <p>This inverts what the test here used to assert -- that the iris kept the ring, so a
+     * shut gate could never read as an open one. Walking along the back of a gate swapping the
+     * wormhole out for bare iris and back again looked more broken than it looked safe, and
+     * the barrier itself never moved: a preview has nothing to walk through at all, and a real
+     * gate refuses on its state rather than its picture.
      */
     @Test
-    void aCellWithNoRoomBeyondKeepsItsIrisInTheRingFromBehind()
+    void aCellWithNoRoomBeyondKeepsTheWormholeInTheRingFromBehind()
     {
         openThePreview();
         final Cell cell = openingCells().get(0);
@@ -1474,12 +1477,9 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
         finishIrisSweep();
 
-        assertFalse(spawnedAt(cell, 1), "nothing to stand in: the iris keeps the ring at that cell");
-        // Never hidden, rather than shown at least once: spawning a display shows it to every
-        // watcher, so "was shown" is true whatever the side does with it afterwards.
-        verify(behind, never()).hideEntity(plugin, displayAt(cell, 0));
-        assertTrue(handBacksAlong(behind, 0) > 0,
-            "and the wormhole the sweep sent there is taken back, so no water shows through the iris");
+        assertFalse(spawnedAt(cell, 1), "nothing to stand in beyond the ring at that cell");
+        verify(behind, atLeastOnce()).hideEntity(plugin, displayAt(cell, 0));
+        assertTrue(wormholeSendsAlong(behind, 0) > 0, "and the wormhole is in the ring for them");
     }
 
     /**

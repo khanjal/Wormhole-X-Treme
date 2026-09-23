@@ -87,7 +87,8 @@ public final class IrisLayering
      * What one cell of the opening shows this viewer.
      *
      * @param iris
-     *            where the iris goes, never null
+     *            where the iris goes, or null when there is no second layer to be had and the
+     *            horizon has the ring to itself
      * @param horizon
      *            where the horizon goes, or null when there is no second layer to be had and
      *            the iris has the ring to itself
@@ -162,14 +163,12 @@ public final class IrisLayering
             // looked from the front.
             return new Placement(ringCell, layered ? far : null);
         }
-        if (layered)
-        {
-            // From behind, the two swap: the horizon takes the ring and the iris goes beyond it.
-            return new Placement(far, ringCell);
-        }
-        // Nowhere for a second layer to hide, so there is no layering to be had. The iris keeps
-        // the ring; drawing the horizon there instead would show a shut gate as an open one.
-        return new Placement(ringCell, null);
+        // From behind the horizon keeps the ring either way. What belongs in the plane is drawn
+        // first and the other layer follows when there is somewhere to put it -- so walking
+        // along the back of a gate no longer swaps the wormhole out for a wall of bare iris the
+        // moment the iris cannot go beyond the ring. A viewer who can see no iris is still
+        // refused by it: the barrier is the gate's state, not its picture.
+        return new Placement(layered ? far : null, ringCell);
     }
 
     /**

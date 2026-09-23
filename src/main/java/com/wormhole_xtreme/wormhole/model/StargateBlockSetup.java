@@ -1632,7 +1632,10 @@ class StargateBlockSetup
             {
                 sendTruthIfFree(player, located(gate, back));
             }
-            player.sendBlockChange(located(gate, placed.iris()), iris);
+            if (placed.iris() != null)
+            {
+                player.sendBlockChange(located(gate, placed.iris()), iris);
+            }
             if (placed.horizon() != null)
             {
                 player.sendBlockChange(located(gate, placed.horizon()), horizon);

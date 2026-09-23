@@ -236,23 +236,30 @@ class IrisLayeringTest
     }
 
     /**
-     * From behind, with something built where the iris would go, the iris stays in the ring.
+     * From behind, with something built where the iris would go, the horizon keeps the ring.
      *
-     * <p>Only air is drawn in. Without room for the iris beyond the ring there is no layering to
-     * be had, and drawing the horizon in the ring anyway would leave a viewer looking at a shut
-     * gate through what looks like an open one.
+     * <p>Only air is drawn in, so there is nowhere to put the iris. What belongs in the plane
+     * is drawn first and the other layer follows when there is somewhere for it: from behind
+     * that means the wormhole, alone.
+     *
+     * <p>This inverts what the test here used to assert. The iris kept the ring so that a shut
+     * gate could never read as an open one -- but in the world that meant walking along the
+     * back of a gate swapped the wormhole out for a wall of bare iris, and swapped it back
+     * again, which looked far more broken than it looked safe. Nothing about the barrier
+     * itself moved: a traveller is refused by the gate's state, never by its picture, which is
+     * what {@code DrawnIrisHoldsShutTest} covers.
      */
     @Test
-    void fromBehindWithNoRoomBeyondTheIrisStaysInTheRing()
+    void fromBehindWithNoRoomBeyondTheHorizonKeepsTheRing()
     {
         standAt(Z + 4);
         when(ahead.getType()).thenReturn(Material.STONE);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
-        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
         verify(viewer, never()).sendBlockChange(at(Z - 1), any(BlockData.class));
-        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(iris));
     }
 
     /**
@@ -415,22 +422,22 @@ class IrisLayeringTest
     }
 
     /**
-     * From behind and off to the side, the iris stays in the ring.
+     * From behind and off to the side, the wormhole keeps the ring and the iris is not drawn.
      *
-     * <p>The same rule the other way about, and the worse-looking half of it: from behind, the
-     * far layer is the iris itself, so a viewer round the back corner of a gate was shown its
-     * iris standing a block clear of the ring with daylight around it.
+     * <p>The same rule the other way about. From behind the far layer is the iris itself, so a
+     * viewer round the back corner of a gate was shown its iris standing a block clear of the
+     * ring with daylight around it. That layer goes; the wormhole in the ring stays, because
+     * walking along the back of a gate should not keep taking it away and giving it back.
      */
     @Test
-    void fromBehindAndOffToTheSideTheIrisStaysInTheRing()
+    void fromBehindAndOffToTheSideTheHorizonKeepsTheRing()
     {
         standAt(X + 4, Z + 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
-        verify(viewer).sendBlockChange(at(Z), eq(iris));
-        verify(viewer, never()).sendBlockChange(at(Z - 1), eq(iris));
-        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(iris));
     }
 
     // -----------------------------------------------------------------------

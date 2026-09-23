@@ -487,9 +487,17 @@ one, which from behind is a square of bare iris sitting in the middle of the wor
 is one picture, so `hidesFarLayers` asks about every cell and answers once. The layers hold
 while the gate covers all of them and go the moment any one would be seen past it; measured
 over a `Standard` opening they hold dead in front from one block to eight, and six blocks round
-either side. A single cell with something built beyond it is still its own case — that cell
-keeps the iris in the ring while the rest stay layered, because nothing is being seen past the
-gate there.
+either side. A single cell with something built beyond it is still its own case, since nothing
+is being seen past the gate there.
+
+**What belongs in the plane is drawn first.** When there is no second layer to be had, the ring
+keeps whichever layer that viewer's side puts there — the iris from the front, the wormhole
+from behind — rather than the iris either way. The iris did keep it either way, so that a shut
+gate could never read as an open one; in the world that meant walking along the back of a gate
+swapped the wormhole out for a wall of bare iris and back again, which looked far more broken
+than it looked safe. The barrier itself never moved. A traveller, a minecart, an arrow or a
+dropped item is refused by the gate's state, never by its picture, and `DrawnIrisHoldsShutTest`
+is what holds that apart from anything the layering does.
 
 What each cell was drawn in is remembered per player and compared on the next step, so a move
 redraws only when it changes the picture. The side alone used to decide that, which is why a
