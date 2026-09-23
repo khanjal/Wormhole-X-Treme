@@ -758,6 +758,54 @@ class IrisLayeringTest
     }
 
     /**
+     * The wormhole is behind the ring before the first ring of iris arrives, not after the last.
+     *
+     * <p>A closing sweep paints the opening as it was and lets the iris through a ring at a
+     * time, and the layers were stacked only once it had finished. Behind an opaque iris
+     * nobody can tell. Behind a see-through one every ring that arrived was a pane of glass
+     * with nothing behind it, so the gate spent its whole animation showing the landscape
+     * through its own iris and then produced the wormhole in a single pop at the end.
+     *
+     * <p>Asserted before any sweep step is allowed to run: the horizon is behind the ring, and
+     * the iris is not drawn yet, because drawing that is the sweep's whole job.
+     */
+    @Test
+    void theHorizonIsBehindTheRingBeforeTheSweepStarts()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendHorizonBehind(gate);
+
+        verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(iris));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+    }
+
+    /**
+     * A viewer behind the gate is sent nothing extra before the sweep.
+     *
+     * <p>Their horizon is the ring itself, which is exactly what the sweep paints there to
+     * begin with. Sending it again would be a second copy of the same block, and sending it a
+     * block behind the ring would put it on their own side -- the picture this whole
+     * arrangement exists to avoid.
+     */
+    @Test
+    void aViewerBehindIsSentNoHorizonBeforeTheSweep()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
+        standAt(Z + 4);
+
+        StargateBlockSetup.sendHorizonBehind(gate);
+
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
      * The stand-in horizon moves, because the thing it is drawn in does not.
      *
      * <p>Water animates itself. Ice does not, so a wormhole behind a see-through iris would sit

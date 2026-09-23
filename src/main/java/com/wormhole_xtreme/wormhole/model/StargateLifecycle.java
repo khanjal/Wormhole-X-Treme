@@ -278,6 +278,14 @@ class StargateLifecycle
                 // picture the layering exists to avoid.
                 StargateBlockSetup.sendPortalBackdrop(gate, true);
             }
+            else
+            {
+                // The far layer, before the sweep rather than after it. A ring of see-through
+                // iris arriving over nothing shows the landscape, so a glass gate spent its
+                // whole animation apparently erasing its own wormhole and then produced it
+                // again in one pop at the end. The iris itself is still the sweep's to draw.
+                StargateBlockSetup.sendHorizonBehind(gate);
+            }
             // A drawn iris over a wormhole is then restacked for each viewer, so anybody behind
             // the gate sees the horizon in the ring and the iris beyond it. After the sweep, not
             // before: the sweep draws the ring cell by cell and would paint over it.

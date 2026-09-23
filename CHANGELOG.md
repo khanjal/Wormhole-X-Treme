@@ -105,6 +105,12 @@ The plugin API is in [docs/API.md](docs/API.md).
   where somebody behind the gate sees it, it is the real wormhole as always. Previews do the
   same, on the same beat. Plain glass never had the problem and is untouched, and an opaque
   iris hides the horizon by being opaque.
+- **A see-through iris sweeps shut over the wormhole, not over the landscape.** The layers
+  were stacked only once the sweep had finished, so every ring of a stained-glass iris
+  arrived with nothing behind it: the gate appeared to erase its own wormhole a ring at a
+  time and then produce it again in one jump at the end. The wormhole is behind the ring
+  before the first ring of iris arrives now. Behind an opaque iris none of this was ever
+  visible, and nothing about that changes.
 - **Shutting a drawn iris no longer flashes the wormhole onto your own side of the gate.**
   The horizon was sent a block behind the ring for everybody the moment the iris closed and
   only then stacked per viewer -- after the sweep, if there was one -- so anyone standing
