@@ -1057,6 +1057,13 @@ public class ConfigManager
      *
      * @return ticks per ring, between 1 and 20
      */
+    public static int getGateIrisStepTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 2;
+        return Math.min(20, Math.max(1, configured));
+    }
+
     /**
      * How often the wormhole drawn behind a see-through iris changes frame.
      *
@@ -1071,13 +1078,6 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_HORIZON_TICKS);
         final int configured = (s != null) ? s.getIntValue() : 10;
         return Math.min(100, Math.max(0, configured));
-    }
-
-    public static int getGateIrisStepTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 2;
-        return Math.min(20, Math.max(1, configured));
     }
 
     /**
