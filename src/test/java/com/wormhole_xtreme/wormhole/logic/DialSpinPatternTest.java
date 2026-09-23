@@ -259,17 +259,17 @@ class DialSpinPatternTest
             for (int glyph = 1; glyph <= 7; glyph++)
             {
                 final int frames = spin.frames(DialSpinPattern.UNIVERSE, glyph, TICKS);
-                assertTrue(frames >= 16, name + " glyph " + glyph + ": a whole turn and more, at a sixteenth a tick, not " + frames);
+                assertTrue((frames >= 7) && (frames <= 18), name + " glyph " + glyph + ": half a turn to a turn and a half, at a twelfth a tick, not " + frames);
                 int travelled = 0;
                 for (int tick = 1; tick < frames; tick++)
                 {
                     final int step = Math.floorMod(spin.ring().indexOf(first(spin.frame(DialSpinPattern.UNIVERSE, glyph, tick, TICKS)))
                         - spin.ring().indexOf(first(spin.frame(DialSpinPattern.UNIVERSE, glyph, tick - 1, TICKS))), n);
                     final int moved = Math.min(step, n - step);
-                    assertTrue(moved <= ((n + 15) / 16), name + " glyph " + glyph + " tick " + tick + ": no jump of " + moved);
+                    assertTrue(moved <= ((n + 11) / 12), name + " glyph " + glyph + " tick " + tick + ": no jump of " + moved);
                     travelled += moved;
                 }
-                assertTrue(travelled >= n, name + " glyph " + glyph + ": turned " + travelled + " of " + n);
+                assertTrue((2 * travelled) >= n, name + " glyph " + glyph + ": turned " + travelled + " of " + n);
             }
             assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7, 8), spin.rest(DialSpinPattern.UNIVERSE, 8, 8),
                 name + ": and another world's eighth locks in its own place after them");

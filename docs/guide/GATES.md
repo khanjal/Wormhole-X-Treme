@@ -103,15 +103,15 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 | `fill` | As `chevron`, lighting the ring behind it as it goes |
 | `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time |
 | `chase` | A whole turn anticlockwise from chevron 1 back to it, then from each locked chevron to the next, clockwise to chevron 2 and turning the other way each time |
-| `universe` | As Destiny's gate dials: the whole ring turns a full turn and more for each glyph, the other way each time. The top chevron's light rides round from the start, and each chevron lights at the top as it locks and rides round too, rather than lighting in its own place. When the top chevron locks, every one is back in its place |
+| `universe` | As Destiny's gate dials: the whole ring turns about a full turn for each glyph, the other way each time. The top chevron's light rides round from the start, and each chevron lights at the top as it locks and rides round too, rather than lighting in its own place. When the top chevron locks, every one is back in its place |
 | `overshoot` | As `chevron`, running a little past the chevron and backing onto it |
 | `none` | No ring light |
 
 The light takes the chevron's own time for every pattern but two. `top` rests half a second
-after each chevron but the last. `universe` turns at its own steady pace, a sixteenth of the ring
-a tick, so its full turns take about nine and a half seconds on any gate, where the others take
-three and a half. The last chevron holds two seconds before the wormhole forms, whatever the
-pattern.
+after each chevron but the last. `universe` turns at its own steady pace, a twelfth of the ring
+a tick, where the chevron's time would rush it: about five seconds of turning, a second more
+than the others on a Standard gate and no more on Grand or Massive. The last chevron holds two
+seconds before the wormhole forms, whatever the pattern.
 
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
@@ -602,7 +602,7 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
 | `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
-| `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: half the ring, landing on the chevron about to lock, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, a full turn and more each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `chevron`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` by turning a full turn and more at its own pace; `true` and `false` from older configs mean `top` and `none`. |
+| `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: half the ring, landing on the chevron about to lock, alternating. `lap`: a whole turn clockwise every glyph. `fill`: as `chevron`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, about a full turn each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `chevron`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` a little, by turning about a full turn for each glyph at its own pace; `true` and `false` from older configs mean `top` and `none`. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that

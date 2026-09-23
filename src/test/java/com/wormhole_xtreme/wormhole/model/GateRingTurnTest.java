@@ -191,7 +191,7 @@ class GateRingTurnTest
 
     /**
      * Every pattern locks the first chevron once its turn is done: on the chevron's own interval,
-     * but for UNIVERSE, whose turns run past a whole lap at their own pace, and NONE, which locks
+     * but for UNIVERSE, whose turns run to a lap and more at their own pace, and NONE, which locks
      * it at once without a turn. TOP's rest after a lock adds time from the second glyph on.
      */
     @Test

@@ -210,11 +210,11 @@ public final class DialSpin
     }
 
     /** The most of the ring a {@link DialSpinPattern#UNIVERSE} turn covers in a tick, as a fraction: past it, it reads as flicker. */
-    private static final int UNIVERSE_PACE = 16;
+    private static final int UNIVERSE_PACE = 12;
 
     /**
-     * Ticks a glyph's light travels: the chevron's interval, or for UNIVERSE, whose turns run past
-     * a whole lap, as long as its pace needs.
+     * Ticks a glyph's light travels: the chevron's interval, or for UNIVERSE, whose turns run to a
+     * lap and more, as long as its pace needs.
      */
     private int travel(final DialSpinPattern pattern, final int glyph, final int interval)
     {
@@ -293,18 +293,24 @@ public final class DialSpin
     }
 
     /**
-     * How many cells, signed, the ring turns for a glyph: a whole turn, then on from where the last
-     * left it to where this one's chevron stands at the top, the way {@link #alternating} says.
+     * How many cells, signed, the ring turns for a glyph: from where the last left it to where this
+     * one's chevron stands at the top, the way {@link #alternating} says, with a whole turn more
+     * when that is under half of one. Each glyph gets about a full spin.
      */
     private int turn(final int glyph)
     {
         final int n = ring.size();
         final int ahead = Math.floorMod(turned(glyph) - turned(glyph - 1), n);
-        if (alternating(glyph) > 0)
+        int cells = (alternating(glyph) > 0) ? ahead : (n - ahead);
+        if (cells == 0)
         {
-            return n + ahead;
+            cells = n;
         }
-        return -n - ((ahead == 0) ? 0 : (n - ahead));
+        else if ((2 * cells) < n)
+        {
+            cells += n;
+        }
+        return alternating(glyph) * cells;
     }
 
     /**

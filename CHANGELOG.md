@@ -37,8 +37,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
 - **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
-  chevron), `universe` (Destiny's: a full turn and more a glyph, locked chevrons riding round
-  with the ring and back in place at the last; about nine seconds a dial) and `overshoot`
+  chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
+  with the ring and back in place at the last) and `overshoot`
   (runs past the chevron and backs onto it). See [the guide](docs/guide/GATES.md#dialling).
 
 **Changed**
