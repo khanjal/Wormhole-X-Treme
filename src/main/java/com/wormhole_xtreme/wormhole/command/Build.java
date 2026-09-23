@@ -295,7 +295,9 @@ public class Build implements CommandExecutor
     private static GatePreviews.Control material(final Player player, final String[] args)
     {
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
-        final String roles = Arrays.stream(Role.values()).map(Role::word).collect(Collectors.joining(", "));
+        // Named with their dash, the way they are offered and documented, so the usage line
+        // teaches the form that cannot be mistaken for a material group's name.
+        final String roles = Arrays.stream(Role.values()).map(Role::option).collect(Collectors.joining(", "));
         if (args.length == 2)
         {
             final MaterialGroup group = MaterialGroupRegistry.getGroup(args[1]);
@@ -308,7 +310,7 @@ public class Build implements CommandExecutor
         if (role == null)
         {
             player.sendMessage(error + USAGE + hint(MATERIAL + " <group>") + " or "
-                + hint(MATERIAL + " <role> <block>") + ". Roles: " + roles + ".");
+                + hint(MATERIAL + " -<role> <block>") + ". Roles: " + roles + ".");
             return null;
         }
         final Material block = Material.matchMaterial(args[2]);

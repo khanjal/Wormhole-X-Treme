@@ -570,8 +570,9 @@ public final class SubCommands
             final List<String> out = new ArrayList<>(prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry
                 .getGroups().stream().map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
                 .sorted(String.CASE_INSENSITIVE_ORDER).toArray(String[]::new)));
+            // Roles with their dash, so an option is never offered looking like a group's name.
             out.addAll(prefixed(args[3], java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.values())
-                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::word).toArray(String[]::new)));
+                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::option).toArray(String[]::new)));
             return out;
         }
         if ((args.length != 5) || args[4].isEmpty()

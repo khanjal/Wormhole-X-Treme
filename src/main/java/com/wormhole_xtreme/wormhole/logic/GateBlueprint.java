@@ -90,14 +90,31 @@ public final class GateBlueprint
          */
         public static Role named(final String word)
         {
+            if (word == null)
+            {
+                return null;
+            }
+            // With or without the leading dash. A role is an option rather than a value --
+            // `material iris STONE` names one thing to change, where `material Atlantis`
+            // names a group to redress in -- and the two share a slot, so tab completion
+            // offered the six roles and every group's name in one indistinguishable list.
+            // The dash is how the rest of these commands mark an option, so roles wear it
+            // too. The bare word goes on working for anybody who learnt it that way.
+            final String typed = word.startsWith("-") ? word.substring(1) : word;
             for (final Role role : values())
             {
-                if (role.word().equalsIgnoreCase(word))
+                if (role.word().equalsIgnoreCase(typed))
                 {
                     return role;
                 }
             }
             return null;
+        }
+
+        /** This role as it is offered and documented: the word with its leading dash. */
+        public String option()
+        {
+            return "-" + word();
         }
     }
 
