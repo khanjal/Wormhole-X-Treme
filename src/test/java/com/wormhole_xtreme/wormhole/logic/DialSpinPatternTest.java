@@ -253,6 +253,31 @@ class DialSpinPatternTest
         }
     }
 
+    /**
+     * PEGASUS lands as the chevron alone, not the glyph-wide run that carried it there; found on
+     * Massive, where that run lit a dozen frame blocks round each chevron as it locked. Every hop
+     * on the way is either clear of the chevron or the chevron itself, never the two together.
+     */
+    @Test
+    void pegasusLandsAsTheChevronAlone() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name);
+            for (int glyph = 1; glyph <= 7; glyph++)
+            {
+                final Set<Cell> chevron = onRing(spin, glyph);
+                assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
+                for (int tick = 0; tick < TICKS; tick++)
+                {
+                    final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
+                    assertTrue(lit.equals(chevron) || lit.stream().noneMatch(chevron::contains),
+                        name + " glyph " + glyph + " tick " + tick + ": the chevron alone or clear of it");
+                }
+            }
+        }
+    }
+
     /** In-game, `/wormhole config gate-dial-spin ` offers every pattern, and a switch offers true and false. */
     @Test
     void theConfigCommandOffersThePatterns()

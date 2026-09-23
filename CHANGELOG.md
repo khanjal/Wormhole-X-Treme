@@ -80,6 +80,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **`pegasus` lands as the chevron alone.** Its glyph-wide light stayed on the frame round
+  each chevron as it locked, a dozen blocks on `Massive`.
 - **A closed iris no longer takes the wormhole with it.** An opening is one block thick, so
   a closed iris filled it and the event horizon vanished -- and through a stained-glass iris
   (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.

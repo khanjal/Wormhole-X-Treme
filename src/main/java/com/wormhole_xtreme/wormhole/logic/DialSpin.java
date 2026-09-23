@@ -356,10 +356,21 @@ public final class DialSpin
         }
         else if (pattern == DialSpinPattern.PEGASUS)
         {
-            // A glyph at a time: the run jumps a glyph's width rather than sliding.
+            // A glyph at a time: the run jumps a glyph's width rather than sliding, and lands as the
+            // chevron alone, not the frame it covered on the way.
+            final Set<Cell> chevron = chevron(glyph);
+            if (head >= last)
+            {
+                return chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
+            }
+            // A chevron's cells can sit among frame cells, as Grand's do: short of the first reached.
+            int shortOf = 0;
+            while ((shortOf < last) && !chevron.contains(path.get(shortOf)))
+            {
+                shortOf++;
+            }
             length = Math.max(2, ring.size() / GLYPHS);
-            head = (head >= last) ? last : ((head / length) * length) + (length - 1);
-            head = Math.min(head, last);
+            head = Math.min(((head / length) * length) + (length - 1), shortOf - 1);
         }
         final Set<Cell> lit = new LinkedHashSet<>();
         for (int i = Math.max(0, head - length + 1); i <= head; i++)
