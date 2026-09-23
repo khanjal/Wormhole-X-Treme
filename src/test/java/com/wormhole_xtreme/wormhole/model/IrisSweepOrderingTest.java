@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -236,6 +237,61 @@ class IrisSweepOrderingTest
             events.add("step");
             next.run();
         }
+    }
+
+    /**
+     * A closing sweep moves the wormhole behind each ring it covers, while it is still running.
+     *
+     * <p>The sweep hands every ring it reaches to whoever is following it, and a gate with a
+     * see-through iris uses that to move the wormhole behind the ring as the iris arrives --
+     * otherwise every pane of glass lands with the landscape behind it and the wormhole appears
+     * in one jump at the end.
+     *
+     * <p>This is the wiring rather than the arithmetic. Emptying the sweep's hand-off left every
+     * other test here green, because the fixture's gate is not layered and the follower does
+     * nothing for it: the gate has to be dialled, facing and drawn in something that hides
+     * water before any of this is reachable at all.
+     */
+    @Test
+    void aClosingSweepMovesTheWormholeBehindEachRingAsItGoes()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        // The cells the far layer goes in, a block behind the ring, and all of them open air.
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                final Block behind = mock(Block.class);
+                when(behind.getType()).thenReturn(Material.AIR);
+                when(behind.getLocation()).thenReturn(new Location(world, x, 64 + y, -1));
+                when(world.getBlockAt(x, 64 + y, -1)).thenReturn(behind);
+            }
+        }
+        materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
+            .thenReturn(Material.BLUE_ICE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
+            .thenReturn(Material.PACKED_ICE);
+        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_ICE)).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAs(Material.PACKED_ICE)).thenReturn(packed);
+
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "the sweep is still running -- at the end the layers are stacked anyway");
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(),
+            argThat(data -> (data == ice) || (data == packed)));
+        assertTrue(where.getAllValues().stream().anyMatch(at -> at.getBlockZ() == -1),
+            "and the wormhole went a block behind the ring: " + where.getAllValues());
     }
 
     @Test
