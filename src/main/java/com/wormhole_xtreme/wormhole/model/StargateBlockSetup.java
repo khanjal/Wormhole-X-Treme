@@ -1600,6 +1600,53 @@ class StargateBlockSetup
     }
 
     /**
+     * Says what one draw decided, for working out why a gate looks wrong in a world.
+     *
+     * <p>Where the layers went cannot be seen from a screenshot: a wormhole that was never
+     * drawn and one drawn where the client will not show it look exactly alike. One line per
+     * draw at {@code log-level: FINE} tells the two apart.
+     *
+     * @param player
+     *            who it was drawn for
+     * @param gate
+     *            the gate
+     * @param layers
+     *            what was drawn
+     */
+    private static void logLayers(final Player player, final Stargate gate,
+        final List<IrisLayering.Placement> layers)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE) || layers.isEmpty())
+        {
+            return;
+        }
+        final IrisLayering.Placement first = layers.get(0);
+        final int apart = layerGap(gate);
+        final StringBuilder dbg = new StringBuilder(256);
+        dbg.append("Iris layers: Gate=").append(gate.getGateName());
+        dbg.append(" For=").append(player.getName());
+        dbg.append(" IrisMaterial=").append(gate.getEffectiveIrisMaterial());
+        dbg.append(" PortalMaterial=").append(gate.getEffectivePortalMaterial());
+        dbg.append(" Apart=").append(apart);
+        dbg.append(" Front=").append(seesFront(gate, player.getLocation()));
+        dbg.append(" Cells=").append(layers.size());
+        dbg.append(" WithHorizon=").append(layers.stream().filter(p -> p.horizon() != null).count());
+        dbg.append(" FirstIris=").append(first.iris());
+        dbg.append(" FirstHorizon=").append(first.horizon());
+        final Location bc = gate.getGatePortalBlocks().get(0);
+        final IrisLayering.At ring = new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+        for (int step = 1; step <= apart; step++)
+        {
+            final IrisLayering.At back = ring.moved(gate.getGateFacing(), -step);
+            dbg.append(" Behind").append(step).append('=')
+                .append(describe(() -> located(gate, back).getBlock().getType()))
+                .append('/').append(backdropIsFree(located(gate, back)) ? "free" : "taken");
+        }
+        plugin.prettyLog(Level.FINE, dbg.toString());
+    }
+
+    /**
      * How far apart this gate has to stand its two layers.
      *
      * @param gate
@@ -1658,6 +1705,7 @@ class StargateBlockSetup
         {
             sendLights(player, gate, true);
         }
+        logLayers(player, gate, layers);
         layersDrawnFor(player).put(gate.getGateName(), layers);
     }
 
