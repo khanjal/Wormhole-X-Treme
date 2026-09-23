@@ -136,6 +136,8 @@ public final class DialSpin
      * The cells a glyph's light passes under a pattern, ending on the glyph's chevron, or on the
      * top for {@link DialSpinPattern#TOP}. {@link DialSpinPattern#PEGASUS} starts from the chevron
      * locked before it, the top for the first glyph, so its length varies from glyph to glyph.
+     * {@link DialSpinPattern#UNIVERSE} turns the whole ring and has no one path; this is
+     * {@link DialSpinPattern#CHEVRON}'s for it.
      *
      * @param pattern
      *            how the light moves
@@ -151,8 +153,143 @@ public final class DialSpin
             case TOP -> route(nearest(Math.PI), nearest(0.0), alternating(glyph));
             case LAP -> route(Math.floorMod(end + 1, ring.size()), end, 1);
             case PEGASUS -> route(nearest((glyph <= 1) ? 0.0 : chevronAngle(glyph - 1)), end, -alternating(glyph));
+            case CHASE -> (glyph <= 1) ? route(Math.floorMod(end - 1, ring.size()), end, -1)
+                : route(nearest(chevronAngle(glyph - 1)), end, -alternating(glyph));
+            case OVERSHOOT -> overshoot(path(glyph), alternating(glyph));
             default -> path(glyph);
         };
+    }
+
+    /** A path run on past its end by a comet's length, then back onto it. */
+    private List<Cell> overshoot(final List<Cell> path, final int step)
+    {
+        final int end = ring.indexOf(path.get(path.size() - 1));
+        final int past = Math.min(tail(), ring.size() / 4);
+        final List<Cell> out = new ArrayList<>(path);
+        for (int i = 1; i <= past; i++)
+        {
+            out.add(ring.get(Math.floorMod(end + (step * i), ring.size())));
+        }
+        for (int i = past - 1; i >= 0; i--)
+        {
+            out.add(ring.get(Math.floorMod(end + (step * i), ring.size())));
+        }
+        return out;
+    }
+
+    /** How long the light's run is. */
+    private int tail()
+    {
+        return Math.max(2, ring.size() / 16);
+    }
+
+    /** Ticks the {@link DialSpinPattern#TOP} light rests on the top chevron after each lock, before the ring turns again. */
+    public static final int TOP_HOLD_TICKS = 10;
+
+    /** Ticks a glyph's light rests where the one before landed, before it sets off. */
+    private static int hold(final DialSpinPattern pattern, final int glyph)
+    {
+        return ((pattern == DialSpinPattern.TOP) && (glyph > 1)) ? TOP_HOLD_TICKS : 0;
+    }
+
+    /**
+     * How many ticks a glyph's turn takes under a pattern: the chevron's interval, and any rest
+     * before it.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @param interval
+     *            the chevron's interval, in ticks
+     * @return the frames to play before the chevron locks
+     */
+    public int frames(final DialSpinPattern pattern, final int glyph, final int interval)
+    {
+        return hold(pattern, glyph) + Math.max(1, interval);
+    }
+
+    /**
+     * The cells lit at one frame of a glyph's turn: first any rest where the glyph before
+     * landed, then the light travelling over the chevron's interval.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @param frame
+     *            the frame, from 0, below {@link #frames}
+     * @param interval
+     *            the chevron's interval, in ticks
+     * @return the lit cells
+     */
+    public Set<Cell> frame(final DialSpinPattern pattern, final int glyph, final int frame, final int interval)
+    {
+        final int hold = hold(pattern, glyph);
+        return (frame < hold) ? lit(pattern, glyph - 1, 0, 1) : lit(pattern, glyph, frame - hold, Math.max(1, interval));
+    }
+
+    /**
+     * The cells that stay lit as a glyph's chevron locks, until the next glyph's turn takes them
+     * back: the top for {@link DialSpinPattern#TOP}, which rests there, and every glyph locked so
+     * far for {@link DialSpinPattern#UNIVERSE}, which keeps them lit while the gate is open.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            the glyph locking, from 1
+     * @param last
+     *            the dial's last glyph, after which the top chevron needs no light of its own
+     * @return the cells, empty for a pattern whose light goes as the chevron locks
+     */
+    public Set<Cell> rest(final DialSpinPattern pattern, final int glyph, final int last)
+    {
+        if (pattern == DialSpinPattern.UNIVERSE)
+        {
+            return universe(glyph, 1, 1, true);
+        }
+        return ((pattern == DialSpinPattern.TOP) && (glyph < last)) ? lit(pattern, glyph, 0, 1) : Set.of();
+    }
+
+    /** How many cells, signed, the ring turns for a glyph: past half a turn, a little further each time, so no two glyphs lock at the same place on it. */
+    private int turn(final int glyph)
+    {
+        final int n = ring.size();
+        return alternating(glyph) * ((n / 2) + (glyph * Math.max(1, n / 24)));
+    }
+
+    /** How far the ring has turned once a glyph has locked. */
+    private int turned(final int glyph)
+    {
+        int sum = 0;
+        for (int g = 1; g <= glyph; g++)
+        {
+            sum += turn(g);
+        }
+        return sum;
+    }
+
+    /**
+     * Destiny's ring part way through a glyph's turn: the point of origin and each glyph locked
+     * so far, carried round from the top where each lit.
+     */
+    private Set<Cell> universe(final int glyph, final int tick, final int ticks, final boolean landed)
+    {
+        final int n = ring.size();
+        final double progress = (ticks <= 1) ? 1.0 : ((double) tick / (ticks - 1));
+        final int now = turned(glyph - 1) + (int) Math.round(turn(glyph) * progress);
+        final int top = nearest(0.0);
+        final int width = Math.max(1, (int) Math.round(n / 36.0));
+        final Set<Cell> lit = new LinkedHashSet<>();
+        for (int k = 0; k <= (landed ? glyph : (glyph - 1)); k++)
+        {
+            final int at = top + now - turned(k);
+            for (int w = 0; w < width; w++)
+            {
+                lit.add(ring.get(Math.floorMod(at + w - ((width - 1) / 2), n)));
+            }
+        }
+        return lit;
     }
 
     /**
@@ -171,10 +308,14 @@ public final class DialSpin
      */
     public Set<Cell> lit(final DialSpinPattern pattern, final int glyph, final int tick, final int ticks)
     {
+        if (pattern == DialSpinPattern.UNIVERSE)
+        {
+            return universe(glyph, tick, ticks, false);
+        }
         final List<Cell> path = path(pattern, glyph);
         final int last = path.size() - 1;
         int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
-        int length = Math.max(2, ring.size() / 16);
+        int length = tail();
         if (pattern == DialSpinPattern.FILL)
         {
             length = head + 1;

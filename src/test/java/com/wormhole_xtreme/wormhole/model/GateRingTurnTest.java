@@ -189,8 +189,8 @@ class GateRingTurnTest
     }
 
     /**
-     * Every pattern locks the first chevron on the same tick, so the choice never changes how fast
-     * a gate dials, and NONE locks it at once without a turn.
+     * Every pattern locks the first chevron on the same tick, and NONE locks it at once without a
+     * turn. Only TOP's rest after a lock adds time, from the second glyph on.
      */
     @Test
     void everyPatternLocksTheChevronOnTheSameTick()
@@ -221,6 +221,80 @@ class GateRingTurnTest
         finally
         {
             // The default, as the other tests here assume.
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        }
+    }
+
+    /**
+     * The default TOP turn leaves its light on the top chevron as the first chevron locks, and for
+     * the rest after it, before setting off for the second; the second locks that much later.
+     */
+    @Test
+    void theTopTurnRestsOnTheTopThroughTheLock()
+    {
+        final Stargate gate = standardGate();
+        final List<Cell> path = DialSpin.of(cells, grid).path(DialSpinPattern.TOP, 1);
+        final Location top = at(path.get(path.size() - 1));
+        final int ticks = gate.getEffectiveLightTicks();
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            for (int tick = 0; tick <= ticks; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+            }
+            assertEquals(1, gate.getGateLightingCurrentIteration());
+            for (int tick = 0; tick < DialSpin.TOP_HOLD_TICKS; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+            }
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, top))), never());
+
+            StargateAnimator.lightStargate(gate, true);
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, top))));
+            for (int tick = 1; tick < ticks; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+                assertEquals(1, gate.getGateLightingCurrentIteration(), "still turning at tick " + tick);
+            }
+            StargateAnimator.lightStargate(gate, true);
+            assertEquals(2, gate.getGateLightingCurrentIteration());
+        }
+    }
+
+    /**
+     * UNIVERSE's glyphs stay lit on the ring through each lock, and go when the gate shuts. Checked
+     * on the point of origin, carried onto plain frame, as the top is a chevron shutting puts back anyway.
+     */
+    @Test
+    void universeGlyphsStayLitUntilTheGateShuts()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            final Stargate gate = standardGate();
+            final Location origin = at(DialSpin.of(cells, grid).rest(DialSpinPattern.UNIVERSE, 1, 7).stream()
+                .filter(c -> (c.part() == Part.FRAME) && (c.wave() == 0)).findFirst().orElseThrow());
+            try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                 MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+            {
+                for (int tick = 0; tick <= gate.getEffectiveLightTicks(); tick++)
+                {
+                    StargateAnimator.lightStargate(gate, true);
+                }
+                assertEquals(1, gate.getGateLightingCurrentIteration());
+                blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, origin))), atLeastOnce());
+                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), never());
+
+                StargateAnimator.lightStargate(gate, false);
+                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), atLeastOnce());
+            }
+        }
+        finally
+        {
             com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
                 com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }

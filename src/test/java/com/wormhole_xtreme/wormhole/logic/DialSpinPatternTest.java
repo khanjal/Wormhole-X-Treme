@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
@@ -74,8 +75,9 @@ class DialSpinPatternTest
             final DialSpin spin = spin(name);
             for (final DialSpinPattern pattern : DialSpinPattern.values())
             {
-                if (pattern == DialSpinPattern.NONE)
+                if ((pattern == DialSpinPattern.NONE) || (pattern == DialSpinPattern.UNIVERSE))
                 {
+                    // UNIVERSE lights its glyph as the chevron locks; see its own test.
                     continue;
                 }
                 for (int glyph = 1; glyph <= 7; glyph++)
@@ -133,6 +135,103 @@ class DialSpinPatternTest
                 final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
                 assertEquals(glyph - 1, path.get(0).wave(), name + ": glyph " + glyph + " starts at the chevron before");
                 assertEquals((glyph % 2) == 0, clockwise(spin, path), name + ": glyph " + glyph + " turns the other way");
+            }
+        }
+    }
+
+    /**
+     * CHASE laps anticlockwise from chevron 1 back to it for the first glyph, then runs from each
+     * locked chevron to the next, clockwise to chevron 2 and alternating after.
+     */
+    @Test
+    void chaseLapsToChevronOneThenRunsChevronToChevron() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name);
+            final List<Cell> first = spin.path(DialSpinPattern.CHASE, 1);
+            assertEquals(spin.ring().size(), first.size(), name + ": the first glyph goes the whole way round");
+            assertFalse(clockwise(spin, first), name + ": anticlockwise");
+            for (int glyph = 2; glyph <= 7; glyph++)
+            {
+                final List<Cell> path = spin.path(DialSpinPattern.CHASE, glyph);
+                assertEquals(glyph - 1, path.get(0).wave(), name + ": glyph " + glyph + " starts at the chevron before");
+                assertEquals((glyph % 2) == 0, clockwise(spin, path), name + ": glyph " + glyph + " turns the other way");
+            }
+        }
+    }
+
+    /** OVERSHOOT runs on past its chevron, then backs onto it, the way the ring sometimes settles. */
+    @Test
+    void overshootRunsPastTheChevronAndBacksOntoIt() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name);
+            for (int glyph = 1; glyph <= 7; glyph++)
+            {
+                final List<Cell> plain = spin.path(DialSpinPattern.CHEVRON, glyph);
+                final List<Cell> over = spin.path(DialSpinPattern.OVERSHOOT, glyph);
+                final Cell chevron = plain.get(plain.size() - 1);
+                assertEquals(plain, over.subList(0, plain.size()), name + " glyph " + glyph + ": the same way there");
+                assertTrue(over.size() > plain.size(), name + " glyph " + glyph + ": and on past it");
+                assertFalse(plain.contains(over.get(plain.size())), name + " glyph " + glyph + ": onto the ring beyond");
+                assertEquals(chevron, over.get(over.size() - 1), name + " glyph " + glyph + ": and back onto the chevron");
+            }
+        }
+    }
+
+    /**
+     * TOP rests on the top chevron after each lock before the ring turns again, so the lock reads
+     * as the show's; every other pattern sets off at once.
+     */
+    @Test
+    void topRestsOnTheTopAfterEachLock() throws Exception
+    {
+        final DialSpin spin = spin("Standard");
+        final Set<Cell> top = spin.rest(DialSpinPattern.TOP, 1, 7);
+        final List<Cell> path = spin.path(DialSpinPattern.TOP, 1);
+        assertTrue(top.contains(path.get(path.size() - 1)), "the light stays where it landed");
+        assertEquals(TICKS, spin.frames(DialSpinPattern.TOP, 1, TICKS), "nothing to rest after before the first");
+        assertEquals(TICKS + DialSpin.TOP_HOLD_TICKS, spin.frames(DialSpinPattern.TOP, 2, TICKS));
+        for (int frame = 0; frame < DialSpin.TOP_HOLD_TICKS; frame++)
+        {
+            assertEquals(top, spin.frame(DialSpinPattern.TOP, 2, frame, TICKS), "resting at frame " + frame);
+        }
+        assertEquals(spin.lit(DialSpinPattern.TOP, 2, 0, TICKS), spin.frame(DialSpinPattern.TOP, 2, DialSpin.TOP_HOLD_TICKS, TICKS),
+            "then off round the ring");
+        assertTrue(spin.rest(DialSpinPattern.TOP, 7, 7).isEmpty(), "the last lock is the top chevron's own light");
+        for (final DialSpinPattern pattern : DialSpinPattern.values())
+        {
+            if ((pattern != DialSpinPattern.TOP) && (pattern != DialSpinPattern.NONE))
+            {
+                assertEquals(TICKS, spin.frames(pattern, 2, TICKS), pattern + " sets off at once");
+            }
+        }
+    }
+
+    /**
+     * UNIVERSE turns the whole ring: each glyph lights at the top as it locks and rides round from
+     * there, each at its own place, and a turn starts where the last left off.
+     */
+    @Test
+    void universeCarriesEachLockedGlyphRound() throws Exception
+    {
+        for (final String name : RINGS)
+        {
+            final DialSpin spin = spin(name);
+            final int width = Math.max(1, (int) Math.round(spin.ring().size() / 36.0));
+            final Set<Cell> first = spin.frame(DialSpinPattern.UNIVERSE, 1, 0, TICKS);
+            assertEquals(width, first.size(), name + ": the point of origin alone before any lock");
+            assertFalse(first.equals(spin.frame(DialSpinPattern.UNIVERSE, 1, TICKS / 2, TICKS)), name + ": and it moves");
+            for (int glyph = 1; glyph <= 7; glyph++)
+            {
+                final Set<Cell> locked = spin.rest(DialSpinPattern.UNIVERSE, glyph, 7);
+                assertEquals((glyph + 1) * width, locked.size(), name + " glyph " + glyph + ": every lit glyph apart");
+                final List<Cell> top = spin.path(DialSpinPattern.TOP, glyph);
+                assertTrue(locked.contains(top.get(top.size() - 1)), name + " glyph " + glyph + ": the new one at the top");
+                assertEquals(locked, spin.frame(DialSpinPattern.UNIVERSE, glyph + 1, 0, TICKS),
+                    name + " glyph " + (glyph + 1) + " starts where " + glyph + " left off");
             }
         }
     }

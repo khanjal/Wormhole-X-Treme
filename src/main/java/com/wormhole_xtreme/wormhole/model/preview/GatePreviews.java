@@ -31,6 +31,7 @@ import org.joml.Vector3f;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
@@ -1019,10 +1020,10 @@ public final class GatePreviews
     }
 
     /**
-     * Moves the ring's light one tick along its way to the top chevron (#357), for the glyph about
-     * to lock. The turn takes the chevron's own interval, so the dial keeps its pace.
+     * Moves the ring's light one tick along its pattern (#357), for the glyph about to lock, over
+     * the chevron's own interval and any rest the pattern adds.
      *
-     * @return true while the light is still travelling, false once it has arrived (and is taken away)
+     * @return true while the light is still travelling, false once it has arrived and the chevron may lock
      */
     private static boolean turnRing(final Player owner, final GatePreview preview)
     {
@@ -1031,20 +1032,21 @@ public final class GatePreviews
             return false;
         }
         final Set<Cell> was = preview.spinCells();
-        final int ticks = Math.max(1, preview.shape().getShapeLightTicks());
-        if (preview.spinTick() >= ticks)
-        {
-            preview.spinTick(0);
-            preview.spinCells(Set.of());
-            restyle(preview, was);
-            return false;
-        }
-        preview.spinCells(preview.spin().lit(ConfigManager.getGateDialSpinPattern(), preview.litWaves() + 1,
-            preview.spinTick(), ticks));
-        preview.spinTick(preview.spinTick() + 1);
+        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final int glyph = preview.litWaves() + 1;
+        final int interval = Math.max(1, preview.shape().getShapeLightTicks());
+        final boolean arrived = preview.spinTick() >= preview.spin().frames(pattern, glyph, interval);
+        // On arriving, what rests on the ring stays lit through the lock; the next turn takes it back.
+        preview.spinCells(arrived ? preview.spin().rest(pattern, glyph, preview.lastWave())
+            : preview.spin().frame(pattern, glyph, preview.spinTick(), interval));
+        preview.spinTick(arrived ? 0 : (preview.spinTick() + 1));
         final Set<Cell> changed = new java.util.HashSet<>(was);
         changed.addAll(preview.spinCells());
         restyle(preview, changed);
+        if (arrived)
+        {
+            return false;
+        }
         next(owner, preview, 1L);
         return true;
     }

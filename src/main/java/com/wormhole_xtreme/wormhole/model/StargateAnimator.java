@@ -17,6 +17,7 @@ import org.bukkit.block.BlockFace;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
@@ -450,10 +451,10 @@ class StargateAnimator
     }
 
     /**
-     * Moves the ring's light one tick towards the top chevron, for the glyph about to lock: half
-     * the ring, alternating direction each glyph, over the chevron's own interval.
+     * Moves the ring's light one tick along its pattern, for the glyph about to lock, over the
+     * chevron's own interval and any rest the pattern adds.
      *
-     * @return true while the light is still travelling, false once it has arrived and is gone
+     * @return true while the light is still travelling, false once it has arrived and the chevron may lock
      */
     private static boolean turnRing(final Stargate gate, final List<List<Location>> waves)
     {
@@ -464,23 +465,28 @@ class StargateAnimator
             return false;
         }
         final Turning turning = TURNING.computeIfAbsent(gate, g -> new Turning());
-        final int ticks = Math.max(1, gate.getEffectiveLightTicks());
+        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final int interval = Math.max(1, gate.getEffectiveLightTicks());
+        final boolean arrived = turning.tick >= spin.frames(pattern, glyph, interval);
         final List<Location> now = new ArrayList<>();
-        if (turning.tick < ticks)
+        // On arriving, what rests on the ring stays lit through the lock; the next turn takes it back.
+        for (final GateBlueprint.Cell cell : arrived ? spin.rest(pattern, glyph, lastWave(gate, waves))
+            : spin.frame(pattern, glyph, turning.tick, interval))
         {
-            for (final GateBlueprint.Cell cell : spin.lit(ConfigManager.getGateDialSpinPattern(), glyph, turning.tick, ticks))
-            {
-                now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
-            }
+            now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
         }
         takeBackLight(gate, turning.cells, now, lockedCells(waves, glyph - 1));
-        if (turning.tick >= ticks)
-        {
-            TURNING.remove(gate);
-            return false;
-        }
         StargateBlockSetup.drawLights(gate, now);
         turning.cells = now;
+        if (arrived)
+        {
+            turning.tick = 0;
+            if (now.isEmpty())
+            {
+                TURNING.remove(gate);
+            }
+            return false;
+        }
         turning.tick++;
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), 1L);
