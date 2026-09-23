@@ -190,8 +190,7 @@ class DialSpinPatternTest
     {
         final DialSpin spin = spin("Standard");
         final Set<Cell> top = spin.rest(DialSpinPattern.TOP, 1, 7);
-        final List<Cell> path = spin.path(DialSpinPattern.TOP, 1);
-        assertTrue(top.contains(path.get(path.size() - 1)), "the light stays where it landed");
+        assertEquals(onRing(spin, 7), top, "the top chevron alone rests, not the light's tail");
         assertEquals(TICKS, spin.frames(DialSpinPattern.TOP, 1, TICKS), "nothing to rest after before the first");
         assertEquals(TICKS + DialSpin.TOP_HOLD_TICKS, spin.frames(DialSpinPattern.TOP, 2, TICKS));
         for (int frame = 0; frame < DialSpin.TOP_HOLD_TICKS; frame++)
@@ -210,29 +209,45 @@ class DialSpinPatternTest
         }
     }
 
+    /** The ring's cells in the chevrons given. */
+    private static Set<Cell> onRing(final DialSpin spin, final Integer... waves)
+    {
+        final Set<Integer> wanted = Set.of(waves);
+        return spin.ring().stream().filter(c -> wanted.contains(c.wave()))
+            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
     /**
-     * UNIVERSE turns the whole ring: each glyph lights at the top as it locks and rides round from
-     * there, each at its own place, and a turn starts where the last left off.
+     * UNIVERSE turns the whole ring: the point of origin rides round from the start, each chevron
+     * lights at the top as it locks and rides round from there, a turn starts where the last left
+     * off, and once the top chevron locks every one is back in its own place.
      */
     @Test
-    void universeCarriesEachLockedGlyphRound() throws Exception
+    void universeCarriesEachLockedChevronRound() throws Exception
     {
         for (final String name : RINGS)
         {
             final DialSpin spin = spin(name);
-            final int width = Math.max(1, (int) Math.round(spin.ring().size() / 36.0));
             final Set<Cell> first = spin.frame(DialSpinPattern.UNIVERSE, 1, 0, TICKS);
-            assertEquals(width, first.size(), name + ": the point of origin alone before any lock");
+            assertEquals(onRing(spin, 7), first, name + ": the point of origin, at the top before any lock");
             assertFalse(first.equals(spin.frame(DialSpinPattern.UNIVERSE, 1, TICKS / 2, TICKS)), name + ": and it moves");
+            final List<Cell> top = spin.path(DialSpinPattern.TOP, 1);
             for (int glyph = 1; glyph <= 7; glyph++)
             {
                 final Set<Cell> locked = spin.rest(DialSpinPattern.UNIVERSE, glyph, 7);
-                assertEquals((glyph + 1) * width, locked.size(), name + " glyph " + glyph + ": every lit glyph apart");
-                final List<Cell> top = spin.path(DialSpinPattern.TOP, glyph);
+                final Set<Integer> waves = new java.util.HashSet<>(Set.of(7));
+                for (int k = 1; k <= glyph; k++)
+                {
+                    waves.add(k);
+                }
+                assertEquals(onRing(spin, waves.toArray(new Integer[0])).size(), locked.size(),
+                    name + " glyph " + glyph + ": every locked chevron and the origin, none on another");
                 assertTrue(locked.contains(top.get(top.size() - 1)), name + " glyph " + glyph + ": the new one at the top");
                 assertEquals(locked, spin.frame(DialSpinPattern.UNIVERSE, glyph + 1, 0, TICKS),
                     name + " glyph " + (glyph + 1) + " starts where " + glyph + " left off");
             }
+            assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7), spin.rest(DialSpinPattern.UNIVERSE, 7, 7),
+                name + ": every chevron back in its own place");
         }
     }
 

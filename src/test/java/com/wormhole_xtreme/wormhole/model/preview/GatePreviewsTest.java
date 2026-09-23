@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -1714,6 +1715,59 @@ class GatePreviewsTest
 
         chevron.forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
         assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
+    }
+
+    /**
+     * The default TOP turn rests on the top as a chevron locks: the light is drawn there again on the
+     * step after the lock, rather than having gone, as a real gate's does.
+     */
+    @Test
+    void theTopTurnRestsOnTheTopAfterALock()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        final List<Cell> cells = standardLookingNorth();
+        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final List<Cell> path = spin.path(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP, 1);
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
+        GatePreviews.activate(owner);
+        final int ticks = standard.getShapeLightTicks();
+        for (int step = 0; step <= ticks; step++)
+        {
+            dialStep.run();
+        }
+        ringDisplaysOfWave(1).forEach(d -> verify(d, atLeastOnce()).setBlock(data.get(Material.GLOWSTONE)));
+        org.mockito.Mockito.clearInvocations(top);
+
+        dialStep.run();
+
+        verify(top).setBlock(data.get(Material.GLOWSTONE));
+    }
+
+    /**
+     * Under UNIVERSE a locked chevron rides round with the ring rather than also lighting in its own
+     * place, as a real gate's does; lit in both, half the gate stood lit.
+     */
+    @Test
+    void aUniverseChevronDoesNotLightInPlace()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        final List<BlockDisplay> chevron = ringDisplaysOfWave(1);
+        for (int step = 0; step <= standard.getShapeLightTicks(); step++)
+        {
+            dialStep.run();
+        }
+
+        for (final BlockDisplay d : chevron)
+        {
+            final List<Object> shown = mockingDetails(d).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+            assertFalse(shown.isEmpty(), "chevron 1 was redrawn as it locked");
+            assertNotEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "and not as lit");
+        }
     }
 
     /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */

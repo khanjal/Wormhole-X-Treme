@@ -1618,10 +1618,15 @@ public final class GatePreviews
         }
     }
 
-    /** What a frame cell shows now: lit while its wave is or the ring's light is on it, and as built otherwise. */
+    /**
+     * What a frame cell shows now: lit while its wave is or the ring's light is on it, and as built
+     * otherwise. Under UNIVERSE the locked chevrons ride round with the ring, so only its light counts.
+     */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean lit = ((cell.wave() > 0) && (cell.wave() <= preview.litWaves())) || preview.spinCells().contains(cell);
+        final boolean riding = spins(preview) && (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE);
+        final boolean lit = (!riding && (cell.wave() > 0) && (cell.wave() <= preview.litWaves()))
+            || preview.spinCells().contains(cell);
         return lit ? litData(preview.drawnPalette(), cell) : blockDataFor(preview, cell);
     }
 

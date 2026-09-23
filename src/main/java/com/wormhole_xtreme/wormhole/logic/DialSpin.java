@@ -226,13 +226,14 @@ public final class DialSpin
     public Set<Cell> frame(final DialSpinPattern pattern, final int glyph, final int frame, final int interval)
     {
         final int hold = hold(pattern, glyph);
-        return (frame < hold) ? lit(pattern, glyph - 1, 0, 1) : lit(pattern, glyph, frame - hold, Math.max(1, interval));
+        return (frame < hold) ? topChevron() : lit(pattern, glyph, frame - hold, Math.max(1, interval));
     }
 
     /**
      * The cells that stay lit as a glyph's chevron locks, until the next glyph's turn takes them
-     * back: the top for {@link DialSpinPattern#TOP}, which rests there, and every glyph locked so
-     * far for {@link DialSpinPattern#UNIVERSE}, which keeps them lit while the gate is open.
+     * back: the top chevron alone for {@link DialSpinPattern#TOP}, which rests there, and every
+     * chevron locked so far, where the ring has carried it, for {@link DialSpinPattern#UNIVERSE}.
+     * Once its top chevron locks, those stand in their own places and stay lit while the gate is open.
      *
      * @param pattern
      *            how the light moves
@@ -248,46 +249,79 @@ public final class DialSpin
         {
             return universe(glyph, 1, 1, true);
         }
-        return ((pattern == DialSpinPattern.TOP) && (glyph < last)) ? lit(pattern, glyph, 0, 1) : Set.of();
+        return ((pattern == DialSpinPattern.TOP) && (glyph < last)) ? topChevron() : Set.of();
     }
 
-    /** How many cells, signed, the ring turns for a glyph: past half a turn, a little further each time, so no two glyphs lock at the same place on it. */
-    private int turn(final int glyph)
+    /** The top chevron's own cells on the ring, or the cell nearest the top on a ring without them. */
+    private Set<Cell> topChevron()
     {
-        final int n = ring.size();
-        return alternating(glyph) * ((n / 2) + (glyph * Math.max(1, n / 24)));
+        final Set<Cell> top = chevron(Stargate.LOCAL_CHEVRONS);
+        return top.isEmpty() ? Set.of(ring.get(nearest(0.0))) : top;
     }
 
-    /** How far the ring has turned once a glyph has locked. */
-    private int turned(final int glyph)
+    /** One chevron's cells on the ring, empty for one not on it. */
+    private Set<Cell> chevron(final int wave)
     {
-        int sum = 0;
-        for (int g = 1; g <= glyph; g++)
+        final Set<Cell> cells = new LinkedHashSet<>();
+        for (final Cell cell : ring)
         {
-            sum += turn(g);
+            if (cell.wave() == wave)
+            {
+                cells.add(cell);
+            }
         }
-        return sum;
+        return cells;
     }
 
     /**
-     * Destiny's ring part way through a glyph's turn: the point of origin and each glyph locked
-     * so far, carried round from the top where each lit.
+     * How many cells, signed, the ring turns for a glyph: from where the last left it to where
+     * this one's chevron stands at the top, the way {@link #alternating} says, and a whole turn
+     * when it is there already.
+     */
+    private int turn(final int glyph)
+    {
+        final int n = ring.size();
+        final int ahead = Math.floorMod(turned(glyph) - turned(glyph - 1), n);
+        if (alternating(glyph) > 0)
+        {
+            return (ahead == 0) ? n : ahead;
+        }
+        return ahead - n;
+    }
+
+    /**
+     * How far round the ring stands once a glyph has locked: with that glyph's chevron at the
+     * top, so after the top chevron's own glyph every chevron is back in its place. The ring
+     * starts there, and a glyph past the top chevron's locks in its chevron's own place.
+     */
+    private int turned(final int glyph)
+    {
+        if ((glyph <= 0) || (glyph >= Stargate.LOCAL_CHEVRONS))
+        {
+            return 0;
+        }
+        return nearest(0.0) - nearest(chevronAngle(glyph));
+    }
+
+    /**
+     * Destiny's ring part way through a glyph's turn: each chevron locked so far, and the top
+     * chevron as the point of origin from the start, carried round with the ring. Each is its
+     * chevron's own cells, so no two ever share one.
      */
     private Set<Cell> universe(final int glyph, final int tick, final int ticks, final boolean landed)
     {
         final int n = ring.size();
         final double progress = (ticks <= 1) ? 1.0 : ((double) tick / (ticks - 1));
         final int now = turned(glyph - 1) + (int) Math.round(turn(glyph) * progress);
-        final int top = nearest(0.0);
-        final int width = Math.max(1, (int) Math.round(n / 36.0));
-        final Set<Cell> lit = new LinkedHashSet<>();
-        for (int k = 0; k <= (landed ? glyph : (glyph - 1)); k++)
+        final Set<Cell> riding = new LinkedHashSet<>(topChevron());
+        for (int k = 1; k <= (landed ? glyph : (glyph - 1)); k++)
         {
-            final int at = top + now - turned(k);
-            for (int w = 0; w < width; w++)
-            {
-                lit.add(ring.get(Math.floorMod(at + w - ((width - 1) / 2), n)));
-            }
+            riding.addAll(chevron(k));
+        }
+        final Set<Cell> lit = new LinkedHashSet<>();
+        for (final Cell cell : riding)
+        {
+            lit.add(ring.get(Math.floorMod(ring.indexOf(cell) + now, n)));
         }
         return lit;
     }

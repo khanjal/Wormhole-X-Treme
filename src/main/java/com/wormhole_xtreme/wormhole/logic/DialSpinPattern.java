@@ -35,8 +35,8 @@ public enum DialSpinPattern
     CHASE,
 
     /**
-     * As Destiny's gate dials: the whole ring turns, alternating direction, and each locked glyph
-     * lights at the top and rides round with it.
+     * As Destiny's gate dials: the whole ring turns, alternating direction, and each chevron lights
+     * at the top as it locks and rides round with it, back in its own place once the top chevron locks.
      */
     UNIVERSE,
 

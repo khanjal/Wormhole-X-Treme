@@ -358,7 +358,10 @@ class StargateAnimator
         // Through drawLights rather than drawBlocks because a chevron the player built out of
         // the chevron material lights as that same block switched on, and which positions
         // those are is a per-block question.
-        StargateBlockSetup.drawLights(gate, waves.get(step));
+        if (!ridesTheRing(gate))
+        {
+            StargateBlockSetup.drawLights(gate, waves.get(step));
+        }
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
         GateSounds.chevron(gate, step, lastWave(gate, waves));
@@ -451,6 +454,15 @@ class StargateAnimator
     }
 
     /**
+     * Whether a gate's locked chevrons ride round with its ring rather than lighting in place, as
+     * {@link DialSpinPattern#UNIVERSE} draws them; they are back in place once its top chevron locks.
+     */
+    static boolean ridesTheRing(final Stargate gate)
+    {
+        return (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE) && turns(gate);
+    }
+
+    /**
      * Moves the ring's light one tick along its pattern, for the glyph about to lock, over the
      * chevron's own interval and any rest the pattern adds.
      *
@@ -475,7 +487,8 @@ class StargateAnimator
         {
             now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
         }
-        takeBackLight(gate, turning.cells, now, lockedCells(waves, glyph - 1));
+        takeBackLight(gate, turning.cells, now,
+            (pattern == DialSpinPattern.UNIVERSE) ? Set.of() : lockedCells(waves, glyph - 1));
         StargateBlockSetup.drawLights(gate, now);
         turning.cells = now;
         if (arrived)

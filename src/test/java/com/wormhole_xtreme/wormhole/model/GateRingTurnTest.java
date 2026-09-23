@@ -14,6 +14,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -265,11 +266,13 @@ class GateRingTurnTest
     }
 
     /**
-     * UNIVERSE's glyphs stay lit on the ring through each lock, and go when the gate shuts. Checked
-     * on the point of origin, carried onto plain frame, as the top is a chevron shutting puts back anyway.
+     * UNIVERSE's riders stay lit through a lock, rather than going as TOP's light once did, and a
+     * locked chevron does not light in its own place as well: it rides with the ring. Found in-game:
+     * lit in both, half the gate stood lit. Checked on the point of origin, which the first turn
+     * carries off the top.
      */
     @Test
-    void universeGlyphsStayLitUntilTheGateShuts()
+    void universeRidersStayLitThroughTheLockAndChevronsDoNotLightInPlace()
     {
         try
         {
@@ -277,20 +280,23 @@ class GateRingTurnTest
                 com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
             final Stargate gate = standardGate();
             final Location origin = at(DialSpin.of(cells, grid).rest(DialSpinPattern.UNIVERSE, 1, 7).stream()
-                .filter(c -> (c.part() == Part.FRAME) && (c.wave() == 0)).findFirst().orElseThrow());
+                .filter(c -> c.wave() != Stargate.LOCAL_CHEVRONS).findFirst().orElseThrow());
             try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
                  MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
             {
-                for (int tick = 0; tick <= gate.getEffectiveLightTicks(); tick++)
+                for (int tick = 0; tick < gate.getEffectiveLightTicks(); tick++)
                 {
                     StargateAnimator.lightStargate(gate, true);
                 }
-                assertEquals(1, gate.getGateLightingCurrentIteration());
-                blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, origin))), atLeastOnce());
-                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), never());
+                // The lock's own tick alone: a rider passing over chevron 1 draws its one block too.
+                blocks.clearInvocations();
+                StargateAnimator.lightStargate(gate, true);
 
-                StargateAnimator.lightStargate(gate, false);
-                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), atLeastOnce());
+                assertEquals(1, gate.getGateLightingCurrentIteration());
+                blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, origin))));
+                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), never());
+                blocks.verify(() -> StargateBlockSetup.drawLights(gate, gate.getGateLightBlocks().get(1)), never());
+                sounds.verify(() -> GateSounds.chevron(eq(gate), eq(1), anyInt()));
             }
         }
         finally
