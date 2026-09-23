@@ -1559,6 +1559,31 @@ class GatePreviewsTest
     }
 
     /**
+     * And the wormhole it moves behind is laid in the preview's plane, like everything else.
+     *
+     * <p>The horizon is built down a third path again, beside the wormhole and the iris, so it
+     * could have kept the game's default on its own. The two ices are only the carrier here --
+     * neither really has an axis -- but they are what this fixture's horizon draws, and a palette
+     * is free to name a portal material that does.
+     */
+    @Test
+    void theWormholeMovedBehindAGlassIrisIsLaidInThePreviewsPlane()
+    {
+        final org.bukkit.block.data.Orientable ice = mock(org.bukkit.block.data.Orientable.class);
+        when(ice.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        data.put(Material.BLUE_ICE, ice);
+        data.put(Material.PACKED_ICE, ice);
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        viewerAlong("Fran", 4);
+
+        GatePreviews.iris(owner);
+
+        verify(ice, atLeastOnce()).setAxis(org.bukkit.Axis.X);
+        verify(ice, never()).setAxis(org.bukkit.Axis.Z);
+    }
+
+    /**
      * A see-through iris sweeping open gives the wormhole back a ring at a time, not all at once.
      *
      * <p>The mirror of the closing sweep, and it went wrong the same way. An opening iris is
