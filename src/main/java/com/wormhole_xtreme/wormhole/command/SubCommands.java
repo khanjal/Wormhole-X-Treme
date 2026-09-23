@@ -556,7 +556,7 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code gate preview material <group>|<role> <block>}: the groups and roles, then
+     * Completions for {@code gate preview material <group>|-<role> <block>}: the groups and roles, then
      * block names once something has been typed, since every block at once is not a list anybody reads.
      *
      * @param args
