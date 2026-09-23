@@ -694,6 +694,40 @@ class IrisLayeringTest
     }
 
     /**
+     * Neighbouring cells take different squares of the checkerboard.
+     *
+     * <p>A sheet all of one ice reads as ice. It is the two of them next to each other that
+     * pass for a surface, so which square a cell is on has to depend on where the cell is --
+     * a checkerboard that ignored position would be a single colour that blinks.
+     */
+    @Test
+    void neighbouringCellsTakeDifferentSquares()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
+        // A second opening cell beside the first, with its own cell behind the ring.
+        blockAt(X + 1, Z, null);
+        blockAt(X + 1, Z + 1, truthBehind);
+        blockAt(X + 1, Z - 1, truthAhead);
+        gate.getGatePortalBlocks().add(new Location(world, X + 1, Y, Z));
+        gate.getGateStructureBlocks().add(new Location(world, X + 2, Y, Z));
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        // Which of the two a given cell takes depends on the frame, which is shared and has
+        // been moved by whatever ran before this. That they differ is the whole claim.
+        final org.mockito.ArgumentCaptor<BlockData> sent =
+            org.mockito.ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, times(2)).sendBlockChange(
+            argThat(l -> (l != null) && (l.getBlockZ() == (Z + 1))), sent.capture());
+        assertTrue(sent.getAllValues().contains(ice), "one cell takes one ice: " + sent.getAllValues());
+        assertTrue(sent.getAllValues().contains(packed),
+            "and the cell beside it takes the other: " + sent.getAllValues());
+    }
+
+    /**
      * The stand-in horizon moves, because the thing it is drawn in does not.
      *
      * <p>Water animates itself. Ice does not, so a wormhole behind a see-through iris would sit

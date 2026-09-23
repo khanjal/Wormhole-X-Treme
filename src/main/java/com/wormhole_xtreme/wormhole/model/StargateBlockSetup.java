@@ -1744,11 +1744,12 @@ class StargateBlockSetup
             {
                 // Behind the iris it is drawn as a look-alike where the iris would hide the
                 // liquid; in the ring, which is where a viewer behind the gate gets it, the
-                // real thing has air in front of it and is drawn as it always was.
+                // real thing has air in front of it and is drawn as it always was. Which of
+                // those it is, is DrawnHorizon's to decide -- asking here as well would be the
+                // same rule in two places, and one of them would eventually be wrong.
                 player.sendBlockChange(located(gate, placed.horizon()),
-                    placed.horizon().equals(cell) ? horizon
-                        : MaterialUtils.drawnAs(DrawnHorizon.materialFor(portalMaterial,
-                            irisMaterial, cell, true)));
+                    MaterialUtils.drawnAs(DrawnHorizon.materialFor(portalMaterial, irisMaterial,
+                        cell, !placed.horizon().equals(cell))));
             }
         }
         if (gate.isGateLightsActive())
