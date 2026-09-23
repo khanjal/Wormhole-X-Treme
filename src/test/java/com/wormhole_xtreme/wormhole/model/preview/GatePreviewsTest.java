@@ -1292,6 +1292,45 @@ class GatePreviewsTest
     }
 
     /**
+     * The last thing a viewer was sent in a cell offset from the ring, which is what they are
+     * still looking at.
+     *
+     * <p>A count, or an at-least-once, says only that the right block passed through at some
+     * point. A sweep sends one picture and the settled draw after it sends another, so a test
+     * that asks whether a block was ever sent is answered by the sweep and says nothing about
+     * what is left standing when it ends.
+     *
+     * @param viewer
+     *            the viewer
+     * @param steps
+     *            how far along the preview's facing, so -1 is a block behind the ring
+     * @return the block data last sent there, or null if nothing was
+     */
+    private BlockData lastSentAlong(final Player viewer, final int steps)
+    {
+        final BlockFace facing = previewFacing();
+        final Set<List<Integer>> wanted = new HashSet<>();
+        for (final Cell cell : openingCells())
+        {
+            wanted.add(List.of(cell.x() + (steps * facing.getModX()), cell.y() + (steps * facing.getModY()),
+                cell.z() + (steps * facing.getModZ())));
+        }
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
+        BlockData last = null;
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            if (wanted.contains(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ())))
+            {
+                last = what.getAllValues().get(i);
+            }
+        }
+        return last;
+    }
+
+    /**
      * A viewer behind a shut iris sees the wormhole in the ring, with the iris beyond it.
      *
      * <p>The real gate has read this way since #424; the preview showed everyone the front's
@@ -1644,6 +1683,11 @@ class GatePreviewsTest
      * translucent entity hides translucent water behind it just the same, and the preview went
      * on showing nothing long after the gate had been fixed. The decision is shared now, so
      * the two cannot drift apart again.
+     *
+     * <p>Asserted on what is left standing rather than on what went past. An at-least-once here
+     * was answered by the ice the sweep sends on its way across, so the settled draw that follows
+     * could have gone back to sending water -- invisible behind the glass -- and this still
+     * passed.
      */
     @Test
     void aPreviewBehindAGlassIrisDrawsTheWormholeAsALookAlike()
@@ -1656,8 +1700,9 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
         finishIrisSweep();
 
-        verify(front, atLeastOnce()).sendBlockChange(any(Location.class),
-            argThat(d -> (d == data.get(Material.BLUE_ICE)) || (d == data.get(Material.PACKED_ICE))));
+        final BlockData settled = lastSentAlong(front, -1);
+        assertTrue((settled == data.get(Material.BLUE_ICE)) || (settled == data.get(Material.PACKED_ICE)),
+            "the cell behind the ring is still showing a look-alike once the sweep has ended: " + settled);
     }
 
     /**

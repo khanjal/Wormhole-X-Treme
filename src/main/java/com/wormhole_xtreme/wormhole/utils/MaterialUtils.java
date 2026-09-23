@@ -327,15 +327,10 @@ public final class MaterialUtils {
      * @return the stand-in, or the material itself where it needs no standing in for
      */
     public static Material shownBehindGlassAs(final Material horizon, final boolean alternate) {
-        if (horizon == null) {
-            return null;
+        if (horizon != Material.WATER) {
+            return horizon;
         }
-        switch (horizon) {
-            case WATER:
-                return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
-            default:
-                return horizon;
-        }
+        return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
     }
 
     /** Returns true if the material represents ice we care about. */

@@ -17,6 +17,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -260,29 +261,7 @@ class IrisSweepOrderingTest
     {
         final BlockData ice = mock(BlockData.class);
         final BlockData packed = mock(BlockData.class);
-        gate.setGateFacing(org.bukkit.block.BlockFace.SOUTH);
-        gate.setGateActive(true);
-        gate.setGateCustom(true);
-        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
-        gate.setGateCustomPortalMaterial(Material.WATER);
-        // The cells the far layer goes in, a block behind the ring, and all of them open air.
-        for (int x = -1; x <= 1; x++)
-        {
-            for (int y = -1; y <= 1; y++)
-            {
-                final Block behind = mock(Block.class);
-                when(behind.getType()).thenReturn(Material.AIR);
-                when(behind.getLocation()).thenReturn(new Location(world, x, 64 + y, -1));
-                when(world.getBlockAt(x, 64 + y, -1)).thenReturn(behind);
-            }
-        }
-        materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
-        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
-            .thenReturn(Boolean.TRUE);
-        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
-            .thenReturn(Material.BLUE_ICE);
-        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
-            .thenReturn(Material.PACKED_ICE);
+        glassIrisOverAWormhole(mock(BlockData.class));
         materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
         materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
 
@@ -295,6 +274,86 @@ class IrisSweepOrderingTest
             argThat(data -> (data == ice) || (data == packed)));
         assertTrue(where.getAllValues().stream().anyMatch(at -> at.getBlockZ() == -1),
             "and the wormhole went a block behind the ring: " + where.getAllValues());
+    }
+
+    /**
+     * And an opening sweep gives that cell back a ring at a time, as each ring uncovers.
+     *
+     * <p>The closing one read backwards, and the half that was never reached. {@code setIrisState}
+     * writes the iris flag before it draws, so by the time the opening sweep runs the gate no
+     * longer counts as layered -- and the hand-off is guarded on exactly that. Every ring of every
+     * open returned at the first line, and the wormhole's stand-in sat behind the uncovered rings
+     * for the length of the sweep before vanishing all at once at the end.
+     *
+     * <p>Asserted with the sweep still running, for the same reason as the closing test: at the
+     * end {@code takeBackLayers} hands the lot back and it always looked right.
+     */
+    @Test
+    void anOpeningSweepGivesTheCellBehindBackAsEachRingUncovers()
+    {
+        final BlockData truth = mock(BlockData.class);
+        glassIrisOverAWormhole(truth);
+        // Shut first, with the layers standing, so there is something to give back.
+        gate.toggleIrisActive(false);
+        finishSweep();
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "the sweep is still running -- at the end takeBackLayers hands it back anyway");
+        verify(watcher, atLeastOnce()).sendBlockChange(
+            argThat(at -> at.getBlockZ() == -1), eq(truth));
+    }
+
+    /**
+     * A dialled, south-facing gate with a see-through iris, and open air a block behind the ring
+     * for the far layer to stand in.
+     *
+     * @param truth
+     *            what those cells really hold, so a hand-back can be told from a draw
+     */
+    private void glassIrisOverAWormhole(final BlockData truth)
+    {
+        gate.setGateFacing(BlockFace.SOUTH);
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        // Both sides: the far layer stands behind, and taking the layers back asks after the
+        // cell in front as well, which a viewer round the other side would have had.
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                for (final int z : new int[] {-1, 1})
+                {
+                    final Block beside = mock(Block.class);
+                    when(beside.getType()).thenReturn(Material.AIR);
+                    when(beside.getBlockData()).thenReturn(truth);
+                    when(beside.getLocation()).thenReturn(new Location(world, x, 64 + y, z));
+                    when(world.getBlockAt(x, 64 + y, z)).thenReturn(beside);
+                }
+            }
+        }
+        materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
+            .thenReturn(Material.BLUE_ICE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
+            .thenReturn(Material.PACKED_ICE);
+    }
+
+    /** Runs every step the sweep has booked, so the one after it starts from a settled gate. */
+    private void finishSweep()
+    {
+        while (!pending.isEmpty())
+        {
+            final Runnable step = pending.values().iterator().next();
+            pending.remove(pending.keySet().iterator().next());
+            step.run();
+        }
     }
 
     @Test
@@ -344,36 +403,23 @@ class IrisSweepOrderingTest
      * the stub above answers to any facing at all: a sweep that dropped the gate's would hand
      * back the very same block data and every ordering test here would still pass.
      *
-     * <p>The facing is set here rather than in the fixture, which deliberately leaves it unset --
-     * and that is worth knowing, because a gate with no facing passes null legitimately, so this
-     * could not have been written as "never with null" against the fixture as it stands.
+     * <p>Pinned on the water, not on "some material with the right facing". A closing sweep hides
+     * the whole opening as it was a moment ago before it lets any ring through, and that hide is
+     * the only thing in the flow drawn in the portal material -- the iris draw before it is the
+     * iris, and the far layer beside it is the ice stand-in. Written the loose way it passed
+     * whatever {@code sendCells} did, because the iris draw that runs first already satisfied it.
      */
     @Test
     void aSweepingRingIsDrawnInTheGatesOwnPlane()
     {
-        gate.setGateFacing(BlockFace.SOUTH);
-        // A facing is what makes the cells either side of the ring reachable, so they have to
-        // stand somewhere rather than be null.
-        for (int x = -1; x <= 1; x++)
-        {
-            for (int y = -1; y <= 1; y++)
-            {
-                for (final int z : new int[] {-1, 1})
-                {
-                    final Block beside = mock(Block.class);
-                    when(beside.getType()).thenReturn(Material.AIR);
-                    when(beside.getLocation()).thenReturn(new Location(world, x, 64 + y, z));
-                    when(world.getBlockAt(x, 64 + y, z)).thenReturn(beside);
-                }
-            }
-        }
+        glassIrisOverAWormhole(mock(BlockData.class));
 
         gate.toggleIrisActive(false);
 
-        materials.verify(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.SOUTH)),
+        materials.verify(() -> MaterialUtils.drawnAcross(Material.WATER, BlockFace.SOUTH),
             atLeastOnce());
         materials.verify(() -> MaterialUtils.drawnAcross(any(Material.class), isNull()),
-            org.mockito.Mockito.never());
+            never());
     }
 
     @Test

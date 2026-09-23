@@ -1812,7 +1812,12 @@ class StargateBlockSetup
      */
     static void horizonBehind(final Stargate gate, final List<Location> only, final boolean show)
     {
-        if (!isLayered(gate) || (gate.getGateWorld() == null))
+        // Not isLayered, which asks whether the iris is shut. An opening sweep runs with that
+        // flag already cleared -- setIrisState writes it before it draws -- so asking would have
+        // refused the hand-back on every ring of every open, and the stand-in sat behind the
+        // uncovered rings until the sweep ended. What matters is that there are layers to move:
+        // a wormhole to draw, and an iris that is drawn rather than built.
+        if ((gate == null) || !gate.isGateActive() || !irisIsDrawn(gate) || (gate.getGateWorld() == null))
         {
             return;
         }
