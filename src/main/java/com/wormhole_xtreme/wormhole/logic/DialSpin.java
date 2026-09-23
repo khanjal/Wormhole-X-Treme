@@ -394,6 +394,11 @@ public final class DialSpin
                 shortOf++;
             }
             length = Math.max(2, ring.size() / GLYPHS);
+            if (shortOf == 0)
+            {
+                // Setting off on the chevron: nowhere short of it to be.
+                return chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
+            }
             head = Math.min(((head / length) * length) + (length - 1), shortOf - 1);
         }
         final Set<Cell> lit = new LinkedHashSet<>();

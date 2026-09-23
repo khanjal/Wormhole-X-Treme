@@ -1620,11 +1620,13 @@ public final class GatePreviews
 
     /**
      * What a frame cell shows now: lit while its wave is or the ring's light is on it, and as built
-     * otherwise. Under UNIVERSE the locked chevrons ride round with the ring, so only its light counts.
+     * otherwise. Under UNIVERSE the locked chevrons ride round with the ring until the last locks,
+     * so only its light counts till then.
      */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean riding = spins(preview) && (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE);
+        final boolean riding = spins(preview) && (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE)
+            && (preview.litWaves() < preview.lastWave());
         final boolean lit = (!riding && (cell.wave() > 0) && (cell.wave() <= preview.litWaves()))
             || preview.spinCells().contains(cell);
         return lit ? litData(preview.drawnPalette(), cell) : blockDataFor(preview, cell);

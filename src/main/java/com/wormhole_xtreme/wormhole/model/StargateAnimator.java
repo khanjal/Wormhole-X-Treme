@@ -362,6 +362,18 @@ class StargateAnimator
         {
             StargateBlockSetup.drawLights(gate, waves.get(step));
         }
+        else if (step == lastWave(gate, waves))
+        {
+            // Riders are the ring's front layer alone: the last lock lights every chevron in
+            // place, the layers behind it on Grand and Massive included.
+            for (int wave = 1; wave <= step; wave++)
+            {
+                if (waves.get(wave) != null)
+                {
+                    StargateBlockSetup.drawLights(gate, waves.get(wave));
+                }
+            }
+        }
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
         GateSounds.chevron(gate, step, lastWave(gate, waves));

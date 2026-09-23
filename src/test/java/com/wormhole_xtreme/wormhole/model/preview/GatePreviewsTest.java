@@ -1780,6 +1780,39 @@ class GatePreviewsTest
         }
     }
 
+    /**
+     * Under UNIVERSE only the ring's front layer rides, so the last lock lights every chevron in
+     * place: a Grand preview's back layer, which never rides, is lit once the dial is done.
+     */
+    @Test
+    void aUniversePreviewLightsEveryLayerAtTheLastLock() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+        final Stargate3DShape grand = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/Grand.shape")).toArray(new String[0]));
+        final List<Cell> cells = GateBlueprint.of(grand, GateBlueprint.inFrontOf(grand, 0, 64, 0, BlockFace.NORTH));
+        GatePreviews.show(owner, grand, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        assertNotNull(preview.spin(), "a Grand preview turns");
+        GatePreviews.activate(owner);
+        for (int step = 0; (step < 2000) && (preview.litWaves() < preview.lastWave()); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(preview.lastWave(), preview.litWaves(), "the dial finished");
+
+        final List<Cell> behind = cells.stream()
+            .filter(c -> (c.wave() > 0) && (c.wave() <= preview.lastWave()) && !preview.spin().ring().contains(c)).toList();
+        assertFalse(behind.isEmpty(), "Grand's chevrons have a layer behind the ring");
+        for (final Cell cell : behind)
+        {
+            final List<Object> shown = mockingDetails(spawned.get(cells.indexOf(cell))).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+            assertEquals(data.get(Material.GLOWSTONE), shown.isEmpty() ? null : shown.get(shown.size() - 1),
+                "chevron " + cell.wave() + " lit behind the ring");
+        }
+    }
+
     /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */
     private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate gate)
     {

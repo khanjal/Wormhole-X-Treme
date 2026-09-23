@@ -313,6 +313,58 @@ class GateRingTurnTest
         }
     }
 
+    /**
+     * Under UNIVERSE only the ring's front layer rides, so the last lock lights every chevron in
+     * place: on Grand, whose chevrons are two layers deep, the back layer never lit otherwise, even
+     * with the wormhole open. Found by a Sonnet review.
+     */
+    @Test
+    void universeLightsEveryLayerOfEveryChevronAtTheLastLock() throws Exception
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            shape = new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Grand.shape"))
+                .toArray(new String[0]));
+            grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
+            cells = GateBlueprint.of(shape, grid);
+            final Stargate gate = standardGate();
+            final DialSpin spin = StargateAnimator.spinOf(gate);
+            assertNotNull(spin, "a Grand gate has a ring to turn");
+            try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                 MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+            {
+                for (int glyph = 1; glyph <= Stargate.LOCAL_CHEVRONS; glyph++)
+                {
+                    final int calls = spin.frames(DialSpinPattern.UNIVERSE, glyph, gate.getEffectiveLightTicks()) + 1;
+                    for (int call = 0; call < calls; call++)
+                    {
+                        StargateAnimator.lightStargate(gate, true);
+                    }
+                    if (glyph < Stargate.LOCAL_CHEVRONS)
+                    {
+                        assertEquals(glyph, gate.getGateLightingCurrentIteration(), "locked glyph " + glyph);
+                    }
+                }
+                sounds.verify(() -> GateSounds.locked(gate));
+                for (int wave = 1; wave <= Stargate.LOCAL_CHEVRONS; wave++)
+                {
+                    final int w = wave;
+                    final List<Location> chevron = gate.getGateLightBlocks().get(wave);
+                    assertTrue(chevron.size() > spin.ring().stream().filter(c -> c.wave() == w).count(),
+                        "chevron " + wave + " has blocks behind the ring");
+                    blocks.verify(() -> StargateBlockSetup.drawLights(gate, chevron));
+                }
+            }
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        }
+    }
+
     /** A gate shut part way through a turn takes the ring's light back. */
     @Test
     void shuttingAGateMidTurnTakesTheLightBack()
