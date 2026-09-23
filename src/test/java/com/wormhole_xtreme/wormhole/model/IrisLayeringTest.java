@@ -447,6 +447,36 @@ class IrisLayeringTest
     }
 
     /**
+     * An iris the client would not show water against gets a block of air between the layers.
+     *
+     * <p>Java Edition draws water and stained glass in the same pass and skips the face between
+     * them, so a wormhole drawn right behind a stained-glass iris has its near face culled and
+     * its far face pointing away: nothing left to see, and the gate showed the landscape
+     * through its own iris. A block of air between gives that face something to be drawn
+     * against. Only such an iris pays for it -- anything opaque keeps the layers touching,
+     * since it hides the wormhole by being opaque and needs no help.
+     */
+    @Test
+    void aGlassIrisLeavesABlockOfAirBetweenTheLayers()
+    {
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        // Both cells two out: a wider gap is a wider hand-back, since the far layer could have
+        // been drawn either side of the ring depending on which side the viewer was on.
+        blockAt(X, Z + 2, truthBehind);
+        blockAt(X, Z - 2, truthAhead);
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+        verify(viewer).sendBlockChange(at(Z + 2), eq(horizon));
+        verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
+    }
+
+    /**
      * The blocks around the opening are cover as much as the opening is.
      *
      * <p>The same viewing position as {@link #fromOffToTheSideTheGateShowsOneLayerOnly}, with

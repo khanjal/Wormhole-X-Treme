@@ -149,14 +149,23 @@ public final class IrisLayering
      * @param stacked
      *            whether this gate is layered for this viewer at all, from
      *            {@link #hidesFarLayers}
+     * @param apart
+     *            how many blocks the two layers stand apart, from {@link #apart}
      * @return where this viewer's iris and horizon go
      */
     public static Placement place(final At ringCell, final BlockFace facing, final Eye eye,
-        final Predicate<At> free, final boolean stacked)
+        final Predicate<At> free, final boolean stacked, final int apart)
     {
         final boolean front = seesFront(facing, ringCell, eye.x(), eye.y(), eye.z());
-        final At far = ringCell.moved(facing, front ? -1 : 1);
-        final boolean layered = stacked && free.test(far);
+        final At far = ringCell.moved(facing, front ? -apart : apart);
+        // Every cell out to the far one, so a gap between the layers is a gap a viewer can
+        // really see through rather than whatever somebody has built in it.
+        boolean room = stacked;
+        for (int step = 1; room && (step <= apart); step++)
+        {
+            room = free.test(ringCell.moved(facing, front ? -step : step));
+        }
+        final boolean layered = room;
         if (front)
         {
             // The iris in the ring and the horizon behind it, which is how a gate has always
@@ -182,21 +191,42 @@ public final class IrisLayering
      *            the opening cell
      * @param facing
      *            the gate's facing
+     * @param apart
+     *            how far out the layers can reach, from {@link #apart}
      * @param drawn
      *            the positions this viewer is being drawn in, nulls allowed and ignored
      * @return the positions to hand back, which may be empty
      */
-    public static List<At> handBacks(final At ringCell, final BlockFace facing, final At... drawn)
+    public static List<At> handBacks(final At ringCell, final BlockFace facing, final int apart,
+        final At... drawn)
     {
-        final List<At> back = new ArrayList<>(3);
-        for (final At candidate : List.of(ringCell, ringCell.moved(facing, 1), ringCell.moved(facing, -1)))
+        final List<At> back = new ArrayList<>();
+        for (int step = -apart; step <= apart; step++)
         {
+            final At candidate = ringCell.moved(facing, step);
             if (!isDrawn(candidate, drawn))
             {
                 back.add(candidate);
             }
         }
         return back;
+    }
+
+    /**
+     * How many blocks apart the two layers have to stand.
+     *
+     * <p>One, normally: the iris in the ring with the horizon right behind it. Two when the
+     * iris is drawn in something the client will not show water against, which needs a block of
+     * air between them for the water to have a face worth drawing. See
+     * {@code MaterialUtils.cullsWaterBehindIt} for what that means and why.
+     *
+     * @param irisHidesWater
+     *            whether the iris material would cull the horizon drawn against it
+     * @return 1 or 2
+     */
+    public static int apart(final boolean irisHidesWater)
+    {
+        return irisHidesWater ? 2 : 1;
     }
 
     /** Whether one position is among those being drawn in. */
@@ -230,10 +260,12 @@ public final class IrisLayering
      * @param cover
      *            whether a position in the ring plane is part of the gate -- its opening or the
      *            blocks around it, both of which stand between a viewer and the far layer
+     * @param apart
+     *            how many blocks out the far layer stands, from {@link #apart}
      * @return true if every cell's far layer is hidden
      */
     public static boolean hidesFarLayers(final List<At> opening, final BlockFace facing,
-        final Eye eye, final Predicate<At> cover)
+        final Eye eye, final Predicate<At> cover, final int apart)
     {
         if ((facing == null) || opening.isEmpty())
         {
@@ -242,7 +274,7 @@ public final class IrisLayering
         final boolean front = seesFront(facing, opening.get(0), eye.x(), eye.y(), eye.z());
         for (final At cell : opening)
         {
-            if (!hidden(cell.moved(facing, front ? -1 : 1), cell, facing, eye, cover))
+            if (!hidden(cell.moved(facing, front ? -apart : apart), cell, facing, eye, cover))
             {
                 return false;
             }

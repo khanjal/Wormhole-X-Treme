@@ -190,6 +190,39 @@ public final class MaterialUtils {
         return (m == Material.AIR) || (m == Material.CAVE_AIR) || (m == Material.VOID_AIR);
     }
 
+    /**
+     * Whether a block drawn in this material would hide water drawn right behind it.
+     *
+     * <p>Java Edition draws water and these in the same translucent pass, and a face between
+     * two of them is not drawn at all. A wormhole is a sheet one block thick, so behind a
+     * stained-glass iris its near face is culled and its far face points away: nothing is left
+     * to see, and the gate shows the landscape rather than the wormhole. Plain glass is a
+     * different pass and does not do this, which is the difference that gave it away.
+     *
+     * <p>Only the materials an iris can plausibly be. Anything opaque hides water by simply
+     * being opaque, which needs no help from here.
+     *
+     * @param m
+     *            the material, may be null
+     * @return true if water drawn against it would not be seen
+     */
+    public static boolean cullsWaterBehindIt(final Material m) {
+        if (m == null) {
+            return false;
+        }
+        if (isIce(m)) {
+            return true;
+        }
+        switch (m) {
+            case TINTED_GLASS, SLIME_BLOCK, HONEY_BLOCK, WATER, BUBBLE_COLUMN:
+                return true;
+            default:
+                // Every stained glass block and pane, which is what the shipped Atlantis and
+                // Universe palettes give an iris.
+                return m.name().endsWith("STAINED_GLASS") || m.name().endsWith("STAINED_GLASS_PANE");
+        }
+    }
+
     /** Returns true if the material represents ice we care about. */
     public static boolean isIce(final Material m) {
         if (m == null) {

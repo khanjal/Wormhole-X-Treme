@@ -1588,14 +1588,27 @@ class StargateBlockSetup
         // The gate's own blocks are cover too. A structure block off the ring's plane can never
         // be what a sight line crosses, so the whole lot goes in without sorting them out.
         cover.addAll(asPositions(gate.getGateStructureBlocks()));
+        final int apart = layerGap(gate);
         final boolean stacked =
-            IrisLayering.hidesFarLayers(opening, gate.getGateFacing(), eye, cover::contains);
+            IrisLayering.hidesFarLayers(opening, gate.getGateFacing(), eye, cover::contains, apart);
         for (final IrisLayering.At cell : opening)
         {
             layers.add(IrisLayering.place(cell, gate.getGateFacing(), eye,
-                at -> backdropIsFree(located(gate, at)), stacked));
+                at -> backdropIsFree(located(gate, at)), stacked, apart));
         }
         return layers;
+    }
+
+    /**
+     * How far apart this gate has to stand its two layers.
+     *
+     * @param gate
+     *            the gate
+     * @return 1, or 2 for an iris the client would not show the horizon against
+     */
+    private static int layerGap(final Stargate gate)
+    {
+        return IrisLayering.apart(MaterialUtils.cullsWaterBehindIt(gate.getEffectiveIrisMaterial()));
     }
 
     /**
@@ -1628,7 +1641,7 @@ class StargateBlockSetup
             // the old layer before the new one is sent, or a redraw that moves a layer one way
             // and takes it back the other leaves the take-back on top.
             for (final IrisLayering.At back : IrisLayering.handBacks(cell, gate.getGateFacing(),
-                placed.iris(), placed.horizon()))
+                layerGap(gate), placed.iris(), placed.horizon()))
             {
                 sendTruthIfFree(player, located(gate, back));
             }
