@@ -507,6 +507,14 @@ yellow iris was tried in a world and is not drawn either, which narrows the rule
 the fluid-face reading alone would: a translucent block does not show another translucent block
 behind it, whatever they are. Ice is solid and nothing can cull it.
 
+**Two cases it does not reach**, both worth knowing before reading a gate as broken. A
+horizontal gate's iris is real blocks in the opening itself rather than a drawing a block off
+it, so there is no far layer to dress and a see-through iris there shows whatever is under the
+gate. And the stand-in is chosen by material: water has one, and a portal material that is
+itself translucent — `nether_portal` — does not, so behind a stained-glass iris it is hidden
+exactly the way water was. Neither is a regression; both are the fluid rule reaching somewhere
+the look-alike does not.
+
 **The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
 with the ring that uncovers it, and the wormhole in the ring is never touched — that is the
 sweep's own to paint. A preview needs the same and for a different reason: its iris is a display

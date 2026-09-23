@@ -307,6 +307,33 @@ class IrisSweepOrderingTest
     }
 
     /**
+     * A gate nobody has dialled draws no wormhole behind its iris, sweep or no sweep.
+     *
+     * <p>An iris works on an idle gate -- that is the whole point of one -- and there is no
+     * wormhole to move behind it. Without this the hand-off would put a sheet of water, or the
+     * ice that stands in for one, a block behind an opening with nothing in it, and the gate
+     * would read as dialled from the back.
+     *
+     * <p>Not "nothing is sent there": the truth is, which is a hand-back telling the client what
+     * really stands in that cell, and is right whether or not the gate was ever dialled. What
+     * must not be sent there is a picture of something else.
+     */
+    @Test
+    void anUndialledGatesIrisMovesNoWormholeBehindIt()
+    {
+        final BlockData truth = mock(BlockData.class);
+        glassIrisOverAWormhole(truth);
+        // The same gate, never dialled. Everything else about it is unchanged, so what the
+        // sweep does differently is down to this alone.
+        gate.setGateActive(false);
+
+        gate.toggleIrisActive(false);
+
+        verify(watcher, never()).sendBlockChange(argThat(at -> at.getBlockZ() == -1),
+            argThat(drawn -> drawn != truth));
+    }
+
+    /**
      * A dialled, south-facing gate with a see-through iris, and open air a block behind the ring
      * for the far layer to stand in.
      *

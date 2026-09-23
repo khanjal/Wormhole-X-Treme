@@ -1647,7 +1647,11 @@ class StargateBlockSetup
             {
                 continue;
             }
-            for (int i = 0; i < layers.size(); i++)
+            // The shorter of the two: these placements were recorded at draw time and the ring
+            // is read now, and a gate reshaped to a smaller opening under somebody still holding
+            // layers would otherwise walk off the end of it -- in a repeating task, so once per
+            // shimmer until they moved. The draw that follows their next step puts it right.
+            for (int i = 0; i < Math.min(layers.size(), ring.size()); i++)
             {
                 final Location bc = ring.get(i);
                 final IrisLayering.At cell =

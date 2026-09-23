@@ -111,7 +111,12 @@ The plugin API is in [docs/API.md](docs/API.md).
   `gate-iris-horizon-ticks` sets the pace and `0` leaves it still. Only there: in the ring,
   where somebody behind the gate sees it, it is the real wormhole as always. Previews do the
   same, on the same beat. Plain glass never had the problem and is untouched, and an opaque
-  iris hides the horizon by being opaque.
+  iris hides the horizon by being opaque. Upright gates only: a **horizontal** gate's iris is
+  real blocks in the opening itself, with no second layer to dress, so a see-through one there
+  still shows what is under the gate rather than the wormhole. A portal material that is itself
+  see-through, `nether_portal` being the one that ships, has no look-alike to stand in for it
+  and is hidden behind such an iris the way water was — pair one with plain glass, or with an
+  opaque iris, until it has a look of its own.
 - **A see-through iris sweeps over the wormhole, not over the landscape.** The layers were
   stacked only once the sweep had finished, so every ring of a stained-glass iris arrived
   with nothing behind it: the gate appeared to erase its own wormhole a ring at a time and
