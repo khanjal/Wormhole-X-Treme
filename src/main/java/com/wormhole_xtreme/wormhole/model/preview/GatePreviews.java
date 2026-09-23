@@ -1414,18 +1414,8 @@ public final class GatePreviews
         final IrisLayering.Eye eye, final boolean stacked)
     {
         return IrisLayering.place(at(cell), preview.grid().facing(), eye,
-            at -> freeForLayer(preview, at), stacked, TOUCHING);
+            at -> freeForLayer(preview, at), stacked);
     }
-
-    /**
-     * A preview's layers always stand a block apart, whatever its iris is made of.
-     *
-     * <p>A built gate drawn with a stained-glass iris has to leave a gap, because the client
-     * draws water and stained glass in one pass and skips the face between them. A preview's
-     * iris is a display entity rather than a block, and an entity is not part of that at all:
-     * the wormhole's face has the ring's own air against it and is drawn as usual.
-     */
-    private static final int TOUCHING = 1;
 
     /** An opening cell as a plain position. */
     private static IrisLayering.At at(final Cell cell)
@@ -1455,7 +1445,7 @@ public final class GatePreviews
         final Set<IrisLayering.At> cover = new HashSet<>(opening);
         preview.cells().forEach(cell -> cover.add(at(cell)));
         final boolean stacked =
-            IrisLayering.hidesFarLayers(opening, preview.grid().facing(), eye, cover::contains, TOUCHING);
+            IrisLayering.hidesFarLayers(opening, preview.grid().facing(), eye, cover::contains);
         final List<IrisLayering.Placement> layers = new ArrayList<>();
         for (final Cell cell : preview.opening())
         {
@@ -1533,7 +1523,7 @@ public final class GatePreviews
             // when the iris has it -- leaving the sweep's water under a glass iris where a gate
             // shows none -- and the offsets in case they have just come round from the other
             // side, or stepped far enough round that the layers have collapsed into one.
-            for (final IrisLayering.At back : IrisLayering.handBacks(at(cell), facing, TOUCHING, here.horizon()))
+            for (final IrisLayering.At back : IrisLayering.handBacks(at(cell), facing, here.horizon()))
             {
                 takeBackAt(viewer, preview, back);
             }

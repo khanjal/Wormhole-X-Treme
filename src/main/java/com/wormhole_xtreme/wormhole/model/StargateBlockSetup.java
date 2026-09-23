@@ -1588,13 +1588,12 @@ class StargateBlockSetup
         // The gate's own blocks are cover too. A structure block off the ring's plane can never
         // be what a sight line crosses, so the whole lot goes in without sorting them out.
         cover.addAll(asPositions(gate.getGateStructureBlocks()));
-        final int apart = layerGap(gate);
         final boolean stacked =
-            IrisLayering.hidesFarLayers(opening, gate.getGateFacing(), eye, cover::contains, apart);
+            IrisLayering.hidesFarLayers(opening, gate.getGateFacing(), eye, cover::contains);
         for (final IrisLayering.At cell : opening)
         {
             layers.add(IrisLayering.place(cell, gate.getGateFacing(), eye,
-                at -> backdropIsFree(located(gate, at)), stacked, apart));
+                at -> backdropIsFree(located(gate, at)), stacked));
         }
         return layers;
     }
@@ -1622,13 +1621,11 @@ class StargateBlockSetup
             return;
         }
         final IrisLayering.Placement first = layers.get(0);
-        final int apart = layerGap(gate);
         final StringBuilder dbg = new StringBuilder(256);
         dbg.append("Iris layers: Gate=").append(gate.getGateName());
         dbg.append(" For=").append(player.getName());
         dbg.append(" IrisMaterial=").append(gate.getEffectiveIrisMaterial());
         dbg.append(" PortalMaterial=").append(gate.getEffectivePortalMaterial());
-        dbg.append(" Apart=").append(apart);
         dbg.append(" Front=").append(seesFront(gate, player.getLocation()));
         dbg.append(" Cells=").append(layers.size());
         dbg.append(" WithHorizon=").append(layers.stream().filter(p -> p.horizon() != null).count());
@@ -1636,26 +1633,10 @@ class StargateBlockSetup
         dbg.append(" FirstHorizon=").append(first.horizon());
         final Location bc = gate.getGatePortalBlocks().get(0);
         final IrisLayering.At ring = new IrisLayering.At(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-        for (int step = 1; step <= apart; step++)
-        {
-            final IrisLayering.At back = ring.moved(gate.getGateFacing(), -step);
-            dbg.append(" Behind").append(step).append('=')
-                .append(describe(() -> located(gate, back).getBlock().getType()))
-                .append('/').append(backdropIsFree(located(gate, back)) ? "free" : "taken");
-        }
+        final IrisLayering.At back = ring.moved(gate.getGateFacing(), -1);
+        dbg.append(" Behind=").append(describe(() -> located(gate, back).getBlock().getType()))
+            .append('/').append(backdropIsFree(located(gate, back)) ? "free" : "taken");
         plugin.prettyLog(Level.FINE, dbg.toString());
-    }
-
-    /**
-     * How far apart this gate has to stand its two layers.
-     *
-     * @param gate
-     *            the gate
-     * @return 1, or 2 for an iris the client would not show the horizon against
-     */
-    private static int layerGap(final Stargate gate)
-    {
-        return IrisLayering.apart(MaterialUtils.cullsWaterBehindIt(gate.getEffectiveIrisMaterial()));
     }
 
     /**
@@ -1675,8 +1656,16 @@ class StargateBlockSetup
         // moment an older world's built iris can be taken out. The unlayered path does it in
         // sendIrisTo; a layered gate reaches neither that nor fillGateIris again.
         com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
-        final BlockData iris = MaterialUtils.drawnAs(gate.getEffectiveIrisMaterial());
-        final BlockData horizon = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
+        final Material irisMaterial = gate.getEffectiveIrisMaterial();
+        final Material portalMaterial = gate.getEffectivePortalMaterial();
+        final BlockData iris = MaterialUtils.drawnAs(irisMaterial);
+        final BlockData horizon = MaterialUtils.drawnAs(portalMaterial);
+        // A horizon that ends up behind the iris is drawn as a look-alike where the iris would
+        // hide the liquid. Only there: in the ring, which is where a viewer behind the gate
+        // gets it, the real thing has air in front of it and is drawn as it always was.
+        final BlockData behindGlass = MaterialUtils.cullsWaterBehindIt(irisMaterial)
+            ? MaterialUtils.drawnAs(MaterialUtils.shownBehindGlassAs(portalMaterial, irisMaterial))
+            : horizon;
         final List<Location> ring = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
@@ -1688,7 +1677,7 @@ class StargateBlockSetup
             // the old layer before the new one is sent, or a redraw that moves a layer one way
             // and takes it back the other leaves the take-back on top.
             for (final IrisLayering.At back : IrisLayering.handBacks(cell, gate.getGateFacing(),
-                layerGap(gate), placed.iris(), placed.horizon()))
+                placed.iris(), placed.horizon()))
             {
                 sendTruthIfFree(player, located(gate, back));
             }
@@ -1698,7 +1687,8 @@ class StargateBlockSetup
             }
             if (placed.horizon() != null)
             {
-                player.sendBlockChange(located(gate, placed.horizon()), horizon);
+                player.sendBlockChange(located(gate, placed.horizon()),
+                    placed.horizon().equals(cell) ? horizon : behindGlass);
             }
         }
         if (gate.isGateLightsActive())
@@ -1767,19 +1757,13 @@ class StargateBlockSetup
      */
     private static void takeBackLayersFor(final Player player, final Stargate gate)
     {
-        // Out as far as this gate's layers can reach, both ways. A gate that stands them two
-        // apart for a see-through iris would otherwise leave the far one drawn: a sheet of
-        // water hanging two blocks behind a gate whose wormhole closed long ago.
-        final int apart = layerGap(gate);
-        for (int step = -apart; step <= apart; step++)
+        for (final Location at : portalBackdropCells(gate))
         {
-            if (step != 0)
-            {
-                for (final Location at : offsetCells(gate, step))
-                {
-                    sendTruthIfFree(player, at);
-                }
-            }
+            sendTruthIfFree(player, at);
+        }
+        for (final Location at : portalForecourtCells(gate))
+        {
+            sendTruthIfFree(player, at);
         }
         layersDrawnFor(player).remove(gate.getGateName());
     }

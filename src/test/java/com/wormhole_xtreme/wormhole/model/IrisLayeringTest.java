@@ -447,62 +447,59 @@ class IrisLayeringTest
     }
 
     /**
-     * An iris the client would not show water against gets a block of air between the layers.
+     * Behind a glass iris the horizon is drawn as a look-alike, not as the liquid itself.
      *
-     * <p>Java Edition draws water and stained glass in the same pass and skips the face between
-     * them, so a wormhole drawn right behind a stained-glass iris has its near face culled and
-     * its far face pointing away: nothing left to see, and the gate showed the landscape
-     * through its own iris. A block of air between gives that face something to be drawn
-     * against. Only such an iris pays for it -- anything opaque keeps the layers touching,
-     * since it hides the wormhole by being opaque and needs no help.
+     * <p>Java Edition skips the face between a fluid and a translucent block, so a wormhole
+     * drawn right behind a stained-glass iris had its near face culled and its far face
+     * pointing away: nothing left to see, and the gate showed the landscape through its own
+     * iris. Nothing else behind one is hidden -- the world beyond it is drawn, and so is glass
+     * behind water -- so the horizon is drawn in something that looks like water and is not
+     * water, and the rule stops applying.
      */
     @Test
-    void aGlassIrisLeavesABlockOfAirBetweenTheLayers()
+    void behindAGlassIrisTheHorizonIsDrawnAsALookAlike()
     {
+        final BlockData lookalike = mock(BlockData.class);
         gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
         materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
         materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
             .thenReturn(Boolean.TRUE);
-        // Both cells two out: a wider gap is a wider hand-back, since the far layer could have
-        // been drawn either side of the ring depending on which side the viewer was on.
-        blockAt(X, Z + 2, truthBehind);
-        blockAt(X, Z - 2, truthAhead);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER,
+            Material.YELLOW_STAINED_GLASS)).thenReturn(Material.BLUE_STAINED_GLASS);
+        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_STAINED_GLASS)).thenReturn(lookalike);
         standAt(Z - 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
         verify(viewer).sendBlockChange(at(Z), eq(iris));
-        verify(viewer).sendBlockChange(at(Z + 2), eq(horizon));
-        verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
-        // A wider gap is a wider hand-back: the far layer could have been two out either side,
-        // so both of those cells are this viewer's to be given back.
-        verify(viewer).sendBlockChange(at(Z - 2), eq(truthAhead));
+        verify(viewer).sendBlockChange(at(Z + 1), eq(lookalike));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
     }
 
     /**
-     * Something built in the gap takes the second layer away, not just something in the far cell.
+     * From behind a glass iris the ring keeps the real liquid, look-alike or not.
      *
-     * <p>The gap has to be air a viewer can really see through. Checking only the cell the
-     * wormhole goes in would draw it behind whatever somebody had built in between -- a sheet
-     * of water hidden behind their wall, and their wall framed by a gate that looks broken.
+     * <p>The stand-in is only for a horizon that ends up behind the iris. In the ring, where a
+     * viewer behind the gate gets it, the real thing has air in front of it and is drawn as it
+     * always was -- and a gate should show its actual wormhole wherever it can.
      */
     @Test
-    void aGlassIrisWithSomethingBuiltInTheGapShowsNoWormhole()
+    void fromBehindAGlassIrisTheRingKeepsTheRealHorizon()
     {
+        final BlockData lookalike = mock(BlockData.class);
         gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
         materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
         materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
             .thenReturn(Boolean.TRUE);
-        blockAt(X, Z + 2, truthBehind);
-        blockAt(X, Z - 2, truthAhead);
-        // The far cell is free; the one between is not.
-        when(world.getBlockAt(X, Y, Z + 1).getType()).thenReturn(Material.STONE);
-        standAt(Z - 4);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER,
+            Material.YELLOW_STAINED_GLASS)).thenReturn(Material.BLUE_STAINED_GLASS);
+        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_STAINED_GLASS)).thenReturn(lookalike);
+        standAt(Z + 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
-        verify(viewer).sendBlockChange(at(Z), eq(iris));
-        verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(lookalike));
     }
 
     /**

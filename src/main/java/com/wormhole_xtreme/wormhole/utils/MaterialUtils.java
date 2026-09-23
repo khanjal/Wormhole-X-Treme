@@ -210,17 +210,55 @@ public final class MaterialUtils {
         if (m == null) {
             return false;
         }
-        if (isIce(m)) {
-            return true;
-        }
         switch (m) {
-            case TINTED_GLASS, SLIME_BLOCK, HONEY_BLOCK, WATER, BUBBLE_COLUMN:
+            // ICE and FROSTED_ICE only: packed and blue ice are solid, and solid blocks show
+            // water behind them perfectly well.
+            case ICE, FROSTED_ICE, TINTED_GLASS, SLIME_BLOCK, HONEY_BLOCK, WATER, BUBBLE_COLUMN:
                 return true;
             default:
                 // Every stained glass block and pane, which is what the shipped Atlantis and
                 // Universe palettes give an iris.
                 return m.name().endsWith("STAINED_GLASS") || m.name().endsWith("STAINED_GLASS_PANE");
         }
+    }
+
+    /**
+     * What to draw a horizon as when it has to sit behind an iris that would hide the liquid.
+     *
+     * <p>Only the face between a fluid and a translucent block is skipped, not everything
+     * behind one -- the world beyond a stained-glass iris is drawn perfectly well, and so is
+     * glass behind water. So the horizon is drawn in something that looks like the liquid and
+     * is not one, and the fluid rule stops applying.
+     *
+     * <p>Glass skips a face only against its own exact block, so the stand-in must never be the
+     * iris itself. A palette whose iris is already blue glass falls back to ice, which is solid
+     * and cannot be culled by anything.
+     *
+     * @param horizon
+     *            the material the horizon would be, may be null
+     * @param iris
+     *            what the iris is drawn in, may be null
+     * @return the stand-in, or the material itself where it needs no standing in for
+     */
+    public static Material shownBehindGlassAs(final Material horizon, final Material iris) {
+        if (horizon == null) {
+            return null;
+        }
+        final Material stand;
+        switch (horizon) {
+            case WATER:
+                stand = Material.BLUE_STAINED_GLASS;
+                break;
+            case LAVA:
+                stand = Material.ORANGE_STAINED_GLASS;
+                break;
+            default:
+                return horizon;
+        }
+        if (stand != iris) {
+            return stand;
+        }
+        return (horizon == Material.WATER) ? Material.BLUE_ICE : Material.MAGMA_BLOCK;
     }
 
     /** Returns true if the material represents ice we care about. */

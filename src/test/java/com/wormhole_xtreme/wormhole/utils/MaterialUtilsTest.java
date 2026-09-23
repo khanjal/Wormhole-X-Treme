@@ -36,10 +36,39 @@ class MaterialUtilsTest {
         assertTrue(MaterialUtils.cullsWaterBehindIt(Material.SLIME_BLOCK));
 
         assertFalse(MaterialUtils.cullsWaterBehindIt(Material.GLASS),
-            "plain glass is a cutout, not a translucent: it shows the water and needs no gap");
+            "plain glass is a cutout, not a translucent: it shows the water as it is");
         assertFalse(MaterialUtils.cullsWaterBehindIt(Material.GLASS_PANE));
+        assertFalse(MaterialUtils.cullsWaterBehindIt(Material.PACKED_ICE),
+            "packed and blue ice are solid, whatever plain ice does");
+        assertFalse(MaterialUtils.cullsWaterBehindIt(Material.BLUE_ICE));
         assertFalse(MaterialUtils.cullsWaterBehindIt(Material.IRON_BLOCK));
         assertFalse(MaterialUtils.cullsWaterBehindIt(Material.AIR));
         assertFalse(MaterialUtils.cullsWaterBehindIt(null));
+    }
+
+    /**
+     * What a horizon is drawn as when it has to sit behind an iris that would hide the liquid.
+     *
+     * <p>Glass skips a face only against its own exact block, so blue glass behind a yellow
+     * iris is drawn -- but behind a blue one it would not be, and that palette has to fall back
+     * to something solid instead.
+     */
+    @Test
+    void testShownBehindGlassAs() {
+        assertEquals(Material.BLUE_STAINED_GLASS,
+            MaterialUtils.shownBehindGlassAs(Material.WATER, Material.YELLOW_STAINED_GLASS));
+        assertEquals(Material.ORANGE_STAINED_GLASS,
+            MaterialUtils.shownBehindGlassAs(Material.LAVA, Material.YELLOW_STAINED_GLASS));
+
+        assertEquals(Material.BLUE_ICE,
+            MaterialUtils.shownBehindGlassAs(Material.WATER, Material.BLUE_STAINED_GLASS),
+            "a blue-glass iris would hide blue glass, so the stand-in has to be solid");
+        assertEquals(Material.MAGMA_BLOCK,
+            MaterialUtils.shownBehindGlassAs(Material.LAVA, Material.ORANGE_STAINED_GLASS));
+
+        assertEquals(Material.NETHER_PORTAL,
+            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, Material.YELLOW_STAINED_GLASS),
+            "anything that is not a liquid stands in for itself");
+        assertNull(MaterialUtils.shownBehindGlassAs(null, Material.YELLOW_STAINED_GLASS));
     }
 }
