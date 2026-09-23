@@ -1718,8 +1718,8 @@ class GatePreviewsTest
     }
 
     /**
-     * The default TOP turn rests on the top as a chevron locks: the light is drawn there again on the
-     * step after the lock, rather than having gone, as a real gate's does.
+     * The default TOP turn rests on the top as a chevron locks: the top is still lit once the lock
+     * is drawn, and the next chevron locks the rest later, as a real gate's does.
      */
     @Test
     void theTopTurnRestsOnTheTopAfterALock()
@@ -1731,18 +1731,28 @@ class GatePreviewsTest
         final List<Cell> path = spin.path(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP, 1);
         GatePreviews.show(owner, standard, null);
         final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
         GatePreviews.activate(owner);
         final int ticks = standard.getShapeLightTicks();
-        for (int step = 0; step <= ticks; step++)
+        for (int step = 0; step < ticks; step++)
         {
             dialStep.run();
         }
-        ringDisplaysOfWave(1).forEach(d -> verify(d, atLeastOnce()).setBlock(data.get(Material.GLOWSTONE)));
         org.mockito.Mockito.clearInvocations(top);
 
         dialStep.run();
 
-        verify(top).setBlock(data.get(Material.GLOWSTONE));
+        assertEquals(1, preview.litWaves(), "the first chevron locked");
+        final List<Object> shown = mockingDetails(top).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+        assertEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "the top still lit as it locks");
+        for (int step = 0; step < (com.wormhole_xtreme.wormhole.logic.DialSpin.TOP_HOLD_TICKS + ticks); step++)
+        {
+            dialStep.run();
+            assertEquals(1, preview.litWaves(), "resting, then turning, at step " + step);
+        }
+        dialStep.run();
+        assertEquals(2, preview.litWaves());
     }
 
     /**

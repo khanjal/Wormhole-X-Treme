@@ -248,6 +248,8 @@ class DialSpinPatternTest
             }
             assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7), spin.rest(DialSpinPattern.UNIVERSE, 7, 7),
                 name + ": every chevron back in its own place");
+            assertEquals(onRing(spin, 1, 2, 3, 4, 5, 6, 7, 8), spin.rest(DialSpinPattern.UNIVERSE, 8, 8),
+                name + ": and another world's eighth locks in its own place after them");
         }
     }
 
