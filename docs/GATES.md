@@ -470,17 +470,26 @@ iris beyond it. Keeping the far layer on the far side is not only for looks — 
 on a player's own side of the gate gives their client swim physics the server does not agree
 with.
 
-**The far layer is only drawn where the gate hides it.** Two layers a block apart read as one
+**The far layer is only drawn while the gate hides it.** Two layers a block apart read as one
 gate head on and as two slabs from the side, and a flat gate is a single sheet of blocks with
 nothing to hide the second one behind — so from round the side the far layer stood clear of the
 ring with daylight around it. Each cell asks whether the sight line from the viewer to that
-block still crosses the opening: head on it crosses the block's own cell, and as the viewer
-walks round it drifts off the opening, which is exactly when the block would come out from
-behind the gate. A cell that fails it falls back to the iris in the ring and no second layer,
-the same fallback as a cell with something built beyond it. The opening alone counts as cover,
-not the ring of blocks around it: those are a sheet one thick as well, so a sight line grazing
-their edge would still show a sliver, and leaving them out makes them the margin that keeps the
-plain test safe.
+block still crosses the gate: head on it crosses the block's own cell, and as the viewer walks
+round it drifts off the gate, which is exactly when the block would come out from behind it.
+The whole gate counts as cover, its ring as much as its opening — a viewer off to one side is
+looking through the gate past its ring, and counting only the opening took the layers away from
+anyone not nearly square in front of a big gate, which through a glass iris read as the
+wormhole having gone.
+
+**It is one decision for the whole gate, not one per cell.** Asked cell by cell, a gate seen
+from an angle came apart into a patchwork: some cells with both layers and some fallen back to
+one, which from behind is a square of bare iris sitting in the middle of the wormhole. A gate
+is one picture, so `hidesFarLayers` asks about every cell and answers once. The layers hold
+while the gate covers all of them and go the moment any one would be seen past it; measured
+over a `Standard` opening they hold dead in front from one block to eight, and six blocks round
+either side. A single cell with something built beyond it is still its own case — that cell
+keeps the iris in the ring while the rest stay layered, because nothing is being seen past the
+gate there.
 
 What each cell was drawn in is remembered per player and compared on the next step, so a move
 redraws only when it changes the picture. The side alone used to decide that, which is why a

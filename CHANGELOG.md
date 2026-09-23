@@ -92,7 +92,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   single sheet of blocks, with nothing to hide the second one behind. Walk round far enough
   and you saw the horizon, or the iris itself, standing clear of the ring with daylight
   around it. A gate seen from there now shows the iris in the ring and nothing else, and
-  picks the second layer back up as you come round to face it. Previews do the same.
+  picks the second layer back up as you come round to face it -- all of it at once, so a gate
+  at an angle is never part one thing and part the other. The gate's own ring counts as
+  cover, so standing off to one side of a big one keeps both layers. Previews do the same.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole
