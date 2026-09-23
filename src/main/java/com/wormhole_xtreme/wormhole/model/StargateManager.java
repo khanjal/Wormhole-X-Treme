@@ -929,7 +929,9 @@ public class StargateManager
      */
     public static void tickIrisHorizon()
     {
+        DrawnHorizon.nextFrame();
         StargateBlockSetup.tickHorizon();
+        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.tickHorizon();
     }
 
     /**

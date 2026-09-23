@@ -43,6 +43,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -1514,7 +1515,6 @@ public final class GatePreviews
         final List<IrisLayering.Placement> layers)
     {
         final BlockFace facing = preview.grid().facing();
-        final BlockData portal = blockData.apply(preview.palette().portal());
         for (int i = 0; i < layers.size(); i++)
         {
             final Cell cell = preview.opening().get(i);
@@ -1531,11 +1531,90 @@ public final class GatePreviews
             {
                 preview.sent().add(GatePreview.key(cell));
                 viewer.sendBlockChange(new Location(preview.world(),
-                    here.horizon().x(), here.horizon().y(), here.horizon().z()), portal);
+                    here.horizon().x(), here.horizon().y(), here.horizon().z()),
+                    horizonData(preview, at(cell), here));
             }
         }
         logStacked(viewer, preview, layers);
         preview.sides().put(viewer.getUniqueId(), layers);
+    }
+
+    /**
+     * What to draw one cell's wormhole in, the same way a built gate decides it.
+     *
+     * <p>Behind the iris it is a look-alike where the iris would hide the liquid, and in the
+     * ring it is the real thing. A preview's iris is a display entity rather than a block,
+     * which takes no part in block face culling -- but a translucent entity hides translucent
+     * water behind it just the same, so a preview needs this exactly as a gate does.
+     *
+     * @param preview
+     *            the preview
+     * @param ring
+     *            the opening cell
+     * @param placed
+     *            where this cell's layers went
+     * @return the block data to send
+     */
+    private static BlockData horizonData(final GatePreview preview, final IrisLayering.At ring,
+        final IrisLayering.Placement placed)
+    {
+        return blockData.apply(DrawnHorizon.materialFor(preview.palette().portal(),
+            preview.palette().iris(), ring, !ring.equals(placed.horizon())));
+    }
+
+    /**
+     * Moves the wormhole drawn behind a see-through iris, for every preview that has one.
+     *
+     * <p>The gate's own sweep, for previews. Only those whose iris hides the liquid, and only
+     * the cells a viewer actually holds it in.
+     */
+    public static void tickHorizon()
+    {
+        for (final Map.Entry<UUID, List<GatePreview>> owned : PREVIEWS.entrySet())
+        {
+            final Player owner = WormholeXTreme.getThisPlugin().getServer().getPlayer(owned.getKey());
+            if (owner == null)
+            {
+                continue;
+            }
+            for (final GatePreview preview : owned.getValue())
+            {
+                if (stacks(preview) && DrawnHorizon.standsIn(preview.palette().iris()))
+                {
+                    shimmerPreview(owner, preview);
+                }
+            }
+        }
+    }
+
+    /**
+     * Redraws one preview's stand-in wormhole for everybody holding one.
+     *
+     * @param owner
+     *            the preview's owner
+     * @param preview
+     *            the preview, whose iris is known to hide the liquid
+     */
+    private static void shimmerPreview(final Player owner, final GatePreview preview)
+    {
+        for (final Player viewer : watching(owner, preview))
+        {
+            final List<IrisLayering.Placement> layers = preview.sides().get(viewer.getUniqueId());
+            if (layers == null)
+            {
+                continue;
+            }
+            for (int i = 0; i < layers.size(); i++)
+            {
+                final IrisLayering.At ring = at(preview.opening().get(i));
+                final IrisLayering.At where = layers.get(i).horizon();
+                if ((where != null) && !where.equals(ring))
+                {
+                    viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+                        horizonData(preview, ring, layers.get(i)));
+                }
+            }
+        }
     }
 
     /**

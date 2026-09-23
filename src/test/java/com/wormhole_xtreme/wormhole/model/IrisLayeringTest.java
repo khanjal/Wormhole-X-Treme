@@ -712,10 +712,10 @@ class IrisLayeringTest
         StargateBlockSetup.sendLayeredTo(viewer, gate);
         clearInvocations(viewer);
 
-        StargateBlockSetup.tickHorizon();
+        StargateManager.tickIrisHorizon();
         final BlockData first = sentBehind();
         clearInvocations(viewer);
-        StargateBlockSetup.tickHorizon();
+        StargateManager.tickIrisHorizon();
         final BlockData second = sentBehind();
 
         assertNotNull(first, "a frame is sent to somebody holding the stand-in");
@@ -736,7 +736,7 @@ class IrisLayeringTest
         StargateBlockSetup.sendLayeredTo(viewer, gate);
         clearInvocations(viewer);
 
-        StargateBlockSetup.tickHorizon();
+        StargateManager.tickIrisHorizon();
 
         verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }

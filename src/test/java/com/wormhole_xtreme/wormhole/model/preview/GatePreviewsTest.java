@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -1476,6 +1477,30 @@ class GatePreviewsTest
         assertTrue(line.contains("Cells=" + openingCells().size()), line);
         assertTrue(line.contains("WithHorizon="), line);
         assertTrue(line.contains("FirstHorizon="), line);
+    }
+
+    /**
+     * A preview behind a see-through iris draws the wormhole as a look-alike, as a gate does.
+     *
+     * <p>This was exempted at first, on the grounds that a preview's iris is a display entity
+     * and an entity takes no part in block face culling. True, and not the whole rule: a
+     * translucent entity hides translucent water behind it just the same, and the preview went
+     * on showing nothing long after the gate had been fixed. The decision is shared now, so
+     * the two cannot drift apart again.
+     */
+    @Test
+    void aPreviewBehindAGlassIrisDrawsTheWormholeAsALookAlike()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        clearInvocations(front);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        verify(front, atLeastOnce()).sendBlockChange(any(Location.class),
+            argThat(d -> (d == data.get(Material.BLUE_ICE)) || (d == data.get(Material.PACKED_ICE))));
     }
 
     /**

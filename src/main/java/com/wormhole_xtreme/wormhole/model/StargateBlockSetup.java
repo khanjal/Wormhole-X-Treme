@@ -1598,43 +1598,21 @@ class StargateBlockSetup
         return layers;
     }
 
-    /** Which frame the drawn-in horizon is on, flipped by {@link #tickHorizon}. */
-    private static int horizonFrame;
-
-    /**
-     * Which square of the checkerboard a cell is on this frame.
-     *
-     * @param cell
-     *            the opening cell
-     * @param one
-     *            the first material
-     * @param other
-     *            the second
-     * @return whichever this cell takes now
-     */
-    private static BlockData checkered(final IrisLayering.At cell, final BlockData one,
-        final BlockData other)
-    {
-        return (((cell.x() + cell.y() + cell.z() + horizonFrame) & 1) == 0) ? one : other;
-    }
-
     /**
      * Moves the wormhole drawn behind a see-through iris, for every gate that has one.
      *
      * <p>Only those gates. An iris that shows the real water needs nothing here -- water moves
-     * on its own -- and the loop skips it before it looks at a single player. Behind an iris
-     * that hides water the horizon is ice, which does not, so the two ices swap places and the
-     * surface reads as moving rather than frozen.
+     * on its own -- and the loop skips it before it looks at a single player.
      *
      * <p>One sweep over the open gates rather than a task per gate, as the ambient hum does.
+     * The frame itself is {@link DrawnHorizon}'s, which a preview shares.
      */
-    public static void tickHorizon()
+    static void tickHorizon()
     {
-        horizonFrame ^= 1;
         for (final Stargate gate : StargateManager.getOpenGates())
         {
             if (isLayered(gate) && (gate.getGateWorld() != null)
-                && MaterialUtils.cullsWaterBehindIt(gate.getEffectiveIrisMaterial()))
+                && DrawnHorizon.standsIn(gate.getEffectiveIrisMaterial()))
             {
                 shimmerHorizon(gate);
             }
@@ -1654,8 +1632,7 @@ class StargateBlockSetup
     private static void shimmerHorizon(final Stargate gate)
     {
         final Material portal = gate.getEffectivePortalMaterial();
-        final BlockData one = MaterialUtils.drawnAs(MaterialUtils.shownBehindGlassAs(portal, false));
-        final BlockData other = MaterialUtils.drawnAs(MaterialUtils.shownBehindGlassAs(portal, true));
+        final Material irisMaterial = gate.getEffectiveIrisMaterial();
         final List<Location> ring = gate.getGatePortalBlocks();
         for (final Player player : gate.getGateWorld().getPlayers())
         {
@@ -1675,7 +1652,8 @@ class StargateBlockSetup
                 final IrisLayering.At where = layers.get(i).horizon();
                 if ((where != null) && !where.equals(cell))
                 {
-                    player.sendBlockChange(located(gate, where), checkered(cell, one, other));
+                    player.sendBlockChange(located(gate, where),
+                        MaterialUtils.drawnAs(DrawnHorizon.materialFor(portal, irisMaterial, cell, true)));
                 }
             }
         }
@@ -1743,15 +1721,6 @@ class StargateBlockSetup
         final Material portalMaterial = gate.getEffectivePortalMaterial();
         final BlockData iris = MaterialUtils.drawnAs(irisMaterial);
         final BlockData horizon = MaterialUtils.drawnAs(portalMaterial);
-        // A horizon that ends up behind the iris is drawn as a look-alike where the iris would
-        // hide the liquid. Only there: in the ring, which is where a viewer behind the gate
-        // gets it, the real thing has air in front of it and is drawn as it always was. Two
-        // look-alikes, laid in a checkerboard, because one is a flat sheet of a single colour.
-        final boolean standIn = MaterialUtils.cullsWaterBehindIt(irisMaterial);
-        final BlockData behindGlass = standIn
-            ? MaterialUtils.drawnAs(MaterialUtils.shownBehindGlassAs(portalMaterial, false)) : horizon;
-        final BlockData behindGlassAlt = standIn
-            ? MaterialUtils.drawnAs(MaterialUtils.shownBehindGlassAs(portalMaterial, true)) : horizon;
         final List<Location> ring = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
@@ -1773,8 +1742,13 @@ class StargateBlockSetup
             }
             if (placed.horizon() != null)
             {
-                player.sendBlockChange(located(gate, placed.horizon()), placed.horizon().equals(cell)
-                    ? horizon : checkered(cell, behindGlass, behindGlassAlt));
+                // Behind the iris it is drawn as a look-alike where the iris would hide the
+                // liquid; in the ring, which is where a viewer behind the gate gets it, the
+                // real thing has air in front of it and is drawn as it always was.
+                player.sendBlockChange(located(gate, placed.horizon()),
+                    placed.horizon().equals(cell) ? horizon
+                        : MaterialUtils.drawnAs(DrawnHorizon.materialFor(portalMaterial,
+                            irisMaterial, cell, true)));
             }
         }
         if (gate.isGateLightsActive())
