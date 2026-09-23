@@ -516,8 +516,14 @@ single player — those need nothing, because water moves on its own.
 
 Plain glass is a cutout rather than a translucent and shows water as it is, so it must not be
 caught by `MaterialUtils.cullsWaterBehindIt` or every glass gate pays for a stand-in it does
-not need. A preview needs none of this either: its iris is a display entity, and an entity
-takes no part in face culling at all.
+not need.
+
+**A preview is not exempt**, though the first cut made it so — on the grounds that its iris is
+a display entity and an entity takes no part in *block* face culling. That is true and it was
+never the whole rule: a translucent entity hides translucent water behind it just the same, and
+the preview went on showing nothing long after the gate had been fixed. `DrawnHorizon` is the
+single answer both paths ask, and it owns the frame as well, so a gate and a preview in the
+same room are on the same beat.
 
 An earlier attempt put a block of air between the two layers instead, so the wormhole's face
 had air to be drawn against. It works on paper and was the wrong trade: it cost a second cell

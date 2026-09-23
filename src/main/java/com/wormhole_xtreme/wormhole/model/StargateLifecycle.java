@@ -264,11 +264,18 @@ class StargateLifecycle
                 // while there was one comes down with it.
                 StargateBlockSetup.takeBackLayers(gate);
             }
-            else
+            else if (!StargateBlockSetup.irisIsDrawn(gate))
             {
-                // An opening is one block thick, so the iris fills it and the horizon has
-                // nowhere left inside the ring. Shown a block behind instead, where a glass
-                // iris lets it through from the front.
+                // A horizontal gate's iris is real blocks filling the opening, so the horizon
+                // has nowhere left inside the ring and is shown a block below instead.
+                //
+                // A drawn iris wants none of this. sendLayered, below, puts both layers where
+                // each viewer needs them; sending the horizon to everybody first put it a block
+                // behind the ring for all of them, which for anyone standing behind the gate is
+                // their own side -- and in real water behind a see-through iris, where the
+                // stand-in belongs. Both were then corrected, but not until the sweep had
+                // finished, so a gate spent the length of its own animation showing the one
+                // picture the layering exists to avoid.
                 StargateBlockSetup.sendPortalBackdrop(gate, true);
             }
             // A drawn iris over a wormhole is then restacked for each viewer, so anybody behind

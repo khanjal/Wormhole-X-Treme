@@ -102,9 +102,15 @@ The plugin API is in [docs/API.md](docs/API.md).
   that is not a liquid, so the rule stops applying. Blue and packed ice alternate in a
   checkerboard and swap places twice a second, since ice does not move the way water does;
   `gate-iris-horizon-ticks` sets the pace and `0` leaves it still. Only there: in the ring,
-  where somebody behind the gate sees it, it is the real wormhole as always. Plain glass
-  never had the problem and is untouched, and an opaque iris hides the horizon by being
-  opaque.
+  where somebody behind the gate sees it, it is the real wormhole as always. Previews do the
+  same, on the same beat. Plain glass never had the problem and is untouched, and an opaque
+  iris hides the horizon by being opaque.
+- **Shutting a drawn iris no longer flashes the wormhole onto your own side of the gate.**
+  The horizon was sent a block behind the ring for everybody the moment the iris closed and
+  only then stacked per viewer -- after the sweep, if there was one -- so anyone standing
+  behind a gate saw it on their side for as long as the animation ran. A drawn iris skips
+  that send now and goes straight to stacking. A horizontal gate, whose iris is real blocks,
+  still shows its horizon underneath as before.
 - **The wormhole stays put when you walk along the back of a gate.** With no room for the
   iris beyond the ring -- something built there, or an angle that would leave it standing
   clear of the gate -- the ring used to fall back to the iris, so walking along the back of a

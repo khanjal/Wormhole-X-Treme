@@ -661,6 +661,36 @@ class IrisLayeringTest
     }
 
     /**
+     * Shutting a drawn iris over a wormhole never puts the horizon on a viewer's own side.
+     *
+     * <p>The horizon used to be sent a block behind the ring for everybody the moment the iris
+     * closed, and only then restacked per viewer -- after the sweep, if there was one. For
+     * anyone standing behind the gate a block behind the ring is their own side, so a gate
+     * spent the length of its own animation showing them the one picture the layering exists
+     * to avoid, and behind a see-through iris it was the wrong material as well. A drawn iris
+     * skips that send entirely; a horizontal gate, whose iris is real blocks, still needs it.
+     */
+    @Test
+    void shuttingADrawnIrisDrawsNoHorizonOnTheNearSide()
+    {
+        standAt(Z + 4);
+        gate.setGateIrisActive(false);
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+        try
+        {
+            StargateLifecycle.setIrisState(gate, true);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+
+        verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
+    }
+
+    /**
      * A wormhole closing under a shut iris takes its layers with it, whatever the iris defaults to.
      *
      * <p>Shutdown only touches the iris when it defaults shut or is already open. One shut
