@@ -248,6 +248,41 @@ class IrisLayeringTest
     }
 
     /**
+     * Both layers are asked for in the gate's own plane, not in whatever the game defaults to.
+     *
+     * <p>Asserted on the call rather than on what comes back, because what comes back is a mock:
+     * every other test here stubs the facing as {@code any()}, so a draw that dropped the gate's
+     * facing would hand back the same block data and look perfect. A {@code NETHER_PORTAL} iris
+     * or wormhole would be a sliver seen edge-on on half the gates in a world.
+     */
+    @Test
+    void bothLayersAreAskedForInTheGatesOwnPlane()
+    {
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        materials.verify(() -> MaterialUtils.drawnAcross(Material.IRON_BLOCK, BlockFace.NORTH));
+        materials.verify(() -> MaterialUtils.drawnAcross(Material.WATER, BlockFace.NORTH));
+    }
+
+    /**
+     * And so is a plain open gate's wormhole, which is drawn down a different path again -- no
+     * iris, no layers, one material straight into the ring.
+     */
+    @Test
+    void anOpenGatesWormholeIsAskedForInTheGatesOwnPlane()
+    {
+        gate.setGateIrisActive(false);
+        StargateManager.setGateOpenState(gate, true);
+        standAt(Z - 4);
+
+        StargateBlockSetup.refreshPortalVisuals(viewer);
+
+        materials.verify(() -> MaterialUtils.drawnAcross(Material.WATER, BlockFace.NORTH));
+    }
+
+    /**
      * From behind: horizon in the ring, iris a block further off.
      *
      * <p>The whole point of the step. Before it, the horizon was a block behind the ring for

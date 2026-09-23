@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -27,6 +28,7 @@ import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -332,6 +334,46 @@ class IrisSweepOrderingTest
             any(Location.class), anyString(),
             any(SoundCategory.class), anyFloat(),
             anyFloat());
+    }
+
+    /**
+     * A sweeping ring is drawn in the gate's own plane, like everything else in the opening.
+     *
+     * <p>The sweep builds its block data down its own path rather than through the layered draw,
+     * so it is the one that could quietly keep the game's default. Asserted on the call, because
+     * the stub above answers to any facing at all: a sweep that dropped the gate's would hand
+     * back the very same block data and every ordering test here would still pass.
+     *
+     * <p>The facing is set here rather than in the fixture, which deliberately leaves it unset --
+     * and that is worth knowing, because a gate with no facing passes null legitimately, so this
+     * could not have been written as "never with null" against the fixture as it stands.
+     */
+    @Test
+    void aSweepingRingIsDrawnInTheGatesOwnPlane()
+    {
+        gate.setGateFacing(BlockFace.SOUTH);
+        // A facing is what makes the cells either side of the ring reachable, so they have to
+        // stand somewhere rather than be null.
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                for (final int z : new int[] {-1, 1})
+                {
+                    final Block beside = mock(Block.class);
+                    when(beside.getType()).thenReturn(Material.AIR);
+                    when(beside.getLocation()).thenReturn(new Location(world, x, 64 + y, z));
+                    when(world.getBlockAt(x, 64 + y, z)).thenReturn(beside);
+                }
+            }
+        }
+
+        gate.toggleIrisActive(false);
+
+        materials.verify(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.SOUTH)),
+            atLeastOnce());
+        materials.verify(() -> MaterialUtils.drawnAcross(any(Material.class), isNull()),
+            org.mockito.Mockito.never());
     }
 
     @Test
