@@ -370,12 +370,13 @@ other back up as you come round to face it. From behind that leaves the wormhole
 drawn over it -- which is a picture, not a way through. A shut iris refuses travellers on the
 gate's state, never on what is drawn.
 
-**Behind a see-through iris the horizon is a look-alike.** The game will not draw water against
+**Behind a see-through iris the horizon is a look-alike.** The game will not draw water behind
 stained glass, tinted glass, ice, slime or honey, so a wormhole sitting right behind an iris of
-one of those would simply not be there. Behind such an iris it is drawn as blue glass instead --
-near enough to read as the wormhole, and not a liquid, so it shows. From behind the gate, where
-the wormhole is in the ring with air in front of it, it is the real thing as always. Plain glass
-never had the problem and is left alone.
+one of those would simply not be there. Behind such an iris it is drawn in ice instead -- blue
+and packed ice in a checkerboard, swapping places twice a second so the surface moves the way
+water would. `gate-iris-horizon-ticks` sets that pace, and `0` leaves it still. From behind the
+gate, where the wormhole is in the ring with air in front of it, it is the real thing as always.
+Plain glass never had the problem and is left alone.
 
 Nothing is drawn where you have built -- you see what you built -- and a gate with something
 built right in front of it shows the wormhole alone from behind. A horizontal gate's iris is

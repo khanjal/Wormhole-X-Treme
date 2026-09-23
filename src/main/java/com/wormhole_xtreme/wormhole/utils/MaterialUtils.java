@@ -230,35 +230,31 @@ public final class MaterialUtils {
      * glass behind water. So the horizon is drawn in something that looks like the liquid and
      * is not one, and the fluid rule stops applying.
      *
-     * <p>Glass skips a face only against its own exact block, so the stand-in must never be the
-     * iris itself. A palette whose iris is already blue glass falls back to ice, which is solid
-     * and cannot be culled by anything.
+     * <p>The stand-in has to be solid, not merely a different translucent: blue glass behind a
+     * yellow iris was tried in a world and is not drawn either. The two ices are the closest
+     * solid things to water, and nothing can cull either.
+     *
+     * <p>Two of them because one is a flat sheet of a single colour, which reads as ice rather
+     * than as water. Laid in a checkerboard they break each other up and pass for a surface.
      *
      * @param horizon
      *            the material the horizon would be, may be null
-     * @param iris
-     *            what the iris is drawn in, may be null
+     * @param alternate
+     *            true for the other square of the checkerboard
      * @return the stand-in, or the material itself where it needs no standing in for
      */
-    public static Material shownBehindGlassAs(final Material horizon, final Material iris) {
+    public static Material shownBehindGlassAs(final Material horizon, final boolean alternate) {
         if (horizon == null) {
             return null;
         }
-        final Material stand;
         switch (horizon) {
             case WATER:
-                stand = Material.BLUE_STAINED_GLASS;
-                break;
+                return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
             case LAVA:
-                stand = Material.ORANGE_STAINED_GLASS;
-                break;
+                return alternate ? Material.NETHERRACK : Material.MAGMA_BLOCK;
             default:
                 return horizon;
         }
-        if (stand != iris) {
-            return stand;
-        }
-        return (horizon == Material.WATER) ? Material.BLUE_ICE : Material.MAGMA_BLOCK;
     }
 
     /** Returns true if the material represents ice we care about. */

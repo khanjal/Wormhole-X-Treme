@@ -49,26 +49,29 @@ class MaterialUtilsTest {
     /**
      * What a horizon is drawn as when it has to sit behind an iris that would hide the liquid.
      *
-     * <p>Glass skips a face only against its own exact block, so blue glass behind a yellow
-     * iris is drawn -- but behind a blue one it would not be, and that palette has to fall back
-     * to something solid instead.
+     * <p>Solid, not merely a different translucent. Blue glass behind a yellow iris was tried
+     * in a world and is not drawn either, so the stand-in has to be something nothing can cull.
      */
     @Test
     void testShownBehindGlassAs() {
-        assertEquals(Material.BLUE_STAINED_GLASS,
-            MaterialUtils.shownBehindGlassAs(Material.WATER, Material.YELLOW_STAINED_GLASS));
-        assertEquals(Material.ORANGE_STAINED_GLASS,
-            MaterialUtils.shownBehindGlassAs(Material.LAVA, Material.YELLOW_STAINED_GLASS));
+        assertEquals(Material.BLUE_ICE, MaterialUtils.shownBehindGlassAs(Material.WATER, false),
+            "solid and the closest thing to water: blue glass behind glass does not render");
+        assertEquals(Material.PACKED_ICE, MaterialUtils.shownBehindGlassAs(Material.WATER, true),
+            "and a second one, or a flat sheet of one colour reads as ice rather than water");
+        assertNotEquals(MaterialUtils.shownBehindGlassAs(Material.WATER, false),
+            MaterialUtils.shownBehindGlassAs(Material.WATER, true),
+            "the two squares of the checkerboard have to differ, or there is no checkerboard");
 
-        assertEquals(Material.BLUE_ICE,
-            MaterialUtils.shownBehindGlassAs(Material.WATER, Material.BLUE_STAINED_GLASS),
-            "a blue-glass iris would hide blue glass, so the stand-in has to be solid");
-        assertEquals(Material.MAGMA_BLOCK,
-            MaterialUtils.shownBehindGlassAs(Material.LAVA, Material.ORANGE_STAINED_GLASS));
+        assertEquals(Material.MAGMA_BLOCK, MaterialUtils.shownBehindGlassAs(Material.LAVA, false));
+        assertEquals(Material.NETHERRACK, MaterialUtils.shownBehindGlassAs(Material.LAVA, true));
+
+        assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.WATER, false)),
+            "and neither stand-in may be a thing that gets culled itself");
+        assertFalse(MaterialUtils.cullsWaterBehindIt(MaterialUtils.shownBehindGlassAs(Material.WATER, true)));
 
         assertEquals(Material.NETHER_PORTAL,
-            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, Material.YELLOW_STAINED_GLASS),
+            MaterialUtils.shownBehindGlassAs(Material.NETHER_PORTAL, false),
             "anything that is not a liquid stands in for itself");
-        assertNull(MaterialUtils.shownBehindGlassAs(null, Material.YELLOW_STAINED_GLASS));
+        assertNull(MaterialUtils.shownBehindGlassAs(null, false));
     }
 }

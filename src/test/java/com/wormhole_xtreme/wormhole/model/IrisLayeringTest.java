@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -60,12 +62,13 @@ class IrisLayeringTest
     private BlockData truthBehind;
     private BlockData truthAhead;
     private Block ahead;
+    private com.wormhole_xtreme.wormhole.WormholeXTreme plugin;
     private MockedStatic<MaterialUtils> materials;
 
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install();
+        plugin = PluginTestSupport.install();
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
 
@@ -452,27 +455,21 @@ class IrisLayeringTest
      * <p>Java Edition skips the face between a fluid and a translucent block, so a wormhole
      * drawn right behind a stained-glass iris had its near face culled and its far face
      * pointing away: nothing left to see, and the gate showed the landscape through its own
-     * iris. Nothing else behind one is hidden -- the world beyond it is drawn, and so is glass
-     * behind water -- so the horizon is drawn in something that looks like water and is not
-     * water, and the rule stops applying.
+     * iris. Nothing else behind one is hidden -- the world beyond it is drawn -- so the horizon
+     * is drawn in something solid that looks like water, and the fluid rule stops applying.
      */
     @Test
     void behindAGlassIrisTheHorizonIsDrawnAsALookAlike()
     {
-        final BlockData lookalike = mock(BlockData.class);
-        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
-        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
-        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
-            .thenReturn(Boolean.TRUE);
-        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER,
-            Material.YELLOW_STAINED_GLASS)).thenReturn(Material.BLUE_STAINED_GLASS);
-        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_STAINED_GLASS)).thenReturn(lookalike);
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
         standAt(Z - 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
         verify(viewer).sendBlockChange(at(Z), eq(iris));
-        verify(viewer).sendBlockChange(at(Z + 1), eq(lookalike));
+        verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
         verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
     }
 
@@ -486,20 +483,16 @@ class IrisLayeringTest
     @Test
     void fromBehindAGlassIrisTheRingKeepsTheRealHorizon()
     {
-        final BlockData lookalike = mock(BlockData.class);
-        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
-        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
-        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
-            .thenReturn(Boolean.TRUE);
-        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER,
-            Material.YELLOW_STAINED_GLASS)).thenReturn(Material.BLUE_STAINED_GLASS);
-        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_STAINED_GLASS)).thenReturn(lookalike);
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
         standAt(Z + 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
         verify(viewer).sendBlockChange(at(Z), eq(horizon));
-        verify(viewer, never()).sendBlockChange(any(Location.class), eq(lookalike));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(ice));
+        verify(viewer, never()).sendBlockChange(any(Location.class), eq(packed));
     }
 
     /**
@@ -698,6 +691,120 @@ class IrisLayeringTest
         assertTrue(quiet.isGateIrisActive(), "the iris was left shut, against its open default");
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
         verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+    }
+
+    /**
+     * The stand-in horizon moves, because the thing it is drawn in does not.
+     *
+     * <p>Water animates itself. Ice does not, so a wormhole behind a see-through iris would sit
+     * there as a frozen sheet. Two ices swapping places give it a surface. Asserted as the two
+     * frames actually differing at a cell, not merely as something having been sent: a tick
+     * that resent the same block would be an animation that does not move.
+     */
+    @Test
+    void theStandInHorizonMovesBetweenFrames()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIris(ice, packed);
+        standAt(Z - 4);
+        StargateManager.registerStargate(gate);
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+        clearInvocations(viewer);
+
+        StargateBlockSetup.tickHorizon();
+        final BlockData first = sentBehind();
+        clearInvocations(viewer);
+        StargateBlockSetup.tickHorizon();
+        final BlockData second = sentBehind();
+
+        assertNotNull(first, "a frame is sent to somebody holding the stand-in");
+        assertNotEquals(first, second, "and the next frame is the other ice, or nothing is moving");
+    }
+
+    /**
+     * A gate whose iris shows the real wormhole is left alone by the frames.
+     *
+     * <p>Water moves on its own, so there is nothing to do for it, and the tick walks every
+     * open gate on the server: it has to cost nothing for the gates that do not need it.
+     */
+    @Test
+    void aGateShowingRealWaterIsNotTicked()
+    {
+        standAt(Z - 4);
+        StargateManager.registerStargate(gate);
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+        clearInvocations(viewer);
+
+        StargateBlockSetup.tickHorizon();
+
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** Dresses the fixture's gate in a see-through iris with the two stand-ins stubbed. */
+    private void glassIris(final BlockData ice, final BlockData packed)
+    {
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        materials.when(() -> MaterialUtils.drawnAs(Material.YELLOW_STAINED_GLASS)).thenReturn(iris);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
+            .thenReturn(Material.BLUE_ICE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
+            .thenReturn(Material.PACKED_ICE);
+        materials.when(() -> MaterialUtils.drawnAs(Material.BLUE_ICE)).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAs(Material.PACKED_ICE)).thenReturn(packed);
+    }
+
+    /** What was last sent into the cell behind the ring, or null if nothing was. */
+    private BlockData sentBehind()
+    {
+        final org.mockito.ArgumentCaptor<BlockData> sent =
+            org.mockito.ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, org.mockito.Mockito.atLeastOnce()).sendBlockChange(at(Z + 1), sent.capture());
+        return sent.getValue();
+    }
+
+    /**
+     * A draw says in the log what it decided, once the log is asking for it.
+     *
+     * <p>Where the layers went cannot be seen from a screenshot: a wormhole never drawn and one
+     * drawn where the client will not show it look exactly alike, and several rounds of
+     * guessing failed to tell them apart. The line has to carry the things that settle it --
+     * which materials, how many cells got a horizon, and where the first one went.
+     */
+    @Test
+    void aDrawSaysInTheLogWhereItPutTheLayers()
+    {
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(Boolean.TRUE);
+        when(viewer.getName()).thenReturn("Tester");
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        final org.mockito.ArgumentCaptor<String> said = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), said.capture());
+        final String line = said.getValue();
+        assertTrue(line.startsWith("Iris layers:"), line);
+        assertTrue(line.contains("Gate=Layered"), line);
+        assertTrue(line.contains("IrisMaterial=IRON_BLOCK"), line);
+        assertTrue(line.contains("WithHorizon=1"), "the count that says the horizon was drawn: " + line);
+        assertTrue(line.contains("FirstHorizon=At[x=10, y=64, z=21]"), "and where it went: " + line);
+    }
+
+    /**
+     * Nothing is built for the log when the log is not asking.
+     *
+     * <p>This runs on every draw, and a draw runs on every step every nearby player takes.
+     */
+    @Test
+    void aDrawBuildsNoLogLineWhenFineIsOff()
+    {
+        standAt(Z - 4);
+
+        StargateBlockSetup.sendLayeredTo(viewer, gate);
+
+        verify(plugin, never()).prettyLog(any(java.util.logging.Level.class), any(String.class));
     }
 
     /**

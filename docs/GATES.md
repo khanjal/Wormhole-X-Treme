@@ -497,17 +497,27 @@ near face was culled and its far face pointed away: nothing left to draw, and th
 the landscape through its own iris.
 
 The rule is narrower than it first looks, and the narrowness is the fix. It is a *fluid* rule:
-the world beyond such an iris is drawn perfectly well, and so is glass sitting behind water,
-which is why the gate reads correctly from the back. So the far horizon is drawn as blue glass
+the world beyond such an iris is drawn perfectly well. So the far horizon is drawn in ice
 instead — a look-alike that is not a fluid, and the rule no longer applies. In the ring, where
 a viewer behind the gate gets it, the real liquid has air in front of it and is drawn as it
 always was; the stand-in is only ever for the layer that ends up behind the iris.
 
-Two traps, both real. Glass skips a face against its own exact block, so a palette whose iris
-is already blue glass would hide a blue-glass horizon — `MaterialUtils.shownBehindGlassAs`
-falls back to ice there. And plain glass is a cutout rather than a translucent and shows water
-as it is, so it must not be caught by `MaterialUtils.cullsWaterBehindIt`. A preview needs none
-of this: its iris is a display entity, and an entity takes no part in face culling at all.
+**The stand-in has to be solid**, not merely a different translucent. Blue glass behind a
+yellow iris was tried in a world and is not drawn either, which narrows the rule further than
+the fluid-face reading alone would: a translucent block does not show another translucent block
+behind it, whatever they are. Ice is solid and nothing can cull it.
+
+**And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
+a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
+(`gate-iris-horizon-ticks`, ten by default, `0` to leave it still), which gives the surface
+something to do. `StargateManager.tickIrisHorizon` is one sweep over the open gates, as the
+ambient hum is, and it skips every gate whose iris shows the real wormhole before it looks at a
+single player — those need nothing, because water moves on its own.
+
+Plain glass is a cutout rather than a translucent and shows water as it is, so it must not be
+caught by `MaterialUtils.cullsWaterBehindIt` or every glass gate pays for a stand-in it does
+not need. A preview needs none of this either: its iris is a display entity, and an entity
+takes no part in face culling at all.
 
 An earlier attempt put a block of air between the two layers instead, so the wormhole's face
 had air to be drawn against. It works on paper and was the wrong trade: it cost a second cell

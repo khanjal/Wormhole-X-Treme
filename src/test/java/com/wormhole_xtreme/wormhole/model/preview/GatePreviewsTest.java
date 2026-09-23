@@ -51,6 +51,8 @@ import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.logging.Level;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -1448,6 +1450,32 @@ class GatePreviewsTest
         verify(side, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
         verify(side, atLeastOnce()).hideEntity(plugin, displayAt(cell, 0));
         assertTrue(wormholeSendsAlong(side, 0) > 0, "and the wormhole is in the ring for them");
+    }
+
+    /**
+     * A stacked draw says in the log what it decided, once the log is asking for it.
+     *
+     * <p>A preview takes a different path from a built gate -- its iris is a display entity and
+     * its wormhole a block change -- so the gate's own line never appears for one. Testing a
+     * preview and reading the gate's log is how an evening went missing.
+     */
+    @Test
+    void aStackedDrawSaysInTheLogWhereItPutTheLayers()
+    {
+        when(plugin.isLoggable(Level.FINE)).thenReturn(Boolean.TRUE);
+        openThePreview();
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
+        verify(plugin, atLeastOnce()).prettyLog(eq(Level.FINE), said.capture());
+        final String line = said.getAllValues().stream()
+            .filter(s -> s.startsWith("Preview layers:")).findFirst().orElse(null);
+        assertNotNull(line, "a stacked preview logs its own line: " + said.getAllValues());
+        assertTrue(line.contains("Cells=" + openingCells().size()), line);
+        assertTrue(line.contains("WithHorizon="), line);
+        assertTrue(line.contains("FirstHorizon="), line);
     }
 
     /**

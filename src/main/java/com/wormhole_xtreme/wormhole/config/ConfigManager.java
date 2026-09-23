@@ -117,6 +117,9 @@ public class ConfigManager
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
+        /** Ticks between frames of the wormhole drawn behind a see-through iris. */
+        GATE_IRIS_HORIZON_TICKS,
+
         /** The longest a whole iris crossing may take, whatever the gate's size. */
         GATE_IRIS_SWEEP_MAX_TICKS,
         GATE_SOUND_AMBIENT,
@@ -1054,6 +1057,22 @@ public class ConfigManager
      *
      * @return ticks per ring, between 1 and 20
      */
+    /**
+     * How often the wormhole drawn behind a see-through iris changes frame.
+     *
+     * <p>Only gates whose iris hides real water draw it in something else -- ice, which does
+     * not move the way water does. Alternating two of them is what gives it a surface. Nothing
+     * else pays for this: a gate whose iris shows the real wormhole never reaches it.
+     *
+     * @return ticks between frames, 0 to leave it still
+     */
+    public static int getGateIrisHorizonTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_HORIZON_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 10;
+        return Math.min(100, Math.max(0, configured));
+    }
+
     public static int getGateIrisStepTicks()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);

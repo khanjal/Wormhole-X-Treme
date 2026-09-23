@@ -98,8 +98,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A stained-glass iris shows the wormhole through it again.** Minecraft skips the face
   where a liquid touches a translucent block, so the wormhole drawn behind an `Atlantis` or
   `Universe` iris had nothing left to draw and the gate showed the landscape through its own
-  iris. Behind such an iris the horizon is now drawn as blue glass rather than as water --
-  a look-alike that is not a liquid, so the rule stops applying. Only there: in the ring,
+  iris. Behind such an iris the horizon is now drawn in ice rather than water -- a look-alike
+  that is not a liquid, so the rule stops applying. Blue and packed ice alternate in a
+  checkerboard and swap places twice a second, since ice does not move the way water does;
+  `gate-iris-horizon-ticks` sets the pace and `0` leaves it still. Only there: in the ring,
   where somebody behind the gate sees it, it is the real wormhole as always. Plain glass
   never had the problem and is untouched, and an opaque iris hides the horizon by being
   opaque.
