@@ -100,6 +100,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **Walking round a preview while its see-through iris animates leaves nothing solid behind.**
+  The stand-in wormhole behind the ring stayed on the side you had walked to, as a block only you
+  could bump into, until the animation ended.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
