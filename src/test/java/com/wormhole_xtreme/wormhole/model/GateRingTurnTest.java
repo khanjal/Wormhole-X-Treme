@@ -450,6 +450,16 @@ class GateRingTurnTest
         final long turn = spin.frames(DialSpinPattern.TOP, 2, near.getEffectiveLightTicks()) + 1L;
         assertTrue(turn > far.getEffectiveLightTicks(), "TOP's rest makes the turn the longer");
         assertEquals(turn, StargateAnimator.untilNext(far, 2));
+
+        // And the far gate books its second chevron that far after its first.
+        far.setGateLightsActive(true);
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(far, true);
+        }
+        assertEquals(1, far.getGateLightingCurrentIteration(), "the far gate's first chevron locked");
+        verify(scheduler).scheduleSyncDelayedTask(any(Plugin.class), any(Runnable.class), eq(turn));
     }
 
     /**
