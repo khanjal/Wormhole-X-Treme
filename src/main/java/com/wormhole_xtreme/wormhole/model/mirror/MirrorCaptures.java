@@ -618,8 +618,6 @@ public final class MirrorCaptures
         /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
         private int reachAsked;
         private volatile int reachKept;
-        /** Why the sift failed, if it threw something it could recover from. */
-        private volatile Throwable failure;
 
         Job(final String key, final World far, final MirrorPoint destination)
         {
@@ -787,6 +785,7 @@ public final class MirrorCaptures
         private void siftThen(final Runnable work, final Consumer<Runnable> onMain)
         {
             boolean sifted = false;
+            Throwable why = null;
             try
             {
                 work.run();
@@ -794,11 +793,12 @@ public final class MirrorCaptures
             }
             catch (final Exception | LinkageError failed)
             {
-                failure = failed;
+                why = failed;
             }
             finally
             {
-                onMain.accept(sifted ? this::again : this::giveUp);
+                final Throwable failure = why;
+                onMain.accept(sifted ? this::again : () -> giveUp(failure));
             }
         }
 
@@ -810,7 +810,7 @@ public final class MirrorCaptures
         }
 
         /** Drops a job whose sift failed, so the next look at the mirror starts a fresh one. */
-        private void giveUp()
+        private void giveUp(final Throwable failure)
         {
             cancel();
             JOBS.remove(key, this);
