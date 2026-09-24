@@ -59,6 +59,14 @@ For the tests in `src/mockbukkit/`, add their profile and run the harness under 
   "mvn_args": ["-Pmodern-api,mockbukkit", "-Dpaper.api.version=1.21.11-R0.1-SNAPSHOT"],
 ```
 
+or under JDK 25 for MockBukkit's 26.2 line. Run `mvn clean` first when switching between the two.
+Otherwise the baseline is refused as not green, and the cause is the old classes, not the tests:
+
+```json
+  "mvn_args": ["-Pmodern-api,mockbukkit", "-Dpaper.api.version=26.2.build.124-stable",
+               "-Dmockbukkit.artifact=mockbukkit-v26.2", "-Dmockbukkit.version=4.116.1", "-Dmockbukkit.release=25"],
+```
+
 Then run it:
 
 ```bash
