@@ -1028,7 +1028,17 @@ public final class GatePreviews
     /** Whether this preview's dial shows the ring turning. */
     private static boolean spins(final GatePreview preview)
     {
-        return (preview.spin() != null) && ConfigManager.isGateDialSpin();
+        return (preview.spin() != null) && (pattern(preview) != DialSpinPattern.NONE);
+    }
+
+    /**
+     * The ring pattern a preview dials with: that of the group its frame material names, else the
+     * server's, as the gate built from it would be detected.
+     */
+    private static DialSpinPattern pattern(final GatePreview preview)
+    {
+        return ConfigManager.getGateDialSpinPattern(null,
+            com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure()));
     }
 
     /**
@@ -1041,10 +1051,18 @@ public final class GatePreviews
     {
         if (!spins(preview))
         {
+            // Recoloured into a group that turns none part way round: put back what the turn had lit.
+            final Set<Cell> left = preview.spinCells();
+            if (!left.isEmpty())
+            {
+                preview.spinCells(Set.of());
+                preview.spinTick(0);
+                restyle(preview, left);
+            }
             return false;
         }
         final Set<Cell> was = preview.spinCells();
-        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final DialSpinPattern pattern = pattern(preview);
         final int glyph = preview.litWaves() + 1;
         final int interval = Math.max(1, preview.shape().getShapeLightTicks());
         final boolean arrived = preview.spinTick() >= preview.spin().frames(pattern, glyph, interval);
@@ -2281,7 +2299,7 @@ public final class GatePreviews
      */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean riding = spins(preview) && (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE)
+        final boolean riding = spins(preview) && (pattern(preview) == DialSpinPattern.UNIVERSE)
             && (preview.litWaves() < preview.lastWave());
         final boolean lit = (!riding && (cell.wave() > 0) && (cell.wave() <= preview.litWaves()))
             || preview.spinCells().contains(cell);

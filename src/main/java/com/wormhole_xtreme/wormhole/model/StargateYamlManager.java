@@ -24,6 +24,8 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
 public class StargateYamlManager
 {
     private static final String OWNER_UUID_KEY = "OwnerUUID";
+    /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
+    static final String DIAL_SPIN_KEY = "DialSpin";
     /** Anything that is not safe in a file name, replaced with an underscore. */
     private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
 
@@ -126,7 +128,29 @@ public class StargateYamlManager
         applyOwner(s, ownerIdFrom(map), (String) map.getOrDefault("OwnerName", ""));
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
+        s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         return s;
+    }
+
+    /**
+     * A gate file's ring pattern, or null to follow the group and the server; a name no pattern
+     * answers to is said out loud, as a group's is.
+     */
+    private static com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpinFrom(final Object raw,
+        final String gateName)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
+            com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
+        if (pattern == null)
+        {
+            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
+                + "\"; it follows its group and gate-dial-spin.");
+        }
+        return pattern;
     }
 
     /**
@@ -322,6 +346,10 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShapeName());
+        if (s.getGateDialSpin() != null)
+        {
+            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));
+        }
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
         {

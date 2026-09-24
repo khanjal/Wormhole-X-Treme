@@ -80,6 +80,9 @@ sign-color-neighbour: GRAY
 #            Minecraft 1.21+) simply switches on when the gate dials, which is the look
 #            worth having. Anything else — a GOLD_BLOCK chevron, say — has no on state,
 #            so it lights as `light` above instead.
+# dial-spin: optional. The ring pattern this group's gates dial with, as gate-dial-spin
+#            takes it; a gate's own `/wormhole gate edit <gate> spin` comes first. Leave
+#            it out and the group's gates follow gate-dial-spin.
 gate-material-groups:
   Standard:
     structure: OBSIDIAN
@@ -94,12 +97,14 @@ gate-material-groups:
     iris: YELLOW_STAINED_GLASS
     light: SEA_LANTERN
     sign: WARPED_WALL_SIGN
+    dial-spin: pegasus
   Universe:
     structure: POLISHED_BLACKSTONE
     portal: WATER
     iris: WHITE_STAINED_GLASS
     light: SEA_LANTERN
     sign: CRIMSON_WALL_SIGN
+    dial-spin: universe
   MilkyWay:
     structure: DEEPSLATE
     portal: WATER

@@ -637,6 +637,11 @@ public final class SubCommands
         {
             return prefixed(typed, TRUE, FALSE);
         }
+        if ("spin".equals(field))
+        {
+            return prefixed(typed,
+                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.spinNames().toArray(new String[0]));
+        }
         if ("portal".equals(field) || "iris".equals(field) || LIGHT.equals(field))
         {
             return materialNames(typed, false);

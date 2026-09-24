@@ -44,6 +44,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
   with the ring and back in place at the last) and `overshoot`
   (runs past the chevron and backs onto it). See [the guide](docs/guide/GATES.md#dialling).
+- **A gate can pick its own ring pattern**: `/wormhole gate edit <gate> spin <pattern>`, and
+  `default` to follow the server again. A material group can set one too, with `dial-spin:`;
+  a gate uses its own, then its group's, then `gate-dial-spin`. New configs ship Atlantis
+  on `pegasus` and Universe on `universe`; an existing `config.yml` keeps its groups, so add
+  the line by hand. See [the guide](docs/guide/GATES.md#dialling).
 
 **Changed**
 

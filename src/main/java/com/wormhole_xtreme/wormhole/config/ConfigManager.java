@@ -803,16 +803,6 @@ public class ConfigManager
     }
 
     /**
-     * Whether a dialling gate shows its inner ring turning (#357).
-     *
-     * @return true unless the pattern is NONE
-     */
-    public static boolean isGateDialSpin()
-    {
-        return getGateDialSpinPattern() != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE;
-    }
-
-    /**
      * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
      * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
      * default, TOP.
@@ -825,6 +815,31 @@ public class ConfigManager
         final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern = (s == null) ? null
             : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(s.getValue()));
         return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP : pattern;
+    }
+
+    /**
+     * The ring pattern a gate dials with (#366): its own, then its material group's, then
+     * {@code gate-dial-spin}.
+     *
+     * @param own
+     *            the gate's own pattern, or null
+     * @param group
+     *            its material group, or null
+     * @return the pattern
+     */
+    public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern(
+        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern own,
+        final com.wormhole_xtreme.wormhole.model.MaterialGroup group)
+    {
+        if (own != null)
+        {
+            return own;
+        }
+        if ((group != null) && (group.getDialSpin() != null))
+        {
+            return group.getDialSpin();
+        }
+        return getGateDialSpinPattern();
     }
 
     /**

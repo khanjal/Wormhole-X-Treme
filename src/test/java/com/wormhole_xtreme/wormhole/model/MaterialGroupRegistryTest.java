@@ -292,4 +292,47 @@ class MaterialGroupRegistryTest
             MaterialGroupRegistry.registerDiscoveredGroup(group);
         });
     }
+
+    /**
+     * A group's {@code dial-spin} (#366) is read, so Atlantis gates can default to pegasus; a
+     * group without one, or with a name no pattern answers to, follows the server.
+     */
+    @Test
+    void aGroupsDialSpinIsReadAndAnUnknownOneIsIgnored()
+    {
+        final Map<String, Object> section = new LinkedHashMap<>();
+        final Map<String, Object> atlantis = group("LAPIS_BLOCK", null, null, null);
+        atlantis.put("dial-spin", "Pegasus");
+        section.put("Atlantis", atlantis);
+        final Map<String, Object> odd = group("OBSIDIAN", null, null, null);
+        odd.put("dial-spin", "sideways");
+        section.put("Odd", odd);
+        section.put("Plain", group("DIAMOND_BLOCK", null, null, null));
+
+        MaterialGroupRegistry.load(section);
+
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+            MaterialGroupRegistry.getGroup("Atlantis").getDialSpin());
+        assertNull(MaterialGroupRegistry.getGroup("Odd").getDialSpin(), "unknown: the group still loads");
+        assertNull(MaterialGroupRegistry.getGroup("Plain").getDialSpin());
+    }
+
+    /**
+     * The shipped Atlantis and Universe groups dial as their shows do, pegasus and universe, and
+     * Standard follows the server's setting.
+     */
+    @Test
+    void theShippedThemedGroupsDialAsTheirShowsDo() throws Exception
+    {
+        final Map<String, Object> config = com.wormhole_xtreme.wormhole.utils.YamlMaps.asMap(new org.yaml.snakeyaml.Yaml()
+            .load(java.nio.file.Files.readString(java.nio.file.Paths.get("src/main/resources/config.yml"))));
+
+        MaterialGroupRegistry.load(com.wormhole_xtreme.wormhole.utils.YamlMaps.asMap(config.get("gate-material-groups")));
+
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+            MaterialGroupRegistry.getGroup("Atlantis").getDialSpin());
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.UNIVERSE,
+            MaterialGroupRegistry.getGroup("Universe").getDialSpin());
+        assertNull(MaterialGroupRegistry.getGroup("Standard").getDialSpin(), "Standard follows gate-dial-spin");
+    }
 }

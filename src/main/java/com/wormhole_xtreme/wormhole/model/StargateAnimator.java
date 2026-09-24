@@ -15,7 +15,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -427,7 +426,7 @@ class StargateAnimator
             return gate.getEffectiveLightTicks();
         }
         // A tick a frame, and one more for the turn's arrival, which is when its chevron locks.
-        return spin.frames(ConfigManager.getGateDialSpinPattern(), glyph, dialler.getEffectiveLightTicks()) + 1L;
+        return spin.frames(dialler.getEffectiveDialSpin(), glyph, dialler.getEffectiveLightTicks()) + 1L;
     }
 
     /** The active gate dialling this one, or null. */
@@ -465,7 +464,7 @@ class StargateAnimator
      */
     static DialSpin spinOf(final Stargate gate)
     {
-        if (!ConfigManager.isGateDialSpin() || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        if ((gate.getEffectiveDialSpin() == DialSpinPattern.NONE) || !(gate.getGateShape() instanceof Stargate3DShape shape))
         {
             return null;
         }
@@ -501,7 +500,7 @@ class StargateAnimator
      */
     static boolean ridesTheRing(final Stargate gate)
     {
-        return (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE) && turns(gate);
+        return (gate.getEffectiveDialSpin() == DialSpinPattern.UNIVERSE) && turns(gate);
     }
 
     /**
@@ -514,12 +513,22 @@ class StargateAnimator
     {
         final int glyph = gate.getGateLightingCurrentIteration() + 1;
         final DialSpin spin = turns(gate) ? spinOf(gate) : null;
-        if ((spin == null) || (glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
+        if (spin == null)
+        {
+            // Switched to none part way round: put back what the turn had lit.
+            final Turning left = TURNING.remove(gate);
+            if (left != null)
+            {
+                takeBackLight(gate, left.cells, List.of(), lockedCells(waves, glyph - 1));
+            }
+            return false;
+        }
+        if ((glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
         {
             return false;
         }
         final Turning turning = TURNING.computeIfAbsent(gate, g -> new Turning());
-        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final DialSpinPattern pattern = gate.getEffectiveDialSpin();
         final int interval = Math.max(1, gate.getEffectiveLightTicks());
         final boolean arrived = turning.tick >= spin.frames(pattern, glyph, interval);
         final List<Location> now = new ArrayList<>();
