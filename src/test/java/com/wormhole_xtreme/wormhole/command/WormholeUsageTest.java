@@ -125,4 +125,22 @@ class WormholeUsageTest
         assertTrue(read >= 30, "read only " + read + " command files; the walk is not reaching them");
         assertEquals(List.of(), found);
     }
+
+    /**
+     * A player who may preview but not configure runs gate build and preview, so the list shows
+     * them that, and not the admin verbs. The list used to leave gate out altogether for them.
+     * Found by a Sonnet review.
+     */
+    @Test
+    void aPlayerWhoMayOnlyPreviewIsListedGateBuild()
+    {
+        final Player player = mock(Player.class);
+        when(player.hasPermission(anyString())).thenReturn(false);
+        when(player.hasPermission(com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions.PREVIEW)).thenReturn(true);
+
+        command.onCommand(player, null, "wormhole", new String[0]);
+
+        verify(player).sendMessage(plainContaining("Gates: /wormhole gate build <shape> [group]"));
+        verify(player, never()).sendMessage(plainContaining("Gates: /wormhole gate <"));
+    }
 }

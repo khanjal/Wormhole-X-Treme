@@ -47,4 +47,14 @@ class ChatTextTest
         assertEquals("Usage: §f/wormhole§7 §fgate§7 §fregen§7 §b<gate>§7 [-shape <shape>] [-fill]",
             ChatText.usage("/wormhole gate regen <gate> [-shape <shape>] [-fill]"));
     }
+
+    /** A bare | or or between alternatives is not something to type, so it stays grey. */
+    @Test
+    void aSeparatorBetweenAlternativesStaysGrey()
+    {
+        assertEquals("Usage: §f/wormhole§7 §fregen§7 §b<gate>§7 | §f-all§7",
+            ChatText.usage("/wormhole regen <gate> | -all"));
+        assertEquals("Usage: §f/wormhole§7 §fcooldown§7 §b<seconds>§7 or §b<true|false>§7",
+            ChatText.usage("/wormhole cooldown <seconds> or <true|false>"));
+    }
 }

@@ -42,12 +42,19 @@ public class Wormhole implements CommandExecutor
         for (final String[] group : GROUPS)
         {
             final SubCommands.Entry entry = SubCommands.find(group[1]);
-            if ((entry == null) || entry.isHidden() || !(mayConfigure || entry.checksOwnPermissions()))
+            if ((entry == null) || entry.isHidden())
             {
                 continue;
             }
-            sender.sendMessage(ChatText.heading(group[0] + ":") + " "
-                + ChatText.usage(entry.getUsage()).substring("Usage: ".length()));
+            // gate opens build to whoever may preview, without wormhole.config; list what they may run.
+            final String usage = mayConfigure || entry.checksOwnPermissions() ? entry.getUsage()
+                : entry.admits(sender, new String[] { group[1], "build" })
+                    ? com.wormhole_xtreme.wormhole.command.handlers.GateCommand.usageOf("build") : null;
+            if (usage != null)
+            {
+                sender.sendMessage(ChatText.heading(group[0] + ":") + " "
+                    + ChatText.usage(usage).substring("Usage: ".length()));
+            }
         }
     }
 

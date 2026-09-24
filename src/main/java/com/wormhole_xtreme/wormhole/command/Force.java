@@ -37,7 +37,7 @@ public class Force implements CommandExecutor
      *            who asked
      * @param a
      *            the arguments, one word naming a gate or {@code -all}
-     * @return true unless the word given named nothing, which prints the usage line
+     * @return true unless the line is not one gate or {@code -all}, which prints the usage line
      */
     private static boolean forceClose(final CommandSender sender, final String[] a)
     {
@@ -56,7 +56,8 @@ public class Force implements CommandExecutor
         }
         else if (!closeOneGate(sender, a[0]))
         {
-            return false;
+            // Already said the gate is not there; a usage line after it would say the line was wrong (#325).
+            return true;
         }
         logWhoAsked(sender, a);
         return true;

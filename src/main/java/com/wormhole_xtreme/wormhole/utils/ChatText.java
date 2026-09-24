@@ -82,7 +82,8 @@ public final class ChatText
 
     /**
      * A usage line (#325): the words to type in white, {@code <required>} in aqua, and anything
-     * inside {@code [optional]} left in the body grey, brackets included.
+     * inside {@code [optional]} left in the body grey, brackets included, as are a bare {@code |}
+     * or {@code or} between alternatives.
      *
      * @param line
      *            the usage, as {@code /wormhole gate edit <gate> <field> [value]}
@@ -97,7 +98,7 @@ public final class ChatText
             out.append(' ');
             final int opened = optional;
             optional += count(word, '[') - count(word, ']');
-            if ((opened > 0) || word.startsWith("["))
+            if ((opened > 0) || word.startsWith("[") || "|".equals(word) || "or".equals(word))
             {
                 out.append(word);
             }

@@ -91,13 +91,16 @@ class ForceCommandTest
         assertFalse(force(console, "alpha", "extra"));
     }
 
-    /** A gate nobody built is refused. */
+    /**
+     * A gate nobody built is refused, and that is the whole answer: true, so no usage line follows
+     * to suggest the line itself was wrong (#325). Found by a Sonnet review.
+     */
     @Test
     void anUnknownGateIsRefused()
     {
         try (MockedStatic<CommandUtilities> util = mockStatic(CommandUtilities.class, CALLS_REAL_METHODS))
         {
-            assertFalse(force(console, "nowhere"), "returning false prints the usage line");
+            org.junit.jupiter.api.Assertions.assertTrue(force(console, "nowhere"), "refused and explained, not a usage error");
 
             util.verify(() -> CommandUtilities.closeGate(any(), anyBoolean()), never());
         }
