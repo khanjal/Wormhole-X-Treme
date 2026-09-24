@@ -1764,12 +1764,15 @@ class GatePreviewsTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
         GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
         GatePreviews.activate(owner);
         final List<BlockDisplay> chevron = ringDisplaysOfWave(1);
-        for (int step = 0; step <= standard.getShapeLightTicks(); step++)
+        // UNIVERSE's turn outlasts the chevron's interval, so step to the lock itself, not by the interval.
+        for (int step = 0; (step < 200) && (preview.litWaves() < 1); step++)
         {
             dialStep.run();
         }
+        assertEquals(1, preview.litWaves(), "chevron 1 locked");
 
         for (final BlockDisplay d : chevron)
         {

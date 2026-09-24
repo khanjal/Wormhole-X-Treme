@@ -195,7 +195,7 @@ class GateRingTurnTest
      * it at once without a turn. TOP's rest after a lock adds time from the second glyph on.
      */
     @Test
-    void everyPatternLocksTheChevronOnTheSameTick()
+    void everyPatternLocksTheFirstChevronOnceItsTurnIsDone()
     {
         try
         {
@@ -430,8 +430,31 @@ class GateRingTurnTest
     }
 
     /**
-     * Only the gate dialling turns its ring; the gate being dialled lights its chevrons in order, a
-     * chevron's interval apart, as on the show. Found in-game: both turned.
+     * The gate being dialled waits as long between chevrons as the dialling gate's turn takes, TOP's
+     * rest included, so both wormholes form together. It kept its own interval, and opened three
+     * seconds before the gate dialling it. Found by a Fable review.
+     */
+    @Test
+    void theGateBeingDialledKeepsPaceWithTheTurn()
+    {
+        final Stargate near = standardGateAt("near", 0);
+        final Stargate far = standardGateAt("far", 40);
+        assertEquals(far.getEffectiveLightTicks(), StargateAnimator.untilNext(far, 2), "undialled, its own interval");
+
+        near.setGateActive(true);
+        near.setGateTarget(far);
+        far.setGateActive(true);
+
+        final DialSpin spin = StargateAnimator.spinOf(near);
+        assertNotNull(spin);
+        final long turn = spin.frames(DialSpinPattern.TOP, 2, near.getEffectiveLightTicks()) + 1L;
+        assertTrue(turn > far.getEffectiveLightTicks(), "TOP's rest makes the turn the longer");
+        assertEquals(turn, StargateAnimator.untilNext(far, 2));
+    }
+
+    /**
+     * Only the gate dialling turns its ring; the gate being dialled lights its chevrons in order,
+     * keeping pace with the turn, as on the show. Found in-game: both turned.
      */
     @Test
     void onlyTheGateDiallingTurnsItsRing()

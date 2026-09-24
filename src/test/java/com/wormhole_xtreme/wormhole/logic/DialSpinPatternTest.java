@@ -211,6 +211,21 @@ class DialSpinPatternTest
         }
     }
 
+    /** Whether a frame cell has the same chevron on both sides of it, within two cells, as Grand's gaps do. */
+    private static boolean withinAChevron(final DialSpin spin, final Cell cell)
+    {
+        final List<Cell> ring = spin.ring();
+        final int at = ring.indexOf(cell);
+        int before = 0;
+        int after = 0;
+        for (int i = 2; i >= 1; i--)
+        {
+            before = (ring.get(Math.floorMod(at - i, ring.size())).wave() > 0) ? ring.get(Math.floorMod(at - i, ring.size())).wave() : before;
+            after = (ring.get(Math.floorMod(at + i, ring.size())).wave() > 0) ? ring.get(Math.floorMod(at + i, ring.size())).wave() : after;
+        }
+        return (before > 0) && (before == after);
+    }
+
     /** The first of a set, in the order it was built. */
     private static Cell first(final Set<Cell> cells)
     {
@@ -303,6 +318,8 @@ class DialSpinPatternTest
                         name + " glyph " + glyph + " tick " + tick + ": the chevron alone, or frame alone: " + lit);
                     assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> path.indexOf(c) < reached),
                         name + " glyph " + glyph + " tick " + tick + ": short of the chevron, not among its cells");
+                    assertTrue(lit.equals(chevron) || lit.stream().noneMatch(c -> withinAChevron(spin, c)),
+                        name + " glyph " + glyph + " tick " + tick + ": no frame inside a chevron, as Grand has: " + lit);
                 }
             }
         }

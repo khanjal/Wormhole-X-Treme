@@ -409,7 +409,7 @@ public final class DialSpin
         Set<Cell> hop = new LinkedHashSet<>();
         for (int i = 0; (i < (path.size() - 1)) && !chevron.contains(path.get(i)); i++)
         {
-            final boolean frame = path.get(i).wave() == 0;
+            final boolean frame = (path.get(i).wave() == 0) && !withinAChevron(path.get(i));
             if ((!frame || (hop.size() == width)) && !hop.isEmpty())
             {
                 hops.add(hop);
@@ -425,6 +425,31 @@ public final class DialSpin
             hops.add(hop);
         }
         return hops;
+    }
+
+    /** How far a frame cell can sit inside a chevron, as Grand's do between its cells, and count as part of it. */
+    private static final int CHEVRON_GAP = 2;
+
+    /** Whether a frame cell sits between cells of one chevron, as Grand's do, rather than between two. */
+    private boolean withinAChevron(final Cell cell)
+    {
+        final int at = ring.indexOf(cell);
+        final int before = chevronBeside(at, -1);
+        return (before > 0) && (before == chevronBeside(at, 1));
+    }
+
+    /** The chevron first reached from a ring cell one way round, within {@link #CHEVRON_GAP}, or 0. */
+    private int chevronBeside(final int at, final int step)
+    {
+        for (int i = 1; i <= CHEVRON_GAP; i++)
+        {
+            final int wave = ring.get(Math.floorMod(at + (step * i), ring.size())).wave();
+            if (wave > 0)
+            {
+                return wave;
+            }
+        }
+        return 0;
     }
 
     /** The cells of a path from a run's tail up to its head. */

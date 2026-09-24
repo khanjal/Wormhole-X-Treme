@@ -407,10 +407,40 @@ class StargateAnimator
         else
         {
             // With the ring turning, the turn itself is the wait before the next chevron.
-            final long between = turns(gate) ? 1L : gate.getEffectiveLightTicks();
+            final long between = turns(gate) ? 1L : untilNext(gate, step + 1);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), between);
         }
+    }
+
+    /**
+     * How long a gate that does not turn waits before its next chevron: its own interval, or, for
+     * the gate being dialled, as long as the dialling gate's turn to that glyph takes, rests and
+     * all, so the two wormholes still form together.
+     */
+    static long untilNext(final Stargate gate, final int glyph)
+    {
+        final Stargate dialler = dialler(gate);
+        final DialSpin spin = ((dialler == null) || !turns(dialler)) ? null : spinOf(dialler);
+        if (spin == null)
+        {
+            return gate.getEffectiveLightTicks();
+        }
+        // A tick a frame, and one more for the turn's arrival, which is when its chevron locks.
+        return spin.frames(ConfigManager.getGateDialSpinPattern(), glyph, dialler.getEffectiveLightTicks()) + 1L;
+    }
+
+    /** The active gate dialling this one, or null. */
+    private static Stargate dialler(final Stargate gate)
+    {
+        for (final Stargate s : StargateManager.getAllGatesUnsorted())
+        {
+            if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
+            {
+                return s;
+            }
+        }
+        return null;
     }
 
     /** A gate's ring, laid from its own frame, and the shape it was laid for. */
@@ -589,18 +619,7 @@ class StargateAnimator
      */
     static boolean linksAnotherWorld(final Stargate gate)
     {
-        Stargate other = gate.getGateTarget();
-        if (other == null)
-        {
-            for (final Stargate s : StargateManager.getAllGatesUnsorted())
-            {
-                if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
-                {
-                    other = s;
-                    break;
-                }
-            }
-        }
+        final Stargate other = (gate.getGateTarget() != null) ? gate.getGateTarget() : dialler(gate);
         if ((other == null) || (gate.getGateWorld() == null) || (other.getGateWorld() == null))
         {
             return false;
