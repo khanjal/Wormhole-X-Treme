@@ -287,6 +287,12 @@ Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
 - **The transport light runs out from the pad putting a traveller back down**, where both
   sweeps ran towards it. The sweep that takes somebody in is unchanged.
 
+### Internals
+
+- **The plugin is enabled on [MockBukkit](https://mockbukkit.org)'s simulated server** in the
+  Paper 1.21.11 CI job, through a `mockbukkit` profile. Those tests live in `src/mockbukkit/`
+  and need Java 21; the default build and the jar are unchanged.
+
 ## 1.7.1 (2026-09-19)
 
 **Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**

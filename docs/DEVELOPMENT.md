@@ -23,6 +23,17 @@ server's `plugins/`, a copy script — without being repointed every time the ve
 Tests live in `src/test/java/`, mock the Bukkit API, and run against every supported Minecraft
 version in CI, so anything that only works on one of them is caught there.
 
+Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
+simulated server instead. MockBukkit is built for one Paper version and Java 21, so they only
+compile with the profile and that API, and CI runs them in the Paper 1.21.11 job:
+
+```bash
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
+```
+
+Static state survives `MockBukkit.unmock()`, which a real server never sees because each load
+gets a new classloader: a second load in one test class logs every shape as a duplicate.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
