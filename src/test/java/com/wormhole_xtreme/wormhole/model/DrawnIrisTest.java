@@ -104,7 +104,8 @@ class DrawnIrisTest
         final BlockData iris = mock(BlockData.class);
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(iris);
+            materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.NORTH)))
+                .thenReturn(iris);
 
             StargateBlockSetup.fillGateIris(gate, Material.STONE);
         }
@@ -303,7 +304,8 @@ class DrawnIrisTest
         final BlockData iris = mock(BlockData.class);
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(iris);
+            materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.NORTH)))
+                .thenReturn(iris);
 
             StargateBlockSetup.refreshPortalVisuals(walker);
         }
@@ -334,7 +336,8 @@ class DrawnIrisTest
         final BlockData iris = mock(BlockData.class);
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
-            materials.when(() -> MaterialUtils.drawnAs(any(Material.class))).thenReturn(iris);
+            materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.NORTH)))
+                .thenReturn(iris);
 
             StargateBlockSetup.refreshPortalVisuals(walker);
         }

@@ -923,6 +923,18 @@ public class StargateManager
     }
 
     /**
+     * Moves the wormhole drawn behind a see-through iris on every gate that has one.
+     *
+     * <p>See {@link StargateBlockSetup#tickHorizon()}.
+     */
+    public static void tickIrisHorizon()
+    {
+        DrawnHorizon.nextFrame();
+        StargateBlockSetup.tickHorizon();
+        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.tickHorizon();
+    }
+
+    /**
      * Puts back what a player's client has just thrown away.
      *
      * <p>A drawn iris is a block the server does not have, so anything that makes the client

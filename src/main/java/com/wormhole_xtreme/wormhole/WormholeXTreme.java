@@ -606,6 +606,16 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());
+        // Behind a see-through iris the wormhole is drawn in ice, which does not move the way
+        // water does, so it is moved for it. Registered only when it is wanted: a server that
+        // has turned it off should not pay a task that walks the open gates to do nothing.
+        final long irisHorizonTicks = ConfigManager.getGateIrisHorizonTicks();
+        if (irisHorizonTicks > 0)
+        {
+            WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+                com.wormhole_xtreme.wormhole.model.StargateManager::tickIrisHorizon,
+                20L, irisHorizonTicks);
+        }
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.preview.GatePreviews::tick, 100L, 100L);

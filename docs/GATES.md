@@ -468,10 +468,114 @@ layer to each viewer takes the ring and the other goes a block further off: from
 iris is in the ring and the horizon behind it, from behind the horizon is in the ring and the
 iris beyond it. Keeping the far layer on the far side is not only for looks — a drawn liquid
 on a player's own side of the gate gives their client swim physics the server does not agree
-with. The side is judged from the facing, remembered per player, and redrawn on every refresh,
-after the closing sweep, and on the step that crosses the gate's plane. Only cells that are
-really air are drawn in, and both layer positions are handed back whenever the gate stops
-being layered.
+with.
+
+**The far layer is only drawn while the gate hides it.** Two layers a block apart read as one
+gate head on and as two slabs from the side, and a flat gate is a single sheet of blocks with
+nothing to hide the second one behind — so from round the side the far layer stood clear of the
+ring with daylight around it. Each cell asks whether the sight line from the viewer to that
+block still crosses the gate: head on it crosses the block's own cell, and as the viewer walks
+round it drifts off the gate, which is exactly when the block would come out from behind it.
+The whole gate counts as cover, its ring as much as its opening — a viewer off to one side is
+looking through the gate past its ring, and counting only the opening took the layers away from
+anyone not nearly square in front of a big gate, which through a glass iris read as the
+wormhole having gone.
+
+**It is one decision for the whole gate, not one per cell.** Asked cell by cell, a gate seen
+from an angle came apart into a patchwork: some cells with both layers and some fallen back to
+one, which from behind is a square of bare iris sitting in the middle of the wormhole. A gate
+is one picture, so `hidesFarLayers` asks about every cell and answers once. The layers hold
+while the gate covers all of them and go the moment any one would be seen past it; measured
+over a `Standard` opening they hold dead in front from one block to eight, and six blocks round
+either side. A single cell with something built beyond it is still its own case, since nothing
+is being seen past the gate there.
+
+**Behind a translucent iris the horizon is drawn as something that is not a liquid.** Java
+Edition skips the face where a fluid meets a translucent block — stained glass, tinted glass,
+ice, slime, honey. A wormhole is a sheet one block thick, so behind a stained-glass iris its
+near face was culled and its far face pointed away: nothing left to draw, and the gate showed
+the landscape through its own iris.
+
+The rule is narrower than it first looks, and the narrowness is the fix. It is a *fluid* rule:
+the world beyond such an iris is drawn perfectly well. So the far horizon is drawn in ice
+instead — a look-alike that is not a fluid, and the rule no longer applies. In the ring, where
+a viewer behind the gate gets it, the real liquid has air in front of it and is drawn as it
+always was; the stand-in is only ever for the layer that ends up behind the iris.
+
+**The stand-in has to be solid**, not merely a different translucent. Blue glass behind a
+yellow iris was tried in a world and is not drawn either, which narrows the rule further than
+the fluid-face reading alone would: a translucent block does not show another translucent block
+behind it, whatever they are. Ice is solid and nothing can cull it.
+
+**A nether portal needs one too**, and a different one. It is translucent in its own right, so
+behind a stained-glass iris it was hidden exactly the way water was. It gets purple and magenta
+concrete. How alike the two squares should be follows what they stand in for: water is a uniform
+surface, so the ices are nearly identical and the alternation reads as movement rather than as a
+pattern, while a portal is bright violet swirls over a darker ground, so its two are further
+apart and the difference is the point.
+
+**Two cases the look-alike does not reach.** A horizontal gate's iris is real blocks in the
+opening itself rather than a drawing a block off it, so there is no far layer to dress and a
+see-through iris there shows whatever is under the gate. Not a regression — the stacking that
+the stand-in belongs to is an upright gate's to begin with.
+
+And the stand-ins are chosen per material, so only the two that ship have one. A palette's
+`portal` accepts any material, and anything translucent in its own right — plain ice, a stained
+glass, tinted glass, slime, honey — named as a portal material is invisible behind a see-through
+iris the same way. No shipped palette does that, and what a given one *should* look like is a
+choice rather than a guess, so they are left until somebody asks for one.
+
+**The far layer follows the sweep.** It arrives with the ring of iris that covers it and leaves
+with the ring that uncovers it, and the wormhole in the ring is never touched — that is the
+sweep's own to paint. A preview needs the same and for a different reason: its iris is a display
+entity standing in the wormhole's own cell rather than a block replacing it, so an opaque one
+hides the water by covering it and needs nothing, while a see-through one hides it without
+replacing it and leaves the cell reading as empty. Only an iris that would hide the liquid pays
+for the move; a sweep runs on every cell of every ring, and a picture nobody can tell apart is
+not worth the packets. Drawn all at once before the sweep, a gate shows the wormhole twice over
+for the length of its animation; drawn after it, every ring of a see-through iris arrives with
+the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
+two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
+so both sweeps say which cells they have just reached and `StargateBlockSetup.horizonBehind`
+moves only those.
+
+**And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
+a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
+(`gate-iris-horizon-ticks`, ten by default, `0` to leave it still), which gives the surface
+something to do. `StargateManager.tickIrisHorizon` is one sweep over the open gates, as the
+ambient hum is, and it skips every gate whose iris shows the real wormhole before it looks at a
+single player — those need nothing, because water moves on its own.
+
+Plain glass is a cutout rather than a translucent and shows water as it is, so it must not be
+caught by `MaterialUtils.cullsWaterBehindIt` or every glass gate pays for a stand-in it does
+not need.
+
+**A preview is not exempt**, though the first cut made it so — on the grounds that its iris is
+a display entity and an entity takes no part in *block* face culling. That is true and it was
+never the whole rule: a translucent entity hides translucent water behind it just the same, and
+the preview went on showing nothing long after the gate had been fixed. `DrawnHorizon` is the
+single answer both paths ask, and it owns the frame as well, so a gate and a preview in the
+same room are on the same beat.
+
+An earlier attempt put a block of air between the two layers instead, so the wormhole's face
+had air to be drawn against. It works on paper and was the wrong trade: it cost a second cell
+of clear air behind every such gate and pushed the far layer further off the plane, where it is
+seen past the gate at a shallower angle.
+
+**What belongs in the plane is drawn first.** When there is no second layer to be had, the ring
+keeps whichever layer that viewer's side puts there — the iris from the front, the wormhole
+from behind — rather than the iris either way. The iris did keep it either way, so that a shut
+gate could never read as an open one; in the world that meant walking along the back of a gate
+swapped the wormhole out for a wall of bare iris and back again, which looked far more broken
+than it looked safe. The barrier itself never moved. A traveller, a minecart, an arrow or a
+dropped item is refused by the gate's state, never by its picture, and `DrawnIrisHoldsShutTest`
+is what holds that apart from anything the layering does.
+
+What each cell was drawn in is remembered per player and compared on the next step, so a move
+redraws only when it changes the picture. The side alone used to decide that, which is why a
+walk along the front of a gate left the far layer drawn long after the gate had stopped hiding
+it. Layers are also redrawn on every refresh and after the closing sweep. Only cells that are
+really air are drawn in, and every position a viewer is not drawn in is handed back.
 
 **A horizontal gate's iris stays real blocks.** Its opening is a floor. A drawn floor is air as
 far as the server is concerned: the client holds the player up on it, the server sees somebody

@@ -1124,6 +1124,9 @@ class WormholeXTremePlayerListener implements Listener
         if (hasChangedBlockCoordinates(event.getFrom(), event.getTo()))
         {
             StargateManager.relayerFor(event.getPlayer(), event.getTo());
+            // A preview redraws itself every five seconds, which cannot follow somebody walking
+            // round one, so its stacking follows the step as a gate's does.
+            com.wormhole_xtreme.wormhole.model.preview.GatePreviews.moved(event.getPlayer(), event.getTo());
         }
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {

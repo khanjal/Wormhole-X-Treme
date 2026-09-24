@@ -50,7 +50,7 @@ Look at a preview and `/wormhole gate preview <action>` changes it, for you alon
 | Action | What it does |
 |---|---|
 | `activate` | Lights the chevrons in order, sends the kawoosh out and back, and leaves the wormhole open; again shuts it down. **Right-clicking the preview's button** does the same. |
-| `iris` | Closes an iris over the opening, in the group's iris material; again opens it. It sweeps in from the rim and back out from the middle, at the same pace a real gate's does — see [How it arrives](#how-it-arrives) |
+| `iris` | Closes an iris over the opening, in the group's iris material; again opens it. It sweeps in from the rim and back out from the middle, at the same pace a real gate's does — see [How it arrives](#how-it-arrives). Over an open wormhole it stacks from whichever side you stand, as a gate's does |
 | `material <group>` | Redresses it in another material group |
 | `material -<role> <block>` | Changes one material: `-frame`, `-chevron`, `-light`, `-portal`, `-iris` or `-sign`. The dash is what tells a role from a group's name, since both go in the same slot; the bare word still works |
 | `chevrons` | Shows or hides a group's chevron blocks. The Standard palette starts with them hidden, drawn as frame the classic way; other groups start with them shown. Lit, a hidden chevron shows the light material |
@@ -363,13 +363,30 @@ where it belongs for whoever is looking:
 
 | Standing | In the ring | One block further off |
 |---|---|---|
-| In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through |
+| In front | the iris | the horizon, which a glass iris (`Atlantis`, `Universe`) lets through as a look-alike |
 | Behind | the horizon | the iris |
+| Round the side, in front | the iris | nothing |
+| Round the side, behind | the horizon | nothing |
 
-Walk round the gate and the two swap as you pass its plane. Nothing is drawn where you have
-built -- you see what you built -- and a gate with something built right in front of it just
-shows the iris in the ring from behind. A horizontal gate's iris is real blocks, so it stays
-in the ring and the horizon is shown underneath.
+Whatever belongs in the plane is drawn first, and the second layer follows when there is
+somewhere to put it. Walk round the gate and the two swap as you pass its plane. The second
+layer only holds while the gate is between you and it: from far enough round the side you would
+see it standing clear of the ring, so from there the gate drops to one layer and picks the
+other back up as you come round to face it. From behind that leaves the wormhole with no iris
+drawn over it -- which is a picture, not a way through. A shut iris refuses travellers on the
+gate's state, never on what is drawn.
+
+**Behind a see-through iris the horizon is a look-alike.** The game will not draw water behind
+stained glass, tinted glass, ice, slime or honey, so a wormhole sitting right behind an iris of
+one of those would simply not be there. Behind such an iris it is drawn in ice instead -- blue
+and packed ice in a checkerboard, swapping places twice a second so the surface moves the way
+water would. `gate-iris-horizon-ticks` sets that pace, and `0` leaves it still. From behind the
+gate, where the wormhole is in the ring with air in front of it, it is the real thing as always.
+Plain glass never had the problem and is left alone.
+
+Nothing is drawn where you have built -- you see what you built -- and a gate with something
+built right in front of it shows the wormhole alone from behind. A horizontal gate's iris is
+real blocks, so it stays in the ring and the horizon is shown underneath.
 
 **The sweep is only the picture.** The iris is settled in one go, and the sweep is drawn on
 clients the same way the portal is. So a gate is never partly shut: closing, the barrier is

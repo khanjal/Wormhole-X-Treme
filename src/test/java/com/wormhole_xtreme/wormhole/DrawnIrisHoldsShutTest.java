@@ -376,10 +376,13 @@ class DrawnIrisHoldsShutTest
         try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
             org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
         {
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(Material.WATER))
-                .thenReturn(horizon);
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(Material.IRON_BLOCK))
-                .thenReturn(iris);
+            // Stubbed with the gate's own facing rather than any(): the opening is drawn with
+            // drawnAcross so that an Orientable material lies in the gate's plane, and pinning
+            // the facing here is what says the gate's own facing is what reaches it.
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAcross(
+                Material.WATER, org.bukkit.block.BlockFace.NORTH)).thenReturn(horizon);
+            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAcross(
+                Material.IRON_BLOCK, org.bukkit.block.BlockFace.NORTH)).thenReturn(iris);
             materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.isAirMaterial(Material.AIR))
                 .thenReturn(true);
 

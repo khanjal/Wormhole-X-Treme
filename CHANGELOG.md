@@ -36,6 +36,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
   rehearses the iris the way it already rehearses a dial.
+- **A preview's shut iris stacks against its wormhole from whichever side you stand**, as a
+  real gate's does: the iris in the ring with the wormhole behind it from the front, the
+  wormhole in the ring with the iris beyond it from behind, swapping as you walk round. Two
+  people either side of the same preview each see their own side.
 - **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
   chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
   with the ring and back in place at the last) and `overshoot`
@@ -82,6 +86,13 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
+  block carries the direction its sheet runs in, and nothing set it: a gate built one way got
+  a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
+  gate's own plane now, on real gates and on previews alike, and so is any other block that
+  carries a direction — a log or a bone block named as an iris. Horizontal gates are the
+  exception, having no upright plane to lie in. Nothing to do; existing gates look right on
+  the next redraw.
 - **`pegasus` steps a glyph at a time and lights each chevron alone.** Its step was a ninth of
   the ring: it lit a dozen frame blocks round each chevron as it locked on `Massive`, sat still
   beside the chevron between neighbours, and lit half of each chevron it passed. It now steps one
@@ -96,6 +107,53 @@ The plugin API is in [docs/API.md](docs/API.md).
   from the back is the viewer's own side. Now whichever layer is nearer takes the ring: the
   iris from the front, the horizon from behind, and they swap as you walk round. The horizon
   no longer hangs behind a gate after its wormhole closes with the iris shut.
+- **Neither layer hangs beside the gate any more.** The two stacked layers are a block apart,
+  which reads as one gate head on and as two slabs from the side -- and a flat gate is a
+  single sheet of blocks, with nothing to hide the second one behind. Walk round far enough
+  and you saw the horizon, or the iris itself, standing clear of the ring with daylight
+  around it. A gate seen from there now shows the iris in the ring and nothing else, and
+  picks the second layer back up as you come round to face it -- all of it at once, so a gate
+  at an angle is never part one thing and part the other. The gate's own ring counts as
+  cover, so standing off to one side of a big one keeps both layers. Previews do the same.
+- **A stained-glass iris shows the wormhole through it again.** Minecraft skips the face
+  where a liquid touches a translucent block, so the wormhole drawn behind an `Atlantis` or
+  `Universe` iris had nothing left to draw and the gate showed the landscape through its own
+  iris. Behind such an iris the horizon is now drawn in ice rather than water -- a look-alike
+  that is not a liquid, so the rule stops applying. Blue and packed ice alternate in a
+  checkerboard and swap places twice a second, since ice does not move the way water does;
+  `gate-iris-horizon-ticks` sets the pace and `0` leaves it still. Only there: in the ring,
+  where somebody behind the gate sees it, it is the real wormhole as always. Previews do the
+  same, on the same beat. Plain glass never had the problem and is untouched, and an opaque
+  iris hides the horizon by being opaque. A `nether_portal` wormhole is translucent too and was
+  hidden the same way; it gets purple and magenta concrete, further apart than the two ices
+  because a portal is bright swirls over a darker ground rather than a flat surface. Upright
+  gates only: a **horizontal** gate's iris is real blocks in the opening itself, with no second
+  layer to dress, so a see-through one there still shows what is under the gate.
+- **A see-through iris sweeps over the wormhole, not over the landscape.** The layers were
+  stacked only once the sweep had finished, so every ring of a stained-glass iris arrived
+  with nothing behind it: the gate appeared to erase its own wormhole a ring at a time and
+  then produce it again in one jump at the end, and opening did the same in reverse. The
+  wormhole now follows the sweep — it moves behind each ring as that ring is covered, and
+  comes back to the ring as that ring uncovers, so the iris always looks like it is covering
+  the wormhole rather than replacing it. The wormhole in the ring is never touched by any of
+  this. Behind an opaque iris none of it was ever visible, and nothing there changes. A
+  preview does the same, for the same reason arrived at differently: its iris is a display
+  standing in the wormhole's own cell rather than a block replacing it, so an opaque one
+  simply hides the water and a see-through one leaves the cell looking empty.
+- **Shutting a drawn iris no longer flashes the wormhole onto your own side of the gate.**
+  The horizon was sent a block behind the ring for everybody the moment the iris closed and
+  only then stacked per viewer -- after the sweep, if there was one -- so anyone standing
+  behind a gate saw it on their side for as long as the animation ran. A drawn iris skips
+  that send now and goes straight to stacking. A horizontal gate, whose iris is real blocks,
+  still shows its horizon underneath as before.
+- **The wormhole stays put when you walk along the back of a gate.** With no room for the
+  iris beyond the ring -- something built there, or an angle that would leave it standing
+  clear of the gate -- the ring used to fall back to the iris, so walking along the back of a
+  gate swapped the wormhole out for a wall of bare iris and back again. Whatever belongs in
+  the plane is drawn first now: the iris from the front, the wormhole from behind, with the
+  other layer added when there is somewhere for it. A gate seen that way shows the wormhole
+  with no iris drawn over it, which is a picture and not a way through -- a shut iris refuses
+  travellers, carts, arrows and dropped items on the gate's state, exactly as before.
 - **A closed iris stops the woosh.** Dialling out from a sign gate whose iris was shut sent
   the kawoosh straight through it, and then drew the event horizon over the iris blocks, so
   the gate showed water the server did not have there. The sound still plays -- the wormhole

@@ -9,11 +9,15 @@ import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +29,7 @@ import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -65,8 +70,8 @@ class IrisSweepOrderingTest
     private Stargate gate;
     private WormholeXTreme plugin;
     /**
-     * {@code MaterialUtils.drawnAs} goes through {@code Material.createBlockData}, which needs
-     * a live server. Held open for the whole class because every test here has somebody
+     * {@code MaterialUtils.drawnAcross} goes through {@code Material.createBlockData}, which
+     * needs a live server. Held open for the whole class because every test here has somebody
      * watching, and every draw reaches it.
      */
     private MockedStatic<MaterialUtils> materials;
@@ -90,7 +95,7 @@ class IrisSweepOrderingTest
         PluginTestSupport.forgetAllGates();
 
         materials = mockStatic(MaterialUtils.class);
-        materials.when(() -> MaterialUtils.drawnAs(any(Material.class)))
+        materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), any()))
             .thenAnswer(i ->
             {
                 final Material asked = i.getArgument(0);
@@ -238,6 +243,149 @@ class IrisSweepOrderingTest
         }
     }
 
+    /**
+     * A closing sweep moves the wormhole behind each ring it covers, while it is still running.
+     *
+     * <p>The sweep hands every ring it reaches to whoever is following it, and a gate with a
+     * see-through iris uses that to move the wormhole behind the ring as the iris arrives --
+     * otherwise every pane of glass lands with the landscape behind it and the wormhole appears
+     * in one jump at the end.
+     *
+     * <p>This is the wiring rather than the arithmetic. Emptying the sweep's hand-off left every
+     * other test here green, because the fixture's gate is not layered and the follower does
+     * nothing for it: the gate has to be dialled, facing and drawn in something that hides
+     * water before any of this is reachable at all.
+     */
+    @Test
+    void aClosingSweepMovesTheWormholeBehindEachRingAsItGoes()
+    {
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
+
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "the sweep is still running -- at the end the layers are stacked anyway");
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(),
+            argThat(data -> (data == ice) || (data == packed)));
+        assertTrue(where.getAllValues().stream().anyMatch(at -> at.getBlockZ() == -1),
+            "and the wormhole went a block behind the ring: " + where.getAllValues());
+    }
+
+    /**
+     * And an opening sweep gives that cell back a ring at a time, as each ring uncovers.
+     *
+     * <p>The closing one read backwards, and the half that was never reached. {@code setIrisState}
+     * writes the iris flag before it draws, so by the time the opening sweep runs the gate no
+     * longer counts as layered -- and the hand-off is guarded on exactly that. Every ring of every
+     * open returned at the first line, and the wormhole's stand-in sat behind the uncovered rings
+     * for the length of the sweep before vanishing all at once at the end.
+     *
+     * <p>Asserted with the sweep still running, for the same reason as the closing test: at the
+     * end {@code takeBackLayers} hands the lot back and it always looked right.
+     */
+    @Test
+    void anOpeningSweepGivesTheCellBehindBackAsEachRingUncovers()
+    {
+        final BlockData truth = mock(BlockData.class);
+        glassIrisOverAWormhole(truth);
+        // Shut first, with the layers standing, so there is something to give back.
+        gate.toggleIrisActive(false);
+        finishSweep();
+        clearInvocations(watcher);
+
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "the sweep is still running -- at the end takeBackLayers hands it back anyway");
+        verify(watcher, atLeastOnce()).sendBlockChange(
+            argThat(at -> at.getBlockZ() == -1), eq(truth));
+    }
+
+    /**
+     * A gate nobody has dialled draws no wormhole behind its iris, sweep or no sweep.
+     *
+     * <p>An iris works on an idle gate -- that is the whole point of one -- and there is no
+     * wormhole to move behind it. Without this the hand-off would put a sheet of water, or the
+     * ice that stands in for one, a block behind an opening with nothing in it, and the gate
+     * would read as dialled from the back.
+     *
+     * <p>Not "nothing is sent there": the truth is, which is a hand-back telling the client what
+     * really stands in that cell, and is right whether or not the gate was ever dialled. What
+     * must not be sent there is a picture of something else.
+     */
+    @Test
+    void anUndialledGatesIrisMovesNoWormholeBehindIt()
+    {
+        final BlockData truth = mock(BlockData.class);
+        glassIrisOverAWormhole(truth);
+        // The same gate, never dialled. Everything else about it is unchanged, so what the
+        // sweep does differently is down to this alone.
+        gate.setGateActive(false);
+
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate),
+            "a sweep is actually running -- an undialled gate still sweeps, and without this the"
+                + " assertion below would hold for a gate that never drew anything at all");
+        verify(watcher, never()).sendBlockChange(argThat(at -> at.getBlockZ() == -1),
+            argThat(drawn -> drawn != truth));
+    }
+
+    /**
+     * A dialled, south-facing gate with a see-through iris, and open air a block behind the ring
+     * for the far layer to stand in.
+     *
+     * @param truth
+     *            what those cells really hold, so a hand-back can be told from a draw
+     */
+    private void glassIrisOverAWormhole(final BlockData truth)
+    {
+        gate.setGateFacing(BlockFace.SOUTH);
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        // Both sides: the far layer stands behind, and taking the layers back asks after the
+        // cell in front as well, which a viewer round the other side would have had.
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                for (final int z : new int[] {-1, 1})
+                {
+                    final Block beside = mock(Block.class);
+                    when(beside.getType()).thenReturn(Material.AIR);
+                    when(beside.getBlockData()).thenReturn(truth);
+                    when(beside.getLocation()).thenReturn(new Location(world, x, 64 + y, z));
+                    when(world.getBlockAt(x, 64 + y, z)).thenReturn(beside);
+                }
+            }
+        }
+        materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
+        materials.when(() -> MaterialUtils.cullsWaterBehindIt(Material.YELLOW_STAINED_GLASS))
+            .thenReturn(Boolean.TRUE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, false))
+            .thenReturn(Material.BLUE_ICE);
+        materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
+            .thenReturn(Material.PACKED_ICE);
+    }
+
+    /** Runs every step the sweep has booked, so the one after it starts from a settled gate. */
+    private void finishSweep()
+    {
+        while (!pending.isEmpty())
+        {
+            final Runnable step = pending.values().iterator().next();
+            pending.remove(pending.keySet().iterator().next());
+            step.run();
+        }
+    }
+
     @Test
     void closingPlacesTheBlocksBeforeItDrawsTheFirstRing()
     {
@@ -275,6 +423,33 @@ class IrisSweepOrderingTest
             any(Location.class), anyString(),
             any(SoundCategory.class), anyFloat(),
             anyFloat());
+    }
+
+    /**
+     * A sweeping ring is drawn in the gate's own plane, like everything else in the opening.
+     *
+     * <p>The sweep builds its block data down its own path rather than through the layered draw,
+     * so it is the one that could quietly keep the game's default. Asserted on the call, because
+     * the stub above answers to any facing at all: a sweep that dropped the gate's would hand
+     * back the very same block data and every ordering test here would still pass.
+     *
+     * <p>Pinned on the water, not on "some material with the right facing". A closing sweep hides
+     * the whole opening as it was a moment ago before it lets any ring through, and that hide is
+     * the only thing in the flow drawn in the portal material -- the iris draw before it is the
+     * iris, and the far layer beside it is the ice stand-in. Written the loose way it passed
+     * whatever {@code sendCells} did, because the iris draw that runs first already satisfied it.
+     */
+    @Test
+    void aSweepingRingIsDrawnInTheGatesOwnPlane()
+    {
+        glassIrisOverAWormhole(mock(BlockData.class));
+
+        gate.toggleIrisActive(false);
+
+        materials.verify(() -> MaterialUtils.drawnAcross(Material.WATER, BlockFace.SOUTH),
+            atLeastOnce());
+        materials.verify(() -> MaterialUtils.drawnAcross(any(Material.class), isNull()),
+            never());
     }
 
     @Test

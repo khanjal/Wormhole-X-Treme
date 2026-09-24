@@ -41,6 +41,82 @@ public final class MaterialUtils {
     }
 
     /**
+     * Block data for a material drawn across a gate's opening, turned to lie in it.
+     *
+     * <p>{@link #drawnAs(Material)} plus {@link #laidAcross}, which is what every cell of an
+     * opening wants: the wormhole, the iris, the horizon behind one and the woosh.
+     *
+     * @param material
+     *            the material being drawn
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return its block data, lit and turned where either means something
+     */
+    public static org.bukkit.block.data.BlockData drawnAcross(final Material material,
+        final org.bukkit.block.BlockFace gateFacing) {
+        return laidAcross(drawnAs(material), gateFacing);
+    }
+
+    /**
+     * Turns block data to lie in the plane of a gate's opening, where it has a plane to turn.
+     *
+     * <p>{@link org.bukkit.block.data.Orientable} blocks carry an axis, and
+     * {@code createBlockData()} hands back whichever one the game defaults to. That is right for
+     * half the gates in a world and ninety degrees out for the other half: a {@code NETHER_PORTAL}
+     * wormhole drawn from the default shows a thin sliver edge-on instead of a sheet filling the
+     * opening. Which half looks wrong depends only on which way the gate was built, so it stays
+     * invisible until somebody builds the second one.
+     *
+     * <p>The axis is the gate's facing turned sideways, because the opening is the plane the
+     * block has to fill: a gate facing north or south opens across X, one facing east or west
+     * across Z. A horizontal gate gets nothing -- its opening is flat, and an axis names a
+     * horizontal direction, so there is no value that would lie in it. Neither does a block whose
+     * own {@code getAxes()} does not offer the one wanted: a nether portal has X and Z and no Y,
+     * and a block with some other set is better left at its default than forced.
+     *
+     * <p>Written for {@code Orientable} rather than for the portal material, because a log, a
+     * pillar or a bone block named as an iris has exactly the same problem. Only the opening,
+     * though: a frame block stands upright on purpose, and laying the chevrons over sideways to
+     * match the wormhole would be a fix for a bug nobody has.
+     *
+     * @param data
+     *            the block data, turned in place where it can be; may be null
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return the same block data
+     */
+    public static org.bukkit.block.data.BlockData laidAcross(final org.bukkit.block.data.BlockData data,
+        final org.bukkit.block.BlockFace gateFacing) {
+        final org.bukkit.Axis axis = openingAxis(gateFacing);
+        if ((axis != null) && (data instanceof org.bukkit.block.data.Orientable orientable)
+            && orientable.getAxes().contains(axis)) {
+            orientable.setAxis(axis);
+        }
+        return data;
+    }
+
+    /**
+     * The axis an opening runs along, for a gate facing this way.
+     *
+     * @param gateFacing
+     *            the way the gate faces, may be null
+     * @return the axis, or null for a horizontal gate and for anything not a cardinal direction
+     */
+    private static org.bukkit.Axis openingAxis(final org.bukkit.block.BlockFace gateFacing) {
+        if (gateFacing == null) {
+            return null;
+        }
+        switch (gateFacing) {
+            case NORTH, SOUTH:
+                return org.bukkit.Axis.X;
+            case EAST, WEST:
+                return org.bukkit.Axis.Z;
+            default:
+                return null;
+        }
+    }
+
+    /**
      * The same block switched on, where that means anything.
      *
      * <p>A redstone lamp built into a gate frame is a chevron waiting to light: it stands
@@ -188,6 +264,85 @@ public final class MaterialUtils {
      */
     public static boolean isAirMaterial(final Material m) {
         return (m == Material.AIR) || (m == Material.CAVE_AIR) || (m == Material.VOID_AIR);
+    }
+
+    /**
+     * Whether a block drawn in this material would hide water drawn right behind it.
+     *
+     * <p>Java Edition draws water and these in the same translucent pass, and a face between
+     * two of them is not drawn at all. A wormhole is a sheet one block thick, so behind a
+     * stained-glass iris its near face is culled and its far face points away: nothing is left
+     * to see, and the gate shows the landscape rather than the wormhole. Plain glass is a
+     * different pass and does not do this, which is the difference that gave it away.
+     *
+     * <p>Only the materials an iris can plausibly be. Anything opaque hides water by simply
+     * being opaque, which needs no help from here.
+     *
+     * @param m
+     *            the material, may be null
+     * @return true if water drawn against it would not be seen
+     */
+    public static boolean cullsWaterBehindIt(final Material m) {
+        if (m == null) {
+            return false;
+        }
+        switch (m) {
+            // ICE and FROSTED_ICE only: packed and blue ice are solid, and solid blocks show
+            // water behind them perfectly well.
+            case ICE, FROSTED_ICE, TINTED_GLASS, SLIME_BLOCK, HONEY_BLOCK, WATER, BUBBLE_COLUMN:
+                return true;
+            default:
+                // Every stained glass block and pane, which is what the shipped Atlantis and
+                // Universe palettes give an iris.
+                return m.name().endsWith("STAINED_GLASS") || m.name().endsWith("STAINED_GLASS_PANE");
+        }
+    }
+
+    /**
+     * What to draw a horizon as when it has to sit behind an iris that would hide it.
+     *
+     * <p>A translucent block is not drawn against another translucent block: the face between
+     * them is skipped, and a wormhole is a sheet one block thick, so behind a stained-glass
+     * iris there is nothing of it left to see. Only that pair, though -- the world beyond such
+     * an iris is drawn perfectly well. So the horizon is drawn in something that looks like the
+     * real thing and is not translucent, and the rule stops applying.
+     *
+     * <p>The stand-in has to be solid, not merely a different translucent: blue glass behind a
+     * yellow iris was tried in a world and is not drawn either.
+     *
+     * <p>Two of them because one is a flat sheet of a single colour, which reads as a block
+     * rather than as a wormhole. Laid in a checkerboard they break each other up.
+     *
+     * <p>How alike the two are follows what they stand in for. Water is a uniform surface, so
+     * the two ices are nearly the same and read as movement rather than as a pattern. A nether
+     * portal is not uniform -- bright violet swirls over a darker ground -- so its two are
+     * further apart, and the difference is the point.
+     *
+     * <p>Only what is actually translucent. Lava is not, and shows through a stained-glass iris
+     * exactly as it is, so standing in for it would replace a good picture with an imitation of
+     * one.
+     *
+     * <p>And only the two that ship. A palette's {@code portal} accepts any material at all, so
+     * anything on {@link #cullsWaterBehindIt}'s own list -- plain ice, a stained glass, tinted
+     * glass, slime, honey -- named as a portal material is still invisible behind a see-through
+     * iris, because there is no answer here for it. None of the shipped palettes does that, and
+     * a stand-in is a look someone has to choose rather than one worth guessing, so they are
+     * left out until somebody asks.
+     *
+     * @param horizon
+     *            the material the horizon would be, may be null
+     * @param alternate
+     *            true for the other square of the checkerboard
+     * @return the stand-in, or the material itself where it needs no standing in for
+     */
+    public static Material shownBehindGlassAs(final Material horizon, final boolean alternate) {
+        if (horizon == Material.WATER) {
+            return alternate ? Material.PACKED_ICE : Material.BLUE_ICE;
+        }
+        if (horizon == Material.NETHER_PORTAL) {
+            return alternate ? Material.MAGENTA_CONCRETE : Material.PURPLE_CONCRETE;
+        }
+        return horizon;
     }
 
     /** Returns true if the material represents ice we care about. */
