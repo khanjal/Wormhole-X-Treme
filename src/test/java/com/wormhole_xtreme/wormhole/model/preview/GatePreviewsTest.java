@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -2431,6 +2432,144 @@ class GatePreviewsTest
 
         chevron.forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
         assertTrue(dialDelays.subList(1, ticks + 1).stream().allMatch(d -> d == 1L), "the light moves a cell a tick");
+    }
+
+    /**
+     * The default TOP turn rests on the top as a chevron locks: the top is still lit once the lock
+     * is drawn, and the next chevron locks the rest later, as a real gate's does.
+     */
+    @Test
+    void theTopTurnRestsOnTheTopAfterALock()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        final List<Cell> cells = standardLookingNorth();
+        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final List<Cell> path = spin.path(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP, 1);
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final int ticks = standard.getShapeLightTicks();
+        for (int step = 0; step < ticks; step++)
+        {
+            dialStep.run();
+        }
+        org.mockito.Mockito.clearInvocations(top);
+
+        dialStep.run();
+
+        assertEquals(1, preview.litWaves(), "the first chevron locked");
+        final List<BlockData> shown = mockingDetails(top).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
+        assertEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "the top still lit as it locks");
+        for (int step = 0; step < (com.wormhole_xtreme.wormhole.logic.DialSpin.TOP_HOLD_TICKS + ticks); step++)
+        {
+            dialStep.run();
+            assertEquals(1, preview.litWaves(), "resting, then turning, at step " + step);
+        }
+        dialStep.run();
+        assertEquals(2, preview.litWaves());
+    }
+
+    /**
+     * Under UNIVERSE a locked chevron rides round with the ring rather than also lighting in its own
+     * place, as a real gate's does; lit in both, half the gate stood lit.
+     */
+    @Test
+    void aUniverseChevronDoesNotLightInPlace()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final List<BlockDisplay> chevron = ringDisplaysOfWave(1);
+        // UNIVERSE's turn outlasts the chevron's interval, so step to the lock itself, not by the interval.
+        for (int step = 0; (step < 200) && (preview.litWaves() < 1); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(1, preview.litWaves(), "chevron 1 locked");
+
+        for (final BlockDisplay d : chevron)
+        {
+            final List<BlockData> shown = mockingDetails(d).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
+            assertFalse(shown.isEmpty(), "chevron 1 was redrawn as it locked");
+            assertNotEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "and not as lit");
+        }
+    }
+
+    /**
+     * Under UNIVERSE only the ring's front layer rides, so the last lock lights every chevron in
+     * place: a Grand preview's back layer, which never rides, is lit once the dial is done.
+     */
+    @Test
+    void aUniversePreviewLightsEveryLayerAtTheLastLock() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+        final Stargate3DShape grand = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/Grand.shape")).toArray(new String[0]));
+        final List<Cell> cells = GateBlueprint.of(grand, GateBlueprint.inFrontOf(grand, 0, 64, 0, BlockFace.NORTH));
+        GatePreviews.show(owner, grand, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        assertNotNull(preview.spin(), "a Grand preview turns");
+        GatePreviews.activate(owner);
+        for (int step = 0; (step < 2000) && (preview.litWaves() < preview.lastWave()); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(preview.lastWave(), preview.litWaves(), "the dial finished");
+
+        final List<Cell> behind = cells.stream()
+            .filter(c -> (c.wave() > 0) && (c.wave() <= preview.lastWave()) && !preview.spin().ring().contains(c)).toList();
+        assertFalse(behind.isEmpty(), "Grand's chevrons have a layer behind the ring");
+        for (final Cell cell : behind)
+        {
+            final List<BlockData> shown = mockingDetails(spawned.get(cells.indexOf(cell))).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
+            assertEquals(data.get(Material.GLOWSTONE), shown.isEmpty() ? null : shown.get(shown.size() - 1),
+                "chevron " + cell.wave() + " lit behind the ring");
+        }
+    }
+
+    /**
+     * Shutting a preview down at any point in its woosh, out or back, takes every woosh block back:
+     * the owner's last sight of each block the preview sent is the real one. Found in-game on the
+     * big gates, whose woosh is long enough to catch.
+     */
+    @Test
+    void shuttingAPreviewMidWooshTakesTheWooshBack() throws Exception
+    {
+        final Stargate3DShape massive = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/Massive.shape")).toArray(new String[0]));
+        GatePreviews.show(owner, massive, null);
+        final int stages = 2 * GatePreviews.of(owner.getUniqueId()).get(0).lastWoosh();
+        assertTrue(stages > 6, "Massive has a long woosh");
+        for (int stop = 1; stop <= stages; stop++)
+        {
+            final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+            GatePreviews.activate(owner);
+            for (int step = 0; (step < 2000) && (preview.wooshStage() < stop) && !preview.open(); step++)
+            {
+                dialStep.run();
+            }
+            GatePreviews.activate(owner);
+
+            final java.util.Map<List<Integer>, Object> last = new java.util.HashMap<>();
+            for (final org.mockito.invocation.Invocation i : mockingDetails(owner).getInvocations())
+            {
+                if (i.getMethod().getName().equals("sendBlockChange"))
+                {
+                    final Location at = i.getArgument(0);
+                    last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), i.getArgument(1));
+                }
+            }
+            assertFalse(last.isEmpty(), "the woosh was sent");
+            final List<List<Integer>> left = last.entrySet().stream()
+                .filter(e -> !data.get(Material.AIR).equals(e.getValue())).map(java.util.Map.Entry::getKey).toList();
+            assertEquals(List.of(), left, "woosh blocks still showing after a shut down at stage " + stop);
+        }
     }
 
     /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */

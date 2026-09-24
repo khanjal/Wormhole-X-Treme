@@ -40,9 +40,18 @@ The plugin API is in [docs/API.md](docs/API.md).
   real gate's does: the iris in the ring with the wormhole behind it from the front, the
   wormhole in the ring with the iris beyond it from behind, swapping as you walk round. Two
   people either side of the same preview each see their own side.
+- **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
+  chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
+  with the ring and back in place at the last) and `overshoot`
+  (runs past the chevron and backs onto it). See [the guide](docs/guide/GATES.md#dialling).
 
 **Changed**
 
+- **The default `top` dial rests on the top chevron** for half a second as each chevron locks,
+  before the ring turns again, so a dial takes about three seconds longer. Pick another pattern
+  to keep the old pace. The gate being dialled keeps the same pace, so both wormholes still form
+  together.
+- **The last chevron holds two seconds before the kawoosh**, not one.
 - **An iris is drawn on clients now, not built out of blocks.** A gate that stands upright
   keeps air in its opening and sends every nearby client the iris to look at, so a crash
   leaves nothing standing in a gate the save says is open, and a block somebody left in the
@@ -84,6 +93,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   carries a direction — a log or a bone block named as an iris. Horizontal gates are the
   exception, having no upright plane to lie in. Nothing to do; existing gates look right on
   the next redraw.
+- **`pegasus` steps a glyph at a time and lights each chevron alone.** Its step was a ninth of
+  the ring: it lit a dozen frame blocks round each chevron as it locked on `Massive`, sat still
+  beside the chevron between neighbours, and lit half of each chevron it passed. It now steps one
+  glyph of 36 over the frame alone, and a chevron lights only as it locks.
 - **A closed iris no longer takes the wormhole with it.** An opening is one block thick, so
   a closed iris filled it and the event horizon vanished -- and through a stained-glass iris
   (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.
