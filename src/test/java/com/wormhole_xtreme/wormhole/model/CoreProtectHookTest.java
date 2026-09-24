@@ -47,6 +47,7 @@ class CoreProtectHookTest
         CoreProtectLog.setSinkForTest((placed, user, at, type, data) ->
             logged.add((placed ? "placed " : "removed ") + user + " " + type + " " + at.getBlockY()));
         world = mock(World.class);
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
         {
             final List<Integer> at = List.of(call.getArgument(0), call.getArgument(1), call.getArgument(2));
@@ -54,6 +55,7 @@ class CoreProtectHookTest
             when(block.getType()).thenAnswer(read -> standing.getOrDefault(at, Material.AIR));
             when(block.getLocation()).thenReturn(new Location(world, at.get(0), at.get(1), at.get(2)));
             when(block.getBlockData()).thenReturn(mock(Switch.class));
+            when(block.getWorld()).thenReturn(world);
             Mockito.doAnswer(set ->
             {
                 standing.put(at, set.getArgument(0));
@@ -102,5 +104,22 @@ class CoreProtectHookTest
         StargateBlockSetup.setupIrisLever(gate, false);
 
         assertEquals(List.of("placed #wormhole LEVER 70", "removed #wormhole LEVER 70"), logged);
+    }
+
+    /**
+     * A dial lever regen puts back, where the cell stood empty, is logged as placed. Its twin, the
+     * gate-activated lever, already was. Found by a Sonnet review.
+     */
+    @Test
+    void aDialLeverPutBackIsLogged()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateDialLeverBlock(world.getBlockAt(5, 66, 5));
+
+        StargateBlockSetup.toggleDialLeverState(gate, true);
+
+        assertEquals(List.of("placed #wormhole LEVER 66"), logged);
     }
 }

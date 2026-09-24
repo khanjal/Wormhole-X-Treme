@@ -320,6 +320,7 @@ class StargateBlockSetup
                 facing = oldFacing.getFacing();
             }
 
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock);
             signBlock.setType(want, false);
 
             if (facing != null)
@@ -338,6 +339,7 @@ class StargateBlockSetup
                 restoreSignSide(fresh.getSide(Side.FRONT), frontLines, frontGlows);
                 restoreSignSide(fresh.getSide(Side.BACK), backLines, backGlows);
                 fresh.update(true, false);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock);
                 // The gate holds this state and writes destinations through it, so leaving
                 // the old one in place would send every later write at a block that is gone.
                 gate.setGateDialSign(fresh);
@@ -2472,6 +2474,7 @@ class StargateBlockSetup
                 final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
                 rld.setFacing(gate.getGateFacing());
                 gate.getGateDialLeverBlock().setBlockData(rld);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock());
                 mat = gate.getGateDialLeverBlock().getType();
             }
 

@@ -393,6 +393,8 @@ to it, so an admin can look them up and roll them back like anything else.
   `#wormhole`, so `/co rollback u:#wormhole` finds it.
 - **No CoreProtect, or one too old to take block data** (API 9 or later is needed), means nothing
   happens; the log says so once. A CoreProtect that fails never stops a gate being built.
+- **CoreProtect is looked for once**, the first time something is logged. One installed while the
+  server is running is picked up at the next restart.
 
 ## Metrics
 

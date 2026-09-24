@@ -322,4 +322,28 @@ class DialSignConversionTest
         verify(newFront).setGlowingText(true);
         verify(gate).setGateDialSign(after);
     }
+
+    /**
+     * Restyling a player's dial sign is logged to CoreProtect (#238): the old sign as removed before
+     * it goes, the new one as placed after. Found by a Sonnet review.
+     */
+    @Test
+    void theRestyleIsLoggedToCoreProtect()
+    {
+        final java.util.List<String> logged = new java.util.ArrayList<>();
+        config.when(ConfigManager::isCoreProtectEnabled).thenReturn(Boolean.TRUE);
+        when(block.getLocation()).thenReturn(new org.bukkit.Location(null, 1, 64, 1));
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest((placed, user, at, type, data) ->
+            logged.add(placed ? "placed" : "removed"));
+        try
+        {
+            StargateBlockSetup.matchDialSignMaterial(gate);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(null);
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("removed", "placed"), logged);
+    }
 }
