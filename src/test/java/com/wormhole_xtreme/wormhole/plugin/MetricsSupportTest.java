@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
  */
 class MetricsSupportTest
 {
+    private static final java.util.regex.Pattern CHART_ID =
+        java.util.regex.Pattern.compile("\"chartId\":\"([a-z_]+)\"");
+
     /** Each range starts where the last ends, with none skipped and none overlapping. */
     @Test
     void countsAreSentAsRanges()
@@ -52,7 +55,9 @@ class MetricsSupportTest
             {
                 final Object json = chart.getRequestJsonObject((message, error) -> { throw new AssertionError(message, error); }, true);
                 org.junit.jupiter.api.Assertions.assertNotNull(json, "every chart answers");
-                ids.add(json.toString().replaceAll(".*\"chartId\":\"([a-z_]+)\".*", "$1"));
+                final java.util.regex.Matcher id = CHART_ID.matcher(json.toString());
+                org.junit.jupiter.api.Assertions.assertTrue(id.find(), json.toString());
+                ids.add(id.group(1));
             }
             assertEquals(java.util.List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin"), ids,
                 "the ids the charts on bstats.org were made with");
