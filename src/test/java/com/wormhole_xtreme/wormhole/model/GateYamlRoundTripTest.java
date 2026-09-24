@@ -222,4 +222,62 @@ class GateYamlRoundTripTest
             StargateManager.getStargate("spun").getGateDialSpin());
         assertNull(StargateManager.getStargate("plain").getGateDialSpin());
     }
+
+    /**
+     * A group chosen with gate edit survives a restart (#441), and a gate nobody chose one for
+     * writes nothing, so it keeps reading its group off its frame.
+     */
+    @Test
+    void aChosenGroupRoundTripsAndAnUnchosenOneIsNotWritten() throws Exception
+    {
+        MaterialGroupRegistry.load(java.util.Map.of("Atlantis", java.util.Map.of("structure", "LAPIS_BLOCK")));
+        try
+        {
+            final Stargate chosen = gate("chosen");
+            chosen.chooseGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+            StargateYamlManager.saveStargate(chosen, gatesDir());
+            // On a group the way detection puts it there, from its frame, not by choice.
+            final Stargate framed = gate("framed");
+            framed.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+            StargateYamlManager.saveStargate(framed, gatesDir());
+
+            assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "framed.yml").toPath()),
+                StandardCharsets.UTF_8).contains(StargateYamlManager.MATERIAL_GROUP_KEY), "nothing written for a gate nobody chose for");
+
+            StargateYamlManager.loadStargates(server, gatesDir());
+
+            final Stargate loaded = StargateManager.getStargate("chosen");
+            assertEquals(true, loaded.isGateMaterialGroupChosen());
+            assertEquals("Atlantis", loaded.getGateMaterialGroup().getName());
+            assertEquals(false, StargateManager.getStargate("framed").isGateMaterialGroupChosen());
+        }
+        finally
+        {
+            MaterialGroupRegistry.load(null);
+        }
+    }
+
+    /** A chosen group that config.yml no longer has falls back to the frame, rather than failing the load. */
+    @Test
+    void aChosenGroupThatNoLongerExistsFallsBackToTheFrame()
+    {
+        MaterialGroupRegistry.load(java.util.Map.of("Atlantis", java.util.Map.of("structure", "LAPIS_BLOCK")));
+        try
+        {
+            final Stargate chosen = gate("gone");
+            chosen.chooseGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+            StargateYamlManager.saveStargate(chosen, gatesDir());
+            MaterialGroupRegistry.load(null);
+
+            StargateYamlManager.loadStargates(server, gatesDir());
+
+            final Stargate loaded = StargateManager.getStargate("gone");
+            org.junit.jupiter.api.Assertions.assertNotNull(loaded, "the gate still loads");
+            assertEquals(false, loaded.isGateMaterialGroupChosen());
+        }
+        finally
+        {
+            MaterialGroupRegistry.load(null);
+        }
+    }
 }

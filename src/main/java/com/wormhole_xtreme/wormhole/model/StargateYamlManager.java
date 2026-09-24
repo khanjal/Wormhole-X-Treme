@@ -24,8 +24,12 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
 public class StargateYamlManager
 {
     private static final String OWNER_UUID_KEY = "OwnerUUID";
+    /** How a log line names a gate. */
+    private static final String GATE_QUOTE = "Gate \"";
     /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     static final String DIAL_SPIN_KEY = "DialSpin";
+    /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
+    static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
     private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
 
@@ -129,7 +133,28 @@ public class StargateYamlManager
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
+        applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
+    }
+
+    /**
+     * Puts a gate back on the group {@code gate edit group} chose for it; a name no group answers
+     * to is said out loud, and the group is read off the frame as for any other gate.
+     */
+    private static void applyChosenGroup(final Stargate s, final Object raw, final String gateName)
+    {
+        if (raw == null)
+        {
+            return;
+        }
+        final MaterialGroup group = MaterialGroupRegistry.getGroup(String.valueOf(raw));
+        if (group == null)
+        {
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" is on material group \"" + raw
+                + "\", which no longer exists; it follows its frame.");
+            return;
+        }
+        s.chooseGateMaterialGroup(group);
     }
 
     /**
@@ -147,7 +172,7 @@ public class StargateYamlManager
             com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
         if (pattern == null)
         {
-            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
                 + "\"; it follows its group and gate-dial-spin.");
         }
         return pattern;
@@ -203,7 +228,7 @@ public class StargateYamlManager
         // PluginLog rather than a guarded prettyLog: #249 added it to carry the null-plugin
         // check once instead of at every call site, which is the asymmetry #45 reported.
         PluginLog.log(Level.WARNING,
-            "Gate \"" + gateName + "\" was built from shape \"" + shapeName
+            GATE_QUOTE + gateName + "\" was built from shape \"" + shapeName
                 + "\", which is not in the shapes folder. The gate still works; its shape"
                 + " name is kept as it is, and it cannot be regenerated until the shape is back.");
     }
@@ -346,6 +371,10 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShapeName());
+        if (s.isGateMaterialGroupChosen() && (s.getGateMaterialGroup() != null))
+        {
+            map.put(MATERIAL_GROUP_KEY, s.getGateMaterialGroup().getName());
+        }
         if (s.getGateDialSpin() != null)
         {
             map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));

@@ -629,9 +629,10 @@ public final class SubCommands
     {
         if ("group".equals(field))
         {
-            return prefixed(typed,
-                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
-                    .toArray(new String[0]));
+            final List<String> groups = new java.util.ArrayList<>(
+                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames());
+            groups.add("-clear");
+            return prefixed(typed, groups.toArray(new String[0]));
         }
         if (REDSTONE.equals(field))
         {
