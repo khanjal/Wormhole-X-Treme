@@ -1743,8 +1743,8 @@ class GatePreviewsTest
         dialStep.run();
 
         assertEquals(1, preview.litWaves(), "the first chevron locked");
-        final List<Object> shown = mockingDetails(top).getInvocations().stream()
-            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+        final List<BlockData> shown = mockingDetails(top).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
         assertEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "the top still lit as it locks");
         for (int step = 0; step < (com.wormhole_xtreme.wormhole.logic.DialSpin.TOP_HOLD_TICKS + ticks); step++)
         {
@@ -1773,8 +1773,8 @@ class GatePreviewsTest
 
         for (final BlockDisplay d : chevron)
         {
-            final List<Object> shown = mockingDetails(d).getInvocations().stream()
-                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+            final List<BlockData> shown = mockingDetails(d).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
             assertFalse(shown.isEmpty(), "chevron 1 was redrawn as it locked");
             assertNotEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "and not as lit");
         }
@@ -1806,8 +1806,8 @@ class GatePreviewsTest
         assertFalse(behind.isEmpty(), "Grand's chevrons have a layer behind the ring");
         for (final Cell cell : behind)
         {
-            final List<Object> shown = mockingDetails(spawned.get(cells.indexOf(cell))).getInvocations().stream()
-                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.getArgument(0)).toList();
+            final List<BlockData> shown = mockingDetails(spawned.get(cells.indexOf(cell))).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
             assertEquals(data.get(Material.GLOWSTONE), shown.isEmpty() ? null : shown.get(shown.size() - 1),
                 "chevron " + cell.wave() + " lit behind the ring");
         }

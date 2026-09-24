@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -237,7 +238,7 @@ class DialSpinPatternTest
             final DialSpin spin = spin(name);
             final Set<Cell> first = spin.frame(DialSpinPattern.UNIVERSE, 1, 0, TICKS);
             assertEquals(onRing(spin, 7), first, name + ": the point of origin, at the top before any lock");
-            assertFalse(first.equals(spin.frame(DialSpinPattern.UNIVERSE, 1, TICKS / 2, TICKS)), name + ": and it moves");
+            assertNotEquals(first, spin.frame(DialSpinPattern.UNIVERSE, 1, TICKS / 2, TICKS), name + ": and it moves");
             final List<Cell> top = spin.path(DialSpinPattern.TOP, 1);
             for (int glyph = 1; glyph <= 7; glyph++)
             {
