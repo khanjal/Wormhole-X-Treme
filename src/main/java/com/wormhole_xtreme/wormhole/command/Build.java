@@ -25,12 +25,12 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.GateInteractionHandler;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
@@ -141,13 +141,13 @@ public class Build implements CommandExecutor
                 + USAGE + command("/wormhole gate build <shape> [group]"));
             return;
         }
-        if (!StargateHelper.isStargateShape(args[0]))
+        if (!StargateShapeRegistry.isStargateShape(args[0]))
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No shape called " + name(args[0])
                 + ".");
             return;
         }
-        final StargateShape shape = StargateHelper.getStargateShape(args[0]);
+        final StargateShape shape = StargateShapeRegistry.getStargateShape(args[0]);
         MaterialGroup group = MaterialGroupRegistry.getDefaultGroup();
         if (args.length == 2)
         {

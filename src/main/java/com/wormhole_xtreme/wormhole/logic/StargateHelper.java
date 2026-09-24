@@ -7,12 +7,10 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 
-import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
-import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
@@ -24,8 +22,7 @@ import java.util.List;
 /**
  * Lightweight, trimmed Stargate helper. Responsibilities:
  * - Provide geometry utility used by unit tests
- * - Delegate serialization to GateSerializer
- * - Delegate shape loading/registry to StargateShapeRegistry
+ * - Delegate shape loading to StargateShapeRegistry
  * - Provide small stubs for legacy APIs still referenced elsewhere
  */
 public final class StargateHelper
@@ -129,26 +126,6 @@ public final class StargateHelper
     public static void loadShapes()
     {
         StargateShapeRegistry.loadShapes();
-    }
-
-    public static StargateShape getStargateShape(final String name)
-    {
-        return StargateShapeRegistry.getStargateShape(name);
-    }
-
-    public static boolean isStargateShape(final String name)
-    {
-        return StargateShapeRegistry.isStargateShape(name);
-    }
-
-    public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
-    {
-        return GateSerializer.parseVersionedData(gateData, w, name, network);
-    }
-
-    public static byte[] stargateToBinary(final Stargate s)
-    {
-        return GateSerializer.stargateToBinary(s);
     }
 
     // ---------------------------------------------------------------------
