@@ -259,7 +259,7 @@ class GateYamlRoundTripTest
 
     /** A chosen group that config.yml no longer has falls back to the frame, rather than failing the load. */
     @Test
-    void aChosenGroupThatNoLongerExistsFallsBackToTheFrame() throws Exception
+    void aChosenGroupThatNoLongerExistsFallsBackToTheFrame()
     {
         MaterialGroupRegistry.load(java.util.Map.of("Atlantis", java.util.Map.of("structure", "LAPIS_BLOCK")));
         try

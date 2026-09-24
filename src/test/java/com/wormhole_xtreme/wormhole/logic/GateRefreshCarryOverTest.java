@@ -1,7 +1,12 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,15 +106,15 @@ class GateRefreshCarryOverTest
         final Stargate existing = new Stargate();
         existing.setGateName("alpha");
         existing.setGateIrisActive(true);
-        final Stargate fresh = org.mockito.Mockito.spy(new Stargate());
-        org.mockito.Mockito.doNothing().when(fresh).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
-        final org.bukkit.block.Block button = org.mockito.Mockito.mock(org.bukkit.block.Block.class);
+        final Stargate fresh = spy(new Stargate());
+        doNothing().when(fresh).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
+        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
 
-        try (org.mockito.MockedStatic<StargateHelper> helper = org.mockito.Mockito.mockStatic(StargateHelper.class);
+        try (org.mockito.MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
              org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.command.CommandUtilities> util =
-                 org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.command.CommandUtilities.class);
+                 mockStatic(com.wormhole_xtreme.wormhole.command.CommandUtilities.class);
              org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.model.StargateDBManager> db =
-                 org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.model.StargateDBManager.class))
+                 mockStatic(com.wormhole_xtreme.wormhole.model.StargateDBManager.class))
         {
             helper.when(() -> StargateHelper.checkStargate(button, org.bukkit.block.BlockFace.NORTH)).thenReturn(fresh);
             // What removal does to an iris-coded gate: opens its iris.
@@ -123,7 +128,7 @@ class GateRefreshCarryOverTest
             GateRefresh.refresh(existing, button, org.bukkit.block.BlockFace.NORTH);
         }
 
-        org.mockito.Mockito.verify(fresh).toggleIrisActive(false);
+        verify(fresh).toggleIrisActive(false);
     }
 
     /** A gate whose iris was open is not shut by a regen. */
@@ -132,11 +137,11 @@ class GateRefreshCarryOverTest
     {
         final Stargate existing = new Stargate();
         existing.setGateName("alpha");
-        final Stargate fresh = org.mockito.Mockito.spy(new Stargate());
+        final Stargate fresh = spy(new Stargate());
 
         GateRefresh.carryOverMetadata(existing, fresh, false);
 
-        org.mockito.Mockito.verify(fresh, org.mockito.Mockito.never()).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
+        verify(fresh, never()).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
     }
 
     /**

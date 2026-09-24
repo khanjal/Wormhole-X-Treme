@@ -25,6 +25,8 @@ public class StargateYamlManager
 {
     private static final String OWNER_UUID_KEY = "OwnerUUID";
     /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
+    /** How a log line names a gate. */
+    private static final String GATE_QUOTE = "Gate \"";
     static final String DIAL_SPIN_KEY = "DialSpin";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
@@ -148,7 +150,7 @@ public class StargateYamlManager
         final MaterialGroup group = MaterialGroupRegistry.getGroup(String.valueOf(raw));
         if (group == null)
         {
-            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" is on material group \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" is on material group \"" + raw
                 + "\", which no longer exists; it follows its frame.");
             return;
         }
@@ -170,7 +172,7 @@ public class StargateYamlManager
             com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
         if (pattern == null)
         {
-            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
                 + "\"; it follows its group and gate-dial-spin.");
         }
         return pattern;
@@ -226,7 +228,7 @@ public class StargateYamlManager
         // PluginLog rather than a guarded prettyLog: #249 added it to carry the null-plugin
         // check once instead of at every call site, which is the asymmetry #45 reported.
         PluginLog.log(Level.WARNING,
-            "Gate \"" + gateName + "\" was built from shape \"" + shapeName
+            GATE_QUOTE + gateName + "\" was built from shape \"" + shapeName
                 + "\", which is not in the shapes folder. The gate still works; its shape"
                 + " name is kept as it is, and it cannot be regenerated until the shape is back.");
     }
