@@ -201,6 +201,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A mirror whose capture fails while working out what can be seen is captured again** the
+  next time someone looks at it, instead of never updating until a restart. The failure is
+  logged once.
+
 - **Less of what a small mirror drew hangs outside its opening as you move.** A redraw sends
   only the blocks visible through the opening from where the eye is now, and blocks that go out of
   sight stay on the client until the next redraw takes them away. At a mirror one or two banners
