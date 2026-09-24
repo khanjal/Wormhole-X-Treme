@@ -26,6 +26,8 @@ public class StargateYamlManager
     private static final String OWNER_UUID_KEY = "OwnerUUID";
     /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     static final String DIAL_SPIN_KEY = "DialSpin";
+    /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
+    static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
     private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
 
@@ -129,7 +131,28 @@ public class StargateYamlManager
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
+        applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
+    }
+
+    /**
+     * Puts a gate back on the group {@code gate edit group} chose for it; a name no group answers
+     * to is said out loud, and the group is read off the frame as for any other gate.
+     */
+    private static void applyChosenGroup(final Stargate s, final Object raw, final String gateName)
+    {
+        if (raw == null)
+        {
+            return;
+        }
+        final MaterialGroup group = MaterialGroupRegistry.getGroup(String.valueOf(raw));
+        if (group == null)
+        {
+            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" is on material group \"" + raw
+                + "\", which no longer exists; it follows its frame.");
+            return;
+        }
+        s.chooseGateMaterialGroup(group);
     }
 
     /**
@@ -346,6 +369,10 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShapeName());
+        if (s.isGateMaterialGroupChosen() && (s.getGateMaterialGroup() != null))
+        {
+            map.put(MATERIAL_GROUP_KEY, s.getGateMaterialGroup().getName());
+        }
         if (s.getGateDialSpin() != null)
         {
             map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));

@@ -564,9 +564,10 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
+The choice is saved with the gate; `group default` gives it back to whatever its frame is built from.
 
 **`gate regen <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
-turns out to be, keeping its name, owner, iris code and network, as `/wormhole refresh` used to
+turns out to be, keeping its name, owner, iris code, network and every `gate edit` setting, as `/wormhole refresh` used to
 (that command still works, and does the same). With no gate named, it waits for you to click the
 gate's DHD. Then it re-reads the gate's shape file and moves its redstone hookup, iris
 lever and signs to match, then recomputes where travellers arrive. Use it for a gate that lands

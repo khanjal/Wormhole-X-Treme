@@ -201,6 +201,15 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", groupNames()) + ".");
             return true;
         }
+        if (DEFAULT.equalsIgnoreCase(value.trim()))
+        {
+            gate.chooseGateMaterialGroup(null);
+            StargateDBManager.saveStargate(gate);
+            final com.wormhole_xtreme.wormhole.model.MaterialGroup byFrame = gate.getGateMaterialGroup();
+            sender.sendMessage(gate.getGateName() + " follows its frame again: group "
+                + ((byFrame == null) ? "(none)" : byFrame.getName()) + ".");
+            return true;
+        }
         final com.wormhole_xtreme.wormhole.model.MaterialGroup group =
             com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroup(value);
         if (group == null)
@@ -209,7 +218,8 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", groupNames()) + ".");
             return true;
         }
-        gate.setGateMaterialGroup(group);
+        gate.chooseGateMaterialGroup(group);
+        StargateDBManager.saveStargate(gate);
         sender.sendMessage(gate.getGateName() + " is now on group " + group.getName()
             + ". Its frame blocks are untouched -- this changes what the gate draws.");
         return true;

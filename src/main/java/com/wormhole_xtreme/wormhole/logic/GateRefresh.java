@@ -90,6 +90,30 @@ public final class GateRefresh
      * Copies everything that belongs to the gate rather than to its blocks. The fresh gate is saved
      * straight afterwards, so anything dropped here is dropped for good.
      */
+    /**
+     * Every setting {@code gate edit} can make (#440): custom materials and timings, woosh depth,
+     * redstone, the iris default, the ring pattern and a chosen group.
+     */
+    static void carryOverSettings(final Stargate existing, final Stargate fresh)
+    {
+        fresh.setGateCustom(existing.isGateCustom());
+        fresh.setGateCustomStructureMaterial(existing.getGateCustomStructureMaterial());
+        fresh.setGateCustomPortalMaterial(existing.getGateCustomPortalMaterial());
+        fresh.setGateCustomLightMaterial(existing.getGateCustomLightMaterial());
+        fresh.setGateCustomIrisMaterial(existing.getGateCustomIrisMaterial());
+        fresh.setGateCustomWooshTicks(existing.getGateCustomWooshTicks());
+        fresh.setGateCustomLightTicks(existing.getGateCustomLightTicks());
+        fresh.setGateCustomWooshDepth(existing.getGateCustomWooshDepth());
+        fresh.setGateCustomWooshDepthSquared(existing.getGateCustomWooshDepthSquared());
+        fresh.setGateRedstonePowered(existing.isGateRedstonePowered());
+        fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
+        fresh.setGateDialSpin(existing.getGateDialSpin());
+        if (existing.isGateMaterialGroupChosen())
+        {
+            fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());
+        }
+    }
+
     static void carryOverMetadata(final Stargate existing, final Stargate fresh)
     {
         final String oldName = existing.getGateName();
@@ -101,8 +125,14 @@ public final class GateRefresh
         // Stored, not displayed: copying the fallback would set the owner id as this gate's
         // display name.
         fresh.setGateOwnerName(existing.getStoredGateOwnerName());
+        carryOverSettings(existing, fresh);
+        // After the settings: completeGate sets up the redstone the flag above asks for.
         fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
-        fresh.setGateDialSpin(existing.getGateDialSpin());
+        // A shut iris stays shut; an idle gate's iris is only ever shut by choice (#440).
+        if (existing.isGateIrisActive() && !fresh.isGateIrisActive())
+        {
+            fresh.toggleIrisActive(false);
+        }
         if (oldNet != null)
         {
             fresh.setGateNetwork(oldNet);
