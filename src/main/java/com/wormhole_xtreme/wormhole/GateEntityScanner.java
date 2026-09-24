@@ -506,8 +506,6 @@ public final class GateEntityScanner implements Runnable
     /**
      * Sets an entity's velocity, tolerating an entity that has since been removed.
      *
-     * @param entity
-     *            the entity
      * @param velocity
      *            the velocity to apply
      */

@@ -88,9 +88,6 @@ public class FreyaListener implements Listener
     /**
      * Lets her own spawn through a region or plugin that refuses mob spawns, WorldGuard's
      * block-plugin-spawning among them; nobody else can see or touch her.
-     *
-     * @param event
-     *            the spawn
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onSpawn(final CreatureSpawnEvent event)
@@ -119,9 +116,6 @@ public class FreyaListener implements Listener
     /**
      * Refuses all damage; setInvulnerable does not stop a creative-mode player, who could not
      * even see her.
-     *
-     * @param event
-     *            the damage
      */
     @EventHandler(ignoreCancelled = true)
     public void onDamage(final EntityDamageEvent event)

@@ -25,9 +25,7 @@ public class WorldUtils
     /**
      * Gets the degrees from block face.
      * 
-     * @param blockFace
-     *            the block face
-     * @return the degrees from block face
+     * @return the yaw facing that way, south being 0; anything but the four compass faces gives 0
      */
     public static Float getDegreesFromBlockFace(final BlockFace blockFace)
     {
@@ -51,9 +49,7 @@ public class WorldUtils
     /**
      * Gets the inverse direction.
      * 
-     * @param bf
-     *            the bf
-     * @return the inverse direction
+     * @return the opposite face, or the face itself when it has no opposite here
      */
     public static BlockFace getInverseDirection(final BlockFace bf)
     {
@@ -87,9 +83,7 @@ public class WorldUtils
     /**
      * Gets the perpendicular right direction.
      * 
-     * @param bf
-     *            the bf
-     * @return the perpendicular right direction
+     * @return the face to the right of one looking along it; up and down map to east and west
      */
     public static BlockFace getPerpendicularRightDirection(final BlockFace bf)
     {
@@ -119,11 +113,7 @@ public class WorldUtils
     /**
      * Checks if is same block.
      * 
-     * @param b1
-     *            the b1
-     * @param b2
-     *            the b2
-     * @return true, if is same block
+     * @return true if both are non-null and share coordinates; the world is not compared
      */
     public static boolean isSameBlock(final Block b1, final Block b2)
     {
@@ -145,7 +135,7 @@ public class WorldUtils
      * @param from
      *            the previous location
      * @param to
-     *            the new location
+     *            the current location; either being null counts as a change
      * @return true if the block coordinates differ
      */
     public static boolean hasChangedBlock(final Location from, final Location to)
@@ -213,9 +203,9 @@ public class WorldUtils
      * @param w
      *            the world to load in
      * @param chunkX
-     *            chunk x
+     *            chunk x, which is block x shifted right four
      * @param chunkZ
-     *            chunk z
+     *            chunk z, which is block z shifted right four
      */
     private static void loadChunkQuietly(final World w, final int chunkX, final int chunkZ)
     {

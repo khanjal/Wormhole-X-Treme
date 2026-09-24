@@ -39,7 +39,7 @@ public final class FreyaPreferences
 
     /**
      * @param playerId
-     *            the player
+     *            the player's id; null answers false
      * @return true if they have a companion turned on
      */
     public static boolean isEnabled(final UUID playerId)
@@ -50,8 +50,6 @@ public final class FreyaPreferences
     /**
      * Turns a companion on or off, saving immediately so a killed server does not forget.
      *
-     * @param playerId
-     *            the player
      * @param enabled
      *            whether they want a companion
      * @return true if this actually changed anything

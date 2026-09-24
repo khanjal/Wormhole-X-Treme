@@ -242,8 +242,6 @@ class DrawnIrisHoldsShutTest
 
     /**
      * An arrow in flight, in this gate's opening.
-     *
-     * @return the arrow
      */
     private Arrow arrowAtTheOpening()
     {
@@ -542,8 +540,6 @@ class DrawnIrisHoldsShutTest
 
     /**
      * A cart with nobody in it, rolling east.
-     *
-     * @return the cart
      */
     private org.bukkit.entity.Minecart cartAt()
     {

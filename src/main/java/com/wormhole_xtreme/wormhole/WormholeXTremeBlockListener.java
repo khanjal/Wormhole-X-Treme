@@ -78,12 +78,6 @@ class WormholeXTremeBlockListener implements Listener
     /**
      * Handle block break.
      * 
-     * @param player
-     *            the player
-     * @param stargate
-     *            the stargate
-     * @param block
-     *            the block
      * @return true, if successful
      */
     private static boolean handleBlockBreak(final Player player, final Stargate stargate, final Block block)

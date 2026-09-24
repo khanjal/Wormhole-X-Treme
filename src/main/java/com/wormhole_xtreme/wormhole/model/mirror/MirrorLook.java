@@ -32,7 +32,6 @@ public record MirrorLook(String presetName, MirrorView view)
      *
      * @param name
      *            the preset's name
-     * @return the look
      */
     public static MirrorLook named(final String name)
     {
@@ -44,7 +43,6 @@ public record MirrorLook(String presetName, MirrorView view)
      *
      * @param view
      *            what was found there
-     * @return the look
      */
     public static MirrorLook seen(final MirrorView view)
     {

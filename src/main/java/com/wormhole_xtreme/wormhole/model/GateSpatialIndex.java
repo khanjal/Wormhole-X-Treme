@@ -45,8 +45,6 @@ public final class GateSpatialIndex
     /**
      * The chunk bucket key for a block location.
      *
-     * @param loc
-     *            the location
      * @return the packed chunk position holding it
      */
     private static long chunkKey(final Location loc)

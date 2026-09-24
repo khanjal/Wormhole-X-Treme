@@ -34,11 +34,6 @@ class WooshWaveTest
      * A portal block at a plain coordinate. The world is deliberately null -- both
      * {@code drawBlocks} and {@code undrawBlocks} read only block coordinates off these and
      * resolve them against the gate's own world, so nothing here needs a live one.
-     *
-     * @param x the x
-     * @param y the y
-     * @param z the z
-     * @return the location
      */
     private static Location at(final int x, final int y, final int z)
     {

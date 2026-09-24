@@ -210,8 +210,6 @@ class PetEscortTest
     /**
      * A pet standing somewhere.
      *
-     * @param pet
-     *            the pet
      * @param where
      *            where it stands
      * @return the pet

@@ -18,9 +18,6 @@ public class LegacyGateDismountListener implements Listener
 {
     /**
      * Holds a rider in place while they are standing in an open portal.
-     *
-     * @param event
-     *            the dismount
      */
     @EventHandler
     public void onEntityDismount(final EntityDismountEvent event)

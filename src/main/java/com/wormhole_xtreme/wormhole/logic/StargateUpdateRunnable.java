@@ -87,7 +87,6 @@ public class StargateUpdateRunnable implements Runnable
      *
      * @param stargate the gate
      * @param player   the player (may be {@code null})
-     * @param action   the action
      * @param forward  {@code true} = advance forward (right-click);
      *                 {@code false} = go backward (left-click)
      */

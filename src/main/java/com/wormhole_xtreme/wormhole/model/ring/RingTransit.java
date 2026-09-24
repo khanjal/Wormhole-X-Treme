@@ -575,8 +575,6 @@ public final class RingTransit
      *
      * @param world
      *            the world the pair is in
-     * @param pair
-     *            the pair
      * @return the chunks to pin
      */
     private static Set<Chunk> chunksOf(final World world, final RingPair pair)
@@ -595,8 +593,6 @@ public final class RingTransit
     /**
      * The world a pair is in, if it is loaded.
      *
-     * @param pair
-     *            the pair
      * @return the world, or null if it is not loaded
      */
     private static World worldOf(final RingPair pair)

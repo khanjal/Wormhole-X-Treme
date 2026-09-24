@@ -28,14 +28,8 @@ class Setting
     /**
      * Instantiates a new setting.
      * 
-     * @param name
-     *            the name
-     * @param value
-     *            the value
-     * @param desc
-     *            the desc
      * @param plugin
-     *            the plugin
+     *            the section it belongs to, which is always the plugin's own
      */
     protected Setting(final ConfigKeys name, final Object value, final String desc, final String plugin)
     {
@@ -47,8 +41,6 @@ class Setting
 
     /**
      * Gets the boolean value.
-     * 
-     * @return the boolean value
      */
     public boolean getBooleanValue()
     {
@@ -57,8 +49,6 @@ class Setting
 
     /**
      * Gets the description.
-     * 
-     * @return the description
      */
     public String getDescription()
     {
@@ -67,8 +57,6 @@ class Setting
 
     /**
      * Gets the double value.
-     * 
-     * @return the double value
      */
     public double getDoubleValue()
     {
@@ -77,8 +65,6 @@ class Setting
 
     /**
      * Gets the int value.
-     * 
-     * @return the int value
      */
     public int getIntValue()
     {
@@ -87,8 +73,6 @@ class Setting
 
     /**
      * Gets the level.
-     * 
-     * @return the level
      */
     public Level getLevel()
     {
@@ -97,8 +81,6 @@ class Setting
 
     /**
      * Gets the material value.
-     * 
-     * @return the material value
      */
     public Material getMaterialValue()
     {
@@ -107,8 +89,6 @@ class Setting
 
     /**
      * Gets the name.
-     * 
-     * @return the name
      */
     public ConfigKeys getName()
     {
@@ -118,8 +98,6 @@ class Setting
 
     /**
      * Gets the plugin name.
-     * 
-     * @return the plugin name
      */
     public String getPluginName()
     {
@@ -128,8 +106,6 @@ class Setting
 
     /**
      * Gets the string value.
-     * 
-     * @return the string value
      */
     public String getStringValue()
     {
@@ -138,8 +114,6 @@ class Setting
 
     /**
      * Gets the value.
-     * 
-     * @return the value
      */
     public Object getValue()
     {
@@ -148,9 +122,6 @@ class Setting
 
     /**
      * Sets the value.
-     * 
-     * @param value
-     *            the new value
      */
     public void setValue(final Object value)
     {

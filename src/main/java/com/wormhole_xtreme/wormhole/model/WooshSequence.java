@@ -146,7 +146,6 @@ public final class WooshSequence
      *            whether it is being taken back
      * @param steps
      *            how many woosh steps the gate has
-     * @return the stage
      */
     public static int stageOf(final int index, final boolean back, final int steps)
     {

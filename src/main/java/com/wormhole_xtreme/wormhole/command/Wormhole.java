@@ -72,8 +72,6 @@ public class Wormhole implements CommandExecutor
      * Whether the sender may reach the admin and configuration subcommands. Console and
      * command blocks always may, as they always have.
      *
-     * @param sender
-     *            the command sender
      * @return true if they hold {@code wormhole.config}, or are not a player
      */
     private static boolean hasConfigPermission(final CommandSender sender)

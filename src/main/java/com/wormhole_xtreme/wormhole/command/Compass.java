@@ -119,8 +119,6 @@ public class Compass implements CommandExecutor
     /**
      * Do compass.
      * 
-     * @param player
-     *            the player
      * @return true, if successful
      */
     private static boolean doCompass(final Player player)

@@ -53,7 +53,6 @@ public final class IrisSweep
          *
          * @param name
          *            the configured name, in any case
-         * @return the style
          */
         public static Style of(final String name)
         {
@@ -223,8 +222,6 @@ public final class IrisSweep
      *
      * @param <T>
      *            what is being cut up
-     * @param items
-     *            the list
      * @param wanted
      *            how many pieces, at least one
      * @return the pieces, in order; some may be empty if there are fewer items than pieces
@@ -282,8 +279,6 @@ public final class IrisSweep
      * pulled towards whichever side holds more cells, which on a gate whose opening is not a
      * neat rectangle puts the centre off-centre and makes the sweep arrive lopsided.
      *
-     * @param cells
-     *            the cells
      * @return the centre as {x, y, z}
      */
     private static double[] centreOf(final List<Location> cells)
@@ -318,8 +313,6 @@ public final class IrisSweep
      *
      * @param centre
      *            the centre as {x, y, z}
-     * @param cell
-     *            the cell
      * @param style
      *            which axes to count
      * @return the grouping key
@@ -349,8 +342,6 @@ public final class IrisSweep
      * twice as long as another at the same setting would be a second pace control nobody asked
      * for.
      *
-     * @param cells
-     *            the cells
      * @return the steps, innermost first
      */
     private static List<List<Location>> spiral(final List<Location> cells)
@@ -376,8 +367,6 @@ public final class IrisSweep
      *
      * @param centre
      *            the centre as {x, y, z}
-     * @param cell
-     *            the cell
      * @return the winding position
      */
     private static double windingOf(final double[] centre, final Location cell)

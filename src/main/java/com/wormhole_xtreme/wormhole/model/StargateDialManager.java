@@ -246,7 +246,6 @@ class StargateDialManager
     /**
      * Resets the gate sign text to its idle (non-dialling) state.
      *
-     * @param gate         the gate
      * @param teleportSign {@code true} for the dial sign; currently only {@code true} is used
      */
     static void resetSign(final Stargate gate, final boolean teleportSign)
@@ -277,8 +276,6 @@ class StargateDialManager
     /**
      * Clears the teleport sign block and schedules a sign reset via the
      * scheduler (avoids visual glitches from immediate re-set).
-     *
-     * @param gate the gate
      */
     static void resetTeleportSign(final Stargate gate)
     {
@@ -292,7 +289,6 @@ class StargateDialManager
     /**
      * Handles a click on the dial sign block (no player context).
      *
-     * @param gate    the gate
      * @param clicked the block that was clicked
      * @return {@code true} if the click was consumed
      */
@@ -304,7 +300,6 @@ class StargateDialManager
     /**
      * Handles a click on the dial sign block.
      *
-     * @param gate    the gate
      * @param clicked the block that was clicked
      * @param player  the player who clicked (may be {@code null})
      * @return {@code true} if the click was consumed
@@ -317,7 +312,6 @@ class StargateDialManager
     /**
      * Handles a click on the dial sign block.
      *
-     * @param gate    the gate
      * @param clicked the block that was clicked
      * @param player  the player who clicked (may be {@code null})
      * @param forward {@code true} to advance to the next gate (right-click);

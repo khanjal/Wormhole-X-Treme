@@ -197,8 +197,6 @@ public record BeamFrame(Envelop envelop, Column rise, Column descend, Fade fade,
 
     /**
      * How tall the column stands during rise and descent.
-     *
-     * @return the column height
      */
     public double columnHeight() { return COLUMN_HEIGHT; }
 }

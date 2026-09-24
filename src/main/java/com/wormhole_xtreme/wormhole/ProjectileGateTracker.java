@@ -133,9 +133,6 @@ class ProjectileGateTracker implements Listener
 
     /**
      * Starts following a newly launched projectile.
-     *
-     * @param event
-     *            the launch
      */
     @EventHandler
     public void onProjectileLaunch(final ProjectileLaunchEvent event)
@@ -153,9 +150,6 @@ class ProjectileGateTracker implements Listener
      *
      * <p>Not dropped here: the hit lands mid-tick and the path is walked at the start of the next,
      * so an arrow that crossed a gate and struck the wall behind it would never go through.
-     *
-     * @param event
-     *            the hit
      */
     @EventHandler(ignoreCancelled = true)
     public void onProjectileHit(final ProjectileHitEvent event)
@@ -209,8 +203,6 @@ class ProjectileGateTracker implements Listener
      * next tick and every tick after, turning one bad projectile into a log line per tick for
      * as long as the server runs.
      *
-     * @param projectile
-     *            the projectile
      * @param state
      *            where it was last tick, and when to give up on it
      * @return true if it should be dropped from the tracked set
@@ -248,8 +240,6 @@ class ProjectileGateTracker implements Listener
      *            where it was on the previous tick, may be null
      * @param to
      *            where it is now
-     * @param projectile
-     *            the projectile
      * @return true if it was sent through
      */
     private static boolean sendThroughGateOnPath(final Location from, final Location to, final Projectile projectile,
@@ -288,8 +278,6 @@ class ProjectileGateTracker implements Listener
      *
      * @param point
      *            a point on the projectile's path
-     * @param projectile
-     *            the projectile
      * @return true if it was sent through
      */
     private static boolean crossAt(final Location point, final Projectile projectile, final Tracked state)
@@ -347,8 +335,6 @@ class ProjectileGateTracker implements Listener
     }
 
     /**
-     * @param entity
-     *            an entity
      * @return true if it is a projectile that has hit something in the last second
      */
     static boolean hasHit(final Entity entity)

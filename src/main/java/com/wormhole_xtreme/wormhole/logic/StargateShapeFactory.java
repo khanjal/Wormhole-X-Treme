@@ -16,10 +16,6 @@ public class StargateShapeFactory
 
     /**
      * Creates a new StargateShape object.
-     * 
-     * @param fileLines
-     *            the file lines
-     * @return the stargate shape
      */
     private static StargateShape create2DShape(final String[] fileLines)
     {
@@ -28,10 +24,6 @@ public class StargateShapeFactory
 
     /**
      * Creates a new StargateShape object.
-     * 
-     * @param fileLines
-     *            the file lines
-     * @return the stargate3 d shape
      */
     private static Stargate3DShape create3DShape(final String[] fileLines)
     {
@@ -42,8 +34,7 @@ public class StargateShapeFactory
      * Creates a new StargateShape object.
      * 
      * @param fileLines
-     *            the file lines
-     * @return the stargate shape
+     *            a shape file's lines; any line starting {@code Version=2} makes it a 3-D shape
      */
     public static StargateShape createShapeFromFile(final String[] fileLines)
     {

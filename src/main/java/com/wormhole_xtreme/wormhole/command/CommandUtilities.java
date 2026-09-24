@@ -30,9 +30,9 @@ public class CommandUtilities
      * Close gate.
      * 
      * @param stargate
-     *            the stargate
+     *            null does nothing
      * @param iris
-     *            the iris
+     *            true to also open an iris that is closed
      */
     public static void closeGate(final Stargate stargate, final boolean iris)
     {
@@ -135,8 +135,6 @@ public class CommandUtilities
     /**
      * Gate remove.
      * 
-     * @param stargate
-     *            the stargate
      * @param destroy
      *            true to destroy gate blocks
      */
@@ -225,9 +223,7 @@ public class CommandUtilities
     /**
      * Gets the gate network.
      * 
-     * @param stargate
-     *            the stargate
-     * @return the gate network
+     * @return its network's name, or {@code Public} when it has none
      */
     static String getGateNetwork(final Stargate stargate)
     {
@@ -241,9 +237,7 @@ public class CommandUtilities
     /**
      * Checks if is boolean.
      * 
-     * @param booleanString
-     *            the boolean string
-     * @return true, if is boolean
+     * @return true for {@code true} or {@code false} in any case, and nothing else
      */
     public static boolean isBoolean(final String booleanString)
     {
@@ -253,8 +247,6 @@ public class CommandUtilities
     /**
      * Player check.
      * 
-     * @param sender
-     *            the sender
      * @return true, if successful
      */
     public static boolean playerCheck(final CommandSender sender)
@@ -266,7 +258,7 @@ public class CommandUtilities
      * Run a command body safely, catching any Throwable and reporting a friendly
      * message to the command sender (and logging the error).
      *
-     * @param sender   command sender
+     * @param sender who is told, in general terms, if the body throws
      * @param callable the command body to execute
      * @return the boolean result the callable returned, or true if an error occurred
      */

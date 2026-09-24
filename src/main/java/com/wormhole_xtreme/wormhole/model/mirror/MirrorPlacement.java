@@ -78,8 +78,6 @@ public final class MirrorPlacement
     /**
      * The squared distance between two mirrors' banners.
      *
-     * @param one
-     *            a mirror
      * @param other
      *            another
      * @return the distance squared, in blocks
@@ -181,8 +179,6 @@ public final class MirrorPlacement
     /**
      * Why a world has no room for another mirror, or null if it has.
      *
-     * @param worldName
-     *            the world
      * @param banner
      *            the banner the new mirror would be; a mirror already there is being renamed
      * @param name
@@ -336,8 +332,6 @@ public final class MirrorPlacement
      * <p>Read from the banners as they stand, since which way one faces is recorded nowhere
      * else. A banner in an unloaded chunk protects nothing, and nothing near it can be broken.
      *
-     * @param world
-     *            the world
      * @return the blocks, as keys
      */
     public static Set<MirrorBlock> protectedIn(final World world)
@@ -368,8 +362,6 @@ public final class MirrorPlacement
     /**
      * Whether breaking this block would break a mirror.
      *
-     * @param block
-     *            the block
      * @return true if it is one of a mirror's banners or part of its face
      */
     public static boolean isProtected(final Block block)
