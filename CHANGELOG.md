@@ -100,6 +100,12 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **`gate regen` keeps every setting `gate edit` made.** It kept the name, owner, iris code,
+  network and ring pattern, and dropped the custom portal, iris and light materials, the woosh depth, redstone,
+  and the iris shut by default, so an iris-coded gate came back open. It also keeps a shut iris
+  shut.
+- **`gate edit <gate> group` lasts past a restart.** The choice was only held in memory, and the
+  gate went back to its frame's group. `group -clear` gives it back to the frame.
 - **A gate that shuts while its iris is opening shows no wormhole.** The opening animation went on
   running and painted the wormhole into the idle gate, where it stayed until a chunk reload. The
   same for a gate removed or regenerated mid-animation, and a gate dialled mid-animation no longer

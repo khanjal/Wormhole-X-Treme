@@ -580,6 +580,31 @@ public class Stargate implements GateIris
         gateMaterialGroupResolved = true;
     }
 
+    /** Whether the group was chosen with {@code gate edit group} (#441), so it is stored rather than read off the frame. */
+    private boolean gateMaterialGroupChosen = false;
+
+    /**
+     * @return true when {@code gate edit group} chose this gate's group, which is then saved with it
+     */
+    public boolean isGateMaterialGroupChosen()
+    {
+        return gateMaterialGroupChosen;
+    }
+
+    /**
+     * Puts this gate on a group by choice, so it is saved and outlasts a restart (#441); null
+     * forgets the choice, and the group is read off the frame again.
+     *
+     * @param group
+     *            the group, or null
+     */
+    public void chooseGateMaterialGroup(final MaterialGroup group)
+    {
+        gateMaterialGroupChosen = group != null;
+        gateMaterialGroup = group;
+        gateMaterialGroupResolved = group != null;
+    }
+
     /** This gate's own ring pattern (#366), or null to follow its group and then the server. */
     private com.wormhole_xtreme.wormhole.logic.DialSpinPattern gateDialSpin = null;
 
@@ -1601,7 +1626,7 @@ public class Stargate implements GateIris
      * 
      * @return true, if is gate iris default active
      */
-    boolean isGateIrisDefaultActive()
+    public boolean isGateIrisDefaultActive()
     {
         return gateIrisDefaultActive;
     }

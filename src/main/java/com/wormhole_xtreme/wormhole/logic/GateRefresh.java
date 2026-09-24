@@ -48,10 +48,12 @@ public final class GateRefresh
         {
             return null;
         }
+        // Read first: removing an iris-coded gate opens its iris, so afterwards it always reads open.
+        final boolean irisWasShut = existing.isGateIrisActive();
         // Not announced: the gate is registered again straight away, so telling listeners it was
         // removed would have them discard their records on every regenerate.
         CommandUtilities.gateRemove(existing, false, false);
-        carryOverMetadata(existing, fresh);
+        carryOverMetadata(existing, fresh, irisWasShut);
         StargateManager.registerStargate(fresh);
         StargateDBManager.saveStargate(fresh);
         return fresh;
@@ -87,10 +89,41 @@ public final class GateRefresh
     }
 
     /**
+     * Every setting {@code gate edit} can make (#440): custom materials and timings, woosh depth,
+     * redstone, the iris default, the ring pattern and a chosen group.
+     */
+    static void carryOverSettings(final Stargate existing, final Stargate fresh)
+    {
+        // Only a frame material the frame is still built from. Older versions snapshotted the
+        // shape's default into this field, and `regen -fill` would lay that into the new frame.
+        final org.bukkit.Material structure = existing.getGateCustomStructureMaterial();
+        final boolean frameMatches = structure == fresh.getEffectiveStructureMaterial();
+        fresh.setGateCustom(existing.isGateCustom());
+        fresh.setGateCustomStructureMaterial(frameMatches ? structure : null);
+        fresh.setGateCustomPortalMaterial(existing.getGateCustomPortalMaterial());
+        fresh.setGateCustomLightMaterial(existing.getGateCustomLightMaterial());
+        fresh.setGateCustomIrisMaterial(existing.getGateCustomIrisMaterial());
+        fresh.setGateCustomWooshTicks(existing.getGateCustomWooshTicks());
+        fresh.setGateCustomLightTicks(existing.getGateCustomLightTicks());
+        fresh.setGateCustomWooshDepth(existing.getGateCustomWooshDepth());
+        fresh.setGateCustomWooshDepthSquared(existing.getGateCustomWooshDepthSquared());
+        fresh.setGateRedstonePowered(existing.isGateRedstonePowered());
+        fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
+        fresh.setGateDialSpin(existing.getGateDialSpin());
+        if (existing.isGateMaterialGroupChosen())
+        {
+            fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());
+        }
+    }
+
+    /**
      * Copies everything that belongs to the gate rather than to its blocks. The fresh gate is saved
      * straight afterwards, so anything dropped here is dropped for good.
+     *
+     * @param irisWasShut
+     *            whether the old gate's iris was shut before it was removed
      */
-    static void carryOverMetadata(final Stargate existing, final Stargate fresh)
+    static void carryOverMetadata(final Stargate existing, final Stargate fresh, final boolean irisWasShut)
     {
         final String oldName = existing.getGateName();
         final String oldIdc = existing.getGateIrisDeactivationCode();
@@ -101,8 +134,15 @@ public final class GateRefresh
         // Stored, not displayed: copying the fallback would set the owner id as this gate's
         // display name.
         fresh.setGateOwnerName(existing.getStoredGateOwnerName());
+        carryOverSettings(existing, fresh);
+        // After the settings: completeGate sets up the redstone the flag above asks for.
         fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
-        fresh.setGateDialSpin(existing.getGateDialSpin());
+        // A shut iris stays shut; an idle gate's iris is only ever shut by choice (#440). A toggle,
+        // not a set: it shuts only because the guard has just seen it open. False keeps the default.
+        if (irisWasShut && !fresh.isGateIrisActive())
+        {
+            fresh.toggleIrisActive(false);
+        }
         if (oldNet != null)
         {
             fresh.setGateNetwork(oldNet);
