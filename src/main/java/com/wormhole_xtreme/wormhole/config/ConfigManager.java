@@ -141,6 +141,8 @@ public class ConfigManager
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether the PlaceholderAPI expansion is registered. */
         PLACEHOLDERS_ENABLED,
+        /** Whether gate and ring construction is logged to CoreProtect (#238). */
+        COREPROTECT_ENABLED,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -1980,6 +1982,13 @@ public class ConfigManager
     public static void setUseCooldownSeconds(final int seconds)
     {
         setConfigValue(ConfigKeys.USE_COOLDOWN_SECONDS, seconds);
+    }
+
+    /** Returns true if gate and ring construction should be logged to CoreProtect. */
+    public static boolean isCoreProtectEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.COREPROTECT_ENABLED);
+        return s != null && s.getBooleanValue();
     }
 
     /** Returns true if the PlaceholderAPI expansion should be registered. */
