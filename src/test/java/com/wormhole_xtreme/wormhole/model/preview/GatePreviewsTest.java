@@ -2848,14 +2848,77 @@ class GatePreviewsTest
         when(walker.getEyeLocation()).thenReturn(front);
         GatePreviews.moved(walker, front);
 
-        final Set<List<Integer>> ring = new HashSet<>();
-        for (final Cell cell : openingCells())
+        final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(walker, 0);
+        assertFalse(inRing.isEmpty(), "the crossing was acted on: the covered rings were sent their wormhole");
+        assertTrue(inRing.values().stream().allMatch(d -> d == portalData()),
+            "every ring cell sent is the wormhole, never the bare opening: " + inRing.values());
+        assertTrue(lastSentPerCellAlong(walker, 1).values().stream().noneMatch(d -> (d == data.get(Material.BLUE_ICE))
+            || (d == data.get(Material.PACKED_ICE))), "and no ice on their new near side");
+    }
+
+    /** What the fixture draws a wormhole in the ring as. */
+    private BlockData portalData()
+    {
+        return com.wormhole_xtreme.wormhole.utils.MaterialUtils.laidAcross(GatePreviews.blockData.apply(Material.WATER), previewFacing());
+    }
+
+    /**
+     * A viewer who crosses from in front to behind mid-sweep has the wormhole put back in the ring
+     * for them (#442). Covering a ring from in front takes the ring's wormhole back for that viewer
+     * and stands it behind; crossing, the stand-in went but the ring stayed empty until the next
+     * step. Found by a Fable review.
+     */
+    @Test
+    void aViewerWhoWalksRoundToTheBackGetsTheWormholeBackInTheRing()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        final Integer first = irisPending.keySet().iterator().next();
+        irisPending.remove(first).run();
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        clearInvocations(walker);
+
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location behind = new Location(world, cell.x() - (4 * facing.getModX()) + 0.5,
+            cell.y() - (4 * facing.getModY()), cell.z() - (4 * facing.getModZ()) + 0.5);
+        when(walker.getLocation()).thenReturn(behind);
+        when(walker.getEyeLocation()).thenReturn(behind);
+        GatePreviews.moved(walker, behind);
+
+        final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(walker, 0);
+        assertFalse(inRing.isEmpty(), "the covered rings are sent to them");
+        assertTrue(inRing.values().stream().allMatch(d -> d == portalData()),
+            "as the wormhole, not the bare opening the covering left: " + inRing.values());
+    }
+
+    /**
+     * A preview cleared while its see-through iris sweeps takes its stand-in wormhole back from
+     * everybody it was drawn for (#442). Taking back only asked after viewers with a settled side,
+     * and a sweep records none, so the ice stayed on them for good. Found by a Fable review.
+     */
+    @Test
+    void aPreviewClearedMidSweepTakesItsIceBack()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        for (int step = 0; (step < 2) && !irisPending.isEmpty(); step++)
         {
-            ring.add(List.of(cell.x(), cell.y(), cell.z()));
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
         }
-        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
-        verify(walker, org.mockito.Mockito.atLeast(0)).sendBlockChange(where.capture(), any(BlockData.class));
-        assertTrue(where.getAllValues().stream().noneMatch(at -> ring.contains(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()))),
-            "nothing is sent into the ring itself: its wormhole stays");
+        final BlockData ice = data.get(Material.BLUE_ICE);
+        final BlockData packed = data.get(Material.PACKED_ICE);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(d -> (d == ice) || (d == packed)),
+            "ice stands behind the covered rings");
+
+        GatePreviews.clearAll(owner);
+
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(d -> (d == ice) || (d == packed)),
+            "and none is left once the preview is gone");
     }
 }

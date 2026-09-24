@@ -59,7 +59,10 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     private final Map<UUID, List<IrisLayering.Placement>> sides = new HashMap<>();
     /** Whether an iris sweep is crossing, during which the layers are left where they are. */
     private boolean sweeping;
-    /** Where each viewer's layers were drawn by the sweep crossing now; empty between sweeps (#442). */
+    /**
+     * Where each viewer's layers were drawn by the latest sweep (#442). Cleared when the next one
+     * starts, not when this one ends, so taking a preview back can still find what it sent.
+     */
     private final Map<UUID, List<IrisLayering.Placement>> sweepSides = new HashMap<>();
     private final int lastWave;
     /** The shape layers something is built in, front to back as the shape numbers them. */
@@ -274,10 +277,13 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     void sweeping(final boolean crossing)
     {
         sweeping = crossing;
-        sweepSides.clear();
+        if (crossing)
+        {
+            sweepSides.clear();
+        }
     }
 
-    /** @return where the sweep crossing now last drew each viewer's layers */
+    /** @return where the latest sweep last drew each viewer's layers */
     Map<UUID, List<IrisLayering.Placement>> sweepSides()
     {
         return sweepSides;

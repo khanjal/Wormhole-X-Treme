@@ -1103,6 +1103,11 @@ public final class GatePreviews
             preview.open(false);
             takeBack(owner, preview, preview.woosh());
             takeBack(owner, preview, preview.opening());
+            // Shut mid-sweep: the sweep drew the wormhole off the ring for those in front (#442).
+            watching(owner, preview).stream()
+                .filter(viewer -> preview.sweepSides().containsKey(viewer.getUniqueId()))
+                .forEach(viewer -> handBackOffsets(viewer, preview));
+            preview.sweepSides().clear();
             sound(owner, preview, ConfigManager.getGateSoundClose(), 1.0f);
             restyle(preview);
             draw(owner, preview);
@@ -1170,8 +1175,18 @@ public final class GatePreviews
         // A stacked wormhole stood a block off the ring, which the cells above do not cover.
         // Only for viewers who were drawn stacked: everybody else was only ever sent the ring.
         watching(owner, preview).stream()
-            .filter(viewer -> preview.sides().containsKey(viewer.getUniqueId()))
+            .filter(viewer -> drewOffsetsFor(preview, viewer))
             .forEach(viewer -> handBackOffsets(viewer, preview));
+    }
+
+    /**
+     * Whether a viewer may have been drawn a wormhole off the ring: settled stacked, or by a sweep,
+     * which draws it there with no side recorded in {@code sides()} (#442).
+     */
+    private static boolean drewOffsetsFor(final GatePreview preview, final Player viewer)
+    {
+        return preview.sides().containsKey(viewer.getUniqueId())
+            || preview.sweepSides().containsKey(viewer.getUniqueId());
     }
 
     /** The cells a fake block stands at now. */
@@ -1262,7 +1277,7 @@ public final class GatePreviews
         takeBackFrom(gone, preview, sentCells(preview));
         // Only if they had a side, and before it is forgotten: a viewer drawn from the front
         // had their wormhole a block off the ring, which the cells above know nothing about.
-        if (preview.sides().containsKey(gone.getUniqueId()))
+        if (drewOffsetsFor(preview, gone))
         {
             handBackOffsets(gone, preview);
         }
@@ -2077,6 +2092,12 @@ public final class GatePreviews
             {
                 player.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
                     horizonData(preview, ring, now.get(index)));
+            }
+            else
+            {
+                // The ring keeps the wormhole here, but the sweep may have taken this viewer's back
+                // when it covered the ring from their old side.
+                sendTo(player, preview, List.of(preview.opening().get(index)));
             }
         }
     }
