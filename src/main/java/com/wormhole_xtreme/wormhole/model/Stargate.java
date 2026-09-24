@@ -1112,7 +1112,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom iris material.
      * 
-     * @return the per-gate override, or null to resolve it from the shape and palette
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomIrisMaterial()
     {
@@ -1122,7 +1122,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom light material.
      * 
-     * @return the per-gate override, or null to resolve it from the shape and palette
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomLightMaterial()
     {
@@ -1132,7 +1132,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom light ticks.
      * 
-     * @return the override in ticks, negative to use the shape's
+     * @return the override in ticks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomLightTicks()
     {
@@ -1142,7 +1142,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom portal material.
      * 
-     * @return the per-gate override, or null to resolve it from the shape and palette
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomPortalMaterial()
     {
@@ -1152,7 +1152,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom structure material.
      * 
-     * @return the per-gate override, or null to resolve it from the shape and palette
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomStructureMaterial()
     {
@@ -1162,7 +1162,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh depth.
      * 
-     * @return the override in blocks, negative to use the shape's
+     * @return the override in blocks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshDepth()
     {
@@ -1172,7 +1172,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh depth squared.
      * 
-     * @return the override squared, negative to use the shape's
+     * @return the override squared, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshDepthSquared()
     {
@@ -1182,7 +1182,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh ticks.
      * 
-     * @return the override in ticks, negative to use the shape's
+     * @return the override in ticks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshTicks()
     {
@@ -1707,7 +1707,7 @@ public class Stargate implements GateIris
      * Sets the gate custom iris material.
      * 
      * @param gateCustomIrisMaterial
-     *            null to resolve it from the shape and palette
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomIrisMaterial(final Material gateCustomIrisMaterial)
     {
@@ -1718,7 +1718,7 @@ public class Stargate implements GateIris
      * Sets the gate custom light material.
      * 
      * @param gateCustomLightMaterial
-     *            null to resolve it from the shape and palette
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomLightMaterial(final Material gateCustomLightMaterial)
     {
@@ -1729,7 +1729,7 @@ public class Stargate implements GateIris
      * Sets the gate custom light ticks.
      * 
      * @param gateCustomLightTicks
-     *            in ticks, negative to use the shape's
+     *            in ticks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomLightTicks(final int gateCustomLightTicks)
     {
@@ -1740,7 +1740,7 @@ public class Stargate implements GateIris
      * Sets the gate custom portal material.
      * 
      * @param gateCustomPortalMaterial
-     *            null to resolve it from the shape and palette
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomPortalMaterial(final Material gateCustomPortalMaterial)
     {
@@ -1751,7 +1751,7 @@ public class Stargate implements GateIris
      * Sets the gate custom structure material.
      * 
      * @param gateCustomStructureMaterial
-     *            null to resolve it from the shape and palette
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomStructureMaterial(final Material gateCustomStructureMaterial)
     {
@@ -1762,7 +1762,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh depth.
      * 
      * @param gateCustomWooshDepth
-     *            in blocks, negative to use the shape's
+     *            in blocks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshDepth(final int gateCustomWooshDepth)
     {
@@ -1773,7 +1773,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh depth squared.
      * 
      * @param gateCustomWooshDepthSquared
-     *            the depth squared, negative to use the shape's
+     *            the depth squared, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshDepthSquared(final int gateCustomWooshDepthSquared)
     {
@@ -1784,7 +1784,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh ticks.
      * 
      * @param gateCustomWooshTicks
-     *            in ticks, negative to use the shape's
+     *            in ticks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshTicks(final int gateCustomWooshTicks)
     {

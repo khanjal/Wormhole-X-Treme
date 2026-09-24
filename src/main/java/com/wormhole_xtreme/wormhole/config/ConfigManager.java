@@ -217,15 +217,6 @@ public class ConfigManager
         MIRROR_VIEW_DEPTH,
 
         /**
-         * Whether a mirror names itself above the hotbar to whoever is looking at it.
-         *
-         * <p>A stamped banner looks like scenery, and a corridor of them looks like
-         * decoration. Nothing about a mirror says it is a door until somebody happens to right
-         * click it, which is a thing players do to signs and not to wall hangings.
-         *
-         * <p>Turning this off stops the signpost pass before it looks at anybody.
-         */
-        /**
          * Whether a viewer's own fog is pulled in to where a mirror's room ends.
          *
          * <p>Paper only, and off by default. The room ending is not the world ending: the client
