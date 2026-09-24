@@ -377,7 +377,8 @@ from this one.
 ## Metrics
 
 The plugin sends anonymous counts to [bStats](https://bstats.org), which is how its
-Minecraft-version and feature decisions get made from data rather than guesses.
+Minecraft-version and feature decisions get made from data rather than guesses. Everything
+collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269).
 
 | Setting | Default | What it does |
 |---|---|---|
