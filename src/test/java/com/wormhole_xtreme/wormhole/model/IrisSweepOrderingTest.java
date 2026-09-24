@@ -761,4 +761,29 @@ class IrisSweepOrderingTest
         assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
         verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
     }
+
+    /**
+     * A gate removed while its iris sweeps calls the sweep off (#434), as a shutdown does. A
+     * refresh removes the gate and registers a fresh one in its place, so a sweep left running
+     * would draw over the new gate and finish by filling it with what it started with.
+     */
+    @Test
+    void aGateRemovedMidSweepCallsTheSweepOff()
+    {
+        gate.setGateActive(true);
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            StargateManager.removeStargate(gate, null, false);
+        }
+        clearInvocations(watcher);
+        finishSweep();
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
+    }
 }
