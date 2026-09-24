@@ -87,6 +87,10 @@ class StargateLifecycle
         gate.toggleDialLeverState(false);
         gate.toggleRedstoneGateActivatedPower();
 
+        // Called off here, not only through setIrisState below, which a gate whose iris is not
+        // shut by default never reaches: an opening sweep left running went on painting the
+        // wormhole it started with into the idle gate, and its last step filled it in (#434).
+        StargateIrisAnimator.cancel(gate);
         if (gate.isGateIrisDefaultActive())
         {
             setIrisState(gate, gate.isGateIrisDefaultActive());

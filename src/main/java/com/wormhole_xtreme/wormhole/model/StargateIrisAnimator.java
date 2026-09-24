@@ -229,6 +229,13 @@ public final class StargateIrisAnimator
         }
         if ((gate != null) && (gate.getGateWorld() != null))
         {
+            // An opening sweep leaves a built iris standing until its last step, which is dropped
+            // here: take it away now, to what the opening shows at this moment rather than what it
+            // showed when the sweep began (#434).
+            if ((task != null) && !gate.isGateIrisActive() && !StargateBlockSetup.irisIsDrawn(gate))
+            {
+                gate.fillGateInterior(gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR);
+            }
             StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
         }
     }

@@ -1406,6 +1406,9 @@ public class StargateManager
         // iris, because this path is also how a refresh hands a gate back: the flag has to
         // survive that, and addStargate puts the gate back in the set when it returns.
         setGateIrisState(s, false);
+        // A sweep still running would go on drawing over a gate that has gone, or over the one a
+        // refresh registers in its place, and finish by filling it with what it started with (#434).
+        StargateIrisAnimator.cancel(s);
         StargateDBManager.removeStargate(s);
         detachFromNetwork(s);
         unindexGateBlocks(s);
