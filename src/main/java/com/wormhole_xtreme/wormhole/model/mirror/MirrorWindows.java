@@ -281,8 +281,6 @@ public final class MirrorWindows
     /**
      * What a player's view is doing, for {@code mirror debug}.
      *
-     * @param player
-     *            the player
      * @return lines to say
      */
     public static List<String> describe(final Player player)
@@ -342,8 +340,6 @@ public final class MirrorWindows
      * What a player's view is doing, a line a mirror and one for the last redraw, for
      * {@code mirror debug} without {@code all}.
      *
-     * @param player
-     *            the player
      * @return lines to say
      */
     public static List<String> summary(final Player player)
@@ -715,8 +711,6 @@ public final class MirrorWindows
      *
      * @param player
      *            who clicked
-     * @param clicked
-     *            the block clicked
      * @param face
      *            the face of it clicked, or null if it is not known
      */
@@ -2752,12 +2746,11 @@ public final class MirrorWindows
      * A block position packed into one long: 26 bits of x, 26 of z, 12 of y.
      *
      * @param x
-     *            x
+     *            block x; only its low 26 bits are kept
      * @param y
-     *            y
+     *            block y; only its low 12 bits are kept
      * @param z
-     *            z
-     * @return the key
+     *            block z; only its low 26 bits are kept
      */
     static long key(final int x, final int y, final int z)
     {

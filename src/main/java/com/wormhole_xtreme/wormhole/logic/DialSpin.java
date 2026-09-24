@@ -362,7 +362,6 @@ public final class DialSpin
      *            the tick, from 0
      * @param ticks
      *            how many ticks the spin takes
-     * @return the lit cells
      */
     public Set<Cell> lit(final DialSpinPattern pattern, final int glyph, final int tick, final int ticks)
     {

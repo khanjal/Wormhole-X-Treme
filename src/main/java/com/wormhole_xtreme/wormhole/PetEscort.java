@@ -153,8 +153,6 @@ public final class PetEscort
      *
      * @param entity
      *            an entity near the owner
-     * @param ownerId
-     *            the owner
      * @return true if it should travel with them
      */
     static boolean follows(final Entity entity, final UUID ownerId)
@@ -221,8 +219,6 @@ public final class PetEscort
     /**
      * Sends one pet to its owner, unless it no longer needs or wants to come.
      *
-     * @param pet
-     *            the pet
      * @param ownerId
      *            its owner
      * @param arrival

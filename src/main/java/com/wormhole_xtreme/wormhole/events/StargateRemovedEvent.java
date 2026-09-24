@@ -61,8 +61,6 @@ public class StargateRemovedEvent extends StargateEvent
 
     /**
      * The handler list for this event type.
-     *
-     * @return the handlers
      */
     public static HandlerList getHandlerList()
     {

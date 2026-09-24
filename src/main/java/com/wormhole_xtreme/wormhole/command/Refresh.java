@@ -27,8 +27,6 @@ public class Refresh implements CommandExecutor
     /**
      * Waits for the player's next DHD click to regenerate that gate.
      *
-     * @param p
-     *            the player
      * @param clearLiquid
      *            whether to clear water left standing in the gate, as {@code -water} asks
      */

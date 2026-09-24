@@ -28,14 +28,8 @@ class ConfigurationFlatFile
     /**
      * Creates the new header.
      * 
-     * @param output
-     *            the output
-     * @param title
-     *            the title
-     * @param subtitle
-     *            the subtitle
      * @param firstHeader
-     *            the first header
+     *            true for the file's first header, which has no rule above it
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */
@@ -62,14 +56,8 @@ class ConfigurationFlatFile
     /**
      * Creates the new setting.
      * 
-     * @param output
-     *            the output
-     * @param name
-     *            the name
-     * @param value
-     *            the value
      * @param description
-     *            the description
+     *            wrapped at about 80 characters as it is written
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */
@@ -166,12 +154,9 @@ class ConfigurationFlatFile
      * Gets the value from setting.
      * 
      * @param input
-     *            the input
-     * @param name
-     *            the name
+     *            the legacy flat file; a missing one reads as every setting absent
      * @param defaultVal
-     *            the default val
-     * @return the value from setting
+     *            returned, trimmed, when the file does not have the setting
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */

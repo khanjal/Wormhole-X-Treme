@@ -284,8 +284,6 @@ public class RingCommand implements SubCommand
      *
      * @param one
      *            one end
-     * @param other
-     *            the other
      * @return the distance in whole blocks
      */
     private static long apart(final Ring one, final Ring other)
@@ -532,9 +530,6 @@ public class RingCommand implements SubCommand
 
     /**
      * Lists the pairs this player owns.
-     *
-     * @param player
-     *            the player
      */
     private static void list(final Player player)
     {
@@ -560,8 +555,6 @@ public class RingCommand implements SubCommand
     /**
      * Removes a pair, both ends at once.
      *
-     * @param player
-     *            the player
      * @param args
      *            the command arguments
      */
@@ -595,8 +588,6 @@ public class RingCommand implements SubCommand
     /**
      * Changes one setting on a ring or a pair.
      *
-     * @param player
-     *            the player
      * @param args
      *            the command arguments
      */
@@ -733,8 +724,6 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            who asked
-     * @param pair
-     *            the pair
      * @param value
      *            the access level named
      */
@@ -757,8 +746,6 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            who asked
-     * @param pair
-     *            the pair
      * @param only
      *            the end underfoot, or null to set both
      * @param value
@@ -801,10 +788,6 @@ public class RingCommand implements SubCommand
      * normal slab. The lights and the deploy style have no history to go back to -- nobody
      * builds those -- so those do take the defaults.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @param only
      *            the single end to reset, or null for both
      */
@@ -836,10 +819,6 @@ public class RingCommand implements SubCommand
     /**
      * Sets the travelling slab material on one end or both.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @param only
      *            the single end to change, or null for both
      * @param value
@@ -883,10 +862,6 @@ public class RingCommand implements SubCommand
      * changes the in-memory value itself and saves immediately, so there is nothing left to
      * clobber it.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @param only
      *            the single end to change, or null for both
      * @param value
@@ -917,10 +892,6 @@ public class RingCommand implements SubCommand
     /**
      * Sets the countdown light material on one end or both.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @param only
      *            the single end to change, or null for both
      * @param value
@@ -956,8 +927,6 @@ public class RingCommand implements SubCommand
     /**
      * Adds or removes somebody from a private pair's allow list.
      *
-     * @param player
-     *            the player
      * @param args
      *            the command arguments
      * @param allowing
@@ -1006,8 +975,6 @@ public class RingCommand implements SubCommand
      * between players too. The quota is checked against the recipient, because otherwise it
      * could be walked around entirely by having somebody else build and hand over.
      *
-     * @param player
-     *            the player
      * @param args
      *            the command arguments
      */
@@ -1062,8 +1029,6 @@ public class RingCommand implements SubCommand
     /**
      * Finds the pair a command should act on.
      *
-     * @param player
-     *            the player
      * @param args
      *            the command arguments
      * @param idAt
@@ -1094,8 +1059,6 @@ public class RingCommand implements SubCommand
      *
      * <p>The same index lookup the move path makes, so this costs nothing.
      *
-     * @param player
-     *            the player
      * @return the pair, or null
      */
     private static RingPair standingIn(final Player player)
@@ -1107,8 +1070,6 @@ public class RingCommand implements SubCommand
     /**
      * The exact end the player is standing in.
      *
-     * @param player
-     *            the player
      * @return the ring, or null
      */
     private static Ring endUnderfoot(final Player player)
@@ -1120,8 +1081,6 @@ public class RingCommand implements SubCommand
     /**
      * Looks the player's feet up in the ring index.
      *
-     * @param player
-     *            the player
      * @return what is there, or null
      */
     private static RingIndex.RingEnd endAt(final Player player)
@@ -1199,9 +1158,6 @@ public class RingCommand implements SubCommand
 
     /**
      * Prints what this command can do.
-     *
-     * @param player
-     *            the player
      */
     private static void help(final Player player)
     {
@@ -1218,7 +1174,7 @@ public class RingCommand implements SubCommand
      * A UUID from a string, or null when it is not one.
      *
      * @param text
-     *            the text
+     *            not null, which throws rather than answering null
      * @return the UUID, or null
      */
     static UUID parseUuid(final String text)

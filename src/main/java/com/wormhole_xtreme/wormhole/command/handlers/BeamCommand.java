@@ -296,7 +296,6 @@ public class BeamCommand implements SubCommand
      * console or a command block to beam <em>from</em> -- unlike {@link #adminSend}, which
      * moves someone else and has no such problem.
      *
-     * @param sender the command sender
      * @param args the full argument array; the target starts at index 3
      */
     private void adminGoto(final CommandSender sender, final String[] args)

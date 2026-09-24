@@ -213,8 +213,6 @@ public final class GateRederivation
      * most of those blocks wins. The DHD's own layout wins any tie, so a gate built as its shape
      * says is laid exactly as before. Nothing is read from the world.
      *
-     * @param gate
-     *            the gate
      * @param shape
      *            the shape to lay
      * @return the layout, or null with no button, facing or world to start from
@@ -246,8 +244,6 @@ public final class GateRederivation
     /**
      * Whether every cell is one the gate recorded as its frame or its lights.
      *
-     * @param gate
-     *            the gate
      * @param cells
      *            cells laid from its shape
      * @return true if none of them falls outside the gate
@@ -395,8 +391,6 @@ public final class GateRederivation
      * of its frame and chevron cells is read. Nothing is placed. At {@link #NAMED_SHAPE_MINIMUM_PERCENT}
      * or more of them standing, the gate takes the shape; below that it keeps the one it had.
      *
-     * @param gate
-     *            the gate
      * @param shape
      *            the shape named for it
      * @return how well it fits, and what is missing
@@ -634,8 +628,6 @@ public final class GateRederivation
      * rather than the gate's recorded name holder, which a gate saved by an older version may not
      * have where the sign actually is.
      *
-     * @param gate
-     *            the gate
      * @return the blocks put back, empty if no sign stood in the frame
      */
     public static List<Block> restoreFrameUnderSigns(final Stargate gate)
@@ -675,10 +667,6 @@ public final class GateRederivation
     /**
      * What a block of the gate's frame is built from, if the block is one.
      *
-     * @param gate
-     *            the gate
-     * @param block
-     *            the block
      * @return the material, or null if the block is not a frame or chevron cell of the gate's shape
      */
     public static org.bukkit.Material frameMaterialAt(final Stargate gate, final Block block)
@@ -711,7 +699,6 @@ public final class GateRederivation
      *
      * @param frameBlocks
      *            frame and chevron blocks the shape has
-     * @return the cap
      */
     public static int fillCap(final int frameBlocks)
     {

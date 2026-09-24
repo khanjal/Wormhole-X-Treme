@@ -127,7 +127,6 @@ class IrisLayeringTest
      *            the cell's z
      * @param truth
      *            the block data a hand-back should send, or null if the test never checks
-     * @return the block
      */
     private Block blockAt(final int z, final BlockData truth)
     {
@@ -143,7 +142,6 @@ class IrisLayeringTest
      *            the cell's z
      * @param truth
      *            the block data a hand-back should send, or null if the test never checks
-     * @return the block
      */
     private Block blockAt(final int x, final int z, final BlockData truth)
     {

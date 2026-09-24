@@ -121,8 +121,6 @@ public final class MaterialGroupRegistry
 
     /**
      * Gets every defined group, in declaration order.
-     *
-     * @return the groups
      */
     public static Collection<MaterialGroup> getGroups()
     {
@@ -373,8 +371,6 @@ public final class MaterialGroupRegistry
      * group belongs to the material — several shapes may end up sharing it, and naming it
      * "MinimalSignDial" would be actively misleading.
      *
-     * @param frame
-     *            the frame material
      * @return a suggested group name
      */
     static String suggestGroupName(final Material frame)

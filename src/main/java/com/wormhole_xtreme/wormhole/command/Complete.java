@@ -45,11 +45,8 @@ public class Complete implements CommandExecutor, TabCompleter
     /**
      * Do complete.
      * 
-     * @param player
-     *            the player
      * @param args
-     *            the args
-     * @return true, if successful
+     *            the gate's name, or {@code cancel}, then any {@code key=value} options
      */
     private static void doComplete(final Player player, final String[] args)
     {

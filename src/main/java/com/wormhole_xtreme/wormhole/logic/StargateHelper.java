@@ -7,12 +7,10 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 
-import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
-import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
@@ -24,8 +22,7 @@ import java.util.List;
 /**
  * Lightweight, trimmed Stargate helper. Responsibilities:
  * - Provide geometry utility used by unit tests
- * - Delegate serialization to GateSerializer
- * - Delegate shape loading/registry to StargateShapeRegistry
+ * - Delegate shape loading to StargateShapeRegistry
  * - Provide small stubs for legacy APIs still referenced elsewhere
  */
 public final class StargateHelper
@@ -129,26 +126,6 @@ public final class StargateHelper
     public static void loadShapes()
     {
         StargateShapeRegistry.loadShapes();
-    }
-
-    public static StargateShape getStargateShape(final String name)
-    {
-        return StargateShapeRegistry.getStargateShape(name);
-    }
-
-    public static boolean isStargateShape(final String name)
-    {
-        return StargateShapeRegistry.isStargateShape(name);
-    }
-
-    public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
-    {
-        return GateSerializer.parseVersionedData(gateData, w, name, network);
-    }
-
-    public static byte[] stargateToBinary(final Stargate s)
-    {
-        return GateSerializer.stargateToBinary(s);
     }
 
     // ---------------------------------------------------------------------
@@ -417,8 +394,6 @@ public final class StargateHelper
      * block: detection runs up to 156 times on a single click, and the alternative is a scan
      * of every wave for every frame block of every candidate shape.
      *
-     * @param layer
-     *            the layer
      * @return the keys of its light-marked cells, empty if it has none
      */
     static java.util.Set<Long> lightCells(final StargateShapeLayer layer)
@@ -452,7 +427,7 @@ public final class StargateHelper
      *
      * @param pos
      *            the shape position
-     * @return the key
+     * @return elements 1 and 2 of the position, in the high and low 32 bits
      */
     static Long cellKey(final Integer[] pos)
     {
@@ -615,7 +590,6 @@ public final class StargateHelper
      *            the frame material
      * @param chevronMat
      *            the chevron material, or null if the shape has none
-     * @return true if the cell matches
      */
     private static boolean cellMatches(final org.bukkit.Material found, final Integer[] pos,
         final java.util.Set<Long> litCells, final org.bukkit.Material structMat,
@@ -957,7 +931,11 @@ public final class StargateHelper
             // so the player appears just outside the portal rather than
             // being placed inside it. Use facing's mod components directly.
             final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
-            try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final RuntimeException ignore) { /* best effort */ }
+            try
+            {
+                tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing()));
+            }
+            catch (final RuntimeException ignore) { /* best effort */ }
             tpLoc.setPitch(0f);
             gate.setGatePlayerTeleportLocation(tpLoc);
         }

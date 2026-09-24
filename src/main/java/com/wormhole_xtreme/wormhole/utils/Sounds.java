@@ -73,7 +73,7 @@ public final class Sounds
      * @param sound
      *            the sound name; empty plays nothing
      * @param volume
-     *            the volume
+     *            1.0 is normal; higher carries further rather than louder
      * @param pitch
      *            the pitch, clamped to what will play
      */

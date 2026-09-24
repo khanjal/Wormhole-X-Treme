@@ -137,8 +137,6 @@ public final class SubCommands
          * commands and expect their own arguments to start at index 0. The registry knows
          * which is which so neither had to be rewritten.
          *
-         * @param sender
-         *            the command sender
          * @param args
          *            the full argument array, subcommand at index 0
          * @return true if the command was handled

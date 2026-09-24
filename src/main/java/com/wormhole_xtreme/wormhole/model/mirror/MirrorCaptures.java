@@ -131,12 +131,10 @@ public final class MirrorCaptures
     interface ChunkReader
     {
         /**
-         * @param world
-         *            the world
          * @param chunkX
-         *            chunk x
+         *            chunk x, which is block x shifted right four
          * @param chunkZ
-         *            chunk z
+         *            chunk z, which is block z shifted right four
          * @return a snapshot of it, loading it if it must
          */
         ChunkSnapshot read(World world, int chunkX, int chunkZ);
@@ -196,8 +194,6 @@ public final class MirrorCaptures
     /**
      * The key a mirror's room is captured under, which is its capture file's name.
      *
-     * @param mirror
-     *            the mirror
      * @return the key, or null if the mirror has no room
      */
     public static String keyFor(final QuantumMirror mirror)
@@ -307,8 +303,6 @@ public final class MirrorCaptures
      * cannot be retaken anyway should not be asked for every sweep. A file of an earlier kind
      * does not load at all, and the mirror asks for a fresh one the same way.
      *
-     * @param mirror
-     *            the mirror
      * @param capture
      *            its capture
      * @return true if a capture taken now would reach further, or know more
@@ -370,8 +364,6 @@ public final class MirrorCaptures
     /**
      * Takes a mirror's capture again, keeping the old one until the new one is ready.
      *
-     * @param mirror
-     *            the mirror
      * @return true if it is being taken
      */
     public static boolean retake(final QuantumMirror mirror)
@@ -481,8 +473,6 @@ public final class MirrorCaptures
     /**
      * What a mirror's capture is, for {@code mirror debug}.
      *
-     * @param mirror
-     *            the mirror
      * @return lines to say
      */
     public static List<String> describe(final QuantumMirror mirror)
@@ -528,8 +518,6 @@ public final class MirrorCaptures
     /**
      * What a mirror's capture is, on one line, for {@code mirror debug} without {@code all}.
      *
-     * @param mirror
-     *            the mirror
      * @return the line
      */
     public static String summary(final QuantumMirror mirror)
@@ -558,8 +546,6 @@ public final class MirrorCaptures
      *
      * @param destination
      *            the place it is of
-     * @param capture
-     *            the capture
      */
     static void install(final MirrorPoint destination, final MirrorCapture capture)
     {

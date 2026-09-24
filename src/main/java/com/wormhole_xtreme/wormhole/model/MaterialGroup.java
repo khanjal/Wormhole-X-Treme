@@ -124,8 +124,6 @@ public final class MaterialGroup
 
     /**
      * Gets the group name.
-     *
-     * @return the name
      */
     public String getName()
     {
@@ -135,8 +133,6 @@ public final class MaterialGroup
     /**
      * Gets the frame material. This is what identifies the group during gate detection,
      * so it must be unique across groups.
-     *
-     * @return the structure material
      */
     public Material getStructureMaterial()
     {
@@ -145,8 +141,6 @@ public final class MaterialGroup
 
     /**
      * Gets the open-wormhole material.
-     *
-     * @return the portal material
      */
     public Material getPortalMaterial()
     {
@@ -155,8 +149,6 @@ public final class MaterialGroup
 
     /**
      * Gets the engaged-iris material.
-     *
-     * @return the iris material
      */
     public Material getIrisMaterial()
     {
@@ -165,8 +157,6 @@ public final class MaterialGroup
 
     /**
      * Gets the active-light material.
-     *
-     * @return the light material
      */
     public Material getLightMaterial()
     {
@@ -176,8 +166,6 @@ public final class MaterialGroup
     /**
      * Gets the wall-sign material used for the gate's name sign. A nether-themed palette
      * looks wrong with an oak sign, so this belongs to the palette like everything else.
-     *
-     * @return the sign material
      */
     public Material getSignMaterial()
     {

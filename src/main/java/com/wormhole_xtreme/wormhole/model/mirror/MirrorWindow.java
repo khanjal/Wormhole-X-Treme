@@ -71,13 +71,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
 
     /**
      * A block position, or a one-block step along the ground when {@code y} is zero.
-     *
-     * @param x
-     *            x
-     * @param y
-     *            y
-     * @param z
-     *            z
      */
     public record Spot(int x, int y, int z)
     {
@@ -133,8 +126,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /**
      * The window a wall banner makes, if it can make one.
      *
-     * @param banner
-     *            the banner block
      * @param facing
      *            which way the banner faces: one of the four cardinals a wall banner hangs
      * @param destination
@@ -149,8 +140,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /**
      * The window a wall banner makes, onto somewhere or as a reflection of its own room.
      *
-     * @param banner
-     *            the banner block
      * @param facing
      *            which way the banner faces
      * @param destination
@@ -407,8 +396,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /**
      * Whether another window opens in the same face.
      *
-     * @param other
-     *            the other window
      * @return true if a line of sight through one could instead pass through the other
      */
     boolean sharesFace(final MirrorWindow other)
@@ -419,12 +406,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /**
      * Where a block behind the opening appears on its face, seen from an eye in front of it.
      *
-     * @param eyeX
-     *            the eye, x
-     * @param eyeY
-     *            the eye, y
-     * @param eyeZ
-     *            the eye, z
      * @param x
      *            the block, x
      * @param y
@@ -610,12 +591,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * <p>For real blocks on the viewer's side, such as a corridor's walls or a hut's sides and
      * roof, which hide parts of the face beside the opening as surely as the wall itself does.
      *
-     * @param eyeX
-     *            the eye, x
-     * @param eyeY
-     *            the eye, y
-     * @param eyeZ
-     *            the eye, z
      * @param x
      *            the block, x
      * @param y

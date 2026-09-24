@@ -114,8 +114,6 @@ public final class LegacyDatabaseImporter
      * <p>It costs nothing to leave out, either. Anyone holding gates in one of these
      * databases was necessarily running a server where this driver loaded, because the plugin
      * that wrote it needed the same one. Where the import is wanted, it is already there.
-     *
-     * @return true if a driver is available
      */
     public static boolean driverAvailable()
     {
@@ -374,8 +372,6 @@ public final class LegacyDatabaseImporter
     /**
      * Reads a column that may not exist on an older schema.
      *
-     * @param rows
-     *            the result set
      * @param name
      *            the column
      * @return its value, or null if the column is not there

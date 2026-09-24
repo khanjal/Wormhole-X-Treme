@@ -245,8 +245,6 @@ public final class MirrorText
      * exhaustive enum switch compiled against one Minecraft version throws on a later one that
      * added a constant, and a banner sentence is not worth an exception.
      *
-     * @param colour
-     *            the dye
      * @return the dye's name in its own colour, ending back in the body colour
      */
     public static String dye(final DyeColor colour)
@@ -258,8 +256,6 @@ public final class MirrorText
     /**
      * The chat colour nearest one dye.
      *
-     * @param colour
-     *            the dye
      * @return its colour code
      */
     private static String code(final DyeColor colour)

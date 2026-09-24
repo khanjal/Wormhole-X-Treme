@@ -47,13 +47,7 @@ public final class GateInteractionHandler
 
     /**
      * Button lever hit.
-     * 
-     * @param player
-     *            the p
-     * @param clickedBlock
-     *            the clicked
-     * @param direction
-     *            the direction
+     *
      * @return true, if successful
      */
     private static boolean buttonLeverHit(final Player player, final Block clickedBlock,
@@ -405,10 +399,6 @@ public final class GateInteractionHandler
     /**
      * Handle gate activation switch.
      * 
-     * @param stargate
-     *            the stargate
-     * @param player
-     *            the player
      * @return true, if successful
      */
     static boolean handleGateActivationSwitch(final Stargate stargate, final Player player)
@@ -600,8 +590,6 @@ public final class GateInteractionHandler
     /**
      * Handle player interact event.
      * 
-     * @param event
-     *            the event
      * @return true, if successful
      */
     static boolean handlePlayerInteractEvent(final PlayerInteractEvent event)
@@ -827,7 +815,6 @@ public final class GateInteractionHandler
      *
      * @param candidate
      *            the candidate dial block
-     * @return the faces to probe
      */
     private static BlockFace[] probeFaces(final Block candidate)
     {

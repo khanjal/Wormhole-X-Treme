@@ -170,7 +170,7 @@ public class GateEditCommand implements SubCommand
      * @param sender
      *            who typed it
      * @param gateName
-     *            the gate
+     *            the gate's name; one that matches no gate is reported to the sender
      * @param value
      *            a pattern, {@code default}, or empty
      * @return true, the command was handled
@@ -307,8 +307,6 @@ public class GateEditCommand implements SubCommand
 
     /**
      * Every material group there is, by name.
-     *
-     * @return the group names
      */
     public static List<String> groupNames()
     {

@@ -123,8 +123,6 @@ public final class RingManager
     /**
      * Every pair in one world.
      *
-     * @param worldName
-     *            the world
      * @return the pairs in it
      */
     public static List<RingPair> getPairsInWorld(final String worldName)
@@ -145,7 +143,6 @@ public final class RingManager
      *
      * @param uuid
      *            the player's UUID string
-     * @return the count
      */
     public static int countPairsOwnedBy(final String uuid)
     {
@@ -293,8 +290,6 @@ public final class RingManager
      * <p>Eight hex characters, which is short enough to type into a command and wide enough
      * that a collision needs tens of thousands of pairs before it is worth thinking about.
      * The loop makes it certain rather than merely likely.
-     *
-     * @return the new id
      */
     public static String newId()
     {

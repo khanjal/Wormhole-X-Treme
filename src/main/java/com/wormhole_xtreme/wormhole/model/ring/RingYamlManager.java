@@ -62,8 +62,6 @@ public final class RingYamlManager
      *
      * @param directory
      *            the rings directory
-     * @param worldName
-     *            the world
      * @return the file for that world
      */
     static File fileForWorld(final File directory, final String worldName)
@@ -179,7 +177,6 @@ public final class RingYamlManager
      *            the world it belongs to
      * @param map
      *            the stored fields
-     * @return the pair
      */
     private static RingPair readPair(final String id, final String worldName,
         final Map<String, Object> map)
@@ -238,7 +235,7 @@ public final class RingYamlManager
      *
      * @param stored
      *            the stored value, possibly null or nonsense
-     * @return the style
+     * @return the stored style, or {@code CONCURRENT} when it is missing or unreadable
      */
     private static RingStyle readStyle(final Object stored)
     {
@@ -263,7 +260,6 @@ public final class RingYamlManager
      *            the stored fields
      * @param fallback
      *            the pair-level style to use when this end names none of its own
-     * @return the ring
      */
     private static Ring readRing(final Map<String, Object> map, final RingStyle fallback)
     {
@@ -431,7 +427,6 @@ public final class RingYamlManager
      *
      * @param directory
      *            the rings directory
-     * @return the pending file
      */
     static File pendingFile(final File directory)
     {

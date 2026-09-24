@@ -68,7 +68,6 @@ class DefaultSettings
      *            a line or two about the group as a whole, or empty for none
      * @param settings
      *            its settings, in the order the file writes them
-     * @return the group
      */
     private static Group group(final String heading, final String intro, final Setting... settings)
     {

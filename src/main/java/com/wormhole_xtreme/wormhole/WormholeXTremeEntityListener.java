@@ -32,8 +32,6 @@ class WormholeXTremeEntityListener implements Listener
     /**
      * Handle entity explode event.
      * 
-     * @param explodeBlocks
-     *            the explode blocks
      * @return true, if successful
      */
     private static boolean handleEntityExplodeEvent(final List<Block> explodeBlocks)
@@ -60,8 +58,6 @@ class WormholeXTremeEntityListener implements Listener
     /**
      * Handle Player damage event.
      * 
-     * @param event
-     *            the event
      * @return true, if successful
      */
     private static boolean handlePlayerDamageEvent(final EntityDamageEvent event)

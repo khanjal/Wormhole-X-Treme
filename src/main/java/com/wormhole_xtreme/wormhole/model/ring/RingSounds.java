@@ -124,8 +124,6 @@ public final class RingSounds
     /**
      * Plays a ring for one end, if one of its rings starts moving on this frame.
      *
-     * @param world
-     *            the world
      * @param ring
      *            the end
      * @param sound
@@ -183,7 +181,7 @@ public final class RingSounds
      *
      * @param index
      *            the ring, counting from the first one out
-     * @return the pitch
+     * @return the lowest pitch for the first ring, one step higher for each ring after
      */
     static float pitchFor(final int index)
     {
@@ -214,14 +212,8 @@ public final class RingSounds
     /**
      * Plays one sound at both ends of a pair.
      *
-     * @param world
-     *            the world
-     * @param pair
-     *            the pair
      * @param sound
      *            the sound name
-     * @param pitch
-     *            the pitch
      */
     private static void atBothEnds(final World world, final RingPair pair, final String sound,
         final float pitch)
@@ -241,8 +233,6 @@ public final class RingSounds
      * -- and for a ceiling ring, the floor its rings drop to rather than the plane it hangs
      * from.
      *
-     * @param ring
-     *            the ring
      * @return the sound's location
      */
     private static Location centre(final Ring ring)
@@ -260,8 +250,6 @@ public final class RingSounds
      *            the location, whose world is filled in for it
      * @param sound
      *            the sound name
-     * @param pitch
-     *            the pitch
      */
     private static void play(final World world, final Location where, final String sound,
         final float pitch)

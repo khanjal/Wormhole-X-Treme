@@ -37,7 +37,7 @@ public record BeamDestination(String name, BeamPoint point, Double cost)
      *            what to call it
      * @param location
      *            where it is
-     * @return the destination */
+     */
     public static BeamDestination fromLocation(final String name, final Location location)
     {
         return new BeamDestination(name, BeamPoint.of(location), null);

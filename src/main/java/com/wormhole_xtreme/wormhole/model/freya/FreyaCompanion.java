@@ -360,8 +360,6 @@ public final class FreyaCompanion
     /**
      * Whether she is staying away from her owner for now.
      *
-     * @param ownerId
-     *            the owner
      * @return true while they sleep or are hunted
      */
     public static boolean isAway(final UUID ownerId)
@@ -415,8 +413,6 @@ public final class FreyaCompanion
     /**
      * Ends a hunt once nothing nearby is still after her owner.
      *
-     * @param owner
-     *            the owner
      * @return true if the hunt is over and she may come back
      */
     public static boolean huntOver(final Player owner)
@@ -434,8 +430,6 @@ public final class FreyaCompanion
      *
      * @param nearby
      *            entities around the player
-     * @param owner
-     *            the player
      * @return true if one of them has the player as its target
      */
     static boolean isHunting(final Collection<Entity> nearby, final Player owner)
@@ -453,8 +447,6 @@ public final class FreyaCompanion
     /**
      * The mobs vanilla makes keep away from cats.
      *
-     * @param entity
-     *            the entity
      * @return true for a creeper or phantom
      */
     public static boolean scaredOfCats(final Entity entity)
@@ -539,7 +531,6 @@ public final class FreyaCompanion
      *
      * @param entity
      *            the entity in question
-     * @return true if this is a companion
      */
     public static boolean isCompanion(final Entity entity)
     {
