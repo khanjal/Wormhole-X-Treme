@@ -1,7 +1,7 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -104,11 +104,16 @@ class CoreProtectLogTest
         return block;
     }
 
+    private static void place(final Material type)
+    {
+        CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, block(Material.AIR), type, mock(BlockData.class));
+    }
+
     /** Off, as it ships: nothing is sent, and CoreProtect is not even looked for. */
     @Test
     void nothingIsLoggedUntilItIsTurnedOn()
     {
-        CoreProtectLog.placed(CoreProtectLog.PLUGIN_USER, block(Material.OBSIDIAN));
+        place(Material.OBSIDIAN);
 
         assertEquals(List.of(), api.calls);
         bukkit.verify(Bukkit::getPluginManager, org.mockito.Mockito.never());
@@ -120,31 +125,44 @@ class CoreProtectLogTest
     {
         ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
 
-        CoreProtectLog.placed(CoreProtectLog.PLUGIN_USER, block(Material.OBSIDIAN));
+        place(Material.OBSIDIAN);
         CoreProtectLog.removed("Fran", block(Material.SMOOTH_STONE_SLAB));
 
         assertEquals(List.of("placed #wormhole OBSIDIAN", "removed Fran SMOOTH_STONE_SLAB"), api.calls);
     }
 
-    /** Air is not a block anybody built, so it is not logged. */
+    /** Air is not a block anybody built, so neither taking it away nor placing it is logged. */
     @Test
     void airIsNotLogged()
     {
         ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
 
         CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, block(Material.AIR));
+        place(Material.AIR);
 
         assertEquals(List.of(), api.calls);
     }
 
-    /** An API that is off, or older than the one with block data, is left alone. */
+    /** An API older than the one with block data is left alone. */
     @Test
-    void anOldOrDisabledApiIsNotUsed()
+    void anOldApiIsNotUsed()
     {
         ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
         api.version = 8;
 
-        CoreProtectLog.placed(CoreProtectLog.PLUGIN_USER, block(Material.OBSIDIAN));
+        place(Material.OBSIDIAN);
+
+        assertEquals(List.of(), api.calls);
+    }
+
+    /** An API CoreProtect reports as off is left alone too. */
+    @Test
+    void aDisabledApiIsNotUsed()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
+        api.enabled = false;
+
+        place(Material.OBSIDIAN);
 
         assertEquals(List.of(), api.calls);
     }
@@ -157,7 +175,7 @@ class CoreProtectLogTest
         final PluginManager empty = mock(PluginManager.class);
         bukkit.when(Bukkit::getPluginManager).thenReturn(empty);
 
-        CoreProtectLog.placed(CoreProtectLog.PLUGIN_USER, block(Material.OBSIDIAN));
+        place(Material.OBSIDIAN);
 
         assertEquals(List.of(), api.calls);
     }
@@ -172,8 +190,7 @@ class CoreProtectLogTest
             throw new IllegalStateException("CoreProtect fell over");
         });
 
-        CoreProtectLog.placed(CoreProtectLog.PLUGIN_USER, block(Material.OBSIDIAN));
-
-        assertTrue(api.calls.isEmpty());
+        assertDoesNotThrow(() -> place(Material.OBSIDIAN),
+            "a CoreProtect that throws must not stop the block being placed");
     }
 }

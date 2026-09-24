@@ -183,12 +183,11 @@ class StargateBlockSetup
     private static void placeGateSign(final Stargate gate, final Block placeBlock, final BlockFace toward)
     {
         gate.getGateStructureBlocks().add(placeBlock.getLocation());
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, gate.getEffectiveSignMaterial(), null);
         placeBlock.setType(gate.getEffectiveSignMaterial(), false);
         final Directional signData = (Directional) placeBlock.getBlockData();
         signData.setFacing(toward);
         placeBlock.setBlockData(signData, false);
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
 
         final Sign sign = (Sign) placeBlock.getState();
         final org.bukkit.block.sign.SignSide front = sign.getSide(Side.FRONT);
@@ -229,14 +228,14 @@ class StargateBlockSetup
     private static void removeGateSign(final Stargate gate, final Block placeBlock)
     {
         final Material frame = com.wormhole_xtreme.wormhole.logic.GateRederivation.frameMaterialAt(gate, placeBlock);
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
         if (frame != null)
         {
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, frame, null);
             placeBlock.setType(frame);
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
             return;
         }
         gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
         placeBlock.setType(Material.AIR);
     }
 
@@ -320,7 +319,7 @@ class StargateBlockSetup
                 facing = oldFacing.getFacing();
             }
 
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock);
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock, want, null);
             signBlock.setType(want, false);
 
             if (facing != null)
@@ -339,7 +338,6 @@ class StargateBlockSetup
                 restoreSignSide(fresh.getSide(Side.FRONT), frontLines, frontGlows);
                 restoreSignSide(fresh.getSide(Side.BACK), backLines, backGlows);
                 fresh.update(true, false);
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock);
                 // The gate holds this state and writes destinations through it, so leaving
                 // the old one in place would send every later write at a block that is gone.
                 gate.setGateDialSign(fresh);
@@ -477,13 +475,13 @@ class StargateBlockSetup
     {
         final Block iris = gate.getGateIrisLeverBlock();
         gate.getGateStructureBlocks().add(iris.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris, Material.LEVER, null);
         iris.setType(Material.LEVER);
         final org.bukkit.block.data.type.Switch irisSwitch =
             (org.bukkit.block.data.type.Switch) iris.getBlockData();
         irisSwitch.setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
         irisSwitch.setFacing(gate.getGateFacing());
         iris.setBlockData(irisSwitch);
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris);
     }
 
     /** Takes the lever down, but only if what is there is a lever. */
@@ -569,8 +567,8 @@ class StargateBlockSetup
                 if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
                     gate.getGateStructureBlocks().add(target.getLocation());
+                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
                     target.setType(Material.REDSTONE_WIRE);
-                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target);
                 }
                 else
                 {
@@ -628,8 +626,8 @@ class StargateBlockSetup
             else if (current == Material.AIR)
             {
                 gate.getGateStructureBlocks().add(ra.getLocation());
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, ra, Material.LEVER, null);
                 ra.setType(Material.LEVER);
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, ra);
             }
             else
             {
@@ -2470,11 +2468,11 @@ class StargateBlockSetup
             // placed activation item (button/lever) otherwise.
             if (regenerate && (mat == Material.AIR))
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock(), Material.LEVER, null);
                 gate.getGateDialLeverBlock().setType(Material.LEVER);
                 final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
                 rld.setFacing(gate.getGateFacing());
                 gate.getGateDialLeverBlock().setBlockData(rld);
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock());
                 mat = gate.getGateDialLeverBlock().getType();
             }
 

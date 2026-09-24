@@ -384,12 +384,14 @@ to it, so an admin can look them up and roll them back like anything else.
 |---|---|---|
 | `coreprotect-enabled` | `false` | Nothing is logged while this is off. |
 
-- **Logged:** a gate's name sign and the frame block put back behind one, the iris and redstone
-  levers and wires, `gate remove -destroy`, `gate regen -fill`, `gate preview -place`, and the
-  slabs `ring create` takes up and `ring cancel` gives back.
+- **Logged:** a gate's name sign and the frame block put back behind one, its dial sign restyled
+  to the gate's material, the teleport sign, the iris, dial and redstone levers and wires,
+  `gate remove -destroy`, `gate regen`'s frame put back behind a sign and `-fill`,
+  `gate preview -place`, and the slabs `ring create` takes up and `ring remove` gives back.
+  Whatever a placed block replaced is logged too, so a rollback puts it back.
 - **Not logged:** a running gate's water, lever states and horizontal iris, which change every
   time a gate opens and would drown a rollback log.
-- **Who:** the ring commands log the player who ran them; everything else is logged as
+- **Who:** `ring create` and `ring remove` log the player who ran them; everything else is logged as
   `#wormhole`, so `/co rollback u:#wormhole` finds it.
 - **No CoreProtect, or one too old to take block data** (API 9 or later is needed), means nothing
   happens; the log says so once. A CoreProtect that fails never stops a gate being built.

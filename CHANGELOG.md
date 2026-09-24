@@ -18,7 +18,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `metrics-enabled: false` stops it, and `plugins/bStats/config.yml` stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
 - **Gate and ring construction can be logged to [CoreProtect](https://www.spigotmc.org/resources/coreprotect.8631/)**,
   so it can be rolled back: signs, levers, `gate remove -destroy`, `regen -fill`,
-  `gate preview -place` and ring slabs. Off until `coreprotect-enabled` is set; a running gate
+  `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off until `coreprotect-enabled` is set; a running gate
   is not logged. See [the guide](docs/guide/SERVER.md#coreprotect).
 
 ### For other plugins

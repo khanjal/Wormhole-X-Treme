@@ -49,20 +49,30 @@ public final class CoreProtectLog
     }
 
     /**
-     * Logs a block the plugin has just placed.
+     * Logs a block the plugin is about to place. Call before the write: CoreProtect reads what
+     * stands there now as what was replaced, and logs its removal itself.
      *
      * @param user
      *            the player's name, or {@link #PLUGIN_USER}
      * @param block
-     *            the block, as it now stands
+     *            the block, before the change
+     * @param type
+     *            what is about to be placed
+     * @param data
+     *            its block data, or null for the type's default
      */
-    public static void placed(final String user, final Block block)
+    public static void placing(final String user, final Block block, final Material type, final BlockData data)
     {
-        log(true, user, block);
+        if ((block == null) || (type == null) || (type == Material.AIR) || !ConfigManager.isCoreProtectEnabled())
+        {
+            return;
+        }
+        send(true, user, block.getLocation(), type, data);
     }
 
     /**
-     * Logs a block the plugin is about to remove or replace. Call before changing it.
+     * Logs a block the plugin is about to take away, leaving air. Call before changing it. A block
+     * being replaced by another is logged by {@link #placing} alone.
      *
      * @param user
      *            the player's name, or {@link #PLUGIN_USER}
@@ -76,16 +86,22 @@ public final class CoreProtectLog
 
     private static void log(final boolean placed, final String user, final Block block)
     {
-        if ((block == null) || !ConfigManager.isCoreProtectEnabled())
+        if ((block == null) || (block.getType() == Material.AIR) || !ConfigManager.isCoreProtectEnabled())
         {
             return;
         }
+        send(placed, user, block.getLocation(), block.getType(), block.getBlockData());
+    }
+
+    private static void send(final boolean placed, final String user, final Location at, final Material type,
+        final BlockData data)
+    {
         try
         {
             final Sink to = sink();
-            if ((to != null) && (block.getType() != Material.AIR))
+            if (to != null)
             {
-                to.log(placed, user, block.getLocation(), block.getType(), block.getBlockData());
+                to.log(placed, user, at, type, data);
             }
         }
         catch (final Exception | LinkageError e)
@@ -133,7 +149,8 @@ public final class CoreProtectLog
             {
                 try
                 {
-                    (placed ? placement : removal).invoke(api, user, at, type, data);
+                    (placed ? placement : removal).invoke(api, user, at, type,
+                        (data != null) ? data : type.createBlockData());
                 }
                 catch (final ReflectiveOperationException e)
                 {

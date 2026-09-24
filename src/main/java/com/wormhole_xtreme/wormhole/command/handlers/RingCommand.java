@@ -329,14 +329,14 @@ public class RingCommand implements SubCommand
      *            the pair that has been removed
      * @return how many slabs were laid back down
      */
-    private static int returnTemplates(final RingPair pair)
+    private static int returnTemplates(final RingPair pair, final String user)
     {
         final org.bukkit.World world = org.bukkit.Bukkit.getWorld(pair.getWorldName());
         if (world == null)
         {
             return 0;
         }
-        return restoreTemplate(world, pair.getEndA()) + restoreTemplate(world, pair.getEndB());
+        return restoreTemplate(world, pair.getEndA(), user) + restoreTemplate(world, pair.getEndB(), user);
     }
 
     /**
@@ -349,9 +349,11 @@ public class RingCommand implements SubCommand
      *            the world the ring is in
      * @param ring
      *            the ring to lay out again
+     * @param user
+     *            who the slabs are logged to CoreProtect as: the player removing the ring
      * @return how many slabs were laid down
      */
-    private static int restoreTemplate(final org.bukkit.World world, final Ring ring)
+    private static int restoreTemplate(final org.bukkit.World world, final Ring ring, final String user)
     {
         final boolean top = ring.getOrientation() == RingOrientation.CEILING;
         int laid = 0;
@@ -370,9 +372,8 @@ public class RingCommand implements SubCommand
                 slab.setType(top
                     ? org.bukkit.block.data.type.Slab.Type.TOP
                     : org.bukkit.block.data.type.Slab.Type.BOTTOM);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(user, at, slab.getMaterial(), slab);
                 at.setBlockData(slab, false);
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(
-                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, at);
                 laid++;
             }
         }
@@ -582,7 +583,7 @@ public class RingCommand implements SubCommand
         // The slabs were taken when the ring was built, so removing it gives them back —
         // laid out as the ring they were, which is also the template for building it again
         // somewhere else. Nobody should have to re-mine a circle they already paid for.
-        final int returned = returnTemplates(pair);
+        final int returned = returnTemplates(pair, player.getName());
         player.sendMessage("Removed both ends of " + pair.getId()
             + (returned > 0 ? (" and put " + returned + " slabs back.") : "."));
         if (returned == 0)

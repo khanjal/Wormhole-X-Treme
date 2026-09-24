@@ -324,8 +324,8 @@ class DialSignConversionTest
     }
 
     /**
-     * Restyling a player's dial sign is logged to CoreProtect (#238): the old sign as removed before
-     * it goes, the new one as placed after. Found by a Sonnet review.
+     * Restyling a player's dial sign is logged to CoreProtect (#238), once, as a placement made
+     * before the write: CoreProtect records the old sign it replaces. Found by a Sonnet review.
      */
     @Test
     void theRestyleIsLoggedToCoreProtect()
@@ -344,6 +344,6 @@ class DialSignConversionTest
             com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(null);
         }
 
-        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("removed", "placed"), logged);
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("placed"), logged);
     }
 }

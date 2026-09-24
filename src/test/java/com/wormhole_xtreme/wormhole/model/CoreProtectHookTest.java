@@ -44,8 +44,11 @@ class CoreProtectHookTest
         PluginTestSupport.install(mock(WormholeXTreme.class));
         ConfigTestSupport.loadDefaults();
         ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
-        CoreProtectLog.setSinkForTest((placed, user, at, type, data) ->
-            logged.add((placed ? "placed " : "removed ") + user + " " + type + " " + at.getBlockY()));
+        // What stands in the cell as the call is made: a placement has to be logged before the write,
+        // because CoreProtect reads the cell then as what was replaced.
+        CoreProtectLog.setSinkForTest((placed, user, at, type, data) -> logged.add((placed ? "placed " : "removed ")
+            + user + " " + type + " " + at.getBlockY()
+            + (placed ? " over " + standing.getOrDefault(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), Material.AIR) : "")));
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
@@ -103,7 +106,26 @@ class CoreProtectHookTest
         StargateBlockSetup.setupIrisLever(gate, true);
         StargateBlockSetup.setupIrisLever(gate, false);
 
-        assertEquals(List.of("placed #wormhole LEVER 70", "removed #wormhole LEVER 70"), logged);
+        assertEquals(List.of("placed #wormhole LEVER 70 over AIR", "removed #wormhole LEVER 70"), logged);
+    }
+
+    /**
+     * A lever put where a block already stands is logged as the placement alone, made before the
+     * write, so CoreProtect records the block it replaced and a rollback puts that back. A removal
+     * logged too would be a second break of the same block. Found by a Fable review.
+     */
+    @Test
+    void aBlockTheLeverReplacesIsLoggedByThePlacementAlone()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.NORTH);
+        standing.put(List.of(3, 70, 3), Material.STONE);
+        gate.setGateIrisLeverBlock(world.getBlockAt(3, 70, 3));
+
+        StargateBlockSetup.setupIrisLever(gate, true);
+
+        assertEquals(List.of("placed #wormhole LEVER 70 over STONE"), logged);
     }
 
     /**
@@ -120,6 +142,6 @@ class CoreProtectHookTest
 
         StargateBlockSetup.toggleDialLeverState(gate, true);
 
-        assertEquals(List.of("placed #wormhole LEVER 66"), logged);
+        assertEquals(List.of("placed #wormhole LEVER 66 over AIR"), logged);
     }
 }
