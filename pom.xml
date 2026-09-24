@@ -436,7 +436,7 @@
 			one Paper version and a newer Java, so these live in src/mockbukkit and only run with
 			-Pmockbukkit,modern-api -Dpaper.api.version= set to the version it names; the main code
 			still compiles for Java 17. The 1.21 line by default; CI also runs 26.2 with
-			-Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version= -Dmockbukkit.release=25.
+			-Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25.
 		-->
 		<profile>
 			<id>mockbukkit</id>

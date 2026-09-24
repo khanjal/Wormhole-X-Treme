@@ -33,11 +33,13 @@ mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   #
 mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=26.2.build.124-stable -Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25   # JDK 25
 ```
 
-Run `clean` when switching between the two: the test classes of one are compiled for the other's
-Java, and Maven does not recompile them for a change of release alone.
+Run `clean` when switching between the two, because Maven does not recompile for a change of
+release alone. After 26.2, the 1.21 command fails in the ordinary tests with an
+`UnsupportedClassVersionError`. After 1.21, the 26.2 command passes without having tested 26.2 at
+all: the classes built for 1.21 simply run again.
 
-MockBukkit's older line for 1.20 is left alone: it is abandoned, in another package, and imitates
-the API rather than a server's behaviour, so it would not catch what goes wrong at the floor.
+MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another package, so
+`src/mockbukkit/` could not compile against both.
 
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
 by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
