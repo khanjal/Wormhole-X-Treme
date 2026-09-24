@@ -23,10 +23,9 @@ public class DataUtils
      * Block from bytes.
      * 
      * @param bytes
-     *            the bytes
+     *            twelve bytes: x, y and z as big-endian ints, as {@link #blockToBytes} writes them
      * @param w
-     *            the w
-     * @return the block
+     *            the world the coordinates belong to
      */
     public static Block blockFromBytes(final byte[] bytes, final World w)
     {
@@ -37,9 +36,7 @@ public class DataUtils
     /**
      * Block location to bytes.
      * 
-     * @param l
-     *            the l
-     * @return the byte[]
+     * @return twelve bytes: the block x, y and z as big-endian ints
      */
     public static byte[] blockLocationToBytes(final Location l)
     {
@@ -55,9 +52,7 @@ public class DataUtils
     /**
      * Block to bytes.
      * 
-     * @param b
-     *            the b
-     * @return the byte[]
+     * @return twelve bytes: x, y and z as big-endian ints
      */
     public static byte[] blockToBytes(final Block b)
     {
@@ -74,7 +69,7 @@ public class DataUtils
      * Byte to boolean.
      * 
      * @param b
-     *            the b
+     *            a stored flag; any value of 1 or more reads as true
      * @return true, if successful
      */
     public static final boolean byteToBoolean(final byte b)
@@ -86,10 +81,9 @@ public class DataUtils
      * Location from bytes.
      * 
      * @param bytes
-     *            the bytes
+     *            32 bytes as {@link #locationToBytes} writes them
      * @param w
-     *            the w
-     * @return the location
+     *            the world the location belongs to
      */
     public static Location locationFromBytes(final byte[] bytes, final World w)
     {
@@ -100,9 +94,7 @@ public class DataUtils
     /**
      * Location to bytes.
      * 
-     * @param l
-     *            the l
-     * @return the byte[]
+     * @return 32 bytes: x, y and z as doubles, then pitch and yaw as floats
      */
     public static byte[] locationToBytes(final Location l)
     {

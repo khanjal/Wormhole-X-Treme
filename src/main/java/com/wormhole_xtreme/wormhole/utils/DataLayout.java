@@ -117,8 +117,6 @@ public final class DataLayout
      * <p>One file rather than one per world, matching beam rather than rings. Rings shard by
      * world because a pair can never span two, so the layout enforces the rule; a mirror is
      * required to span two by default, so there is no world it would belong to.
-     *
-     * @return the mirror file
      */
     public static File mirrorFile()
     {
