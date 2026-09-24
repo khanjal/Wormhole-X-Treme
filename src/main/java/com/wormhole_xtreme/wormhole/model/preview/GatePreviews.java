@@ -1103,6 +1103,11 @@ public final class GatePreviews
             preview.open(false);
             takeBack(owner, preview, preview.woosh());
             takeBack(owner, preview, preview.opening());
+            // Shut mid-sweep: the sweep drew the wormhole off the ring for those in front (#442).
+            watching(owner, preview).stream()
+                .filter(viewer -> preview.sweepSides().containsKey(viewer.getUniqueId()))
+                .forEach(viewer -> handBackOffsets(viewer, preview));
+            preview.sweepSides().clear();
             sound(owner, preview, ConfigManager.getGateSoundClose(), 1.0f);
             restyle(preview);
             draw(owner, preview);
@@ -1170,8 +1175,18 @@ public final class GatePreviews
         // A stacked wormhole stood a block off the ring, which the cells above do not cover.
         // Only for viewers who were drawn stacked: everybody else was only ever sent the ring.
         watching(owner, preview).stream()
-            .filter(viewer -> preview.sides().containsKey(viewer.getUniqueId()))
+            .filter(viewer -> drewOffsetsFor(preview, viewer))
             .forEach(viewer -> handBackOffsets(viewer, preview));
+    }
+
+    /**
+     * Whether a viewer may have been drawn a wormhole off the ring: settled stacked, or by a sweep,
+     * which draws it there with no side recorded in {@code sides()} (#442).
+     */
+    private static boolean drewOffsetsFor(final GatePreview preview, final Player viewer)
+    {
+        return preview.sides().containsKey(viewer.getUniqueId())
+            || preview.sweepSides().containsKey(viewer.getUniqueId());
     }
 
     /** The cells a fake block stands at now. */
@@ -1262,7 +1277,7 @@ public final class GatePreviews
         takeBackFrom(gone, preview, sentCells(preview));
         // Only if they had a side, and before it is forgotten: a viewer drawn from the front
         // had their wormhole a block off the ring, which the cells above know nothing about.
-        if (preview.sides().containsKey(gone.getUniqueId()))
+        if (drewOffsetsFor(preview, gone))
         {
             handBackOffsets(gone, preview);
         }
@@ -1868,6 +1883,11 @@ public final class GatePreviews
     /** Redraws one preview for a player whose step changed what it looks like to them. */
     private static void restackIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
+        if (preview.sweeping() && preview.world().equals(player.getWorld()))
+        {
+            resweepIfCrossed(player, preview, to);
+            return;
+        }
         if (!stacks(preview) || !preview.world().equals(player.getWorld()))
         {
             return;
@@ -2028,9 +2048,56 @@ public final class GatePreviews
         for (final Player viewer : watching(owner, preview))
         {
             final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+            preview.sweepSides().put(viewer.getUniqueId(), layers);
             for (final int index : ringCells)
             {
                 sweepHorizonAt(viewer, preview, layers, index, covering);
+            }
+        }
+    }
+
+    /**
+     * Moves a viewer's stand-in wormhole with them when they cross a preview mid-sweep (#442).
+     *
+     * <p>The sweep puts the ice for each covered ring on the far side from where the viewer
+     * stood at that step. Walking round left it on their old far side, now their near side: a
+     * solid block the server does not have, a pace from the preview. Every covered cell hands
+     * back its old offsets and takes its ice on the new far side.
+     */
+    private static void resweepIfCrossed(final Player player, final GatePreview preview, final Location to)
+    {
+        final BlockFace facing = preview.grid().facing();
+        // Not recorded: the sweep drew this viewer nothing off the ring, as for an opaque iris.
+        if (!preview.open() || (facing == null) || !preview.sweepSides().containsKey(player.getUniqueId()))
+        {
+            return;
+        }
+        final List<IrisLayering.Placement> now = layersFor(preview, to);
+        if (now.equals(preview.sweepSides().put(player.getUniqueId(), now)))
+        {
+            return;
+        }
+        for (final int index : preview.irisShown())
+        {
+            final IrisLayering.At ring = at(preview.opening().get(index));
+            final IrisLayering.At where = now.get(index).horizon();
+            // The ring keeps its wormhole where there is nowhere beyond it to stand in, as the
+            // sweep itself does: handing it back emptied the ring until the next step.
+            final IrisLayering.At kept = (where == null) ? ring : where;
+            for (final IrisLayering.At back : IrisLayering.handBacks(ring, facing, kept))
+            {
+                takeBackAt(player, preview, back);
+            }
+            if ((where != null) && !where.equals(ring))
+            {
+                player.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+                    horizonData(preview, ring, now.get(index)));
+            }
+            else
+            {
+                // The ring keeps the wormhole here, but the sweep may have taken this viewer's back
+                // when it covered the ring from their old side.
+                sendTo(player, preview, List.of(preview.opening().get(index)));
             }
         }
     }

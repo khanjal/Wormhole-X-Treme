@@ -100,6 +100,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **Walking round a preview while its see-through iris animates leaves nothing solid behind.**
+  The stand-in wormhole behind the ring stayed on the side you had walked to, as a block only you
+  could bump into, until the animation ended.
 - **`gate regen` keeps every setting `gate edit` made.** It kept the name, owner, iris code,
   network and ring pattern, and dropped the custom portal, iris and light materials, the woosh depth, redstone,
   and the iris shut by default, so an iris-coded gate came back open. It also keeps a shut iris
