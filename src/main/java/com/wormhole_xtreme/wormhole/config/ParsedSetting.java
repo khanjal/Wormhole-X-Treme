@@ -87,7 +87,7 @@ final class ParsedSetting
             final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
                 com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(raw);
             return (pattern == null)
-                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS or NONE, not \"" + raw + "\".")
+                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
                 : accepted(pattern.name());
         }
         if (current instanceof Boolean)

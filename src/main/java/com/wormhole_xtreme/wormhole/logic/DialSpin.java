@@ -136,6 +136,8 @@ public final class DialSpin
      * The cells a glyph's light passes under a pattern, ending on the glyph's chevron, or on the
      * top for {@link DialSpinPattern#TOP}. {@link DialSpinPattern#PEGASUS} starts from the chevron
      * locked before it, the top for the first glyph, so its length varies from glyph to glyph.
+     * {@link DialSpinPattern#UNIVERSE} turns the whole ring and has no one path; this is
+     * {@link DialSpinPattern#CHEVRON}'s for it.
      *
      * @param pattern
      *            how the light moves
@@ -151,8 +153,201 @@ public final class DialSpin
             case TOP -> route(nearest(Math.PI), nearest(0.0), alternating(glyph));
             case LAP -> route(Math.floorMod(end + 1, ring.size()), end, 1);
             case PEGASUS -> route(nearest((glyph <= 1) ? 0.0 : chevronAngle(glyph - 1)), end, -alternating(glyph));
+            case CHASE -> (glyph <= 1) ? route(Math.floorMod(end - 1, ring.size()), end, -1)
+                : route(nearest(chevronAngle(glyph - 1)), end, -alternating(glyph));
+            case OVERSHOOT -> overshoot(path(glyph), alternating(glyph));
             default -> path(glyph);
         };
+    }
+
+    /** A path run on past its end by a comet's length, then back onto it. */
+    private List<Cell> overshoot(final List<Cell> path, final int step)
+    {
+        final int end = ring.indexOf(path.get(path.size() - 1));
+        final int past = Math.min(tail(), ring.size() / 4);
+        final List<Cell> out = new ArrayList<>(path);
+        for (int i = 1; i <= past; i++)
+        {
+            out.add(ring.get(Math.floorMod(end + (step * i), ring.size())));
+        }
+        for (int i = past - 1; i >= 0; i--)
+        {
+            out.add(ring.get(Math.floorMod(end + (step * i), ring.size())));
+        }
+        return out;
+    }
+
+    /** How long the light's run is. */
+    private int tail()
+    {
+        return Math.max(2, ring.size() / 16);
+    }
+
+    /** Ticks the {@link DialSpinPattern#TOP} light rests on the top chevron after each lock, before the ring turns again. */
+    public static final int TOP_HOLD_TICKS = 10;
+
+    /** Ticks a glyph's light rests where the one before landed, before it sets off. */
+    private static int hold(final DialSpinPattern pattern, final int glyph)
+    {
+        return ((pattern == DialSpinPattern.TOP) && (glyph > 1)) ? TOP_HOLD_TICKS : 0;
+    }
+
+    /**
+     * How many ticks a glyph's turn takes under a pattern: the chevron's interval, and any rest
+     * before it.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @param interval
+     *            the chevron's interval, in ticks
+     * @return the frames to play before the chevron locks
+     */
+    public int frames(final DialSpinPattern pattern, final int glyph, final int interval)
+    {
+        return hold(pattern, glyph) + travel(pattern, glyph, interval);
+    }
+
+    /** The most of the ring a {@link DialSpinPattern#UNIVERSE} turn covers in a tick, as a fraction: past it, it reads as flicker. */
+    private static final int UNIVERSE_PACE = 12;
+
+    /**
+     * Ticks a glyph's light travels: the chevron's interval, or for UNIVERSE, whose turns run to a
+     * lap and more, as long as its pace needs.
+     */
+    private int travel(final DialSpinPattern pattern, final int glyph, final int interval)
+    {
+        final int ticks = Math.max(1, interval);
+        if (pattern != DialSpinPattern.UNIVERSE)
+        {
+            return ticks;
+        }
+        // One more than the steps, as the first tick is where it starts.
+        final int paced = (int) Math.ceil((Math.abs(turn(glyph)) * (double) UNIVERSE_PACE) / ring.size()) + 1;
+        return Math.max(ticks, paced);
+    }
+
+    /**
+     * The cells lit at one frame of a glyph's turn: first any rest where the glyph before
+     * landed, then the light travelling over the chevron's interval.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            which glyph, from 1
+     * @param frame
+     *            the frame, from 0, below {@link #frames}
+     * @param interval
+     *            the chevron's interval, in ticks
+     * @return the lit cells
+     */
+    public Set<Cell> frame(final DialSpinPattern pattern, final int glyph, final int frame, final int interval)
+    {
+        final int hold = hold(pattern, glyph);
+        return (frame < hold) ? topChevron() : lit(pattern, glyph, frame - hold, travel(pattern, glyph, interval));
+    }
+
+    /**
+     * The cells that stay lit as a glyph's chevron locks, until the next glyph's turn takes them
+     * back: the top chevron alone for {@link DialSpinPattern#TOP}, which rests there, and every
+     * chevron locked so far, where the ring has carried it, for {@link DialSpinPattern#UNIVERSE}.
+     * Once its top chevron locks, those stand in their own places and stay lit while the gate is open.
+     *
+     * @param pattern
+     *            how the light moves
+     * @param glyph
+     *            the glyph locking, from 1
+     * @param last
+     *            the dial's last glyph, after which the top chevron needs no light of its own
+     * @return the cells, empty for a pattern whose light goes as the chevron locks
+     */
+    public Set<Cell> rest(final DialSpinPattern pattern, final int glyph, final int last)
+    {
+        if (pattern == DialSpinPattern.UNIVERSE)
+        {
+            return universe(glyph, 1, 1, true);
+        }
+        return ((pattern == DialSpinPattern.TOP) && (glyph < last)) ? topChevron() : Set.of();
+    }
+
+    /** The top chevron's own cells on the ring, or the cell nearest the top on a ring without them. */
+    private Set<Cell> topChevron()
+    {
+        final Set<Cell> top = chevron(Stargate.LOCAL_CHEVRONS);
+        return top.isEmpty() ? Set.of(ring.get(nearest(0.0))) : top;
+    }
+
+    /** One chevron's cells on the ring, empty for one not on it. */
+    private Set<Cell> chevron(final int wave)
+    {
+        final Set<Cell> cells = new LinkedHashSet<>();
+        for (final Cell cell : ring)
+        {
+            if (cell.wave() == wave)
+            {
+                cells.add(cell);
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * How many cells, signed, the ring turns for a glyph: from where the last left it to where this
+     * one's chevron stands at the top, the way {@link #alternating} says, with a whole turn more
+     * when that is under half of one. Each glyph gets about a full spin.
+     */
+    private int turn(final int glyph)
+    {
+        final int n = ring.size();
+        final int ahead = Math.floorMod(turned(glyph) - turned(glyph - 1), n);
+        int cells = (alternating(glyph) > 0) ? ahead : (n - ahead);
+        if (cells == 0)
+        {
+            cells = n;
+        }
+        else if ((2 * cells) < n)
+        {
+            cells += n;
+        }
+        return alternating(glyph) * cells;
+    }
+
+    /**
+     * How far round the ring stands once a glyph has locked: with that glyph's chevron at the
+     * top, so after the top chevron's own glyph every chevron is back in its place. The ring
+     * starts there, and a glyph past the top chevron's locks in its chevron's own place.
+     */
+    private int turned(final int glyph)
+    {
+        if ((glyph <= 0) || (glyph >= Stargate.LOCAL_CHEVRONS))
+        {
+            return 0;
+        }
+        return nearest(0.0) - nearest(chevronAngle(glyph));
+    }
+
+    /**
+     * Destiny's ring part way through a glyph's turn: each chevron locked so far, and the top
+     * chevron as the point of origin from the start, carried round with the ring. Each is its
+     * chevron's own cells, so no two ever share one.
+     */
+    private Set<Cell> universe(final int glyph, final int tick, final int ticks, final boolean landed)
+    {
+        final int n = ring.size();
+        final double progress = (ticks <= 1) ? 1.0 : ((double) tick / (ticks - 1));
+        final int now = turned(glyph - 1) + (int) Math.round(turn(glyph) * progress);
+        final Set<Cell> riding = new LinkedHashSet<>(topChevron());
+        for (int k = 1; k <= (landed ? glyph : (glyph - 1)); k++)
+        {
+            riding.addAll(chevron(k));
+        }
+        final Set<Cell> lit = new LinkedHashSet<>();
+        for (final Cell cell : riding)
+        {
+            lit.add(ring.get(Math.floorMod(ring.indexOf(cell) + now, n)));
+        }
+        return lit;
     }
 
     /**
@@ -171,21 +366,95 @@ public final class DialSpin
      */
     public Set<Cell> lit(final DialSpinPattern pattern, final int glyph, final int tick, final int ticks)
     {
+        if (pattern == DialSpinPattern.UNIVERSE)
+        {
+            return universe(glyph, tick, ticks, false);
+        }
         final List<Cell> path = path(pattern, glyph);
         final int last = path.size() - 1;
-        int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
-        int length = Math.max(2, ring.size() / 16);
-        if (pattern == DialSpinPattern.FILL)
+        final int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
+        if (pattern == DialSpinPattern.PEGASUS)
         {
-            length = head + 1;
+            return pegasus(path, glyph, head);
         }
-        else if (pattern == DialSpinPattern.PEGASUS)
+        return run(path, head, (pattern == DialSpinPattern.FILL) ? (head + 1) : tail());
+    }
+
+    /**
+     * A Pegasus step: the light jumps a glyph at a time over the frame between the chevron it sets
+     * off from and the one it lands on, and lands as that chevron alone. It lights no chevron on the
+     * way, as an Atlantis gate's chevron lights only as it locks.
+     */
+    private Set<Cell> pegasus(final List<Cell> path, final int glyph, final int head)
+    {
+        final int last = path.size() - 1;
+        final Set<Cell> chevron = chevron(glyph);
+        final Set<Cell> landed = chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
+        final List<Set<Cell>> hops = hops(path, chevron);
+        if ((head >= last) || hops.isEmpty())
         {
-            // A glyph at a time: the run jumps a glyph's width rather than sliding.
-            length = Math.max(2, ring.size() / GLYPHS);
-            head = (head >= last) ? last : ((head / length) * length) + (length - 1);
-            head = Math.min(head, last);
+            return landed;
         }
+        return hops.get((int) (((long) head * hops.size()) / last));
+    }
+
+    /**
+     * The glyph-wide hops a Pegasus light takes over the frame up to a chevron, whose cells can sit
+     * among frame cells, as Grand's do: up to the first reached. A hop never spans a chevron.
+     */
+    private List<Set<Cell>> hops(final List<Cell> path, final Set<Cell> chevron)
+    {
+        final int width = Math.max(1, (int) Math.round((double) ring.size() / GLYPHS));
+        final List<Set<Cell>> hops = new ArrayList<>();
+        Set<Cell> hop = new LinkedHashSet<>();
+        for (int i = 0; (i < (path.size() - 1)) && !chevron.contains(path.get(i)); i++)
+        {
+            final boolean frame = (path.get(i).wave() == 0) && !withinAChevron(path.get(i));
+            if ((!frame || (hop.size() == width)) && !hop.isEmpty())
+            {
+                hops.add(hop);
+                hop = new LinkedHashSet<>();
+            }
+            if (frame)
+            {
+                hop.add(path.get(i));
+            }
+        }
+        if (!hop.isEmpty())
+        {
+            hops.add(hop);
+        }
+        return hops;
+    }
+
+    /** How far a frame cell can sit inside a chevron, as Grand's do between its cells, and count as part of it. */
+    private static final int CHEVRON_GAP = 2;
+
+    /** Whether a frame cell sits between cells of one chevron, as Grand's do, rather than between two. */
+    private boolean withinAChevron(final Cell cell)
+    {
+        final int at = ring.indexOf(cell);
+        final int before = chevronBeside(at, -1);
+        return (before > 0) && (before == chevronBeside(at, 1));
+    }
+
+    /** The chevron first reached from a ring cell one way round, within {@link #CHEVRON_GAP}, or 0. */
+    private int chevronBeside(final int at, final int step)
+    {
+        for (int i = 1; i <= CHEVRON_GAP; i++)
+        {
+            final int wave = ring.get(Math.floorMod(at + (step * i), ring.size())).wave();
+            if (wave > 0)
+            {
+                return wave;
+            }
+        }
+        return 0;
+    }
+
+    /** The cells of a path from a run's tail up to its head. */
+    private static Set<Cell> run(final List<Cell> path, final int head, final int length)
+    {
         final Set<Cell> lit = new LinkedHashSet<>();
         for (int i = Math.max(0, head - length + 1); i <= head; i++)
         {
@@ -194,8 +463,8 @@ public final class DialSpin
         return lit;
     }
 
-    /** How many glyphs a Pegasus step takes the width of: 36 round an Atlantis gate, read as nine. */
-    private static final int GLYPHS = 9;
+    /** How many glyphs round an Atlantis gate, a Pegasus step being one's width. */
+    private static final int GLYPHS = 36;
 
     /** The angle a glyph's light lands on: its chevron's, or the top's for one not on the ring. */
     private double chevronAngle(final int glyph)

@@ -14,6 +14,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -189,11 +190,12 @@ class GateRingTurnTest
     }
 
     /**
-     * Every pattern locks the first chevron on the same tick, so the choice never changes how fast
-     * a gate dials, and NONE locks it at once without a turn.
+     * Every pattern locks the first chevron once its turn is done: on the chevron's own interval,
+     * but for UNIVERSE, whose turns run to a lap and more at their own pace, and NONE, which locks
+     * it at once without a turn. TOP's rest after a lock adds time from the second glyph on.
      */
     @Test
-    void everyPatternLocksTheChevronOnTheSameTick()
+    void everyPatternLocksTheFirstChevronOnceItsTurnIsDone()
     {
         try
         {
@@ -204,7 +206,12 @@ class GateRingTurnTest
                     com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, pattern.name());
                 final Stargate gate = standardGate();
                 final int ticks = (pattern == com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
-                    ? 0 : gate.getEffectiveLightTicks();
+                    ? 0 : StargateAnimator.spinOf(gate).frames(pattern, 1, gate.getEffectiveLightTicks());
+                if ((pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
+                    && (pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.UNIVERSE))
+                {
+                    assertEquals(gate.getEffectiveLightTicks(), ticks, pattern + " keeps the chevron's interval");
+                }
                 try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
                      MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
                 {
@@ -221,6 +228,138 @@ class GateRingTurnTest
         finally
         {
             // The default, as the other tests here assume.
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        }
+    }
+
+    /**
+     * The default TOP turn leaves its light on the top chevron as the first chevron locks, and for
+     * the rest after it, before setting off for the second; the second locks that much later.
+     */
+    @Test
+    void theTopTurnRestsOnTheTopThroughTheLock()
+    {
+        final Stargate gate = standardGate();
+        final List<Cell> path = DialSpin.of(cells, grid).path(DialSpinPattern.TOP, 1);
+        final Location top = at(path.get(path.size() - 1));
+        final int ticks = gate.getEffectiveLightTicks();
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            for (int tick = 0; tick <= ticks; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+            }
+            assertEquals(1, gate.getGateLightingCurrentIteration());
+            for (int tick = 0; tick < DialSpin.TOP_HOLD_TICKS; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+            }
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, top))), never());
+
+            StargateAnimator.lightStargate(gate, true);
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, top))));
+            for (int tick = 1; tick < ticks; tick++)
+            {
+                StargateAnimator.lightStargate(gate, true);
+                assertEquals(1, gate.getGateLightingCurrentIteration(), "still turning at tick " + tick);
+            }
+            StargateAnimator.lightStargate(gate, true);
+            assertEquals(2, gate.getGateLightingCurrentIteration());
+        }
+    }
+
+    /**
+     * UNIVERSE's riders stay lit through a lock, rather than going as TOP's light once did, and a
+     * locked chevron does not light in its own place as well: it rides with the ring. Found in-game:
+     * lit in both, half the gate stood lit. Checked on the point of origin, which the first turn
+     * carries off the top.
+     */
+    @Test
+    void universeRidersStayLitThroughTheLockAndChevronsDoNotLightInPlace()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            final Stargate gate = standardGate();
+            final Location origin = at(DialSpin.of(cells, grid).rest(DialSpinPattern.UNIVERSE, 1, 7).stream()
+                .filter(c -> c.wave() != Stargate.LOCAL_CHEVRONS).findFirst().orElseThrow());
+            try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                 MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+            {
+                final int frames = StargateAnimator.spinOf(gate).frames(DialSpinPattern.UNIVERSE, 1, gate.getEffectiveLightTicks());
+                for (int tick = 0; tick < frames; tick++)
+                {
+                    StargateAnimator.lightStargate(gate, true);
+                }
+                // The lock's own tick alone: a rider passing over chevron 1 draws its one block too.
+                blocks.clearInvocations();
+                StargateAnimator.lightStargate(gate, true);
+
+                assertEquals(1, gate.getGateLightingCurrentIteration());
+                blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, origin))));
+                blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), never());
+                blocks.verify(() -> StargateBlockSetup.drawLights(gate, gate.getGateLightBlocks().get(1)), never());
+                sounds.verify(() -> GateSounds.chevron(eq(gate), eq(1), anyInt()));
+            }
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        }
+    }
+
+    /**
+     * Under UNIVERSE only the ring's front layer rides, so the last lock lights every chevron in
+     * place: on Grand, whose chevrons are two layers deep, the back layer never lit otherwise, even
+     * with the wormhole open. Found by a Sonnet review.
+     */
+    @Test
+    void universeLightsEveryLayerOfEveryChevronAtTheLastLock() throws Exception
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            shape = new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Grand.shape"))
+                .toArray(new String[0]));
+            grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
+            cells = GateBlueprint.of(shape, grid);
+            final Stargate gate = standardGate();
+            final DialSpin spin = StargateAnimator.spinOf(gate);
+            assertNotNull(spin, "a Grand gate has a ring to turn");
+            try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                 MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+            {
+                for (int glyph = 1; glyph <= Stargate.LOCAL_CHEVRONS; glyph++)
+                {
+                    final int calls = spin.frames(DialSpinPattern.UNIVERSE, glyph, gate.getEffectiveLightTicks()) + 1;
+                    for (int call = 0; call < calls; call++)
+                    {
+                        StargateAnimator.lightStargate(gate, true);
+                    }
+                    if (glyph < Stargate.LOCAL_CHEVRONS)
+                    {
+                        assertEquals(glyph, gate.getGateLightingCurrentIteration(), "locked glyph " + glyph);
+                    }
+                }
+                sounds.verify(() -> GateSounds.locked(gate));
+                for (int wave = 1; wave <= Stargate.LOCAL_CHEVRONS; wave++)
+                {
+                    final int w = wave;
+                    final List<Location> chevron = gate.getGateLightBlocks().get(wave);
+                    assertTrue(chevron.size() > spin.ring().stream().filter(c -> c.wave() == w).count(),
+                        "chevron " + wave + " has blocks behind the ring");
+                    blocks.verify(() -> StargateBlockSetup.drawLights(gate, chevron));
+                }
+            }
+        }
+        finally
+        {
             com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
                 com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
@@ -291,8 +430,41 @@ class GateRingTurnTest
     }
 
     /**
-     * Only the gate dialling turns its ring; the gate being dialled lights its chevrons in order, a
-     * chevron's interval apart, as on the show. Found in-game: both turned.
+     * The gate being dialled waits as long between chevrons as the dialling gate's turn takes, TOP's
+     * rest included, so both wormholes form together. It kept its own interval, and opened three
+     * seconds before the gate dialling it. Found by a Fable review.
+     */
+    @Test
+    void theGateBeingDialledKeepsPaceWithTheTurn()
+    {
+        final Stargate near = standardGateAt("near", 0);
+        final Stargate far = standardGateAt("far", 40);
+        assertEquals(far.getEffectiveLightTicks(), StargateAnimator.untilNext(far, 2), "undialled, its own interval");
+
+        near.setGateActive(true);
+        near.setGateTarget(far);
+        far.setGateActive(true);
+
+        final DialSpin spin = StargateAnimator.spinOf(near);
+        assertNotNull(spin);
+        final long turn = spin.frames(DialSpinPattern.TOP, 2, near.getEffectiveLightTicks()) + 1L;
+        assertTrue(turn > far.getEffectiveLightTicks(), "TOP's rest makes the turn the longer");
+        assertEquals(turn, StargateAnimator.untilNext(far, 2));
+
+        // And the far gate books its second chevron that far after its first.
+        far.setGateLightsActive(true);
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(far, true);
+        }
+        assertEquals(1, far.getGateLightingCurrentIteration(), "the far gate's first chevron locked");
+        verify(scheduler).scheduleSyncDelayedTask(any(Plugin.class), any(Runnable.class), eq(turn));
+    }
+
+    /**
+     * Only the gate dialling turns its ring; the gate being dialled lights its chevrons in order,
+     * keeping pace with the turn, as on the show. Found in-game: both turned.
      */
     @Test
     void onlyTheGateDiallingTurnsItsRing()

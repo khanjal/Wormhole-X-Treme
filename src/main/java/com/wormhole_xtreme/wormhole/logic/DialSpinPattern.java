@@ -5,7 +5,8 @@ import java.util.Locale;
 /**
  * How the inner ring's light moves while a gate dials ({@code gate-dial-spin}).
  *
- * <p>Every pattern draws within the chevron's own interval, so none changes how fast a gate dials.
+ * <p>Every pattern draws within the chevron's own interval but two: {@link #TOP} holds the light on
+ * the top chevron after each lock, and {@link #UNIVERSE} turns about a whole lap for each at its own pace.
  */
 public enum DialSpinPattern
 {
@@ -26,6 +27,21 @@ public enum DialSpinPattern
      * next, anticlockwise first and alternating after, a glyph's width at a time.
      */
     PEGASUS,
+
+    /**
+     * From the chevron last locked to the next, alternating as {@link #PEGASUS} does, but sliding;
+     * the first glyph laps anticlockwise from chevron 1 back to it.
+     */
+    CHASE,
+
+    /**
+     * As Destiny's gate dials: the whole ring turns about a full turn, alternating direction, and each chevron lights
+     * at the top as it locks and rides round with it, back in its own place once the top chevron locks.
+     */
+    UNIVERSE,
+
+    /** As {@link #CHEVRON}, running a little past the chevron and backing up onto it. */
+    OVERSHOOT,
 
     /** No ring light; chevrons lock in order alone. */
     NONE;

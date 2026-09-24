@@ -17,6 +17,7 @@ import org.bukkit.block.BlockFace;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
@@ -357,7 +358,22 @@ class StargateAnimator
         // Through drawLights rather than drawBlocks because a chevron the player built out of
         // the chevron material lights as that same block switched on, and which positions
         // those are is a per-block question.
-        StargateBlockSetup.drawLights(gate, waves.get(step));
+        if (!ridesTheRing(gate))
+        {
+            StargateBlockSetup.drawLights(gate, waves.get(step));
+        }
+        else if (step == lastWave(gate, waves))
+        {
+            // Riders are the ring's front layer alone: the last lock lights every chevron in
+            // place, the layers behind it on Grand and Massive included.
+            for (int wave = 1; wave <= step; wave++)
+            {
+                if (waves.get(wave) != null)
+                {
+                    StargateBlockSetup.drawLights(gate, waves.get(wave));
+                }
+            }
+        }
         // Off the same counter that drives the lights, so the sound cannot drift out of step
         // with what it is describing.
         GateSounds.chevron(gate, step, lastWave(gate, waves));
@@ -391,10 +407,40 @@ class StargateAnimator
         else
         {
             // With the ring turning, the turn itself is the wait before the next chevron.
-            final long between = turns(gate) ? 1L : gate.getEffectiveLightTicks();
+            final long between = turns(gate) ? 1L : untilNext(gate, step + 1);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), between);
         }
+    }
+
+    /**
+     * How long a gate that does not turn waits before its next chevron: its own interval, or, for
+     * the gate being dialled, as long as the dialling gate's turn to that glyph takes, rests and
+     * all, so the two wormholes still form together.
+     */
+    static long untilNext(final Stargate gate, final int glyph)
+    {
+        final Stargate dialler = dialler(gate);
+        final DialSpin spin = ((dialler == null) || !turns(dialler)) ? null : spinOf(dialler);
+        if (spin == null)
+        {
+            return gate.getEffectiveLightTicks();
+        }
+        // A tick a frame, and one more for the turn's arrival, which is when its chevron locks.
+        return spin.frames(ConfigManager.getGateDialSpinPattern(), glyph, dialler.getEffectiveLightTicks()) + 1L;
+    }
+
+    /** The active gate dialling this one, or null. */
+    private static Stargate dialler(final Stargate gate)
+    {
+        for (final Stargate s : StargateManager.getAllGatesUnsorted())
+        {
+            if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
+            {
+                return s;
+            }
+        }
+        return null;
     }
 
     /** A gate's ring, laid from its own frame, and the shape it was laid for. */
@@ -450,10 +496,19 @@ class StargateAnimator
     }
 
     /**
-     * Moves the ring's light one tick towards the top chevron, for the glyph about to lock: half
-     * the ring, alternating direction each glyph, over the chevron's own interval.
+     * Whether a gate's locked chevrons ride round with its ring rather than lighting in place, as
+     * {@link DialSpinPattern#UNIVERSE} draws them; they are back in place once its top chevron locks.
+     */
+    static boolean ridesTheRing(final Stargate gate)
+    {
+        return (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE) && turns(gate);
+    }
+
+    /**
+     * Moves the ring's light one tick along its pattern, for the glyph about to lock, over the
+     * chevron's own interval and any rest the pattern adds.
      *
-     * @return true while the light is still travelling, false once it has arrived and is gone
+     * @return true while the light is still travelling, false once it has arrived and the chevron may lock
      */
     private static boolean turnRing(final Stargate gate, final List<List<Location>> waves)
     {
@@ -464,23 +519,29 @@ class StargateAnimator
             return false;
         }
         final Turning turning = TURNING.computeIfAbsent(gate, g -> new Turning());
-        final int ticks = Math.max(1, gate.getEffectiveLightTicks());
+        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final int interval = Math.max(1, gate.getEffectiveLightTicks());
+        final boolean arrived = turning.tick >= spin.frames(pattern, glyph, interval);
         final List<Location> now = new ArrayList<>();
-        if (turning.tick < ticks)
+        // On arriving, what rests on the ring stays lit through the lock; the next turn takes it back.
+        for (final GateBlueprint.Cell cell : arrived ? spin.rest(pattern, glyph, lastWave(gate, waves))
+            : spin.frame(pattern, glyph, turning.tick, interval))
         {
-            for (final GateBlueprint.Cell cell : spin.lit(ConfigManager.getGateDialSpinPattern(), glyph, turning.tick, ticks))
-            {
-                now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
-            }
+            now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
         }
-        takeBackLight(gate, turning.cells, now, lockedCells(waves, glyph - 1));
-        if (turning.tick >= ticks)
-        {
-            TURNING.remove(gate);
-            return false;
-        }
+        takeBackLight(gate, turning.cells, now,
+            (pattern == DialSpinPattern.UNIVERSE) ? Set.of() : lockedCells(waves, glyph - 1));
         StargateBlockSetup.drawLights(gate, now);
         turning.cells = now;
+        if (arrived)
+        {
+            turning.tick = 0;
+            if (now.isEmpty())
+            {
+                TURNING.remove(gate);
+            }
+            return false;
+        }
         turning.tick++;
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), 1L);
@@ -558,18 +619,7 @@ class StargateAnimator
      */
     static boolean linksAnotherWorld(final Stargate gate)
     {
-        Stargate other = gate.getGateTarget();
-        if (other == null)
-        {
-            for (final Stargate s : StargateManager.getAllGatesUnsorted())
-            {
-                if ((s != null) && (s != gate) && (s.getGateTarget() == gate) && s.isGateActive())
-                {
-                    other = s;
-                    break;
-                }
-            }
-        }
+        final Stargate other = (gate.getGateTarget() != null) ? gate.getGateTarget() : dialler(gate);
         if ((other == null) || (gate.getGateWorld() == null) || (other.getGateWorld() == null))
         {
             return false;
