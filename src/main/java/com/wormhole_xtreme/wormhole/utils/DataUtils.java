@@ -94,7 +94,13 @@ public class DataUtils
     public static Location locationFromBytes(final byte[] bytes, final World w)
     {
         final ByteBuffer b = ByteBuffer.wrap(bytes);
-        return new Location(w, b.getDouble(), b.getDouble(), b.getDouble(), b.getFloat(), b.getFloat());
+        final double x = b.getDouble();
+        final double y = b.getDouble();
+        final double z = b.getDouble();
+        // Pitch comes first on disk, the writer's order since the original plugin.
+        final float pitch = b.getFloat();
+        final float yaw = b.getFloat();
+        return new Location(w, x, y, z, yaw, pitch);
     }
 
     /**
