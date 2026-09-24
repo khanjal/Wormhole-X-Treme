@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ class CoreProtectLogTest
     {
         final List<String> calls = new ArrayList<>();
         final List<BlockData> data = new ArrayList<>();
+        final List<Location> places = new ArrayList<>();
         boolean enabled = true;
         int version = 10;
 
@@ -60,12 +62,15 @@ class CoreProtectLogTest
         {
             calls.add("placed " + user + " " + type);
             this.data.add(data);
+            places.add(at);
             return true;
         }
 
         public boolean logRemoval(final String user, final Location at, final Material type, final BlockData data)
         {
             calls.add("removed " + user + " " + type);
+            this.data.add(data);
+            places.add(at);
             return true;
         }
     }
@@ -102,7 +107,8 @@ class CoreProtectLogTest
         final Block block = mock(Block.class);
         when(block.getType()).thenReturn(type);
         when(block.getLocation()).thenReturn(new Location(null, 1, 64, 2));
-        when(block.getBlockData()).thenReturn(mock(BlockData.class));
+        final BlockData data = mock(BlockData.class);
+        when(block.getBlockData()).thenReturn(data);
         return block;
     }
 
@@ -118,7 +124,7 @@ class CoreProtectLogTest
         place(Material.OBSIDIAN);
 
         assertEquals(List.of(), api.calls);
-        bukkit.verify(Bukkit::getPluginManager, org.mockito.Mockito.never());
+        bukkit.verify(Bukkit::getPluginManager, never());
     }
 
     /** On, a placement and a removal reach CoreProtect's API, under the user given. */
@@ -131,6 +137,8 @@ class CoreProtectLogTest
         CoreProtectLog.removed("Fran", block(Material.SMOOTH_STONE_SLAB));
 
         assertEquals(List.of("placed #wormhole OBSIDIAN", "removed Fran SMOOTH_STONE_SLAB"), api.calls);
+        final Location at = new Location(null, 1, 64, 2);
+        assertEquals(List.of(at, at), api.places, "both logged where the block is");
     }
 
     /**

@@ -38,11 +38,11 @@ public final class CoreProtectLog
         void log(boolean placed, String user, Location at, Material type, BlockData data);
     }
 
-    /** The sink in use, or null until CoreProtect has been looked for. */
-    private static volatile Sink sink;
+    /** The sink in use, or null until CoreProtect has been looked for. Main thread only, as block writes are. */
+    private static Sink sink;
 
     /** Whether CoreProtect has been looked for, so a server without it is only asked once. */
-    private static volatile boolean looked;
+    private static boolean looked;
 
     private CoreProtectLog()
     {

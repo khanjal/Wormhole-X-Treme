@@ -15,7 +15,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Switch;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,9 +55,10 @@ class CoreProtectHookTest
         {
             final List<Integer> at = List.of(call.getArgument(0), call.getArgument(1), call.getArgument(2));
             final Block block = mock(Block.class);
+            final Switch data = mock(Switch.class);
             when(block.getType()).thenAnswer(read -> standing.getOrDefault(at, Material.AIR));
             when(block.getLocation()).thenReturn(new Location(world, at.get(0), at.get(1), at.get(2)));
-            when(block.getBlockData()).thenReturn(mock(Switch.class));
+            when(block.getBlockData()).thenReturn(data);
             when(block.getWorld()).thenReturn(world);
             Mockito.doAnswer(set ->
             {
