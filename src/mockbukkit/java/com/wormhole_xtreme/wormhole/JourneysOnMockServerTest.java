@@ -186,13 +186,13 @@ class JourneysOnMockServerTest
     }
 
     /** A pet of the given kind tamed to {@code owner}, sitting or not, where it is put. */
-    private static <T extends Tameable> T pet(final Location at, final Class<T> kind, final AnimalTamer owner,
-        final boolean sitting)
+    private static <T extends Tameable & Sittable> T pet(final Location at, final Class<T> kind,
+        final AnimalTamer owner, final boolean sitting)
     {
         final T pet = at.getWorld().spawn(at, kind);
         pet.setTamed(true);
         pet.setOwner(owner);
-        ((Sittable) pet).setSitting(sitting);
+        pet.setSitting(sitting);
         return pet;
     }
 
