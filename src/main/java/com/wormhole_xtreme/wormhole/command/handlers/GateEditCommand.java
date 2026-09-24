@@ -84,6 +84,9 @@ public class GateEditCommand implements SubCommand
     /** The value that clears a gate's own ring pattern. */
     private static final String DEFAULT = "default";
 
+    /** The value that hands a gate's group back to its frame. */
+    private static final String CLEAR = "-clear";
+
     /**
      * Sets the ring pattern this gate dials with (#366), or with {@code default} clears it so the
      * gate follows its material group and then {@code gate-dial-spin}. No value says what it is.
@@ -201,7 +204,8 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", groupNames()) + ".");
             return true;
         }
-        if (DEFAULT.equalsIgnoreCase(value.trim()))
+        // A dash, as options take, so a group an admin named "default" can still be chosen.
+        if (CLEAR.equalsIgnoreCase(value.trim()))
         {
             gate.chooseGateMaterialGroup(null);
             StargateDBManager.saveStargate(gate);

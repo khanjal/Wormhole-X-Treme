@@ -564,7 +564,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
-The choice is saved with the gate; `group default` gives it back to whatever its frame is built from.
+The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.
 
 **`gate regen <gate>`** first detects the whole gate afresh from its frame, whatever shape and facing it
 turns out to be, keeping its name, owner, iris code, network and every `gate edit` setting, as `/wormhole refresh` used to

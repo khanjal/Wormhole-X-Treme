@@ -128,7 +128,8 @@ public final class GateRefresh
         carryOverSettings(existing, fresh);
         // After the settings: completeGate sets up the redstone the flag above asks for.
         fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
-        // A shut iris stays shut; an idle gate's iris is only ever shut by choice (#440).
+        // A shut iris stays shut; an idle gate's iris is only ever shut by choice (#440). A toggle,
+        // not a set: it shuts only because the guard has just seen it open. False keeps the default.
         if (existing.isGateIrisActive() && !fresh.isGateIrisActive())
         {
             fresh.toggleIrisActive(false);

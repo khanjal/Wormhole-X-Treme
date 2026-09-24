@@ -23,7 +23,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
  * {@code /wormhole gate edit <gate> group} is saved (#441). It set the group in memory only, so
- * the gate went back to its frame's group on the next restart; {@code default} now hands it back
+ * the gate went back to its frame's group on the next restart; {@code -clear} now hands it back
  * to the frame on purpose.
  */
 class GateEditGroupTest
@@ -54,7 +54,7 @@ class GateEditGroupTest
         PluginTestSupport.remove();
     }
 
-    /** Choosing a group saves the gate with it; default forgets the choice and saves that too. */
+    /** Choosing a group saves the gate with it; -clear forgets the choice and saves that too. */
     @Test
     void aChosenGroupIsSavedAndDefaultForgetsIt()
     {
@@ -67,10 +67,26 @@ class GateEditGroupTest
             assertEquals(true, alpha.isGateMaterialGroupChosen(), "chosen, so it is written to the gate's file");
             assertEquals("Atlantis", alpha.getGateMaterialGroup().getName());
 
-            new GateEditCommand().execute(sender, new String[] { "gate", "edit", "alpha", "group", "default" });
-            assertEquals(false, alpha.isGateMaterialGroupChosen(), "default: read off the frame again");
+            new GateEditCommand().execute(sender, new String[] { "gate", "edit", "alpha", "group", "-clear" });
+            assertEquals(false, alpha.isGateMaterialGroupChosen(), "-clear: read off the frame again");
 
             db.verify(() -> StargateDBManager.saveStargate(alpha), times(2));
         }
+    }
+
+    /** A group an admin named "Default" can be chosen: clearing takes a dash, so it cannot shadow one. */
+    @Test
+    void aGroupNamedDefaultCanBeChosen()
+    {
+        MaterialGroupRegistry.load(Map.of("Default", Map.of("structure", "DIAMOND_BLOCK")));
+        final Stargate alpha = new Stargate();
+        alpha.setGateName("alpha");
+        StargateManager.registerStargate(alpha);
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            new GateEditCommand().execute(sender, new String[] { "gate", "edit", "alpha", "group", "default" });
+        }
+        assertEquals(true, alpha.isGateMaterialGroupChosen());
+        assertEquals("Default", alpha.getGateMaterialGroup().getName());
     }
 }
