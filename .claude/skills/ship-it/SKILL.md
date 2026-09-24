@@ -33,6 +33,17 @@ mvn -o test
 Read the summary line (`Tests run: N, Failures: 0, Errors: 0`) and report that real number, not
 a vague "tests pass." A silent compile with no test run proves nothing.
 
+`-q` also hides compiler warnings, and nothing else here reports them: the build does not fail
+on them, and neither PMD nor Sonar reads them. Look at them for the files you changed, with
+`clean`, since an incremental build only warns about what it recompiles:
+
+```
+mvn -o clean test-compile | grep "\[WARNING\]"
+```
+
+A change should add none. Fix a new one rather than explain it -- a deprecated-for-removal call
+is a break on the next dependency bump. An old one in a file you touched is worth fixing too.
+
 **If the change adds or changes behavior, add a test for it as part of the fix, not after.**
 This project has a specific, recurring history of bugs that were only caught because a test was
 written *alongside* the fix and immediately found a second, related problem the fix alone
@@ -105,6 +116,17 @@ API that only breaks from Minecraft 1.20.6 onward, for instance) — report the 
 the actual run, not an assumption that "it'll probably pass because the tests passed locally."
 If a job is still running, either wait for it or say plainly that it's still in progress —
 never state a CI result that hasn't actually come back yet.
+
+Green does not mean warning-free. Some code only compiles in CI -- `src/mockbukkit` only in the
+Paper 1.21.11 and 26.2 jobs -- so grep the log of each job that compiles a changed file:
+
+```
+gh run view <run-id> -R khanjal/Wormhole-X-Treme --json jobs --jq '.jobs[] | "\(.databaseId) \(.name)"'
+gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNING\]"
+```
+
+Say in the PR what was found, including "none". Three MockBukkit PRs (#443, #456, #457) merged
+with a deprecated-for-removal call nobody had read.
 
 ## 8. Deliver a build, if the change is something to try
 
