@@ -261,7 +261,7 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
-- **What a small mirror drew no longer hangs outside its opening as you move.** A redraw sends
+- **Less of what a small mirror drew hangs outside its opening as you move.** A redraw sends
   only the blocks visible through the opening from where the eye is now, and blocks that go out of
   sight stay on the client until the next redraw takes them away. At a mirror one or two banners
   wide a single step changes a large share of what is visible, and there is only the one block of

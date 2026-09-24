@@ -156,8 +156,9 @@ made a property of the DHD rather than of the ring
 `Grand` and `Massive` have a sign too. Gates already standing are unaffected: they store their
 own blocks rather than re-reading the shape.
 
-Shipped files are written out on first run and never overwrite yours. A deleted one comes back on
-the next startup, an edited one is left alone, and anything you add is loaded. Older
+Shipped files are written out on first run, and update themselves at startup when you have not
+edited them, keeping the old copy as `<name>.shape.old`. A deleted one comes back on the next
+startup, an edited one is left alone, and anything you add is loaded. Older
 `GateShapes/` folders are moved here on startup, and nothing is deleted.
 
 **To make your own**, copy an existing `.shape` file, edit the grid, give it a unique name, and

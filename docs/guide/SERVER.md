@@ -294,11 +294,10 @@ read from its old name and written back under the new one. Values you set are no
 file that no longer parses as YAML is left exactly as you left it rather than having every
 default appended to the end of it.
 
-**Shipped shapes are written once.** A `.shape` file already in `shapes/gate/` is never
-overwritten, so a shipped shape improved in a later release does not reach a server that already
-has the file. The startup log names each shipped shape whose copy differs from the jar's; delete
-the ones you did not edit and restart to get the new ones. Shapes you wrote yourself are left
-alone either way.
+**Shipped shapes update themselves unless you edited them.** At startup, a copy in
+`shapes/gate/` that matches a version some release shipped is replaced with the jar's, and the old
+one is kept as `<name>.shape.old`. A copy you edited is left alone and named in the log; to take
+the new one, move yours aside and restart. Shapes you wrote yourself are never touched.
 
 **Gates already standing keep their blocks.** A gate stores its own blocks rather than re-reading
 its shape, so new shapes in a release do not rebuild a gate's frame. Its chevron light order is

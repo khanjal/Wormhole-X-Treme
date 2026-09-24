@@ -89,7 +89,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Dialling the way the show does it.[/B] Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 [*][B]Dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] lands on the chevron itself, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, [ICODE]universe[/ICODE] as Destiny's, [ICODE]chase[/ICODE] and [ICODE]overshoot[/ICODE] add two more, and [ICODE]none[/ICODE] turns it off. A gate, or a whole material group, can pick its own.
 [*][B]An eighth chevron[/B] locks when the destination is in another world, after the top one.
-[*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files are written out on first run and never overwrite yours.
+[*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
 [*][B]Material groups.[/B] A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build [ICODE]Standard[/ICODE] in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
 [*][B]A building assistant.[/B] [ICODE]/wormhole gate build <shape>[/ICODE] stands the shape full size in front of you, seen by you alone and made of no blocks, so you can build straight into it. Then: [ICODE]-materials[/ICODE] lists what it will cost you block by block; [ICODE]-guide[/ICODE] draws what is still to place, outlines a wrong block in red and makes a correct one disappear; [ICODE]-layer[/ICODE] steps through a deep gate a layer at a time; [ICODE]-activate[/ICODE] test-dials it; [ICODE]-iris[/ICODE], [ICODE]-chevrons[/ICODE], [ICODE]-dhd[/ICODE] and [ICODE]-material[/ICODE] redress it; [ICODE]-share[/ICODE] shows it to another player or the whole world; and [ICODE]-place[/ICODE] builds it for real.
 [*][B]An iris, with remote codes.[/B] A closed iris bounces anyone dialling in, and sweeps shut a ring at a time, or as a spiral, rows or columns. Give a gate an IDC and callers can open it from the other end.
@@ -195,7 +195,7 @@ What CI proves is that the plugin compiles and its tests pass against each versi
 [*][B]Every push builds and tests the whole matrix.[/B] Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported on the README if it is in that matrix.
 [*][B]Compiled against the oldest supported API on purpose.[/B] A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
 [*][B]Static analysis on every pull request.[/B] SpotBugs runs on each build, and SonarCloud fails a pull request that carries [I]any[/I] open finding — not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
-[*][B]Nothing third-party in the jar.[/B] Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
+[*][B]Nothing third-party in the jar but bStats.[/B] Every other dependency is provided or test scope, and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML file each.
 [*][B]GPL-3.0, and the issue tracker is open.[/B] Bug reports get answered and pull requests are welcome.
 [/LIST]
 
@@ -337,12 +337,13 @@ one place the release notes are duplicated, so **rewriting
 [`shared.md`](shared.md#release-notes) means rewriting this too.** What follows is 1.8.0's.
 
 ```
-[B]Upgrading from 1.7 - nothing to do.[/B]
+[B]Upgrading from 1.7 - nothing you have to do.[/B]
 [LIST]
 [*]Bundled shapes you have not edited update themselves at startup, keeping the old copy as [ICODE]<name>.shape.old[/ICODE]. An edited one is left alone and named in the log.
 [*][B]Anonymous usage counts now go to bStats[/B], on by default: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]/wormhole config metrics-enabled false[/ICODE] stops it.
 [*]The default [ICODE]top[/ICODE] dial rests on the top chevron after each lock, so a dial takes about three seconds longer. [ICODE]/wormhole config gate-dial-spin chevron[/ICODE] keeps the old pace.
-[*]Coming from 1.7.0? Run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
+[*]Optional: an existing [ICODE]config.yml[/ICODE] keeps its material groups as they were. For Atlantis and Universe gates to dial their own way, as new installs do, add [ICODE]dial-spin: pegasus[/ICODE] and [ICODE]dial-spin: universe[/ICODE] to those groups.
+[*]Coming from 1.7.0? The [ICODE]Massive[/ICODE] shape updates itself; then run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 [*]Installing for the first time? None of the above applies. Drop the jar in and start.
 [/LIST]
 

@@ -262,7 +262,7 @@ answered.
 - **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
 - **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
-- **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
+- **Nothing third-party in the jar but bStats.** Every other dependency is provided or test scope, and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are welcome.
 
 ## Documentation

@@ -165,7 +165,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
   last lying flat to be dropped into rather than walked through. Shapes are plain text files:
   copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped
-  files are written out on first run and never overwrite yours.
+  files update themselves when you have not edited them, and never overwrite one you have.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal,
   iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file. Several groups ship, you can write as many as you
@@ -343,8 +343,9 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a
   pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring
   campaign cleared the open backlog and closed every "method too complex" finding on the way.
-- **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no
-  shading, no bundled library, and no database. Gates are one YAML file each.
+- **Nothing third-party in the jar but bStats.** Every other dependency is provided or test scope,
+  and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML
+  file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are
   welcome.
 
@@ -372,7 +373,7 @@ nothing saying they do not apply reads as setup they have to do.
 **Spigot needs the same block in BBCode**, which [`spigot.md`](spigot.md#version-upload) carries.
 Rewriting these notes means rewriting that one too.
 
-> **Upgrading from 1.7 — nothing to do.**
+> **Upgrading from 1.7 — nothing you have to do.**
 >
 > - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
 >   `<name>.shape.old`. An edited one is left alone and named in the log.
@@ -381,8 +382,11 @@ Rewriting these notes means rewriting that one too.
 >   stops it.
 > - The default `top` dial rests on the top chevron after each lock, so a dial takes about three
 >   seconds longer. `/wormhole config gate-dial-spin chevron` keeps the old pace.
-> - Coming from 1.7.0? Run `/wormhole gate regen <gate>` on each Massive gate, as 1.7.1 said. From
->   1.6.0, 1.7.0's step too: command keywords now need a dash.
+> - Optional: an existing `config.yml` keeps its material groups as they were. For Atlantis and
+>   Universe gates to dial their own way, as new installs do, add `dial-spin: pegasus` and
+>   `dial-spin: universe` to those groups.
+> - Coming from 1.7.0? The `Massive` shape updates itself; then run `/wormhole gate regen <gate>` on
+>   each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 > - Installing for the first time? None of the above applies. Drop the jar in and start.
 >
 > **Stargates**
