@@ -18,6 +18,8 @@ public class RedstoneCommand implements SubCommand
     private static final String VALID_OPTIONS = "Valid boolean options are: true and false";
 
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {

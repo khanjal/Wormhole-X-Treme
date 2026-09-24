@@ -33,14 +33,16 @@ public class TimeoutsCommand implements SubCommand
         if (args[0].equalsIgnoreCase("activate_timeout"))
         {
             // A gate lit for under ten seconds is not really dialable, so that is the floor.
-            return handleTimeout(sender, args, "activate_timeout", 10,
+            handleTimeout(sender, args, "activate_timeout", 10,
                 ConfigManager::getTimeoutActivate, ConfigManager::setTimeoutActivate);
+            return true;
         }
         if (args[0].equalsIgnoreCase("timeout") || args[0].equalsIgnoreCase("shutdown_timeout"))
         {
             // 0 is legal here and means the wormhole never closes on its own.
-            return handleTimeout(sender, args, "shutdown_timeout", 0,
+            handleTimeout(sender, args, "shutdown_timeout", 0,
                 ConfigManager::getTimeoutShutdown, ConfigManager::setTimeoutShutdown);
+            return true;
         }
         return false;
     }
@@ -65,9 +67,8 @@ public class TimeoutsCommand implements SubCommand
      *            reads the current value
      * @param write
      *            stores a new value
-     * @return true unless the value given was no good, which prints the usage line
      */
-    private static boolean handleTimeout(final CommandSender sender, final String[] args,
+    private static void handleTimeout(final CommandSender sender, final String[] args,
                                          final String label, final int floor,
                                          final IntSupplier read, final IntConsumer write)
     {
@@ -76,7 +77,7 @@ public class TimeoutsCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Current " + label + " is: " + read.getAsInt());
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + range(floor));
-            return true;
+            return;
         }
 
         final int timeout;
@@ -86,17 +87,18 @@ public class TimeoutsCommand implements SubCommand
         }
         catch (final NumberFormatException e)
         {
-            return reject(sender, label, args[1], floor);
+            reject(sender, label, args[1], floor);
+            return;
         }
         if ((timeout < floor) || (timeout > MAX_SECONDS))
         {
-            return reject(sender, label, args[1], floor);
+            reject(sender, label, args[1], floor);
+            return;
         }
 
         write.accept(timeout);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + label + " set to: " + read.getAsInt());
-        return true;
     }
 
     /**
@@ -110,15 +112,13 @@ public class TimeoutsCommand implements SubCommand
      *            what they typed
      * @param floor
      *            the lowest value this setting accepts
-     * @return true: the line was understood and its value explained, so no usage line follows (#325)
      */
-    private static boolean reject(final CommandSender sender, final String label,
+    private static void reject(final CommandSender sender, final String label,
                                   final String typed, final int floor)
     {
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Invalid " + label + ": " + typed);
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + range(floor));
-        return true;
     }
 
     /**
