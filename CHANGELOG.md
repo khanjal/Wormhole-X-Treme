@@ -40,8 +40,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **An iris sweeps shut a ring at a time**, from the rim inwards, and opens from the middle
   out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
   the pace, and `gate-iris-sweep-max-ticks` (twenty by default) caps a whole crossing, so a big
-  gate covers several rings a step rather than taking seconds; `0` lifts the cap. A server that
-  raised `gate-iris-step-ticks` reaches the cap sooner. Only the picture sweeps — the blocks are placed in one go, so a gate is never
+  gate covers several rings a step rather than taking seconds; `0` lifts the cap. At the default
+  pace only `Massive` and `Grand` reach it; a server that raised `gate-iris-step-ticks` reaches
+  it sooner. Only the picture sweeps — the blocks are placed in one go, so a gate is never
   partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **Four ways an iris can cross**: `sweep` (rings), `spiral`, `rows` and `columns`, plus
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
@@ -51,12 +52,13 @@ The plugin API is in [docs/API.md](docs/API.md).
   real gate's does: the iris in the ring with the wormhole behind it from the front, the
   wormhole in the ring with the iris beyond it from behind, swapping as you walk round. Two
   people either side of the same preview each see their own side. Closing it covers the
-  wormhole rather than taking it away, so a glass iris shows water through it.
+  wormhole rather than taking it away, so a see-through iris shows the wormhole through it.
 - **Behind a stained-glass iris the wormhole is drawn in ice**, blue and packed ice in a
   checkerboard that swaps twice a second, because Minecraft hides a liquid behind a translucent
   block. `gate-iris-horizon-ticks` sets the pace and `0` holds it still. A `nether_portal`
   wormhole gets purple and magenta concrete. In the ring itself it is always the real
-  wormhole. Previews do the same; upright gates only.
+  wormhole. Previews do the same; upright gates only. Plain glass never had the problem and is
+  untouched, and an opaque iris hides the wormhole by being opaque.
 - **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
   chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
   with the ring and back in place at the last) and `overshoot`
@@ -127,10 +129,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   always looks like it is covering it. Nothing is drawn where you have built, and it is a
   picture, not a way through: a shut iris refuses travellers, carts, arrows and dropped items
   as before. Previews do the same. Upright gates only; a horizontal gate's iris is real blocks.
-- **No kawoosh through a closed iris, on a gate or a preview.** Dialling out from a gate whose
-  iris was shut sent the kawoosh straight through it and drew the horizon over the iris; a
-  preview did the same, and a gate shut mid-woosh left the steps already out on screen and
-  played the kawoosh twice. The iris is asked at each step now: shut it partway through and
+- **No kawoosh through a closed iris, on a gate or a preview.** Dialling out from a sign gate
+  whose iris was shut sent the kawoosh straight through it and drew the horizon over the iris,
+  and a preview did the same. The iris is asked at each step now: shut it partway through and
   what is out is taken back; open it before the woosh and the woosh plays. The kawoosh is heard
   once either way -- the wormhole forms, just out of sight.
 - **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
