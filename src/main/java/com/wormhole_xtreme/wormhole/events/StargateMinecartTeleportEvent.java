@@ -32,9 +32,9 @@ public class StargateMinecartTeleportEvent extends Event
      * Instantiates a new stargate minecart teleport event.
      * 
      * @param oldMinecart
-     *            the old minecart
+     *            the cart that entered the gate, which does not survive the trip
      * @param newMinecart
-     *            the new minecart
+     *            the cart spawned at the far end in its place
      */
     public StargateMinecartTeleportEvent(final Minecart oldMinecart, final Minecart newMinecart)
     {
@@ -45,7 +45,7 @@ public class StargateMinecartTeleportEvent extends Event
     /**
      * Gets the new minecart.
      * 
-     * @return the new minecart
+     * @return the cart spawned at the far end in the old one's place
      */
     public Minecart getNewMinecart()
     {
@@ -55,7 +55,7 @@ public class StargateMinecartTeleportEvent extends Event
     /**
      * Gets the old minecart.
      * 
-     * @return the old minecart
+     * @return the cart that entered the gate; it does not survive the trip, so drop references to it
      */
     public Minecart getOldMinecart()
     {

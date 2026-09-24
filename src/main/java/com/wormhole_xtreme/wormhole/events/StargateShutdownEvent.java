@@ -101,8 +101,6 @@ public class StargateShutdownEvent extends StargateEvent
 
     /**
      * The handler list for this event type.
-     *
-     * @return the handlers
      */
     public static HandlerList getHandlerList()
     {
