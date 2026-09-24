@@ -430,6 +430,78 @@
 				</plugins>
 			</build>
 		</profile>
+
+		<!--
+			Tests that run the plugin on MockBukkit's simulated server. MockBukkit is built for one
+			Paper version and Java 21, so these live in src/mockbukkit and only run with
+			-Pmockbukkit,modern-api -Dpaper.api.version= set to the version it names; the main code
+			still compiles for Java 17.
+		-->
+		<profile>
+			<id>mockbukkit</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.mockbukkit.mockbukkit</groupId>
+					<artifactId>mockbukkit-v1.21</artifactId>
+					<version>4.116.3</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>3.6.1</version>
+						<executions>
+							<execution>
+								<id>add-mockbukkit-tests</id>
+								<phase>generate-test-sources</phase>
+								<goals>
+									<goal>add-test-source</goal>
+								</goals>
+								<configuration>
+									<sources>
+										<source>src/mockbukkit/java</source>
+									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<testRelease>21</testRelease>
+						</configuration>
+					</plugin>
+					<!-- A JVM of their own, either way round: a Mockito test that touches org.bukkit.Tag
+					     with no server breaks that class for the rest of its JVM, and MockBukkit's
+					     server is global. Split by tag, which -Dtest does not override. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>default-test</id>
+								<configuration>
+									<excludedGroups>mockbukkit</excludedGroups>
+								</configuration>
+							</execution>
+							<execution>
+								<id>mockbukkit-test</id>
+								<goals>
+									<goal>test</goal>
+								</goals>
+								<configuration>
+									<groups>mockbukkit</groups>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 
 	<repositories>

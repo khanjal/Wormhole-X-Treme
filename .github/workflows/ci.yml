@@ -172,9 +172,10 @@ jobs:
             api: "1.21.10-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
             java: "21"
+          # Also runs src/mockbukkit: MockBukkit's v1.21 line is built on this exact Paper API.
           - paper: "1.21.11"
             api: "1.21.11-R0.1-SNAPSHOT"
-            profile: "-Pmodern-api"
+            profile: "-Pmodern-api,mockbukkit"
             java: "21"
           - paper: "26.1.2"
             api: "26.1.2.build.74-stable"
@@ -210,6 +211,17 @@ jobs:
         run: >-
           mvn --batch-mode verify ${{ matrix.profile }} -Dpaper.api.version=${{ matrix.api }}
           ${{ matrix.artifact == 'purpur' && '-Dpaper.api.group=org.purpurmc.purpur -Dpaper.api.artifact=purpur-api' || '' }}
+
+      # The MockBukkit journeys run here and read the wall clock in places, so a rare failure
+      # needs its report kept to say which assertion it was.
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-${{ matrix.artifact || 'paper' }}-${{ matrix.paper }}
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest

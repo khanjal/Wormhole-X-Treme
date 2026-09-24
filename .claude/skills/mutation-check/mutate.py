@@ -9,11 +9,14 @@ BATTERY.json:
     {
       "file": "src/main/java/com/wormhole_xtreme/wormhole/model/Foo.java",
       "tests": "FooTest,BarTest",
+      "mvn_args": ["-Pmodern-api,mockbukkit", "-Dpaper.api.version=1.21.11-R0.1-SNAPSHOT"],
       "mutations": [
         {"name": "drop the null check", "find": "if (gate == null)\\n        {\\n            return;\\n        }\\n", "replace": ""},
         {"name": "off by one", "find": "count >= limit", "replace": "count > limit"}
       ]
     }
+
+"mvn_args" is optional: extra Maven arguments, for tests that only run under a profile.
 
 "find" is matched against the file with CRLF normalised to LF, so write multi-line finds
 with plain \\n. Each must match exactly once, or the mutation is reported as UNAPPLIED and
@@ -56,18 +59,18 @@ def mvn() -> str:
 SUMMARY = re.compile(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+), Skipped: (\d+)\s*$", re.M)
 
 
-def run_tests(root: Path, tests: str):
-    cmd = [mvn(), "-o", "-B", "test", f"-Dtest={tests}", "-Dsurefire.failIfNoSpecifiedTests=false"]
+def run_tests(root: Path, tests: str, extra: list):
+    cmd = [mvn(), "-o", "-B", "test", f"-Dtest={tests}", "-Dsurefire.failIfNoSpecifiedTests=false", *extra]
     proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace")
     log = proc.stdout + proc.stderr
-    totals = SUMMARY.findall(log)
+    # A profile can add a second surefire execution, and whichever one ran no tests prints an
+    # empty summary; read the last one that ran something.
+    totals = [t for t in SUMMARY.findall(log) if int(t[0]) > 0]
     if "COMPILATION ERROR" in log:
         return "NO-COMPILE", log
     if not totals:
         return "NO-TESTS", log
     run, fail, err, _ = (int(x) for x in totals[-1])
-    if run == 0:
-        return "NO-TESTS", log
     if proc.returncode != 0 and (fail or err):
         return "KILLED", log
     if proc.returncode == 0:
@@ -93,12 +96,14 @@ def main() -> int:
               f"(a WIP commit is fine), or restore the file if a previous battery was killed.")
         return 3
 
-    baseline, log = run_tests(root, battery["tests"])
+    extra = battery.get("mvn_args", [])
+    baseline, log = run_tests(root, battery["tests"], extra)
     if baseline != "SURVIVED":
         print(f"REFUSING: the unmutated baseline is {baseline}, not green. Fix that first.")
         print(log[-3000:])
         return 4
-    print(f"baseline green: {SUMMARY.findall(log)[-1][0]} tests in {battery['tests']}", flush=True)
+    ran = [t for t in SUMMARY.findall(log) if int(t[0]) > 0][-1][0]
+    print(f"baseline green: {ran} tests in {battery['tests']}", flush=True)
 
     results = []
     try:
@@ -115,7 +120,7 @@ def main() -> int:
                 results.append((name, "UNAPPLIED"))
                 continue
             target.write_bytes((mutated.replace("\n", "\r\n") if crlf else mutated).encode("utf-8"))
-            verdict, log = run_tests(root, battery["tests"])
+            verdict, log = run_tests(root, battery["tests"], extra)
             target.write_bytes(original)
             print(f"{verdict:<10} {name}", flush=True)
             if verdict in ("NO-TESTS", "BUILD-ERROR"):

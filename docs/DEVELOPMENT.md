@@ -23,6 +23,58 @@ server's `plugins/`, a copy script — without being repointed every time the ve
 Tests live in `src/test/java/`, mock the Bukkit API, and run against every supported Minecraft
 version in CI, so anything that only works on one of them is caught there.
 
+Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
+simulated server instead. MockBukkit is built for one Paper version and Java 21, so they need
+the profile, JDK 21 and that Paper API; against the default Spigot API they compile, then fail
+with a linkage error. CI runs them in the Paper 1.21.11 job:
+
+```bash
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
+```
+
+`JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
+by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
+a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
+
+- **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does
+  not override. A Mockito test that touches `org.bukkit.Tag` with no server leaves the class
+  unusable for the rest of its JVM, and every MockBukkit player needs it; the other way round,
+  MockBukkit's server is global.
+- **MockBukkit reports a call to a method it has not implemented as a skipped test**, not a
+  failure. The annotation turns it into a failure, so a journey cut short cannot pass. It only
+  sees what reaches the test thread; the plugin's own catches swallow one.
+- **Asynchronous tasks run on the next tick, on the main thread.** MockBukkit runs them on a
+  pool, and a task the pool scheduled back onto the main thread was sometimes lost: a mirror
+  capture then never finished, and the journeys failed now and then.
+- **"Nothing new running" waits on the tasks, not a number of ticks.** `settle` runs a
+  minute, then until no one-off task is pending, up to 30 minutes; every repeating task left
+  must have been running before the trip. A gate's shutdown is timed partly from the clock, so
+  a fixed wait passed or failed with the machine's speed.
+- **`MockServerSupport` stands in for the unimplemented methods a trip reaches**: `isPassable`,
+  `isOccluding`, chunk tickets, `unloadChunkRequest`, a player's target block, line of sight and
+  view distance, and the block data a mirror's view clones, turns and sends. Each is an
+  approximation (passable is "not solid", a view is never really drawn), and one reaches into
+  `WorldMock` by reflection, so a MockBukkit upgrade can break it. Add a stand-in there, not in a
+  test.
+- **Gate previews are not covered, nor how a mirror's view looks.** Previews spawn entities
+  hidden per player, which MockBukkit cannot do; the plugin catches that and carries on. A
+  mirror's capture is taken, 4 blocks deep, and its view worked out, but nothing checks either.
+- **Time here is ticks, not the clock.** A limit measured in milliseconds, such as
+  `max_open_seconds`, never passes.
+
+Static state survives `MockBukkit.unmock()`, which a real server never sees because each load
+gets a new classloader. A second load in one JVM logs every shape as a duplicate, so load the
+plugin once per class, in `@BeforeAll`. `MockServerSupport.stop()` puts the settings back as they
+were before the load and empties the gate, ring, beam and mirror registries, so the next
+MockBukkit class in that JVM starts from the same state whichever order they run in.
+
+The Sonar job builds without the profile, so it never analyses `src/mockbukkit/`. Check those
+files with PMD before pushing; `generate-test-sources` is what adds the folder:
+
+```bash
+mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
+```
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
