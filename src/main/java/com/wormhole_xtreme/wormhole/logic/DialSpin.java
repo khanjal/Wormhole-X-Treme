@@ -381,32 +381,50 @@ public final class DialSpin
     }
 
     /**
-     * A Pegasus step: the run jumps a glyph's width rather than sliding, over the frame between the
-     * chevron it sets off from and the one it lands on, and lands as that chevron alone. Neither
-     * chevron is lit with the frame beside it.
+     * A Pegasus step: the light jumps a glyph at a time over the frame between the chevron it sets
+     * off from and the one it lands on, and lands as that chevron alone. It lights no chevron on the
+     * way, as an Atlantis gate's chevron lights only as it locks.
      */
     private Set<Cell> pegasus(final List<Cell> path, final int glyph, final int head)
     {
         final int last = path.size() - 1;
         final Set<Cell> chevron = chevron(glyph);
         final Set<Cell> landed = chevron.isEmpty() ? Set.of(path.get(last)) : chevron;
-        final Set<Cell> from = chevron((glyph <= 1) ? Stargate.LOCAL_CHEVRONS : (glyph - 1));
-        // A chevron's cells can sit among frame cells, as Grand's do: up to the first reached.
-        final List<Cell> between = new ArrayList<>();
-        for (int i = 0; (i < last) && !chevron.contains(path.get(i)); i++)
-        {
-            if (!from.contains(path.get(i)))
-            {
-                between.add(path.get(i));
-            }
-        }
-        if ((head >= last) || between.isEmpty())
+        final List<Set<Cell>> hops = hops(path, chevron);
+        if ((head >= last) || hops.isEmpty())
         {
             return landed;
         }
-        final int length = Math.max(2, ring.size() / GLYPHS);
-        final int at = (int) (((long) head * between.size()) / last);
-        return run(between, Math.min(((at / length) * length) + (length - 1), between.size() - 1), length);
+        return hops.get((int) (((long) head * hops.size()) / last));
+    }
+
+    /**
+     * The glyph-wide hops a Pegasus light takes over the frame up to a chevron, whose cells can sit
+     * among frame cells, as Grand's do: up to the first reached. A hop never spans a chevron.
+     */
+    private List<Set<Cell>> hops(final List<Cell> path, final Set<Cell> chevron)
+    {
+        final int width = Math.max(1, (int) Math.round((double) ring.size() / GLYPHS));
+        final List<Set<Cell>> hops = new ArrayList<>();
+        Set<Cell> hop = new LinkedHashSet<>();
+        for (int i = 0; (i < (path.size() - 1)) && !chevron.contains(path.get(i)); i++)
+        {
+            final boolean frame = path.get(i).wave() == 0;
+            if ((!frame || (hop.size() == width)) && !hop.isEmpty())
+            {
+                hops.add(hop);
+                hop = new LinkedHashSet<>();
+            }
+            if (frame)
+            {
+                hop.add(path.get(i));
+            }
+        }
+        if (!hop.isEmpty())
+        {
+            hops.add(hop);
+        }
+        return hops;
     }
 
     /** The cells of a path from a run's tail up to its head. */
@@ -420,8 +438,8 @@ public final class DialSpin
         return lit;
     }
 
-    /** How many glyphs a Pegasus step takes the width of: 36 round an Atlantis gate, read as nine. */
-    private static final int GLYPHS = 9;
+    /** How many glyphs round an Atlantis gate, a Pegasus step being one's width. */
+    private static final int GLYPHS = 36;
 
     /** The angle a glyph's light lands on: its chevron's, or the top's for one not on the ring. */
     private double chevronAngle(final int glyph)

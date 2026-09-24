@@ -292,16 +292,44 @@ class DialSpinPatternTest
                 final Set<Cell> chevron = onRing(spin, glyph);
                 assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
                 assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
-                final Set<Cell> from = onRing(spin, (glyph == 1) ? 7 : (glyph - 1));
                 for (int tick = 0; tick < TICKS; tick++)
                 {
                     final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
-                    assertTrue(lit.equals(chevron) || lit.stream().noneMatch(chevron::contains),
-                        name + " glyph " + glyph + " tick " + tick + ": the chevron alone or clear of it");
-                    assertTrue(lit.stream().noneMatch(from::contains),
-                        name + " glyph " + glyph + " tick " + tick + ": clear of the chevron it set off from");
+                    assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> c.wave() == 0),
+                        name + " glyph " + glyph + " tick " + tick + ": the chevron alone, or frame alone: " + lit);
                 }
             }
+        }
+    }
+
+    /**
+     * PEGASUS moves a glyph's width at a time, even between neighbouring chevrons: on Massive the
+     * light once sat still in the gap beside the chevron for the whole interval, its step being
+     * wider than the gap. Found in-game.
+     */
+    @Test
+    void pegasusMovesBetweenNeighbouringChevrons() throws Exception
+    {
+        final DialSpin spin = spin("Massive");
+        final int ticks = 15;
+        final Set<Set<Cell>> seen = new java.util.LinkedHashSet<>();
+        for (int tick = 0; tick < (ticks - 1); tick++)
+        {
+            seen.add(spin.lit(DialSpinPattern.PEGASUS, 2, tick, ticks));
+        }
+        seen.remove(onRing(spin, 2));
+        assertTrue(seen.size() >= 2, "stepping across the gap, not sitting in it: " + seen.size());
+        assertTrue(seen.stream().allMatch(lit -> lit.size() <= Math.round(spin.ring().size() / 36.0)), "a glyph wide");
+        // The long way round too, and no hop spans a chevron: its cells sit side by side on the ring.
+        final int n = spin.ring().size();
+        for (int tick = 0; tick < (ticks - 1); tick++)
+        {
+            final List<Integer> at = spin.lit(DialSpinPattern.PEGASUS, 1, tick, ticks).stream()
+                .map(c -> spin.ring().indexOf(c)).toList();
+            final long gaps = java.util.stream.IntStream.range(1, at.size())
+                .filter(i -> Math.min(Math.floorMod(at.get(i) - at.get(i - 1), n), Math.floorMod(at.get(i - 1) - at.get(i), n)) != 1)
+                .count();
+            assertEquals(0, gaps, "tick " + tick + ": one piece of frame, " + at);
         }
     }
 
