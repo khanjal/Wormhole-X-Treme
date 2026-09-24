@@ -1,12 +1,12 @@
 ---
 name: pr-review
-description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a model review before it opens and another of the finished PR before it merges, never by the model that wrote the code (usually Sonnet, then Fable); then Copilot once at open, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
+description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a model review before it opens and another of the finished PR before it merges, never by the model that wrote the code (usually Sonnet, then Fable); then Copilot at open and once more after the final model review, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
 ---
 
 # Reviewing a pull request before it merges
 
-Every PR here is reviewed three times before it merges: by a model before it opens, by Copilot
-once it has, and by a model again on the finished PR just before it merges. Neither model review
+Every PR here is reviewed four times before it merges: by a model before it opens, by Copilot
+once it has, by a model again on the finished PR, and by Copilot once more after that. Neither model review
 is ever by the model that wrote the code: when Opus wrote it, the usual case, that is Sonnet then
 Fable; the table in step 1 has the rest. Green CI replaces none of them: the matrix proves the
 code builds and the tests pass, not that the tests test the right thing.
@@ -14,8 +14,8 @@ code builds and the tests pass, not that the tests test the right thing.
 ## The checklist in every PR description
 
 Every PR description carries the **Reviews** checklist from `.github/pull_request_template.md`:
-who wrote the code, the first review, Copilot, the final review, findings handled, Sonar at
-zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
+who wrote the code, the first review, Copilot at open, the final review, Copilot after it,
+findings handled, Sonar at zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
 PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
 is still owed. A PR is not ready to merge with a box unticked.
@@ -56,7 +56,7 @@ reviewer matches it:
 |---|---|---|
 | Opus | Sonnet | Fable |
 | Sonnet | Opus | Fable |
-| Fable | Sonnet | Opus |
+| Fable | Sonnet | Opus |
 | Haiku, or anything else | Sonnet | Fable |
 
 Give it: the repo path; the diff range as `origin/main...<commit>` after a `git fetch`, never
@@ -77,11 +77,12 @@ Run it in the background and do the CHANGELOG, PMD and test build meanwhile. Whe
 If the code then changes well beyond fixes to those findings -- a new approach, a new area --
 run step 1 again on the new commits, and add that run to the checklist's first-review line.
 
-## 2. When the PR opens: request Copilot, once
+## 2. When the PR opens: request Copilot
 
-Request it once, at open. Never again after follow-up commits: each review spends from a
-monthly allowance, and once that is gone a request gets nothing at all. An open PR that never
-had it requested -- opened by a session that did not follow this -- gets its one request now.
+Request it at open, and once more after the final review (step 6) -- never at any other point
+or any other number of times: each review spends from a monthly allowance, and once that is
+gone a request gets nothing at all. An open PR that never had it requested -- opened by a
+session that did not follow this -- gets its at-open request now.
 
 `gh pr` and `gh issue` need `-R khanjal/Wormhole-X-Treme` in this repo (there are three
 remotes). `gh api` does not take `-R` at all -- it fails with "unknown shorthand flag" -- and
@@ -101,7 +102,7 @@ ever arrives. The mutation's return value proves nothing either way. Check the t
 gh api repos/khanjal/Wormhole-X-Treme/issues/<n>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
 ```
 
-Empty means no request landed. If it will not register, ask the user to add Copilot from the
+Empty means no request landed; after step 6's request there should be two lines. If it will not register, ask the user to add Copilot from the
 GitHub UI.
 
 Copilot still matters after step 1: every model in step 1 comes from the same vendor, and
@@ -128,7 +129,7 @@ it has argued for restoring a `catch (Throwable)` this project removed on purpos
 
 ## 4. When Copilot could not review: steps 1 and 6 are the review of record
 
-If the quota is gone -- its review came back with the quota-exhausted body -- or the request
+This applies to each of the two requests on its own. If the quota is gone -- its review came back with the quota-exhausted body -- or the request
 would not register at all, the two model reviews (steps 1 and 6) are what the PR merges on. A
 review that was requested and has not come back is neither: it usually lands 6-15 minutes after
 the request, so wait for it, and treat it as gone only an hour after the request. Do not wait
@@ -168,11 +169,18 @@ Handle its findings the way step 1 says. A fix it prompts is small by then, and 
 further final review unless it changes behaviour well beyond the finding; Sonar (step 5) does need
 checking again after it. Say on the PR that it ran.
 
+Then, once its fixes are pushed, request Copilot a second time with the same mutation as step 2.
+The at-open review saw the PR before either model review's fixes, so this one is the only
+outside-vendor look at the code that actually merges. Wait for it and read it as step 3 says;
+step 4 covers it coming back quota-exhausted. Its fixes, like the final review's, do not need
+another final review unless they change behaviour well beyond the finding, and never request a
+third Copilot review for them.
+
 ## 7. Merge
 
 - Every box in the PR's Reviews checklist is ticked.
-- Copilot's review, if one came, has been read on all three surfaces (step 3) and each finding
-  fixed or answered.
+- Both Copilot reviews, where they came, have been read on all three surfaces (step 3) and each
+  finding fixed or answered.
 - The final review in step 6 has run on the latest commit, or on one the later commits only
   fixed its findings in.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
