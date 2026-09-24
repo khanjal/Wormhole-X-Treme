@@ -40,8 +40,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **An iris sweeps shut a ring at a time**, from the rim inwards, and opens from the middle
   out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
   the pace, and `gate-iris-sweep-max-ticks` (twenty by default) caps a whole crossing, so a big
-  gate covers several rings a step rather than taking seconds; `0` lifts the cap. Only the
-  picture sweeps — the blocks are placed in one go, so a gate is never
+  gate covers several rings a step rather than taking seconds; `0` lifts the cap. A server that
+  raised `gate-iris-step-ticks` reaches the cap sooner. Only the picture sweeps — the blocks are placed in one go, so a gate is never
   partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
 - **Four ways an iris can cross**: `sweep` (rings), `spiral`, `rows` and `columns`, plus
   `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
@@ -56,7 +56,7 @@ The plugin API is in [docs/API.md](docs/API.md).
   checkerboard that swaps twice a second, because Minecraft hides a liquid behind a translucent
   block. `gate-iris-horizon-ticks` sets the pace and `0` holds it still. A `nether_portal`
   wormhole gets purple and magenta concrete. In the ring itself it is always the real
-  wormhole. Previews do the same.
+  wormhole. Previews do the same; upright gates only.
 - **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
   chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
   with the ring and back in place at the last) and `overshoot`
