@@ -31,6 +31,20 @@ final class FailOnUnimplemented implements TestExecutionExceptionHandler, Lifecy
         throw failure(thrown);
     }
 
+    @Override
+    public void handleAfterEachMethodExecutionException(final ExtensionContext context, final Throwable thrown)
+        throws Throwable
+    {
+        throw failure(thrown);
+    }
+
+    @Override
+    public void handleAfterAllMethodExecutionException(final ExtensionContext context, final Throwable thrown)
+        throws Throwable
+    {
+        throw failure(thrown);
+    }
+
     private static Throwable failure(final Throwable thrown)
     {
         if (thrown instanceof UnimplementedOperationException)

@@ -56,16 +56,23 @@ final class MockServerSupport
     }
 
     /**
-     * Stops the server, and first empties the registries and settings the plugin's own disable
-     * leaves full, so a Mockito test later in the fork does not inherit them.
+     * Stops the server, so the plugin's own disable runs against live state, then empties the
+     * registries and settings that disable leaves full, so the next MockBukkit class in the JVM
+     * does not inherit them.
      */
     static void stop()
     {
         try
         {
+            MockBukkit.unmock();
+        }
+        finally
+        {
             com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam.readFromServer();
             configBefore.restore();
             PluginTestSupport.forgetAllGates();
+            ProjectileGateTracker.clear();
+            com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam.clear();
             com.wormhole_xtreme.wormhole.model.ring.RingManager.clear();
             com.wormhole_xtreme.wormhole.model.beam.BeamManager.clear();
             com.wormhole_xtreme.wormhole.model.mirror.MirrorManager.clear();
@@ -73,10 +80,7 @@ final class MockServerSupport
             com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.clear();
             com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures.clear();
             com.wormhole_xtreme.wormhole.model.mirror.MirrorSettle.clear();
-        }
-        finally
-        {
-            MockBukkit.unmock();
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam.forgetViewers();
         }
     }
 
@@ -126,10 +130,11 @@ final class MockServerSupport
     }
 
     /**
-     * A server whose asynchronous tasks run on the next tick instead.
+     * A server whose asynchronous tasks run on the main thread instead, when they are due.
      *
      * <p>MockBukkit runs them on a pool, and a task the pool schedules back onto the main thread
      * can be lost to a race in its task list: a mirror capture then never finished, sometimes.
+     * An asynchronous body now holds up the tick it runs in, as it would not on a server.
      */
     static final class Server extends ServerMock
     {
@@ -147,6 +152,20 @@ final class MockServerSupport
                     public BukkitTask runTaskAsynchronously(final Plugin plugin, final Runnable task)
                     {
                         return runTask(plugin, task);
+                    }
+
+                    @Override
+                    public BukkitTask runTaskLaterAsynchronously(final Plugin plugin, final Runnable task,
+                        final long delay)
+                    {
+                        return runTaskLater(plugin, task, delay);
+                    }
+
+                    @Override
+                    public BukkitTask runTaskTimerAsynchronously(final Plugin plugin, final Runnable task,
+                        final long delay, final long period)
+                    {
+                        return runTaskTimer(plugin, task, delay, period);
                     }
                 };
             }

@@ -33,7 +33,7 @@ mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   #
 ```
 
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
-by command, and checks where they arrive and that no task is left scheduled afterwards. Annotate
+by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
 a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
 
 - **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does
@@ -46,7 +46,7 @@ a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
 - **Asynchronous tasks run on the next tick, on the main thread.** MockBukkit runs them on a
   pool, and a task the pool scheduled back onto the main thread was sometimes lost: a mirror
   capture then never finished, and the journeys failed now and then.
-- **"Nothing left scheduled" waits on the tasks, not a number of ticks.** `settle` runs a
+- **"Nothing new running" waits on the tasks, not a number of ticks.** `settle` runs a
   minute, then until no one-off task is pending, up to 30 minutes; every repeating task left
   must have been running before the trip. A gate's shutdown is timed partly from the clock, so
   a fixed wait passed or failed with the machine's speed.

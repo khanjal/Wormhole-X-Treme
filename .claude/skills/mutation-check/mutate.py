@@ -63,14 +63,14 @@ def run_tests(root: Path, tests: str, extra: list):
     cmd = [mvn(), "-o", "-B", "test", f"-Dtest={tests}", "-Dsurefire.failIfNoSpecifiedTests=false", *extra]
     proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace")
     log = proc.stdout + proc.stderr
-    totals = SUMMARY.findall(log)
+    # A profile can add a second surefire execution, and whichever one ran no tests prints an
+    # empty summary; read the last one that ran something.
+    totals = [t for t in SUMMARY.findall(log) if int(t[0]) > 0]
     if "COMPILATION ERROR" in log:
         return "NO-COMPILE", log
     if not totals:
         return "NO-TESTS", log
     run, fail, err, _ = (int(x) for x in totals[-1])
-    if run == 0:
-        return "NO-TESTS", log
     if proc.returncode != 0 and (fail or err):
         return "KILLED", log
     if proc.returncode == 0:
@@ -102,7 +102,8 @@ def main() -> int:
         print(f"REFUSING: the unmutated baseline is {baseline}, not green. Fix that first.")
         print(log[-3000:])
         return 4
-    print(f"baseline green: {SUMMARY.findall(log)[-1][0]} tests in {battery['tests']}", flush=True)
+    ran = [t for t in SUMMARY.findall(log) if int(t[0]) > 0][-1][0]
+    print(f"baseline green: {ran} tests in {battery['tests']}", flush=True)
 
     results = []
     try:

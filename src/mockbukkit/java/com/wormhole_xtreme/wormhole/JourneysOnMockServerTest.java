@@ -32,8 +32,8 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
  *
  * <p>The Mockito tests take each step on its own. These run them in one go through the real
  * command, listener and scheduler, so a step that no longer hands on to the next shows up here.
- * Each ends by settling the server and counting what is still scheduled against the count
- * before the trip: a task that is never cancelled costs every tick for the life of the server.
+ * Each ends by settling the server and checking the trip left nothing new running: a task that
+ * is never cancelled costs every tick for the life of the server.
  */
 @OnMockServer
 class JourneysOnMockServerTest

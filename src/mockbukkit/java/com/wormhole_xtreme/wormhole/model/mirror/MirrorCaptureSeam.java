@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 
-/** Lets a MockBukkit test reach MirrorCaptures' package-private chunk reader. */
+/** Lets a MockBukkit test reach the mirror package's package-private seams. */
 public final class MirrorCaptureSeam
 {
     private MirrorCaptureSeam()
@@ -29,6 +29,14 @@ public final class MirrorCaptureSeam
                 baseZ + inv.getArgument(2, Integer.class).intValue()).getBlockData());
             return snapshot;
         });
+    }
+
+    /** Forgets every viewer's sight, fog and signpost, which the mirrors' own clears leave. */
+    public static void forgetViewers()
+    {
+        MirrorSight.clear();
+        MirrorFog.clear();
+        MirrorSignpost.clear();
     }
 
     /** Back to the server's own snapshots. */
