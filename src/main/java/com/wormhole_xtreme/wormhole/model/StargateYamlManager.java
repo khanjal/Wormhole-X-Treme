@@ -24,9 +24,9 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
 public class StargateYamlManager
 {
     private static final String OWNER_UUID_KEY = "OwnerUUID";
-    /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     /** How a log line names a gate. */
     private static final String GATE_QUOTE = "Gate \"";
+    /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     static final String DIAL_SPIN_KEY = "DialSpin";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
