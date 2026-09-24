@@ -580,6 +580,34 @@ public class Stargate implements GateIris
         gateMaterialGroupResolved = true;
     }
 
+    /** This gate's own ring pattern (#366), or null to follow its group and then the server. */
+    private com.wormhole_xtreme.wormhole.logic.DialSpinPattern gateDialSpin = null;
+
+    /**
+     * @return this gate's own ring pattern, or null when it has none
+     */
+    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpin()
+    {
+        return gateDialSpin;
+    }
+
+    /**
+     * @param pattern
+     *            this gate's own ring pattern, or null to follow its group and then the server
+     */
+    public void setGateDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
+    {
+        gateDialSpin = pattern;
+    }
+
+    /**
+     * @return the ring pattern this gate dials with: its own, its group's, or the server's
+     */
+    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getEffectiveDialSpin()
+    {
+        return com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern(gateDialSpin, getGateMaterialGroup());
+    }
+
     /**
      * Reads the gate's first frame block and looks its material up in the registry.
      *

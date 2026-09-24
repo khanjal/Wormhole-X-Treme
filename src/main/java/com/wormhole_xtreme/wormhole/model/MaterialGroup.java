@@ -46,6 +46,9 @@ public final class MaterialGroup
      */
     private final Material chevronMaterial;
 
+    /** The ring pattern this group's gates dial with (#366), or null to follow the server. */
+    private final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin;
+
     /**
      * Instantiates a new material group with no distinct chevrons.
      *
@@ -97,6 +100,20 @@ public final class MaterialGroup
         this.lightMaterial = lightMaterial;
         this.signMaterial = signMaterial;
         this.chevronMaterial = chevronMaterial;
+        this.dialSpin = null;
+    }
+
+    /** A copy of {@code base} with another ring pattern. */
+    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
+    {
+        this.name = base.name;
+        this.structureMaterial = base.structureMaterial;
+        this.portalMaterial = base.portalMaterial;
+        this.irisMaterial = base.irisMaterial;
+        this.lightMaterial = base.lightMaterial;
+        this.signMaterial = base.signMaterial;
+        this.chevronMaterial = base.chevronMaterial;
+        this.dialSpin = dialSpin;
     }
 
     /**
@@ -169,6 +186,24 @@ public final class MaterialGroup
     public Material getChevronMaterial()
     {
         return chevronMaterial;
+    }
+
+    /**
+     * @return the ring pattern this group's gates dial with, or null to follow the server
+     */
+    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getDialSpin()
+    {
+        return dialSpin;
+    }
+
+    /**
+     * @param pattern
+     *            the ring pattern this group's gates dial with, or null to follow the server
+     * @return a copy of this group with that pattern
+     */
+    public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
+    {
+        return new MaterialGroup(this, pattern);
     }
 
     @Override

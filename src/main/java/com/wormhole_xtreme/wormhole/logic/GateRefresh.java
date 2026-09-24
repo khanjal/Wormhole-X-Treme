@@ -90,7 +90,7 @@ public final class GateRefresh
      * Copies everything that belongs to the gate rather than to its blocks. The fresh gate is saved
      * straight afterwards, so anything dropped here is dropped for good.
      */
-    private static void carryOverMetadata(final Stargate existing, final Stargate fresh)
+    static void carryOverMetadata(final Stargate existing, final Stargate fresh)
     {
         final String oldName = existing.getGateName();
         final String oldIdc = existing.getGateIrisDeactivationCode();
@@ -102,6 +102,7 @@ public final class GateRefresh
         // display name.
         fresh.setGateOwnerName(existing.getStoredGateOwnerName());
         fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
+        fresh.setGateDialSpin(existing.getGateDialSpin());
         if (oldNet != null)
         {
             fresh.setGateNetwork(oldNet);

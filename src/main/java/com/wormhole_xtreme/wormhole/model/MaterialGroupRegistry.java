@@ -178,7 +178,30 @@ public final class MaterialGroupRegistry
         // never asked for distinct chevrons.
         final Material chevron = parseMaterial(groupName, "chevron", values.get("chevron"));
 
-        return new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron);
+        return new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron)
+            .withDialSpin(parseDialSpin(groupName, values.get("dial-spin")));
+    }
+
+    /**
+     * Reads a group's {@code dial-spin}, warning about a value that names no pattern.
+     *
+     * @return the pattern, or null when absent or unreadable, to follow the server's
+     */
+    private static com.wormhole_xtreme.wormhole.logic.DialSpinPattern parseDialSpin(final String groupName,
+        final Object raw)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
+            com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
+        if (pattern == null)
+        {
+            warn(GROUP_PREFIX + groupName + "\" has an unknown dial-spin \"" + raw
+                + "\"; its gates follow gate-dial-spin.");
+        }
+        return pattern;
     }
 
     /**
