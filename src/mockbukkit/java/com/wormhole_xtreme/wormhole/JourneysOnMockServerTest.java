@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.simulate.entity.PlayerSimulation;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -79,6 +80,12 @@ class JourneysOnMockServerTest
         server.getScheduler().performTicks(n);
     }
 
+    // PlayerMock's own simulatePlayerMove is deprecated for removal.
+    private static void walk(final MockServerSupport.Player p, final Location to)
+    {
+        new PlayerSimulation(p).simulatePlayerMove(to);
+    }
+
     private static void click(final MockServerSupport.Player p, final Action action, final Block block,
         final BlockFace face)
     {
@@ -125,7 +132,7 @@ class JourneysOnMockServerTest
         assertSame(beta, alpha.getGateTarget());
 
         final List<Location> portal = alpha.getGatePortalBlocks();
-        p.simulatePlayerMove(portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
         ticks(20);
         assertAt(beta.getGatePlayerTeleportLocation(), p.getLocation());
 
@@ -177,7 +184,7 @@ class JourneysOnMockServerTest
         assertTrue(made.stream().anyMatch(m -> m.contains("is live")), "pair not made: " + made);
         final java.util.Set<Integer> before = settledTasks();
 
-        p.simulatePlayerMove(new Location(world, 0.6, 64, 0.6));
+        walk(p, new Location(world, 0.6, 64, 0.6));
         ticks(200);
 
         assertAt(new Location(world, 30.5, 64, 0.5), p.getLocation());
@@ -223,7 +230,7 @@ class JourneysOnMockServerTest
         assertTrue(home.isGateActive(), "Kennel did not open: " + p.messages());
         final List<Location> portal = home.getGatePortalBlocks();
         final Location near = strangers.getLocation();
-        p.simulatePlayerMove(portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
         ticks(40);
 
         assertAt(away.getGatePlayerTeleportLocation(), p.getLocation());
