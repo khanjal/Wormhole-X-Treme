@@ -183,6 +183,7 @@ class StargateBlockSetup
     private static void placeGateSign(final Stargate gate, final Block placeBlock, final BlockFace toward)
     {
         gate.getGateStructureBlocks().add(placeBlock.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, gate.getEffectiveSignMaterial(), null);
         placeBlock.setType(gate.getEffectiveSignMaterial(), false);
         final Directional signData = (Directional) placeBlock.getBlockData();
         signData.setFacing(toward);
@@ -229,10 +230,12 @@ class StargateBlockSetup
         final Material frame = com.wormhole_xtreme.wormhole.logic.GateRederivation.frameMaterialAt(gate, placeBlock);
         if (frame != null)
         {
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, frame, null);
             placeBlock.setType(frame);
             return;
         }
         gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
         placeBlock.setType(Material.AIR);
     }
 
@@ -316,6 +319,7 @@ class StargateBlockSetup
                 facing = oldFacing.getFacing();
             }
 
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock, want, null);
             signBlock.setType(want, false);
 
             if (facing != null)
@@ -471,6 +475,7 @@ class StargateBlockSetup
     {
         final Block iris = gate.getGateIrisLeverBlock();
         gate.getGateStructureBlocks().add(iris.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris, Material.LEVER, null);
         iris.setType(Material.LEVER);
         final org.bukkit.block.data.type.Switch irisSwitch =
             (org.bukkit.block.data.type.Switch) iris.getBlockData();
@@ -488,6 +493,7 @@ class StargateBlockSetup
             return;
         }
         gate.getGateStructureBlocks().remove(iris.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris);
         iris.setType(Material.AIR);
     }
 
@@ -561,6 +567,11 @@ class StargateBlockSetup
                 if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
                     gate.getGateStructureBlocks().add(target.getLocation());
+                    // Wire laid again over its own wire is not a placement, so every regen does not log one.
+                    if (current == Material.AIR)
+                    {
+                        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
+                    }
                     target.setType(Material.REDSTONE_WIRE);
                 }
                 else
@@ -574,6 +585,7 @@ class StargateBlockSetup
         else if (target.getType() == Material.REDSTONE_WIRE)
         {
             gate.getGateStructureBlocks().remove(target.getLocation());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target);
             target.setType(Material.AIR);
         }
     }
@@ -592,6 +604,7 @@ class StargateBlockSetup
                 if (gate.getGateRedstoneGateActivatedBlock().getType() == Material.LEVER)
                 {
                     gate.getGateStructureBlocks().remove(gate.getGateRedstoneGateActivatedBlock().getLocation());
+                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateRedstoneGateActivatedBlock());
                     gate.getGateRedstoneGateActivatedBlock().setType(Material.AIR);
                 }
             }
@@ -617,6 +630,7 @@ class StargateBlockSetup
             else if (current == Material.AIR)
             {
                 gate.getGateStructureBlocks().add(ra.getLocation());
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, ra, Material.LEVER, null);
                 ra.setType(Material.LEVER);
             }
             else
@@ -642,6 +656,7 @@ class StargateBlockSetup
         if ((gate.getGateDialSignBlock() != null) && (gate.getGateDialSign() != null))
         {
             final Block teleportSign = gate.getGateDialSignBlock().getRelative(gate.getGateFacing());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, teleportSign);
             teleportSign.setType(Material.AIR);
         }
     }
@@ -656,6 +671,7 @@ class StargateBlockSetup
         for (final Location bc : gate.getGateStructureBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, b);
             b.setType(Material.AIR);
         }
     }
@@ -2456,6 +2472,7 @@ class StargateBlockSetup
             // placed activation item (button/lever) otherwise.
             if (regenerate && (mat == Material.AIR))
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock(), Material.LEVER, null);
                 gate.getGateDialLeverBlock().setType(Material.LEVER);
                 final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
                 rld.setFacing(gate.getGateFacing());

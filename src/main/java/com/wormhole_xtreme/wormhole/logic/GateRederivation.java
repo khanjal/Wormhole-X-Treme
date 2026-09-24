@@ -656,6 +656,7 @@ public final class GateRederivation
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
             if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
                 block.setType(builtMaterial(gate, cell), false);
                 restored.add(block);
             }
@@ -791,6 +792,8 @@ public final class GateRederivation
         for (final GateBlueprint.Cell cell : missing)
         {
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            // Into air, water or lava; CoreProtect logs a liquid replaced, so a rollback puts it back.
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
             block.setType(builtMaterial(gate, cell), false);
             placed.add(block);
         }
