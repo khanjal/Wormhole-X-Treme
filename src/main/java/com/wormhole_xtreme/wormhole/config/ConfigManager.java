@@ -141,6 +141,8 @@ public class ConfigManager
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether the PlaceholderAPI expansion is registered. */
         PLACEHOLDERS_ENABLED,
+        /** Whether anonymous usage counts are sent to bStats (#239). */
+        METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
         ECONOMY_ENABLED,
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
@@ -1935,6 +1937,13 @@ public class ConfigManager
     public static boolean isPlaceholdersEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PLACEHOLDERS_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if anonymous usage counts may be sent to bStats. */
+    public static boolean isMetricsEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.METRICS_ENABLED);
         return s != null && s.getBooleanValue();
     }
 
