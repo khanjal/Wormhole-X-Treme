@@ -261,6 +261,14 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
             }
+            try
+            {
+                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.disableMetrics();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to stop metrics", e);
+            }
             // Otherwise a /reload leaves old companions beside the new ones.
             try
             {
@@ -469,6 +477,22 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
+    /**
+     * Starts bStats (#239), if the config allows it. Its own catch, as the others have: metrics
+     * must never cost a server its gates.
+     */
+    private void enableMetricsIfConfigured()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableIfConfigured(this);
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to start metrics", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -483,6 +507,7 @@ public class WormholeXTreme extends JavaPlugin
             PermissionsSupport.enablePermissions();
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
+            enableMetricsIfConfigured();
         }
         catch (final Exception e)
         {

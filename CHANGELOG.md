@@ -8,6 +8,15 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.8.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Anonymous usage counts go to [bStats](https://bstats.org)**: Minecraft version, server
+  software, and how many gates, rings, beams and mirrors, in ranges. No names, coordinates or
+  addresses; bStats keeps a random id so it counts each server once. On by default; `metrics-enabled: false` stops it, and `plugins/bStats/config.yml`
+  stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
+
 ### For other plugins
 
 The plugin API is in [docs/API.md](docs/API.md).
