@@ -389,6 +389,11 @@ public final class MirrorCaptures
      */
     public static boolean retake(final QuantumMirror mirror)
     {
+        if (mirror.destination() != null)
+        {
+            // Whoever asked hears if it fails again.
+            FAILED.remove(keyOf(mirror.destination()));
+        }
         return request(mirror);
     }
 
@@ -812,9 +817,10 @@ public final class MirrorCaptures
         /** Drops a job whose sift failed, so the next look at the mirror starts a fresh one. */
         private void giveUp(final Throwable failure)
         {
+            done = true;
             cancel();
-            JOBS.remove(key, this);
-            if (FAILED.add(key))
+            // A job forgotten while it sifted says nothing, or it would hide its successor's failure.
+            if (JOBS.remove(key, this) && FAILED.add(key))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not work out what the mirror"
                     + " capture of " + far.getName() + " around " + key + " can see; it is tried again when"

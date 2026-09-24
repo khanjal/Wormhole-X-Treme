@@ -17,6 +17,8 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -560,9 +562,58 @@ class MirrorCapturesTest
                 assertTrue(MirrorCaptures.request(mirror));
                 pool.tickUntilIdle();
             }
+            verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+                any(IllegalStateException.class));
+
+            // An admin's retake is said again, so whoever ran it hears that it failed.
+            assertTrue(MirrorCaptures.retake(mirror));
+            pool.tickUntilIdle();
         }
 
         verify(plugin).prettyLog(eq(Level.WARNING), contains("is not loaded"));
+        verify(plugin, times(2)).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+            any(IllegalStateException.class));
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A job forgotten while its sift runs says nothing when the sift fails, and leaves the job
+     * that replaced it alone.
+     *
+     * <p>Otherwise its warning used up the place's one, and the successor's own failure was never
+     * logged.
+     */
+    @Test
+    void aJobForgottenWhileItSiftsSaysNothingWhenItFails() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.request(mirror));
+            for (int i = 0; (i < 100) && pool.held.isEmpty(); i++)
+            {
+                pool.tick();
+            }
+            assertEquals(1, pool.held.size(), "the first job's sift, still on the pool");
+            MirrorCaptures.forget(mirror);
+            assertTrue(MirrorCaptures.request(mirror));
+            pool.runHeld();
+            pool.runMain();
+            assertEquals(1, MirrorCaptures.taking(), "the second job is untouched");
+            assertEquals(1, pool.timers.size(), "and still ticking");
+            verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+                any(IllegalStateException.class));
+
+            pool.holdAsync = false;
+            pool.tickUntilIdle();
+        });
+
         verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
             any(IllegalStateException.class));
         assertEquals(0, MirrorCaptures.taking());
@@ -585,14 +636,18 @@ class MirrorCapturesTest
 
     /**
      * A scheduler whose repeating tasks run when told and stop when cancelled, whose async tasks
-     * run at once, swallowing what they throw as a server's pool does, and whose main-thread
-     * tasks wait for the next tick.
+     * run at once, or are held when asked, and whose main-thread tasks wait for the next tick.
+     *
+     * <p>An async task's RuntimeException is swallowed, as a server's pool does; an Error is
+     * let through to the test, where a server's pool would log it.
      */
     private static final class Pool
     {
         final Map<Integer, Runnable> timers = new LinkedHashMap<>();
         final List<Runnable> main = new ArrayList<>();
+        final List<Runnable> held = new ArrayList<>();
         final List<RuntimeException> escaped = new ArrayList<>();
+        boolean holdAsync;
         private int nextId;
 
         Pool() throws Exception
@@ -609,13 +664,13 @@ class MirrorCapturesTest
                 });
             when(scheduler.runTaskAsynchronously(any(Plugin.class), any(Runnable.class))).thenAnswer(invocation ->
             {
-                try
+                if (holdAsync)
                 {
-                    ((Runnable) invocation.getArgument(1)).run();
+                    held.add(invocation.getArgument(1));
                 }
-                catch (final RuntimeException swallowed)
+                else
                 {
-                    escaped.add(swallowed);
+                    runAsync(invocation.getArgument(1));
                 }
                 return mock(BukkitTask.class);
             });
@@ -625,6 +680,26 @@ class MirrorCapturesTest
                 return mock(BukkitTask.class);
             });
             PluginTestSupport.scheduler(scheduler);
+        }
+
+        private void runAsync(final Runnable task)
+        {
+            try
+            {
+                task.run();
+            }
+            catch (final RuntimeException swallowed)
+            {
+                escaped.add(swallowed);
+            }
+        }
+
+        /** Finishes the async tasks being held. */
+        void runHeld()
+        {
+            final List<Runnable> due = new ArrayList<>(held);
+            held.clear();
+            due.forEach(this::runAsync);
         }
 
         /** Runs every task due this tick. */
