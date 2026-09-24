@@ -433,7 +433,7 @@
 
 		<!--
 			Tests that run the plugin on MockBukkit's simulated server. MockBukkit is built for one
-			Paper version and Java 21, so these live in src/mockbukkit and only compile with
+			Paper version and Java 21, so these live in src/mockbukkit and only run with
 			-Pmockbukkit,modern-api -Dpaper.api.version= set to the version it names; the main code
 			still compiles for Java 17.
 		-->

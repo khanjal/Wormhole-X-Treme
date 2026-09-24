@@ -1,8 +1,12 @@
 package com.wormhole_xtreme.wormhole;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Set;
 
 import org.bukkit.command.PluginCommand;
 import org.junit.jupiter.api.AfterAll;
@@ -15,8 +19,8 @@ import org.mockbukkit.mockbukkit.ServerMock;
  * The whole plugin enables on a simulated server, from plugin.yml through onEnable.
  *
  * <p>The Mockito tests stub the server one call at a time, so none of them runs onEnable as a
- * server would: a listener that fails to register, or a command plugin.yml names that the plugin
- * never claims, only shows up on a real server. MockBukkit supplies that server.
+ * server would: a command plugin.yml names that the plugin never claims only shows up on a real
+ * server. MockBukkit supplies that server.
  */
 class PluginEnablesOnMockServerTest
 {
@@ -40,19 +44,26 @@ class PluginEnablesOnMockServerTest
     @Test
     void thePluginIsEnabledAfterLoading()
     {
-        assertTrue(plugin.isEnabled(), "onEnable threw, or disabled the plugin itself");
+        assertTrue(plugin.isEnabled(), "the plugin disabled itself during onEnable");
         assertSame(plugin, server.getPluginManager().getPlugin("WormholeXTreme"));
     }
 
-    /** An unclaimed command keeps the plugin as its executor, and the plugin answers nothing. */
+    /**
+     * An unclaimed command keeps the plugin as its executor and answers nothing, and with no
+     * completer of its own, tab offers player names.
+     */
     @Test
-    void everyCommandInPluginYmlHasItsOwnExecutor()
+    @SuppressWarnings("deprecation") // getDescription(): Paper's replacement has no command map.
+    void everyCommandInPluginYmlHasItsOwnExecutorAndCompleter()
     {
-        for (final String name : plugin.getDescription().getCommands().keySet())
+        final Set<String> names = plugin.getDescription().getCommands().keySet();
+        assertFalse(names.isEmpty(), "plugin.yml declared no commands");
+        for (final String name : names)
         {
             final PluginCommand command = plugin.getCommand(name);
             assertNotSame(plugin, command.getExecutor(), name);
-            assertNotSame(plugin, command.getTabCompleter(), name);
+            // The completer is null until set, never the plugin, so null is the case to check.
+            assertNotNull(command.getTabCompleter(), name);
         }
     }
 }

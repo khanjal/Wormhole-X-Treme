@@ -24,16 +24,25 @@ Tests live in `src/test/java/`, mock the Bukkit API, and run against every suppo
 version in CI, so anything that only works on one of them is caught there.
 
 Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
-simulated server instead. MockBukkit is built for one Paper version and Java 21, so they only
-compile with the profile and that API, and CI runs them in the Paper 1.21.11 job:
+simulated server instead. MockBukkit is built for one Paper version and Java 21, so they need
+the profile, JDK 21 and that Paper API; against the default Spigot API they compile, then fail
+with a linkage error. CI runs them in the Paper 1.21.11 job:
 
 ```bash
 mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
 ```
 
 Static state survives `MockBukkit.unmock()`, which a real server never sees because each load
-gets a new classloader: a second load in one JVM logs every shape as a duplicate. Load the
-plugin once per class, in `@BeforeAll`.
+gets a new classloader. A second load in one JVM logs every shape as a duplicate, so load the
+plugin once per class, in `@BeforeAll`. Config statics survive too: with no permissions plugin,
+enabling turns on the permission fallback for every test that runs after it in the fork.
+
+The Sonar job builds without the profile, so it never analyses `src/mockbukkit/`. Check those
+files with PMD before pushing; `generate-test-sources` is what adds the folder:
+
+```bash
+mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
+```
 
 ## Static analysis
 
