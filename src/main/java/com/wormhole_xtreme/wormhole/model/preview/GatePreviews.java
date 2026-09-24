@@ -2067,8 +2067,8 @@ public final class GatePreviews
     private static void resweepIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
         final BlockFace facing = preview.grid().facing();
-        if (!preview.open() || (facing == null) || !DrawnHorizon.standsIn(preview.palette().iris())
-            || !preview.sweepSides().containsKey(player.getUniqueId()))
+        // Not recorded: the sweep drew this viewer nothing off the ring, as for an opaque iris.
+        if (!preview.open() || (facing == null) || !preview.sweepSides().containsKey(player.getUniqueId()))
         {
             return;
         }
