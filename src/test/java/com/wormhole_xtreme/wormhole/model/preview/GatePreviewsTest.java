@@ -2813,4 +2813,49 @@ class GatePreviewsTest
         assertTrue(lastSentPerCellAlong(walker, -1).values().stream().noneMatch(d -> (d == ice) || (d == packed)),
             "no ice is left on the side they now stand on; from behind, the wormhole keeps the ring");
     }
+
+    /**
+     * A viewer who crosses to a side with nowhere beyond the ring to stand the wormhole in keeps
+     * the wormhole in the ring (#442). The hand-back took the ring cell too, and the wormhole
+     * vanished from it until the next step redrew it. Found by a Sonnet review.
+     */
+    @Test
+    void aViewerCrossingToABlockedSideKeepsTheWormholeInTheRing()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final BlockFace facing = previewFacing();
+        for (final Cell cell : openingCells())
+        {
+            // Stone a block behind the ring: from in front there is nowhere to put the wormhole.
+            standing.put(List.of(cell.x() - facing.getModX(), cell.y() - facing.getModY(), cell.z() - facing.getModZ()),
+                Material.STONE);
+        }
+        final Player walker = viewerAlong("Fran", -4);
+        GatePreviews.iris(owner);
+        for (int step = 0; (step < 2) && !irisPending.isEmpty(); step++)
+        {
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
+        }
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        clearInvocations(walker);
+
+        final Cell first = openingCells().get(0);
+        final Location front = new Location(world, first.x() + (4 * facing.getModX()) + 0.5,
+            first.y() + (4 * facing.getModY()), first.z() + (4 * facing.getModZ()) + 0.5);
+        when(walker.getLocation()).thenReturn(front);
+        when(walker.getEyeLocation()).thenReturn(front);
+        GatePreviews.moved(walker, front);
+
+        final Set<List<Integer>> ring = new HashSet<>();
+        for (final Cell cell : openingCells())
+        {
+            ring.add(List.of(cell.x(), cell.y(), cell.z()));
+        }
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(walker, org.mockito.Mockito.atLeast(0)).sendBlockChange(where.capture(), any(BlockData.class));
+        assertTrue(where.getAllValues().stream().noneMatch(at -> ring.contains(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()))),
+            "nothing is sent into the ring itself: its wormhole stays");
+    }
 }

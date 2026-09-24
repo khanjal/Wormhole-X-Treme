@@ -2066,7 +2066,10 @@ public final class GatePreviews
         {
             final IrisLayering.At ring = at(preview.opening().get(index));
             final IrisLayering.At where = now.get(index).horizon();
-            for (final IrisLayering.At back : IrisLayering.handBacks(ring, facing, where))
+            // The ring keeps its wormhole where there is nowhere beyond it to stand in, as the
+            // sweep itself does: handing it back emptied the ring until the next step.
+            final IrisLayering.At kept = (where == null) ? ring : where;
+            for (final IrisLayering.At back : IrisLayering.handBacks(ring, facing, kept))
             {
                 takeBackAt(player, preview, back);
             }
