@@ -159,7 +159,11 @@ class WormholeXTremePlayerListener implements Listener
     private static void teleportPlayerAlone(final Player player, final Location safeTarget)
     {
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WorldUtils.forceLoadDestinationChunks(safeTarget);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
         player.teleport(safeTarget);
         try
         {
@@ -517,7 +521,11 @@ class WormholeXTremePlayerListener implements Listener
 
         // Refill the player's air while they stand in the portal so a water-material
         // gate does not drown them. Cosmetic, so a failure is not worth reporting.
-        try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            player.setRemainingAir(player.getMaximumAir());
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         if (refusedBeforeTravel(player, stargate))
         {
@@ -839,10 +847,18 @@ class WormholeXTremePlayerListener implements Listener
         final Vector exitVelocity = aimMountAtExit(riddenTarget, exitFacing, ridden);
 
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WorldUtils.forceLoadDestinationChunks(riddenTarget);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
         // Mark before the teleport so a VehicleMoveEvent in the same tick is
         // suppressed and does not double-process this entry, zeroing the exit velocity.
-        try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId());
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         try
         {
@@ -941,11 +957,23 @@ class WormholeXTremePlayerListener implements Listener
                 }
                 // Each call is independently best-effort: none of them failing is
                 // worth aborting the others.
-                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) { /* best effort */ }
-                try { player.setFallDistance(0); } catch (final RuntimeException ignore) { /* best effort */ }
+                try
+                {
+                    player.setVelocity(new Vector(0, 0, 0));
+                }
+                catch (final RuntimeException ignore) { /* best effort */ }
+                try
+                {
+                    player.setFallDistance(0);
+                }
+                catch (final RuntimeException ignore) { /* best effort */ }
                 if (!skipTeleport)
                 {
-                    try { player.teleport(target); } catch (final RuntimeException ignore) { /* best effort */ }
+                    try
+                    {
+                        player.teleport(target);
+                    }
+                    catch (final RuntimeException ignore) { /* best effort */ }
                 }
                 // A moment of water, as though they had just surfaced out of the event
                 // horizon. Sent here rather than at teleport time so it lands after the

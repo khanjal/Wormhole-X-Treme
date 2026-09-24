@@ -79,7 +79,11 @@ class StargateLifecycle
 
         // Clear any recent-arrival markers that reference this gate so players
         // can re-enter after shutdown.
-        try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            StargateRestrictions.removeRecentArrivalsForGate(gate);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         GateSounds.closed(gate);
         GateSounds.stopAmbient(gate);
