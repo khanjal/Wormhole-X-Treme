@@ -312,6 +312,7 @@ public class RingCommand implements SubCommand
             final org.bukkit.block.Block at = player.getWorld().getBlockAt(block[0], block[1], block[2]);
             if (at.getType() == ring.getRingMaterial())
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(player.getName(), at);
                 at.setType(Material.AIR, false);
             }
         }
@@ -370,6 +371,8 @@ public class RingCommand implements SubCommand
                     ? org.bukkit.block.data.type.Slab.Type.TOP
                     : org.bukkit.block.data.type.Slab.Type.BOTTOM);
                 at.setBlockData(slab, false);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(
+                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, at);
                 laid++;
             }
         }

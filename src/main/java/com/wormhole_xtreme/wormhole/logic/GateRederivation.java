@@ -656,7 +656,9 @@ public final class GateRederivation
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
             if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block);
                 block.setType(builtMaterial(gate, cell), false);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block);
                 restored.add(block);
             }
         }
@@ -791,7 +793,10 @@ public final class GateRederivation
         for (final GateBlueprint.Cell cell : missing)
         {
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            // Into air, water or lava: a liquid is logged as removed so a rollback puts it back.
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block);
             block.setType(builtMaterial(gate, cell), false);
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block);
             placed.add(block);
         }
         return new Fill(placed, gaps, blocked, cap);
