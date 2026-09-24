@@ -585,23 +585,7 @@ class StargateBlockSetup
         {
             if (create)
             {
-                final Block ra = gate.getGateRedstoneGateActivatedBlock();
-                try
-                {
-                    final Material current = ra.getType();
-                    // A lever already there is the gate's own, as a wire is: a regenerated gate
-                    // finds the one it placed before, and has to claim it again (#440).
-                    if ((current == Material.AIR) || (current == Material.LEVER))
-                    {
-                        gate.getGateStructureBlocks().add(ra.getLocation());
-                        ra.setType(Material.LEVER);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
+                placeGateActivatedLever(gate, gate.getGateRedstoneGateActivatedBlock());
             }
             else
             {
@@ -612,6 +596,27 @@ class StargateBlockSetup
                 }
             }
         }
+    }
+
+    /** Places the gate-activated lever, or claims one already there; anything else is left alone. */
+    private static void placeGateActivatedLever(final Stargate gate, final Block ra)
+    {
+        try
+        {
+            final Material current = ra.getType();
+            // A lever already there is the gate's own, as a wire is: a regenerated gate
+            // finds the one it placed before, and has to claim it again (#440).
+            if ((current == Material.AIR) || (current == Material.LEVER))
+            {
+                gate.getGateStructureBlocks().add(ra.getLocation());
+                ra.setType(Material.LEVER);
+            }
+            else
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
+            }
+        }
+        catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
     }
 
     // -----------------------------------------------------------------------
