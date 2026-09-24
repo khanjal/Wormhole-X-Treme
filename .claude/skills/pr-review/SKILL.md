@@ -79,7 +79,8 @@ run step 1 again on the new commits, and add that run to the checklist's first-r
 
 ## 2. Sonar: the PR's issues, not the tick
 
-A green Sonar check can hide an open issue. Read the count directly:
+Open the PR, with the checklist in its body, once step 1's findings are handled; Sonar and CI
+only run on an open PR. A green Sonar check can hide an open issue. Read the count directly:
 
 ```bash
 curl -s "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=<n>&resolved=false"
@@ -112,10 +113,12 @@ checking again after it. Say on the PR that it ran.
 
 ## 4. Last: request Copilot, once
 
-Only once the final review's fixes are pushed, so Copilot sees the code that will actually
-merge, and only once per PR: each review spends from a monthly allowance, and once that is gone
-a request gets nothing at all. Do not request it at open, nor again after the fixes it prompts.
-An open PR that already had its one request -- from before this rule -- does not get another.
+Only once the final review's fixes are pushed and CI and Sonar are green on them -- when the PR
+would otherwise be mergeable -- so Copilot sees the code that will actually merge. And only once
+per PR: each review spends from a monthly allowance, and once that is gone a request gets
+nothing at all. Do not request it at open, nor again after the fixes it prompts. Run the
+timeline query below before requesting: a `copilot-pull-request-reviewer` line already there,
+on a PR opened before this rule, means its one request is spent.
 
 Copilot still matters after two model reviews: both models come from the same vendor, and
 Copilot does not. It is the one reviewer whose blind spots are not correlated with the author's.
@@ -144,7 +147,9 @@ GitHub UI.
 ## 5. Read what came back
 
 The review usually lands 6-15 minutes after the request. Wait for it, and treat it as gone only
-an hour after the request. There are three surfaces, and reading two of them is the usual miss:
+an hour after the request. If the merge instruction comes in a later turn, read again
+immediately before merging; an earlier read is stale. There are three surfaces, and reading two
+of them is the usual miss:
 
 ```bash
 gh api repos/khanjal/Wormhole-X-Treme/pulls/<n>/reviews    # review bodies
@@ -161,7 +166,9 @@ Treat Copilot's findings as informed, not authoritative. Check each against the 
 it has argued for restoring a `catch (Throwable)` this project removed on purpose. Handle the
 real ones the way step 1 says; like the final review's, their fixes do not need another final
 review unless they change behaviour well beyond the finding, and Sonar (step 2) needs checking
-again after them.
+again after them. That leaves a Copilot-prompted fix reviewed only by its test, Sonar and the
+session's own check -- the accepted price of Copilot going last, not a gap to close with
+another model review.
 
 ## 6. When Copilot could not review: the model reviews are the review of record
 

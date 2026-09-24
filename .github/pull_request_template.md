@@ -10,6 +10,6 @@ Written by: ___ (the model that wrote the code; it decides which models review i
 
 - [ ] **First review**, before the PR opened. Model: ___ · commit: ___ (and again at ___ if the code changed a lot after it)
 - [ ] **Final review** of the finished PR, before merge. Model: ___ · commit: ___
-- [ ] **Copilot**, requested once after the final review's fixes. Commit: ___ · Result: reviewed / quota exhausted / no response
+- [ ] **Copilot**, requested once, last. Commit: ___ · Result: reviewed / quota exhausted / no response
 - [ ] Every finding fixed with a test, or written down above with why not
 - [ ] SonarCloud issues on this PR: 0

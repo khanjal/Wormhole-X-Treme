@@ -89,7 +89,8 @@ project rule from step 1.
 ## 6b. Review before the PR opens
 
 Follow the `pr-review` skill: a different model reviews the change before the PR is opened,
-Copilot is requested once, after the final model review, and the PR carries the Reviews checklist. Its steps run
+Copilot is requested once, after the final model review, and the PR carries the Reviews
+checklist. Its steps run
 alongside this one's from here on.
 
 ## 7. Verify CI — actually check, don't assume
