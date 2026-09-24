@@ -786,4 +786,57 @@ class IrisSweepOrderingTest
         assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
         verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
     }
+
+    /**
+     * A built iris removed part way through opening comes down anyway (#434). An opening sweep
+     * leaves a built iris standing until its last step, and calling the sweep off drops that step:
+     * /wormhole remove, which opens an iris-coded gate's iris and then removes the gate, left a
+     * horizontal gate's iris blocks in the world for good. Found by a Fable review.
+     */
+    @Test
+    void aBuiltIrisCalledOffMidOpeningIsTakenDown()
+    {
+        // This fixture's gate has no facing, so its iris is real blocks, as a horizontal gate's is.
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open, its blocks still standing");
+        events.clear();
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            StargateManager.removeStargate(gate, null, false);
+        }
+
+        assertEquals(gate.getGatePortalBlocks().size(), events.stream().filter("block:AIR"::equals).count(),
+            "every iris block is taken down, now rather than at a last step that will not come: " + events);
+    }
+
+    /**
+     * Dialling a gate whose iris is part way open calls the sweep off (#434), so its remaining
+     * rings do not paint the opening it started from, bare air here, over the wormhole forming.
+     * Found by a Fable review.
+     */
+    @Test
+    void diallingMidSweepCallsTheSweepOff()
+    {
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 2));
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(event -> { });
+        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
+            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            StargateDialManager.dialStargate(gate, true);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(null);
+        }
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off as the gate opens");
+    }
 }
