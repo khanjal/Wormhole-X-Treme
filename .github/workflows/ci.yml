@@ -181,9 +181,11 @@ jobs:
             api: "26.1.2.build.74-stable"
             profile: "-Pmodern-api"
             java: "25"
+          # Also runs src/mockbukkit on MockBukkit's 26.2 line: Java 25, and built on Paper build 111
+          # rather than this 124. MockBukkit refuses to start if an API it relies on differs.
           - paper: "26.2"
             api: "26.2.build.124-stable"
-            profile: "-Pmodern-api"
+            profile: "-Pmodern-api,mockbukkit -Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25"
             java: "25"
           # No stable 26.3 build yet.
           - paper: "26.3"
