@@ -29,8 +29,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 
 /**
- * The places that build and take down a gate report to CoreProtect (#238): what they remove is
- * logged before it goes, and what they place after it is there, as the plugin's own user.
+ * The places that build and take down a gate report to CoreProtect (#238), as the plugin's own
+ * user, and always before the change: CoreProtect reads the block standing there as what was
+ * removed or replaced.
  */
 class CoreProtectHookTest
 {
@@ -107,6 +108,23 @@ class CoreProtectHookTest
         StargateBlockSetup.setupIrisLever(gate, false);
 
         assertEquals(List.of("placed #wormhole LEVER 70 over AIR", "removed #wormhole LEVER 70"), logged);
+    }
+
+    /**
+     * Wire is logged once, when it is laid in air. Laid again over itself, as every regen does, it
+     * is not a placement, and logging one would add a row per wire per regen. Found by a Fable review.
+     */
+    @Test
+    void wireLaidAgainOverItselfIsNotLoggedAgain()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateRedstoneDialActivationBlock(world.getBlockAt(5, 70, 5));
+
+        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+
+        assertEquals(List.of("placed #wormhole REDSTONE_WIRE 70 over AIR"), logged);
     }
 
     /**

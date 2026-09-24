@@ -567,7 +567,11 @@ class StargateBlockSetup
                 if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
                     gate.getGateStructureBlocks().add(target.getLocation());
-                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
+                    // Wire laid again over its own wire is not a placement, so every regen does not log one.
+                    if (current == Material.AIR)
+                    {
+                        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
+                    }
                     target.setType(Material.REDSTONE_WIRE);
                 }
                 else

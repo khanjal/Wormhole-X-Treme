@@ -42,6 +42,7 @@ class CoreProtectLogTest
     public static class FakeApi
     {
         final List<String> calls = new ArrayList<>();
+        final List<BlockData> data = new ArrayList<>();
         boolean enabled = true;
         int version = 10;
 
@@ -58,6 +59,7 @@ class CoreProtectLogTest
         public boolean logPlacement(final String user, final Location at, final Material type, final BlockData data)
         {
             calls.add("placed " + user + " " + type);
+            this.data.add(data);
             return true;
         }
 
@@ -129,6 +131,23 @@ class CoreProtectLogTest
         CoreProtectLog.removed("Fran", block(Material.SMOOTH_STONE_SLAB));
 
         assertEquals(List.of("placed #wormhole OBSIDIAN", "removed Fran SMOOTH_STONE_SLAB"), api.calls);
+    }
+
+    /**
+     * Every gate site passes no block data, and CoreProtect needs some: the type's default is
+     * made for it. Found untested by a Fable review.
+     */
+    @Test
+    void aPlacementWithNoDataIsGivenTheTypesDefault()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.COREPROTECT_ENABLED, true);
+        final BlockData lever = mock(BlockData.class);
+        bukkit.when(() -> Bukkit.createBlockData(Material.LEVER)).thenReturn(lever);
+
+        CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, block(Material.AIR), Material.LEVER, null);
+
+        assertEquals(List.of("placed #wormhole LEVER"), api.calls);
+        assertEquals(List.of(lever), api.data, "CoreProtect is handed the lever's default data, not null");
     }
 
     /** Air is not a block anybody built, so neither taking it away nor placing it is logged. */
