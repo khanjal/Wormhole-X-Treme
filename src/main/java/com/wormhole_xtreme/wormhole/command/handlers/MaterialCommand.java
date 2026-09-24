@@ -133,8 +133,6 @@ public class MaterialCommand implements SubCommand
 
         /**
          * Writes this override onto a gate.
-         *
-         * @return the setter
          */
         BiConsumer<Stargate, Material> setter()
         {
