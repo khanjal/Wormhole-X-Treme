@@ -99,7 +99,7 @@ class WormholeUsageTest
 
     /** A call to a method with "usage" in its name, then {@code return false;}, with only blank or comment lines between. */
     private static final Pattern USAGE_THEN_FALSE = Pattern.compile(
-        "[Uu]sage\\w*+\\([^;\\r\\n]*+\\);[ \\t]*+(?:\\R[ \\t]*+(?://[^\\r\\n]*+)?)++return false;");
+        "[Uu]sage\\w*+\\([^;\\r\\n]*+;[ \\t]*+(?:\\R[ \\t]*+(?://[^\\r\\n]*+)?)++return false;");
 
     /**
      * No handler both says its usage and answers false: the dispatcher would say it a second time.
