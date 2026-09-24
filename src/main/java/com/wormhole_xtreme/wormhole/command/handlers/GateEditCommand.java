@@ -12,6 +12,9 @@ import org.bukkit.command.CommandSender;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXIDC;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 
 /**
  * One command for every per-gate setting.
@@ -75,6 +78,87 @@ public class GateEditCommand implements SubCommand
         FIELDS.put("idc", (sender, gate, value) ->
             new WXIDC().onCommand(sender, null, "idc", new String[] { gate, value }));
         FIELDS.put("group", GateEditCommand::setGroup);
+        FIELDS.put("spin", GateEditCommand::setSpin);
+    }
+
+    /** The value that clears a gate's own ring pattern. */
+    private static final String DEFAULT = "default";
+
+    /**
+     * Sets the ring pattern this gate dials with (#366), or with {@code default} clears it so the
+     * gate follows its material group and then {@code gate-dial-spin}. No value says what it is.
+     *
+     * @param sender
+     *            who typed it
+     * @param gateName
+     *            the gate
+     * @param value
+     *            a pattern, {@code default}, or empty
+     * @return true, the command was handled
+     */
+    // Behind the Field interface, whose other implementations do return false.
+    @SuppressWarnings("java:S3516")
+    private static boolean setSpin(final CommandSender sender, final String gateName, final String value)
+    {
+        final com.wormhole_xtreme.wormhole.model.Stargate gate =
+            com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
+        if (gate == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + gateName + ".");
+            return true;
+        }
+        if ((value == null) || value.isEmpty())
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
+                + " dials with " + spinName(gate.getEffectiveDialSpin()) + spinSource(gate)
+                + ". Patterns are: " + String.join(", ", spinNames()) + ".");
+            return true;
+        }
+        final DialSpinPattern pattern = DEFAULT.equalsIgnoreCase(value.trim()) ? null : DialSpinPattern.parse(value);
+        if ((pattern == null) && !DEFAULT.equalsIgnoreCase(value.trim()))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No ring pattern called " + value
+                + ". Patterns are: " + String.join(", ", spinNames()) + ".");
+            return true;
+        }
+        gate.setGateDialSpin(pattern);
+        StargateDBManager.saveStargate(gate);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
+            + " now dials with " + spinName(gate.getEffectiveDialSpin()) + spinSource(gate) + ".");
+        return true;
+    }
+
+    /** Where a gate's pattern comes from, when not its own. */
+    private static String spinSource(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    {
+        if (gate.getGateDialSpin() != null)
+        {
+            return "";
+        }
+        final com.wormhole_xtreme.wormhole.model.MaterialGroup group = gate.getGateMaterialGroup();
+        return ((group != null) && (group.getDialSpin() != null))
+            ? " (from group " + group.getName() + ")" : " (the server default)";
+    }
+
+    private static String spinName(final DialSpinPattern pattern)
+    {
+        return pattern.name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * The ring patterns and {@code default}, for tab completion and messages.
+     *
+     * @return the values {@code gate edit <gate> spin} takes
+     */
+    public static List<String> spinNames()
+    {
+        final List<String> names = new ArrayList<>();
+        for (final DialSpinPattern pattern : DialSpinPattern.values())
+        {
+            names.add(spinName(pattern));
+        }
+        names.add(DEFAULT);
+        return names;
     }
 
     /**

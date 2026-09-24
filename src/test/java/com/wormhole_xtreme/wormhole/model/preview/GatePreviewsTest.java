@@ -2675,4 +2675,26 @@ class GatePreviewsTest
         assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
     }
 
+    /**
+     * A preview dials with its material group's ring pattern (#366), as a gate of that group
+     * would: here the server turns no ring, and a group set to chevron turns one anyway.
+     */
+    @Test
+    void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final Cell start = spin.path(1).get(0);
+        GatePreviews.show(owner, standard, new com.wormhole_xtreme.wormhole.model.MaterialGroup("Turning",
+            Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN)
+            .withDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.CHEVRON));
+        final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+
+        verify(startDisplay).setBlock(data.get(Material.GLOWSTONE));
+        ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+    }
 }

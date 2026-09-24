@@ -46,6 +46,9 @@ public final class MaterialGroup
      */
     private final Material chevronMaterial;
 
+    /** The ring pattern this group's gates dial with (#366), or null to follow the server. */
+    private final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin;
+
     /**
      * Instantiates a new material group with no distinct chevrons.
      *
@@ -90,6 +93,14 @@ public final class MaterialGroup
         final Material irisMaterial, final Material lightMaterial, final Material signMaterial,
         final Material chevronMaterial)
     {
+        this(name, structureMaterial, portalMaterial, irisMaterial, lightMaterial, signMaterial, chevronMaterial,
+            null);
+    }
+
+    private MaterialGroup(final String name, final Material structureMaterial, final Material portalMaterial,
+        final Material irisMaterial, final Material lightMaterial, final Material signMaterial,
+        final Material chevronMaterial, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
+    {
         this.name = name;
         this.structureMaterial = structureMaterial;
         this.portalMaterial = portalMaterial;
@@ -97,6 +108,7 @@ public final class MaterialGroup
         this.lightMaterial = lightMaterial;
         this.signMaterial = signMaterial;
         this.chevronMaterial = chevronMaterial;
+        this.dialSpin = dialSpin;
     }
 
     /**
@@ -169,6 +181,25 @@ public final class MaterialGroup
     public Material getChevronMaterial()
     {
         return chevronMaterial;
+    }
+
+    /**
+     * @return the ring pattern this group's gates dial with, or null to follow the server
+     */
+    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getDialSpin()
+    {
+        return dialSpin;
+    }
+
+    /**
+     * @param pattern
+     *            the ring pattern this group's gates dial with, or null to follow the server
+     * @return a copy of this group with that pattern
+     */
+    public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
+    {
+        return new MaterialGroup(name, structureMaterial, portalMaterial, irisMaterial, lightMaterial, signMaterial,
+            chevronMaterial, pattern);
     }
 
     @Override

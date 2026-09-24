@@ -24,6 +24,8 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
 public class StargateYamlManager
 {
     private static final String OWNER_UUID_KEY = "OwnerUUID";
+    /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
+    static final String DIAL_SPIN_KEY = "DialSpin";
     /** Anything that is not safe in a file name, replaced with an underscore. */
     private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
 
@@ -126,6 +128,9 @@ public class StargateYamlManager
         applyOwner(s, ownerIdFrom(map), (String) map.getOrDefault("OwnerName", ""));
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
+        // Unset, or a name no pattern answers to, follows the group and the server.
+        final Object spin = map.get(DIAL_SPIN_KEY);
+        s.setGateDialSpin((spin == null) ? null : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(spin)));
         return s;
     }
 
@@ -322,6 +327,10 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShapeName());
+        if (s.getGateDialSpin() != null)
+        {
+            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));
+        }
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
         {

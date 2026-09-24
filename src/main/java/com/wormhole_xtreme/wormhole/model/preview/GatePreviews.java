@@ -331,6 +331,7 @@ public final class GatePreviews
         // The classic gate: a Standard palette draws its chevrons as frame, as the original gates
         // were built, until -chevrons shows them. A shape that pins its own chevrons shows them.
         preview.plainChevrons(classic(shape, group));
+        preview.group(group);
         if ((blocksShown() + preview.size()) > ConfigManager.getGatePreviewMaxBlocks())
         {
             return Shown.OVER_LIMIT;
@@ -437,6 +438,7 @@ public final class GatePreviews
             return Control.NOT_IN_GROUP;
         }
         preview.palette(Palette.of(preview.shape(), group));
+        preview.group(group);
         restyle(preview);
         draw(owner, preview);
         return Control.CHANGED;
@@ -1028,7 +1030,13 @@ public final class GatePreviews
     /** Whether this preview's dial shows the ring turning. */
     private static boolean spins(final GatePreview preview)
     {
-        return (preview.spin() != null) && ConfigManager.isGateDialSpin();
+        return (preview.spin() != null) && (pattern(preview) != DialSpinPattern.NONE);
+    }
+
+    /** The ring pattern a preview dials with: its group's, else the server's, as a gate's would be. */
+    private static DialSpinPattern pattern(final GatePreview preview)
+    {
+        return ConfigManager.getGateDialSpinPattern(null, preview.group());
     }
 
     /**
@@ -1044,7 +1052,7 @@ public final class GatePreviews
             return false;
         }
         final Set<Cell> was = preview.spinCells();
-        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final DialSpinPattern pattern = pattern(preview);
         final int glyph = preview.litWaves() + 1;
         final int interval = Math.max(1, preview.shape().getShapeLightTicks());
         final boolean arrived = preview.spinTick() >= preview.spin().frames(pattern, glyph, interval);
@@ -2281,7 +2289,7 @@ public final class GatePreviews
      */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean riding = spins(preview) && (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE)
+        final boolean riding = spins(preview) && (pattern(preview) == DialSpinPattern.UNIVERSE)
             && (preview.litWaves() < preview.lastWave());
         final boolean lit = (!riding && (cell.wave() > 0) && (cell.wave() <= preview.litWaves()))
             || preview.spinCells().contains(cell);

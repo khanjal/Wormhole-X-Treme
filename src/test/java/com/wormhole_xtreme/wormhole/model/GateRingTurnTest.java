@@ -512,4 +512,58 @@ class GateRingTurnTest
             StargateManager.removeStargate(far);
         }
     }
+
+    /**
+     * A gate set to NONE (#366) locks its first chevron at once while the server's pattern still
+     * turns every other gate's ring; and a gate given a pattern turns on a server set to NONE.
+     */
+    @Test
+    void aGatesOwnPatternOverridesTheServers()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            final Stargate still = standardGate();
+            still.setGateDialSpin(DialSpinPattern.NONE);
+            final Stargate turning = standardGate();
+            try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+                 MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+            {
+                StargateAnimator.lightStargate(still, true);
+                StargateAnimator.lightStargate(turning, true);
+            }
+            assertEquals(1, still.getGateLightingCurrentIteration(), "NONE locks the first chevron at once");
+            assertEquals(0, turning.getGateLightingCurrentIteration(), "the server's TOP is still turning");
+
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "NONE");
+            final Stargate own = standardGate();
+            own.setGateDialSpin(DialSpinPattern.PEGASUS);
+            assertNotNull(StargateAnimator.spinOf(own), "a gate's own pattern turns it on a server set to none");
+            assertNull(StargateAnimator.spinOf(standardGate()), "a gate without one follows the server");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        }
+    }
+
+    /** A gate with no pattern of its own dials with its material group's, ahead of the server's. */
+    @Test
+    void aGroupsPatternComesBeforeTheServers()
+    {
+        final Stargate gate = standardGate();
+        gate.setGateMaterialGroup(new MaterialGroup("Atlantis", org.bukkit.Material.LAPIS_BLOCK,
+            org.bukkit.Material.WATER, org.bukkit.Material.STONE, org.bukkit.Material.GLOWSTONE,
+            org.bukkit.Material.OAK_WALL_SIGN).withDialSpin(DialSpinPattern.PEGASUS));
+
+        assertEquals(DialSpinPattern.PEGASUS, gate.getEffectiveDialSpin());
+        gate.setGateDialSpin(DialSpinPattern.LAP);
+        assertEquals(DialSpinPattern.LAP, gate.getEffectiveDialSpin(), "the gate's own comes first");
+        gate.setGateDialSpin(null);
+        gate.setGateMaterialGroup(null);
+        assertEquals(DialSpinPattern.TOP, gate.getEffectiveDialSpin(), "neither: the server's");
+    }
 }

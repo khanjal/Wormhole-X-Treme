@@ -200,4 +200,26 @@ class GateYamlRoundTripTest
 
         assertEquals(0, StargateManager.getAllGates().size());
     }
+
+    /**
+     * A gate's own ring pattern (#366) survives a restart, and a gate without one comes back
+     * without one, still following its group and the server rather than pinned to today's value.
+     */
+    @Test
+    void aGatesRingPatternRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    {
+        final Stargate spun = gate("spun");
+        spun.setGateDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS);
+        StargateYamlManager.saveStargate(spun, gatesDir());
+        StargateYamlManager.saveStargate(gate("plain"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "plain.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.DIAL_SPIN_KEY), "nothing written for an unset pattern");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+            StargateManager.getStargate("spun").getGateDialSpin());
+        assertNull(StargateManager.getStargate("plain").getGateDialSpin());
+    }
 }

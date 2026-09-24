@@ -427,7 +427,7 @@ class StargateAnimator
             return gate.getEffectiveLightTicks();
         }
         // A tick a frame, and one more for the turn's arrival, which is when its chevron locks.
-        return spin.frames(ConfigManager.getGateDialSpinPattern(), glyph, dialler.getEffectiveLightTicks()) + 1L;
+        return spin.frames(dialler.getEffectiveDialSpin(), glyph, dialler.getEffectiveLightTicks()) + 1L;
     }
 
     /** The active gate dialling this one, or null. */
@@ -465,7 +465,7 @@ class StargateAnimator
      */
     static DialSpin spinOf(final Stargate gate)
     {
-        if (!ConfigManager.isGateDialSpin() || !(gate.getGateShape() instanceof Stargate3DShape shape))
+        if ((gate.getEffectiveDialSpin() == DialSpinPattern.NONE) || !(gate.getGateShape() instanceof Stargate3DShape shape))
         {
             return null;
         }
@@ -501,7 +501,7 @@ class StargateAnimator
      */
     static boolean ridesTheRing(final Stargate gate)
     {
-        return (ConfigManager.getGateDialSpinPattern() == DialSpinPattern.UNIVERSE) && turns(gate);
+        return (gate.getEffectiveDialSpin() == DialSpinPattern.UNIVERSE) && turns(gate);
     }
 
     /**
@@ -519,7 +519,7 @@ class StargateAnimator
             return false;
         }
         final Turning turning = TURNING.computeIfAbsent(gate, g -> new Turning());
-        final DialSpinPattern pattern = ConfigManager.getGateDialSpinPattern();
+        final DialSpinPattern pattern = gate.getEffectiveDialSpin();
         final int interval = Math.max(1, gate.getEffectiveLightTicks());
         final boolean arrived = turning.tick >= spin.frames(pattern, glyph, interval);
         final List<Location> now = new ArrayList<>();

@@ -102,6 +102,7 @@ public final class GateRefresh
         // display name.
         fresh.setGateOwnerName(existing.getStoredGateOwnerName());
         fresh.completeGate(oldName, (oldIdc != null) ? oldIdc : "");
+        fresh.setGateDialSpin(existing.getGateDialSpin());
         if (oldNet != null)
         {
             fresh.setGateNetwork(oldNet);
