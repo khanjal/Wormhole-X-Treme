@@ -733,4 +733,32 @@ class IrisSweepOrderingTest
                 "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
         }
     }
+
+    /**
+     * A gate that shuts while its iris is opening calls the sweep off (#434). The sweep went on
+     * painting the wormhole it had started with into the idle gate, and its last step filled the
+     * opening with it: a wormhole standing in a shut gate for everybody nearby, until a chunk
+     * reload. Only a gate whose iris is shut by default had its sweep called off on the way down.
+     */
+    @Test
+    void aGateShuttingMidOpeningSweepPaintsNoWormholeAfterward()
+    {
+        gate.setGateActive(true);
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 2));
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
+            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+        }
+        clearInvocations(watcher);
+        finishSweep();
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
+    }
 }
