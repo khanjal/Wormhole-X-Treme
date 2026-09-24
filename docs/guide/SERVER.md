@@ -382,7 +382,7 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 
 | Setting | Default | What it does |
 |---|---|---|
-| `metrics-enabled` | `true` | `false` stops it for this plugin. |
+| `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
 
 What is sent, twice an hour:
 

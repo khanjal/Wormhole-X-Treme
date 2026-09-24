@@ -67,7 +67,40 @@ public class ConfigCommand implements SubCommand
             return true;
         }
         sender.sendMessage(result);
+        followMetrics(name);
         return true;
+    }
+
+    /**
+     * Starts or stops bStats when {@code metrics-enabled} is set, since it is only otherwise read
+     * at startup and this command promises a change takes effect now.
+     *
+     * @param name
+     *            the setting named, in either spelling
+     */
+    static void followMetrics(final String name)
+    {
+        if (!"METRICS_ENABLED".equals(String.valueOf(name).replace('-', '_').toUpperCase(java.util.Locale.ROOT)))
+        {
+            return;
+        }
+        try
+        {
+            if (ConfigManager.isMetricsEnabled())
+            {
+                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableMetrics(
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin());
+            }
+            else
+            {
+                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.disableMetrics();
+            }
+        }
+        catch (final Exception | LinkageError e)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING,
+                "Could not follow metrics-enabled", e);
+        }
     }
 
     /**
