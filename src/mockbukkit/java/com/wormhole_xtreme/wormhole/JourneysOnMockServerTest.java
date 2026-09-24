@@ -103,10 +103,17 @@ class JourneysOnMockServerTest
     private static Stargate buildGate(final MockServerSupport.Player p, final MockServerSupport.World world,
         final double x, final String name)
     {
+        return buildGate(p, world, x, name, null);
+    }
+
+    /** Builds a gate with an iris deactivation code, which is what gives it an iris lever. */
+    private static Stargate buildGate(final MockServerSupport.Player p, final MockServerSupport.World world,
+        final double x, final String name, final String idc)
+    {
         p.teleport(new Location(world, x, 64, 0.5, 0f, 0f));
         p.performCommand("wormhole gate build Standard");
         p.performCommand("wormhole gate preview place");
-        p.performCommand("wormhole gate complete " + name);
+        p.performCommand("wormhole gate complete " + name + ((idc == null) ? "" : (" idc=" + idc)));
         final Stargate gate = StargateManager.getStargate(name);
         assertNotNull(gate, name + " was not built: " + p.messages());
         return gate;
@@ -264,6 +271,95 @@ class JourneysOnMockServerTest
         assertAt(den, p.getLocation());
         assertAt(p.getLocation(), follower.getLocation());
         assertNothingNewRunning(before, "the pet was beamed");
+    }
+
+    /** Presses a gate's DHD and dials, with a code for the far iris when one is given. */
+    private static List<String> dial(final MockServerSupport.Player p, final Stargate from, final String to,
+        final String code)
+    {
+        p.messages();
+        click(p, Action.RIGHT_CLICK_BLOCK, from.getGateDialLeverBlock(), BlockFace.SOUTH);
+        p.performCommand("dial " + to + ((code == null) ? "" : (" " + code)));
+        ticks(200);
+        return p.messages();
+    }
+
+    /** Pulls a gate's iris lever, and waits for the iris to finish crossing. */
+    private static void pullIrisLever(final MockServerSupport.Player p, final Stargate gate)
+    {
+        final Block lever = gate.getGateIrisLeverBlock();
+        assertNotNull(lever, gate.getGateName() + " has no iris lever");
+        click(p, Action.RIGHT_CLICK_BLOCK, lever, BlockFace.SOUTH);
+        ticks(60);
+    }
+
+    /**
+     * An iris shut over the far gate refuses a dial with no code and with the wrong one; the
+     * right code opens it, and the traveller comes through.
+     */
+    @Test
+    void aClosedIrisRefusesADialUntilItsCodeIsGiven()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("irisgates", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Caller");
+        final Stargate home = buildGate(p, world, 0.5, "Abydos");
+        final Stargate far = buildGate(p, world, 40.5, "Chulak", "4321");
+        pullIrisLever(p, far);
+        assertTrue(far.isGateIrisActive(), "Chulak's iris did not shut");
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        final java.util.Set<Integer> before = settledTasks();
+
+        final List<String> bare = dial(p, home, "Chulak", null);
+        assertFalse(home.isGateActive(), "dialled through a shut iris with no code: " + bare);
+        assertTrue(bare.stream().anyMatch(m -> m.contains("provide the IDC")), "no refusal: " + bare);
+        final List<String> wrong = dial(p, home, "Chulak", "1111");
+        assertFalse(home.isGateActive(), "dialled through a shut iris with the wrong code: " + wrong);
+        assertTrue(far.isGateIrisActive(), "the wrong code opened the iris");
+
+        final List<String> right = dial(p, home, "Chulak", "4321");
+        assertTrue(right.stream().anyMatch(m -> m.contains("IDC accepted")), "code not accepted: " + right);
+        assertFalse(far.isGateIrisActive(), "the right code left the iris shut");
+        assertTrue(home.isGateActive(), "Abydos did not open: " + right);
+        final List<Location> portal = home.getGatePortalBlocks();
+        walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        ticks(20);
+        assertAt(far.getGatePlayerTeleportLocation(), p.getLocation());
+
+        ticks(20 * 320);
+        assertNothingNewRunning(before, "the iris opened and the gate shut");
+    }
+
+    /** An iris shut over the far end after the dial bounces the traveller, who stays behind. */
+    @Test
+    void anIrisShutAfterTheDialBouncesTheTraveller()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("irisbounce", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Visitor");
+        final MockServerSupport.Player keeper = new MockServerSupport.Player(server, "Keeper");
+        final Stargate home = buildGate(p, world, 0.5, "Tollan");
+        final Stargate far = buildGate(p, world, 40.5, "Dakara", "8888");
+        keeper.teleport(new Location(world, 40.5, 64, 0.5, 0f, 0f));
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        final java.util.Set<Integer> before = settledTasks();
+
+        final List<String> dialled = dial(p, home, "Dakara", null);
+        assertTrue(home.isGateActive(), "Tollan did not open: " + dialled);
+        pullIrisLever(keeper, far);
+        assertTrue(far.isGateIrisActive(), "Dakara's iris did not shut");
+        final List<Location> portal = home.getGatePortalBlocks();
+        final Location into = portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5);
+        walk(p, into);
+        ticks(20);
+
+        assertTrue(p.messages().stream().anyMatch(m -> m.contains("Remote Iris is locked")), "not told of the iris");
+        assertSame(world, p.getWorld());
+        assertTrue(p.getLocation().distance(far.getGatePlayerTeleportLocation()) > 20,
+            "went through a shut iris to " + p.getLocation());
+
+        ticks(20 * 320);
+        assertNothingNewRunning(before, "the traveller was bounced and the gate shut");
     }
 
     private static Block hangMirror(final MockServerSupport.World world)
