@@ -106,6 +106,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   shut.
 - **`gate edit <gate> group` lasts past a restart.** The choice was only held in memory, and the
   gate went back to its frame's group. `group -clear` gives it back to the frame.
+- **A gate that shuts while its iris is opening shows no wormhole.** The opening animation went on
+  running and painted the wormhole into the idle gate, where it stayed until a chunk reload. The
+  same for a gate removed or regenerated mid-animation, and a gate dialled mid-animation no longer
+  has its new wormhole painted over.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the

@@ -505,6 +505,9 @@ class StargateDialManager
         {
             if (!gate.isGateActive())
             {
+                // A sweep still running would paint the opening it started from over the wormhole
+                // about to form, and finish by filling it in (#434).
+                StargateIrisAnimator.cancel(gate);
                 gate.setGateActive(true);
                 gate.toggleDialLeverState(false);
                 gate.toggleRedstoneGateActivatedPower();
