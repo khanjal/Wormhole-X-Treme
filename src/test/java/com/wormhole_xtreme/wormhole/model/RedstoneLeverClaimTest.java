@@ -46,8 +46,12 @@ class RedstoneLeverClaimTest
         gate.setGateRedstoneGateActivatedBlock(lever);
 
         StargateBlockSetup.setupRedstoneGateActivatedLever(gate, true);
+        StargateBlockSetup.setupRedstoneGateActivatedLever(gate, true);
 
         assertTrue(gate.getGateStructureBlocks().contains(at), "the lever is one of the gate's blocks");
+        org.junit.jupiter.api.Assertions.assertEquals(1, gate.getGateStructureBlocks().size(),
+            "once, however often it is set up: removing it once must leave no phantom block");
+        verify(lever, never()).setType(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

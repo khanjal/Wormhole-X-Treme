@@ -606,7 +606,15 @@ class StargateBlockSetup
             final Material current = ra.getType();
             // A lever already there is the gate's own, as a wire is: a regenerated gate
             // finds the one it placed before, and has to claim it again (#440).
-            if ((current == Material.AIR) || (current == Material.LEVER))
+            if (current == Material.LEVER)
+            {
+                // Left as it stands, not reset: an open gate's lever is thrown.
+                if (!gate.getGateStructureBlocks().contains(ra.getLocation()))
+                {
+                    gate.getGateStructureBlocks().add(ra.getLocation());
+                }
+            }
+            else if (current == Material.AIR)
             {
                 gate.getGateStructureBlocks().add(ra.getLocation());
                 ra.setType(Material.LEVER);
