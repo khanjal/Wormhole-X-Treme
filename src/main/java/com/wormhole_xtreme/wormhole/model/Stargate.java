@@ -625,6 +625,34 @@ public class Stargate implements GateIris
         gateDialSpin = pattern;
     }
 
+    /** This gate's own iris animation (#427), or null to follow its group and then the server. */
+    private String gateIrisAnimation = null;
+
+    /**
+     * @return this gate's own iris animation, or null when it has none
+     */
+    public String getGateIrisAnimation()
+    {
+        return gateIrisAnimation;
+    }
+
+    /**
+     * @param animation
+     *            this gate's own iris animation, or null to follow its group and then the server
+     */
+    public void setGateIrisAnimation(final String animation)
+    {
+        gateIrisAnimation = animation;
+    }
+
+    /**
+     * @return how this gate's iris crosses: its own animation, its group's, or the server's
+     */
+    public String getEffectiveIrisAnimation()
+    {
+        return com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisAnimation(gateIrisAnimation, getGateMaterialGroup());
+    }
+
     /**
      * @return the ring pattern this gate dials with: its own, its group's, or the server's
      */

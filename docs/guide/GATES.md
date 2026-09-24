@@ -50,7 +50,7 @@ Look at a preview and `/wormhole gate preview <action>` changes it, for you alon
 | Action | What it does |
 |---|---|
 | `activate` | Lights the chevrons in order, sends the kawoosh out and back, and leaves the wormhole open; again shuts it down. **Right-clicking the preview's button** does the same. |
-| `iris` | Closes an iris over the opening, in the group's iris material; again opens it. It sweeps in from the rim and back out from the middle, at the same pace a real gate's does — see [How it arrives](#how-it-arrives). Over an open wormhole it stacks from whichever side you stand, as a gate's does |
+| `iris` | Closes an iris over the opening, in the group's iris material; again opens it. It crosses as a gate of its group would, at the same pace — see [How it arrives](#how-it-arrives). Over an open wormhole it stacks from whichever side you stand, as a gate's does |
 | `material <group>` | Redresses it in another material group |
 | `material -<role> <block>` | Changes one material: `-frame`, `-chevron`, `-light`, `-portal`, `-iris` or `-sign`. The dash is what tells a role from a group's name, since both go in the same slot; the bare word still works |
 | `chevrons` | Shows or hides a group's chevron blocks. The Standard palette starts with them hidden, drawn as frame the classic way; other groups start with them shown. Lit, a hidden chevron shows the light material |
@@ -346,6 +346,10 @@ only one ring -- `Minimal` -- is one step whatever either says.
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
 
+A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or `default` to go
+back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then
+its group's, then `gate-iris-animation`; a build preview uses its group's, then the setting.
+
 Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
 `rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
 for the style you settle on rather than expecting them to match, and raise
@@ -562,7 +566,8 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
 `woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
-`-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`).
+`-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
+[style](#how-it-arrives), or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.

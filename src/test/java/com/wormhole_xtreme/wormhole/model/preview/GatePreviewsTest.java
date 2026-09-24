@@ -2996,4 +2996,20 @@ class GatePreviewsTest
 
         verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
+
+    /**
+     * A preview's iris crosses as the group its frame names says (#427), as the gate built from it
+     * would: here the server sweeps and an obsidian group set to instant closes it at once.
+     */
+    @Test
+    void aPreviewsIrisFollowsItsGroupsAnimation()
+    {
+        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Snap",
+            Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
+        openThePreview();
+
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
 }

@@ -217,4 +217,18 @@ class ParsedSettingTest
         assertFalse(ParsedSetting.read(ConfigKeys.GATE_SOUND_VOLUME, Double.valueOf(1.5), "loud")
             .isAccepted());
     }
+
+    /**
+     * An iris animation that is not one is refused, naming the ones there are, rather than stored
+     * and swept as the default under a name gate edit would then report (#427). Found by a Fable review.
+     */
+    @Test
+    void anIrisAnimationThatIsNotOneIsRefused()
+    {
+        storesAs(ConfigKeys.GATE_IRIS_ANIMATION, "Spiral", "spiral");
+        storesAs(ConfigKeys.GATE_IRIS_ANIMATION, "instant", "instant");
+        final ParsedSetting parsed = refuses(ConfigKeys.GATE_IRIS_ANIMATION, "instantt");
+        assertTrue(parsed.getRefusal().contains("columns") && parsed.getRefusal().contains("instant"),
+            parsed.getRefusal());
+    }
 }

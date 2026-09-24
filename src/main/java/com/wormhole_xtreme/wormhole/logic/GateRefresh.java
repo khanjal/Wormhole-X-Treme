@@ -90,7 +90,7 @@ public final class GateRefresh
 
     /**
      * Every setting {@code gate edit} can make (#440): custom materials and timings, woosh depth,
-     * redstone, the iris default, the ring pattern and a chosen group.
+     * redstone, the iris default, the ring pattern, the iris animation and a chosen group.
      */
     static void carryOverSettings(final Stargate existing, final Stargate fresh)
     {
@@ -110,6 +110,7 @@ public final class GateRefresh
         fresh.setGateRedstonePowered(existing.isGateRedstonePowered());
         fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
         fresh.setGateDialSpin(existing.getGateDialSpin());
+        fresh.setGateIrisAnimation(existing.getGateIrisAnimation());
         if (existing.isGateMaterialGroupChosen())
         {
             fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());
