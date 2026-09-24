@@ -292,11 +292,16 @@ class DialSpinPatternTest
                 final Set<Cell> chevron = onRing(spin, glyph);
                 assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
                 assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
+                final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
+                final int reached = java.util.stream.IntStream.range(0, path.size())
+                    .filter(i -> chevron.contains(path.get(i))).findFirst().orElse(path.size());
                 for (int tick = 0; tick < TICKS; tick++)
                 {
                     final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
                     assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> c.wave() == 0),
                         name + " glyph " + glyph + " tick " + tick + ": the chevron alone, or frame alone: " + lit);
+                    assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> path.indexOf(c) < reached),
+                        name + " glyph " + glyph + " tick " + tick + ": short of the chevron, not among its cells");
                 }
             }
         }
