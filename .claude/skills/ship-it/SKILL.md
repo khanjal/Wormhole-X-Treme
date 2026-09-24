@@ -125,8 +125,8 @@ gh run view <run-id> -R khanjal/Wormhole-X-Treme --json jobs --jq '.jobs[] | "\(
 gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNING\]"
 ```
 
-Say in the PR what was found, including "none". Three MockBukkit PRs (#443, #456, #457) merged
-with a deprecated-for-removal call nobody had read.
+Say in the PR what was found, including "none". Two MockBukkit PRs (#443, #457) merged calls
+to the deprecated-for-removal `PlayerMock.simulatePlayerMove` that nobody had read.
 
 ## 8. Deliver a build, if the change is something to try
 
