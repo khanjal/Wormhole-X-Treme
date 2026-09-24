@@ -32,7 +32,8 @@ mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   #
 ```
 
 Static state survives `MockBukkit.unmock()`, which a real server never sees because each load
-gets a new classloader: a second load in one test class logs every shape as a duplicate.
+gets a new classloader: a second load in one JVM logs every shape as a duplicate. Load the
+plugin once per class, in `@BeforeAll`.
 
 ## Static analysis
 

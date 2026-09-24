@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.bukkit.command.PluginCommand;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
@@ -20,18 +20,19 @@ import org.mockbukkit.mockbukkit.ServerMock;
  */
 class PluginEnablesOnMockServerTest
 {
-    private ServerMock server;
-    private WormholeXTreme plugin;
+    // Once per class: the plugin's statics outlive unmock(), so a second load sees the first's shapes.
+    private static ServerMock server;
+    private static WormholeXTreme plugin;
 
-    @BeforeEach
-    void startServer()
+    @BeforeAll
+    static void startServer()
     {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(WormholeXTreme.class);
     }
 
-    @AfterEach
-    void stopServer()
+    @AfterAll
+    static void stopServer()
     {
         MockBukkit.unmock();
     }
