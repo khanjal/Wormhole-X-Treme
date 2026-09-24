@@ -98,22 +98,23 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 
 | Suppresses | Main | Tests | MockBukkit | Why |
 |---|---|---|---|---|
-| `java:S3516` | 20 | – | – | Command handlers always return `true`, because Bukkit reads it as "handled". |
+| `java:S3516` | 20 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
 | `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
-| `java:S2589` | 5 | – | – | Null checks that never fire on a server, kept for the mocks that stub nothing. |
+| `java:S2589` | 5 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
-| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each names the caller relying on it. |
+| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 3 | 1 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors. |
 | `deprecation` | 1 | – | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone. |
-| `java:S2583` | 1 | – | – | Same as S2589: a mock player with no UUID would otherwise throw from the map. |
+| `java:S2583` | 1 | – | – | A null check that never fires on a server; a mock player with no UUID would throw without it. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
 | `java:S1612` | – | 1 | – | A method reference would cast its receiver early, outside `assertThrows`. |
 
-When the table and the code disagree, recount:
+When the table and the code disagree, recount; the second line totals each column:
 
 ```bash
 grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code'
+grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code' | cut -d/ -f2 | sort | uniq -c
 ```
 
 ## Minecraft versions
