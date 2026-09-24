@@ -23,8 +23,8 @@ import com.wormhole_xtreme.wormhole.model.ring.RingManager;
  */
 public final class MetricsSupport
 {
-    /** This plugin's id on bstats.org; 0 until it is registered there, and nothing is sent. */
-    static final int BSTATS_ID = 0;
+    /** This plugin's id on bstats.org. */
+    static final int BSTATS_ID = 34269;
 
     private static volatile Metrics metrics;
 
@@ -40,7 +40,7 @@ public final class MetricsSupport
      */
     public static void enableMetrics(final JavaPlugin plugin)
     {
-        if ((metrics != null) || (BSTATS_ID == 0))
+        if (metrics != null)
         {
             return;
         }
