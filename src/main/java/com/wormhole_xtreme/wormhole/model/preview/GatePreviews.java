@@ -1037,8 +1037,19 @@ public final class GatePreviews
      */
     private static DialSpinPattern pattern(final GatePreview preview)
     {
-        return ConfigManager.getGateDialSpinPattern(null,
-            com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure()));
+        return ConfigManager.getGateDialSpinPattern(null, groupByFrame(preview));
+    }
+
+    /** How a preview's iris crosses (#427): its group's animation, else the server's, as a gate's. */
+    private static String irisAnimation(final GatePreview preview)
+    {
+        return ConfigManager.getGateIrisAnimation(null, groupByFrame(preview));
+    }
+
+    /** The group the gate built from a preview would be detected as, by its frame material. */
+    private static com.wormhole_xtreme.wormhole.model.MaterialGroup groupByFrame(final GatePreview preview)
+    {
+        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure());
     }
 
     /**
@@ -1917,7 +1928,7 @@ public final class GatePreviews
     {
         cancelIrisSweep(preview);
         final List<Cell> cells = preview.opening();
-        if (!ConfigManager.isGateIrisAnimated() || (cells.size() < 2))
+        if (!ConfigManager.isIrisAnimated(irisAnimation(preview)) || (cells.size() < 2))
         {
             preview.irisShownEverywhere(preview.isGateIrisActive());
             restyle(preview);
@@ -1960,7 +1971,7 @@ public final class GatePreviews
             places.add(at);
             index.put(at, i);
         }
-        final IrisSweep.Style style = ConfigManager.getGateIrisStyle();
+        final IrisSweep.Style style = IrisSweep.Style.of(irisAnimation(preview));
         final int maxSteps = ConfigManager.getGateIrisMaxSteps();
         final List<List<Location>> rings = closing
             ? IrisSweep.closingOrder(places, style, maxSteps) : IrisSweep.openingOrder(places, style, maxSteps);

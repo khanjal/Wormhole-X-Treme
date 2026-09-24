@@ -28,6 +28,8 @@ public class StargateYamlManager
     private static final String GATE_QUOTE = "Gate \"";
     /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     static final String DIAL_SPIN_KEY = "DialSpin";
+    /** The gate's own iris animation (#427); absent when it follows its group and the server. */
+    static final String IRIS_ANIMATION_KEY = "IrisAnimation";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
@@ -133,6 +135,7 @@ public class StargateYamlManager
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
+        s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
     }
@@ -155,6 +158,25 @@ public class StargateYamlManager
             return;
         }
         s.chooseGateMaterialGroup(group);
+    }
+
+    /**
+     * A gate file's iris animation, or null to follow the group and the server; a name no animation
+     * answers to is said out loud.
+     */
+    private static String irisAnimationFrom(final Object raw, final String gateName)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final String animation = com.wormhole_xtreme.wormhole.config.ConfigManager.parseIrisAnimation(String.valueOf(raw));
+        if (animation == null)
+        {
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + IRIS_ANIMATION_KEY + " \"" + raw
+                + "\"; it follows its group and gate-iris-animation.");
+        }
+        return animation;
     }
 
     /**
@@ -378,6 +400,10 @@ public class StargateYamlManager
         if (s.getGateDialSpin() != null)
         {
             map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));
+        }
+        if (s.getGateIrisAnimation() != null)
+        {
+            map.put(IRIS_ANIMATION_KEY, s.getGateIrisAnimation());
         }
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
