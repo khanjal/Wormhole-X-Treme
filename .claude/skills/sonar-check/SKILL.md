@@ -107,6 +107,10 @@ no tests, so it trips by construction. Sweep PRs have merged with every required
 zero new issues while showing a red Sonar X. Read the new-issue count and `new_coverage`
 directly rather than trusting the tick.
 
+The reverse holds for a small PR: with fewer than 20 new lines, SonarCloud ignores the coverage
+and duplication conditions altogether ("new code has fewer than 20 lines"), so a green gate on a
+one-line fix proves nothing about its test.
+
 Check what SonarCloud has actually analysed before comparing anything to it — `main`'s analysis
 lags the newest merge, and a local run compared against a stale scan produces confusing
 differences that are really just the gap between two commits:
