@@ -118,12 +118,17 @@ If a job is still running, either wait for it or say plainly that it's still in 
 never state a CI result that hasn't actually come back yet.
 
 Green does not mean warning-free. Some code only compiles in CI -- `src/mockbukkit` only in the
-Paper 1.21.11 and 26.2 jobs -- so grep the log of each job that compiles a changed file:
+Paper 1.21.11 and 26.2 jobs -- so grep the log of each job that compiles a changed file, for
+that file's name:
 
 ```
 gh run view <run-id> -R khanjal/Wormhole-X-Treme --json jobs --jq '.jobs[] | "\(.databaseId) \(.name)"'
-gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNING\]"
+gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNING\].*<FileName>.java"
 ```
+
+The Paper and Purpur jobs list over a hundred warnings, mostly Bukkit and BungeeCord chat API
+that Paper deprecated in favour of Adventure (`ChatColor`, `SignSide.setLine`). Spigot still
+needs those, so they stay. A warning that says "marked for removal" always needs fixing.
 
 Say in the PR what was found, including "none". Two MockBukkit PRs (#443, #457) merged calls
 to the deprecated-for-removal `PlayerMock.simulatePlayerMove` that nobody had read.
