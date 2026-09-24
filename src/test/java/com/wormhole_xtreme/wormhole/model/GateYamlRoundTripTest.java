@@ -236,7 +236,10 @@ class GateYamlRoundTripTest
             final Stargate chosen = gate("chosen");
             chosen.chooseGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
             StargateYamlManager.saveStargate(chosen, gatesDir());
-            StargateYamlManager.saveStargate(gate("framed"), gatesDir());
+            // On a group the way detection puts it there, from its frame, not by choice.
+            final Stargate framed = gate("framed");
+            framed.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+            StargateYamlManager.saveStargate(framed, gatesDir());
 
             assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "framed.yml").toPath()),
                 StandardCharsets.UTF_8).contains(StargateYamlManager.MATERIAL_GROUP_KEY), "nothing written for a gate nobody chose for");
