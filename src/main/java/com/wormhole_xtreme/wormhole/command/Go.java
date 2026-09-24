@@ -48,10 +48,8 @@ public class Go implements CommandExecutor
     /**
      * Do go.
      *
-     * @param player
-     *            the player
      * @param args
-     *            the args
+     *            exactly one, the gate to go to; any other count answers false
      * @return true, if successful
      */
     private static boolean doGo(final Player player, final String[] args)
