@@ -99,8 +99,8 @@ class TimeoutsCommandTest
     {
         ConfigManager.setTimeoutActivate(30);
 
-        assertFalse(run("activate_timeout", "5"),
-            "returning false is what gets the usage line printed");
+        assertTrue(run("activate_timeout", "5"),
+            "refused and explained: no usage line after it (#325)");
 
         assertEquals(30, ConfigManager.getTimeoutActivate());
         verify(sender).sendMessage(contains("Invalid activate_timeout: 5"));
@@ -118,7 +118,7 @@ class TimeoutsCommandTest
         assertTrue(run("shutdown_timeout", "0"));
         assertEquals(0, ConfigManager.getTimeoutShutdown());
 
-        assertFalse(run("activate_timeout", "0"));
+        assertTrue(run("activate_timeout", "0"));
         verify(sender).sendMessage(contains("Invalid activate_timeout: 0"));
     }
 
@@ -128,7 +128,7 @@ class TimeoutsCommandTest
     {
         ConfigManager.setTimeoutShutdown(30);
 
-        assertFalse(run("shutdown_timeout", "61"));
+        assertTrue(run("shutdown_timeout", "61"));
 
         assertEquals(30, ConfigManager.getTimeoutShutdown());
         verify(sender).sendMessage(contains("Invalid shutdown_timeout: 61"));
@@ -140,7 +140,7 @@ class TimeoutsCommandTest
     {
         ConfigManager.setTimeoutActivate(30);
 
-        assertFalse(run("activate_timeout", "soon"));
+        assertTrue(run("activate_timeout", "soon"));
 
         assertEquals(30, ConfigManager.getTimeoutActivate());
         verify(sender).sendMessage(contains("Invalid activate_timeout: soon"));

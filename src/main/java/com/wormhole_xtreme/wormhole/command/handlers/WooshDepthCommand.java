@@ -42,6 +42,8 @@ public class WooshDepthCommand implements SubCommand
             .mapToObj(String::valueOf).toList();
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {

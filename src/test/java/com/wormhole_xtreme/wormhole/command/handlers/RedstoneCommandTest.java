@@ -77,12 +77,12 @@ class RedstoneCommandTest
         return new RedstoneCommand().execute(sender, args);
     }
 
-    /** Too few or too many words gets the usage, and false so the caller prints it again. */
+    /** Too few or too many words gets the usage, and true, since it has already said so (#325). */
     @Test
     void theWrongNumberOfArgumentsIsAUsageError()
     {
-        assertFalse(run("redstone"));
-        assertFalse(run("redstone", "alpha", "true", "extra"));
+        org.junit.jupiter.api.Assertions.assertTrue(run("redstone"));
+        org.junit.jupiter.api.Assertions.assertTrue(run("redstone", "alpha", "true", "extra"));
 
         verify(sender, org.mockito.Mockito.atLeastOnce())
             .sendMessage(contains("/wormhole redstone"));

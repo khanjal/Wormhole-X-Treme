@@ -97,9 +97,9 @@ class WormholeUsageTest
         verify(player, never()).sendMessage(plainContaining("Settings:"));
     }
 
-    /** A line naming a method with "usage" in it, then {@code return false;} on the next line. */
+    /** A call to a method with "usage" in its name, then {@code return false;}, with only blank or comment lines between. */
     private static final Pattern USAGE_THEN_FALSE = Pattern.compile(
-        "\\b\\w*[Uu]sage\\w*\\([^;]*\\);\\s*\\R\\s*return false;");
+        "[Uu]sage\\w*+\\([^;\\r\\n]*+\\);[ \\t]*+(?:\\R[ \\t]*+(?://[^\\r\\n]*+)?)++return false;");
 
     /**
      * No handler both says its usage and answers false: the dispatcher would say it a second time.

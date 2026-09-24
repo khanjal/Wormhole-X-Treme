@@ -34,10 +34,7 @@ public class RedstoneCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            // False, unlike every other refusal here: the caller prints the usage again for
-            // a command it could not parse at all, where a named gate that does not exist is
-            // a complete command with a wrong answer.
-            return false;
+            return true;
         }
 
         final Stargate stargate = StargateManager.isStargate(args[1])

@@ -1,12 +1,12 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -137,7 +137,7 @@ class GateCommandTest
         assertTrue(run("gate", "regen"), "answered here, so Bukkit's usage block does not follow");
 
         verify(sender).sendMessage(contains("No gate name specified"));
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate regen <gate>")));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate regen <gate|-all>")));
     }
 
     /**
@@ -189,7 +189,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "remove"));
         assertTrue(run("gate", "delete"));
-        verify(sender, org.mockito.Mockito.times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate remove <gate> [-destroy]")));
+        verify(sender, times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate remove <gate> [-destroy]")));
     }
 
     /** A named gate that does not exist is reported the same way through either name. */

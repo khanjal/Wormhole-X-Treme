@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -197,6 +198,6 @@ class DialCommandTest
         assertNotNull(new Dial());
         org.junit.jupiter.api.Assertions.assertTrue(dial(), "no arguments: answered here");
         org.junit.jupiter.api.Assertions.assertTrue(dial("a", "b", "c"), "three arguments: answered here");
-        verify(player, org.mockito.Mockito.times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
+        verify(player, times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
     }
 }

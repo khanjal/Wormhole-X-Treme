@@ -170,6 +170,8 @@ public class Dial implements CommandExecutor
     {
         return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
+            // Always answered here, with a usage line where the arguments do not fit.
+            @SuppressWarnings("java:S3516")
             @Override
             public Boolean call() throws Exception
             {

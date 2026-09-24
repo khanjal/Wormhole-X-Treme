@@ -37,13 +37,21 @@ public class GateCommand implements SubCommand
     /** What regenerate is offered as: short to type. The long name still works. */
     private static final String REGEN = "regen";
     private static final String VALIDATE = "validate";
+    private static final String BUILD = "build";
+    private static final String PREVIEW = "preview";
+    private static final String COMPLETE = "complete";
+    private static final String FORCE = "force";
+    private static final String REMOVE = "remove";
+    private static final String IMPORT = "import";
+    private static final String SHAPES = "shapes";
+    private static final String GO = "go";
 
     /** The verbs, in the order they are offered: building, using, looking after, then shapes and imports. */
     private static final List<String> VERBS = Arrays.asList(
-        "build", "preview", "complete",
-        "list", "go", "force",
-        "edit", "remove", REGEN, VALIDATE,
-        "shapes", "import");
+        BUILD, PREVIEW, COMPLETE,
+        "list", GO, FORCE,
+        "edit", REMOVE, REGEN, VALIDATE,
+        SHAPES, IMPORT);
 
     /**
      * The verbs, for tab completion and help.
@@ -80,17 +88,17 @@ public class GateCommand implements SubCommand
 
     static
     {
-        usage("/wormhole gate build <shape> [group]", "build");
-        usage("/wormhole gate preview <action>", "preview");
-        usage("/wormhole gate complete <name> [idc=IDC] [net=NET]", "complete", "create");
+        usage("/wormhole gate build <shape> [group]", BUILD);
+        usage("/wormhole gate preview <action>", PREVIEW);
+        usage("/wormhole gate complete <name> [idc=IDC] [net=NET]", COMPLETE, "create");
         usage("/wormhole gate list [network]", "list");
-        usage("/wormhole gate go <gate>", "go");
-        usage("/wormhole gate force <gate>", "force");
+        usage("/wormhole gate go <gate|destination>", GO);
+        usage("/wormhole gate force <gate|-all>", FORCE);
         usage("/wormhole gate edit <gate> <field> [value]", "edit");
-        usage("/wormhole gate remove <gate> [-destroy]", "remove", "delete");
-        usage("/wormhole gate regen <gate> [-shape <shape>] [-fill] [-water]", REGEN, REGENERATE);
+        usage("/wormhole gate remove <gate> [-destroy]", REMOVE, "delete");
+        usage("/wormhole gate regen <gate|-all> [-shape <shape>] [-fill] [-water]", REGEN, REGENERATE);
         usage("/wormhole gate validate <gate|-all>", VALIDATE);
-        usage("/wormhole gate shapes <reload|validate> [name]", "shapes");
+        usage("/wormhole gate shapes <reload|validate> [name]", SHAPES);
     }
 
     private static void usage(final String line, final String... verbs)
@@ -115,10 +123,10 @@ public class GateCommand implements SubCommand
 
     /** The verbs under the job they are for, as the guide groups them. */
     private static final String[][] JOBS = {
-        { "Building", "build", "preview", "complete" },
-        { "Using gates", "list", "go", "force" },
-        { "Looking after gates", "edit", "remove", REGEN, VALIDATE },
-        { "Shapes and imports", "shapes", "import" } };
+        { "Building", BUILD, PREVIEW, COMPLETE },
+        { "Using gates", "list", GO, FORCE },
+        { "Looking after gates", "edit", REMOVE, REGEN, VALIDATE },
+        { "Shapes and imports", SHAPES, IMPORT } };
 
     /** {@code /wormhole gate} alone: the verbs, grouped by job. */
     private static void sendVerbList(final CommandSender sender)
@@ -156,12 +164,12 @@ public class GateCommand implements SubCommand
             System.arraycopy(rest, 0, forHandler, 1, rest.length);
             return new RegenerateCommand().execute(sender, forHandler);
         }
-        if ("import".equals(verb))
+        if (IMPORT.equals(verb))
         {
             importLegacy(sender);
             return true;
         }
-        if ("shapes".equals(verb))
+        if (SHAPES.equals(verb))
         {
             return new GateShapesCommand().execute(sender, args);
         }
@@ -172,11 +180,11 @@ public class GateCommand implements SubCommand
             System.arraycopy(rest, 0, forHandler, 1, rest.length);
             return new ValidateCommand().execute(sender, forHandler);
         }
-        if ("build".equals(verb))
+        if (BUILD.equals(verb))
         {
             return new Build().onCommand(sender, null, verb, rest);
         }
-        if ("preview".equals(verb))
+        if (PREVIEW.equals(verb))
         {
             return Build.previewAction(sender, rest);
         }
@@ -184,7 +192,7 @@ public class GateCommand implements SubCommand
         // uses for "register the thing I just built" -- /mv create, /npc create. complete is
         // this plugin's own word from 2011 and stays the documented one, since it is the
         // second half of build-then-complete rather than a creation on its own.
-        if (CommandHandlerUtils.verbIs(verb, "complete", "create"))
+        if (CommandHandlerUtils.verbIs(verb, COMPLETE, "create"))
         {
             return new Complete().onCommand(sender, null, verb, rest);
         }
@@ -192,7 +200,7 @@ public class GateCommand implements SubCommand
         {
             return new WXList().onCommand(sender, null, verb, rest);
         }
-        if (CommandHandlerUtils.verbIs(verb, "remove", "delete"))
+        if (CommandHandlerUtils.verbIs(verb, REMOVE, "delete"))
         {
             return new WXRemove().onCommand(sender, null, verb, rest);
         }
@@ -200,11 +208,11 @@ public class GateCommand implements SubCommand
         {
             return new Refresh().onCommand(sender, null, verb, rest);
         }
-        if ("go".equals(verb))
+        if (GO.equals(verb))
         {
             return new Go().onCommand(sender, null, verb, rest);
         }
-        if ("force".equals(verb))
+        if (FORCE.equals(verb))
         {
             return new Force().onCommand(sender, null, verb, rest);
         }

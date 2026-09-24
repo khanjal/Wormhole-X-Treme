@@ -17,6 +17,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 public class CustomCommand implements SubCommand
 {
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {

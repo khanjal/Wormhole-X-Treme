@@ -46,10 +46,20 @@ public class Wormhole implements CommandExecutor
             {
                 continue;
             }
-            // gate opens build to whoever may preview, without wormhole.config; list what they may run.
-            final String usage = mayConfigure || entry.checksOwnPermissions() ? entry.getUsage()
-                : entry.admits(sender, new String[] { group[1], "build" })
-                    ? com.wormhole_xtreme.wormhole.command.handlers.GateCommand.usageOf("build") : null;
+            final String usage;
+            if (mayConfigure || entry.checksOwnPermissions())
+            {
+                usage = entry.getUsage();
+            }
+            else if (entry.admits(sender, new String[] { group[1], "build" }))
+            {
+                // gate opens build to whoever may preview, without wormhole.config.
+                usage = com.wormhole_xtreme.wormhole.command.handlers.GateCommand.usageOf("build");
+            }
+            else
+            {
+                usage = null;
+            }
             if (usage != null)
             {
                 sender.sendMessage(ChatText.heading(group[0] + ":") + " "
@@ -75,6 +85,8 @@ public class Wormhole implements CommandExecutor
     /* (non-Javadoc)
      * @see org.bukkit.command.CommandExecutor#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
      */
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {

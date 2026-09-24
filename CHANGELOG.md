@@ -220,14 +220,15 @@ The plugin API is in [docs/API.md](docs/API.md).
   had before the move, so `build` offered no shapes and `regen` offered none of its flags.
 - **`remove` offers `-destroy`.**
 - **`/wormhole` on its own lists its commands by job** (Gates, Rings, Beams, Mirrors,
-  Settings, Other), each with a coloured usage, and only the ones you may run. `/wormhole gate`
+  Settings, Other), each with a coloured usage, and only the ones it would let you reach. `/wormhole gate`
   on its own lists the gate verbs the same way.
 
 **Fixed**
 
 - **A mistyped command gets one short usage line, for that command.** It used to be followed by
-  the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `gate owner`
-  with no gate named printed the lot. `/dial` does the same.
+  the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
+  with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is
+  not followed by a usage line. `/dial` does the same.
 - **`gate list` offers networks, not gate names.** Every `gate` verb without a completer of its
   own fell through to one that offered a gate name, which is wrong for `list` -- it narrows the
   listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.

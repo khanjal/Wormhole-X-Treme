@@ -110,7 +110,7 @@ public class TimeoutsCommand implements SubCommand
      *            what they typed
      * @param floor
      *            the lowest value this setting accepts
-     * @return false, so the caller prints the usage line
+     * @return true: the line was understood and its value explained, so no usage line follows (#325)
      */
     private static boolean reject(final CommandSender sender, final String label,
                                   final String typed, final int floor)
@@ -118,7 +118,7 @@ public class TimeoutsCommand implements SubCommand
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Invalid " + label + ": " + typed);
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + range(floor));
-        return false;
+        return true;
     }
 
     /**

@@ -162,6 +162,8 @@ public class MaterialCommand implements SubCommand
         this.kind = kind;
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
