@@ -90,6 +90,15 @@ final class ParsedSetting
                 ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
                 : accepted(pattern.name());
         }
+        // Refused rather than stored: an unknown style would sweep as the default and be
+        // reported by gate edit as though it were a style (#427).
+        if (key == ConfigKeys.GATE_IRIS_ANIMATION)
+        {
+            final String animation = ConfigManager.parseIrisAnimation(raw);
+            return (animation == null)
+                ? refused(key + " is " + String.join(", ", ConfigManager.irisAnimations()) + ", not \"" + raw + "\".")
+                : accepted(animation);
+        }
         if (current instanceof Boolean)
         {
             if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw))
