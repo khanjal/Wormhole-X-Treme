@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
@@ -83,12 +82,12 @@ class WooshDepthCommandTest
         return new WooshDepthCommand().execute(sender, args);
     }
 
-    /** Too few or too many words gets the usage line, and false to print it again. */
+    /** Too few or too many words gets the usage line, and true, since it has already said so (#325). */
     @Test
     void theWrongNumberOfArgumentsIsAUsageError()
     {
-        assertFalse(run("wooshdepth"));
-        assertFalse(run("wooshdepth", "alpha", "3", "extra"));
+        assertTrue(run("wooshdepth"));
+        assertTrue(run("wooshdepth", "alpha", "3", "extra"));
 
         verify(sender, org.mockito.Mockito.atLeastOnce())
             .sendMessage(contains("/wormhole wooshdepth"));

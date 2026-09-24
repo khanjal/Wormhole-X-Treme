@@ -31,4 +31,30 @@ class ChatTextTest
             + ChatText.name("Grand")).replace(":: ", ""));
         assertEquals("", ChatText.plain(null));
     }
+
+    /** A usage line: words to type in white, required values in aqua, optional parts left grey (#325). */
+    @Test
+    void aUsageLineColoursWhatToTypeAndWhatToFillIn()
+    {
+        assertEquals("Usage: §f/wormhole§7 §fgate§7 §fedit§7 §b<gate>§7 §b<field>§7 [value]",
+            ChatText.usage("/wormhole gate edit <gate> <field> [value]"));
+    }
+
+    /** A required value inside an optional part stays grey with the rest of it, brackets and all. */
+    @Test
+    void everythingInsideAnOptionalPartStaysGrey()
+    {
+        assertEquals("Usage: §f/wormhole§7 §fgate§7 §fregen§7 §b<gate>§7 [-shape <shape>] [-fill]",
+            ChatText.usage("/wormhole gate regen <gate> [-shape <shape>] [-fill]"));
+    }
+
+    /** A bare | or or between alternatives is not something to type, so it stays grey. */
+    @Test
+    void aSeparatorBetweenAlternativesStaysGrey()
+    {
+        assertEquals("Usage: §f/wormhole§7 §fregen§7 §b<gate>§7 | §f-all§7",
+            ChatText.usage("/wormhole regen <gate> | -all"));
+        assertEquals("Usage: §f/wormhole§7 §fcooldown§7 §b<seconds>§7 or §b<true|false>§7",
+            ChatText.usage("/wormhole cooldown <seconds> or <true|false>"));
+    }
 }

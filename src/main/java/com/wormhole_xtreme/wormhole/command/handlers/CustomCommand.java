@@ -17,6 +17,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 public class CustomCommand implements SubCommand
 {
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -33,7 +35,7 @@ public class CustomCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            return false;
+            return true;
         }
 
         if (args[1].equalsIgnoreCase("-clean"))

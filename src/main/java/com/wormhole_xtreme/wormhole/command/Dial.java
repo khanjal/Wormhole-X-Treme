@@ -21,6 +21,9 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class Dial implements CommandExecutor
 {
+    /** What {@code /dial} takes. */
+    static final String USAGE = "/dial <gate> [idc]";
+
 
     /**
      * Connects the activated gate to the gate the player named.
@@ -167,6 +170,8 @@ public class Dial implements CommandExecutor
     {
         return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
+            // Always answered here, with a usage line where the arguments do not fit.
+            @SuppressWarnings("java:S3516")
             @Override
             public Boolean call() throws Exception
             {
@@ -179,7 +184,10 @@ public class Dial implements CommandExecutor
                     }
                     return true;
                 }
-                return false;
+                // One short line, not plugin.yml's usage block (#325).
+                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + com.wormhole_xtreme.wormhole.utils.ChatText.usage(USAGE));
+                return true;
             }
         });
     }

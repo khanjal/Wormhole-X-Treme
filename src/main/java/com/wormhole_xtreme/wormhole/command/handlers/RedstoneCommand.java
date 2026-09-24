@@ -18,6 +18,8 @@ public class RedstoneCommand implements SubCommand
     private static final String VALID_OPTIONS = "Valid boolean options are: true and false";
 
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -34,10 +36,7 @@ public class RedstoneCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            // False, unlike every other refusal here: the caller prints the usage again for
-            // a command it could not parse at all, where a named gate that does not exist is
-            // a complete command with a wrong answer.
-            return false;
+            return true;
         }
 
         final Stargate stargate = StargateManager.isStargate(args[1])

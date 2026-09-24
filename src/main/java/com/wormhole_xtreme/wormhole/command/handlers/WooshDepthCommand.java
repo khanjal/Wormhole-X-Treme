@@ -42,6 +42,8 @@ public class WooshDepthCommand implements SubCommand
             .mapToObj(String::valueOf).toList();
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -52,7 +54,7 @@ public class WooshDepthCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            return false;
+            return true;
         }
 
         // One lookup rather than isStargate followed by getStargate: the registry is

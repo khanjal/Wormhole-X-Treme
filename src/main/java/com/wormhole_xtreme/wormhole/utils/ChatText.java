@@ -80,6 +80,45 @@ public final class ChatText
         return HEADING_COLOUR + text + BODY_COLOUR;
     }
 
+    /**
+     * A usage line (#325): the words to type in white, {@code <required>} in aqua, and anything
+     * inside {@code [optional]} left in the body grey, brackets included, as are a bare {@code |}
+     * or {@code or} between alternatives.
+     *
+     * @param line
+     *            the usage, as {@code /wormhole gate edit <gate> <field> [value]}
+     * @return {@code Usage: } and the line, coloured, ending in the body colour
+     */
+    public static String usage(final String line)
+    {
+        final StringBuilder out = new StringBuilder("Usage:");
+        int optional = 0;
+        for (final String word : line.trim().split("\\s+"))
+        {
+            out.append(' ');
+            final int opened = optional;
+            optional += count(word, '[') - count(word, ']');
+            if ((opened > 0) || word.startsWith("[") || "|".equals(word) || "or".equals(word))
+            {
+                out.append(word);
+            }
+            else if (word.startsWith("<"))
+            {
+                out.append(name(word));
+            }
+            else
+            {
+                out.append(command(word));
+            }
+        }
+        return out.toString();
+    }
+
+    private static int count(final String word, final char c)
+    {
+        return (int) word.chars().filter(ch -> ch == c).count();
+    }
+
     /** @return the line as a player reads it, without colour codes */
     public static String plain(final String text)
     {

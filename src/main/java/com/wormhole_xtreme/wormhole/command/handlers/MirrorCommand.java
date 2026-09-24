@@ -1116,12 +1116,12 @@ public class MirrorCommand implements SubCommand
 
     private static boolean named(final CommandSender sender, final String[] args, final String form)
     {
-        if (args.length < 3)
+        final boolean named = args.length >= 3;
+        if (!named)
         {
             sayUsage(sender, form);
-            return false;
         }
-        return true;
+        return named;
     }
 
     /**

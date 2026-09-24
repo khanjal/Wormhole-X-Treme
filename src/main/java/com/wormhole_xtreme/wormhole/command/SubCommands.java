@@ -199,7 +199,7 @@ public final class SubCommands
         // --- Gate lifecycle -------------------------------------------------
         register("list", aliases(), "/wormhole list [network]", new WXList(), true, (sender, args) ->
             args.length == 2 ? networkNames(args[1]) : none());
-        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true,
+        register(BUILD, aliases(), "/wormhole build <shape> [group]", new Build(), true,
             (sender, args) -> completeGateBuild(asGateVerb(args)));
         register(COMPLETE, aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
@@ -229,7 +229,7 @@ public final class SubCommands
                 ? combine(gateNames(args[1]), travelBeamNames(sender, args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
             (sender, args) -> args.length == 2 ? prefixed(args[1], "reset") : none());
-        register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
+        register("force", aliases(), "/wormhole force <gate|-all>", new Force(), true, GATE_NAMES);
 
         // --- Per-gate settings ----------------------------------------------
         register(OWNER, aliases(), "/wormhole owner <gate> [player]",
@@ -311,7 +311,7 @@ public final class SubCommands
 
         // --- Beaming ------------------------------------------------------------
         register("beam", aliases(),
-            "/wormhole beam <to <name>|list|admin <set|remove|cost|goto|send>|place <list|set|remove>>",
+            "/wormhole beam <to|list|admin|place> [...]",
             new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
             SubCommands::completeBeam);
 

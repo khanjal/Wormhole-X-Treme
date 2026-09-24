@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 // HelpSupport removed
@@ -20,6 +21,52 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class Wormhole implements CommandExecutor
 {
+
+    /** What {@code /wormhole} lists, a heading and its subcommand each, in this order. */
+    private static final String[][] GROUPS = {
+        { "Gates", "gate" }, { "Rings", "ring" }, { "Beams", "beam" }, { "Mirrors", "mirror" },
+        { "Settings", "config" }, { "Other", "compass" } };
+
+    /**
+     * {@code /wormhole} with nothing after it: each subcommand the sender may run, under a heading
+     * for its job, with its usage coloured (#325).
+     *
+     * @param sender
+     *            who asked
+     * @param mayConfigure
+     *            whether they hold {@code wormhole.config}, which opens every subcommand
+     */
+    static void sendCommandList(final CommandSender sender, final boolean mayConfigure)
+    {
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole X-Treme commands:");
+        for (final String[] group : GROUPS)
+        {
+            final SubCommands.Entry entry = SubCommands.find(group[1]);
+            if ((entry == null) || entry.isHidden())
+            {
+                continue;
+            }
+            final String usage;
+            if (mayConfigure || entry.checksOwnPermissions())
+            {
+                usage = entry.getUsage();
+            }
+            else if (entry.admits(sender, new String[] { group[1], "build" }))
+            {
+                // gate opens build to whoever may preview, without wormhole.config.
+                usage = com.wormhole_xtreme.wormhole.command.handlers.GateCommand.usageOf("build");
+            }
+            else
+            {
+                usage = null;
+            }
+            if (usage != null)
+            {
+                sender.sendMessage(ChatText.heading(group[0] + ":") + " "
+                    + ChatText.usage(usage).substring("Usage: ".length()));
+            }
+        }
+    }
 
     /**
      * Whether the sender may reach the admin and configuration subcommands. Console and
@@ -38,6 +85,8 @@ public class Wormhole implements CommandExecutor
     /* (non-Javadoc)
      * @see org.bukkit.command.CommandExecutor#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
      */
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
@@ -54,7 +103,14 @@ public class Wormhole implements CommandExecutor
             {
                 if (mayConfigure || entry.admits(sender, a))
                 {
-                    return entry.run(sender, a);
+                    // Bukkit answers false with plugin.yml's whole usage block, after whatever the
+                    // handler already said; the usage of the command they typed is what helps (#325).
+                    if (!entry.run(sender, a))
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                            + ChatText.usage(entry.getUsage()));
+                    }
+                    return true;
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
                 return true;
@@ -63,8 +119,7 @@ public class Wormhole implements CommandExecutor
             final String valid = SubCommands.nameList(!mayConfigure);
             if (a.length == 0)
             {
-                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
-                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid commands: " + valid);
+                sendCommandList(sender, mayConfigure);
                 return true;
             }
 
