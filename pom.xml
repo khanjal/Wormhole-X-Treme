@@ -432,18 +432,24 @@
 		</profile>
 
 		<!--
-			Tests that run the plugin on MockBukkit's simulated server. MockBukkit is built for one
-			Paper version and Java 21, so these live in src/mockbukkit and only run with
+			Tests that run the plugin on MockBukkit's simulated server. Each MockBukkit is built for
+			one Paper version and a newer Java, so these live in src/mockbukkit and only run with
 			-Pmockbukkit,modern-api -Dpaper.api.version= set to the version it names; the main code
-			still compiles for Java 17.
+			still compiles for Java 17. The 1.21 line by default; CI also runs 26.2 with
+			-Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version= -Dmockbukkit.release=25.
 		-->
 		<profile>
 			<id>mockbukkit</id>
+			<properties>
+				<mockbukkit.artifact>mockbukkit-v1.21</mockbukkit.artifact>
+				<mockbukkit.version>4.116.3</mockbukkit.version>
+				<mockbukkit.release>21</mockbukkit.release>
+			</properties>
 			<dependencies>
 				<dependency>
 					<groupId>org.mockbukkit.mockbukkit</groupId>
-					<artifactId>mockbukkit-v1.21</artifactId>
-					<version>4.116.3</version>
+					<artifactId>${mockbukkit.artifact}</artifactId>
+					<version>${mockbukkit.version}</version>
 					<scope>test</scope>
 				</dependency>
 			</dependencies>
@@ -472,7 +478,7 @@
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
 						<configuration>
-							<testRelease>21</testRelease>
+							<testRelease>${mockbukkit.release}</testRelease>
 						</configuration>
 					</plugin>
 					<!-- A JVM of their own, either way round: a Mockito test that touches org.bukkit.Tag

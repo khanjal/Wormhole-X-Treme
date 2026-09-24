@@ -24,13 +24,20 @@ Tests live in `src/test/java/`, mock the Bukkit API, and run against every suppo
 version in CI, so anything that only works on one of them is caught there.
 
 Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
-simulated server instead. MockBukkit is built for one Paper version and Java 21, so they need
-the profile, JDK 21 and that Paper API; against the default Spigot API they compile, then fail
-with a linkage error. CI runs them in the Paper 1.21.11 job:
+simulated server instead. Each MockBukkit is built for one Paper version and a newer Java, so
+they need the profile, that JDK and that Paper API; against the default Spigot API they compile,
+then fail with a linkage error. CI runs them twice, in the Paper 1.21.11 and 26.2 jobs:
 
 ```bash
 mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=26.2.build.124-stable -Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25   # JDK 25
 ```
+
+Run `clean` when switching between the two: the test classes of one are compiled for the other's
+Java, and Maven does not recompile them for a change of release alone.
+
+MockBukkit's older line for 1.20 is left alone: it is abandoned, in another package, and imitates
+the API rather than a server's behaviour, so it would not catch what goes wrong at the floor.
 
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
 by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
