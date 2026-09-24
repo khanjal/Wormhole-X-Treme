@@ -280,8 +280,6 @@ public final class GatePreviews
      *
      * @param owner
      *            who sees it
-     * @param shape
-     *            the shape
      * @param group
      *            its material group, or null for the shape's own materials
      * @return what happened
@@ -299,8 +297,6 @@ public final class GatePreviews
      *
      * @param owner
      *            who sees it
-     * @param shape
-     *            the shape
      * @param group
      *            its material group, or null for the shape's own materials
      * @param dhd
@@ -420,8 +416,6 @@ public final class GatePreviews
      *
      * @param owner
      *            whose preview
-     * @param group
-     *            the group
      * @return what happened
      */
     public static Control material(final Player owner, final MaterialGroup group)
@@ -1264,8 +1258,6 @@ public final class GatePreviews
      *
      * @param gone
      *            the viewer, which may be null if they are offline
-     * @param preview
-     *            the preview
      */
     private static void takeBackFromViewer(final Player gone, final GatePreview preview)
     {
@@ -1285,11 +1277,6 @@ public final class GatePreviews
 
     /**
      * Catches one viewer up on a preview they have just been shown.
-     *
-     * @param viewer
-     *            the new viewer
-     * @param preview
-     *            the preview
      */
     private static void showToNewViewer(final Player viewer, final GatePreview preview)
     {
@@ -1413,8 +1400,6 @@ public final class GatePreviews
      * that stands upright. A preview of a horizontal shape keeps its iris in the ring, as the
      * gate does, because there is no in front or behind to stack along.
      *
-     * @param preview
-     *            the preview
      * @return true if its iris and wormhole are stacked per viewer
      */
     private static boolean stacks(final GatePreview preview)
@@ -1437,8 +1422,6 @@ public final class GatePreviews
      * drift apart. Only the drawing differs: a preview's iris is block displays, which show no
      * liquid, so its wormhole is the fake block and its iris is the entity.
      *
-     * @param preview
-     *            the preview
      * @param cell
      *            the opening cell
      * @param eye
@@ -1470,7 +1453,6 @@ public final class GatePreviews
      *            the preview, which should be stacked
      * @param from
      *            where it is being looked at from
-     * @return the placements
      */
     private static List<IrisLayering.Placement> layersFor(final GatePreview preview, final Location from)
     {
@@ -1512,8 +1494,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param index
      *            the opening cell's index
      * @param stacked
@@ -1540,8 +1520,6 @@ public final class GatePreviews
     /**
      * Sends one viewer a set of placements, and remembers them as theirs.
      *
-     * @param viewer
-     *            the viewer
      * @param preview
      *            the preview, which should be stacked
      * @param layers
@@ -1583,8 +1561,6 @@ public final class GatePreviews
      * which takes no part in block face culling -- but a translucent entity hides translucent
      * water behind it just the same, so a preview needs this exactly as a gate does.
      *
-     * @param preview
-     *            the preview
      * @param ring
      *            the opening cell
      * @param placed
@@ -1661,8 +1637,6 @@ public final class GatePreviews
      *
      * @param viewer
      *            who it was drawn for
-     * @param preview
-     *            the preview
      * @param layers
      *            what was drawn
      */
@@ -1705,11 +1679,6 @@ public final class GatePreviews
      * blocks back works from the opening's own cells -- so nothing else knows about the cell
      * that was actually written. Called when a preview stops being stacked and when it is taken
      * away entirely.
-     *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      */
     private static void handBackOffsets(final Player viewer, final GatePreview preview)
     {
@@ -1747,8 +1716,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param stacked
      *            whether it is stacked
      */
@@ -1787,10 +1754,6 @@ public final class GatePreviews
     /**
      * Shows one viewer one of the two iris sets and hides the other.
      *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      * @param layers
      *            where their layers go, from {@link #layersFor}
      */
@@ -1942,8 +1905,6 @@ public final class GatePreviews
      * the wrong thing on an opening with two cells at the same coordinates, which a malformed
      * shape can produce.
      *
-     * @param preview
-     *            the preview
      * @param closing
      *            true for the closing order, rim first
      * @return one list of indexes per ring
@@ -2030,8 +1991,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param ringCells
      *            the opening indexes this step covered or uncovered
      * @param covering
@@ -2105,10 +2064,6 @@ public final class GatePreviews
     /**
      * One cell of one viewer's sweep step.
      *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      * @param layers
      *            where their layers go, from {@link #layersFor}
      * @param index
@@ -2145,8 +2100,6 @@ public final class GatePreviews
      * <p>A step that fired after its preview was cleared would spawn fresh displays for one
      * nobody is holding any more, and nothing left would ever take them away again.
      *
-     * @param preview
-     *            the preview
      * @return true if it is still in the register
      */
     private static boolean stillHeld(final GatePreview preview)
@@ -2166,9 +2119,6 @@ public final class GatePreviews
      *
      * <p>Called when the iris is toggled again mid-sweep, and when a preview goes away -- a
      * step that fired afterwards would spawn displays for a preview nobody is holding any more.
-     *
-     * @param preview
-     *            the preview
      */
     static void cancelIrisSweep(final GatePreview preview)
     {
