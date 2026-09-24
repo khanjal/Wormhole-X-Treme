@@ -99,7 +99,7 @@ Zero is the bar before merging (see the `sonar-check` skill for the false positi
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
 up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
 
-A PR with fewer than 20 new lines skips the gate's coverage and duplication conditions, and
+A PR with fewer than 20 new lines of code (Sonar's count, which leaves out blanks and comments, not the diff's) skips the gate's coverage and duplication conditions, and
 Sonar says so on the PR. A green gate there says nothing about the tests; the issue count still
 counts.
 
