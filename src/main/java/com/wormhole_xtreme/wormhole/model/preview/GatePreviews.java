@@ -1868,6 +1868,11 @@ public final class GatePreviews
     /** Redraws one preview for a player whose step changed what it looks like to them. */
     private static void restackIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
+        if (preview.sweeping() && preview.world().equals(player.getWorld()))
+        {
+            resweepIfCrossed(player, preview, to);
+            return;
+        }
         if (!stacks(preview) || !preview.world().equals(player.getWorld()))
         {
             return;
@@ -2028,9 +2033,47 @@ public final class GatePreviews
         for (final Player viewer : watching(owner, preview))
         {
             final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+            preview.sweepSides().put(viewer.getUniqueId(), layers);
             for (final int index : ringCells)
             {
                 sweepHorizonAt(viewer, preview, layers, index, covering);
+            }
+        }
+    }
+
+    /**
+     * Moves a viewer's stand-in wormhole with them when they cross a preview mid-sweep (#442).
+     *
+     * <p>The sweep puts the ice for each covered ring on the far side from where the viewer
+     * stood at that step. Walking round left it on their old far side, now their near side: a
+     * solid block the server does not have, a pace from the preview. Every covered cell hands
+     * back its old offsets and takes its ice on the new far side.
+     */
+    private static void resweepIfCrossed(final Player player, final GatePreview preview, final Location to)
+    {
+        final BlockFace facing = preview.grid().facing();
+        if (!preview.open() || (facing == null) || !DrawnHorizon.standsIn(preview.palette().iris())
+            || !preview.sweepSides().containsKey(player.getUniqueId()))
+        {
+            return;
+        }
+        final List<IrisLayering.Placement> now = layersFor(preview, to);
+        if (now.equals(preview.sweepSides().put(player.getUniqueId(), now)))
+        {
+            return;
+        }
+        for (final int index : preview.irisShown())
+        {
+            final IrisLayering.At ring = at(preview.opening().get(index));
+            final IrisLayering.At where = now.get(index).horizon();
+            for (final IrisLayering.At back : IrisLayering.handBacks(ring, facing, where))
+            {
+                takeBackAt(player, preview, back);
+            }
+            if ((where != null) && !where.equals(ring))
+            {
+                player.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+                    horizonData(preview, ring, now.get(index)));
             }
         }
     }
