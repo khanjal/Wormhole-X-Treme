@@ -128,7 +128,7 @@ public class Ring
         this.flashMaterial = lightMaterial;
     }
 
-    /** @return anchor x */
+    /** @return anchor x, the low-x block of the central 2x2 for an even ring */
     public int getAnchorX()
     {
         return anchorX;
@@ -140,7 +140,7 @@ public class Ring
         return anchorY;
     }
 
-    /** @return anchor z */
+    /** @return anchor z, the low-z block of the central 2x2 for an even ring */
     public int getAnchorZ()
     {
         return anchorZ;
@@ -225,9 +225,6 @@ public class Ring
      * lights to say the ring is working and stays lit throughout; the flash is the instant of
      * transport running through the stack. Left matched they read as one effect, which is a
      * fine default and a waste of the distinction.
-     *
-     * @param flashMaterial
-     *            the new material
      */
     public void setFlashMaterial(final Material flashMaterial)
     {
@@ -250,9 +247,6 @@ public class Ring
      *
      * <p>They do have to finish together, but that is arranged by waiting for the longer of
      * the two rather than by making them the same.
-     *
-     * @param style
-     *            the new style
      */
     public void setStyle(final RingStyle style)
     {
@@ -692,8 +686,6 @@ public class Ring
      *
      * <p>Squared, so the minimum-separation check never needs a square root.
      *
-     * @param other
-     *            the other ring
      * @return the squared horizontal distance between anchors
      */
     public long anchorDistanceSquared(final Ring other)

@@ -106,8 +106,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     /**
      * Whether a player is close enough to one end to be shown it.
      *
-     * @param player
-     *            the player
      * @param ring
      *            the end
      * @return true if they are in range
@@ -443,8 +441,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
      * ceiling ring's rings have dropped to. People arrive standing inside the stack rather
      * than under it.
      *
-     * @param ring
-     *            the ring
      * @return the block layer a traveller's feet land in
      */
     private int arrivalHeight(final Ring ring)

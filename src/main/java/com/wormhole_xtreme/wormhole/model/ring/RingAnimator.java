@@ -166,8 +166,6 @@ public final class RingAnimator
      * which makes the whole run as long as the sum of the journeys rather than the longest
      * of them.
      *
-     * @param ring
-     *            the ring
      * @param style
      *            how the stack comes out
      * @param index
@@ -367,8 +365,6 @@ public final class RingAnimator
      * block, exactly where the template hung. Either way a ring emerges from where the player
      * laid it and travels to where it belongs.
      *
-     * @param ring
-     *            the ring
      * @return its half-step at the moment it emerges
      */
     static int startHalfStep(final Ring ring)
@@ -382,8 +378,6 @@ public final class RingAnimator
     /**
      * How many frames one ring's whole journey takes.
      *
-     * @param ring
-     *            the ring
      * @param index
      *            which ring
      * @return frames from emerging to settled
@@ -554,8 +548,6 @@ public final class RingAnimator
      * ceiling ring hangs from. Drawn as {@link #OPENED_MATERIAL} so the ring reads as having
      * opened, with the lit recess below it and the rings climbing out.
      *
-     * @param ring
-     *            the ring
      * @return the block positions to open, each as {@code {x, y, z}}
      */
     public static List<int[]> openedBlocks(final Ring ring)

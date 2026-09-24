@@ -203,9 +203,6 @@ public class RingPair
 
     /**
      * Sets the cycle phase.
-     *
-     * @param phase
-     *            the new phase
      */
     public void setPhase(final RingPhase phase)
     {
