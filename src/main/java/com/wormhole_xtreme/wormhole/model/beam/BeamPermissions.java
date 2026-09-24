@@ -37,7 +37,6 @@ public final class BeamPermissions
      * {@code #hasPermission(String)} are defined on {@link CommandSender} itself, not just on
      * {@code Player}.
      *
-     * @param sender the sender
      * @param node the node to check
      * @return true if they hold it
      */
