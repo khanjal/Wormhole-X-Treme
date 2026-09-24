@@ -72,8 +72,6 @@ public final class BuiltIrisUpgrade
      *
      * <p>Safe to call repeatedly: once the cells are air there is nothing left to match.
      *
-     * @param gate
-     *            the gate
      * @return how many cells were cleared
      */
     public static int clearLeftover(final Stargate gate)

@@ -394,8 +394,6 @@ public final class StargateHelper
      * block: detection runs up to 156 times on a single click, and the alternative is a scan
      * of every wave for every frame block of every candidate shape.
      *
-     * @param layer
-     *            the layer
      * @return the keys of its light-marked cells, empty if it has none
      */
     static java.util.Set<Long> lightCells(final StargateShapeLayer layer)
@@ -429,7 +427,7 @@ public final class StargateHelper
      *
      * @param pos
      *            the shape position
-     * @return the key
+     * @return elements 1 and 2 of the position, in the high and low 32 bits
      */
     static Long cellKey(final Integer[] pos)
     {
@@ -592,7 +590,6 @@ public final class StargateHelper
      *            the frame material
      * @param chevronMat
      *            the chevron material, or null if the shape has none
-     * @return true if the cell matches
      */
     private static boolean cellMatches(final org.bukkit.Material found, final Integer[] pos,
         final java.util.Set<Long> litCells, final org.bukkit.Material structMat,
