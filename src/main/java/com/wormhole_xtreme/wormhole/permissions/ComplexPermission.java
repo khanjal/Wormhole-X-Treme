@@ -69,9 +69,7 @@ enum ComplexPermission
     /**
      * From complex permission node.
      * 
-     * @param complexPermissionNode
-     *            the complex permission node
-     * @return the complex permission
+     * @return the permission with exactly that node, or null if none has it
      */
     public static ComplexPermission fromComplexPermissionNode(final String complexPermissionNode) // NO_UCD
     {
@@ -82,7 +80,7 @@ enum ComplexPermission
      * Instantiates a new complex permission.
      * 
      * @param complexPermissionNode
-     *            the complex permission node
+     *            the node checked, or for the network permissions the prefix a network name completes
      */
     private ComplexPermission(final String complexPermissionNode)
     {
@@ -92,8 +90,6 @@ enum ComplexPermission
     /**
      * Check permission.
      * 
-     * @param player
-     *            the player
      * @return true, if successful
      */
     protected boolean checkPermission(final Player player)
@@ -104,10 +100,8 @@ enum ComplexPermission
     /**
      * Check permission.
      * 
-     * @param player
-     *            the player
      * @param stargate
-     *            the stargate
+     *            the gate acted on; only {@code REMOVE_OWN} looks at it
      * @return true, if successful
      */
     protected boolean checkPermission(final Player player, final Stargate stargate)
@@ -118,10 +112,6 @@ enum ComplexPermission
     /**
      * Check permission.
      * 
-     * @param player
-     *            the player
-     * @param networkName
-     *            the network name
      * @return true, if successful
      */
     public boolean checkPermission(final Player player, final Stargate stargate, final String networkName)
@@ -160,10 +150,6 @@ enum ComplexPermission
     /**
      * Check permission.
      * 
-     * @param player
-     *            the player
-     * @param networkName
-     *            the network name
      * @return true, if successful
      */
     protected boolean checkPermission(final Player player, final String networkName)
@@ -174,7 +160,7 @@ enum ComplexPermission
     /**
      * Gets the complex permission.
      * 
-     * @return the complex permission
+     * @return the node, which for the network permissions is a prefix the network name completes
      */
     public String getComplexPermission()
     {

@@ -26,9 +26,6 @@ public class StargateRestrictions
     
     /**
      * Adds the player use cooldown.
-     * 
-     * @param player
-     *            the player
      */
     public static void addPlayerUseCooldown(final Player player)
     {
@@ -79,8 +76,6 @@ public class StargateRestrictions
     /**
      * Check player use cooldown remaining.
      * 
-     * @param player
-     *            the player
      * @return the int
      */
     public static long checkPlayerUseCooldownRemaining(final Player player)
@@ -209,9 +204,7 @@ public class StargateRestrictions
     /**
      * Checks if is player use cooldown.
      * 
-     * @param player
-     *            the player
-     * @return true, if is player use cooldown
+     * @return true while the player's cooldown has not been cleared
      */
     public static boolean isPlayerUseCooldown(final Player player)
     {
@@ -220,9 +213,6 @@ public class StargateRestrictions
 
     /**
      * Removes the player use cooldown.
-     * 
-     * @param player
-     *            the player
      */
     public static int removePlayerUseCooldown(final Player player)
     {
