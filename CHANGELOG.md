@@ -100,6 +100,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A gate that shuts while its iris is opening stays shut.** The opening animation went on
+  running and painted the wormhole into the idle gate, where it stayed until a chunk reload. The
+  same for a gate removed or regenerated mid-animation.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
