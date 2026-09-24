@@ -50,6 +50,8 @@ public class GateEditCommand implements SubCommand
         boolean apply(CommandSender sender, String gate, String value);
     }
 
+    private static final String NO_GATE_CALLED = "No gate called ";
+
     /** The fields, in the order they are offered. */
     private static final String OWNER = "owner";
 
@@ -105,7 +107,7 @@ public class GateEditCommand implements SubCommand
             com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + gateName + ".");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
             return true;
         }
         final String animations = String.join(", ", irisAnimationNames());
@@ -181,7 +183,7 @@ public class GateEditCommand implements SubCommand
             com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + gateName + ".");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
             return true;
         }
         if ((value == null) || value.isEmpty())
@@ -266,7 +268,7 @@ public class GateEditCommand implements SubCommand
             com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage("No gate called " + gateName + ".");
+            sender.sendMessage(NO_GATE_CALLED + gateName + ".");
             return true;
         }
         if ((value == null) || value.isEmpty())

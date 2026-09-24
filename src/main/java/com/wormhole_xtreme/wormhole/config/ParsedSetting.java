@@ -81,23 +81,10 @@ final class ParsedSetting
         // value has been typed. Treating an absent one as empty keeps every rule below able
         // to assume a string, rather than each having to say so again.
         final String raw = typed == null ? "" : typed;
-        // Checked before the type: a config.yml from before patterns still holds a boolean here.
-        if (key == ConfigKeys.GATE_DIAL_SPIN)
+        final ParsedSetting named = readNamed(key, raw);
+        if (named != null)
         {
-            final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
-                com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(raw);
-            return (pattern == null)
-                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
-                : accepted(pattern.name());
-        }
-        // Refused rather than stored: an unknown style would sweep as the default and be
-        // reported by gate edit as though it were a style (#427).
-        if (key == ConfigKeys.GATE_IRIS_ANIMATION)
-        {
-            final String animation = ConfigManager.parseIrisAnimation(raw);
-            return (animation == null)
-                ? refused(key + " is " + String.join(", ", ConfigManager.irisAnimations()) + ", not \"" + raw + "\".")
-                : accepted(animation);
+            return named;
         }
         if (current instanceof Boolean)
         {
@@ -130,6 +117,38 @@ final class ParsedSetting
             }
         }
         return readText(key, raw);
+    }
+
+    /**
+     * Reads a setting whose value is one of a fixed set of names, checked before the type: a
+     * config.yml from before dial-spin patterns still holds a boolean there.
+     *
+     * @param key
+     *            which setting is being written
+     * @param raw
+     *            the value as typed
+     * @return the value to store or the reason it was refused, or null for any other setting
+     */
+    private static ParsedSetting readNamed(final ConfigKeys key, final String raw)
+    {
+        if (key == ConfigKeys.GATE_DIAL_SPIN)
+        {
+            final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
+                com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(raw);
+            return (pattern == null)
+                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
+                : accepted(pattern.name());
+        }
+        // Refused rather than stored: an unknown style would sweep as the default and be
+        // reported by gate edit as though it were a style (#427).
+        if (key == ConfigKeys.GATE_IRIS_ANIMATION)
+        {
+            final String animation = ConfigManager.parseIrisAnimation(raw);
+            return (animation == null)
+                ? refused(key + " is " + String.join(", ", ConfigManager.irisAnimations()) + ", not \"" + raw + "\".")
+                : accepted(animation);
+        }
+        return null;
     }
 
     /**
