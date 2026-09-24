@@ -1301,8 +1301,6 @@ class GatePreviewsTest
      * that asks whether a block was ever sent is answered by the sweep and says nothing about
      * what is left standing when it ends.
      *
-     * @param viewer
-     *            the viewer
      * @param steps
      *            how far along the preview's facing, so -1 is a block behind the ring
      * @return the block data last sent there, or null if nothing was
