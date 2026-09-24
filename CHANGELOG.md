@@ -45,7 +45,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 - **The default `top` dial rests on the top chevron** for half a second as each chevron locks,
   before the ring turns again, so a dial takes about three seconds longer. Pick another pattern
-  to keep the old pace.
+  to keep the old pace. The gate being dialled keeps the same pace, so both wormholes still form
+  together.
 - **The last chevron holds two seconds before the kawoosh**, not one.
 - **An iris is drawn on clients now, not built out of blocks.** A gate that stands upright
   keeps air in its opening and sends every nearby client the iris to look at, so a crash
