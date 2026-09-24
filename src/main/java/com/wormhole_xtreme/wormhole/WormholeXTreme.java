@@ -60,8 +60,6 @@ public class WormholeXTreme extends JavaPlugin
 
     /**
      * Gets the logger.
-     * 
-     * @return the log
      */
     private static Logger getLog()
     {
@@ -71,7 +69,7 @@ public class WormholeXTreme extends JavaPlugin
     /**
      * Gets the scheduler.
      * 
-     * @return the scheduler
+     * @return the server's scheduler, null until the plugin has loaded
      */
     public static BukkitScheduler getScheduler()
     {
@@ -81,7 +79,7 @@ public class WormholeXTreme extends JavaPlugin
     /**
      * Gets the this plugin.
      * 
-     * @return the this plugin
+     * @return the running instance, null until the plugin has loaded
      */
     public static WormholeXTreme getThisPlugin()
     {
@@ -141,8 +139,6 @@ public class WormholeXTreme extends JavaPlugin
      *
      * @param pm
      *            the plugin manager to register with
-     * @param plugin
-     *            this plugin
      */
     private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
                                                  final WormholeXTreme plugin)
@@ -176,9 +172,6 @@ public class WormholeXTreme extends JavaPlugin
 
     /**
      * Sets the log.
-     * 
-     * @param log
-     *            the new log
      */
     private static void setLog(final Logger log)
     {
@@ -218,9 +211,6 @@ public class WormholeXTreme extends JavaPlugin
 
     /**
      * Sets the scheduler.
-     * 
-     * @param scheduler
-     *            the new scheduler
      */
     private static void setScheduler(final BukkitScheduler scheduler)
     {
@@ -229,9 +219,6 @@ public class WormholeXTreme extends JavaPlugin
 
     /**
      * Sets the this plugin.
-     * 
-     * @param thisPlugin
-     *            the new this plugin
      */
     private static void setThisPlugin(final WormholeXTreme thisPlugin)
     {

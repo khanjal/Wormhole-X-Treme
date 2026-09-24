@@ -153,8 +153,6 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Teleports a player through a gate on their own, with no mount involved.
      *
-     * @param player
-     *            the player
      * @param safeTarget
      *            the vetted arrival location
      */
@@ -320,8 +318,6 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Handle player move event.
      *
-     * @param event
-     *            the event
      * @return true, if successful
      */
     private static boolean handlePlayerMoveEvent(final PlayerMoveEvent event)
@@ -390,8 +386,6 @@ class WormholeXTremePlayerListener implements Listener
      * it would actually be printed. It used to call {@code Player.toString()} and two extra
      * {@code getBlockAt} lookups on every crossing and throw all of it away.
      *
-     * @param event
-     *            the move
      * @param player
      *            who moved
      */
@@ -445,8 +439,6 @@ class WormholeXTremePlayerListener implements Listener
      * directions. A gate activated but never dialled has nowhere to send anybody, so its
      * ring is just a ring and a player may walk through it.
      *
-     * @param event
-     *            the move
      * @param player
      *            the player moving
      * @param stargate
@@ -1487,9 +1479,6 @@ class WormholeXTremePlayerListener implements Listener
      * <p>This is the case behind "the water is gone at the other end": the destination gate
      * opened while the traveller was still standing at the source, far outside the range
      * the portal is drawn to, so they were never sent it in the first place.
-     *
-     * @param event
-     *            the teleport
      */
     @EventHandler
     public void onPlayerTeleport(final PlayerTeleportEvent event)
@@ -1509,9 +1498,6 @@ class WormholeXTremePlayerListener implements Listener
      * Drops any portal flight exemption held by a player who has left.
      *
      * <p>Ids of players who never come back would otherwise sit in the set forever.
-     *
-     * @param event
-     *            the quit
      */
     @EventHandler
     public void onPlayerQuit(final PlayerQuitEvent event)
@@ -1551,9 +1537,6 @@ class WormholeXTremePlayerListener implements Listener
 
     /**
      * Redraws open portals for a player who has just joined.
-     *
-     * @param event
-     *            the join
      */
     @EventHandler
     public void onPlayerJoin(final PlayerJoinEvent event)
@@ -1577,9 +1560,6 @@ class WormholeXTremePlayerListener implements Listener
 
     /**
      * Redraws open portals for a player who has just respawned.
-     *
-     * @param event
-     *            the respawn
      */
     @EventHandler
     public void onPlayerRespawn(final PlayerRespawnEvent event)
