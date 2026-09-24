@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,7 +85,7 @@ class GateEditSpinTest
 
             run("gate", "edit", "alpha", "spin", "default");
             assertNull(alpha.getGateDialSpin(), "default follows the group and the server again");
-            db.verify(() -> StargateDBManager.saveStargate(alpha), org.mockito.Mockito.times(2));
+            db.verify(() -> StargateDBManager.saveStargate(alpha), times(2));
         }
     }
 

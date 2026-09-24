@@ -93,14 +93,6 @@ public final class MaterialGroup
         final Material irisMaterial, final Material lightMaterial, final Material signMaterial,
         final Material chevronMaterial)
     {
-        this(name, structureMaterial, portalMaterial, irisMaterial, lightMaterial, signMaterial, chevronMaterial,
-            null);
-    }
-
-    private MaterialGroup(final String name, final Material structureMaterial, final Material portalMaterial,
-        final Material irisMaterial, final Material lightMaterial, final Material signMaterial,
-        final Material chevronMaterial, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
-    {
         this.name = name;
         this.structureMaterial = structureMaterial;
         this.portalMaterial = portalMaterial;
@@ -108,6 +100,19 @@ public final class MaterialGroup
         this.lightMaterial = lightMaterial;
         this.signMaterial = signMaterial;
         this.chevronMaterial = chevronMaterial;
+        this.dialSpin = null;
+    }
+
+    /** A copy of {@code base} with another ring pattern. */
+    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
+    {
+        this.name = base.name;
+        this.structureMaterial = base.structureMaterial;
+        this.portalMaterial = base.portalMaterial;
+        this.irisMaterial = base.irisMaterial;
+        this.lightMaterial = base.lightMaterial;
+        this.signMaterial = base.signMaterial;
+        this.chevronMaterial = base.chevronMaterial;
         this.dialSpin = dialSpin;
     }
 
@@ -198,8 +203,7 @@ public final class MaterialGroup
      */
     public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
     {
-        return new MaterialGroup(name, structureMaterial, portalMaterial, irisMaterial, lightMaterial, signMaterial,
-            chevronMaterial, pattern);
+        return new MaterialGroup(this, pattern);
     }
 
     @Override
