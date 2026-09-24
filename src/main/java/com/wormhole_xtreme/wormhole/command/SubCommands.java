@@ -638,6 +638,11 @@ public final class SubCommands
         {
             return prefixed(typed, TRUE, FALSE);
         }
+        if ("iris-animation".equals(field))
+        {
+            return prefixed(typed,
+                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.irisAnimationNames().toArray(new String[0]));
+        }
         if ("spin".equals(field))
         {
             return prefixed(typed,

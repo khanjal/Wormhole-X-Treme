@@ -870,10 +870,7 @@ public class ConfigManager
                 return java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
-                return java.util.stream.Stream.concat(
-                    java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
-                        .map(s -> s.name().toLowerCase(Locale.ROOT)),
-                    java.util.stream.Stream.of("instant")).toList();
+                return irisAnimations();
             case RING_DEFAULT_ACCESS:
                 return java.util.List.of("public", "private");
             case RING_DEFAULT_STYLE:
@@ -1030,30 +1027,62 @@ public class ConfigManager
     }
 
     /**
-     * Whether a closing or opening iris is drawn a ring at a time.
-     *
-     * <p>The blocks themselves are placed in one go either way; only the picture is gradual.
-     * See {@link com.wormhole_xtreme.wormhole.model.StargateIrisAnimator} for why that
-     * separation is the whole point.
-     *
-     * @return true to sweep, false to arrive all at once
+     * @param animation
+     *            an iris animation, as {@link #getGateIrisAnimation(String, com.wormhole_xtreme.wormhole.model.MaterialGroup)} answers
+     * @return false only for {@code instant}
      */
-    public static boolean isGateIrisAnimated()
+    public static boolean isIrisAnimated(final String animation)
     {
-        return !"instant".equalsIgnoreCase(gateIrisAnimation());
+        return !"instant".equalsIgnoreCase(animation);
     }
 
     /**
-     * How an animated iris crosses its opening.
+     * The iris animation a gate uses (#427): its own, then its material group's, then
+     * {@code gate-iris-animation}.
      *
-     * <p>Anything unrecognised is read as the default rather than refused, so a mistyped style
-     * costs the style and not the iris.
-     *
-     * @return the style
+     * @param own
+     *            the gate's own animation, or null
+     * @param group
+     *            its material group, or null
+     * @return one of {@link #irisAnimations()}
      */
-    public static com.wormhole_xtreme.wormhole.model.IrisSweep.Style getGateIrisStyle()
+    public static String getGateIrisAnimation(final String own, final com.wormhole_xtreme.wormhole.model.MaterialGroup group)
     {
-        return com.wormhole_xtreme.wormhole.model.IrisSweep.Style.of(gateIrisAnimation());
+        if (own != null)
+        {
+            return own;
+        }
+        if ((group != null) && (group.getIrisAnimation() != null))
+        {
+            return group.getIrisAnimation();
+        }
+        return gateIrisAnimation().toLowerCase(Locale.ROOT);
+    }
+
+    /** @return the iris animations there are: the four sweep styles, then {@code instant} */
+    public static java.util.List<String> irisAnimations()
+    {
+        return java.util.stream.Stream.concat(
+            java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
+                .map(style -> style.name().toLowerCase(Locale.ROOT)),
+            java.util.stream.Stream.of("instant")).toList();
+    }
+
+    /**
+     * Reads an iris animation by name, whatever its capitals.
+     *
+     * @param raw
+     *            the value as written
+     * @return it in lower case, or null if it names none
+     */
+    public static String parseIrisAnimation(final String raw)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final String name = raw.trim().toLowerCase(Locale.ROOT);
+        return irisAnimations().contains(name) ? name : null;
     }
 
     /**
