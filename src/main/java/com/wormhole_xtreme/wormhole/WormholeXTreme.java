@@ -483,13 +483,9 @@ public class WormholeXTreme extends JavaPlugin
      */
     private void enableMetricsIfConfigured()
     {
-        if (!ConfigManager.isMetricsEnabled())
-        {
-            return;
-        }
         try
         {
-            com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableMetrics(this);
+            com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableIfConfigured(this);
         }
         catch (final Exception | LinkageError t)
         {

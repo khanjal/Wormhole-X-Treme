@@ -33,6 +33,20 @@ public final class MetricsSupport
     }
 
     /**
+     * Starts sending if {@code metrics-enabled} allows it.
+     *
+     * @param plugin
+     *            this plugin
+     */
+    public static void enableIfConfigured(final JavaPlugin plugin)
+    {
+        if (ConfigManager.isMetricsEnabled())
+        {
+            enableMetrics(plugin);
+        }
+    }
+
+    /**
      * Starts sending, unless it already is.
      *
      * @param plugin
