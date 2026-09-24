@@ -2728,4 +2728,27 @@ class GatePreviewsTest
             verify(startDisplay, never()).setBlock(data.get(Material.GLOWSTONE));
         }
     }
+
+    /**
+     * A preview recoloured mid-turn into a frame whose group turns none puts back the cell the
+     * turn had lit, rather than leaving it lit through every chevron after. Found by a Fable review.
+     */
+    @Test
+    void aPreviewRecolouredToNoTurnMidTurnTakesTheLightBack()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
+        GatePreviews.show(owner, standard, turningGroup());
+        final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
+        GatePreviews.activate(owner);
+        dialStep.run();
+        verify(startDisplay).setBlock(data.get(Material.GLOWSTONE));
+
+        GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK);
+        dialStep.run();
+
+        assertTrue(GatePreviews.of(owner.getUniqueId()).get(0).spinCells().isEmpty(), "the turn's light is taken back");
+        verify(startDisplay, org.mockito.Mockito.atLeastOnce()).setBlock(data.get(Material.GOLD_BLOCK));
+    }
 }

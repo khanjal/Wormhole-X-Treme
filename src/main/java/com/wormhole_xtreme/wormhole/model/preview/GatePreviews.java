@@ -1051,6 +1051,14 @@ public final class GatePreviews
     {
         if (!spins(preview))
         {
+            // Recoloured into a group that turns none part way round: put back what the turn had lit.
+            final Set<Cell> left = preview.spinCells();
+            if (!left.isEmpty())
+            {
+                preview.spinCells(Set.of());
+                preview.spinTick(0);
+                restyle(preview, left);
+            }
             return false;
         }
         final Set<Cell> was = preview.spinCells();
