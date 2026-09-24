@@ -164,4 +164,17 @@ class GateRefreshCarryOverTest
         org.junit.jupiter.api.Assertions.assertNull(fresh.getGateCustomStructureMaterial(), "obsidian into a lapis frame is not kept");
         assertEquals(org.bukkit.Material.LAPIS_BLOCK, fresh.getEffectiveStructureMaterial());
     }
+
+    /** A gate's own iris animation (#427) survives a regen. */
+    @Test
+    void aRegeneratedGateKeepsItsIrisAnimation()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateIrisAnimation("spiral");
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals("spiral", fresh.getGateIrisAnimation());
+    }
 }
