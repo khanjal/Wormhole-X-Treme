@@ -475,6 +475,30 @@
 							<testRelease>21</testRelease>
 						</configuration>
 					</plugin>
+					<!-- A JVM of their own, either way round: a Mockito test that touches org.bukkit.Tag
+					     with no server breaks that class for the rest of its JVM, and MockBukkit's
+					     server is global. Split by tag, which -Dtest does not override. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>default-test</id>
+								<configuration>
+									<excludedGroups>mockbukkit</excludedGroups>
+								</configuration>
+							</execution>
+							<execution>
+								<id>mockbukkit-test</id>
+								<goals>
+									<goal>test</goal>
+								</goals>
+								<configuration>
+									<groups>mockbukkit</groups>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>

@@ -53,6 +53,12 @@ finds.
 }
 ```
 
+For the tests in `src/mockbukkit/`, add their profile and run the harness under JDK 21:
+
+```json
+  "mvn_args": ["-Pmodern-api,mockbukkit", "-Dpaper.api.version=1.21.11-R0.1-SNAPSHOT"],
+```
+
 Then run it:
 
 ```bash

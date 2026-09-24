@@ -12,7 +12,6 @@ import org.bukkit.command.PluginCommand;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
 
 /**
@@ -22,6 +21,7 @@ import org.mockbukkit.mockbukkit.ServerMock;
  * server would: a command plugin.yml names that the plugin never claims only shows up on a real
  * server. MockBukkit supplies that server.
  */
+@OnMockServer
 class PluginEnablesOnMockServerTest
 {
     // Once per class: the plugin's statics outlive unmock(), so a second load sees the first's shapes.
@@ -31,14 +31,14 @@ class PluginEnablesOnMockServerTest
     @BeforeAll
     static void startServer()
     {
-        server = MockBukkit.mock();
-        plugin = MockBukkit.load(WormholeXTreme.class);
+        server = MockServerSupport.start();
+        plugin = WormholeXTreme.getThisPlugin();
     }
 
     @AfterAll
     static void stopServer()
     {
-        MockBukkit.unmock();
+        MockServerSupport.stop();
     }
 
     @Test
