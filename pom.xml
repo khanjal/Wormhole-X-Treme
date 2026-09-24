@@ -118,6 +118,12 @@
 									</excludes>
 								</filter>
 							</filters>
+							<relocations>
+								<relocation>
+									<pattern>org.bstats</pattern>
+									<shadedPattern>com.wormhole_xtreme.wormhole.libs.bstats</shadedPattern>
+								</relocation>
+							</relocations>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -276,6 +282,16 @@
 			<artifactId>placeholderapi</artifactId>
 			<version>2.11.6</version>
 			<scope>provided</scope>
+		</dependency>
+		<!--
+			bStats (#239), the one library this jar ships. Relocated by the shade plugin, so it
+			never meets another plugin's copy on the same server.
+		-->
+		<dependency>
+			<groupId>org.bstats</groupId>
+			<artifactId>bstats-bukkit</artifactId>
+			<version>3.2.1</version>
+			<scope>compile</scope>
 		</dependency>
 		<!-- Test dependencies -->
 		<dependency>

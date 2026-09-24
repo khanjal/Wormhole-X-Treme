@@ -17,6 +17,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme)
 - [Economy](#economy)
 - [Placeholders](#placeholders)
+- [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
 ## Installing
@@ -372,6 +373,30 @@ from this one.
 - **A placeholder that is not one of these four is left exactly as you typed it**, which
   is how you spot a typo rather than finding a blank line.
 - The expansion survives `/papi reload`.
+
+## Metrics
+
+The plugin sends anonymous counts to [bStats](https://bstats.org), which is how its
+Minecraft-version and feature decisions get made from data rather than guesses. Everything
+collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269).
+
+| Setting | Default | What it does |
+|---|---|---|
+| `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
+
+What is sent, twice an hour:
+
+- what bStats sends for every plugin: Minecraft version, server software, Java version, online
+  mode, player count, operating system and core count, this plugin's version, and a random id
+  it keeps in `plugins/bStats/config.yml` so each server is counted once. It works out the
+  country from the address the counts come from;
+- how many gates, ring pairs, beam destinations and mirrors there are, as a range (`0`, `1-5`,
+  `6-20`, `21-50`, `51-200`, `200+`);
+- the `gate-dial-spin` pattern.
+
+No player or gate names, coordinates or addresses. `plugins/bStats/config.yml` has `enabled: false` to stop
+it for every plugin on the server, and a DNS blocker that blocks `bstats.org` stops it too,
+without any effect on the plugin.
 
 ## Troubleshooting
 
