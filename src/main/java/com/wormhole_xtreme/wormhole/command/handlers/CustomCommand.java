@@ -33,7 +33,7 @@ public class CustomCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            return false;
+            return true;
         }
 
         if (args[1].equalsIgnoreCase("-clean"))

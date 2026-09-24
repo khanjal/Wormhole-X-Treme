@@ -13,23 +13,13 @@ description: >
 commands:
   dial:
     description: Dial a remote Stargate, unlock IDC with optional password
-    usage: |
-      /<command> <StarGate> [IDC]
-      <stargate> The StarGate to dial.
-      [IDC] Use optional password to open remote Iris.
+    usage: /<command> <gate> [idc]
 
   wormhole:
     description: Wormhole administration and configuration commands (canonical admin command).
     aliases: [wx]
-    usage: |
-      /<command> <subcommand> [args]
-      Build:  gate build <shape> [group], gate preview <action>, gate complete <name>
-      Gates:  gate list|go|force|edit|remove|regen|validate, gate shapes|import
-      Rings:  ring create|cancel|list|remove|edit|allow|deny|owner
-      Config: config <setting> [value]
-      Other:  compass
-      The old flat names (portalmaterial, cooldown, and the rest) still work.
-      Run /<command> with no arguments for the list.
+    # Only a fallback: the plugin answers every command itself, with the usage of the one typed.
+    usage: /<command> for the list of commands
 
   # legacy wx* command entries removed; now provided as aliases under `wormhole`.
 

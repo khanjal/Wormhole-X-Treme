@@ -52,7 +52,7 @@ public class WooshDepthCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             sendUsage(sender);
-            return false;
+            return true;
         }
 
         // One lookup rather than isStargate followed by getStargate: the registry is

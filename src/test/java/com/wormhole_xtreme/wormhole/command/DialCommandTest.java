@@ -187,14 +187,16 @@ class DialCommandTest
             "the activator mapping should survive: forcing past a live connection would drop it");
     }
 
-    /** The command only claims argument counts it can actually serve. */
+    /**
+     * An argument count dial cannot serve gets its own one-line usage (#325), and true, so Bukkit
+     * does not follow it with plugin.yml's usage block.
+     */
     @Test
-    void theCommandDeclinesArgumentCountsItDoesNotHandle()
+    void anArgumentCountItCannotServeGetsItsUsage()
     {
         assertNotNull(new Dial());
-        org.junit.jupiter.api.Assertions.assertFalse(dial(),
-            "no arguments is not a dial this command knows");
-        org.junit.jupiter.api.Assertions.assertFalse(dial("a", "b", "c"),
-            "three arguments is past what dial accepts");
+        org.junit.jupiter.api.Assertions.assertTrue(dial(), "no arguments: answered here");
+        org.junit.jupiter.api.Assertions.assertTrue(dial("a", "b", "c"), "three arguments: answered here");
+        verify(player, org.mockito.Mockito.times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
     }
 }

@@ -73,15 +73,15 @@ class GateCommandTest
         return new GateCommand().execute(sender, args);
     }
 
-    /** With no verb at all, the usage line names every one of them. */
+    /** With no verb at all, the verbs are listed under their jobs (#325). */
     @Test
     void namingNoVerbListsThemAll()
     {
         assertTrue(run("gate"));
 
-        verify(sender).sendMessage(contains("/wormhole gate <"));
-        verify(sender).sendMessage(contains("validate"));
-        verify(sender).sendMessage(contains("regen"));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("/wormhole gate <verb>")));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Building: build, preview, complete")));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Looking after gates: edit, remove, regen, validate")));
     }
 
     /** A verb that is not one of the ten says so, and offers the real list. */
@@ -134,9 +134,10 @@ class GateCommandTest
     @Test
     void regenAliasReachesTheSameHandler()
     {
-        assertFalse(run("gate", "regen"));
+        assertTrue(run("gate", "regen"), "answered here, so Bukkit's usage block does not follow");
 
         verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate regen <gate>")));
     }
 
     /**
@@ -176,17 +177,19 @@ class GateCommandTest
     @Test
     void validateWithNoGateNameReachesTheHandlerRatherThanFailingInTheRouter()
     {
-        assertFalse(run("gate", "validate"));
+        assertTrue(run("gate", "validate"));
 
         verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate validate <gate|-all>")));
     }
 
     /** {@code remove} and its {@code delete} alias both reach {@link WXRemove}. */
     @Test
     void removeAndDeleteBothReachTheSameHandler()
     {
-        assertFalse(run("gate", "remove"));
-        assertFalse(run("gate", "delete"));
+        assertTrue(run("gate", "remove"));
+        assertTrue(run("gate", "delete"));
+        verify(sender, org.mockito.Mockito.times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate remove <gate> [-destroy]")));
     }
 
     /** A named gate that does not exist is reported the same way through either name. */

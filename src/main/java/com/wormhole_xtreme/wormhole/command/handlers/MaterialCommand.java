@@ -178,7 +178,7 @@ public class MaterialCommand implements SubCommand
         if ((args.length != 2) && (args.length != 3))
         {
             usage(sender);
-            return false;
+            return true;
         }
 
         if (!StargateManager.isStargate(args[1]))

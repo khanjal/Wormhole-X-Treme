@@ -16,6 +16,8 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXList;
 import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Everything you do to a gate, under one name.
@@ -60,10 +62,83 @@ public class GateCommand implements SubCommand
     {
         if (args.length < 2)
         {
-            sender.sendMessage("/wormhole gate <" + String.join("|", VERBS) + ">");
+            sendVerbList(sender);
             return true;
         }
         final String verb = args[1].toLowerCase(Locale.ROOT);
+        // A verb's handler answers false for a line it could not use; say that verb's usage here
+        // rather than letting the dispatcher say gate's, or Bukkit plugin.yml's (#325).
+        if (!dispatch(sender, args, verb) && USAGES.containsKey(verb))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + ChatText.usage(USAGES.get(verb)));
+        }
+        return true;
+    }
+
+    /** Each verb's usage, aliases included, as the guide's command table gives them. */
+    private static final java.util.Map<String, String> USAGES = new java.util.HashMap<>();
+
+    static
+    {
+        usage("/wormhole gate build <shape> [group]", "build");
+        usage("/wormhole gate preview <action>", "preview");
+        usage("/wormhole gate complete <name> [idc=IDC] [net=NET]", "complete", "create");
+        usage("/wormhole gate list [network]", "list");
+        usage("/wormhole gate go <gate>", "go");
+        usage("/wormhole gate force <gate>", "force");
+        usage("/wormhole gate edit <gate> <field> [value]", "edit");
+        usage("/wormhole gate remove <gate> [-destroy]", "remove", "delete");
+        usage("/wormhole gate regen <gate> [-shape <shape>] [-fill] [-water]", REGEN, REGENERATE);
+        usage("/wormhole gate validate <gate|-all>", VALIDATE);
+        usage("/wormhole gate shapes <reload|validate> [name]", "shapes");
+    }
+
+    private static void usage(final String line, final String... verbs)
+    {
+        for (final String verb : verbs)
+        {
+            USAGES.put(verb, line);
+        }
+    }
+
+    /**
+     * The usage line for a verb, for tests and help.
+     *
+     * @param verb
+     *            the verb, lower case
+     * @return its usage, or null for a verb with none
+     */
+    public static String usageOf(final String verb)
+    {
+        return USAGES.get(verb);
+    }
+
+    /** The verbs under the job they are for, as the guide groups them. */
+    private static final String[][] JOBS = {
+        { "Building", "build", "preview", "complete" },
+        { "Using gates", "list", "go", "force" },
+        { "Looking after gates", "edit", "remove", REGEN, VALIDATE },
+        { "Shapes and imports", "shapes", "import" } };
+
+    /** {@code /wormhole gate} alone: the verbs, grouped by job. */
+    private static void sendVerbList(final CommandSender sender)
+    {
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + ChatText.usage("/wormhole gate <verb> ..."));
+        for (final String[] job : JOBS)
+        {
+            final List<String> verbs = new ArrayList<>();
+            for (int i = 1; i < job.length; i++)
+            {
+                verbs.add(ChatText.command(job[i]));
+            }
+            sender.sendMessage("  " + ChatText.heading(job[0] + ":") + " " + String.join(", ", verbs));
+        }
+    }
+
+    /** Runs one verb; false when its handler could not use the line. */
+    private static boolean dispatch(final CommandSender sender, final String[] args, final String verb)
+    {
         // What the verb's own handler expects. The older ones were written as standalone
         // commands and read their arguments from index zero; the newer ones take the whole
         // array with the subcommand still in front. Both shapes are fed what they expect

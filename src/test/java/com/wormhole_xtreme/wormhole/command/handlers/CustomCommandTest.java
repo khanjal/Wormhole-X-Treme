@@ -73,11 +73,11 @@ class CustomCommandTest
         return new CustomCommand().execute(sender, args);
     }
 
-    /** The wrong number of arguments is a usage error, and says so by returning false. */
+    /** The wrong number of arguments gets the usage line, and true, since it has already said so (#325). */
     @Test
     void theWrongArgumentCountIsAUsageError()
     {
-        assertFalse(run("custom"), "returning false is what prints the usage line");
+        assertTrue(run("custom"), "false would have Bukkit print plugin.yml's usage after this one");
 
         verify(sender).sendMessage(contains("/wormhole custom"));
     }
