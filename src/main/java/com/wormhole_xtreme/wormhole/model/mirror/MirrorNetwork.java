@@ -62,8 +62,6 @@ public final class MirrorNetwork
     /**
      * A wall banner's room: where it is seen from and where somebody stepping out of it lands.
      *
-     * @param banner
-     *            the banner block
      * @return in front of the wall, in the banner's own column, level with the bottom of the
      *         opening and facing out; or null if the block is not a wall banner
      */
@@ -106,8 +104,6 @@ public final class MirrorNetwork
      * <p>A mirror saved before the network pointed somewhere else, and keeps doing so until it is
      * created again.
      *
-     * @param mirror
-     *            the mirror
      * @return true if it stores its own room
      */
     public static boolean isOwnRoom(final QuantumMirror mirror)
@@ -122,8 +118,6 @@ public final class MirrorNetwork
     /**
      * The mirror this one opens onto.
      *
-     * @param mirror
-     *            the mirror
      * @return the one chosen, or itself if none is, or the one chosen has gone
      */
     public static QuantumMirror chosen(final QuantumMirror mirror)
@@ -141,8 +135,6 @@ public final class MirrorNetwork
     /**
      * Whether a mirror is showing its own room.
      *
-     * @param mirror
-     *            the mirror
      * @return true if nothing else is chosen and it stores its own room
      */
     public static boolean reflects(final QuantumMirror mirror)
@@ -235,8 +227,6 @@ public final class MirrorNetwork
     /**
      * Lets a mirror nobody is at go back to its own room.
      *
-     * @param mirror
-     *            the mirror
      * @param anybodyNear
      *            whether anybody is within reach of it
      */
@@ -254,8 +244,6 @@ public final class MirrorNetwork
      *
      * @param world
      *            the banner's world
-     * @param banner
-     *            the banner
      * @param except
      *            a player not to count, or null
      * @return true if somebody is

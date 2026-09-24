@@ -69,8 +69,6 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
      * 1.21, and seven names present at this plugin's compile target are gone by 1.20.6 --
      * holding a constant would compile here and fail on a server two versions along.
      *
-     * @param colour
-     *            the dye colour
      * @param pattern
      *            the pattern's name, as Bukkit spells it
      */

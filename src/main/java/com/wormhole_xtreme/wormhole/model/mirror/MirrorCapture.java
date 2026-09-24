@@ -1099,9 +1099,6 @@ public final class MirrorCapture
      * <p>A file from before captures kept only what could be seen is refused: it is a grid of
      * the whole box, and the mirror it is for takes a fresh capture on the next look.
      *
-     * @param file
-     *            the file
-     * @return the capture
      * @throws IOException
      *             if the file is missing, not a capture, of an earlier kind, or cut short
      */
@@ -1230,8 +1227,6 @@ public final class MirrorCapture
 
     /**
      * What a capture holds, one {@code mirror debug} line each.
-     *
-     * @return the lines
      */
     public java.util.List<String> describeLines()
     {

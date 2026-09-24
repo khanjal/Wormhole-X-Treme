@@ -62,8 +62,6 @@ final class MirrorFace
      * a wall solid to the edge of what was read counts as that far. The one-block wall is the
      * case that matters ({@link MirrorWindows#farCellFor}).
      *
-     * @param shape
-     *            the window
      * @param solid
      *            the solid blocks of its face, as {@link MirrorWindows#refreshSolid} read them
      * @param reach
