@@ -99,7 +99,7 @@ public final class BlockKey
      * @param chunkX
      *            chunk x, which is block x shifted right four
      * @param chunkZ
-     *            chunk z
+     *            chunk z, which is block z shifted right four
      * @return the packed chunk position
      */
     public static long packChunk(final int chunkX, final int chunkZ)

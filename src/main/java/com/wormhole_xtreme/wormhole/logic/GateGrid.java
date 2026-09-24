@@ -31,8 +31,6 @@ public record GateGrid(int ox, int oy, int oz, BlockFace facing, BlockFace right
     /**
      * The grid of a shape whose activation cell is at a given block.
      *
-     * @param shape
-     *            the shape
      * @param hx
      *            the activation holder's x
      * @param hy

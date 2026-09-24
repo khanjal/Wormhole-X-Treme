@@ -41,7 +41,6 @@ public final class BeamFreeze
     /**
      * Whether a player already has a sequence running, whether or not they are frozen yet.
      *
-     * @param player the player
      * @return true if a beam is already in progress for them
      */
     public static boolean isActive(final Player player)

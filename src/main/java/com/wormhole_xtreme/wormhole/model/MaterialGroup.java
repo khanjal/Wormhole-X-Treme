@@ -49,6 +49,9 @@ public final class MaterialGroup
     /** The ring pattern this group's gates dial with (#366), or null to follow the server. */
     private final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin;
 
+    /** How this group's gates' irises cross (#427), or null to follow the server. */
+    private final String irisAnimation;
+
     /**
      * Instantiates a new material group with no distinct chevrons.
      *
@@ -101,10 +104,12 @@ public final class MaterialGroup
         this.signMaterial = signMaterial;
         this.chevronMaterial = chevronMaterial;
         this.dialSpin = null;
+        this.irisAnimation = null;
     }
 
-    /** A copy of {@code base} with another ring pattern. */
-    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
+    /** A copy of {@code base} with another ring pattern and iris animation. */
+    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin,
+        final String irisAnimation)
     {
         this.name = base.name;
         this.structureMaterial = base.structureMaterial;
@@ -114,12 +119,11 @@ public final class MaterialGroup
         this.signMaterial = base.signMaterial;
         this.chevronMaterial = base.chevronMaterial;
         this.dialSpin = dialSpin;
+        this.irisAnimation = irisAnimation;
     }
 
     /**
      * Gets the group name.
-     *
-     * @return the name
      */
     public String getName()
     {
@@ -129,8 +133,6 @@ public final class MaterialGroup
     /**
      * Gets the frame material. This is what identifies the group during gate detection,
      * so it must be unique across groups.
-     *
-     * @return the structure material
      */
     public Material getStructureMaterial()
     {
@@ -139,8 +141,6 @@ public final class MaterialGroup
 
     /**
      * Gets the open-wormhole material.
-     *
-     * @return the portal material
      */
     public Material getPortalMaterial()
     {
@@ -149,8 +149,6 @@ public final class MaterialGroup
 
     /**
      * Gets the engaged-iris material.
-     *
-     * @return the iris material
      */
     public Material getIrisMaterial()
     {
@@ -159,8 +157,6 @@ public final class MaterialGroup
 
     /**
      * Gets the active-light material.
-     *
-     * @return the light material
      */
     public Material getLightMaterial()
     {
@@ -170,8 +166,6 @@ public final class MaterialGroup
     /**
      * Gets the wall-sign material used for the gate's name sign. A nether-themed palette
      * looks wrong with an oak sign, so this belongs to the palette like everything else.
-     *
-     * @return the sign material
      */
     public Material getSignMaterial()
     {
@@ -203,7 +197,25 @@ public final class MaterialGroup
      */
     public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
     {
-        return new MaterialGroup(this, pattern);
+        return new MaterialGroup(this, pattern, irisAnimation);
+    }
+
+    /**
+     * @return how this group's gates' irises cross, or null to follow the server
+     */
+    public String getIrisAnimation()
+    {
+        return irisAnimation;
+    }
+
+    /**
+     * @param animation
+     *            how this group's gates' irises cross, or null to follow the server
+     * @return a copy of this group with that animation
+     */
+    public MaterialGroup withIrisAnimation(final String animation)
+    {
+        return new MaterialGroup(this, dialSpin, animation);
     }
 
     @Override

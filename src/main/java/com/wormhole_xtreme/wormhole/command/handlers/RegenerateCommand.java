@@ -148,8 +148,6 @@ public class RegenerateCommand implements SubCommand
      *
      * @param player
      *            who clicked
-     * @param clicked
-     *            the block clicked
      * @param direction
      *            the face clicked, or null
      * @param clearLiquid

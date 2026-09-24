@@ -179,8 +179,8 @@ Each has its own section below.
 
 A frame of blocks, a button, and `/dial`. Chevrons light in the show's order, the last one locks
 in with its own sound, and then the kawoosh. Shapes ship from Minimal to Massive, plus a
-Horizontal one that lies flat; a choice of dial-spin patterns; an eighth chevron for a cross-world
-destination; an iris with remote codes; sign and redstone dialling. Shapes and material palettes
+Horizontal one that lies flat; a choice of dial-spin patterns, per gate if you like; an eighth chevron for a cross-world
+destination; an iris that sweeps shut, with remote codes; sign and redstone dialling. Shapes and material palettes
 are plain text files you can edit, and `/wormhole gate build` stands the shape full size in front
 of you as a guide before you place a block.
 
@@ -222,7 +222,9 @@ this world's hills.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
-- **Events for other plugins** to watch or cancel travel.
+- **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
+- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ### Getting started
@@ -260,7 +262,7 @@ answered.
 - **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
 - **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
-- **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no shading, no bundled library, and no database. Gates are one YAML file each.
+- **Nothing third-party in the jar but bStats.** Every other dependency is provided or test scope, and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are welcome.
 
 ## Documentation
@@ -328,8 +330,8 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.7.1` |
-| Version title | `Wormhole X-Treme v1.7.1 (MC 1.20-26.3)` — matches the GitHub release name and beats a bare version string in a list |
+| Version | `1.8.0` |
+| Version title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name and beats a bare version string in a list |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
@@ -344,8 +346,7 @@ lines and reads as a wall on a download page.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.7.1` is the newest release; the listing went
-   up around `v1.7.0`.
+1. **Check which version the project carries.** `v1.8.0` is the newest release.
 2. **Render the avatar** from `docs/images/logo.svg`. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.
 3. **Read the platform picker** and settle the Paper-only question properly, per the note above.

@@ -17,6 +17,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme)
 - [Economy](#economy)
 - [Placeholders](#placeholders)
+- [CoreProtect](#coreprotect)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -294,11 +295,10 @@ read from its old name and written back under the new one. Values you set are no
 file that no longer parses as YAML is left exactly as you left it rather than having every
 default appended to the end of it.
 
-**Shipped shapes are written once.** A `.shape` file already in `shapes/gate/` is never
-overwritten, so a shipped shape improved in a later release does not reach a server that already
-has the file. The startup log names each shipped shape whose copy differs from the jar's; delete
-the ones you did not edit and restart to get the new ones. Shapes you wrote yourself are left
-alone either way.
+**Shipped shapes update themselves unless you edited them.** At startup, a copy in
+`shapes/gate/` that matches a version some release shipped is replaced with the jar's, and the old
+one is kept as `<name>.shape.old`. A copy you edited is left alone and named in the log; to take
+the new one, move yours aside and restart. Shapes you wrote yourself are never touched.
 
 **Gates already standing keep their blocks.** A gate stores its own blocks rather than re-reading
 its shape, so new shapes in a release do not rebuild a gate's frame. Its chevron light order is
@@ -373,6 +373,30 @@ from this one.
 - **A placeholder that is not one of these four is left exactly as you typed it**, which
   is how you spot a typo rather than finding a blank line.
 - The expansion survives `/papi reload`.
+
+## CoreProtect
+
+Optional. With [CoreProtect](https://www.spigotmc.org/resources/coreprotect.8631/) installed, the
+blocks this plugin places and removes while building and taking down gates and rings are logged
+to it, so an admin can look them up and roll them back like anything else.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `coreprotect-enabled` | `false` | Nothing is logged while this is off. |
+
+- **Logged:** a gate's name sign and the frame block put back behind one, its dial sign restyled
+  to the gate's material, the teleport sign, the iris, dial and redstone levers and wires,
+  `gate remove -destroy`, `gate regen`'s frame put back behind a sign and `-fill`,
+  `gate preview -place`, and the slabs `ring create` takes up and `ring remove` gives back.
+  Whatever a placed block replaced is logged too, so a rollback puts it back.
+- **Not logged:** a running gate's water, lever states and horizontal iris, which change every
+  time a gate opens and would drown a rollback log.
+- **Who:** `ring create` and `ring remove` log the player who ran them; everything else is logged as
+  `#wormhole`, so `/co rollback u:#wormhole` finds it.
+- **No CoreProtect, or one too old to take block data** (API 9 or later is needed), means nothing
+  happens; the log says so once. A CoreProtect that fails never stops a gate being built.
+- **CoreProtect is looked for once**, the first time something is logged. One installed while the
+  server is running is picked up at the next restart.
 
 ## Metrics
 

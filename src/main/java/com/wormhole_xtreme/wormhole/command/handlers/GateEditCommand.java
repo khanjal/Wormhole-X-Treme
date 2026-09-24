@@ -50,8 +50,13 @@ public class GateEditCommand implements SubCommand
         boolean apply(CommandSender sender, String gate, String value);
     }
 
+    private static final String NO_GATE_CALLED = "No gate called ";
+
     /** The fields, in the order they are offered. */
     private static final String OWNER = "owner";
+
+    /** The field for a gate's own iris animation, named as the setting is. */
+    private static final String IRIS_ANIMATION = "iris-animation";
 
     private static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
@@ -79,10 +84,84 @@ public class GateEditCommand implements SubCommand
             new WXIDC().onCommand(sender, null, "idc", new String[] { gate, value }));
         FIELDS.put("group", GateEditCommand::setGroup);
         FIELDS.put("spin", GateEditCommand::setSpin);
+        FIELDS.put(IRIS_ANIMATION, GateEditCommand::setIrisAnimation);
+    }
+
+    /**
+     * Sets how this gate's iris crosses (#427), or with {@code default} clears it so the gate
+     * follows its material group and then {@code gate-iris-animation}. No value says what it is.
+     *
+     * @param sender
+     *            who typed it
+     * @param gateName
+     *            the gate
+     * @param value
+     *            an animation, {@code default}, or empty
+     * @return true, the command was handled
+     */
+    // Behind the Field interface, whose other implementations do return false.
+    @SuppressWarnings("java:S3516")
+    private static boolean setIrisAnimation(final CommandSender sender, final String gateName, final String value)
+    {
+        final com.wormhole_xtreme.wormhole.model.Stargate gate =
+            com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
+        if (gate == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
+            return true;
+        }
+        final String animations = String.join(", ", irisAnimationNames());
+        if ((value == null) || value.isEmpty())
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
+                + "'s iris crosses as " + gate.getEffectiveIrisAnimation() + irisAnimationSource(gate)
+                + ". Animations are: " + animations + ".");
+            return true;
+        }
+        final boolean clear = DEFAULT.equalsIgnoreCase(value.trim());
+        final String animation = clear ? null : ConfigManager.parseIrisAnimation(value);
+        if ((animation == null) && !clear)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No iris animation called " + value
+                + ". Animations are: " + animations + ".");
+            return true;
+        }
+        gate.setGateIrisAnimation(animation);
+        StargateDBManager.saveStargate(gate);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
+            + "'s iris now crosses as " + gate.getEffectiveIrisAnimation() + irisAnimationSource(gate) + ".");
+        return true;
+    }
+
+    /** Where a gate's iris animation comes from, when not its own. */
+    private static String irisAnimationSource(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    {
+        if (gate.getGateIrisAnimation() != null)
+        {
+            return "";
+        }
+        final com.wormhole_xtreme.wormhole.model.MaterialGroup group = gate.getGateMaterialGroup();
+        return ((group != null) && (group.getIrisAnimation() != null))
+            ? " (from group " + group.getName() + ")" : " (the server default)";
+    }
+
+    /**
+     * The iris animations and {@code default}, for tab completion and messages.
+     *
+     * @return the values {@code gate edit <gate> iris-animation} takes
+     */
+    public static List<String> irisAnimationNames()
+    {
+        final List<String> names = new ArrayList<>(ConfigManager.irisAnimations());
+        names.add(DEFAULT);
+        return names;
     }
 
     /** The value that clears a gate's own ring pattern. */
     private static final String DEFAULT = "default";
+
+    /** The value that hands a gate's group back to its frame. */
+    private static final String CLEAR = "-clear";
 
     /**
      * Sets the ring pattern this gate dials with (#366), or with {@code default} clears it so the
@@ -91,7 +170,7 @@ public class GateEditCommand implements SubCommand
      * @param sender
      *            who typed it
      * @param gateName
-     *            the gate
+     *            the gate's name; one that matches no gate is reported to the sender
      * @param value
      *            a pattern, {@code default}, or empty
      * @return true, the command was handled
@@ -104,7 +183,7 @@ public class GateEditCommand implements SubCommand
             com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + gateName + ".");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
             return true;
         }
         if ((value == null) || value.isEmpty())
@@ -189,7 +268,7 @@ public class GateEditCommand implements SubCommand
             com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage("No gate called " + gateName + ".");
+            sender.sendMessage(NO_GATE_CALLED + gateName + ".");
             return true;
         }
         if ((value == null) || value.isEmpty())
@@ -201,6 +280,16 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", groupNames()) + ".");
             return true;
         }
+        // A dash, as options take, so a group an admin named "default" can still be chosen.
+        if (CLEAR.equalsIgnoreCase(value.trim()))
+        {
+            gate.chooseGateMaterialGroup(null);
+            StargateDBManager.saveStargate(gate);
+            final com.wormhole_xtreme.wormhole.model.MaterialGroup byFrame = gate.getGateMaterialGroup();
+            sender.sendMessage(gate.getGateName() + " follows its frame again: group "
+                + ((byFrame == null) ? "(none)" : byFrame.getName()) + ".");
+            return true;
+        }
         final com.wormhole_xtreme.wormhole.model.MaterialGroup group =
             com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroup(value);
         if (group == null)
@@ -209,7 +298,8 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", groupNames()) + ".");
             return true;
         }
-        gate.setGateMaterialGroup(group);
+        gate.chooseGateMaterialGroup(group);
+        StargateDBManager.saveStargate(gate);
         sender.sendMessage(gate.getGateName() + " is now on group " + group.getName()
             + ". Its frame blocks are untouched -- this changes what the gate draws.");
         return true;
@@ -217,8 +307,6 @@ public class GateEditCommand implements SubCommand
 
     /**
      * Every material group there is, by name.
-     *
-     * @return the group names
      */
     public static List<String> groupNames()
     {

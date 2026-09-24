@@ -132,8 +132,6 @@ public class RingTravelEvent extends Event implements Cancellable
 
     /**
      * Required by Bukkit's event system.
-     *
-     * @return the handler list
      */
     public static HandlerList getHandlerList()
     {

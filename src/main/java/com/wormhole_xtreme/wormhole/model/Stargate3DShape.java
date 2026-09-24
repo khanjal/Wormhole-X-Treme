@@ -34,9 +34,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Instantiates a new stargate3 d shape.
-     * 
-     * @param fileLines
-     *            the file lines
      */
     public Stargate3DShape(final String[] fileLines)
     {
@@ -350,8 +347,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Gets the shape activation layer.
-     * 
-     * @return the shape activation layer
      */
     public int getShapeActivationLayer()
     {
@@ -360,8 +355,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Gets the shape layers.
-     * 
-     * @return the shape layers
      */
     public List<StargateShapeLayer> getShapeLayers()
     {
@@ -370,8 +363,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Gets the shape sign layer.
-     * 
-     * @return the shape sign layer
      */
     public int getShapeSignLayer()
     {
@@ -380,8 +371,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Checks if is shape redstone activated.
-     * 
-     * @return true, if is shape redstone activated
      */
     public boolean isShapeRedstoneActivated()
     {
@@ -390,9 +379,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Sets the shape activation layer.
-     * 
-     * @param shapeActivationLayer
-     *            the new shape activation layer
      */
     private void setShapeActivationLayer(final int shapeActivationLayer)
     {
@@ -401,9 +387,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Sets the shape redstone activated.
-     * 
-     * @param shapeRedstoneActivated
-     *            the new shape redstone activated
      */
     private void setShapeRedstoneActivated(final boolean shapeRedstoneActivated)
     {
@@ -412,9 +395,6 @@ public class Stargate3DShape extends StargateShape
 
     /**
      * Sets the shape sign layer.
-     * 
-     * @param shapeSignLayer
-     *            the new shape sign layer
      */
     private void setShapeSignLayer(final int shapeSignLayer)
     {

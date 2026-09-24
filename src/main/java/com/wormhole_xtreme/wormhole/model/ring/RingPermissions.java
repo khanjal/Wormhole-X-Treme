@@ -36,8 +36,6 @@ public final class RingPermissions
      * <p>Operators hold everything, with or without a permissions plugin, which matches how
      * gate permissions already behave on this server.
      *
-     * @param player
-     *            the player
      * @param node
      *            the node to check
      * @return true if they hold it
@@ -54,10 +52,6 @@ public final class RingPermissions
      * particular pair is one they are on. Administrators pass regardless, which is what
      * makes a private pair still fixable by staff when its owner is not around.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @return true if they may travel by it
      */
     public static boolean mayUse(final Player player, final RingPair pair)
@@ -80,10 +74,6 @@ public final class RingPermissions
      * let them recolour it, rename it, hand it to somebody else or delete it — those stay
      * with the owner, and with staff.
      *
-     * @param player
-     *            the player
-     * @param pair
-     *            the pair
      * @return true if they may manage it
      */
     public static boolean mayManage(final Player player, final RingPair pair)

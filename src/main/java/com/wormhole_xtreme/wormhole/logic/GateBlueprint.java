@@ -137,11 +137,8 @@ public final class GateBlueprint
          * The materials a gate of this shape and group is built from, resolved the way a
          * completed gate resolves them.
          *
-         * @param shape
-         *            the shape
          * @param group
          *            the material group, or null for the shape's own defaults
-         * @return the palette
          */
         public static Palette of(final Stargate3DShape shape, final MaterialGroup group)
         {
@@ -216,8 +213,6 @@ public final class GateBlueprint
      * ahead, its button facing them in the block they stand in, its bottom row level with their
      * feet, and no frame block nearer than the DHD's.
      *
-     * @param shape
-     *            the shape
      * @param feetX
      *            the block x the player stands in
      * @param feetY
@@ -255,8 +250,6 @@ public final class GateBlueprint
      * button and the dial sign. Where the DHD shares a layer with the ring, as a horizontal gate's
      * does, only the button and sign are counted, so hiding the DHD never opens a hole in the ring.
      *
-     * @param shape
-     *            the shape
      * @param grid
      *            where it stands
      * @return the cells, frame and chevrons layer by layer, then the button and dial sign
@@ -291,8 +284,6 @@ public final class GateBlueprint
     /**
      * The cells of a shape's opening, where the wormhole and the iris are drawn.
      *
-     * @param shape
-     *            the shape
      * @param grid
      *            where it stands
      * @return the opening's cells
@@ -315,8 +306,6 @@ public final class GateBlueprint
     /**
      * The cells the kawoosh reaches, each carrying the step of the woosh it shows at.
      *
-     * @param shape
-     *            the shape
      * @param grid
      *            where it stands
      * @return the woosh's cells, in step order within each layer

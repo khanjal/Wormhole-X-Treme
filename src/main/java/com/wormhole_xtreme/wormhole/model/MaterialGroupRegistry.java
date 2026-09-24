@@ -121,8 +121,6 @@ public final class MaterialGroupRegistry
 
     /**
      * Gets every defined group, in declaration order.
-     *
-     * @return the groups
      */
     public static Collection<MaterialGroup> getGroups()
     {
@@ -179,7 +177,28 @@ public final class MaterialGroupRegistry
         final Material chevron = parseMaterial(groupName, "chevron", values.get("chevron"));
 
         return new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron)
-            .withDialSpin(parseDialSpin(groupName, values.get("dial-spin")));
+            .withDialSpin(parseDialSpin(groupName, values.get("dial-spin")))
+            .withIrisAnimation(parseIrisAnimation(groupName, values.get("iris-animation")));
+    }
+
+    /**
+     * Reads a group's {@code iris-animation} (#427), warning about a value that names no animation.
+     *
+     * @return the animation, or null when absent or unreadable, to follow the server's
+     */
+    private static String parseIrisAnimation(final String groupName, final Object raw)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final String animation = com.wormhole_xtreme.wormhole.config.ConfigManager.parseIrisAnimation(String.valueOf(raw));
+        if (animation == null)
+        {
+            warn(GROUP_PREFIX + groupName + "\" has an unknown iris-animation \"" + raw
+                + "\"; its gates follow gate-iris-animation.");
+        }
+        return animation;
     }
 
     /**
@@ -352,8 +371,6 @@ public final class MaterialGroupRegistry
      * group belongs to the material — several shapes may end up sharing it, and naming it
      * "MinimalSignDial" would be actively misleading.
      *
-     * @param frame
-     *            the frame material
      * @return a suggested group name
      */
     static String suggestGroupName(final Material frame)

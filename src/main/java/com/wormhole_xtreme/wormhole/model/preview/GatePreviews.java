@@ -280,8 +280,6 @@ public final class GatePreviews
      *
      * @param owner
      *            who sees it
-     * @param shape
-     *            the shape
      * @param group
      *            its material group, or null for the shape's own materials
      * @return what happened
@@ -299,8 +297,6 @@ public final class GatePreviews
      *
      * @param owner
      *            who sees it
-     * @param shape
-     *            the shape
      * @param group
      *            its material group, or null for the shape's own materials
      * @param dhd
@@ -420,8 +416,6 @@ public final class GatePreviews
      *
      * @param owner
      *            whose preview
-     * @param group
-     *            the group
      * @return what happened
      */
     public static Control material(final Player owner, final MaterialGroup group)
@@ -1037,8 +1031,19 @@ public final class GatePreviews
      */
     private static DialSpinPattern pattern(final GatePreview preview)
     {
-        return ConfigManager.getGateDialSpinPattern(null,
-            com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure()));
+        return ConfigManager.getGateDialSpinPattern(null, groupByFrame(preview));
+    }
+
+    /** How a preview's iris crosses (#427): its group's animation, else the server's, as a gate's. */
+    private static String irisAnimation(final GatePreview preview)
+    {
+        return ConfigManager.getGateIrisAnimation(null, groupByFrame(preview));
+    }
+
+    /** The group the gate built from a preview would be detected as, by its frame material. */
+    private static com.wormhole_xtreme.wormhole.model.MaterialGroup groupByFrame(final GatePreview preview)
+    {
+        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure());
     }
 
     /**
@@ -1103,6 +1108,11 @@ public final class GatePreviews
             preview.open(false);
             takeBack(owner, preview, preview.woosh());
             takeBack(owner, preview, preview.opening());
+            // Shut mid-sweep: the sweep drew the wormhole off the ring for those in front (#442).
+            watching(owner, preview).stream()
+                .filter(viewer -> preview.sweepSides().containsKey(viewer.getUniqueId()))
+                .forEach(viewer -> handBackOffsets(viewer, preview));
+            preview.sweepSides().clear();
             sound(owner, preview, ConfigManager.getGateSoundClose(), 1.0f);
             restyle(preview);
             draw(owner, preview);
@@ -1170,8 +1180,18 @@ public final class GatePreviews
         // A stacked wormhole stood a block off the ring, which the cells above do not cover.
         // Only for viewers who were drawn stacked: everybody else was only ever sent the ring.
         watching(owner, preview).stream()
-            .filter(viewer -> preview.sides().containsKey(viewer.getUniqueId()))
+            .filter(viewer -> drewOffsetsFor(preview, viewer))
             .forEach(viewer -> handBackOffsets(viewer, preview));
+    }
+
+    /**
+     * Whether a viewer may have been drawn a wormhole off the ring: settled stacked, or by a sweep,
+     * which draws it there with no side recorded in {@code sides()} (#442).
+     */
+    private static boolean drewOffsetsFor(final GatePreview preview, final Player viewer)
+    {
+        return preview.sides().containsKey(viewer.getUniqueId())
+            || preview.sweepSides().containsKey(viewer.getUniqueId());
     }
 
     /** The cells a fake block stands at now. */
@@ -1249,8 +1269,6 @@ public final class GatePreviews
      *
      * @param gone
      *            the viewer, which may be null if they are offline
-     * @param preview
-     *            the preview
      */
     private static void takeBackFromViewer(final Player gone, final GatePreview preview)
     {
@@ -1262,7 +1280,7 @@ public final class GatePreviews
         takeBackFrom(gone, preview, sentCells(preview));
         // Only if they had a side, and before it is forgotten: a viewer drawn from the front
         // had their wormhole a block off the ring, which the cells above know nothing about.
-        if (preview.sides().containsKey(gone.getUniqueId()))
+        if (drewOffsetsFor(preview, gone))
         {
             handBackOffsets(gone, preview);
         }
@@ -1270,11 +1288,6 @@ public final class GatePreviews
 
     /**
      * Catches one viewer up on a preview they have just been shown.
-     *
-     * @param viewer
-     *            the new viewer
-     * @param preview
-     *            the preview
      */
     private static void showToNewViewer(final Player viewer, final GatePreview preview)
     {
@@ -1398,8 +1411,6 @@ public final class GatePreviews
      * that stands upright. A preview of a horizontal shape keeps its iris in the ring, as the
      * gate does, because there is no in front or behind to stack along.
      *
-     * @param preview
-     *            the preview
      * @return true if its iris and wormhole are stacked per viewer
      */
     private static boolean stacks(final GatePreview preview)
@@ -1422,8 +1433,6 @@ public final class GatePreviews
      * drift apart. Only the drawing differs: a preview's iris is block displays, which show no
      * liquid, so its wormhole is the fake block and its iris is the entity.
      *
-     * @param preview
-     *            the preview
      * @param cell
      *            the opening cell
      * @param eye
@@ -1455,7 +1464,6 @@ public final class GatePreviews
      *            the preview, which should be stacked
      * @param from
      *            where it is being looked at from
-     * @return the placements
      */
     private static List<IrisLayering.Placement> layersFor(final GatePreview preview, final Location from)
     {
@@ -1497,8 +1505,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param index
      *            the opening cell's index
      * @param stacked
@@ -1525,8 +1531,6 @@ public final class GatePreviews
     /**
      * Sends one viewer a set of placements, and remembers them as theirs.
      *
-     * @param viewer
-     *            the viewer
      * @param preview
      *            the preview, which should be stacked
      * @param layers
@@ -1568,8 +1572,6 @@ public final class GatePreviews
      * which takes no part in block face culling -- but a translucent entity hides translucent
      * water behind it just the same, so a preview needs this exactly as a gate does.
      *
-     * @param preview
-     *            the preview
      * @param ring
      *            the opening cell
      * @param placed
@@ -1646,8 +1648,6 @@ public final class GatePreviews
      *
      * @param viewer
      *            who it was drawn for
-     * @param preview
-     *            the preview
      * @param layers
      *            what was drawn
      */
@@ -1690,11 +1690,6 @@ public final class GatePreviews
      * blocks back works from the opening's own cells -- so nothing else knows about the cell
      * that was actually written. Called when a preview stops being stacked and when it is taken
      * away entirely.
-     *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      */
     private static void handBackOffsets(final Player viewer, final GatePreview preview)
     {
@@ -1732,8 +1727,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param stacked
      *            whether it is stacked
      */
@@ -1772,10 +1765,6 @@ public final class GatePreviews
     /**
      * Shows one viewer one of the two iris sets and hides the other.
      *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      * @param layers
      *            where their layers go, from {@link #layersFor}
      */
@@ -1868,6 +1857,11 @@ public final class GatePreviews
     /** Redraws one preview for a player whose step changed what it looks like to them. */
     private static void restackIfCrossed(final Player player, final GatePreview preview, final Location to)
     {
+        if (preview.sweeping() && preview.world().equals(player.getWorld()))
+        {
+            resweepIfCrossed(player, preview, to);
+            return;
+        }
         if (!stacks(preview) || !preview.world().equals(player.getWorld()))
         {
             return;
@@ -1897,7 +1891,7 @@ public final class GatePreviews
     {
         cancelIrisSweep(preview);
         final List<Cell> cells = preview.opening();
-        if (!ConfigManager.isGateIrisAnimated() || (cells.size() < 2))
+        if (!ConfigManager.isIrisAnimated(irisAnimation(preview)) || (cells.size() < 2))
         {
             preview.irisShownEverywhere(preview.isGateIrisActive());
             restyle(preview);
@@ -1922,8 +1916,6 @@ public final class GatePreviews
      * the wrong thing on an opening with two cells at the same coordinates, which a malformed
      * shape can produce.
      *
-     * @param preview
-     *            the preview
      * @param closing
      *            true for the closing order, rim first
      * @return one list of indexes per ring
@@ -1940,7 +1932,7 @@ public final class GatePreviews
             places.add(at);
             index.put(at, i);
         }
-        final IrisSweep.Style style = ConfigManager.getGateIrisStyle();
+        final IrisSweep.Style style = IrisSweep.Style.of(irisAnimation(preview));
         final int maxSteps = ConfigManager.getGateIrisMaxSteps();
         final List<List<Location>> rings = closing
             ? IrisSweep.closingOrder(places, style, maxSteps) : IrisSweep.openingOrder(places, style, maxSteps);
@@ -2010,8 +2002,6 @@ public final class GatePreviews
      *
      * @param owner
      *            the preview's owner
-     * @param preview
-     *            the preview
      * @param ringCells
      *            the opening indexes this step covered or uncovered
      * @param covering
@@ -2028,6 +2018,7 @@ public final class GatePreviews
         for (final Player viewer : watching(owner, preview))
         {
             final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+            preview.sweepSides().put(viewer.getUniqueId(), layers);
             for (final int index : ringCells)
             {
                 sweepHorizonAt(viewer, preview, layers, index, covering);
@@ -2036,12 +2027,54 @@ public final class GatePreviews
     }
 
     /**
+     * Moves a viewer's stand-in wormhole with them when they cross a preview mid-sweep (#442).
+     *
+     * <p>The sweep puts the ice for each covered ring on the far side from where the viewer
+     * stood at that step. Walking round left it on their old far side, now their near side: a
+     * solid block the server does not have, a pace from the preview. Every covered cell hands
+     * back its old offsets and takes its ice on the new far side.
+     */
+    private static void resweepIfCrossed(final Player player, final GatePreview preview, final Location to)
+    {
+        final BlockFace facing = preview.grid().facing();
+        // Not recorded: the sweep drew this viewer nothing off the ring, as for an opaque iris.
+        if (!preview.open() || (facing == null) || !preview.sweepSides().containsKey(player.getUniqueId()))
+        {
+            return;
+        }
+        final List<IrisLayering.Placement> now = layersFor(preview, to);
+        if (now.equals(preview.sweepSides().put(player.getUniqueId(), now)))
+        {
+            return;
+        }
+        for (final int index : preview.irisShown())
+        {
+            final IrisLayering.At ring = at(preview.opening().get(index));
+            final IrisLayering.At where = now.get(index).horizon();
+            // The ring keeps its wormhole where there is nowhere beyond it to stand in, as the
+            // sweep itself does: handing it back emptied the ring until the next step.
+            final IrisLayering.At kept = (where == null) ? ring : where;
+            for (final IrisLayering.At back : IrisLayering.handBacks(ring, facing, kept))
+            {
+                takeBackAt(player, preview, back);
+            }
+            if ((where != null) && !where.equals(ring))
+            {
+                player.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+                    horizonData(preview, ring, now.get(index)));
+            }
+            else
+            {
+                // The ring keeps the wormhole here, but the sweep may have taken this viewer's back
+                // when it covered the ring from their old side.
+                sendTo(player, preview, List.of(preview.opening().get(index)));
+            }
+        }
+    }
+
+    /**
      * One cell of one viewer's sweep step.
      *
-     * @param viewer
-     *            the viewer
-     * @param preview
-     *            the preview
      * @param layers
      *            where their layers go, from {@link #layersFor}
      * @param index
@@ -2078,8 +2111,6 @@ public final class GatePreviews
      * <p>A step that fired after its preview was cleared would spawn fresh displays for one
      * nobody is holding any more, and nothing left would ever take them away again.
      *
-     * @param preview
-     *            the preview
      * @return true if it is still in the register
      */
     private static boolean stillHeld(final GatePreview preview)
@@ -2099,9 +2130,6 @@ public final class GatePreviews
      *
      * <p>Called when the iris is toggled again mid-sweep, and when a preview goes away -- a
      * step that fired afterwards would spawn displays for a preview nobody is holding any more.
-     *
-     * @param preview
-     *            the preview
      */
     static void cancelIrisSweep(final GatePreview preview)
     {

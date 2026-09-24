@@ -60,8 +60,6 @@ public final class MirrorInteraction
     /**
      * Chooses or travels, if a mirror is what was clicked.
      *
-     * @param event
-     *            the interact event
      * @return true if this was a mirror and the event should be cancelled
      */
     public static boolean handle(final PlayerInteractEvent event)

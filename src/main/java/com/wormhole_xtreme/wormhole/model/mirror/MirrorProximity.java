@@ -89,9 +89,6 @@ public final class MirrorProximity
 
     /**
      * Offers a mirror to {@link MirrorWindows}, which takes it if its banner hangs on a wall.
-     *
-     * @param mirror
-     *            the mirror
      */
     private static void offerWindow(final QuantumMirror mirror)
     {

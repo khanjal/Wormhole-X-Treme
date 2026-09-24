@@ -27,8 +27,6 @@ public class StargateNetwork
 
     /**
      * Gets the network gate list.
-     * 
-     * @return the network gate list
      */
     public List<Stargate> getNetworkGateList()
     {
@@ -37,8 +35,6 @@ public class StargateNetwork
 
     /**
      * Gets the network gate lock.
-     * 
-     * @return the network gate lock
      */
     public Object getNetworkGateLock()
     {
@@ -47,8 +43,6 @@ public class StargateNetwork
 
     /**
      * Gets the network name.
-     * 
-     * @return the network name
      */
     public String getNetworkName()
     {
@@ -57,8 +51,6 @@ public class StargateNetwork
 
     /**
      * Gets the network sign gate list.
-     * 
-     * @return the network sign gate list
      */
     public List<Stargate> getNetworkSignGateList()
     {
@@ -67,9 +59,6 @@ public class StargateNetwork
 
     /**
      * Sets the network gate lock.
-     * 
-     * @param networkGateLock
-     *            the new network gate lock
      */
     public void setNetworkGateLock(final Object networkGateLock)
     {
@@ -78,9 +67,6 @@ public class StargateNetwork
 
     /**
      * Sets the network name.
-     * 
-     * @param networkName
-     *            the new network name
      */
     public void setNetworkName(final String networkName)
     {

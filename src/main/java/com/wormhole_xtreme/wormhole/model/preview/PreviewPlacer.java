@@ -103,6 +103,7 @@ final class PreviewPlacer
                 {
                     attached.setAttachedFace(FaceAttachable.AttachedFace.WALL);
                 }
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, data.getMaterial(), data);
                 block.setBlockData(data, false);
             }
         }

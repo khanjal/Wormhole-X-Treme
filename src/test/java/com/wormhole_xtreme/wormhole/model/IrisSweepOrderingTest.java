@@ -733,4 +733,156 @@ class IrisSweepOrderingTest
                 "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
         }
     }
+
+    /**
+     * A gate that shuts while its iris is opening calls the sweep off (#434). The sweep went on
+     * painting the wormhole it had started with into the idle gate, and its last step filled the
+     * opening with it: a wormhole standing in a shut gate for everybody nearby, until a chunk
+     * reload. Only a gate whose iris is shut by default had its sweep called off on the way down.
+     */
+    @Test
+    void aGateShuttingMidOpeningSweepPaintsNoWormholeAfterward()
+    {
+        gate.setGateActive(true);
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 2));
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
+            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+        }
+        clearInvocations(watcher);
+        finishSweep();
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
+    }
+
+    /**
+     * A gate removed while its iris sweeps calls the sweep off (#434), as a shutdown does. A
+     * refresh removes the gate and registers a fresh one in its place, so a sweep left running
+     * would draw over the new gate and finish by filling it with what it started with.
+     */
+    @Test
+    void aGateRemovedMidSweepCallsTheSweepOff()
+    {
+        gate.setGateActive(true);
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            StargateManager.removeStargate(gate, null, false);
+        }
+        clearInvocations(watcher);
+        finishSweep();
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off");
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(openWater));
+    }
+
+    /**
+     * A built iris removed part way through opening comes down anyway (#434). An opening sweep
+     * leaves a built iris standing until its last step, and calling the sweep off drops that step:
+     * /wormhole remove, which opens an iris-coded gate's iris and then removes the gate, left a
+     * horizontal gate's iris blocks in the world for good. Found by a Fable review.
+     */
+    @Test
+    void aBuiltIrisCalledOffMidOpeningIsTakenDown()
+    {
+        // This fixture's gate has no facing, so its iris is real blocks, as a horizontal gate's is.
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open, its blocks still standing");
+        events.clear();
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            StargateManager.removeStargate(gate, null, false);
+        }
+
+        assertEquals(gate.getGatePortalBlocks().size(), events.stream().filter("block:AIR"::equals).count(),
+            "every iris block is taken down, now rather than at a last step that will not come: " + events);
+    }
+
+    /**
+     * Dialling a gate whose iris is part way open calls the sweep off (#434), so its remaining
+     * rings do not paint the opening it started from, bare air here, over the wormhole forming.
+     * Found by a Fable review.
+     */
+    @Test
+    void diallingMidSweepCallsTheSweepOff()
+    {
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 2));
+        gate.toggleIrisActive(false);
+        finishSweep();
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
+
+        com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(event -> { });
+        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
+            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            StargateDialManager.dialStargate(gate, true);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(null);
+        }
+
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off as the gate opens");
+    }
+
+    /**
+     * A gate set to instant closes its iris at once while the server sweeps (#427), and a gate set
+     * to sweep sweeps on a server set to instant: the gate's own animation comes first.
+     */
+    @Test
+    void aGatesOwnIrisAnimationOverridesTheServers()
+    {
+        try
+        {
+            gate.setGateIrisAnimation("instant");
+            gate.toggleIrisActive(false);
+            assertFalse(StargateIrisAnimator.isSweeping(gate), "instant, whatever the server says");
+            finishSweep();
+            gate.toggleIrisActive(false);
+            finishSweep();
+
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+            gate.setGateIrisAnimation("spiral");
+            gate.toggleIrisActive(false);
+            assertTrue(StargateIrisAnimator.isSweeping(gate), "its own spiral sweeps on a server set to instant");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
+
+    /** A gate with no animation of its own follows its material group's, ahead of the server's. */
+    @Test
+    void aGroupsIrisAnimationComesBeforeTheServers()
+    {
+        gate.setGateMaterialGroup(new MaterialGroup("Atlantis", Material.LAPIS_BLOCK, Material.WATER, Material.STONE,
+            Material.SEA_LANTERN, Material.OAK_WALL_SIGN).withIrisAnimation("instant"));
+
+        assertEquals("instant", gate.getEffectiveIrisAnimation());
+        gate.toggleIrisActive(false);
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the group's instant, over the server's sweep");
+
+        gate.setGateIrisAnimation("rows");
+        assertEquals("rows", gate.getEffectiveIrisAnimation(), "the gate's own first");
+        gate.setGateIrisAnimation(null);
+        gate.setGateMaterialGroup(null);
+        assertEquals("sweep", gate.getEffectiveIrisAnimation(), "neither: the server's");
+    }
 }

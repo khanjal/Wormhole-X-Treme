@@ -147,7 +147,7 @@ class WormholeXTremeVehicleListener implements Listener
      * overlapping VehicleMoveEvent in the same tick does not double-process the
      * same gate entry (which would zero out the exit velocity).
      *
-     * @param vehicleId the UUID of the vehicle
+     * @param vehicleId remembered for 20 ticks, one second
      */
     static void markVehicleRecentlyTeleported(final UUID vehicleId)
     {
@@ -191,7 +191,7 @@ class WormholeXTremeVehicleListener implements Listener
      * <p>The periodic entity scan consults this so an entity that lands in another
      * active gate is not immediately sent back out of it.
      *
-     * @param entityId the entity UUID
+     * @param entityId null answers false
      * @return true if it was teleported recently
      */
     static boolean isVehicleRecentlyTeleported(final UUID entityId)
@@ -591,8 +591,6 @@ class WormholeXTremeVehicleListener implements Listener
     /**
      * Handle stargate minecart teleport event.
      * 
-     * @param event
-     *            the event
      * @return true, if successful
      */
     private static boolean handleStargateVehicleTeleportEvent(final VehicleMoveEvent event)
@@ -661,8 +659,6 @@ class WormholeXTremeVehicleListener implements Listener
      * be built -- a Location, two enum names and a concatenation -- on every one of them and
      * then thrown away.
      *
-     * @param event
-     *            the move
      * @param ch
      *            the block it moved into
      */
@@ -749,8 +745,6 @@ class WormholeXTremeVehicleListener implements Listener
      *
      * @param st
      *            the gate being entered
-     * @param veh
-     *            the vehicle
      * @param passengers
      *            who is aboard, possibly nobody
      * @param pendingRestrictions

@@ -41,8 +41,6 @@ public final class PetTestSupport
     /**
      * Makes a mocked player stand wherever they were last teleported to.
      *
-     * @param traveller
-     *            the player
      * @param start
      *            where they stand before any trip
      */

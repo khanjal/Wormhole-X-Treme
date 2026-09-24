@@ -264,7 +264,7 @@ public final class RingTemplate
      * @param current
      *            the best failure so far
      * @param candidate
-     *            a new failure
+     *            the latest failure; null or {@code NO_RING_FOUND} never displaces the current one
      * @return whichever is more informative
      */
     private static Failure moreSpecific(final Failure current, final Failure candidate)

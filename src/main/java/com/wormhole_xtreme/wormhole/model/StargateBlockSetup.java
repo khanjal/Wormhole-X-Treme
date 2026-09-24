@@ -44,7 +44,6 @@ class StargateBlockSetup
      * The sign faces {@link Stargate#getGateFacing()}, the same direction the
      * gate/DHD button faces.
      *
-     * @param gate   the gate
      * @param create {@code true} to place; {@code false} to remove
      */
     static void setupGateSign(final Stargate gate, final boolean create)
@@ -183,6 +182,7 @@ class StargateBlockSetup
     private static void placeGateSign(final Stargate gate, final Block placeBlock, final BlockFace toward)
     {
         gate.getGateStructureBlocks().add(placeBlock.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, gate.getEffectiveSignMaterial(), null);
         placeBlock.setType(gate.getEffectiveSignMaterial(), false);
         final Directional signData = (Directional) placeBlock.getBlockData();
         signData.setFacing(toward);
@@ -229,10 +229,12 @@ class StargateBlockSetup
         final Material frame = com.wormhole_xtreme.wormhole.logic.GateRederivation.frameMaterialAt(gate, placeBlock);
         if (frame != null)
         {
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, frame, null);
             placeBlock.setType(frame);
             return;
         }
         gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
         placeBlock.setType(Material.AIR);
     }
 
@@ -316,6 +318,7 @@ class StargateBlockSetup
                 facing = oldFacing.getFacing();
             }
 
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock, want, null);
             signBlock.setType(want, false);
 
             if (facing != null)
@@ -372,7 +375,6 @@ class StargateBlockSetup
     /**
      * Places or removes the iris control lever below the DHD block.
      *
-     * @param gate   the gate
      * @param create {@code true} to place; {@code false} to remove
      */
     static void setupIrisLever(final Stargate gate, final boolean create)
@@ -471,6 +473,7 @@ class StargateBlockSetup
     {
         final Block iris = gate.getGateIrisLeverBlock();
         gate.getGateStructureBlocks().add(iris.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris, Material.LEVER, null);
         iris.setType(Material.LEVER);
         final org.bukkit.block.data.type.Switch irisSwitch =
             (org.bukkit.block.data.type.Switch) iris.getBlockData();
@@ -488,6 +491,7 @@ class StargateBlockSetup
             return;
         }
         gate.getGateStructureBlocks().remove(iris.getLocation());
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris);
         iris.setType(Material.AIR);
     }
 
@@ -500,7 +504,6 @@ class StargateBlockSetup
      * Places or removes all redstone components (dial wire, sign wire, gate-
      * activated lever) in a single call.
      *
-     * @param gate   the gate
      * @param create {@code true} to place; {@code false} to remove
      */
     static void setupRedstone(final Stargate gate, final boolean create)
@@ -561,6 +564,11 @@ class StargateBlockSetup
                 if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
                     gate.getGateStructureBlocks().add(target.getLocation());
+                    // Wire laid again over its own wire is not a placement, so every regen does not log one.
+                    if (current == Material.AIR)
+                    {
+                        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
+                    }
                     target.setType(Material.REDSTONE_WIRE);
                 }
                 else
@@ -574,6 +582,7 @@ class StargateBlockSetup
         else if (target.getType() == Material.REDSTONE_WIRE)
         {
             gate.getGateStructureBlocks().remove(target.getLocation());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target);
             target.setType(Material.AIR);
         }
     }
@@ -585,31 +594,48 @@ class StargateBlockSetup
         {
             if (create)
             {
-                final Block ra = gate.getGateRedstoneGateActivatedBlock();
-                try
-                {
-                    final Material current = ra.getType();
-                    if (current == Material.AIR)
-                    {
-                        gate.getGateStructureBlocks().add(ra.getLocation());
-                        ra.setType(Material.LEVER);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
+                placeGateActivatedLever(gate, gate.getGateRedstoneGateActivatedBlock());
             }
             else
             {
                 if (gate.getGateRedstoneGateActivatedBlock().getType() == Material.LEVER)
                 {
                     gate.getGateStructureBlocks().remove(gate.getGateRedstoneGateActivatedBlock().getLocation());
+                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateRedstoneGateActivatedBlock());
                     gate.getGateRedstoneGateActivatedBlock().setType(Material.AIR);
                 }
             }
         }
+    }
+
+    /** Places the gate-activated lever, or claims one already there; anything else is left alone. */
+    private static void placeGateActivatedLever(final Stargate gate, final Block ra)
+    {
+        try
+        {
+            final Material current = ra.getType();
+            // A lever already there is the gate's own, as a wire is: a regenerated gate
+            // finds the one it placed before, and has to claim it again (#440).
+            if (current == Material.LEVER)
+            {
+                // Left as it stands, not reset: an open gate's lever is thrown.
+                if (!gate.getGateStructureBlocks().contains(ra.getLocation()))
+                {
+                    gate.getGateStructureBlocks().add(ra.getLocation());
+                }
+            }
+            else if (current == Material.AIR)
+            {
+                gate.getGateStructureBlocks().add(ra.getLocation());
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, ra, Material.LEVER, null);
+                ra.setType(Material.LEVER);
+            }
+            else
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
+            }
+        }
+        catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
     }
 
     // -----------------------------------------------------------------------
@@ -619,28 +645,26 @@ class StargateBlockSetup
     /**
      * Removes the dial sign (sign-powered gate) that sits in front of the dial
      * sign block, on the gate-facing side.
-     *
-     * @param gate the gate
      */
     static void deleteTeleportSign(final Stargate gate)
     {
         if ((gate.getGateDialSignBlock() != null) && (gate.getGateDialSign() != null))
         {
             final Block teleportSign = gate.getGateDialSignBlock().getRelative(gate.getGateFacing());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, teleportSign);
             teleportSign.setType(Material.AIR);
         }
     }
 
     /**
      * Sets all structure blocks to {@link Material#AIR}.
-     *
-     * @param gate the gate
      */
     static void deleteGateBlocks(final Stargate gate)
     {
         for (final Location bc : gate.getGateStructureBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, b);
             b.setType(Material.AIR);
         }
     }
@@ -1032,8 +1056,6 @@ class StargateBlockSetup
      * there belongs to the gate, though a gate built underwater has ordinary water in those cells,
      * which is why clearing it is asked for rather than done.
      *
-     * @param gate
-     *            the gate
      * @return the liquid blocks, none while the gate is open
      */
     public static List<Block> strandedLiquid(final Stargate gate)
@@ -1071,8 +1093,6 @@ class StargateBlockSetup
     /**
      * Clears the real water and lava standing in a closed gate's opening and woosh.
      *
-     * @param gate
-     *            the gate
      * @return how many blocks were cleared
      */
     public static int clearStrandedLiquid(final Stargate gate)
@@ -1340,8 +1360,6 @@ class StargateBlockSetup
      * The horizon is drawn to clients and collides with nothing, so it can go somewhere the
      * iris cannot.
      *
-     * @param gate
-     *            the gate
      * @return the cells, which may be empty
      */
     static List<Location> portalBackdropCells(final Stargate gate)
@@ -1357,8 +1375,6 @@ class StargateBlockSetup
      * the iris goes a block further off, so the layer nearer the viewer is always the one in
      * the ring and the far one never lands on their own side of the gate.
      *
-     * @param gate
-     *            the gate
      * @return the cells, in the same order as the portal cells; empty without a facing
      */
     static List<Location> portalForecourtCells(final Stargate gate)
@@ -1369,8 +1385,6 @@ class StargateBlockSetup
     /**
      * Each portal cell moved one block along the gate's facing, or against it.
      *
-     * @param gate
-     *            the gate
      * @param sign
      *            1 for along the facing, -1 for against it
      * @return the cells, index for index with the portal cells
@@ -1401,8 +1415,6 @@ class StargateBlockSetup
      * block thick, so any cell gives the same answer. Standing in the plane itself counts as
      * the front, the view a gate has always had.
      *
-     * @param gate
-     *            the gate
      * @param eye
      *            the viewer's eye
      * @return true in front of the gate or in its plane, false behind it
@@ -1447,8 +1459,6 @@ class StargateBlockSetup
     /**
      * Shows or takes back the horizon behind a gate whose iris is shut.
      *
-     * @param gate
-     *            the gate
      * @param show
      *            true to draw it, false to hand the real blocks back
      */
@@ -1473,8 +1483,6 @@ class StargateBlockSetup
      *
      * @param player
      *            who to show
-     * @param gate
-     *            the gate
      * @param show
      *            true to draw the horizon, false to hand the real blocks back
      */
@@ -1515,8 +1523,6 @@ class StargateBlockSetup
      * Whether a gate's opening is drawn in two layers, iris and horizon, and so differently
      * from each side.
      *
-     * @param gate
-     *            the gate
      * @return true for an open gate whose drawn iris is shut
      */
     static boolean isLayered(final Stargate gate)
@@ -1677,8 +1683,6 @@ class StargateBlockSetup
      *
      * @param player
      *            who it was drawn for
-     * @param gate
-     *            the gate
      * @param layers
      *            what was drawn
      */
@@ -1714,8 +1718,6 @@ class StargateBlockSetup
      *
      * @param player
      *            the player to draw for
-     * @param gate
-     *            the gate
      * @param layers
      *            the placements, one per portal cell
      */
@@ -1770,9 +1772,6 @@ class StargateBlockSetup
 
     /**
      * Sends a layered gate to everybody near enough to see it, each from their own side.
-     *
-     * @param gate
-     *            the gate
      */
     static void sendLayered(final Stargate gate)
     {
@@ -1841,10 +1840,6 @@ class StargateBlockSetup
     /**
      * The same for one player, whose own side decides whether they have a far layer at all.
      *
-     * @param player
-     *            the player
-     * @param gate
-     *            the gate
      * @param ring
      *            its portal cells, in placement order
      * @param wanted
@@ -1892,9 +1887,6 @@ class StargateBlockSetup
      * iris still shut. Before this the horizon drawn behind a shut iris was never taken back
      * when the wormhole closed under it, so a gate that went idle kept a sheet of water hanging
      * behind it for anyone who had been watching.
-     *
-     * @param gate
-     *            the gate
      */
     static void takeBackLayers(final Stargate gate)
     {
@@ -1913,11 +1905,6 @@ class StargateBlockSetup
 
     /**
      * The same, for one player.
-     *
-     * @param player
-     *            the player
-     * @param gate
-     *            the gate
      */
     private static void takeBackLayersFor(final Player player, final Stargate gate)
     {
@@ -1980,8 +1967,6 @@ class StargateBlockSetup
      * refuses a check that can never fire in code this new. The older one keeps its guard, and
      * its suppression, because tests were written against it.
      *
-     * @param player
-     *            the player
      * @return their live map, created empty if this is the first time
      */
     private static java.util.Map<String, List<IrisLayering.Placement>> layersDrawnFor(final Player player)
@@ -1993,11 +1978,8 @@ class StargateBlockSetup
     /**
      * A layering position as a location in the gate's world.
      *
-     * @param gate
-     *            the gate
      * @param at
      *            the position
-     * @return the location
      */
     private static Location located(final Stargate gate, final IrisLayering.At at)
     {
@@ -2007,8 +1989,6 @@ class StargateBlockSetup
     /**
      * Locations as plain coordinates, for asking whether a sight line still crosses them.
      *
-     * @param blocks
-     *            the locations
      * @return their positions, in the same order
      */
     private static List<IrisLayering.At> asPositions(final List<Location> blocks)
@@ -2024,8 +2004,6 @@ class StargateBlockSetup
     /**
      * Sends one player the real block in a cell, if the cell is one a layer could be drawn in.
      *
-     * @param player
-     *            the player
      * @param at
      *            the cell
      */
@@ -2122,8 +2100,6 @@ class StargateBlockSetup
      * actually drawn for them. The alternative is walking every gate in the world on each
      * chunk boundary somebody crosses, and most gates are nowhere near anybody.
      *
-     * @param player
-     *            the player
      * @return their live set of gate names, created empty if this is the first time
      */
     // Never null on a server; mock players with no UUID would otherwise throw from the map.
@@ -2179,8 +2155,6 @@ class StargateBlockSetup
     /**
      * Whether a player is close enough to a gate to be sent its drawing.
      *
-     * @param gate
-     *            the gate
      * @param playerAt
      *            where the player is
      * @return true if they are near enough, in the same world
@@ -2210,8 +2184,6 @@ class StargateBlockSetup
     /**
      * Sets all portal blocks to {@link Material#AIR}, both on the server and on
      * nearby clients, clearing any client-side portal visual still being shown.
-     *
-     * @param gate the gate
      */
     static void deletePortalBlocks(final Stargate gate)
     {
@@ -2230,7 +2202,6 @@ class StargateBlockSetup
      * the portal's: see {@link #fillGateIris(Stargate, Material)} for which irises are
      * drawn and which are built.
      *
-     * @param gate     the gate
      * @param material the appearance to show clients; {@link Material#AIR} clears the portal
      */
     static void fillGateInterior(final Stargate gate, final Material material)
@@ -2256,8 +2227,6 @@ class StargateBlockSetup
      * up on its own: to the server the player is then standing on air, which is a kick for
      * flying on a server that does not allow it. Those stay real.
      *
-     * @param gate
-     *            the gate
      * @return true if this gate's iris is a drawing
      */
     static boolean irisIsDrawn(final Stargate gate)
@@ -2274,7 +2243,6 @@ class StargateBlockSetup
      * material for those cells. Built out of real blocks for a horizontal one, where the iris
      * has to hold a player's weight up. {@link #irisIsDrawn} has the reasoning for both.
      *
-     * @param gate     the gate
      * @param material the iris material to show or to place
      */
     static void fillGateIris(final Stargate gate, final Material material)
@@ -2416,7 +2384,6 @@ class StargateBlockSetup
      * state. Automatically replaces buttons with levers so the lever can be
      * held in the "on" position.
      *
-     * @param gate       the gate
      * @param regenerate {@code true} to forcibly replace a missing lever
      */
     static void toggleDialLeverState(final Stargate gate, final boolean regenerate)
@@ -2441,6 +2408,7 @@ class StargateBlockSetup
             // placed activation item (button/lever) otherwise.
             if (regenerate && (mat == Material.AIR))
             {
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock(), Material.LEVER, null);
                 gate.getGateDialLeverBlock().setType(Material.LEVER);
                 final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
                 rld.setFacing(gate.getGateFacing());
@@ -2486,8 +2454,6 @@ class StargateBlockSetup
     /**
      * Pulses the gate-activated redstone output lever to match the gate's
      * current activation state.
-     *
-     * @param gate the gate
      */
     static void toggleRedstoneGateActivatedPower(final Stargate gate)
     {

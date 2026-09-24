@@ -141,6 +141,8 @@ public class ConfigManager
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether the PlaceholderAPI expansion is registered. */
         PLACEHOLDERS_ENABLED,
+        /** Whether gate and ring construction is logged to CoreProtect (#238). */
+        COREPROTECT_ENABLED,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -216,15 +218,6 @@ public class ConfigManager
          */
         MIRROR_VIEW_DEPTH,
 
-        /**
-         * Whether a mirror names itself above the hotbar to whoever is looking at it.
-         *
-         * <p>A stamped banner looks like scenery, and a corridor of them looks like
-         * decoration. Nothing about a mirror says it is a door until somebody happens to right
-         * click it, which is a thing players do to signs and not to wall hangings.
-         *
-         * <p>Turning this off stops the signpost pass before it looks at anybody.
-         */
         /**
          * Whether a viewer's own fog is pulled in to where a mirror's room ends.
          *
@@ -321,9 +314,6 @@ public class ConfigManager
 
         /**
          * Instantiates a new string types.
-         * 
-         * @param message
-         *            the message
          */
         private MessageStrings(final String message)
         {
@@ -346,7 +336,7 @@ public class ConfigManager
     /**
      * Gets the configurations.
      * 
-     * @return the configurations
+     * @return the live map rather than a copy
      */
     protected static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations()
     {
@@ -374,8 +364,6 @@ public class ConfigManager
     /**
      * Get Log Level setting from ConfigKeys. Return sane Level value.
      * Return default value if key is missing or broken.
-     * 
-     * @return the log level
      */
     public static Level getLogLevel()
     {
@@ -437,9 +425,7 @@ public class ConfigManager
     /**
      * Gets the setting.
      * 
-     * @param configKey
-     *            the config key
-     * @return the setting
+     * @return the setting, or null if the key is not registered
      */
     private static Setting getSetting(final ConfigKeys configKey)
     {
@@ -769,7 +755,7 @@ public class ConfigManager
     /**
      * What the countdown lights are made of.
      *
-     * @return the light material
+     * @return the configured material, or redstone lamp when it is missing or unknown
      */
     public static Material getRingDefaultLight()
     {
@@ -782,7 +768,7 @@ public class ConfigManager
      * <p>Matches the pad light by default, so an untouched ring reads as one effect rather
      * than two. Setting them apart is what makes the transport its own moment.
      *
-     * @return the flash material
+     * @return the configured material, or the light material when it is missing or unknown
      */
     public static Material getRingDefaultFlash()
     {
@@ -796,7 +782,6 @@ public class ConfigManager
      *            which setting
      * @param fallback
      *            what to use when it is absent
-     * @return the value
      */
     private static int intSetting(final ConfigKeys key, final int fallback)
     {
@@ -809,7 +794,7 @@ public class ConfigManager
      * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
      * default, TOP.
      *
-     * @return the pattern
+     * @return never null
      */
     public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern()
     {
@@ -827,7 +812,7 @@ public class ConfigManager
      *            the gate's own pattern, or null
      * @param group
      *            its material group, or null
-     * @return the pattern
+     * @return never null
      */
     public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern(
         final com.wormhole_xtreme.wormhole.logic.DialSpinPattern own,
@@ -868,10 +853,7 @@ public class ConfigManager
                 return java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
-                return java.util.stream.Stream.concat(
-                    java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
-                        .map(s -> s.name().toLowerCase(Locale.ROOT)),
-                    java.util.stream.Stream.of("instant")).toList();
+                return irisAnimations();
             case RING_DEFAULT_ACCESS:
                 return java.util.List.of("public", "private");
             case RING_DEFAULT_STYLE:
@@ -902,7 +884,7 @@ public class ConfigManager
      * <p>Louder than rings by default, and deliberately: a gate is a landmark somebody walks
      * towards, where a ring is something you are standing on.
      *
-     * @return the volume
+     * @return 1.5 when unset; past 1.0 it widens the range heard rather than the loudness
      */
     public static float getGateSoundVolume()
     {
@@ -1028,30 +1010,62 @@ public class ConfigManager
     }
 
     /**
-     * Whether a closing or opening iris is drawn a ring at a time.
-     *
-     * <p>The blocks themselves are placed in one go either way; only the picture is gradual.
-     * See {@link com.wormhole_xtreme.wormhole.model.StargateIrisAnimator} for why that
-     * separation is the whole point.
-     *
-     * @return true to sweep, false to arrive all at once
+     * @param animation
+     *            an iris animation, as {@link #getGateIrisAnimation(String, com.wormhole_xtreme.wormhole.model.MaterialGroup)} answers
+     * @return false only for {@code instant}
      */
-    public static boolean isGateIrisAnimated()
+    public static boolean isIrisAnimated(final String animation)
     {
-        return !"instant".equalsIgnoreCase(gateIrisAnimation());
+        return !"instant".equalsIgnoreCase(animation);
     }
 
     /**
-     * How an animated iris crosses its opening.
+     * The iris animation a gate uses (#427): its own, then its material group's, then
+     * {@code gate-iris-animation}.
      *
-     * <p>Anything unrecognised is read as the default rather than refused, so a mistyped style
-     * costs the style and not the iris.
-     *
-     * @return the style
+     * @param own
+     *            the gate's own animation, or null
+     * @param group
+     *            its material group, or null
+     * @return one of {@link #irisAnimations()}
      */
-    public static com.wormhole_xtreme.wormhole.model.IrisSweep.Style getGateIrisStyle()
+    public static String getGateIrisAnimation(final String own, final com.wormhole_xtreme.wormhole.model.MaterialGroup group)
     {
-        return com.wormhole_xtreme.wormhole.model.IrisSweep.Style.of(gateIrisAnimation());
+        if (own != null)
+        {
+            return own;
+        }
+        if ((group != null) && (group.getIrisAnimation() != null))
+        {
+            return group.getIrisAnimation();
+        }
+        return gateIrisAnimation().toLowerCase(Locale.ROOT);
+    }
+
+    /** @return the iris animations there are: the four sweep styles, then {@code instant} */
+    public static java.util.List<String> irisAnimations()
+    {
+        return java.util.stream.Stream.concat(
+            java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
+                .map(style -> style.name().toLowerCase(Locale.ROOT)),
+            java.util.stream.Stream.of("instant")).toList();
+    }
+
+    /**
+     * Reads an iris animation by name, whatever its capitals.
+     *
+     * @param raw
+     *            the value as written
+     * @return it in lower case, or null if it names none
+     */
+    public static String parseIrisAnimation(final String raw)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final String name = raw.trim().toLowerCase(Locale.ROOT);
+        return irisAnimations().contains(name) ? name : null;
     }
 
     /**
@@ -1174,7 +1188,7 @@ public class ConfigManager
      * <p>Bukkit scales audible range with volume, so this is a distance knob as much as a
      * loudness one: at 1.0 a ring is heard about sixteen blocks away.
      *
-     * @return the volume
+     * @return 1.0 when unset
      */
     public static float getRingSoundVolume()
     {
@@ -1246,7 +1260,7 @@ public class ConfigManager
     /**
      * How loud beam sounds are.
      *
-     * @return the volume
+     * @return 1.0 when unset; past 1.0 it widens the range heard rather than the loudness
      */
     public static float getBeamSoundVolume()
     {
@@ -1500,7 +1514,6 @@ public class ConfigManager
      *            which setting
      * @param fallback
      *            what to use when it cannot be read
-     * @return the material
      */
     private static Material materialSetting(final ConfigKeys key, final Material fallback)
     {
@@ -1562,7 +1575,7 @@ public class ConfigManager
     /**
      * Gets the wormhole use is teleport.
      * 
-     * @return the wormhole use is teleport
+     * @return true if travelling needs permission as well as activating; false when unset
      */
     public static boolean getWormholeUseIsTeleport()
     {
@@ -1580,9 +1593,7 @@ public class ConfigManager
     /**
      * Checks if is configuration key.
      * 
-     * @param configKey
-     *            the config key
-     * @return true, if is configuration key
+     * @return true if the key has a loaded setting
      */
     private static boolean isConfigurationKey(final ConfigKeys configKey)
     {
@@ -1592,7 +1603,7 @@ public class ConfigManager
     /**
      * Checks if is use cooldown enabled.
      * 
-     * @return true, if is use cooldown enabled
+     * @return true if the use cooldown is switched on; false when unset
      */
     public static boolean isUseCooldownEnabled()
     {
@@ -1907,9 +1918,7 @@ public class ConfigManager
      * Sets the config value.
      * 
      * @param key
-     *            the key
-     * @param value
-     *            the value
+     *            a loaded setting; an unknown key, like a null value, changes nothing
      */
     public static void setConfigValue(final ConfigKeys key, final Object value)
     {
@@ -1973,6 +1982,13 @@ public class ConfigManager
     public static void setUseCooldownSeconds(final int seconds)
     {
         setConfigValue(ConfigKeys.USE_COOLDOWN_SECONDS, seconds);
+    }
+
+    /** Returns true if gate and ring construction should be logged to CoreProtect. */
+    public static boolean isCoreProtectEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.COREPROTECT_ENABLED);
+        return s != null && s.getBooleanValue();
     }
 
     /** Returns true if the PlaceholderAPI expansion should be registered. */

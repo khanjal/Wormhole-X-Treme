@@ -580,6 +580,31 @@ public class Stargate implements GateIris
         gateMaterialGroupResolved = true;
     }
 
+    /** Whether the group was chosen with {@code gate edit group} (#441), so it is stored rather than read off the frame. */
+    private boolean gateMaterialGroupChosen = false;
+
+    /**
+     * @return true when {@code gate edit group} chose this gate's group, which is then saved with it
+     */
+    public boolean isGateMaterialGroupChosen()
+    {
+        return gateMaterialGroupChosen;
+    }
+
+    /**
+     * Puts this gate on a group by choice, so it is saved and outlasts a restart (#441); null
+     * forgets the choice, and the group is read off the frame again.
+     *
+     * @param group
+     *            the group, or null
+     */
+    public void chooseGateMaterialGroup(final MaterialGroup group)
+    {
+        gateMaterialGroupChosen = group != null;
+        gateMaterialGroup = group;
+        gateMaterialGroupResolved = group != null;
+    }
+
     /** This gate's own ring pattern (#366), or null to follow its group and then the server. */
     private com.wormhole_xtreme.wormhole.logic.DialSpinPattern gateDialSpin = null;
 
@@ -598,6 +623,34 @@ public class Stargate implements GateIris
     public void setGateDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
     {
         gateDialSpin = pattern;
+    }
+
+    /** This gate's own iris animation (#427), or null to follow its group and then the server. */
+    private String gateIrisAnimation = null;
+
+    /**
+     * @return this gate's own iris animation, or null when it has none
+     */
+    public String getGateIrisAnimation()
+    {
+        return gateIrisAnimation;
+    }
+
+    /**
+     * @param animation
+     *            this gate's own iris animation, or null to follow its group and then the server
+     */
+    public void setGateIrisAnimation(final String animation)
+    {
+        gateIrisAnimation = animation;
+    }
+
+    /**
+     * @return how this gate's iris crosses: its own animation, its group's, or the server's
+     */
+    public String getEffectiveIrisAnimation()
+    {
+        return com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisAnimation(gateIrisAnimation, getGateMaterialGroup());
     }
 
     /**
@@ -892,8 +945,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the woosh depth used for splash effects, squared for distance comparisons.
-     *
-     * @return the squared woosh depth
      */
     public int getEffectiveWooshDepthSquared()
     {
@@ -924,11 +975,9 @@ public class Stargate implements GateIris
 
     /**
      * Complete gate.
-     * 
-     * @param name
-     *            the name
+     *
      * @param idc
-     *            the idc
+     *            the iris deactivation code; null or empty for no iris
      */
     public void completeGate(final String name, final String idc)
     {
@@ -993,8 +1042,6 @@ public class Stargate implements GateIris
     /**
      * This method takes in a remote stargate and dials it if it is not active.
      * 
-     * @param target
-     *            the target stargate
      * @param force
      *            true to force dial the stargate, false to properly check if target gate is not active.
      * @return True if successful, False if remote target is already Active or if there is a failure scheduling stargate
@@ -1058,8 +1105,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate activate task id.
-     * 
-     * @return the gate activate task id
      */
     int getGateActivateTaskId()
     {
@@ -1068,8 +1113,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate after shutdown task id.
-     * 
-     * @return the gate after shutdown task id
      */
     int getGateAfterShutdownTaskId()
     {
@@ -1078,8 +1121,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate animated blocks.
-     * 
-     * @return the gate animated blocks
      */
     ArrayList<Block> getGateAnimatedBlocks()
     {
@@ -1099,7 +1140,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom iris material.
      * 
-     * @return the gate custom iris material
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomIrisMaterial()
     {
@@ -1109,7 +1150,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom light material.
      * 
-     * @return the gate custom light material
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomLightMaterial()
     {
@@ -1119,7 +1160,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom light ticks.
      * 
-     * @return the gate custom light ticks
+     * @return the override in ticks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomLightTicks()
     {
@@ -1129,7 +1170,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom portal material.
      * 
-     * @return the gate custom portal material
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomPortalMaterial()
     {
@@ -1139,7 +1180,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom structure material.
      * 
-     * @return the gate custom structure material
+     * @return the per-gate override, used only while the gate is custom; null to resolve it from the shape and palette
      */
     public Material getGateCustomStructureMaterial()
     {
@@ -1149,7 +1190,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh depth.
      * 
-     * @return the gate custom woosh depth
+     * @return the override in blocks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshDepth()
     {
@@ -1159,7 +1200,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh depth squared.
      * 
-     * @return the gate custom woosh depth squared
+     * @return the override squared, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshDepthSquared()
     {
@@ -1169,7 +1210,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate custom woosh ticks.
      * 
-     * @return the gate custom woosh ticks
+     * @return the override in ticks, used only while the gate is custom; negative to use the shape's
      */
     public int getGateCustomWooshTicks()
     {
@@ -1208,8 +1249,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate sign index.
-     * 
-     * @return the gate sign index
      */
     public synchronized int getGateDialSignIndex()
     {
@@ -1218,8 +1257,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate sign target.
-     * 
-     * @return the gate sign target
      */
     public Stargate getGateDialSignTarget()
     {
@@ -1228,8 +1265,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate facing.
-     * 
-     * @return the gate facing
      */
     public BlockFace getGateFacing()
     {
@@ -1239,7 +1274,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate id.
      * 
-     * @return the gate id
+     * @return -1 until the gate has been given one
      */
     public long getGateId()
     {
@@ -1248,8 +1283,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate iris deactivation code.
-     * 
-     * @return the gate iris deactivation code
      */
     public String getGateIrisDeactivationCode()
     {
@@ -1268,8 +1301,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate light blocks.
-     * 
-     * @return the gate light blocks
      */
     public List<List<Location>> getGateLightBlocks()
     {
@@ -1278,8 +1309,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate lighting current iteration.
-     * 
-     * @return the gate lighting current iteration
      */
     int getGateLightingCurrentIteration()
     {
@@ -1288,8 +1317,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate minecart teleport location.
-     * 
-     * @return the gate minecart teleport location
      */
     public Location getGateMinecartTeleportLocation()
     {
@@ -1298,8 +1325,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate name.
-     * 
-     * @return the gate name
      */
     public String getGateName()
     {
@@ -1308,8 +1333,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate name block holder.
-     * 
-     * @return the gate name block holder
      */
     public Block getGateNameBlockHolder()
     {
@@ -1319,7 +1342,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate network.
      * 
-     * @return the gate network
+     * @return null for a gate on no network
      */
     public StargateNetwork getGateNetwork()
     {
@@ -1395,8 +1418,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate teleport location.
-     * 
-     * @return the gate teleport location
      */
     public Location getGatePlayerTeleportLocation()
     {
@@ -1405,8 +1426,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate portal blocks.
-     * 
-     * @return the gate portal blocks
      */
     public List<Location> getGatePortalBlocks()
     {
@@ -1415,8 +1434,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate redstone activation block.
-     * 
-     * @return the gate redstone activation block
      */
     public Block getGateRedstoneDialActivationBlock()
     {
@@ -1437,8 +1454,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate redstone gate activated block.
-     * 
-     * @return the gate redstone gate activated block
      */
     public Block getGateRedstoneGateActivatedBlock()
     {
@@ -1457,8 +1472,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate shape.
-     * 
-     * @return the gate shape
      */
     public StargateShape getGateShape()
     {
@@ -1467,8 +1480,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate shutdown task id.
-     * 
-     * @return the gate shutdown task id
      */
     int getGateShutdownTaskId()
     {
@@ -1477,8 +1488,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate sign order.
-     * 
-     * @return the gate sign order
      */
     HashMap<Integer, Stargate> getGateSignOrder()
     {
@@ -1487,8 +1496,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate structure blocks.
-     * 
-     * @return the gate structure blocks
      */
     public List<Location> getGateStructureBlocks()
     {
@@ -1498,7 +1505,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate target.
      * 
-     * @return the gate target
+     * @return the gate this one is dialled to, or null
      */
     public Stargate getGateTarget()
     {
@@ -1507,8 +1514,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate temp sign target.
-     * 
-     * @return the gate temp sign target
      */
     long getGateTempSignTarget()
     {
@@ -1518,7 +1523,7 @@ public class Stargate implements GateIris
     /**
      * Gets the gate temp target id.
      * 
-     * @return the gate temp target id
+     * @return the target's id as read from storage, -1 for none
      */
     long getGateTempTargetId()
     {
@@ -1527,8 +1532,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate woosh blocks.
-     * 
-     * @return the gate woosh blocks
      */
     public List<List<Location>> getGateWooshBlocks()
     {
@@ -1537,8 +1540,6 @@ public class Stargate implements GateIris
 
     /**
      * Gets the gate world.
-     * 
-     * @return the gate world
      */
     public World getGateWorld()
     {
@@ -1548,7 +1549,7 @@ public class Stargate implements GateIris
     /**
      * Gets the loaded version.
      * 
-     * @return the loaded version
+     * @return the save-format version it was read from, -1 if it was never loaded
      */
     public byte getLoadedVersion()
     {
@@ -1557,8 +1558,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate active.
-     * 
-     * @return true, if is gate active
      */
     public boolean isGateActive()
     {
@@ -1567,8 +1566,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate animation removing.
-     * 
-     * @return true, if is gate animation removing
      */
     boolean isGateAnimationRemoving()
     {
@@ -1577,8 +1574,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate custom.
-     * 
-     * @return true, if is gate custom
      */
     public boolean isGateCustom()
     {
@@ -1587,8 +1582,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate iris active.
-     * 
-     * @return true, if is gate iris active
      */
     @Override
     public boolean isGateIrisActive()
@@ -1598,10 +1591,8 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate iris default active.
-     * 
-     * @return true, if is gate iris default active
      */
-    boolean isGateIrisDefaultActive()
+    public boolean isGateIrisDefaultActive()
     {
         return gateIrisDefaultActive;
     }
@@ -1618,8 +1609,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate recently active.
-     * 
-     * @return true, if is gate recently active
      */
     public boolean isGateRecentlyActive()
     {
@@ -1628,8 +1617,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate redstone powered.
-     * 
-     * @return true, if is gate redstone powered
      */
     public boolean isGateRedstonePowered()
     {
@@ -1638,8 +1625,6 @@ public class Stargate implements GateIris
 
     /**
      * Checks if is gate sign powered.
-     * 
-     * @return true, if is gate sign powered
      */
     public boolean isGateSignPowered()
     {
@@ -1683,9 +1668,6 @@ public class Stargate implements GateIris
 
     /**
      * Reset sign.
-     * 
-     * @param teleportSign
-     *            the teleport sign
      */
     public void resetSign(final boolean teleportSign)
     {
@@ -1702,9 +1684,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate activate task id.
-     * 
-     * @param gateActivateTaskId
-     *            the new gate activate task id
      */
     void setGateActivateTaskId(final int gateActivateTaskId)
     {
@@ -1713,9 +1692,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate active.
-     * 
-     * @param gateActive
-     *            the new gate active
      */
     public void setGateActive(final boolean gateActive)
     {
@@ -1725,9 +1701,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate after shutdown task id.
-     * 
-     * @param gateAfterShutdownTaskId
-     *            the new gate after shutdown task id
      */
     void setGateAfterShutdownTaskId(final int gateAfterShutdownTaskId)
     {
@@ -1736,9 +1709,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate animation removing.
-     * 
-     * @param gateAnimationRemoving
-     *            the new gate animation removing
      */
     void setGateAnimationRemoving(final boolean gateAnimationRemoving)
     {
@@ -1747,9 +1717,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate animation step.
-     * 
-     * @param gateAnimationStep
-     *            the new gate animation step
      */
     void setGateAnimationStep3D(final int gateAnimationStep3D)
     {
@@ -1758,9 +1725,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate custom.
-     * 
-     * @param gateCustom
-     *            the new gate custom
      */
     public void setGateCustom(final boolean gateCustom)
     {
@@ -1771,7 +1735,7 @@ public class Stargate implements GateIris
      * Sets the gate custom iris material.
      * 
      * @param gateCustomIrisMaterial
-     *            the new gate custom iris material
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomIrisMaterial(final Material gateCustomIrisMaterial)
     {
@@ -1782,7 +1746,7 @@ public class Stargate implements GateIris
      * Sets the gate custom light material.
      * 
      * @param gateCustomLightMaterial
-     *            the new gate custom light material
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomLightMaterial(final Material gateCustomLightMaterial)
     {
@@ -1793,7 +1757,7 @@ public class Stargate implements GateIris
      * Sets the gate custom light ticks.
      * 
      * @param gateCustomLightTicks
-     *            the new gate custom light ticks
+     *            in ticks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomLightTicks(final int gateCustomLightTicks)
     {
@@ -1804,7 +1768,7 @@ public class Stargate implements GateIris
      * Sets the gate custom portal material.
      * 
      * @param gateCustomPortalMaterial
-     *            the new gate custom portal material
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomPortalMaterial(final Material gateCustomPortalMaterial)
     {
@@ -1815,7 +1779,7 @@ public class Stargate implements GateIris
      * Sets the gate custom structure material.
      * 
      * @param gateCustomStructureMaterial
-     *            the new gate custom structure material
+     *            used only while the gate is custom; null to resolve it from the shape and palette
      */
     public void setGateCustomStructureMaterial(final Material gateCustomStructureMaterial)
     {
@@ -1826,7 +1790,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh depth.
      * 
      * @param gateCustomWooshDepth
-     *            the new gate custom woosh depth
+     *            in blocks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshDepth(final int gateCustomWooshDepth)
     {
@@ -1837,7 +1801,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh depth squared.
      * 
      * @param gateCustomWooshDepthSquared
-     *            the new gate custom woosh depth squared
+     *            the depth squared, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshDepthSquared(final int gateCustomWooshDepthSquared)
     {
@@ -1848,7 +1812,7 @@ public class Stargate implements GateIris
      * Sets the gate custom woosh ticks.
      * 
      * @param gateCustomWooshTicks
-     *            the new gate custom woosh ticks
+     *            in ticks, used only while the gate is custom; negative to use the shape's
      */
     public void setGateCustomWooshTicks(final int gateCustomWooshTicks)
     {
@@ -1857,9 +1821,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate activation block.
-     * 
-     * @param gateDialLeverBlock
-     *            the new gate dial lever block
      */
     public void setGateDialLeverBlock(final Block gateDialLeverBlock)
     {
@@ -1868,9 +1829,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate teleport sign.
-     * 
-     * @param gateDialSign
-     *            the new gate dial sign
      */
     public synchronized void setGateDialSign(final Sign gateDialSign)
     {
@@ -1879,9 +1837,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate teleport sign block.
-     * 
-     * @param gateDialSignBlock
-     *            the new gate dial sign block
      */
     public synchronized void setGateDialSignBlock(final Block gateDialSignBlock)
     {
@@ -1890,9 +1845,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate sign index.
-     * 
-     * @param gateDialSignIndex
-     *            the new gate dial sign index
      */
     public synchronized void setGateDialSignIndex(final int gateDialSignIndex)
     {
@@ -1901,9 +1853,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate sign target.
-     * 
-     * @param gateDialSignTarget
-     *            the new gate dial sign target
      */
     protected void setGateDialSignTarget(final Stargate gateDialSignTarget)
     {
@@ -1912,9 +1861,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate facing.
-     * 
-     * @param gateFacing
-     *            the new gate facing
      */
     public void setGateFacing(final BlockFace gateFacing)
     {
@@ -1923,9 +1869,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate id.
-     * 
-     * @param gateId
-     *            the new gate id
      */
     void setGateId(final long gateId)
     {
@@ -1934,9 +1877,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate iris active.
-     * 
-     * @param gateIrisActive
-     *            the new gate iris active
      */
     public void setGateIrisActive(final boolean gateIrisActive)
     {
@@ -1951,9 +1891,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate iris deactivation code.
-     * 
-     * @param gateIrisDeactivationCode
-     *            the new gate iris deactivation code
      */
     public void setGateIrisDeactivationCode(final String gateIrisDeactivationCode)
     {
@@ -1962,9 +1899,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate iris default active.
-     * 
-     * @param gateIrisDefaultActive
-     *            the new gate iris default active
      */
     public void setGateIrisDefaultActive(final boolean gateIrisDefaultActive)
     {
@@ -1973,9 +1907,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate iris activation block.
-     * 
-     * @param gateIrisLeverBlock
-     *            the new gate iris lever block
      */
     public void setGateIrisLeverBlock(final Block gateIrisLeverBlock)
     {
@@ -1984,9 +1915,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate lighting current iteration.
-     * 
-     * @param gateLightingCurrentIteration
-     *            the new gate lighting current iteration
      */
     void setGateLightingCurrentIteration(final int gateLightingCurrentIteration)
     {
@@ -1995,9 +1923,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate lit.
-     * 
-     * @param gateLightsActive
-     *            the new gate lights active
      */
     public void setGateLightsActive(final boolean gateLightsActive)
     {
@@ -2006,9 +1931,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate minecart teleport location.
-     * 
-     * @param gateMinecartTeleportLocation
-     *            the new gate minecart teleport location
      */
     public void setGateMinecartTeleportLocation(final Location gateMinecartTeleportLocation)
     {
@@ -2017,9 +1939,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate name.
-     * 
-     * @param gateName
-     *            the new gate name
      */
     public void setGateName(final String gateName)
     {
@@ -2028,9 +1947,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate name block holder.
-     * 
-     * @param gateNameBlockHolder
-     *            the new gate name block holder
      */
     public void setGateNameBlockHolder(final Block gateNameBlockHolder)
     {
@@ -2041,7 +1957,7 @@ public class Stargate implements GateIris
      * Sets the gate network.
      * 
      * @param gateNetwork
-     *            the new gate network
+     *            null for no network
      */
     public void setGateNetwork(final StargateNetwork gateNetwork)
     {
@@ -2071,9 +1987,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate teleport location.
-     * 
-     * @param gatePlayerTeleportLocation
-     *            the new gate player teleport location
      */
     public void setGatePlayerTeleportLocation(final Location gatePlayerTeleportLocation)
     {
@@ -2082,9 +1995,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate recently active.
-     * 
-     * @param gateRecentlyActive
-     *            the new gate recently active
      */
     void setGateRecentlyActive(final boolean gateRecentlyActive)
     {
@@ -2093,9 +2003,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate redstone activation block.
-     * 
-     * @param gateRedstoneDialActivationBlock
-     *            the new gate redstone dial activation block
      */
     public void setGateRedstoneDialActivationBlock(final Block gateRedstoneDialActivationBlock)
     {
@@ -2104,9 +2011,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate redstone gate activated block.
-     * 
-     * @param gateRedstoneGateActivatedBlock
-     *            the new gate redstone gate activated block
      */
     public void setGateRedstoneGateActivatedBlock(final Block gateRedstoneGateActivatedBlock)
     {
@@ -2115,9 +2019,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate redstone powered.
-     * 
-     * @param gateRedstonePowered
-     *            the new gate redstone powered
      */
     public void setGateRedstonePowered(final boolean gateRedstonePowered)
     {
@@ -2126,9 +2027,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate redstone dial change block.
-     * 
-     * @param gateRedstoneSignActivationBlock
-     *            the new gate redstone sign activation block
      */
     public void setGateRedstoneSignActivationBlock(final Block gateRedstoneSignActivationBlock)
     {
@@ -2137,9 +2035,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate shape.
-     * 
-     * @param gateShape
-     *            the new gate shape
      */
     public void setGateShape(final StargateShape gateShape)
     {
@@ -2181,9 +2076,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate shutdown task id.
-     * 
-     * @param gateShutdownTaskId
-     *            the new gate shutdown task id
      */
     void setGateShutdownTaskId(final int gateShutdownTaskId)
     {
@@ -2192,9 +2084,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate sign powered.
-     * 
-     * @param gateSignPowered
-     *            the new gate sign powered
      */
     public void setGateSignPowered(final boolean gateSignPowered)
     {
@@ -2203,9 +2092,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate target.
-     * 
-     * @param gateTarget
-     *            the new gate target
      */
     void setGateTarget(final Stargate gateTarget)
     {
@@ -2214,9 +2100,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate temp sign target.
-     * 
-     * @param gateTempSignTarget
-     *            the new gate temp sign target
      */
     public void setGateTempSignTarget(final long gateTempSignTarget)
     {
@@ -2225,9 +2108,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate temp target id.
-     * 
-     * @param gateTempTargetId
-     *            the new gate temp target id
      */
     public void setGateTempTargetId(final long gateTempTargetId)
     {
@@ -2236,9 +2116,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the gate world.
-     * 
-     * @param gateWorld
-     *            the new gate world
      */
     public void setGateWorld(final World gateWorld)
     {
@@ -2247,9 +2124,9 @@ public class Stargate implements GateIris
 
     /**
      * Sets the iris deactivation code.
-     * 
+     *
      * @param idc
-     *            the idc
+     *            the code; null or empty removes the iris lever and opens the iris
      */
     public void setIrisDeactivationCode(final String idc)
     {
@@ -2282,9 +2159,6 @@ public class Stargate implements GateIris
 
     /**
      * Sets the loaded version.
-     * 
-     * @param loadedVersion
-     *            the new loaded version
      */
     public void setLoadedVersion(final byte loadedVersion)
     {
@@ -2408,9 +2282,6 @@ public class Stargate implements GateIris
 
     /**
      * Start activation timer.
-     * 
-     * @param p
-     *            the p
      */
     public void startActivationTimer(final Player p)
     {
@@ -2468,9 +2339,6 @@ public class Stargate implements GateIris
 
     /**
      * Timeout stargate.
-     * 
-     * @param p
-     *            the p
      */
     public void timeoutStargate(final Player p)
     {
@@ -2511,8 +2379,6 @@ public class Stargate implements GateIris
      * Try click teleport sign. This is the same as {@link Stargate#tryClickTeleportSign(Block, Player)} with Player set
      * to null.
      * 
-     * @param clicked
-     *            the clicked
      * @return true, if successful
      */
     public boolean tryClickTeleportSign(final Block clicked)
@@ -2523,10 +2389,6 @@ public class Stargate implements GateIris
     /**
      * Try click teleport sign.
      * 
-     * @param clicked
-     *            the clicked
-     * @param player
-     *            the player
      * @return true, if successful
      */
     public boolean tryClickTeleportSign(final Block clicked, final Player player)

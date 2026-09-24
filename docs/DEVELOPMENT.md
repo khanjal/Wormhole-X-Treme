@@ -226,8 +226,8 @@ Two things that follow from it, worth knowing before filing an issue:
   README badge and in [Minecraft versions](#minecraft-versions), and moves on its own schedule.
   `1.10.0` after `1.9.0` is ordinary, and is not a claim about Minecraft 1.10.
 - **The pom carries the version being worked towards, with `-SNAPSHOT`.** Work lands under a
-  top changelog heading marked `(unreleased)`, and the pom says `1.8.0-SNAPSHOT` while that is
-  what is being built. The release tag is what sets the real number: `release.yml` runs
+  top changelog heading marked `(unreleased)`, and the pom says, say, `1.9.0-SNAPSHOT` while that
+  is what is being built; the release PR drops the `-SNAPSHOT` and dates the heading. The release tag is what sets the real number: `release.yml` runs
   `versions:set` from the tag, so nothing downstream reads the pom's development version.
 
   It used to carry the *last released* version instead, which meant a jar built mid-cycle

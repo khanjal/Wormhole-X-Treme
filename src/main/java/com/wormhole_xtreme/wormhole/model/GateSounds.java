@@ -135,7 +135,7 @@ public final class GateSounds
      *            which lighting step this is, from one
      * @param total
      *            how many steps the sequence has
-     * @return the pitch
+     * @return the first chevron's pitch for step one, climbing evenly to the last
      */
     public static float chevronPitch(final int iteration, final int total)
     {
@@ -172,9 +172,6 @@ public final class GateSounds
 
     /**
      * Plays the last chevron locking in, with its chevron sound.
-     *
-     * @param gate
-     *            the gate
      */
     public static void locked(final Stargate gate)
     {
@@ -289,12 +286,8 @@ public final class GateSounds
      * sounds like it is coming from the wormhole. Falls back to the gate's own block if there
      * is no teleport point recorded -- an incomplete gate can still be shut down.
      *
-     * @param gate
-     *            the gate
      * @param sound
      *            the sound name
-     * @param pitch
-     *            the pitch
      */
     private static void play(final Stargate gate, final String sound, final float pitch)
     {
@@ -308,12 +301,8 @@ public final class GateSounds
     /**
      * Plays one sound at a gate, at a given volume.
      *
-     * @param gate
-     *            the gate
      * @param sound
      *            the sound name
-     * @param pitch
-     *            the pitch
      * @param volume
      *            the volume, which is also the audible range
      */

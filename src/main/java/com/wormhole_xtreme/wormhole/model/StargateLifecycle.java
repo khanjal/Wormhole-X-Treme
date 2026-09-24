@@ -79,7 +79,11 @@ class StargateLifecycle
 
         // Clear any recent-arrival markers that reference this gate so players
         // can re-enter after shutdown.
-        try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            StargateRestrictions.removeRecentArrivalsForGate(gate);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         GateSounds.closed(gate);
         GateSounds.stopAmbient(gate);
@@ -87,6 +91,10 @@ class StargateLifecycle
         gate.toggleDialLeverState(false);
         gate.toggleRedstoneGateActivatedPower();
 
+        // Called off here, not only through setIrisState below, which a gate whose iris is not
+        // shut by default never reaches: an opening sweep left running went on painting the
+        // wormhole it started with into the idle gate, and its last step filled it in (#434).
+        StargateIrisAnimator.cancel(gate);
         if (gate.isGateIrisDefaultActive())
         {
             setIrisState(gate, gate.isGateIrisDefaultActive());
@@ -120,7 +128,6 @@ class StargateLifecycle
      * Starts the activation/pick-target timer. If the player does not choose
      * a destination before it expires, {@link #timeoutStargate} is called.
      *
-     * @param gate the gate
      * @param p    the player who activated the gate
      */
     static void startActivationTimer(final Stargate gate, final Player p)
@@ -139,8 +146,6 @@ class StargateLifecycle
 
     /**
      * Stops the activation timer if it is running.
-     *
-     * @param gate the gate
      */
     static void stopActivationTimer(final Stargate gate)
     {
@@ -155,8 +160,6 @@ class StargateLifecycle
 
     /**
      * Stops the after-shutdown cooldown timer and clears the recently-active flag.
-     *
-     * @param gate the gate
      */
     static void stopAfterShutdownTimer(final Stargate gate)
     {
@@ -178,7 +181,6 @@ class StargateLifecycle
      * Called when the activation timer expires. Deactivates the gate and
      * notifies the player.
      *
-     * @param gate the gate
      * @param p    the player who activated it (may be {@code null})
      */
     static void timeoutStargate(final Stargate gate, final Player p)
@@ -221,7 +223,6 @@ class StargateLifecycle
      * Toggles the iris on/off and optionally persists the new state as the
      * default.
      *
-     * @param gate       the gate
      * @param setDefault {@code true} to remember the new state as the default
      */
     static void toggleIrisActive(final Stargate gate, final boolean setDefault)
@@ -326,7 +327,6 @@ class StargateLifecycle
      * Applies {@code irisActive} to the gate: sets the flag, fills the
      * interior with the appropriate material, and updates the iris lever.
      *
-     * @param gate       the gate
      * @param irisActive {@code true} to engage the iris; {@code false} to open it
      */
     static void setIrisState(final Stargate gate, final boolean irisActive)
@@ -371,8 +371,6 @@ class StargateLifecycle
      * Starts the after-shutdown cooldown timer that clears the
      * recently-active flag after 3 seconds (60 ticks). This prevents fire
      * and lava damage to players who just exited the wormhole.
-     *
-     * @param gate the gate
      */
     private static void startAfterShutdownTimer(final Stargate gate)
     {

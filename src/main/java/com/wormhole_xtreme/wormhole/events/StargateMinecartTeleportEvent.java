@@ -29,12 +29,13 @@ public class StargateMinecartTeleportEvent extends Event
     private static final HandlerList handlers = new HandlerList();
 
     /**
-     * Instantiates a new stargate minecart teleport event.
+     * Instantiates a new stargate minecart teleport event, fired when a cart would not move
+     * through the gate and a replacement was spawned at the far end instead.
      * 
      * @param oldMinecart
-     *            the old minecart
+     *            the cart that entered the gate, left where it was
      * @param newMinecart
-     *            the new minecart
+     *            the cart spawned at the far end in its place
      */
     public StargateMinecartTeleportEvent(final Minecart oldMinecart, final Minecart newMinecart)
     {
@@ -45,7 +46,7 @@ public class StargateMinecartTeleportEvent extends Event
     /**
      * Gets the new minecart.
      * 
-     * @return the new minecart
+     * @return the cart spawned at the far end in the old one's place
      */
     public Minecart getNewMinecart()
     {
@@ -55,7 +56,7 @@ public class StargateMinecartTeleportEvent extends Event
     /**
      * Gets the old minecart.
      * 
-     * @return the old minecart
+     * @return the cart that entered the gate, still at the departure gate
      */
     public Minecart getOldMinecart()
     {

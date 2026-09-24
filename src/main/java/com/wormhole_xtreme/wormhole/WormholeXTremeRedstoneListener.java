@@ -118,8 +118,6 @@ class WormholeXTremeRedstoneListener implements Listener
      * triggers anything -- and a change the plugin raised itself while switching a gate's own
      * levers.
      *
-     * @param event
-     *            the redstone event
      * @return true if the rest of this listener should look at it
      */
     private static boolean isActionableRisingEdge(final BlockRedstoneEvent event)

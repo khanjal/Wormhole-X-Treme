@@ -51,14 +51,12 @@ public final class StargateIrisAnimator
     /**
      * Whether a gate's iris should sweep rather than arrive at once.
      *
-     * @param gate
-     *            the gate
      * @return true if there is a sweep worth running
      */
     static boolean sweeps(final Stargate gate)
     {
-        return ConfigManager.isGateIrisAnimated()
-            && (gate != null)
+        return (gate != null)
+            && ConfigManager.isIrisAnimated(gate.getEffectiveIrisAnimation())
             && (gate.getGateWorld() != null)
             && (gate.getGatePortalBlocks() != null)
             && (gate.getGatePortalBlocks().size() > 1)
@@ -114,7 +112,7 @@ public final class StargateIrisAnimator
     static void sweepClosed(final Stargate gate, final Material under, final Runnable afterwards)
     {
         final List<List<Location>> rings =
-            IrisSweep.closingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+            IrisSweep.closingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
                 ConfigManager.getGateIrisMaxSteps());
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
@@ -135,8 +133,6 @@ public final class StargateIrisAnimator
      * <p>Null, for the block really there, when the iris is built. A drawn iris is air on the
      * server, so sending the real block uncovered the opening a ring at a time instead.
      *
-     * @param gate
-     *            the gate
      * @return the iris material if it is drawn, or null to send the real blocks
      */
     private static Material irisAsItStands(final Stargate gate)
@@ -160,7 +156,7 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
-        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
             ConfigManager.getGateIrisMaxSteps()), 0, under, afterwards,
             cells -> StargateBlockSetup.horizonBehind(gate, cells, false));
     }
@@ -168,8 +164,6 @@ public final class StargateIrisAnimator
     /**
      * Draws one ring and books the next.
      *
-     * @param gate
-     *            the gate
      * @param rings
      *            the rings, in the order they are drawn
      * @param index
@@ -216,9 +210,6 @@ public final class StargateIrisAnimator
      * <p>Called when the iris is toggled again before a sweep finishes. The half-drawn picture
      * is not unwound frame by frame -- the true blocks are simply sent, which is both the
      * shortest way back to honest and the state the next sweep expects to start from.
-     *
-     * @param gate
-     *            the gate
      */
     static void cancel(final Stargate gate)
     {
@@ -229,6 +220,13 @@ public final class StargateIrisAnimator
         }
         if ((gate != null) && (gate.getGateWorld() != null))
         {
+            // An opening sweep leaves a built iris standing until its last step, which is dropped
+            // here: take it away now, to what the opening shows at this moment rather than what it
+            // showed when the sweep began (#434).
+            if ((task != null) && !gate.isGateIrisActive() && !StargateBlockSetup.irisIsDrawn(gate))
+            {
+                gate.fillGateInterior(gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR);
+            }
             StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
         }
     }
@@ -251,8 +249,6 @@ public final class StargateIrisAnimator
     /**
      * Whether a sweep is running on a gate.
      *
-     * @param gate
-     *            the gate
      * @return true if one is
      */
     static boolean isSweeping(final Stargate gate)
@@ -263,8 +259,6 @@ public final class StargateIrisAnimator
     /**
      * The key a gate's sweep is held under.
      *
-     * @param gate
-     *            the gate
      * @return its name, or the empty string for a gate that has none
      */
     private static String key(final Stargate gate)

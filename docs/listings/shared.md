@@ -13,13 +13,13 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.7.1` — newest release. v1.7.0 went out the same day; check which jar each site actually carries before bumping its field. |
+| Version | `1.8.0` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none. Vault and LuckPerms optional, snakeyaml comes from the server, nothing shaded |
+| Dependencies | none required. Vault, LuckPerms and PlaceholderAPI optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live
@@ -155,16 +155,17 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 
 - **Dialling the way the show does it.** Chevrons light in order — down the right side, up the
   left, the top one last — at half a second each on a Standard gate and a little slower on bigger
-  ones. The last one holds a second and locks in with its own sound. Then the kawoosh.
+  ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 - **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
   `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap`
   takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an
-  Atlantis gate does, and `none` turns it off. No pattern changes how fast a gate dials.
+  Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns
+  it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
   last lying flat to be dropped into rather than walked through. Shapes are plain text files:
   copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped
-  files are written out on first run and never overwrite yours.
+  files update themselves when you have not edited them, and never overwrite one you have.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal,
   iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file. Several groups ship, you can write as many as you
@@ -177,8 +178,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   gate a layer at a time; `-activate` test-dials it; `-iris`, `-chevrons`, `-dhd` and `-material`
   redress it; `-share` shows it to another player or the whole world; and `-place` builds it for
   real.
-- **An iris, with remote codes.** A closed iris bounces anyone dialling in. Give a gate an IDC and
-  callers can open it from the other end.
+- **An iris, with remote codes.** A closed iris bounces anyone dialling in, and sweeps shut a ring
+  at a time, or as a spiral, rows or columns. Give a gate an IDC and callers can open it from the
+  other end.
 - **Sign dialling and redstone.** A dial sign steps through destinations on right-click, with the
   selection coloured and wrapped in `» «` so it reads for a colourblind player. Wire redstone to
   the marked cell and a pulse dials whatever the sign shows; a second marked cell drives a lever
@@ -277,7 +279,12 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in
   fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
-- **Events for other plugins** to watch or cancel travel.
+- **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
+- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for
+  a scoreboard or tab list.
+- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
+  server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
+  turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ## Getting started
@@ -336,8 +343,9 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a
   pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring
   campaign cleared the open backlog and closed every "method too complex" finding on the way.
-- **Nothing third-party in the jar.** Every dependency is provided or test scope; there is no
-  shading, no bundled library, and no database. Gates are one YAML file each.
+- **Nothing third-party in the jar but bStats.** Every other dependency is provided or test scope,
+  and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML
+  file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are
   welcome.
 
@@ -353,7 +361,7 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 Modrinth and Hangar both take a per-version changelog, and a release's full section of
 [`CHANGELOG.md`](../../CHANGELOG.md) runs to well over a hundred lines — a wall on a download
 page. Use the short form below there and link the full one. Rewrite it per release; what follows
-is 1.7.1's.
+is 1.8.0's.
 
 **Keep the Upgrading bullets whatever else is cut.** Shape files are never overwritten, so an
 upgrader who keeps the old `Massive.shape` gets none of this release's fixes, and one who skips
@@ -365,27 +373,40 @@ nothing saying they do not apply reads as setup they have to do.
 **Spigot needs the same block in BBCode**, which [`spigot.md`](spigot.md#version-upload) carries.
 Rewriting these notes means rewriting that one too.
 
-> **Upgrading from 1.7.0 — take the new `Massive` shape.**
+> **Upgrading from 1.7 — nothing you have to do.**
 >
-> - Delete `Massive.shape` if you did not edit it, and restart. The startup log names it.
-> - Then run `/wormhole gate regen <gate>` on each Massive gate: its name sign stood inside the
->   ring, and regen puts the block back and hangs the sign on the front. A gate with a hole where
->   the sign was needs `/wormhole gate regen <gate> -shape Massive -fill`.
-> - Coming from 1.6.0? 1.7.0's steps apply as well: command keywords now need a dash, and the
->   bundled shapes you have not edited should be deleted so the new dialling appears.
+> - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
+>   `<name>.shape.old`. An edited one is left alone and named in the log.
+> - **Anonymous usage counts now go to bStats**, on by default: Minecraft version, server software,
+>   and how many gates, rings, beams and mirrors, in ranges. `/wormhole config metrics-enabled false`
+>   stops it.
+> - The default `top` dial rests on the top chevron after each lock, so a dial takes about three
+>   seconds longer. `/wormhole config gate-dial-spin chevron` keeps the old pace.
+> - Optional: an existing `config.yml` keeps its material groups as they were. For Atlantis and
+>   Universe gates to dial their own way, as new installs do, add `dial-spin: pegasus` and
+>   `dial-spin: universe` to those groups.
+> - Coming from 1.7.0? The `Massive` shape updates itself; then run `/wormhole gate regen <gate>` on
+>   each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 > - Installing for the first time? None of the above applies. Drop the jar in and start.
 >
 > **Stargates**
 >
-> - `Massive` is the same on both sides, and its name sign hangs on the front of the gate.
-> - `gate regen -fill` places the few frame blocks a gate is missing, from its own materials.
-> - A build preview placed over a gate fills in what it is missing, then regenerates it.
-> - Taking a name sign down no longer leaves a hole in the frame.
-> - `gate shapes validate` catches a name sign that would land inside the gate.
+> - The iris sweeps shut a ring at a time, or as a spiral, rows or columns
+>   (`gate-iris-animation`), and an upright gate's iris is drawn rather than built from blocks.
+> - Three more dial-spin patterns: `chase`, `universe` (Destiny's) and `overshoot`. A gate picks
+>   its own with `/wormhole gate edit <gate> spin`, and a material group with `dial-spin:`.
+> - `gate regen` keeps every `gate edit` setting, and `gate edit group` lasts past a restart.
+> - Many iris and wormhole drawing fixes; the full changelog lists them.
 >
-> **Server**
+> **Commands**
 >
-> - `/version WormholeXTreme` says when the jar was built.
+> - A mistyped command gets one short coloured usage line for that command, and `/wormhole` on its
+>   own lists its commands by job.
+>
+> **For other plugins**
+>
+> - `StargateActivatedEvent` and `StargateShutdownEvent`, and a PlaceholderAPI expansion, off
+>   until `placeholders-enabled` is set.
 >
 > [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md)
 

@@ -100,8 +100,6 @@ public class StargatePlayerTravelEvent extends StargateEvent implements Cancella
 
     /**
      * Where the player would arrive, after the safe-location search.
-     *
-     * @return the arrival location
      */
     public Location getArrival()
     {
@@ -122,8 +120,6 @@ public class StargatePlayerTravelEvent extends StargateEvent implements Cancella
 
     /**
      * The handler list for this event type.
-     *
-     * @return the handlers
      */
     public static HandlerList getHandlerList()
     {

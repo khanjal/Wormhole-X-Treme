@@ -31,8 +31,6 @@ public class Dial implements CommandExecutor
      * <p>Every way this can fail sends its own message and puts the activated gate out again,
      * so each refusal is a guard of its own rather than a level of nesting.
      *
-     * @param player
-     *            the player
      * @param args
      *            the gate name, and optionally the IDC for a closed remote iris
      */

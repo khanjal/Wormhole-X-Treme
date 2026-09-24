@@ -33,7 +33,6 @@ public final class BeamCooldown
     /**
      * Whether a player is still on cooldown.
      *
-     * @param player the player
      * @return true if they must wait
      */
     public static boolean isActive(final Player player)
@@ -45,7 +44,6 @@ public final class BeamCooldown
      * How many seconds a player still has to wait, clearing the record once it has elapsed
      * rather than leaving a stale entry to recompute against forever.
      *
-     * @param player the player
      * @return seconds remaining, or 0 if they are free to beam
      */
     public static long remainingSeconds(final Player player)

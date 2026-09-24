@@ -153,15 +153,17 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Teleports a player through a gate on their own, with no mount involved.
      *
-     * @param player
-     *            the player
      * @param safeTarget
      *            the vetted arrival location
      */
     private static void teleportPlayerAlone(final Player player, final Location safeTarget)
     {
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WorldUtils.forceLoadDestinationChunks(safeTarget);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
         player.teleport(safeTarget);
         try
         {
@@ -320,8 +322,6 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Handle player move event.
      *
-     * @param event
-     *            the event
      * @return true, if successful
      */
     private static boolean handlePlayerMoveEvent(final PlayerMoveEvent event)
@@ -390,8 +390,6 @@ class WormholeXTremePlayerListener implements Listener
      * it would actually be printed. It used to call {@code Player.toString()} and two extra
      * {@code getBlockAt} lookups on every crossing and throw all of it away.
      *
-     * @param event
-     *            the move
      * @param player
      *            who moved
      */
@@ -445,8 +443,6 @@ class WormholeXTremePlayerListener implements Listener
      * directions. A gate activated but never dialled has nowhere to send anybody, so its
      * ring is just a ring and a player may walk through it.
      *
-     * @param event
-     *            the move
      * @param player
      *            the player moving
      * @param stargate
@@ -525,7 +521,11 @@ class WormholeXTremePlayerListener implements Listener
 
         // Refill the player's air while they stand in the portal so a water-material
         // gate does not drown them. Cosmetic, so a failure is not worth reporting.
-        try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            player.setRemainingAir(player.getMaximumAir());
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         if (refusedBeforeTravel(player, stargate))
         {
@@ -847,10 +847,18 @@ class WormholeXTremePlayerListener implements Listener
         final Vector exitVelocity = aimMountAtExit(riddenTarget, exitFacing, ridden);
 
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WorldUtils.forceLoadDestinationChunks(riddenTarget);
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
         // Mark before the teleport so a VehicleMoveEvent in the same tick is
         // suppressed and does not double-process this entry, zeroing the exit velocity.
-        try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) { /* best effort */ }
+        try
+        {
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId());
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
 
         try
         {
@@ -949,11 +957,23 @@ class WormholeXTremePlayerListener implements Listener
                 }
                 // Each call is independently best-effort: none of them failing is
                 // worth aborting the others.
-                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) { /* best effort */ }
-                try { player.setFallDistance(0); } catch (final RuntimeException ignore) { /* best effort */ }
+                try
+                {
+                    player.setVelocity(new Vector(0, 0, 0));
+                }
+                catch (final RuntimeException ignore) { /* best effort */ }
+                try
+                {
+                    player.setFallDistance(0);
+                }
+                catch (final RuntimeException ignore) { /* best effort */ }
                 if (!skipTeleport)
                 {
-                    try { player.teleport(target); } catch (final RuntimeException ignore) { /* best effort */ }
+                    try
+                    {
+                        player.teleport(target);
+                    }
+                    catch (final RuntimeException ignore) { /* best effort */ }
                 }
                 // A moment of water, as though they had just surfaced out of the event
                 // horizon. Sent here rather than at teleport time so it lands after the
@@ -1487,9 +1507,6 @@ class WormholeXTremePlayerListener implements Listener
      * <p>This is the case behind "the water is gone at the other end": the destination gate
      * opened while the traveller was still standing at the source, far outside the range
      * the portal is drawn to, so they were never sent it in the first place.
-     *
-     * @param event
-     *            the teleport
      */
     @EventHandler
     public void onPlayerTeleport(final PlayerTeleportEvent event)
@@ -1509,9 +1526,6 @@ class WormholeXTremePlayerListener implements Listener
      * Drops any portal flight exemption held by a player who has left.
      *
      * <p>Ids of players who never come back would otherwise sit in the set forever.
-     *
-     * @param event
-     *            the quit
      */
     @EventHandler
     public void onPlayerQuit(final PlayerQuitEvent event)
@@ -1551,9 +1565,6 @@ class WormholeXTremePlayerListener implements Listener
 
     /**
      * Redraws open portals for a player who has just joined.
-     *
-     * @param event
-     *            the join
      */
     @EventHandler
     public void onPlayerJoin(final PlayerJoinEvent event)
@@ -1577,9 +1588,6 @@ class WormholeXTremePlayerListener implements Listener
 
     /**
      * Redraws open portals for a player who has just respawned.
-     *
-     * @param event
-     *            the respawn
      */
     @EventHandler
     public void onPlayerRespawn(final PlayerRespawnEvent event)
