@@ -6,7 +6,7 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## 1.8.0 (unreleased)
+## 1.8.0 (2026-09-26)
 
 ### For server admins
 
@@ -14,8 +14,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **Anonymous usage counts go to [bStats](https://bstats.org)**: Minecraft version, server
   software, and how many gates, rings, beams and mirrors, in ranges. No names, coordinates or
-  addresses; bStats keeps a random id so it counts each server once. On by default; `metrics-enabled: false` stops it, and `plugins/bStats/config.yml`
-  stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
+  addresses; bStats keeps a random id so it counts each server once. On by default;
+  `metrics-enabled: false` stops it, and `plugins/bStats/config.yml` stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
 
 ### For other plugins
 
