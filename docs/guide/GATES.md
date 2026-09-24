@@ -101,7 +101,7 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 | `chevron` | The light runs half the ring and lands on the chevron, turning the other way each glyph |
 | `lap` | A whole turn clockwise, landing on the chevron: round and round |
 | `fill` | As `chevron`, lighting the ring behind it as it goes |
-| `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time |
+| `pegasus` | As an Atlantis gate dials: from the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time over the frame; a chevron lights only as it locks |
 | `chase` | A whole turn anticlockwise from chevron 1 back to it, then from each locked chevron to the next, clockwise to chevron 2 and turning the other way each time |
 | `universe` | As Destiny's gate dials: the whole ring turns about a full turn for each glyph, the other way each time. The top chevron's light rides round from the start, and each chevron lights at the top as it locks and rides round too, rather than lighting in its own place. When the top chevron locks, every one is back in its place. On a dial to another world, the eighth then turns a full turn and locks in its own place |
 | `overshoot` | As `chevron`, running a little past the chevron and backing onto it |
