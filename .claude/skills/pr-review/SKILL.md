@@ -1,12 +1,12 @@
 ---
 name: pr-review
-description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a model review before it opens and another of the finished PR before it merges, never by the model that wrote the code (usually Sonnet, then Fable); then Copilot at open and once more after the final model review, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
+description: How a pull request in this repository (khanjal/Wormhole-X-Treme) gets reviewed before it merges — a model review before it opens and another of the finished PR before it merges, never by the model that wrote the code (usually Sonnet, then Fable); then Copilot once, on the finished PR after the final model review, recognising the quota-exhausted "review" that looks like a clean one; all three comment surfaces and the PR's own Sonar issues; and saying on the PR which reviews ran. Use this whenever opening a PR here, whenever about to merge one, and whenever asked to check, triage or review the open PRs — including from a cloud session, which has no local memory of any of this.
 ---
 
 # Reviewing a pull request before it merges
 
-Every PR here is reviewed four times before it merges: by a model before it opens, by Copilot
-once it has, by a model again on the finished PR, and by Copilot once more after that. Neither model review
+Every PR here is reviewed three times before it merges: by a model before it opens, by a model
+again on the finished PR, and then by Copilot on the code as it will merge. Neither model review
 is ever by the model that wrote the code: when Opus wrote it, the usual case, that is Sonnet then
 Fable; the table in step 1 has the rest. Green CI replaces none of them: the matrix proves the
 code builds and the tests pass, not that the tests test the right thing.
@@ -14,8 +14,8 @@ code builds and the tests pass, not that the tests test the right thing.
 ## The checklist in every PR description
 
 Every PR description carries the **Reviews** checklist from `.github/pull_request_template.md`:
-who wrote the code, the first review, Copilot at open, the final review, Copilot after it,
-findings handled, Sonar at zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
+who wrote the code, the first review, the final review, Copilot, findings handled, Sonar at
+zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
 PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
 is still owed. A PR is not ready to merge with a box unticked.
@@ -41,10 +41,10 @@ review as a sub-agent with a model override -- the Agent tool's `model` paramete
   through the far end's iris), and a third nobody else saw (a per-gate entity scan every
   second), with no false positives. Neither the writing session nor its own `/code-review` had
   found any of them.
-- **`fable` (Fable 5.1), before merging -- step 6.** On the same blind test it found both
+- **`fable` (Fable 5.1), before merging -- step 3.** On the same blind test it found both
   serious bugs too, plus three edge cases Sonnet missed (ridden carts, fast movement, ender
-  pearls). It goes last so it reviews everything, fixes included: a fix for one review's
-  finding is new code nobody has reviewed yet.
+  pearls). It goes after everything the models find is fixed, so it reviews the fixes too: a
+  fix for one review's finding is new code nobody has reviewed yet.
 
 Each took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens are cheaper.
 
@@ -52,7 +52,7 @@ Each took about ten minutes and 200k tokens on a 1,700-line PR; Sonnet's tokens 
 wrote it, the usual case. If it was written with a different model, swap in Opus for whichever
 reviewer matches it:
 
-| Written by | First review (step 1) | Final review (step 6) |
+| Written by | First review (step 1) | Final review (step 3) |
 |---|---|---|
 | Opus | Sonnet | Fable |
 | Sonnet | Opus | Fable |
@@ -77,66 +77,7 @@ Run it in the background and do the CHANGELOG, PMD and test build meanwhile. Whe
 If the code then changes well beyond fixes to those findings -- a new approach, a new area --
 run step 1 again on the new commits, and add that run to the checklist's first-review line.
 
-## 2. When the PR opens: request Copilot
-
-Request it at open, and once more after the final review (step 6) -- never at any other point
-or any other number of times: each review spends from a monthly allowance, and once that is
-gone a request gets nothing at all. An open PR that never had it requested -- opened by a
-session that did not follow this -- gets its at-open request now.
-
-`gh pr` and `gh issue` need `-R khanjal/Wormhole-X-Treme` in this repo (there are three
-remotes). `gh api` does not take `-R` at all -- it fails with "unknown shorthand flag" -- and
-does not need it, because its paths name the repo. Request the review with the GraphQL mutation,
-naming the reviewer bot by its node id:
-
-```bash
-gh api repos/khanjal/Wormhole-X-Treme/pulls/<n> --jq .node_id
-gh api graphql -f query='mutation{requestReviews(input:{pullRequestId:"<node id>",botIds:["BOT_kgDOCnlnWA"],union:true}){pullRequest{number}}}'
-```
-
-`BOT_kgDOCnlnWA` is `copilot-pull-request-reviewer`. `suggestedActors` lists only
-`copilot-swe-agent`, which is the coding agent: requesting it returns success and nothing
-ever arrives. The mutation's return value proves nothing either way. Check the timeline:
-
-```bash
-gh api repos/khanjal/Wormhole-X-Treme/issues/<n>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
-```
-
-Empty means no request landed; after step 6's request there should be two lines. If it will not register, ask the user to add Copilot from the
-GitHub UI.
-
-Copilot still matters after step 1: every model in step 1 comes from the same vendor, and
-Copilot does not. It is the one reviewer whose blind spots are not correlated with the author's.
-
-## 3. Before merging: read what came back
-
-The review lags CI by 6-15 minutes, so read it at the moment of merging, not when CI goes
-green. There are three surfaces, and reading two of them is the usual miss:
-
-```bash
-gh api repos/khanjal/Wormhole-X-Treme/pulls/<n>/reviews    # review bodies
-gh api repos/khanjal/Wormhole-X-Treme/pulls/<n>/comments   # inline comments
-gh api repos/khanjal/Wormhole-X-Treme/issues/<n>/comments  # issue-level: SonarCloud, humans
-```
-
-**A quota-exhausted review looks like a clean one.** Its state is `COMMENTED`, it has no
-inline comments, and its whole body reads "Copilot was unable to review this pull request
-because the user who requested the review has reached their quota limit." Read the body
-before calling a PR reviewed.
-
-Treat Copilot's findings as informed, not authoritative. Check each against the current code;
-it has argued for restoring a `catch (Throwable)` this project removed on purpose.
-
-## 4. When Copilot could not review: steps 1 and 6 are the review of record
-
-This applies to each of the two requests on its own. If the quota is gone -- its review came back with the quota-exhausted body -- or the request
-would not register at all, the two model reviews (steps 1 and 6) are what the PR merges on. A
-review that was requested and has not come back is neither: it usually lands 6-15 minutes after
-the request, so wait for it, and treat it as gone only an hour after the request. Do not wait
-for the allowance to reset, and do not ask whether to substitute; the user decided this on
-2026-09-21. Say so on the PR, rather than calling it reviewed as if Copilot had done it.
-
-## 5. Sonar: the PR's issues, not the tick
+## 2. Sonar: the PR's issues, not the tick
 
 A green Sonar check can hide an open issue. Read the count directly:
 
@@ -157,32 +98,86 @@ Zero is the bar before merging (see the `sonar-check` skill for the false positi
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
 up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
 
-## 6. Last, on every PR: the final review of the finished PR
+## 3. The final model review of the finished PR
 
-When everything else is done -- findings fixed, CI green, Sonar at zero (step 5), any in-game
+When everything else is done -- findings fixed, CI green, Sonar at zero (step 2), any in-game
 check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code) as
 a sub-agent on the whole PR as it now stands (`origin/main...` the branch head, fetched),
-with the same brief as step 1. Tell it what the earlier reviews found and what became of each,
-so it spends its time on what they missed rather than confirming what is already fixed.
+with the same brief as step 1. Tell it what the earlier review found and what became of each,
+so it spends its time on what it missed rather than confirming what is already fixed.
 
 Handle its findings the way step 1 says. A fix it prompts is small by then, and does not need a
-further final review unless it changes behaviour well beyond the finding; Sonar (step 5) does need
+further final review unless it changes behaviour well beyond the finding; Sonar (step 2) does need
 checking again after it. Say on the PR that it ran.
 
-Then, once its fixes are pushed, request Copilot a second time with the same mutation as step 2.
-The at-open review saw the PR before either model review's fixes, so this one is the only
-outside-vendor look at the code that actually merges. Wait for it and read it as step 3 says;
-step 4 covers it coming back quota-exhausted. Its fixes, like the final review's, do not need
-another final review unless they change behaviour well beyond the finding, and never request a
-third Copilot review for them.
+## 4. Last: request Copilot, once
+
+Only once the final review's fixes are pushed, so Copilot sees the code that will actually
+merge, and only once per PR: each review spends from a monthly allowance, and once that is gone
+a request gets nothing at all. Do not request it at open, nor again after the fixes it prompts.
+An open PR that already had its one request -- from before this rule -- does not get another.
+
+Copilot still matters after two model reviews: both models come from the same vendor, and
+Copilot does not. It is the one reviewer whose blind spots are not correlated with the author's.
+
+`gh pr` and `gh issue` need `-R khanjal/Wormhole-X-Treme` in this repo (there are three
+remotes). `gh api` does not take `-R` at all -- it fails with "unknown shorthand flag" -- and
+does not need it, because its paths name the repo. Request the review with the GraphQL mutation,
+naming the reviewer bot by its node id:
+
+```bash
+gh api repos/khanjal/Wormhole-X-Treme/pulls/<n> --jq .node_id
+gh api graphql -f query='mutation{requestReviews(input:{pullRequestId:"<node id>",botIds:["BOT_kgDOCnlnWA"],union:true}){pullRequest{number}}}'
+```
+
+`BOT_kgDOCnlnWA` is `copilot-pull-request-reviewer`. `suggestedActors` lists only
+`copilot-swe-agent`, which is the coding agent: requesting it returns success and nothing
+ever arrives. The mutation's return value proves nothing either way. Check the timeline:
+
+```bash
+gh api repos/khanjal/Wormhole-X-Treme/issues/<n>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
+```
+
+Empty means no request landed. If it will not register, ask the user to add Copilot from the
+GitHub UI.
+
+## 5. Read what came back
+
+The review usually lands 6-15 minutes after the request. Wait for it, and treat it as gone only
+an hour after the request. There are three surfaces, and reading two of them is the usual miss:
+
+```bash
+gh api repos/khanjal/Wormhole-X-Treme/pulls/<n>/reviews    # review bodies
+gh api repos/khanjal/Wormhole-X-Treme/pulls/<n>/comments   # inline comments
+gh api repos/khanjal/Wormhole-X-Treme/issues/<n>/comments  # issue-level: SonarCloud, humans
+```
+
+**A quota-exhausted review looks like a clean one.** Its state is `COMMENTED`, it has no
+inline comments, and its whole body reads "Copilot was unable to review this pull request
+because the user who requested the review has reached their quota limit." Read the body
+before calling a PR reviewed.
+
+Treat Copilot's findings as informed, not authoritative. Check each against the current code;
+it has argued for restoring a `catch (Throwable)` this project removed on purpose. Handle the
+real ones the way step 1 says; like the final review's, their fixes do not need another final
+review unless they change behaviour well beyond the finding, and Sonar (step 2) needs checking
+again after them.
+
+## 6. When Copilot could not review: the model reviews are the review of record
+
+If the quota is gone -- its review came back with the quota-exhausted body -- or the request
+would not register at all, or nothing came back within the hour, the two model reviews (steps 1
+and 3) are what the PR merges on. Do not wait for the allowance to reset, and do not ask whether
+to substitute; the user decided this on 2026-09-21. Say so on the PR, rather than calling it
+reviewed as if Copilot had done it.
 
 ## 7. Merge
 
 - Every box in the PR's Reviews checklist is ticked.
-- Both Copilot reviews, where they came, have been read on all three surfaces (step 3) and each
-  finding fixed or answered.
-- The final review in step 6 has run on the latest commit, or on one the later commits only
-  fixed its findings in.
+- Copilot's review, if one came, has been read on all three surfaces (step 5) and each finding
+  fixed or answered.
+- The final review in step 3 has run on the latest commit, or on one the later commits only
+  fixed its or Copilot's findings in.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
   refusing a download (HTTP 429 from Maven Central) is infrastructure: re-run the failed job.
 - Squash merge, which is what the history uses.
