@@ -386,13 +386,15 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 
 What is sent, twice an hour:
 
-- what bStats sends for every plugin: Minecraft version, server software, Java version, player
-  count, and the rough location of the server by country;
+- what bStats sends for every plugin: Minecraft version, server software, Java version, online
+  mode, player count, operating system and core count, this plugin's version, and a random id
+  it keeps in `plugins/bStats/config.yml` so each server is counted once. It works out the
+  country from the address the counts come from;
 - how many gates, ring pairs, beam destinations and mirrors there are, as a range (`0`, `1-5`,
   `6-20`, `21-50`, `51-200`, `200+`);
 - the `gate-dial-spin` pattern.
 
-No names, coordinates or addresses. `plugins/bStats/config.yml` has `enabled: false` to stop
+No player or gate names, coordinates or addresses. `plugins/bStats/config.yml` has `enabled: false` to stop
 it for every plugin on the server, and a DNS blocker that blocks `bstats.org` stops it too,
 without any effect on the plugin.
 

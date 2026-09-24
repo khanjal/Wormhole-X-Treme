@@ -33,7 +33,7 @@ public final class MetricsSupport
     }
 
     /**
-     * Starts sending, once.
+     * Starts sending, unless it already is.
      *
      * @param plugin
      *            this plugin
@@ -52,7 +52,7 @@ public final class MetricsSupport
         started.addCustomChart(new SimplePie("gate_dial_spin",
             () -> ConfigManager.getGateDialSpinPattern().name().toLowerCase(Locale.ROOT)));
         metrics = started;
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Sending anonymous usage counts to bStats.");
+        plugin.getLogger().info("Sending anonymous usage counts to bStats; metrics-enabled: false stops it.");
     }
 
     /** Stops sending, on disable. */
@@ -63,6 +63,7 @@ public final class MetricsSupport
         if (running != null)
         {
             running.shutdown();
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Stopped sending usage counts to bStats.");
         }
     }
 

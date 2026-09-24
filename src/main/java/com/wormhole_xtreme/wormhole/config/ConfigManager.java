@@ -1790,8 +1790,35 @@ public class ConfigManager
             // Read once at startup otherwise, so the change would wait for a restart.
             com.wormhole_xtreme.wormhole.WormholeXTreme.applyLogLevel(getLogLevel());
         }
+        else if (setting.getName() == ConfigKeys.METRICS_ENABLED)
+        {
+            // Likewise read once at startup: start or stop bStats now.
+            followMetrics();
+        }
         Configuration.persistCurrentConfiguration(SECTION);
         return setting.getName().name() + " is now " + parsed.getValue() + ".";
+    }
+
+    /** Starts or stops bStats to match {@code metrics-enabled}; a failure costs only a log line. */
+    private static void followMetrics()
+    {
+        try
+        {
+            if (isMetricsEnabled())
+            {
+                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableMetrics(
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin());
+            }
+            else
+            {
+                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.disableMetrics();
+            }
+        }
+        catch (final Exception | LinkageError e)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not follow metrics-enabled", e);
+        }
     }
 
     /**
