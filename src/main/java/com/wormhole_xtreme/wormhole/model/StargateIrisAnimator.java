@@ -57,8 +57,8 @@ public final class StargateIrisAnimator
      */
     static boolean sweeps(final Stargate gate)
     {
-        return ConfigManager.isGateIrisAnimated()
-            && (gate != null)
+        return (gate != null)
+            && ConfigManager.isIrisAnimated(gate.getEffectiveIrisAnimation())
             && (gate.getGateWorld() != null)
             && (gate.getGatePortalBlocks() != null)
             && (gate.getGatePortalBlocks().size() > 1)
@@ -114,7 +114,7 @@ public final class StargateIrisAnimator
     static void sweepClosed(final Stargate gate, final Material under, final Runnable afterwards)
     {
         final List<List<Location>> rings =
-            IrisSweep.closingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+            IrisSweep.closingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
                 ConfigManager.getGateIrisMaxSteps());
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
@@ -160,7 +160,7 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
-        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), ConfigManager.getGateIrisStyle(),
+        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
             ConfigManager.getGateIrisMaxSteps()), 0, under, afterwards,
             cells -> StargateBlockSetup.horizonBehind(gate, cells, false));
     }

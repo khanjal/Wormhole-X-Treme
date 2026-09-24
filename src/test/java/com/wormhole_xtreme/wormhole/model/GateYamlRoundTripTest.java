@@ -280,4 +280,22 @@ class GateYamlRoundTripTest
             MaterialGroupRegistry.load(null);
         }
     }
+
+    /** A gate's own iris animation (#427) survives a restart; one without keeps none, and writes none. */
+    @Test
+    void aGatesIrisAnimationRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    {
+        final Stargate own = gate("own");
+        own.setGateIrisAnimation("columns");
+        StargateYamlManager.saveStargate(own, gatesDir());
+        StargateYamlManager.saveStargate(gate("server"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "server.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.IRIS_ANIMATION_KEY), "nothing written for an unset animation");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals("columns", StargateManager.getStargate("own").getGateIrisAnimation());
+        assertNull(StargateManager.getStargate("server").getGateIrisAnimation());
+    }
 }

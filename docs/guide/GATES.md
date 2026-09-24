@@ -346,6 +346,10 @@ only one ring -- `Minimal` -- is one step whatever either says.
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
 
+A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or `default` to go
+back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then
+its group's, then `gate-iris-animation`; a build preview uses its group's, then the setting.
+
 Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
 `rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
 for the style you settle on rather than expecting them to match, and raise
@@ -562,7 +566,8 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
 `woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
-`-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`).
+`-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
+[style](#how-it-arrives), or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.

@@ -83,6 +83,9 @@ sign-color-neighbour: GRAY
 # dial-spin: optional. The ring pattern this group's gates dial with, as gate-dial-spin
 #            takes it; a gate's own `/wormhole gate edit <gate> spin` comes first. Leave
 #            it out and the group's gates follow gate-dial-spin.
+# iris-animation: optional. How this group's gates' irises cross, as gate-iris-animation
+#            takes it (sweep, spiral, rows, columns or instant); a gate's own
+#            `/wormhole gate edit <gate> iris-animation` comes first.
 gate-material-groups:
   Standard:
     structure: OBSIDIAN

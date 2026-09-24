@@ -110,6 +110,7 @@ public final class GateRefresh
         fresh.setGateRedstonePowered(existing.isGateRedstonePowered());
         fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
         fresh.setGateDialSpin(existing.getGateDialSpin());
+        fresh.setGateIrisAnimation(existing.getGateIrisAnimation());
         if (existing.isGateMaterialGroupChosen())
         {
             fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());
