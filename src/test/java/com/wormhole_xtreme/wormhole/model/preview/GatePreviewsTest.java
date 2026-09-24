@@ -2921,4 +2921,81 @@ class GatePreviewsTest
         assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(d -> (d == ice) || (d == packed)),
             "and none is left once the preview is gone");
     }
+
+    /** Steps a closing sweep along without finishing it. */
+    private void stepIrisSweep(final int steps)
+    {
+        for (int step = 0; (step < steps) && !irisPending.isEmpty(); step++)
+        {
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
+        }
+    }
+
+    /** Moves a viewer to so many blocks along the preview's facing, negative for behind, and tells the preview. */
+    private void walkTo(final Player viewer, final int steps)
+    {
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        final Location at = new Location(world, cell.x() + (steps * facing.getModX()) + 0.5,
+            cell.y() + (steps * facing.getModY()), cell.z() + (steps * facing.getModZ()) + 0.5);
+        when(viewer.getLocation()).thenReturn(at);
+        when(viewer.getEyeLocation()).thenReturn(at);
+        GatePreviews.moved(viewer, at);
+    }
+
+    /**
+     * A viewer who crosses from behind to in front mid-sweep gets the stand-in wormhole behind the
+     * ring, on their new far side, for every ring already covered (#442).
+     */
+    @Test
+    void aViewerWhoWalksRoundToTheFrontGetsTheWormholeBehindTheRing()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", -4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        clearInvocations(walker);
+
+        walkTo(walker, 4);
+
+        final BlockData ice = data.get(Material.BLUE_ICE);
+        final BlockData packed = data.get(Material.PACKED_ICE);
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().anyMatch(d -> (d == ice) || (d == packed)),
+            "the covered rings' wormhole stands behind the gate, their new far side");
+    }
+
+    /** A step mid-sweep that keeps a viewer on the same side changes nothing for them. */
+    @Test
+    void aStepThatStaysOnTheSameSideSendsNothing()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        clearInvocations(walker);
+
+        walkTo(walker, 5);
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** Nothing moves for a crosser behind an opaque iris, whose wormhole never left the ring. */
+    @Test
+    void anOpaqueIrisSweepHasNothingToMoveForACrosser()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        clearInvocations(walker);
+
+        walkTo(walker, -4);
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
 }
