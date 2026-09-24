@@ -26,7 +26,7 @@ public final class MetricsSupport
     /** This plugin's id on bstats.org. */
     static final int BSTATS_ID = 34269;
 
-    private static volatile Metrics metrics;
+    private static Metrics metrics;
 
     private MetricsSupport()
     {
@@ -38,7 +38,7 @@ public final class MetricsSupport
      * @param plugin
      *            this plugin
      */
-    public static void enableMetrics(final JavaPlugin plugin)
+    public static synchronized void enableMetrics(final JavaPlugin plugin)
     {
         if (metrics != null)
         {
@@ -56,7 +56,7 @@ public final class MetricsSupport
     }
 
     /** Stops sending, on disable. */
-    public static void disableMetrics()
+    public static synchronized void disableMetrics()
     {
         final Metrics running = metrics;
         metrics = null;

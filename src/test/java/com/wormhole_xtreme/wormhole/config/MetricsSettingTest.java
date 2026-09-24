@@ -13,6 +13,15 @@ import org.junit.jupiter.api.Test;
  */
 class MetricsSettingTest
 {
+    /** A config with no metrics-enabled at all reads as on, as the setting ships. */
+    @Test
+    void aMissingSwitchReadsAsOn()
+    {
+        ConfigTestSupport.clear();
+
+        assertTrue(ConfigManager.isMetricsEnabled());
+    }
+
     /** metrics-enabled ships on, is written into config.yml with a description, and the getter reads it. */
     @Test
     void theSwitchShipsOnAndCanBeTurnedOff()

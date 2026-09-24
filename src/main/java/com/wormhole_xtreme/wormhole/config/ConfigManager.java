@@ -1940,11 +1940,11 @@ public class ConfigManager
         return s != null && s.getBooleanValue();
     }
 
-    /** Returns true if anonymous usage counts may be sent to bStats. */
+    /** Returns true if anonymous usage counts may be sent to bStats; on when the setting is missing, as it ships. */
     public static boolean isMetricsEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.METRICS_ENABLED);
-        return s != null && s.getBooleanValue();
+        return (s == null) || s.getBooleanValue();
     }
 
     /** Returns true if Vault economy integration is enabled in config. */
