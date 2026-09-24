@@ -321,9 +321,6 @@ public class ConfigManager
 
         /**
          * Instantiates a new string types.
-         * 
-         * @param message
-         *            the message
          */
         private MessageStrings(final String message)
         {
@@ -346,7 +343,7 @@ public class ConfigManager
     /**
      * Gets the configurations.
      * 
-     * @return the configurations
+     * @return the live map rather than a copy
      */
     protected static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations()
     {
@@ -374,8 +371,6 @@ public class ConfigManager
     /**
      * Get Log Level setting from ConfigKeys. Return sane Level value.
      * Return default value if key is missing or broken.
-     * 
-     * @return the log level
      */
     public static Level getLogLevel()
     {
@@ -437,9 +432,7 @@ public class ConfigManager
     /**
      * Gets the setting.
      * 
-     * @param configKey
-     *            the config key
-     * @return the setting
+     * @return the setting, or null if the key is not registered
      */
     private static Setting getSetting(final ConfigKeys configKey)
     {
@@ -769,7 +762,7 @@ public class ConfigManager
     /**
      * What the countdown lights are made of.
      *
-     * @return the light material
+     * @return the configured material, or redstone lamp when it is missing or unknown
      */
     public static Material getRingDefaultLight()
     {
@@ -782,7 +775,7 @@ public class ConfigManager
      * <p>Matches the pad light by default, so an untouched ring reads as one effect rather
      * than two. Setting them apart is what makes the transport its own moment.
      *
-     * @return the flash material
+     * @return the configured material, or the light material when it is missing or unknown
      */
     public static Material getRingDefaultFlash()
     {
@@ -796,7 +789,6 @@ public class ConfigManager
      *            which setting
      * @param fallback
      *            what to use when it is absent
-     * @return the value
      */
     private static int intSetting(final ConfigKeys key, final int fallback)
     {
@@ -809,7 +801,7 @@ public class ConfigManager
      * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
      * default, TOP.
      *
-     * @return the pattern
+     * @return never null
      */
     public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern()
     {
@@ -827,7 +819,7 @@ public class ConfigManager
      *            the gate's own pattern, or null
      * @param group
      *            its material group, or null
-     * @return the pattern
+     * @return never null
      */
     public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern(
         final com.wormhole_xtreme.wormhole.logic.DialSpinPattern own,
@@ -902,7 +894,7 @@ public class ConfigManager
      * <p>Louder than rings by default, and deliberately: a gate is a landmark somebody walks
      * towards, where a ring is something you are standing on.
      *
-     * @return the volume
+     * @return 1.5 when unset; past 1.0 it widens the range heard rather than the loudness
      */
     public static float getGateSoundVolume()
     {
@@ -1046,8 +1038,6 @@ public class ConfigManager
      *
      * <p>Anything unrecognised is read as the default rather than refused, so a mistyped style
      * costs the style and not the iris.
-     *
-     * @return the style
      */
     public static com.wormhole_xtreme.wormhole.model.IrisSweep.Style getGateIrisStyle()
     {
@@ -1174,7 +1164,7 @@ public class ConfigManager
      * <p>Bukkit scales audible range with volume, so this is a distance knob as much as a
      * loudness one: at 1.0 a ring is heard about sixteen blocks away.
      *
-     * @return the volume
+     * @return 1.0 when unset
      */
     public static float getRingSoundVolume()
     {
@@ -1246,7 +1236,7 @@ public class ConfigManager
     /**
      * How loud beam sounds are.
      *
-     * @return the volume
+     * @return 1.0 when unset; past 1.0 it widens the range heard rather than the loudness
      */
     public static float getBeamSoundVolume()
     {
@@ -1500,7 +1490,6 @@ public class ConfigManager
      *            which setting
      * @param fallback
      *            what to use when it cannot be read
-     * @return the material
      */
     private static Material materialSetting(final ConfigKeys key, final Material fallback)
     {
@@ -1562,7 +1551,7 @@ public class ConfigManager
     /**
      * Gets the wormhole use is teleport.
      * 
-     * @return the wormhole use is teleport
+     * @return true if travelling needs permission as well as activating; false when unset
      */
     public static boolean getWormholeUseIsTeleport()
     {
@@ -1580,9 +1569,7 @@ public class ConfigManager
     /**
      * Checks if is configuration key.
      * 
-     * @param configKey
-     *            the config key
-     * @return true, if is configuration key
+     * @return true if the key has a loaded setting
      */
     private static boolean isConfigurationKey(final ConfigKeys configKey)
     {
@@ -1592,7 +1579,7 @@ public class ConfigManager
     /**
      * Checks if is use cooldown enabled.
      * 
-     * @return true, if is use cooldown enabled
+     * @return true if the use cooldown is switched on; false when unset
      */
     public static boolean isUseCooldownEnabled()
     {
@@ -1907,9 +1894,7 @@ public class ConfigManager
      * Sets the config value.
      * 
      * @param key
-     *            the key
-     * @param value
-     *            the value
+     *            a loaded setting; an unknown key, like a null value, changes nothing
      */
     public static void setConfigValue(final ConfigKeys key, final Object value)
     {

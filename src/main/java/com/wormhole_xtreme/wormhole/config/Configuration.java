@@ -31,9 +31,6 @@ public class Configuration
 
     /**
      * Load configuration.
-     * 
-     * @param desc
-     *            the desc
      */
     protected static void loadConfiguration(final String pluginName)
     {
@@ -87,9 +84,6 @@ public class Configuration
 
     /**
      * Write file.
-     * 
-     * @param desc
-     *            the desc
      */
     public static void writeFile(final PluginDescriptionFile desc)
     {
