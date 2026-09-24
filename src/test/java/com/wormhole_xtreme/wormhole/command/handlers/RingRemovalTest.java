@@ -95,13 +95,17 @@ class RingRemovalTest
         bukkit = mockStatic(Bukkit.class);
         bukkit.when(() -> Bukkit.getWorld(WORLD)).thenReturn(world);
         // Every slab the restore lays is a fresh BlockData asked of the server.
-        bukkit.when(() -> Bukkit.createBlockData(Material.STONE_SLAB))
-            .thenAnswer(inv -> mock(Slab.class));
+        bukkit.when(() -> Bukkit.createBlockData(Material.STONE_SLAB)).thenAnswer(inv -> {
+            final Slab slab = mock(Slab.class);
+            when(slab.getMaterial()).thenReturn(Material.STONE_SLAB);
+            return slab;
+        });
     }
 
     @AfterEach
     void tearDown()
     {
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(null);
         bukkit.close();
         config.close();
         yaml.close();
@@ -210,6 +214,26 @@ class RingRemovalTest
         verify(built, never()).setBlockData(org.mockito.ArgumentMatchers.any(), anyBoolean());
         assertEquals(pair.getEndA().perimeterBlocks().size() - 1, slabsLaidOn(pair.getEndA()),
             "every other block of that end still got its slab");
+    }
+
+    /**
+     * With CoreProtect logging on (#238), the slabs laid back are logged under the player who
+     * removed the pair, not the plugin, so a lookup of their name shows what they got back.
+     */
+    @Test
+    void theSlabsLaidBackAreLoggedUnderThePlayer()
+    {
+        config.when(ConfigManager::isCoreProtectEnabled).thenReturn(Boolean.TRUE);
+        final java.util.List<String> logged = new java.util.ArrayList<>();
+        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(
+            (placed, user, at, type, data) -> logged.add((placed ? "placed " : "removed ") + user + " " + type));
+
+        remove(PAIR_ID);
+
+        final int expected = pair.getEndA().perimeterBlocks().size()
+            + pair.getEndB().perimeterBlocks().size();
+        assertEquals(java.util.Collections.nCopies(expected, "placed Justin STONE_SLAB"), logged,
+            "one placement per slab, under Justin rather than #wormhole");
     }
 
     /** And the count the player is told reflects what actually went back. */
