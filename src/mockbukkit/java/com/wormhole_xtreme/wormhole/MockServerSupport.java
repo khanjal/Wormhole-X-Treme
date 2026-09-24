@@ -191,9 +191,9 @@ final class MockServerSupport
             }
         }
 
-        @Override
         // WorldMock's block cache is private, so reflection hands it back as a bare Object.
         @SuppressWarnings("unchecked")
+        @Override
         public BlockMock createBlock(final Coordinate c)
         {
             final BlockMock block = new Block(super.createBlock(c));
