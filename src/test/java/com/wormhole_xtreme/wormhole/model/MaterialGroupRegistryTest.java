@@ -335,4 +335,36 @@ class MaterialGroupRegistryTest
             MaterialGroupRegistry.getGroup("Universe").getDialSpin());
         assertNull(MaterialGroupRegistry.getGroup("Standard").getDialSpin(), "Standard follows gate-dial-spin");
     }
+
+    /** A group's iris-animation (#427) is read whatever its capitals; an unknown one is ignored. */
+    @Test
+    void aGroupsIrisAnimationIsReadAndAnUnknownOneIsIgnored()
+    {
+        final Map<String, Object> section = new LinkedHashMap<>();
+        final Map<String, Object> atlantis = group("LAPIS_BLOCK", null, null, null);
+        atlantis.put("iris-animation", "Spiral");
+        section.put("Atlantis", atlantis);
+        final Map<String, Object> odd = group("OBSIDIAN", null, null, null);
+        odd.put("iris-animation", "sideways");
+        section.put("Odd", odd);
+
+        MaterialGroupRegistry.load(section);
+
+        assertEquals("spiral", MaterialGroupRegistry.getGroup("Atlantis").getIrisAnimation());
+        assertNull(MaterialGroupRegistry.getGroup("Odd").getIrisAnimation(), "unknown: the group still loads");
+    }
+
+    /** Setting one of a group's own two choices keeps the other. */
+    @Test
+    void aGroupsDialSpinAndIrisAnimationAreKeptTogether()
+    {
+        final MaterialGroup both = new MaterialGroup("Both", Material.LAPIS_BLOCK, Material.WATER, Material.STONE,
+            Material.GLOWSTONE, Material.OAK_WALL_SIGN)
+            .withDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS).withIrisAnimation("rows");
+
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS, both.getDialSpin());
+        assertEquals("rows", both.getIrisAnimation());
+        assertEquals("rows", both.withDialSpin(null).getIrisAnimation());
+        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS, both.withIrisAnimation(null).getDialSpin());
+    }
 }

@@ -839,4 +839,50 @@ class IrisSweepOrderingTest
 
         assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off as the gate opens");
     }
+
+    /**
+     * A gate set to instant closes its iris at once while the server sweeps (#427), and a gate set
+     * to sweep sweeps on a server set to instant: the gate's own animation comes first.
+     */
+    @Test
+    void aGatesOwnIrisAnimationOverridesTheServers()
+    {
+        try
+        {
+            gate.setGateIrisAnimation("instant");
+            gate.toggleIrisActive(false);
+            assertFalse(StargateIrisAnimator.isSweeping(gate), "instant, whatever the server says");
+            finishSweep();
+            gate.toggleIrisActive(false);
+            finishSweep();
+
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+            gate.setGateIrisAnimation("spiral");
+            gate.toggleIrisActive(false);
+            assertTrue(StargateIrisAnimator.isSweeping(gate), "its own spiral sweeps on a server set to instant");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
+
+    /** A gate with no animation of its own follows its material group's, ahead of the server's. */
+    @Test
+    void aGroupsIrisAnimationComesBeforeTheServers()
+    {
+        gate.setGateMaterialGroup(new MaterialGroup("Atlantis", Material.LAPIS_BLOCK, Material.WATER, Material.STONE,
+            Material.SEA_LANTERN, Material.OAK_WALL_SIGN).withIrisAnimation("instant"));
+
+        assertEquals("instant", gate.getEffectiveIrisAnimation());
+        gate.toggleIrisActive(false);
+        assertFalse(StargateIrisAnimator.isSweeping(gate), "the group's instant, over the server's sweep");
+
+        gate.setGateIrisAnimation("rows");
+        assertEquals("rows", gate.getEffectiveIrisAnimation(), "the gate's own first");
+        gate.setGateIrisAnimation(null);
+        gate.setGateMaterialGroup(null);
+        assertEquals("sweep", gate.getEffectiveIrisAnimation(), "neither: the server's");
+    }
 }

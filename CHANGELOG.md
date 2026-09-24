@@ -58,6 +58,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   a gate uses its own, then its group's, then `gate-dial-spin`. New configs ship Atlantis
   on `pegasus` and Universe on `universe`; an existing `config.yml` keeps its groups, so add
   the line by hand. See [the guide](docs/guide/GATES.md#dialling).
+- **A gate can pick how its own iris crosses**: `/wormhole gate edit <gate> iris-animation
+  <style>`, and `default` to follow the server again. A material group can set one too, with
+  `iris-animation:`; a gate uses its own, then its group's, then `gate-iris-animation`. See
+  [the guide](docs/guide/GATES.md#how-it-arrives).
 
 **Changed**
 

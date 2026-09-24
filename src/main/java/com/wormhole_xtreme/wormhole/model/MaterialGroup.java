@@ -49,6 +49,9 @@ public final class MaterialGroup
     /** The ring pattern this group's gates dial with (#366), or null to follow the server. */
     private final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin;
 
+    /** How this group's gates' irises cross (#427), or null to follow the server. */
+    private final String irisAnimation;
+
     /**
      * Instantiates a new material group with no distinct chevrons.
      *
@@ -101,10 +104,12 @@ public final class MaterialGroup
         this.signMaterial = signMaterial;
         this.chevronMaterial = chevronMaterial;
         this.dialSpin = null;
+        this.irisAnimation = null;
     }
 
-    /** A copy of {@code base} with another ring pattern. */
-    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin)
+    /** A copy of {@code base} with another ring pattern and iris animation. */
+    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin,
+        final String irisAnimation)
     {
         this.name = base.name;
         this.structureMaterial = base.structureMaterial;
@@ -114,6 +119,7 @@ public final class MaterialGroup
         this.signMaterial = base.signMaterial;
         this.chevronMaterial = base.chevronMaterial;
         this.dialSpin = dialSpin;
+        this.irisAnimation = irisAnimation;
     }
 
     /**
@@ -203,7 +209,25 @@ public final class MaterialGroup
      */
     public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
     {
-        return new MaterialGroup(this, pattern);
+        return new MaterialGroup(this, pattern, irisAnimation);
+    }
+
+    /**
+     * @return how this group's gates' irises cross, or null to follow the server
+     */
+    public String getIrisAnimation()
+    {
+        return irisAnimation;
+    }
+
+    /**
+     * @param animation
+     *            how this group's gates' irises cross, or null to follow the server
+     * @return a copy of this group with that animation
+     */
+    public MaterialGroup withIrisAnimation(final String animation)
+    {
+        return new MaterialGroup(this, dialSpin, animation);
     }
 
     @Override
