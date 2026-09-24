@@ -191,6 +191,7 @@ final class MockServerSupport
             }
         }
 
+        // The cast of WorldMock's private map, read by reflection, has nothing to check against.
         @Override
         @SuppressWarnings("unchecked")
         public BlockMock createBlock(final Coordinate c)

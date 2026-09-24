@@ -14,6 +14,11 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.entity.AnimalTamer;
+import org.bukkit.entity.Cat;
+import org.bukkit.entity.Sittable;
+import org.bukkit.entity.Tameable;
+import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -178,6 +183,80 @@ class JourneysOnMockServerTest
         assertAt(new Location(world, 30.5, 64, 0.5), p.getLocation());
         assertNothingNewRunning(before, "the rings came home");
         assertEquals(0, world.ticketedChunks(), "a ring kept its chunks loaded after the trip");
+    }
+
+    /** A pet of the given kind tamed to {@code owner}, sitting or not, where it is put. */
+    private static <T extends Tameable> T pet(final Location at, final Class<T> kind, final AnimalTamer owner,
+        final boolean sitting)
+    {
+        final T pet = at.getWorld().spawn(at, kind);
+        pet.setTamed(true);
+        pet.setOwner(owner);
+        ((Sittable) pet).setSitting(sitting);
+        return pet;
+    }
+
+    /**
+     * A wolf following its owner comes through the gate with them; one told to sit, and one
+     * following somebody else, stay where they are.
+     */
+    @Test
+    void aFollowingPetComesThroughAGateWithItsOwner()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("petgates", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Walker");
+        final MockServerSupport.Player stranger = new MockServerSupport.Player(server, "Stranger");
+        final Stargate home = buildGate(p, world, 0.5, "Kennel");
+        final Stargate away = buildGate(p, world, 40.5, "Park");
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        final Location waiting = new Location(world, -1.5, 64, 1.5);
+        final Wolf follower = pet(new Location(world, 1.5, 64, 1.5), Wolf.class, p, false);
+        final Cat sitter = pet(waiting, Cat.class, p, true);
+        final Wolf strangers = pet(new Location(world, 1.5, 64, -0.5), Wolf.class, stranger, false);
+        p.messages();
+        final java.util.Set<Integer> before = settledTasks();
+
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialLeverBlock(), BlockFace.SOUTH);
+        p.performCommand("dial Park");
+        ticks(200);
+        assertTrue(home.isGateActive(), "Kennel did not open: " + p.messages());
+        final List<Location> portal = home.getGatePortalBlocks();
+        final Location near = strangers.getLocation();
+        p.simulatePlayerMove(portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        ticks(40);
+
+        assertAt(away.getGatePlayerTeleportLocation(), p.getLocation());
+        assertAt(p.getLocation(), follower.getLocation());
+        assertAt(waiting, sitter.getLocation());
+        assertAt(near, strangers.getLocation());
+        ticks(20 * 320);
+        assertNothingNewRunning(before, "the pet came through");
+    }
+
+    /** A cat following its owner is beamed after them into another world. */
+    @Test
+    void aFollowingPetIsBeamedIntoAnotherWorldAfterItsOwner()
+    {
+        final MockServerSupport.World here = new MockServerSupport.World("pethome", 3);
+        final MockServerSupport.World there = new MockServerSupport.World("petaway", 3);
+        server.addWorld(here);
+        server.addWorld(there);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Traveller");
+        final Location den = new Location(there, 5.5, 64, 5.5, 0f, 0f);
+        p.teleport(den);
+        p.performCommand("wormhole beam admin set Den");
+        p.teleport(new Location(here, 0.5, 64, 0.5, 0f, 0f));
+        final Cat follower = pet(new Location(here, 2.5, 64, 0.5), Cat.class, p, false);
+        p.messages();
+        final java.util.Set<Integer> before = settledTasks();
+
+        p.performCommand("wormhole beam to Den");
+        ticks(120);
+
+        assertAt(den, p.getLocation());
+        assertAt(p.getLocation(), follower.getLocation());
+        assertNothingNewRunning(before, "the pet was beamed");
     }
 
     private static Block hangMirror(final MockServerSupport.World world)

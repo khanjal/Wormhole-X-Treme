@@ -33,7 +33,8 @@ mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   #
 ```
 
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
-by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
+by command, and a following pet through a gate and by beam into another world. It checks where
+they arrive and that the trip leaves nothing new running. Annotate
 a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
 
 - **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does
