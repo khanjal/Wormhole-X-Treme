@@ -331,7 +331,6 @@ public final class GatePreviews
         // The classic gate: a Standard palette draws its chevrons as frame, as the original gates
         // were built, until -chevrons shows them. A shape that pins its own chevrons shows them.
         preview.plainChevrons(classic(shape, group));
-        preview.group(group);
         if ((blocksShown() + preview.size()) > ConfigManager.getGatePreviewMaxBlocks())
         {
             return Shown.OVER_LIMIT;
@@ -438,7 +437,6 @@ public final class GatePreviews
             return Control.NOT_IN_GROUP;
         }
         preview.palette(Palette.of(preview.shape(), group));
-        preview.group(group);
         restyle(preview);
         draw(owner, preview);
         return Control.CHANGED;
@@ -1033,10 +1031,14 @@ public final class GatePreviews
         return (preview.spin() != null) && (pattern(preview) != DialSpinPattern.NONE);
     }
 
-    /** The ring pattern a preview dials with: its group's, else the server's, as a gate's would be. */
+    /**
+     * The ring pattern a preview dials with: that of the group its frame material names, else the
+     * server's, as the gate built from it would be detected.
+     */
     private static DialSpinPattern pattern(final GatePreview preview)
     {
-        return ConfigManager.getGateDialSpinPattern(null, preview.group());
+        return ConfigManager.getGateDialSpinPattern(null,
+            com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure()));
     }
 
     /**

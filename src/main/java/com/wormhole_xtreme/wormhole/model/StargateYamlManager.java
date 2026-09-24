@@ -128,10 +128,29 @@ public class StargateYamlManager
         applyOwner(s, ownerIdFrom(map), (String) map.getOrDefault("OwnerName", ""));
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
-        // Unset, or a name no pattern answers to, follows the group and the server.
-        final Object spin = map.get(DIAL_SPIN_KEY);
-        s.setGateDialSpin((spin == null) ? null : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(spin)));
+        s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         return s;
+    }
+
+    /**
+     * A gate file's ring pattern, or null to follow the group and the server; a name no pattern
+     * answers to is said out loud, as a group's is.
+     */
+    private static com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpinFrom(final Object raw,
+        final String gateName)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
+            com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
+        if (pattern == null)
+        {
+            PluginLog.log(Level.WARNING, "Gate \"" + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
+                + "\"; it follows its group and gate-dial-spin.");
+        }
+        return pattern;
     }
 
     /**

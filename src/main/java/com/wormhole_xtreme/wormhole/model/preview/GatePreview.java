@@ -70,8 +70,6 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     private final int maxY;
     private final int maxZ;
     private Palette palette;
-    /** The material group the palette came from, or null for the shape's own; its ring pattern counts. */
-    private com.wormhole_xtreme.wormhole.model.MaterialGroup group;
     private Interaction button;
     private BukkitTask dialling;
     private int litWaves;
@@ -160,16 +158,6 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     void palette(final Palette changed)
     {
         palette = changed;
-    }
-
-    com.wormhole_xtreme.wormhole.model.MaterialGroup group()
-    {
-        return group;
-    }
-
-    void group(final com.wormhole_xtreme.wormhole.model.MaterialGroup chosen)
-    {
-        group = chosen;
     }
 
     List<Cell> cells()

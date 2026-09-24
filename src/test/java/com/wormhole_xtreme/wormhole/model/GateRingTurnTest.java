@@ -566,4 +566,28 @@ class GateRingTurnTest
         gate.setGateMaterialGroup(null);
         assertEquals(DialSpinPattern.TOP, gate.getEffectiveDialSpin(), "neither: the server's");
     }
+
+    /**
+     * A gate switched to none part way round a turn takes the turn's light back on its next tick,
+     * rather than leaving it lit till the gate shuts. Found by a Sonnet review.
+     */
+    @Test
+    void aGateSwitchedToNoneMidTurnTakesTheLightBack()
+    {
+        final Stargate gate = standardGate();
+        final Location start = at(DialSpin.of(cells, grid).path(DialSpinPattern.TOP, 1).get(0));
+
+        try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        {
+            StargateAnimator.lightStargate(gate, true);
+            blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, start))));
+
+            gate.setGateDialSpin(DialSpinPattern.NONE);
+            StargateAnimator.lightStargate(gate, true);
+
+            blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, start))));
+            assertEquals(1, gate.getGateLightingCurrentIteration(), "and the chevron locks without a turn");
+        }
+    }
 }

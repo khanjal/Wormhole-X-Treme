@@ -2675,6 +2675,14 @@ class GatePreviewsTest
         assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
     }
 
+    /** Loads a group framed in obsidian whose gates turn CHEVRON, while the server turns none. */
+    private com.wormhole_xtreme.wormhole.model.MaterialGroup turningGroup()
+    {
+        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Turning",
+            Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "chevron")));
+        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroup("Turning");
+    }
+
     /**
      * A preview dials with its material group's ring pattern (#366), as a gate of that group
      * would: here the server turns no ring, and a group set to chevron turns one anyway.
@@ -2683,12 +2691,9 @@ class GatePreviewsTest
     void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
     {
         final List<Cell> cells = standardLookingNorth();
-        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
-            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
-        final Cell start = spin.path(1).get(0);
-        GatePreviews.show(owner, standard, new com.wormhole_xtreme.wormhole.model.MaterialGroup("Turning",
-            Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN)
-            .withDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.CHEVRON));
+        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
+        GatePreviews.show(owner, standard, turningGroup());
         final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
         GatePreviews.activate(owner);
 
@@ -2696,5 +2701,31 @@ class GatePreviewsTest
 
         verify(startDisplay).setBlock(data.get(Material.GLOWSTONE));
         ringDisplaysOfWave(1).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+    }
+
+    /**
+     * A preview whose frame is recoloured out of its group dials as the gate built from it would be
+     * detected, by its frame: no longer that group's pattern, so here no turn, and chevron 1 locks
+     * at once. It kept the group it was shown with. Found by a Sonnet review.
+     */
+    @Test
+    void aPreviewRecolouredOutOfItsGroupStopsTurningItsPattern()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
+        GatePreviews.show(owner, standard, turningGroup());
+        final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
+        GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK);
+        org.mockito.Mockito.clearInvocations(startDisplay);
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+
+        ringDisplaysOfWave(1).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+        if (!ringDisplaysOfWave(1).contains(startDisplay))
+        {
+            verify(startDisplay, never()).setBlock(data.get(Material.GLOWSTONE));
+        }
     }
 }

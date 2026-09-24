@@ -513,7 +513,17 @@ class StargateAnimator
     {
         final int glyph = gate.getGateLightingCurrentIteration() + 1;
         final DialSpin spin = turns(gate) ? spinOf(gate) : null;
-        if ((spin == null) || (glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
+        if (spin == null)
+        {
+            // Switched to none part way round: put back what the turn had lit.
+            final Turning left = TURNING.remove(gate);
+            if (left != null)
+            {
+                takeBackLight(gate, left.cells, List.of(), lockedCells(waves, glyph - 1));
+            }
+            return false;
+        }
+        if ((glyph > lastWave(gate, waves)) || (gate.getGateWorld() == null))
         {
             return false;
         }
