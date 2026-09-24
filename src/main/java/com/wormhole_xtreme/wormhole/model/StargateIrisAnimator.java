@@ -51,8 +51,6 @@ public final class StargateIrisAnimator
     /**
      * Whether a gate's iris should sweep rather than arrive at once.
      *
-     * @param gate
-     *            the gate
      * @return true if there is a sweep worth running
      */
     static boolean sweeps(final Stargate gate)
@@ -135,8 +133,6 @@ public final class StargateIrisAnimator
      * <p>Null, for the block really there, when the iris is built. A drawn iris is air on the
      * server, so sending the real block uncovered the opening a ring at a time instead.
      *
-     * @param gate
-     *            the gate
      * @return the iris material if it is drawn, or null to send the real blocks
      */
     private static Material irisAsItStands(final Stargate gate)
@@ -168,8 +164,6 @@ public final class StargateIrisAnimator
     /**
      * Draws one ring and books the next.
      *
-     * @param gate
-     *            the gate
      * @param rings
      *            the rings, in the order they are drawn
      * @param index
@@ -216,9 +210,6 @@ public final class StargateIrisAnimator
      * <p>Called when the iris is toggled again before a sweep finishes. The half-drawn picture
      * is not unwound frame by frame -- the true blocks are simply sent, which is both the
      * shortest way back to honest and the state the next sweep expects to start from.
-     *
-     * @param gate
-     *            the gate
      */
     static void cancel(final Stargate gate)
     {
@@ -258,8 +249,6 @@ public final class StargateIrisAnimator
     /**
      * Whether a sweep is running on a gate.
      *
-     * @param gate
-     *            the gate
      * @return true if one is
      */
     static boolean isSweeping(final Stargate gate)
@@ -270,8 +259,6 @@ public final class StargateIrisAnimator
     /**
      * The key a gate's sweep is held under.
      *
-     * @param gate
-     *            the gate
      * @return its name, or the empty string for a gate that has none
      */
     private static String key(final Stargate gate)

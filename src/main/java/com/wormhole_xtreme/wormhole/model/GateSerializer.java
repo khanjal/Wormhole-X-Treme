@@ -514,8 +514,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -556,8 +554,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built, already carrying its teleport locations
-     * @param byteBuff
-     *            the buffer
      */
     private static void readEarlyFacing(final Stargate s, final ByteBuffer byteBuff)
     {
@@ -578,8 +574,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -639,8 +633,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -675,8 +667,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -733,8 +723,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built, already carrying its teleport locations
-     * @param byteBuff
-     *            the buffer
      */
     private static void readFacingAndOrientation(final Stargate s, final ByteBuffer byteBuff)
     {
@@ -771,8 +759,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      */
     private static void readIrisAndLights(final Stargate s, final ByteBuffer byteBuff)
     {
@@ -794,8 +780,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -825,8 +809,6 @@ public final class GateSerializer
     /**
      * Reads a present-or-not flag and the block slot behind it.
      *
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -849,8 +831,6 @@ public final class GateSerializer
      *
      * @param s
      *            the gate being built
-     * @param byteBuff
-     *            the buffer
      * @param materialsByName
      *            whether materials are stored by name, which is true from version 9
      */
@@ -872,8 +852,6 @@ public final class GateSerializer
     /**
      * Reads a counted run of blocks into one list.
      *
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray
@@ -898,8 +876,6 @@ public final class GateSerializer
      * <p>A wave with nothing in it was written as a zero count rather than skipped, so the
      * layers are grown to the saved number first and the wave numbers line up either way.
      *
-     * @param byteBuff
-     *            the buffer
      * @param w
      *            the world the gate belongs to
      * @param blocArray

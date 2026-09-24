@@ -378,8 +378,6 @@ public class StargateShape
 
     /**
      * Gets the shape enter position.
-     * 
-     * @return the shape enter position
      */
     public int[] getShapeEnterPosition()
     {
@@ -388,8 +386,6 @@ public class StargateShape
 
     /**
      * Gets the shape iris material.
-     * 
-     * @return the shape iris material
      */
     public Material getShapeIrisMaterial()
     {
@@ -418,9 +414,6 @@ public class StargateShape
 
     /**
      * Sets the material an unlit chevron is built from.
-     *
-     * @param shapeChevronMaterial
-     *            the chevron material
      */
     public void setShapeChevronMaterial(final Material shapeChevronMaterial)
     {
@@ -429,8 +422,6 @@ public class StargateShape
 
     /**
      * Gets the shape light positions.
-     * 
-     * @return the shape light positions
      */
     public int[] getShapeLightPositions()
     {
@@ -439,8 +430,6 @@ public class StargateShape
 
     /**
      * Gets the shape light ticks.
-     * 
-     * @return the shape light ticks
      */
     public int getShapeLightTicks()
     {
@@ -449,8 +438,6 @@ public class StargateShape
 
     /**
      * Gets the shape name.
-     * 
-     * @return the shape name
      */
     public String getShapeName()
     {
@@ -459,8 +446,6 @@ public class StargateShape
 
     /**
      * Gets the shape portal material.
-     * 
-     * @return the shape portal material
      */
     public Material getShapePortalMaterial()
     {
@@ -479,8 +464,6 @@ public class StargateShape
 
     /**
      * Gets the shape reference vector.
-     * 
-     * @return the shape reference vector
      */
     public int[] getShapeReferenceVector()
     {
@@ -489,8 +472,6 @@ public class StargateShape
 
     /**
      * Gets the shape sign position.
-     * 
-     * @return the shape sign position
      */
     public int[] getShapeSignPosition()
     {
@@ -554,8 +535,6 @@ public class StargateShape
 
     /**
      * Gets the shape structure material.
-     * 
-     * @return the shape structure material
      */
     public Material getShapeStructureMaterial()
     {
@@ -564,8 +543,6 @@ public class StargateShape
 
     /**
      * Gets the shape structure positions.
-     * 
-     * @return the shape structure positions
      */
     public int[][] getShapeStructurePositions()
     {
@@ -574,8 +551,6 @@ public class StargateShape
 
     /**
      * Gets the shape to gate corner.
-     * 
-     * @return the shape to gate corner
      */
     public int[] getShapeToGateCorner()
     {
@@ -584,8 +559,6 @@ public class StargateShape
 
     /**
      * Gets the shape woosh depth.
-     * 
-     * @return the shape woosh depth
      */
     public int getShapeWooshDepth()
     {
@@ -594,8 +567,6 @@ public class StargateShape
 
     /**
      * Gets the shape woosh depth squared.
-     * 
-     * @return the shape woosh depth squared
      */
     public int getShapeWooshDepthSquared()
     {
@@ -604,8 +575,6 @@ public class StargateShape
 
     /**
      * Gets the shape woosh ticks.
-     * 
-     * @return the shape woosh ticks
      */
     public int getShapeWooshTicks()
     {
@@ -614,9 +583,6 @@ public class StargateShape
 
     /**
      * Sets the shape enter position.
-     * 
-     * @param shapeEnterPosition
-     *            the new shape enter position
      */
     public void setShapeEnterPosition(final int[] shapeEnterPosition)
     {
@@ -625,9 +591,6 @@ public class StargateShape
 
     /**
      * Sets the shape iris material.
-     * 
-     * @param shapeIrisMaterial
-     *            the new shape iris material
      */
     public void setShapeIrisMaterial(final Material shapeIrisMaterial)
     {
@@ -637,9 +600,6 @@ public class StargateShape
 
     /**
      * Sets the shape active material.
-     * 
-     * @param shapeLightMaterial
-     *            the new shape light material
      */
     public void setShapeLightMaterial(final Material shapeLightMaterial)
     {
@@ -649,9 +609,6 @@ public class StargateShape
 
     /**
      * Sets the shape light positions.
-     * 
-     * @param shapeLightPositions
-     *            the new shape light positions
      */
     public void setShapeLightPositions(final int[] shapeLightPositions)
     {
@@ -660,9 +617,6 @@ public class StargateShape
 
     /**
      * Sets the shape light ticks.
-     * 
-     * @param shapeLightTicks
-     *            the new shape light ticks
      */
     public void setShapeLightTicks(final int shapeLightTicks)
     {
@@ -671,9 +625,6 @@ public class StargateShape
 
     /**
      * Sets the shape name.
-     * 
-     * @param shapeName
-     *            the new shape name
      */
     public void setShapeName(final String shapeName)
     {
@@ -682,9 +633,6 @@ public class StargateShape
 
     /**
      * Sets the shape portal material.
-     * 
-     * @param shapePortalMaterial
-     *            the new shape portal material
      */
     public void setShapePortalMaterial(final Material shapePortalMaterial)
     {
@@ -694,9 +642,6 @@ public class StargateShape
 
     /**
      * Sets the shape water positions.
-     * 
-     * @param shapePortalPositions
-     *            the new shape portal positions
      */
     public void setShapePortalPositions(final int[][] shapePortalPositions)
     {
@@ -705,9 +650,6 @@ public class StargateShape
 
     /**
      * Sets the shape reference vector.
-     * 
-     * @param shapeReferenceVector
-     *            the new shape reference vector
      */
     public void setShapeReferenceVector(final int[] shapeReferenceVector)
     {
@@ -716,9 +658,6 @@ public class StargateShape
 
     /**
      * Sets the shape sign position.
-     * 
-     * @param shapeSignPosition
-     *            the new shape sign position
      */
     public void setShapeSignPosition(final int[] shapeSignPosition)
     {
@@ -727,9 +666,6 @@ public class StargateShape
 
     /**
      * Sets the shape structure material.
-     * 
-     * @param shapeStructureMaterial
-     *            the new shape structure material
      */
     public void setShapeStructureMaterial(final Material shapeStructureMaterial)
     {
@@ -750,9 +686,6 @@ public class StargateShape
 
     /**
      * Sets the shape structure positions.
-     * 
-     * @param shapeStructurePositions
-     *            the new shape structure positions
      */
     public void setShapeStructurePositions(final int[][] shapeStructurePositions)
     {
@@ -761,9 +694,6 @@ public class StargateShape
 
     /**
      * Sets the shape to gate corner.
-     * 
-     * @param shapeToGateCorner
-     *            the new shape to gate corner
      */
     public void setShapeToGateCorner(final int[] shapeToGateCorner)
     {
@@ -772,9 +702,6 @@ public class StargateShape
 
     /**
      * Sets the shape woosh depth.
-     * 
-     * @param shapeWooshDepth
-     *            the new shape woosh depth
      */
     public void setShapeWooshDepth(final int shapeWooshDepth)
     {
@@ -783,9 +710,6 @@ public class StargateShape
 
     /**
      * Sets the shape woosh depth squared.
-     * 
-     * @param shapeWooshDepthSquared
-     *            the new shape woosh depth squared
      */
     public void setShapeWooshDepthSquared(final int shapeWooshDepthSquared)
     {
@@ -794,9 +718,6 @@ public class StargateShape
 
     /**
      * Sets the shape woosh ticks.
-     * 
-     * @param shapeWooshTicks
-     *            the new shape woosh ticks
      */
     public void setShapeWooshTicks(final int shapeWooshTicks)
     {

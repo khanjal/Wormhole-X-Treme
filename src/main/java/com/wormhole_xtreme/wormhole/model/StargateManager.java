@@ -118,11 +118,6 @@ public class StargateManager
      * This method adds an index mapping block location to stargate.
      * NOTE: This method does not verify that the block is part of the gate,
      * so it may not persist and won't be removed by removing the stargate. This can cause a gate to stay in memory!!!
-     * 
-     * @param b
-     *            the b
-     * @param s
-     *            the s
      */
     public static void addBlockIndex(final Block b, final Stargate s)
     {
@@ -145,11 +140,6 @@ public class StargateManager
 
     /**
      * Adds the gate to network.
-     * 
-     * @param gate
-     *            the gate
-     * @param network
-     *            the network
      */
     public static void addGateToNetwork(final Stargate gate, final String network)
     {
@@ -178,11 +168,6 @@ public class StargateManager
 
     /**
      * Adds a gate indexed by the player that hasn't yet been named and completed.
-     * 
-     * @param p
-     *            The player
-     * @param s
-     *            The Stargate
      */
     public static void addIncompleteStargate(final Player p, final Stargate s)
     {
@@ -191,11 +176,6 @@ public class StargateManager
 
     /**
      * Adds the player builder shape.
-     * 
-     * @param p
-     *            the p
-     * @param shape
-     *            the shape
      */
     public static void addPlayerBuilderShape(final Player p, final StargateShape shape)
     {
@@ -277,9 +257,7 @@ public class StargateManager
     /**
      * Adds the stargate network.
      * 
-     * @param name
-     *            the name
-     * @return the stargate network
+     * @return the network already under that name, or a new one registered under it
      */
     public static StargateNetwork addStargateNetwork(final String name)
     {
@@ -298,15 +276,11 @@ public class StargateManager
 
     /**
      * Complete stargate.
-     * 
-     * @param p
-     *            the p
-     * @param name
-     *            the name
+     *
      * @param idc
-     *            the idc
+     *            the iris deactivation code; null or empty for no iris
      * @param network
-     *            the network
+     *            the network name, empty for none
      * @return true, if successful
      */
     public static boolean completeStargate(final Player p, final String name, final String idc, final String network)
@@ -338,8 +312,6 @@ public class StargateManager
     /**
      * Puts a gate on the named network, if one was named.
      *
-     * @param gate
-     *            the gate
      * @param network
      *            the network name, empty for none
      */
@@ -581,8 +553,6 @@ public class StargateManager
 
     /**
      * Gets the activated stargates.
-     * 
-     * @return the activated stargates
      */
     private static ConcurrentHashMap<Player, Stargate> getActivatedStargates()
     {
@@ -693,8 +663,6 @@ public class StargateManager
      * <p>Called from {@link Stargate#setGateActive(boolean)} so the set cannot drift from
      * the flag it mirrors.
      *
-     * @param gate
-     *            the gate
      * @param open
      *            whether its portal is drawn
      */
@@ -719,8 +687,6 @@ public class StargateManager
      * <p>Kept apart from the open set because the two do not line up: an idle gate can sit
      * with its iris shut for days, and it still has to be drawn for whoever walks up to it.
      *
-     * @param gate
-     *            the gate
      * @param shut
      *            whether its iris is shut
      */
@@ -889,10 +855,6 @@ public class StargateManager
     /**
      * Whether a location is within {@link #IRIS_REACH} of a gate's opening, in the same world.
      *
-     * @param gate
-     *            the gate
-     * @param at
-     *            the location
      * @return true if it is close enough to have been swinging at the gate
      */
     private static boolean withinIrisReach(final Stargate gate, final Location at)
@@ -1001,9 +963,7 @@ public class StargateManager
     /**
      * Gets the gate from block.
      * 
-     * @param b
-     *            the b
-     * @return the gate from block
+     * @return the gate the block is part of, or null
      */
     public static Stargate getGateFromBlock(final Block b)
     {
@@ -1025,8 +985,6 @@ public class StargateManager
 
     /**
      * Gets the incomplete stargates.
-     * 
-     * @return the incomplete stargates
      */
     private static ConcurrentHashMap<Player, Stargate> getIncompleteStargates()
     {
@@ -1037,7 +995,6 @@ public class StargateManager
      * Returns the name of the incomplete stargate for a player, or null if none.
      * Useful for diagnostics when completion fails.
      *
-     * @param p the player
      * @return gate name or null
      */
     public static String getIncompleteStargateName(final Player p)
@@ -1061,8 +1018,6 @@ public class StargateManager
 
     /**
      * Gets the player builders.
-     * 
-     * @return the player builders
      */
     private static ConcurrentHashMap<Player, StargateShape> getPlayerBuilders()
     {
@@ -1072,9 +1027,7 @@ public class StargateManager
     /**
      * Gets the player builder shape.
      * 
-     * @param p
-     *            the p
-     * @return the stargate shape
+     * @return the shape they chose, or null; asking clears it
      */
     public static StargateShape getPlayerBuilderShape(final Player p)
     {
@@ -1094,8 +1047,6 @@ public class StargateManager
      * 
      * @param self
      *            Location of the local object.
-     * @param target
-     *            Location of the target object.
      * @return square of distance to target object from local object.
      */
     private static double getSquaredDistance(final Location self, final Location target)
@@ -1150,8 +1101,6 @@ public class StargateManager
 
     /**
      * Gets the stargate list.
-     * 
-     * @return the stargate list
      */
     private static ConcurrentHashMap<String, Stargate> getStargateList()
     {
@@ -1161,9 +1110,7 @@ public class StargateManager
     /**
      * Gets the stargate network.
      * 
-     * @param name
-     *            the name
-     * @return the stargate network
+     * @return null if there is no network by that name
      */
     public static StargateNetwork getStargateNetwork(final String name)
     {
@@ -1179,8 +1126,6 @@ public class StargateManager
 
     /**
      * Gets the stargate networks.
-     * 
-     * @return the stargate networks
      */
     private static ConcurrentHashMap<String, StargateNetwork> getStargateNetworks()
     {
@@ -1200,10 +1145,6 @@ public class StargateManager
      * wrote to those maps -- the woosh has drawn and undrawn its own blocks for a long time --
      * so the second lookup was a permanently empty map being asked on that path forever. Both
      * maps and their accessors are gone.
-     *
-     * @param b
-     *            the b
-     * @return true, if is block in gate
      */
     public static boolean isBlockInGate(final Block b)
     {
@@ -1233,10 +1174,6 @@ public class StargateManager
 
     /**
      * Checks if is stargate.
-     * 
-     * @param name
-     *            the name
-     * @return true, if is stargate
      */
     public static boolean isStargate(final String name)
     {
@@ -1256,8 +1193,6 @@ public class StargateManager
      * Returns the stargate that has been activated by that player.
      * Returns null if that player has not activated a gate.
      * 
-     * @param p
-     *            The player
      * @return Stargate that the player has activated. Null if no active gate.
      */
     public static Stargate removeActivatedStargate(final Player p)
@@ -1270,7 +1205,6 @@ public class StargateManager
      * This is used to force-clear stale activations when the gate is lit but the
      * activating player mapping is missing or the activator is offline.
      *
-     * @param s the stargate
      * @return the Player who activated the gate (and was removed), or null if none
      */
     public static Player removeActivatorForStargate(final Stargate s)
@@ -1295,9 +1229,6 @@ public class StargateManager
      * This method removes an index mapping block location to stargate.
      * NOTE: This method does not verify that the block has actually been removed from a gate
      * so it may not persist and can be readded when server is restarted.
-     * 
-     * @param b
-     *            the b
      */
     public static void removeBlockIndex(final Block b)
     {

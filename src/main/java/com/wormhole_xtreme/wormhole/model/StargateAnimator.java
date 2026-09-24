@@ -121,8 +121,6 @@ class StargateAnimator
         /**
          * Draws one woosh step out, or takes it back.
          *
-         * @param gate
-         *            the gate
          * @param now
          *            the stage being played
          * @param wave
@@ -173,8 +171,6 @@ class StargateAnimator
          * each case the woosh is over, or never happened, and what should be showing is the
          * portal itself.
          *
-         * @param gate
-         *            the gate
          * @param wooshMaterial
          *            what to fill the portal with
          */
@@ -191,9 +187,6 @@ class StargateAnimator
 
     /**
      * Books the next frame of the woosh.
-     *
-     * @param gate
-     *            the gate
      */
     private static void scheduleNextWooshTick(final Stargate gate)
     {
@@ -209,7 +202,6 @@ class StargateAnimator
      * {@code /wormhole wooshdepth}), and its waves are derived on demand by
      * {@link #wooshWave} instead of read from the shape.
      *
-     * @param gate the gate
      * @return the number of waves, 0 if this gate has no woosh at all
      */
     static int wooshWaveCount(final Stargate gate)
@@ -233,7 +225,6 @@ class StargateAnimator
      * to {@code /wormhole wooshdepth} takes effect on the very next opening instead of
      * needing the gate re-detected.
      *
-     * @param gate the gate
      * @param index which wave, 0 being the one nearest the portal
      * @return the wave's locations, or null if the shape authored this index as empty
      */
@@ -275,7 +266,6 @@ class StargateAnimator
      * Lights or darkens the gate's structural light blocks and triggers the
      * woosh animation when the lighting sequence completes.
      *
-     * @param gate the gate
      * @param on   {@code true} to light up; {@code false} to darken
      */
     static void lightStargate(final Stargate gate, final boolean on)
@@ -292,9 +282,6 @@ class StargateAnimator
 
     /**
      * Draws the next wave of chevron lights and books the tick after it.
-     *
-     * @param gate
-     *            the gate
      */
     private static void lightNextChevron(final Stargate gate)
     {
@@ -337,8 +324,6 @@ class StargateAnimator
      * advanced before the wave is read. A shape whose lights are numbered from zero leaves
      * the counter one past the end, so the bound is checked rather than assumed.
      *
-     * @param gate
-     *            the gate
      * @param waves
      *            its light waves
      * @param step
@@ -385,8 +370,6 @@ class StargateAnimator
     /**
      * Books the next lighting tick, or hands over to the woosh once the last wave is lit.
      *
-     * @param gate
-     *            the gate
      * @param waves
      *            its light waves
      * @param step
@@ -639,9 +622,6 @@ class StargateAnimator
     /**
      * Lights every chevron at once, the eighth included, for a gate activated by its button and
      * waiting for {@code /dial}. The dial then relights only the ones it needs.
-     *
-     * @param gate
-     *            the gate
      */
     static void lightAll(final Stargate gate)
     {
@@ -717,9 +697,6 @@ class StargateAnimator
 
     /**
      * Puts every chevron light away and resets what the woosh left behind.
-     *
-     * @param gate
-     *            the gate
      */
     private static void darkenStargate(final Stargate gate)
     {
@@ -762,9 +739,6 @@ class StargateAnimator
      * just whatever it expected to find. animateOpening's own isGateActive guard is what stops
      * an already-scheduled continuation from reading this reset counter as "start a fresh
      * opening" once it fires after this.
-     *
-     * @param gate
-     *            the gate
      */
     private static void undrawLeftoverWoosh(final Stargate gate)
     {
