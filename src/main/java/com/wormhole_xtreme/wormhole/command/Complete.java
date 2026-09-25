@@ -7,6 +7,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -164,9 +166,29 @@ public class Complete implements CommandExecutor, TabCompleter
     private static void finishBuiltGate(final Player player, final String name, final String idc,
         final String network, final String incompleteName)
     {
+        rereadDesign(player);
         completeAndCharge(player, name, idc, network,
             "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.",
             "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
+    }
+
+    /**
+     * Detects the part-built gate again, since a dial sign hung after it was first detected is
+     * otherwise never taken up; a frame that no longer reads keeps the gate already held.
+     */
+    private static void rereadDesign(final Player player)
+    {
+        final Stargate held = StargateManager.getIncompleteStargate(player);
+        if (held == null)
+        {
+            return;
+        }
+        final Stargate fresh = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
+            held.getGateFacing(), held.getGateShape());
+        if (fresh != null)
+        {
+            StargateManager.addIncompleteStargate(player, fresh);
+        }
     }
 
     /**

@@ -152,6 +152,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **A dial sign hung on a placed preview works.** `gate preview place` reads the design before
+  any sign is there, and `gate complete` finished that reading without looking again, so the
+  sign neither chose a destination nor let redstone dial. `gate complete` reads the gate again
+  now, and takes up a sign hung since. Gates already completed without their sign are not changed.
 
 ### Commands
 
