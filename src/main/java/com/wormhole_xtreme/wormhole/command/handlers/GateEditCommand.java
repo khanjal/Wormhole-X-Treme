@@ -58,6 +58,9 @@ public class GateEditCommand implements SubCommand
     /** The field for a gate's own iris animation, named as the setting is. */
     private static final String IRIS_ANIMATION = "iris-animation";
 
+    /** The iris code: the one field a gate's owner may set without {@code wormhole.config}. */
+    private static final String IDC = "idc";
+
     private static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
     static
@@ -80,8 +83,10 @@ public class GateEditCommand implements SubCommand
         // The odd one out: WXIDC was written as a standalone command and takes its own
         // arguments from index zero, where the handlers above still expect the subcommand
         // name in front of them.
-        FIELDS.put("idc", (sender, gate, value) ->
-            new WXIDC().onCommand(sender, null, "idc", new String[] { gate, value }));
+        // No value is left off rather than passed empty, which WXIDC would store as the code.
+        FIELDS.put(IDC, (sender, gate, value) ->
+            new WXIDC().onCommand(sender, null, IDC, value.isEmpty()
+                ? new String[] { gate } : new String[] { gate, value }));
         FIELDS.put("group", GateEditCommand::setGroup);
         FIELDS.put("spin", GateEditCommand::setSpin);
         FIELDS.put(IRIS_ANIMATION, GateEditCommand::setIrisAnimation);
@@ -342,6 +347,23 @@ public class GateEditCommand implements SubCommand
         return (field != null) && FIELDS.containsKey(field.toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * Whether a line of {@code gate} may be run without {@code wormhole.config}.
+     *
+     * @param args
+     *            the full argument array, {@code gate} at index 0
+     * @return true for {@code gate edit <gate> idc}, which decides for itself who may
+     */
+    public static boolean admitsWithoutConfig(final String[] args)
+    {
+        return (args.length > 1) && "edit".equalsIgnoreCase(args[1]) && editsTheCode(args);
+    }
+
+    private static boolean editsTheCode(final String[] args)
+    {
+        return (args.length > 3) && IDC.equalsIgnoreCase(args[3]);
+    }
+
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
     @Override
@@ -351,8 +373,9 @@ public class GateEditCommand implements SubCommand
         // Most fields inherit a check that way already, but "group" does not delegate to
         // anything -- it is its own logic below -- so it had none at all until this. One
         // guard on the front door covers every field today and covers whatever field is
-        // added next without relying on its author to remember this.
-        if (CommandHandlerUtils.lacksConfigPermission(sender))
+        // added next without relying on its author to remember this. The code is the one
+        // exception: WXIDC admits the gate's owner as well, and checks for itself.
+        if (!editsTheCode(args) && CommandHandlerUtils.lacksConfigPermission(sender))
         {
             return true;
         }
@@ -372,8 +395,8 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", FIELDS.keySet()) + ".");
             return true;
         }
-        // Several of these read as "unset" when given nothing -- idc clears a code, owner
-        // reports the current one -- so an absent value is passed through rather than
+        // Several of these read as a question when given nothing -- idc and owner report
+        // the current value -- so an absent value is passed through rather than
         // refused here. The handler that owns the field decides what no value means.
         final String value = (args.length > 4)
             ? String.join(" ", Arrays.copyOfRange(args, 4, args.length)) : "";

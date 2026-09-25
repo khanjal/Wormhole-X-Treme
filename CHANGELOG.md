@@ -181,6 +181,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A gate's owner can set its iris code**, with `gate edit <gate> idc`, without
+  `wormhole.config`. Every other field still needs it. Given no code, it now says what the
+  code is, where it used to wipe it.
 - **A mistyped command gets one short usage line, for that command.** It used to be followed by
   the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
   with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is

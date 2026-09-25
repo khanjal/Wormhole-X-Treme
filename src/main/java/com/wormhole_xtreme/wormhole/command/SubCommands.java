@@ -372,9 +372,12 @@ public final class SubCommands
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict", FREYA);
 
-        selfPermissioned("beam", "ring", "go", "list", "compass", FREYA);
-        // gate stays admin-only, except build and preview for whoever may preview: Build checks the node itself.
-        BY_NAME.get("gate").admitsWithoutConfig = Build::admitsWithoutConfig;
+        // idc admits the gate's owner as well as wormhole.config, and checks both itself.
+        selfPermissioned("beam", "ring", "go", "list", "compass", "idc", FREYA);
+        // gate stays admin-only, except build and preview for whoever may preview -- Build checks
+        // the node itself -- and edit <gate> idc, for the same reason idc is self-permissioned.
+        BY_NAME.get("gate").admitsWithoutConfig = (sender, args) -> Build.admitsWithoutConfig(sender, args)
+            || com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.admitsWithoutConfig(args);
     }
 
     /**

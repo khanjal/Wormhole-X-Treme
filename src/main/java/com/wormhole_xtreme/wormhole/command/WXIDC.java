@@ -52,15 +52,16 @@ public class WXIDC implements CommandExecutor
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid Stargate: " + a[0]);
             return;
         }
+        // Before the iris is described: any player can reach this command, not only its owner.
+        if (!mayChangeCode(sender, s))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
         {
             // Nothing to unlock, so a code set here would never be asked for.
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
-            return;
-        }
-        if (!mayChangeCode(sender, s))
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         if (a.length >= 2)
