@@ -118,6 +118,7 @@ public class Dial implements CommandExecutor
         if (isTargetInUse(start, target))
         {
             CommandUtilities.closeGate(start, false);
+            CommandUtilities.restoreIrisDefault(target);
             player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
             return;
         }
@@ -132,6 +133,7 @@ public class Dial implements CommandExecutor
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Dial recovery failed for target " + target.getGateName());
         CommandUtilities.closeGate(start, false);
+        CommandUtilities.restoreIrisDefault(target);
         player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
     }
 
