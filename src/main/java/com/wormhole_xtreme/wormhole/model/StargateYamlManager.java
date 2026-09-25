@@ -178,7 +178,7 @@ public class StargateYamlManager
         {
             StargateLifecycle.settleAfterLoad(s);
         }
-        catch (final RuntimeException e)
+        catch (final Exception | LinkageError e)
         {
             PluginLog.log(Level.WARNING, GATE_QUOTE + s.getGateName() + "\" was saved mid-dial and could not be put back to idle.", e);
         }

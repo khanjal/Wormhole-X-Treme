@@ -27,6 +27,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -122,6 +123,31 @@ class ForceCommandTest
             util.verify(() -> CommandUtilities.closeGate(eq(bravo), anyBoolean()), never());
         }
         verify(console).sendMessage(contains("alpha has been closed"));
+    }
+
+    /**
+     * A forced-open iris is open by default too, and saved.
+     *
+     * <p>The file keeps only the default. Opened and left shut by default, a floor gate came
+     * back from a restart saying shut over an empty opening, and any gate took the next
+     * journey's end as the moment to shut again.
+     */
+    @Test
+    void aForcedOpenIrisStaysOpenAndIsSaved()
+    {
+        final Stargate alpha = registeredGate("alpha");
+        alpha.setGateIrisDeactivationCode("secret");
+        alpha.setGateIrisActive(true);
+        alpha.setGateIrisDefaultActive(true);
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            assertTrue(force(console, "alpha"));
+
+            assertFalse(alpha.isGateIrisActive(), "force opens the iris");
+            assertFalse(alpha.isGateIrisDefaultActive(), "and for good, or the file says shut over an open one");
+            db.verify(() -> StargateDBManager.saveStargate(alpha));
+        }
     }
 
     /**

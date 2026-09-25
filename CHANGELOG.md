@@ -117,6 +117,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   somebody's trip, then a crash, made that gate open for good. The file keeps the default now,
   a gate saved open or lit loads idle with its iris back in place, and the iris lever saves
   the gate as it is pulled. A gate already saved open this way needs its lever pulled once.
+- **`force` opens an iris for good**: it becomes the gate's default, as the lever makes it, and
+  is saved. It used to shut again at the end of the gate's next journey. A dial refused or
+  failed after opening an iris, near or far, now shuts it again.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
