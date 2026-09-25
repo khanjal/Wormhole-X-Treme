@@ -23,6 +23,7 @@ import org.bukkit.entity.Sittable;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -368,6 +369,32 @@ class JourneysOnMockServerTest
 
         ticks(20 * 320);
         assertNothingNewRunning(before, "the traveller was bounced and the gate shut");
+    }
+
+    /**
+     * A lever a player puts on the unused iris spot of a gate with no code does not shut an
+     * iris nobody could open again, and the player can break it again.
+     */
+    @Test
+    void aLeverOnTheIrisSpotOfAGateWithNoCodeLeavesTheIrisAlone()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("nocode", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Builder");
+        final Stargate gate = buildGate(p, world, 0.5, "Edora");
+        final Block spot = gate.getGateIrisLeverBlock();
+        assertNotNull(spot, "Edora has no iris spot, so nothing here reaches the bug");
+        assertSame(gate, StargateManager.getGateFromBlock(spot), "the iris spot is not indexed");
+        spot.setType(Material.LEVER);
+
+        click(p, Action.RIGHT_CLICK_BLOCK, spot, BlockFace.SOUTH);
+        ticks(60);
+
+        assertFalse(gate.isGateIrisActive(), "a stray lever shut an iris with no code");
+        assertFalse(gate.isGateIrisDefaultActive(), "a stray lever made a codeless iris shut by default");
+        final BlockBreakEvent breaking = new BlockBreakEvent(spot, p);
+        server.getPluginManager().callEvent(breaking);
+        assertFalse(breaking.isCancelled(), "the player cannot take back their own lever: " + p.messages());
     }
 
     /** A redstone pulse into the block, rising from off. */
