@@ -155,6 +155,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
+  close shut it again, with no lever or code left to open it. A gate stuck that way opens on
+  `idc -clear` again.
 
 ### Commands
 
@@ -181,6 +184,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A gate's owner can set its iris code**, with `gate edit <gate> idc`, without
+  `wormhole.config`. Every other field still needs it.
 - **A mistyped command gets one short usage line, for that command.** It used to be followed by
   the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
   with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is
@@ -190,6 +195,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
   Each verb now asks the command it is short for. A word that is not a verb at all offers
   nothing, where it used to offer gates the command would then refuse.
+- **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code, and the iris as it was last saved. With no code given it now reports the code rather than clearing it; `-clear`, which it now offers, clears it.
+- **A gate's owner, custom mode, materials, woosh depth and redstone wiring are saved as they
+  are set**, by `gate edit` or by `owner`, `custom`, `portalmaterial`, `irismaterial`,
+  `lightmaterial`, `wooshdepth` and `redstone`. They reached disk only when the server shut down,
+  so a crash lost them.
 
 ### For shape authors
 

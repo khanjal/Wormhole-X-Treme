@@ -38,6 +38,7 @@ public final class SubCommands
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
     private static final String FREYA = "freya";
+    private static final String CLEAR = "-clear";
 
     /**
      * Supplies tab-completion candidates for a subcommand's arguments.
@@ -246,7 +247,7 @@ public final class SubCommands
                     return gateNames(args[1]);
                 }
                 // The code itself is theirs to invent; -clear is the one word that is ours.
-                return args.length == 3 ? prefixed(args[2], "-clear") : none();
+                return args.length == 3 ? prefixed(args[2], CLEAR) : none();
             });
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
@@ -372,9 +373,12 @@ public final class SubCommands
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict", FREYA);
 
-        selfPermissioned("beam", "ring", "go", "list", "compass", FREYA);
-        // gate stays admin-only, except build and preview for whoever may preview: Build checks the node itself.
-        BY_NAME.get("gate").admitsWithoutConfig = Build::admitsWithoutConfig;
+        // idc admits the gate's owner as well as wormhole.config, and checks both itself.
+        selfPermissioned("beam", "ring", "go", "list", "compass", "idc", FREYA);
+        // gate stays admin-only, except build and preview for whoever may preview -- Build checks
+        // the node itself -- and edit <gate> idc, for the same reason idc is self-permissioned.
+        BY_NAME.get("gate").admitsWithoutConfig = (sender, args) -> Build.admitsWithoutConfig(sender, args)
+            || com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.admitsWithoutConfig(args);
     }
 
     /**
@@ -629,12 +633,16 @@ public final class SubCommands
         {
             final List<String> groups = new java.util.ArrayList<>(
                 com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames());
-            groups.add("-clear");
+            groups.add(CLEAR);
             return prefixed(typed, groups.toArray(new String[0]));
         }
         if (REDSTONE.equals(field))
         {
             return prefixed(typed, TRUE, FALSE);
+        }
+        if ("idc".equals(field))
+        {
+            return prefixed(typed, CLEAR);
         }
         if ("iris-animation".equals(field))
         {

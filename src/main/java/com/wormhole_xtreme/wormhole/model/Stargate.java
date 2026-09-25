@@ -2138,6 +2138,8 @@ public class Stargate implements GateIris
         }
         else
         {
+            // The lever saves a shut iris as the default, which a closing wormhole restores.
+            setGateIrisDefaultActive(false);
             setIrisState(false);
             setupIrisLever(false);
             setGateIrisDeactivationCode("");

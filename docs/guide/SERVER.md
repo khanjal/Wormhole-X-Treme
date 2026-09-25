@@ -149,7 +149,7 @@ outranks a negated node.
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. |
+| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 
@@ -176,8 +176,8 @@ or delete it.
 
 Worth knowing:
 
-- `beam`, `ring`, `go`, `list` and `compass` answer to their own nodes. Everything else under
-  `/wormhole` needs `wormhole.config`.
+- `beam`, `ring`, `go`, `list` and `compass` answer to their own nodes, and a gate's owner may
+  run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`.
 - Nobody may build inside a gate's opening except those who could take the gate apart: operators,
   its owner, and holders of `wormhole.config` or `wormhole.remove.all`. `wormhole.build` does not
   carry it. A block left there is not part of the gate, so anyone can break it back out.
