@@ -479,7 +479,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         logStartupBanner();
         prettyLog(Level.INFO, true, "Enable Beginning.");
-        // Attach to Vault, PlaceholderAPI and bStats
+        // Attach to Vault (permissions and economy), PlaceholderAPI and bStats
         try
         {
             PermissionsSupport.enablePermissions();
