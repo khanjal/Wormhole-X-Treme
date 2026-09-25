@@ -359,8 +359,9 @@ one place the release notes are duplicated, so **rewriting
 [LIST]
 [*][B]Anonymous usage counts now go to bStats[/B], on by default: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]/wormhole config metrics-enabled false[/ICODE] stops it.
 [*]Bundled shapes you have not edited update themselves at startup, keeping the old copy as [ICODE]<name>.shape.old[/ICODE]. An edited one is left alone and named in the log.
-[*]The default [ICODE]top[/ICODE] dial pauses on each chevron, so a dial takes about three seconds longer. [ICODE]/wormhole config gate-dial-spin chevron[/ICODE] keeps the old pace.
+[*]The default [ICODE]top[/ICODE] dial rests on the top chevron after each lock, so a dial takes about three seconds longer. [ICODE]/wormhole config gate-dial-spin chevron[/ICODE] keeps the old pace.
 [*]Optional: add [ICODE]dial-spin: pegasus[/ICODE] and [ICODE]dial-spin: universe[/ICODE] to an existing [ICODE]config.yml[/ICODE]'s Atlantis and Universe groups, as new installs have.
+[*]A coded gate whose iris came back open after a crash under 1.7 needs its lever pulled once.
 [*]Coming from 1.7.0? The [ICODE]Massive[/ICODE] shape updates itself; then run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 [*]Installing for the first time? None of the above applies. Drop the jar in and start.
 [/LIST]

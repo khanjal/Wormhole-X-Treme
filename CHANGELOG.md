@@ -79,10 +79,9 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 - **`gate regen` keeps every `gate edit` setting**: custom materials, woosh depth, redstone
   and an iris shut by default, which it used to drop.
-- **Gate settings are saved as they are set**: `gate edit` (including `group` and `idc`),
-  `owner`, `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth`,
-  `redstone` and the iris lever. They used to wait for shutdown, so a crash lost them, and a
-  chosen group was never saved at all.
+- **Gate settings are saved as they are set** by `gate edit idc`, the iris lever and `owner`,
+  `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth` and `redstone`.
+  They used to wait for shutdown, so a crash lost them. `gate edit group` is saved at all now.
 - **An iris shut by default stays that way through a save taken mid-journey.** A gate already
   saved open this way needs its lever pulled once.
 - **`force` and `idc -clear` open an iris for good.** Both used to leave it to shut again at the
@@ -99,7 +98,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A gate with no arrival point refuses the trip** instead of throwing on every tick a cart
   rolled into it.
 - **A dial sign hung on a placed preview works** once `gate complete` is run. A Horizontal frame
-  completes as `HorizontalSignDial` instead of writing its name sign over the dial sign.
+  completes as `HorizontalSignDial` instead of writing its name sign over the dial sign. Gates
+  already completed without their sign are not changed.
 - **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
 
 ### Commands
@@ -134,7 +134,7 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
-- **A mirror whose capture fails is captured again** the next time someone looks at it,
+- **A mirror whose capture throws partway is captured again** the next time someone looks at it,
   instead of never updating until a restart.
 - **Less of a small mirror's picture lingers outside its opening as you move.** Openings of six
   blocks or fewer redraw twenty times a second rather than ten, inside the same cost cap.

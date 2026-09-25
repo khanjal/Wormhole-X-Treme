@@ -389,10 +389,11 @@ Rewriting these notes means rewriting that one too.
 >   stops it.
 > - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
 >   `<name>.shape.old`. An edited one is left alone and named in the log.
-> - The default `top` dial pauses on each chevron, so a dial takes about three seconds longer.
+> - The default `top` dial rests on the top chevron after each lock, so a dial takes about three seconds longer.
 >   `/wormhole config gate-dial-spin chevron` keeps the old pace.
 > - Optional: add `dial-spin: pegasus` and `dial-spin: universe` to an existing `config.yml`'s
 >   Atlantis and Universe groups, as new installs have.
+> - A coded gate whose iris came back open after a crash under 1.7 needs its lever pulled once.
 > - Coming from 1.7.0? The `Massive` shape updates itself; then run `/wormhole gate regen <gate>` on
 >   each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 > - Installing for the first time? None of the above applies. Drop the jar in and start.
