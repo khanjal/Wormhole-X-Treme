@@ -108,6 +108,8 @@ class LeverClickDispatchTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateDialLeverBlock(dial);
         gate.setGateIrisLeverBlock(iris);
+        // A real iris lever is only ever placed for a gate with a code.
+        gate.setGateIrisDeactivationCode("1234");
         StargateManager.registerStargate(gate);
         StargateManager.addBlockIndex(at, gate);
         return gate;
@@ -149,6 +151,29 @@ class LeverClickDispatchTest
 
         org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisActive(),
             "an exact click on the iris lever is an iris toggle");
+    }
+
+    /**
+     * A gate with no code still keeps its iris spot, and a lever a player puts there must not
+     * shut the iris: with no code and no lever of its own, nothing could open it again.
+     */
+    @Test
+    void aLeverOnTheIrisSpotOfAGateWithNoCodeTogglesNothing()
+    {
+        final Block dial = blockAt(5, 64, 5);
+        final Block iris = blockAt(5, 64, 7);
+        final Stargate gate = gateWithLevers(dial, iris, iris);
+        gate.setGateIrisDeactivationCode("");
+        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+
+        final boolean handled = click(iris);
+
+        // Asserted with the click handled, so "the iris stayed open" is not just a click
+        // that never reached the dispatch.
+        org.junit.jupiter.api.Assertions.assertTrue(handled, "the click on an indexed block was not handled");
+        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive(),
+            "a stray lever shut an iris with no code");
+        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisDefaultActive());
     }
 
     /**
