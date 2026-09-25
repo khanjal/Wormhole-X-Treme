@@ -196,6 +196,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   Each verb now asks the command it is short for. A word that is not a verb at all offers
   nothing, where it used to offer gates the command would then refuse.
 - **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code, and the iris as it was last saved. With no code given it now reports the code rather than clearing it; `-clear`, which it now offers, clears it.
+- **A gate's owner, custom mode, materials, woosh depth and redstone wiring are saved as they
+  are set**, by `gate edit` or by `owner`, `custom`, `portalmaterial`, `irismaterial`,
+  `lightmaterial`, `wooshdepth` and `redstone`. They reached disk only when the server shut down,
+  so a crash lost them.
 
 ### For shape authors
 

@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
@@ -108,6 +109,7 @@ public final class CommandHandlerUtils
             // permanently opting it out of every palette — and `custom -all true`
             // would do that to every gate on the server at once.
             stargate.setGateCustom(customEnabled);
+            StargateDBManager.saveStargate(stargate);
         }
         else
         {

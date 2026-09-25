@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,9 +21,11 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -39,6 +43,10 @@ class WooshDepthCommandTest
 {
     private CommandSender sender;
 
+    // Every test mocks it: a change is saved at once, and the real save writes gate files
+    // into the working directory.
+    private MockedStatic<StargateDBManager> db;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -47,11 +55,13 @@ class WooshDepthCommandTest
         // Not a player, so the admin node is not asked for.
         sender = mock(CommandSender.class);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
+        db.close();
         clearGates();
         PluginTestSupport.remove();
     }
@@ -82,6 +92,18 @@ class WooshDepthCommandTest
         return new WooshDepthCommand().execute(sender, args);
     }
 
+    /** The gate went to disk once, now, rather than waiting for shutdown. */
+    private void assertSaved(final Stargate gate)
+    {
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** Nothing changed, so nothing was written. */
+    private void assertNothingSaved()
+    {
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
     /** Too few or too many words gets the usage line, and true, since it has already said so (#325). */
     @Test
     void theWrongNumberOfArgumentsIsAUsageError()
@@ -100,6 +122,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth", "nowhere", "3"));
 
         verify(sender).sendMessage(contains("Invalid gate target"));
+        assertNothingSaved();
     }
 
     /** A gate not in custom mode is told which command to run first. */
@@ -113,6 +136,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth", "plain", "3"));
 
         verify(sender).sendMessage(contains("not in custom mode"));
+        assertNothingSaved();
         assertEquals(-1, gate.getGateCustomWooshDepth(), "still unset; -1 is the sentinel, 0 is a real depth");
     }
 
@@ -128,6 +152,7 @@ class WooshDepthCommandTest
         assertEquals(16, gate.getGateCustomWooshDepthSquared(),
             "the square is kept alongside so the animation does not compute it per block");
         verify(sender).sendMessage(contains("woosh depth set to: 4"));
+        assertSaved(gate);
     }
 
     /**
@@ -158,6 +183,7 @@ class WooshDepthCommandTest
 
         verify(sender).sendMessage(contains("Invalid woosh depth: 6"));
         assertEquals(2, gate.getGateCustomWooshDepth(), "the old depth stands");
+        assertNothingSaved();
     }
 
     /** A word that is not a number is refused the same way as one out of range. */
@@ -170,6 +196,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth", "alpha", "deep"));
 
         verify(sender).sendMessage(contains("Invalid woosh depth: deep"));
+        assertNothingSaved();
         assertEquals(2, gate.getGateCustomWooshDepth());
     }
 
@@ -183,6 +210,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth", "alpha"));
 
         verify(sender).sendMessage(contains("woosh depth is currently: 3"));
+        assertNothingSaved();
         assertEquals(3, gate.getGateCustomWooshDepth());
     }
 
@@ -230,6 +258,7 @@ class WooshDepthCommandTest
         assertTrue(new WooshDepthCommand().execute(player, new String[] {"wooshdepth", "alpha", "5"}));
 
         verify(player).sendMessage(contains("ermission"));
+        assertNothingSaved();
         assertEquals(-1, gate.getGateCustomWooshDepth(), "still unset; -1 is the sentinel, 0 is a real depth");
     }
 }
