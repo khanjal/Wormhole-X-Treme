@@ -58,6 +58,9 @@ public class GateEditCommand implements SubCommand
     /** The field for a gate's own iris animation, named as the setting is. */
     private static final String IRIS_ANIMATION = "iris-animation";
 
+    /** The iris code: the one field a gate's owner may set without {@code wormhole.config}. */
+    private static final String IDC = "idc";
+
     private static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
     static
@@ -80,8 +83,8 @@ public class GateEditCommand implements SubCommand
         // The odd one out: WXIDC was written as a standalone command and takes its own
         // arguments from index zero, where the handlers above still expect the subcommand
         // name in front of them. No value reports the code; -clear is what clears it.
-        FIELDS.put("idc", (sender, gate, value) ->
-            new WXIDC().onCommand(sender, null, "idc", value.isEmpty()
+        FIELDS.put(IDC, (sender, gate, value) ->
+            new WXIDC().onCommand(sender, null, IDC, value.isEmpty()
                 ? new String[] { gate } : new String[] { gate, value }));
         FIELDS.put("group", GateEditCommand::setGroup);
         FIELDS.put("spin", GateEditCommand::setSpin);
@@ -343,6 +346,23 @@ public class GateEditCommand implements SubCommand
         return (field != null) && FIELDS.containsKey(field.toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * Whether a line of {@code gate} may be run without {@code wormhole.config}.
+     *
+     * @param args
+     *            the full argument array, {@code gate} at index 0
+     * @return true for {@code gate edit <gate> idc}, which decides for itself who may
+     */
+    public static boolean admitsWithoutConfig(final String[] args)
+    {
+        return (args.length > 1) && "edit".equalsIgnoreCase(args[1]) && editsTheCode(args);
+    }
+
+    private static boolean editsTheCode(final String[] args)
+    {
+        return (args.length > 3) && IDC.equalsIgnoreCase(args[3]);
+    }
+
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
     @Override
@@ -352,8 +372,9 @@ public class GateEditCommand implements SubCommand
         // Most fields inherit a check that way already, but "group" does not delegate to
         // anything -- it is its own logic below -- so it had none at all until this. One
         // guard on the front door covers every field today and covers whatever field is
-        // added next without relying on its author to remember this.
-        if (CommandHandlerUtils.lacksConfigPermission(sender))
+        // added next without relying on its author to remember this. The code is the one
+        // exception: WXIDC admits the gate's owner as well, and checks for itself.
+        if (!editsTheCode(args) && CommandHandlerUtils.lacksConfigPermission(sender))
         {
             return true;
         }
