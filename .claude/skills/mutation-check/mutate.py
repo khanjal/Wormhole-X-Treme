@@ -28,7 +28,13 @@ Guarantees, each learned the hard way:
   - checks each mutation actually changed the file before running anything;
   - restores the original bytes after every mutation and proves they match;
   - separates "tests failed" (KILLED) from "did not compile" (NO-COMPILE), which is not a kill;
-  - exits non-zero on refusal, so a refusal cannot be mistaken for a clean battery.
+  - exits non-zero unless every mutation was measured and killed, so neither a refusal nor
+    a battery that measured nothing can be mistaken for a clean one.
+
+Exit codes: 0 all killed; 1 a mutation survived; 2 usage, a malformed battery, or no mvn; 3 target differs from HEAD;
+4 baseline not green; 5 restore failed; 6 nothing survived, but a mutation was not measured
+(UNAPPLIED, NO-COMPILE, NO-TESTS, BUILD-ERROR) or the battery had no mutations. A restore
+failure (5) outranks the rest, and a survivor (1) outranks 6.
 """
 
 import json
@@ -36,6 +42,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 
@@ -52,7 +59,8 @@ def head_text(root: Path, rel: str) -> str:
 def mvn() -> str:
     exe = shutil.which("mvn") or shutil.which("mvn.cmd")
     if not exe:
-        sys.exit("REFUSING: mvn is not on PATH.")
+        print("REFUSING: mvn is not on PATH.")
+        sys.exit(2)
     return exe
 
 
@@ -82,6 +90,7 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
+    mvn()
     battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     root = repo_root()
     rel = battery["file"].replace("\\", "/")
@@ -107,7 +116,7 @@ def main() -> int:
 
     results = []
     try:
-        for m in battery["mutations"]:
+        for m in battery.get("mutations", []):
             name = m["name"]
             count = lf_text.count(m["find"])
             if count != 1:
@@ -134,12 +143,25 @@ def main() -> int:
         print(f"restored {rel}", flush=True)
 
     survivors = [n for n, v in results if v == "SURVIVED"]
+    unmeasured = [n for n, v in results if v not in ("KILLED", "SURVIVED")]
     print(f"\n{sum(v == 'KILLED' for _, v in results)} killed, {len(survivors)} survived, "
-          f"{sum(v not in ('KILLED', 'SURVIVED') for _, v in results)} not measured")
+          f"{len(unmeasured)} not measured")
     for n in survivors:
         print(f"  survived: {n}")
-    return 1 if survivors else 0
+    for n in unmeasured:
+        print(f"  not measured: {n}")
+    if survivors:
+        return 1
+    if not results:
+        print("REFUSING: the battery has no mutations.")
+        return 6
+    return 6 if unmeasured else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (KeyError, TypeError, ValueError, OSError, subprocess.CalledProcessError):
+        # An uncaught exception would exit 1, which reads as a survivor.
+        traceback.print_exc()
+        sys.exit(2)
