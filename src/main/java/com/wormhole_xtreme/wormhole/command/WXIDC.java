@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -52,20 +53,23 @@ public class WXIDC implements CommandExecutor
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid Stargate: " + a[0]);
             return;
         }
+        // Before the iris is described: any player can reach this command, not only its owner.
+        if (!mayChangeCode(sender, s))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
         {
             // Nothing to unlock, so a code set here would never be asked for.
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
             return;
         }
-        if (!mayChangeCode(sender, s))
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return;
-        }
         if (a.length >= 2)
         {
             setCode(s, a[1]);
+            // Saved now, as every other gate edit is, or a crash restores the old code and iris.
+            StargateDBManager.saveStargate(s);
         }
         // Always shown, whether or not anything was changed.
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());

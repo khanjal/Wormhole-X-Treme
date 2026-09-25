@@ -55,6 +55,7 @@ public final class PrivateStatics
      * @throws ReflectiveOperationException
      *             if there is no such field, which means it was renamed
      */
+    // Field.get returns Object; only the caller knows what the field holds.
     @SuppressWarnings("unchecked")
     public static <T> T of(final Class<?> owner, final String name) throws ReflectiveOperationException
     {

@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -12,9 +14,11 @@ import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -31,6 +35,10 @@ class CustomCommandTest
 {
     private CommandSender sender;
 
+    // Every test mocks it: a change is saved at once, and the real save writes gate files
+    // into the working directory.
+    private MockedStatic<StargateDBManager> db;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -39,11 +47,13 @@ class CustomCommandTest
         // Not a player, so the admin node is not asked for.
         sender = mock(CommandSender.class);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown()
     {
+        db.close();
         clearGates();
     }
 
@@ -73,6 +83,18 @@ class CustomCommandTest
         return new CustomCommand().execute(sender, args);
     }
 
+    /** The gate went to disk once, now, rather than waiting for shutdown. */
+    private void assertSaved(final Stargate gate)
+    {
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** Nothing changed, so nothing was written. */
+    private void assertNothingSaved()
+    {
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
     /** The wrong number of arguments gets the usage line, and true, since it has already said so (#325). */
     @Test
     void theWrongArgumentCountIsAUsageError()
@@ -89,6 +111,7 @@ class CustomCommandTest
         assertTrue(run("custom", "nowhere", "true"));
 
         verify(sender).sendMessage(contains("Invalid"));
+        assertNothingSaved();
     }
 
     /** Asked without a value, it reports the gate's current setting and changes nothing. */
@@ -101,6 +124,7 @@ class CustomCommandTest
 
         verify(sender).sendMessage(contains("Stargate is custom: false"));
         assertFalse(s.isGateCustom(), "asking must not change it");
+        assertNothingSaved();
     }
 
     /** Turning it on for a gate that has a shape does turn it on. */
@@ -112,6 +136,7 @@ class CustomCommandTest
         assertTrue(run("custom", "alpha", "true"));
 
         assertTrue(s.isGateCustom(), "custom mode should be on now");
+        assertSaved(s);
     }
 
     /**
@@ -129,6 +154,7 @@ class CustomCommandTest
 
         verify(sender).sendMessage(contains("No gate shape to base custom data off of"));
         assertFalse(s.isGateCustom(), "and it is not turned on regardless");
+        assertNothingSaved();
     }
 
     /**
@@ -146,19 +172,25 @@ class CustomCommandTest
 
         verify(sender).sendMessage(contains("Invalid boolean option: yes"));
         assertFalse(s.isGateCustom());
+        assertNothingSaved();
     }
 
-    /** The -all form reaches every gate that has a shape. */
+    /** The -all form reaches and saves every gate that has a shape, and skips one without. */
     @Test
     void allReachesEveryGateWithAShape()
     {
         final Stargate one = gate("alpha", true);
         final Stargate two = gate("beta", true);
+        final Stargate shapeless = gate("gamma", false);
 
         assertTrue(run("custom", "-all", "true"));
 
         assertTrue(one.isGateCustom(), "alpha");
         assertTrue(two.isGateCustom(), "beta");
+        assertFalse(shapeless.isGateCustom(), "gamma has no shape to be custom from");
+        assertSaved(one);
+        assertSaved(two);
+        db.verify(() -> StargateDBManager.saveStargate(shapeless), never());
         verify(sender, never()).sendMessage(contains("Invalid"));
     }
 }

@@ -228,16 +228,17 @@ class WormholeXTremeBlockListener implements Listener
     }
 
     /**
-     * The gate's iris lever, but only if a lever is actually there.
+     * The gate's iris lever, but only if a lever is actually there and the gate has a code.
      *
      * <p>The gate records the position from shape detection regardless, so the block has to
-     * be asked what it is rather than trusted to be a lever.
+     * be asked what it is rather than trusted to be a lever. A lever on a gate with no code is
+     * one a player put there, and theirs to take back.
      */
     private static Block placedIrisLever(final Stargate stargate)
     {
         try
         {
-            final Block irisBlock = stargate.getGateIrisLeverBlock();
+            final Block irisBlock = GateInteractionHandler.irisLeverOf(stargate);
             if ((irisBlock != null) && (irisBlock.getType() == Material.LEVER))
             {
                 return irisBlock;

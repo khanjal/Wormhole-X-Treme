@@ -24,6 +24,7 @@ import org.bukkit.entity.Sittable;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -369,6 +370,68 @@ class JourneysOnMockServerTest
 
         ticks(20 * 320);
         assertNothingNewRunning(before, "the traveller was bounced and the gate shut");
+    }
+
+    /**
+     * Clearing the code of a gate whose iris was shut by its lever leaves the iris open.
+     *
+     * <p>The lever remembers a shut iris as the gate's default, and a wormhole shutting down
+     * restores that default. The clear removed the lever and the code but kept the default, so
+     * the next visit shut the iris again with nothing left that could open it.
+     */
+    @Test
+    void clearingTheCodeOfALeverShutIrisLeavesItOpenAfterTheNextVisit()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("irisclear", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Guest");
+        final MockServerSupport.Player keeper = new MockServerSupport.Player(server, "Warden");
+        final Stargate home = buildGate(p, world, 0.5, "Vorash");
+        final Stargate far = buildGate(p, world, 40.5, "Hebridan", "idc=2468");
+        keeper.teleport(new Location(world, 40.5, 64, 0.5, 0f, 0f));
+        pullIrisLever(keeper, far);
+        assertTrue(far.isGateIrisActive(), "Hebridan's iris did not shut");
+
+        keeper.performCommand("wormhole gate edit Hebridan idc -clear");
+        ticks(60);
+        assertFalse(far.isGateIrisActive(), "clearing the code left the iris shut: " + keeper.messages());
+        assertEquals("", far.getGateIrisDeactivationCode(), "the code was not cleared");
+
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        final java.util.Set<Integer> before = settledTasks();
+        final List<String> dialled = dial(p, home, "Hebridan", null);
+        assertTrue(home.isGateActive(), "Vorash did not open: " + dialled);
+        ticks(20 * 320);
+        assertFalse(home.isGateActive(), "Vorash never timed out");
+        assertFalse(far.isGateIrisActive(),
+            "the wormhole closing shut the iris again, on a gate with no lever and no code to open it");
+        assertNothingNewRunning(before, "the wormhole closed on a cleared iris");
+    }
+
+    /**
+     * A lever a player puts on the unused iris spot of a gate with no code does not shut an
+     * iris nobody could open again, and the player can break it again.
+     */
+    @Test
+    void aLeverOnTheIrisSpotOfAGateWithNoCodeLeavesTheIrisAlone()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("nocode", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Builder");
+        final Stargate gate = buildGate(p, world, 0.5, "Edora");
+        final Block spot = gate.getGateIrisLeverBlock();
+        assertNotNull(spot, "Edora has no iris spot, so nothing here reaches the bug");
+        assertSame(gate, StargateManager.getGateFromBlock(spot), "the iris spot is not indexed");
+        spot.setType(Material.LEVER);
+
+        click(p, Action.RIGHT_CLICK_BLOCK, spot, BlockFace.SOUTH);
+        ticks(60);
+
+        assertFalse(gate.isGateIrisActive(), "a stray lever shut an iris with no code");
+        assertFalse(gate.isGateIrisDefaultActive(), "a stray lever made a codeless iris shut by default");
+        final BlockBreakEvent breaking = new BlockBreakEvent(spot, p);
+        server.getPluginManager().callEvent(breaking);
+        assertFalse(breaking.isCancelled(), "the player cannot take back their own lever: " + p.messages());
     }
 
     /** A redstone pulse into the block, rising from off. */
