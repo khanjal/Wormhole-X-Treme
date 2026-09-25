@@ -251,6 +251,8 @@ Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
   another world**; a sitting pet and somebody else's stay where they are.
 - **The iris is tested end to end**: shut by its lever, it refuses a dial with no code and with a
   wrong one, and the right code opens it; shut after the dial, it turns the traveller back.
+- **Redstone dialling is tested end to end**: a hand-hung dial sign is taken up, a right-click
+  chooses the far gate, and a pulse dials it, with the gate-open lever on until it shuts.
 
 ## 1.7.1 (2026-09-19)
 

@@ -982,9 +982,8 @@ public final class StargateHelper
     private static boolean recordDialSign(final Stargate gate, final GateFrame frame,
                                      final StargateShapeLayer layer, final int layerIdx)
     {
-        // Not pinned: reaching here needs a shape carrying :D and a real wall sign with a
-        // readable Sign state, which this suite does not build. Moved verbatim for that
-        // reason -- see GateDetectionTest.
+        // Needs a real wall sign with a readable Sign state, so only the MockBukkit redstone
+        // journey reaches it (JourneysOnMockServerTest); the Mockito suite cannot.
         // Dial-sign holder (D) — the sign sits on the gate-facing face of this block.
         final int[] dPos = layer.getLayerDialSignPosition();
         if (dPos.length >= 3)

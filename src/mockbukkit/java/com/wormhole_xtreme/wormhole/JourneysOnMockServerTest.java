@@ -13,13 +13,17 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.type.Switch;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Cat;
 import org.bukkit.entity.Sittable;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterAll;
@@ -103,17 +107,20 @@ class JourneysOnMockServerTest
     private static Stargate buildGate(final MockServerSupport.Player p, final MockServerSupport.World world,
         final double x, final String name)
     {
-        return buildGate(p, world, x, name, null);
+        return buildGate(p, world, x, name, "");
     }
 
-    /** Builds a gate with an iris deactivation code, which is what gives it an iris lever. */
+    /**
+     * Builds a gate, completing it with options such as {@code idc=} (which gives it an iris
+     * lever) or {@code net=} (which keeps it off the other journeys' network).
+     */
     private static Stargate buildGate(final MockServerSupport.Player p, final MockServerSupport.World world,
-        final double x, final String name, final String idc)
+        final double x, final String name, final String options)
     {
         p.teleport(new Location(world, x, 64, 0.5, 0f, 0f));
         p.performCommand("wormhole gate build Standard");
         p.performCommand("wormhole gate preview place");
-        p.performCommand("wormhole gate complete " + name + ((idc == null) ? "" : (" idc=" + idc)));
+        p.performCommand("wormhole gate complete " + name + (options.isEmpty() ? "" : (" " + options)));
         final Stargate gate = StargateManager.getStargate(name);
         assertNotNull(gate, name + " was not built: " + p.messages());
         return gate;
@@ -304,7 +311,7 @@ class JourneysOnMockServerTest
         server.addWorld(world);
         final MockServerSupport.Player p = new MockServerSupport.Player(server, "Caller");
         final Stargate home = buildGate(p, world, 0.5, "Abydos");
-        final Stargate far = buildGate(p, world, 40.5, "Chulak", "4321");
+        final Stargate far = buildGate(p, world, 40.5, "Chulak", "idc=4321");
         pullIrisLever(p, far);
         assertTrue(far.isGateIrisActive(), "Chulak's iris did not shut");
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
@@ -340,7 +347,7 @@ class JourneysOnMockServerTest
         final MockServerSupport.Player p = new MockServerSupport.Player(server, "Visitor");
         final MockServerSupport.Player keeper = new MockServerSupport.Player(server, "Keeper");
         final Stargate home = buildGate(p, world, 0.5, "Tollan");
-        final Stargate far = buildGate(p, world, 40.5, "Dakara", "8888");
+        final Stargate far = buildGate(p, world, 40.5, "Dakara", "idc=8888");
         keeper.teleport(new Location(world, 40.5, 64, 0.5, 0f, 0f));
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
         final java.util.Set<Integer> before = settledTasks();
@@ -361,6 +368,77 @@ class JourneysOnMockServerTest
 
         ticks(20 * 320);
         assertNothingNewRunning(before, "the traveller was bounced and the gate shut");
+    }
+
+    /** A redstone pulse into the block, rising from off. */
+    private static void pulse(final Block block)
+    {
+        server.getPluginManager().callEvent(new BlockRedstoneEvent(block, 0, 15));
+    }
+
+    /**
+     * A sign gate dialled by redstone: the player hangs a dial sign and names the gate on it,
+     * right-clicks it to choose the far gate, and a pulse into the [RD] cell dials that gate,
+     * switching the [RA] lever on while it is open.
+     */
+    @Test
+    void aRedstonePulseDialsTheGateTheSignShows()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("redstone", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Wirer");
+        // A network of their own, so the sign's first step is Target and not another journey's gate.
+        final Stargate far = buildGate(p, world, 40.5, "Target", "net=Wires");
+
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        p.performCommand("wormhole gate build StandardSignDial");
+        p.performCommand("wormhole gate preview place");
+        // Placing reads the design at once, before any sign is there, so it is set aside and
+        // the gate completed the way a player building by hand does: sign first, then button.
+        p.performCommand("wormhole gate complete -cancel");
+        // The dial sign hangs on the [D] block beside the DHD's activation block, facing the
+        // same way as the button: here, one block west of it.
+        final Block button = world.getBlockAt(0, 65, 0);
+        assertTrue(org.bukkit.Tag.BUTTONS.isTagged(button.getType()), "no DHD button where expected: " + button.getType());
+        final Block sign = button.getRelative(BlockFace.WEST);
+        sign.setType(Material.OAK_WALL_SIGN);
+        final BlockData facing = sign.getBlockData();
+        ((Directional) facing).setFacing(((Directional) button.getBlockData()).getFacing());
+        sign.setBlockData(facing);
+        final Sign written = (Sign) sign.getState();
+        // Paper's text component, since the tests compile only against Paper and setLine is deprecated there.
+        written.getSide(Side.FRONT).line(0, net.kyori.adventure.text.Component.text("Signal"));
+        written.update(true);
+        p.performCommand("wormhole gate complete Signal net=Wires");
+        click(p, Action.RIGHT_CLICK_BLOCK, button, BlockFace.NORTH);
+        final Stargate home = StargateManager.getStargate("Signal");
+        assertNotNull(home, "Signal was not built: " + p.messages());
+        assertTrue(home.isGateSignPowered(), "the dial sign was not taken up");
+        assertTrue(home.isGateRedstonePowered(), "a SignDial gate should take redstone");
+
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
+        ticks(5);
+        assertSame(far, home.getGateDialSignTarget(), "the sign does not show Target: " + p.messages());
+        final Block output = home.getGateRedstoneGateActivatedBlock();
+        assertFalse(((Switch) output.getBlockData()).isPowered(), "the [RA] lever is on before any dial");
+        p.messages();
+        final java.util.Set<Integer> before = settledTasks();
+
+        pulse(home.getGateRedstoneDialActivationBlock());
+        ticks(200);
+        assertTrue(home.isGateActive(), "the pulse did not dial: " + p.messages());
+        assertSame(far, home.getGateTarget());
+        assertTrue(((Switch) output.getBlockData()).isPowered(), "the [RA] lever did not switch on");
+
+        final List<Location> portal = home.getGatePortalBlocks();
+        walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        ticks(20);
+        assertAt(far.getGatePlayerTeleportLocation(), p.getLocation());
+
+        ticks(20 * 320);
+        assertFalse(home.isGateActive(), "Signal never timed out");
+        assertFalse(((Switch) output.getBlockData()).isPowered(), "the [RA] lever stayed on after the gate shut");
+        assertNothingNewRunning(before, "the redstone dial");
     }
 
     private static Block hangMirror(final MockServerSupport.World world)
