@@ -74,8 +74,8 @@ All pinned to `main`. Prefix: `https://raw.githubusercontent.com/khanjal/Wormhol
 
 | Use | Path | Type |
 |---|---|---|
-| Banner | `docs/images/logo-banner.svg` | SVG — **renders on Modrinth and Hangar, not on Spigot** |
-| Icon | rendered 256×256 PNG from `docs/images/logo.svg` | not in the repo; rendered per site |
+| Banner | `docs/images/logo-banner.svg` | SVG — **banned from the Modrinth page**, see below |
+| Icon | rendered PNG from `docs/images/logo.svg` | not in the repo; rendered per site. **Not usable on Modrinth**, see below |
 | Gates | `docs/images/gates/gate-dial.webp` | animated WebP |
 | Rings | `docs/images/rings/ring-cycle.webp` | animated WebP |
 | Beaming | `docs/images/beams/beam-up.webp` | animated WebP |
@@ -87,6 +87,13 @@ The gallery is about 1.9 MB all told. If a page feels heavy, `gate-shapes-active
 
 Everything else under `docs/images/` is SVG: the per-shape drawings, the ring patterns, the ring
 stack, the beam timing strip. Render to PNG before using them anywhere that will not take SVG.
+
+**Both logo images are AI-authored, and at least one site forbids that on the page.** Modrinth's
+Content Rules 6.2.1 bans any page image "created or derived from generative AI output", so its
+icon is cropped from a gameplay capture and its description carries no banner. SpigotMC's rules
+carry no AI clause, so the logo stays there; Hangar's are unchecked. The reasoning is in
+[`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page); every clip and screenshot
+is a real capture and is unaffected.
 
 **Rendering the banner clips the wordmark unless you substitute the font.** `logo-banner.svg`
 draws its text as live `<text>` in `Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif`

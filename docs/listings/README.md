@@ -52,6 +52,15 @@ changes, you change it there and then carry it into whichever site files quote i
   every biome", "the whole matrix" — and let the live badges carry anything numeric. See
   [`shared.md`](shared.md#numbers-the-copy-does-not-print) for what this does and does not cover.
 - **Images are pinned to `main`.** See above.
+- **The logo may not go on the Modrinth page.** Its Content Rules 6.2.1 ban any page image
+  "created or derived from generative AI output", and the logo SVG was written with Claude Code.
+  Modrinth's icon is cropped from a gameplay capture and its description carries no banner; the
+  live page predates the rule, so check it (step 2 in `modrinth.md`'s Keeping it current).
+  **SpigotMC has no such rule** — its Terms & Rules were read and carry no AI clause — so the logo
+  stays there. **Hangar is unchecked** and still uses the logo; check before the next upload.
+  Reasoning in
+  [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page). Clips and screenshots
+  are real captures and are not affected.
 - **The README carries a badge per site that has one.** SpigotMC's come from Spiget, by resource
   id: `img.shields.io/spiget/version/138936` and `spiget/downloads/138936`. Hangar's downloads
   come from `img.shields.io/hangar/dt/Wormhole-X-Treme` — there is no Hangar version badge, and
