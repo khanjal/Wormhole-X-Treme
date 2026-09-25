@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
@@ -113,7 +114,7 @@ public final class GateInteractionHandler
         }
         else if (irisSame && !dialSame && mayIris)
         {
-            stargate.toggleIrisActive(true);
+            toggleIrisDefault(stargate);
         }
         else if (dialAdj && mayDial)
         {
@@ -121,12 +122,19 @@ public final class GateInteractionHandler
         }
         else if (irisAdj && !dialAdj && mayIris)
         {
-            stargate.toggleIrisActive(true);
+            toggleIrisDefault(stargate);
         }
         else
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         }
+    }
+
+    /** The iris lever sets the gate's default, which is saved now rather than lost to a crash. */
+    private static void toggleIrisDefault(final Stargate stargate)
+    {
+        stargate.toggleIrisActive(true);
+        StargateDBManager.saveStargate(stargate);
     }
 
     /**

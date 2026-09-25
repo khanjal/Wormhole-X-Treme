@@ -220,10 +220,10 @@ class StargateLifecycle
     // -----------------------------------------------------------------------
 
     /**
-     * Toggles the iris on/off and optionally persists the new state as the
-     * default.
+     * Toggles the iris on/off and optionally makes the new state the default.
      *
-     * @param setDefault {@code true} to remember the new state as the default
+     * @param setDefault {@code true} to remember the new state as the default; saving the
+     *                   gate is left to the caller
      */
     static void toggleIrisActive(final Stargate gate, final boolean setDefault)
     {
@@ -238,6 +238,29 @@ class StargateLifecycle
         {
             gate.setGateIrisDefaultActive(gate.isGateIrisActive());
         }
+    }
+
+    /**
+     * Puts a gate read from a save taken mid-dial back to idle, blocks and all.
+     *
+     * <p>Only a crash leaves such a file, and the world was saved with it: a floor gate's
+     * real iris taken out for the journey, the dial and output levers still powered.
+     *
+     * @param gate
+     *            the gate just read, its iris flag already at its default
+     */
+    static void settleAfterLoad(final Stargate gate)
+    {
+        gate.setGateActive(false);
+        gate.setGateLightsActive(false);
+        if (gate.getGateWorld() == null)
+        {
+            return;
+        }
+        // The iris first: it is the barrier, and the levers are only its lamp.
+        setIrisState(gate, gate.isGateIrisDefaultActive());
+        gate.toggleDialLeverState(false);
+        gate.toggleRedstoneGateActivatedPower();
     }
 
     /**

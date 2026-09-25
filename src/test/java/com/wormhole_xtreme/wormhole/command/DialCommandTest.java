@@ -1,10 +1,16 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -162,6 +168,114 @@ class DialCommandTest
         dial("there", "secret");
 
         verify(player).sendMessage(contains("IDC accepted"));
+    }
+
+    /**
+     * A dial refused at the far iris puts the near gate's iris back to its default.
+     *
+     * <p>Dialling opens the near iris before it looks at the far one. Left open, the gate sat
+     * idle against its default, and the file keeps only the default: a floor gate came back
+     * after a restart saying shut over an empty opening.
+     */
+    @Test
+    void aDialRefusedAtTheFarIrisShutsTheNearIrisAgain()
+    {
+        final Stargate here = gate("here");
+        here.setGateIrisDeactivationCode("mine");
+        here.setGateIrisActive(true);
+        here.setGateIrisDefaultActive(true);
+        final Stargate there = gate("there");
+        there.setGateIrisDeactivationCode("secret");
+        there.setGateIrisActive(true);
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there");
+
+        verify(player).sendMessage(contains("Remote Iris is active"));
+        assertTrue(here.isGateIrisActive(), "the near iris was left open against its shut default");
+    }
+
+    /**
+     * A dial that fails after the right IDC opened the far iris shuts that iris again.
+     *
+     * <p>The far gate never opened, so no shutdown of its own would put the iris back, and
+     * it sat idle open against its shut default -- the state a restart turns into a floor
+     * gate saying shut over an empty opening.
+     */
+    @Test
+    void aDialThatFailsAfterTheIdcShutsTheFarIrisAgain()
+    {
+        final Stargate here = gateThatCannotConnect("here");
+        final Stargate there = gate("there");
+        there.setGateIrisDeactivationCode("secret");
+        there.setGateIrisActive(true);
+        there.setGateIrisDefaultActive(true);
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there", "secret");
+
+        verify(player).sendMessage(contains("IDC accepted"));
+        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        assertTrue(there.isGateIrisActive(), "the far iris was left open against its shut default");
+    }
+
+    /**
+     * A far gate busy dialling somewhere else gets back the iris the IDC opened.
+     *
+     * <p>It has a target but no wormhole yet, so the dial is refused as in use, and nothing of
+     * its own is about to put the iris back.
+     */
+    @Test
+    void aFarGateBusyDiallingGetsItsIrisBack()
+    {
+        final Stargate here = gateThatCannotConnect("here");
+        final Stargate elsewhere = gate("elsewhere");
+        final Stargate there = spy(new Stargate());
+        there.setGateName("there");
+        StargateManager.registerStargate(there);
+        doReturn(elsewhere).when(there).getGateTarget();
+        there.setGateIrisDeactivationCode("secret");
+        there.setGateIrisActive(true);
+        there.setGateIrisDefaultActive(true);
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there", "secret");
+
+        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        assertTrue(there.isGateIrisActive(), "the far iris was left open against its shut default");
+    }
+
+    /**
+     * An open far gate keeps its iris as its own journey has it.
+     *
+     * <p>Its shutdown puts the iris back; shutting it now would close the wormhole somebody
+     * else is travelling through.
+     */
+    @Test
+    void anOpenFarGateKeepsItsIrisOpen()
+    {
+        final Stargate here = gateThatCannotConnect("here");
+        final Stargate there = gate("there");
+        there.setGateIrisDeactivationCode("secret");
+        there.setGateIrisDefaultActive(true);
+        there.setGateIrisActive(false);
+        there.setGateActive(true);
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there");
+
+        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        assertFalse(there.isGateIrisActive(), "a journey through the far gate was shut on");
+    }
+
+    /** A registered gate whose dial always fails, so the refusal paths can be reached. */
+    private static Stargate gateThatCannotConnect(final String name)
+    {
+        final Stargate s = spy(new Stargate());
+        s.setGateName(name);
+        StargateManager.registerStargate(s);
+        doReturn(Boolean.FALSE).when(s).dialStargate(any(Stargate.class), anyBoolean());
+        return s;
     }
 
     /**
