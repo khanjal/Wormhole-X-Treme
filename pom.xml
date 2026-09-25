@@ -13,6 +13,8 @@
 		     filtering does not see maven.build.timestamp directly. -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 		<build.stamp>${maven.build.timestamp}</build.stamp>
+		<!-- The paper-api profile turns this off. -->
+		<compiler.showDeprecation>true</compiler.showDeprecation>
 		<!--
 			Compile against the OLDEST server this plugin supports, not the newest. A plugin
 			built against an old API runs on newer servers; one built against a new API can
@@ -64,7 +66,7 @@
 					<release>${java.version}</release>
 					<!-- List each deprecation, not javac's one-line note per module, so the CI logs can be grepped for them. -->
 					<showWarnings>true</showWarnings>
-					<showDeprecation>true</showDeprecation>
+					<showDeprecation>${compiler.showDeprecation}</showDeprecation>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -347,6 +349,12 @@
 					<name>paper.api.version</name>
 				</property>
 			</activation>
+			<!-- Paper deprecates the Spigot text API (ChatColor, the bungee action bar, getDescription)
+			     this Spigot-compiled jar has to call, so listing them here only buries a real one.
+			     The Spigot legs still list every Bukkit deprecation. -->
+			<properties>
+				<compiler.showDeprecation>false</compiler.showDeprecation>
+			</properties>
 			<dependencies>
 				<dependency>
 					<groupId>${paper.api.group}</groupId>
