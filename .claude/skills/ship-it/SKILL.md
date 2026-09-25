@@ -129,8 +129,13 @@ gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNI
 The Paper and Purpur jobs do not list plain deprecations: Paper deprecates the Spigot text API
 this jar has to call (`ChatColor`, the BungeeCord action bar, `getDescription`), so the
 `paper-api` profile turns `showDeprecation` off. The Spigot jobs still list them. Paper jobs
-still list "marked for removal" warnings, which javac reports separately, and one of those
+still list "marked for removal" warnings, which javac reports separately, and any one of those
 always needs fixing.
+
+What this costs: `src/mockbukkit` compiles only in two Paper jobs, and there with `testRelease` at
+Java 21 or 25, so a plain deprecation in MockBukkit, or a JDK 19+ one in the tests, is listed
+nowhere until it becomes marked for removal. When bumping MockBukkit or the test JDK, compile
+once with `-Dcompiler.showDeprecation=true` added to that job's command and read the list.
 
 Say in the PR what was found, including "none". Two MockBukkit PRs (#443, #457) merged calls
 to the deprecated-for-removal `PlayerMock.simulatePlayerMove` that nobody had read.

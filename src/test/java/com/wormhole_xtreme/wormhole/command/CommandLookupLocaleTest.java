@@ -42,7 +42,7 @@ class CommandLookupLocaleTest
     void speakTurkish()
     {
         before = Locale.getDefault();
-        Locale.setDefault(new Locale("tr", "TR"));
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
     }
 
     @AfterEach

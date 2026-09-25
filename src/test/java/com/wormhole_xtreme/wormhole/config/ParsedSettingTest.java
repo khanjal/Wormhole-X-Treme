@@ -174,7 +174,7 @@ class ParsedSettingTest
         final java.util.Locale before = java.util.Locale.getDefault();
         try
         {
-            java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"));
             storesAs(ConfigKeys.LOG_LEVEL, "fine", "FINE");
             storesAs(ConfigKeys.LOG_LEVEL, "info", "INFO");
             storesAs(ConfigKeys.LOG_LEVEL, "finest", "FINEST");
