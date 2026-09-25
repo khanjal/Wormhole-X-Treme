@@ -86,7 +86,9 @@ What the harness does for you:
 | Restores the original bytes after every mutation and checks them | `git checkout --` as a revert once threw away 110 lines of uncommitted work along with the mutation. |
 | Separates `NO-COMPILE` from `KILLED` | A mutation that does not compile says nothing about the tests. |
 | Refuses (exit 4) if the unmutated baseline is not green | Otherwise every mutation reads as killed. |
-| Exits non-zero on any refusal or survivor | A refusal that exits 0 looks exactly like a clean battery. |
+| Exits non-zero on any refusal or survivor (exit 1 for a survivor) | A refusal that exits 0 looks exactly like a clean battery. |
+| Exits 6 when nothing survived but a mutation was not measured, or there were none | A battery whose four finds all had `\r\n` printed "0 killed, 0 survived, 4 not measured" and exited 0, like a clean one. |
+| Warns, before the baseline runs, about a find containing `\r` | The file is matched with CRLF normalised to LF, so such a find can never apply. |
 
 Because of the HEAD guard, **commit before you mutate.** A WIP commit on the feature branch is
 fine. Don't edit the target while a battery runs, either. The harness writes its startup copy
@@ -113,8 +115,9 @@ whether *this* test can tell right code from wrong code.
   (it changes the text but not the behaviour). Decide which before doing anything. If the test
   is vacuous, fix it using the shapes above and run the battery again until the mutation is
   killed. If the mutation is equivalent, drop it and say so. Don't count it either way.
-- **UNAPPLIED / NO-COMPILE**: nothing was measured. Fix the find text and rerun. Never read
-  one of these as a result.
+- **UNAPPLIED / NO-COMPILE / NO-TESTS / BUILD-ERROR**: nothing was measured, and the harness
+  exits 6 unless something also survived. Fix the find text and rerun. Never read one of
+  these as a result.
 
 Report every number: killed, survived, and not measured. A battery where half the mutations
 never applied is not "all killed".

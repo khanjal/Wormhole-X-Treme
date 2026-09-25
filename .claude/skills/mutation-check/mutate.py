@@ -19,8 +19,18 @@ BATTERY.json:
 "mvn_args" is optional: extra Maven arguments, for tests that only run under a profile.
 
 "find" is matched against the file with CRLF normalised to LF, so write multi-line finds
-with plain \\n. Each must match exactly once, or the mutation is reported as UNAPPLIED and
-nothing runs for it.
+with plain \\n. A find containing \\r can never match, and the harness warns about it. Each
+find must match exactly once, or the mutation is reported as UNAPPLIED and nothing runs for it.
+
+Exit codes:
+  0  every mutation was killed
+  1  at least one mutation survived
+  2  usage
+  3  refused: the target differs from git HEAD
+  4  refused: the unmutated baseline is not green
+  5  the original bytes could not be restored
+  6  nothing survived, but at least one mutation was not measured (UNAPPLIED, NO-COMPILE,
+     NO-TESTS, BUILD-ERROR), or the battery had no mutations
 
 Guarantees, each learned the hard way:
   - refuses to start unless the target's content matches git HEAD, so a battery killed
@@ -28,7 +38,8 @@ Guarantees, each learned the hard way:
   - checks each mutation actually changed the file before running anything;
   - restores the original bytes after every mutation and proves they match;
   - separates "tests failed" (KILLED) from "did not compile" (NO-COMPILE), which is not a kill;
-  - exits non-zero on refusal, so a refusal cannot be mistaken for a clean battery.
+  - exits non-zero on refusal, and on any mutation it could not measure, so neither can be
+    mistaken for a clean battery.
 """
 
 import json
@@ -96,6 +107,12 @@ def main() -> int:
               f"(a WIP commit is fine), or restore the file if a previous battery was killed.")
         return 3
 
+    # Warn before the baseline run, which takes minutes, rather than after it.
+    for m in battery["mutations"]:
+        if "\r" in m["find"]:
+            print(f"WARNING    {m['name']}: find contains \\r, which the CRLF-normalised file never "
+                  f"does, so it cannot match. Write line breaks as plain \\n.", flush=True)
+
     extra = battery.get("mvn_args", [])
     baseline, log = run_tests(root, battery["tests"], extra)
     if baseline != "SURVIVED":
@@ -134,11 +151,18 @@ def main() -> int:
         print(f"restored {rel}", flush=True)
 
     survivors = [n for n, v in results if v == "SURVIVED"]
+    unmeasured = [(n, v) for n, v in results if v not in ("KILLED", "SURVIVED")]
     print(f"\n{sum(v == 'KILLED' for _, v in results)} killed, {len(survivors)} survived, "
-          f"{sum(v not in ('KILLED', 'SURVIVED') for _, v in results)} not measured")
+          f"{len(unmeasured)} not measured")
     for n in survivors:
         print(f"  survived: {n}")
-    return 1 if survivors else 0
+    for n, v in unmeasured:
+        print(f"  not measured ({v}): {n}")
+    if survivors:
+        return 1
+    if unmeasured or not results:
+        return 6
+    return 0
 
 
 if __name__ == "__main__":
