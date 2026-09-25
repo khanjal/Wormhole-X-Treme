@@ -86,7 +86,8 @@ class WXIDCTest
         when(b.getWorld()).thenReturn(world);
         when(b.getLocation()).thenReturn(new Location(world, x, 64, 0));
         // Setting a code hangs a lever here; without its data that throws, and the command swallows it.
-        when(b.getBlockData()).thenReturn(mock(Switch.class));
+        final Switch lever = mock(Switch.class);
+        when(b.getBlockData()).thenReturn(lever);
         return b;
     }
 
