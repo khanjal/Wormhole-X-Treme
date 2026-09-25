@@ -35,9 +35,7 @@ public class WormholeXTreme extends JavaPlugin
     private static final WormholeXTremeVehicleListener vehicleListener = new WormholeXTremeVehicleListener();
     /** The entity listener. */
     private static final WormholeXTremeEntityListener entityListener = new WormholeXTremeEntityListener();
-    /** The server listener. */
-    private static final WormholeXTremeServerListener serverListener = new WormholeXTremeServerListener();
-    /** The server listener. */
+    /** The redstone listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
 
     private static final com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener beamFreezeListener =
@@ -102,26 +100,19 @@ public class WormholeXTreme extends JavaPlugin
     /**
      * Register events.
      */
-    public static void registerEvents(final boolean critical)
+    public static void registerEvents()
     {
         final WormholeXTreme tp = getThisPlugin();
         final PluginManager pm = tp.getServer().getPluginManager();
-        if (critical)
-        {
-            pm.registerEvents(serverListener, tp);
-        }
-        else
-        {
-            pm.registerEvents(blockListener, tp);
-            pm.registerEvents(playerListener, tp);
-            pm.registerEvents(redstoneListener, tp);
-            pm.registerEvents(vehicleListener, tp);
-            pm.registerEvents(entityListener, tp);
-            pm.registerEvents(projectileTracker, tp);
-            pm.registerEvents(beamFreezeListener, tp);
-            pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
-            registerDismountListener(pm, tp);
-        }
+        pm.registerEvents(blockListener, tp);
+        pm.registerEvents(playerListener, tp);
+        pm.registerEvents(redstoneListener, tp);
+        pm.registerEvents(vehicleListener, tp);
+        pm.registerEvents(entityListener, tp);
+        pm.registerEvents(projectileTracker, tp);
+        pm.registerEvents(beamFreezeListener, tp);
+        pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
+        registerDismountListener(pm, tp);
     }
 
     /**
@@ -488,7 +479,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         logStartupBanner();
         prettyLog(Level.INFO, true, "Enable Beginning.");
-        // Try and attach to Permissions and iConomy and Help
+        // Attach to Vault (permissions and economy), PlaceholderAPI and bStats
         try
         {
             PermissionsSupport.enablePermissions();
@@ -500,7 +491,6 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
-        registerEvents(true);
         // Before anything reads a stored file. Gates, rings and beam destinations used to
         // live in the same folder as another fork's database; this moves ours out of it, and
         // reading them first would find nothing and load an empty server.
@@ -587,7 +577,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.FINE, "Failed to load companions", e);
         }
-        registerEvents(false);
+        registerEvents();
         registerCommands();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");

@@ -14,12 +14,19 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **Anonymous usage counts go to [bStats](https://bstats.org)**: Minecraft version, server
   software, and how many gates, rings, beams and mirrors, in ranges. No names, coordinates or
-  addresses; bStats keeps a random id so it counts each server once. On by default;
-  `metrics-enabled: false` stops it, and `plugins/bStats/config.yml` stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
+  addresses. On by default; `metrics-enabled: false` stops it, and `plugins/bStats/config.yml`
+  stops it for every plugin. See [the guide](docs/guide/SERVER.md#metrics).
 - **Gate and ring construction can be logged to [CoreProtect](https://www.spigotmc.org/resources/coreprotect.8631/)**,
   so it can be rolled back: signs, levers, `gate remove -destroy`, `regen -fill`,
-  `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off until `coreprotect-enabled` is set; a running gate
-  is not logged. See [the guide](docs/guide/SERVER.md#coreprotect).
+  `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off
+  until `coreprotect-enabled` is set; a running gate is not logged. See
+  [the guide](docs/guide/SERVER.md#coreprotect).
+
+**Removed**
+
+- **`plugin.yml` no longer names the 2011 `Permissions` plugin or `WormholeXTremeWorlds` as soft
+  dependencies.** Neither did anything, and neither runs on a supported server. Vault and LuckPerms
+  are unchanged.
 
 ### For other plugins
 
@@ -28,264 +35,133 @@ The plugin API is in [docs/API.md](docs/API.md).
 **Added**
 
 - **`StargateActivatedEvent` and `StargateShutdownEvent`**, raised when a gate's wormhole
-  opens and when it closes. A dialled pair raises one of each per end.
-- **`StargateShutdownEvent.getReason()` says what closed the gate**: `TIMEOUT`, `MANUAL`,
-  `FAR_END`, `REMOVAL` or `PLUGIN_DISABLE`. Closing a gate that was already shut raises
-  nothing, so opens and closes can be counted against each other.
+  opens and when it closes, once per end. `StargateShutdownEvent.getReason()` says why:
+  `TIMEOUT`, `MANUAL`, `FAR_END`, `REMOVAL` or `PLUGIN_DISABLE`.
 - **A PlaceholderAPI expansion**, off until `placeholders-enabled` is set:
   `%wormhole_gates_total%`, `%wormhole_gates_open%`, `%wormhole_gates_owned%` and
-  `%wormhole_nearest_gate%`. Needs PlaceholderAPI; without it nothing is registered and
-  the log says so once. See [the guide](docs/guide/SERVER.md#placeholders).
+  `%wormhole_nearest_gate%`. See [the guide](docs/guide/SERVER.md#placeholders).
 
 ### Stargates
 
 **Added**
 
-- **An iris sweeps shut a ring at a time**, from the rim inwards, and opens from the middle
-  out. `gate-iris-animation: instant` puts it back the way it was; `gate-iris-step-ticks` sets
-  the pace, and `gate-iris-sweep-max-ticks` (twenty by default) caps a whole crossing, so a big
-  gate covers several rings a step rather than taking seconds; `0` lifts the cap. At the default
-  pace only `Massive` and `Grand` reach it; a server that raised `gate-iris-step-ticks` reaches
-  it sooner. Only the picture sweeps — the blocks are placed in one go, so a gate is never
-  partly shut. See [the guide](docs/guide/GATES.md#how-it-arrives).
-- **Four ways an iris can cross**: `sweep` (rings), `spiral`, `rows` and `columns`, plus
-  `instant`. `gate-iris-animation` picks one. See [the guide](docs/guide/GATES.md#how-it-arrives).
-- **`gate preview iris` sweeps too**, the same rings at the same pace, so a preview
-  rehearses the iris the way it already rehearses a dial.
-- **A preview's shut iris stacks against its wormhole from whichever side you stand**, as a
-  real gate's does: the iris in the ring with the wormhole behind it from the front, the
-  wormhole in the ring with the iris beyond it from behind, swapping as you walk round. Two
-  people either side of the same preview each see their own side. Closing it covers the
-  wormhole rather than taking it away, so a see-through iris shows the wormhole through it.
-- **Behind a stained-glass iris the wormhole is drawn in ice**, blue and packed ice in a
-  checkerboard that swaps twice a second, because Minecraft hides a liquid behind a translucent
-  block. `gate-iris-horizon-ticks` sets the pace and `0` holds it still. A `nether_portal`
-  wormhole gets purple and magenta concrete. In the ring itself it is always the real
-  wormhole. Previews do the same; upright gates only. Plain glass never had the problem and is
-  untouched, and an opaque iris hides the wormhole by being opaque.
-- **Three more `gate-dial-spin` patterns**: `chase` (a lap to chevron 1, then chevron to
-  chevron), `universe` (Destiny's: about a full turn a glyph, locked chevrons riding round
-  with the ring and back in place at the last) and `overshoot`
-  (runs past the chevron and backs onto it). See [the guide](docs/guide/GATES.md#dialling).
-- **A gate can pick its own ring pattern**: `/wormhole gate edit <gate> spin <pattern>`, and
-  `default` to follow the server again. A material group can set one too, with `dial-spin:`;
-  a gate uses its own, then its group's, then `gate-dial-spin`. New configs ship Atlantis
-  on `pegasus` and Universe on `universe`; an existing `config.yml` keeps its groups, so add
-  the line by hand. See [the guide](docs/guide/GATES.md#dialling).
-- **A gate can pick how its own iris crosses**: `/wormhole gate edit <gate> iris-animation
-  <style>`, and `default` to follow the server again. A material group can set one too, with
-  `iris-animation:`; a gate uses its own, then its group's, then `gate-iris-animation`. See
+- **The iris animates**: `sweep` (a ring at a time, rim inwards), `spiral`, `rows` or
+  `columns`, or `instant` for the old way, set by `gate-iris-animation`. `gate-iris-step-ticks`
+  sets the pace and `gate-iris-sweep-max-ticks` caps a whole crossing (twenty ticks; `0` lifts
+  it). Only the picture sweeps; the iris holds from the first tick. Previews sweep too. See
   [the guide](docs/guide/GATES.md#how-it-arrives).
+- **A shut iris covers the wormhole instead of replacing it.** The wormhole is drawn a block
+  behind, and whichever layer is nearer you takes the ring, swapping as you walk round.
+  Behind a stained-glass iris it is drawn in ice (or purple and magenta concrete for
+  `nether_portal`), because Minecraft hides a liquid behind a translucent block;
+  `gate-iris-horizon-ticks` sets its shimmer and `0` holds it still. Previews do the same.
+  Upright gates only.
+- **Three more `gate-dial-spin` patterns**: `chase`, `universe` (Destiny's) and `overshoot`.
+  See [the guide](docs/guide/GATES.md#dialling).
+- **A gate or a material group can pick its own ring pattern and iris style**:
+  `gate edit <gate> spin <pattern>` and `gate edit <gate> iris-animation <style>`, or
+  `dial-spin:` and `iris-animation:` in a group; `default` follows the server again. New configs
+  ship Atlantis on `pegasus` and Universe on `universe`; an existing `config.yml` keeps its
+  groups, so add those lines by hand.
+- **A gate's owner can set its iris code** with `gate edit <gate> idc`, without
+  `wormhole.config`.
 
 **Changed**
 
-- **The default `top` dial rests on the top chevron** for half a second as each chevron locks,
-  before the ring turns again, so a dial takes about three seconds longer. Pick another pattern
-  to keep the old pace. The gate being dialled keeps the same pace, so both wormholes still form
-  together.
+- **The default `top` dial rests on the top chevron** for half a second as each one locks, so a
+  dial takes about three seconds longer. `gate-dial-spin: chevron` keeps the old pace.
 - **The last chevron holds two seconds before the kawoosh**, not one.
-- **An iris is drawn on clients now, not built out of blocks.** A gate that stands upright
-  keeps air in its opening and sends every nearby client the iris to look at, so a crash
-  leaves nothing standing in a gate the save says is open, and a block somebody left in the
-  opening is breakable again while the iris is shut. It still holds: walking into one is
-  refused whether or not the gate has been dialled, and so is a minecart, which is pushed
-  back out. An arrow or a dropped item that reaches a shut iris is destroyed, at either end
-  of a wormhole or at a gate nobody has dialled. A cart turned back carries its riders back with it. A mob is the exception: it is never sent
-  through a shut iris, but nothing stops one wandering through an idle gate's. Nobody builds
-  in an opening a shut iris covers, operators included. A **horizontal** gate's iris is still
-  real blocks — it is a floor, and a floor has to be there to stand on. Gates saved with an
-  iris shut have theirs taken out of the world on the first load; nothing to do.
-- **`gate preview materials` is now `gate preview needs`.** It sat one letter from
-  `gate preview material`, which does something else entirely — redresses the preview rather
-  than counting what it would take to build — so a typo quietly did the other thing. The list
-  already called itself "needs" in its own first line. `materials` still works and is no longer
-  offered in tab completion; nothing to change unless you want to.
-- **Bundled shapes nobody edited are updated at startup again.** A copy matching a version
-  some release shipped is replaced, the old one kept as `<name>.shape.old`; an edited copy is
-  left alone and named in the log, as before. 1.7 only named every copy that differed.
+- **An upright gate's iris is drawn on clients, not built from blocks.** The opening stays air,
+  so a crash leaves nothing behind. A shut iris still refuses players, carts, arrows and dropped
+  items, and nobody can build in the opening it covers. A horizontal gate's iris is still real
+  blocks, since it is a floor. Gates saved with an iris shut have its blocks removed on first
+  load; nothing to do.
+- **`gate preview materials` is now `gate preview needs`**, one letter away from
+  `gate preview material`. The old name still works.
+- **Bundled shapes nobody edited are updated at startup again**, keeping the old copy as
+  `<name>.shape.old`. An edited copy is left alone and named in the log.
 
 **Fixed**
 
-- **`gate regen` keeps every setting `gate edit` made.** It kept the name, owner, iris code,
-  network and ring pattern, and dropped the custom portal, iris and light materials, the woosh depth, redstone,
-  and the iris shut by default, so an iris-coded gate came back open. It also keeps a shut iris
-  shut.
-- **`gate edit <gate> group` lasts past a restart.** The choice was only held in memory, and the
-  gate went back to its frame's group. `group -clear` gives it back to the frame.
-- **An iris shut by default stays shut by default after a save taken mid-journey.** The file
-  kept the iris as it stood, and a journey opens it, so a `gate edit` or `redstone` during
-  somebody's trip, then a crash, made that gate open for good. The file keeps the default now,
-  a gate saved open or lit loads idle with its iris back in place, and the iris lever saves
-  the gate as it is pulled. A gate already saved open this way needs its lever pulled once.
-- **`force` opens an iris for good**: it becomes the gate's default, as the lever makes it, and
-  is saved. It used to shut again at the end of the gate's next journey. A dial refused or
-  failed after opening an iris, near or far, now shuts it again.
-- **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
-  block carries the direction its sheet runs in, and nothing set it: a gate built one way got
-  a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
-  gate's own plane now, on real gates and on previews alike, and so is any other block that
-  carries a direction — a log or a bone block named as an iris. Horizontal gates are the
-  exception, having no upright plane to lie in. Nothing to do; existing gates look right on
-  the next redraw.
-- **`pegasus` steps a glyph at a time and lights each chevron alone.** Its step was a ninth of
-  the ring: it lit a dozen frame blocks round each chevron as it locked on `Massive`, sat still
-  beside the chevron between neighbours, and lit half of each chevron it passed. It now steps one
-  glyph of 36 over the frame alone, and a chevron lights only as it locks.
-- **A closed iris no longer takes the wormhole with it.** An opening is one block thick, so
-  a closed iris filled it and the event horizon vanished -- and through a stained-glass iris
-  (`Atlantis`, `Universe`) that left a coloured window onto whatever stood behind the gate.
-  The wormhole is drawn a block behind the iris now, and whichever layer is nearer you takes
-  the ring: the iris from the front, the wormhole from behind, swapping as you walk round.
-  Seen from far off to the side only the ring's layer is drawn, so neither hangs clear of the
-  gate; its own ring counts as cover. The wormhole follows the sweep ring by ring, so the iris
-  always looks like it is covering it. Nothing is drawn where you have built, and it is a
-  picture, not a way through: a shut iris refuses travellers, carts, arrows and dropped items
-  as before. Previews do the same. Upright gates only; a horizontal gate's iris is real blocks.
-- **No kawoosh through a closed iris, on a gate or a preview.** Dialling out from a sign gate
-  whose iris was shut sent the kawoosh straight through it and drew the horizon over the iris,
-  and a preview did the same. The iris is asked at each step now: shut it partway through and
-  what is out is taken back; open it before the woosh and the woosh plays. The kawoosh is heard
-  once either way -- the wormhole forms, just out of sight.
-- **An iris makes its noise again.** `gate-sound-iris-open` and `gate-sound-iris-close` never
-  played for a player: the lever, the commands and dialling all reached the iris through one
-  method that had already changed the gate's state before anything checked whether it had
-  changed, so the iris was judged never to move. Nothing to do; the sounds you have configured
-  start working.
-- **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
-  at the gate it came from but stepped out the way the *far* gate faces, so unless the two
-  gates faced the same way it could land in the frame, the ground or a wall.
+- **`gate regen` keeps every `gate edit` setting**: custom materials, woosh depth, redstone
+  and an iris shut by default, which it used to drop.
+- **Gate settings are saved as they are set** by `gate edit idc`, the iris lever and `owner`,
+  `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth` and `redstone`.
+  They used to wait for shutdown, so a crash lost them. `gate edit group` is saved at all now.
+- **An iris shut by default stays that way through a save taken mid-journey.** A gate already
+  saved open this way needs its lever pulled once.
+- **`force` and `idc -clear` open an iris for good.** Both used to leave it to shut again at the
+  end of the next journey, and `idc -clear` could leave it with no way to open. A dial refused
+  or failed after opening an iris, near or far, shuts it again.
+- **No kawoosh through a closed iris**, on a gate or a preview.
+- **`gate-sound-iris-open` and `gate-sound-iris-close` play.** They never did.
+- **A `nether_portal` wormhole fills the opening on every gate**; half of them showed a sliver
+  seen edge-on. Directional iris blocks, such as logs, are laid in the gate's plane too.
+- **`pegasus` steps a glyph at a time and lights each chevron only as it locks.**
+- **A cart turned back by a closed far iris lands in front of its own gate**, not in its frame
+  or a wall.
 - **A lever on the empty iris spot of a gate with no code does nothing, and can be broken.**
-  It shut the iris, and with no code and no lever of its own the gate had nothing to open it
-  with; and the gate took it for its own lever, so nobody could break it.
-- **A gate with no arrival point no longer throws when somebody walks or rolls into it.**
-  Nothing checked that the far gate had an arrival point before teleporting to it, and
-  Bukkit refuses a teleport to nowhere with an exception, on every tick a cart kept
-  rolling. A healthy gate always has one; a damaged save need not. The trip is simply
-  not made now, and a cart bounced off a far iris by such a gate is left where it
-  stopped. SonarCloud found all three.
-- **A dial sign hung on a placed preview works.** `gate preview place` reads the design before
-  any sign is there, and `gate complete` finished that reading without looking again, so the
-  sign neither chose a destination nor let redstone dial. `gate complete` reads the gate again
-  now, and takes up a sign hung since. The same goes for a Horizontal frame, detected as the
-  plain shape until its sign is hung: it completes as `HorizontalSignDial`, where it used to
-  write its name sign over the dial sign. Gates already completed without their sign are not
-  changed.
-- **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
-  close shut it again, with no lever or code left to open it. A gate stuck that way opens on
-  `idc -clear` again.
+- **A gate with no arrival point refuses the trip** instead of throwing on every tick a cart
+  rolled into it.
+- **A dial sign hung on a placed preview works** once `gate complete` is run. A Horizontal frame
+  completes as `HorizontalSignDial` instead of writing its name sign over the dial sign. Gates
+  already completed without their sign are not changed.
+- **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
 
 ### Commands
 
 **Added**
 
-- **`/wormhole config gate-iris-animation ` offers the styles it accepts**: `sweep`, `spiral`,
-  `rows`, `columns` and `instant`. It completed to nothing before, and the command takes any
-  word, so a typo was accepted and quietly read as the default.
-- **`wooshdepth` offers the six depths it accepts**, `owner` offers the online players, and
-  `idc` offers `-clear`.
-- **`gate preview material` names its roles with a dash**: `-frame`, `-chevron`, `-light`,
-  `-portal`, `-iris`, `-sign`. The slot after `material` takes either a material group to
-  redress in or one role to change, so completion offered the six roles and every group's
-  name in a single list with nothing to tell them apart. A role is an option rather than a
-  value, and every other option in these commands wears a dash. The bare word still works
-  and is simply no longer offered.
-- **`build` and `regen` complete the way `gate build` and `gate regen` do.** The flat names
-  are still there for anything scripted against them; they kept the shorter completions they
-  had before the move, so `build` offered no shapes and `regen` offered none of its flags.
-- **`remove` offers `-destroy`.**
-- **`/wormhole` on its own lists its commands by job** (Gates, Rings, Beams, Mirrors,
-  Settings, Other), each with a coloured usage, and only the ones it would let you reach. `/wormhole gate`
-  on its own lists the gate verbs the same way.
+- **`/wormhole` on its own lists its commands by job**, with coloured usage, showing only what
+  you can use. `/wormhole gate` does the same for gate verbs.
+- **More tab completion**: `gate-iris-animation` styles, `wooshdepth` depths, `owner` players,
+  `idc -clear`, `remove -destroy`, and the flat `build` and `regen` complete like their `gate`
+  forms.
+- **`gate preview material` roles take a dash**: `-frame`, `-chevron`, `-light`, `-portal`,
+  `-iris`, `-sign`. The bare word still works.
 
 **Fixed**
 
-- **A gate's owner can set its iris code**, with `gate edit <gate> idc`, without
-  `wormhole.config`. Every other field still needs it.
-- **A mistyped command gets one short usage line, for that command.** It used to be followed by
-  the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
-  with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is
-  not followed by a usage line. `/dial` does the same.
-- **`gate list` offers networks, not gate names.** Every `gate` verb without a completer of its
-  own fell through to one that offered a gate name, which is wrong for `list` -- it narrows the
-  listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
-  Each verb now asks the command it is short for. A word that is not a verb at all offers
-  nothing, where it used to offer gates the command would then refuse.
-- **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code, and the iris as it was last saved. With no code given it now reports the code rather than clearing it; `-clear`, which it now offers, clears it.
-- **A gate's owner, custom mode, materials, woosh depth and redstone wiring are saved as they
-  are set**, by `gate edit` or by `owner`, `custom`, `portalmaterial`, `irismaterial`,
-  `lightmaterial`, `wooshdepth` and `redstone`. They reached disk only when the server shut down,
-  so a crash lost them.
+- **A mistyped command gets one short usage line for that command**, not the whole block from
+  `plugin.yml`. `/dial` too.
+- **`gate list` completes networks, not gate names**, and each `gate` verb completes the way the
+  command it is short for does.
+- **`gate edit <gate> idc` with no code reports the code** instead of clearing it; `-clear`
+  clears it.
 
 ### For shape authors
 
 **Added**
 
-- **`[S:C]` marks a chevron the frame material is also accepted at.** `[C]` requires the chevron
-  block, so a shape cannot gain a chevron position without every gate already built to it failing
-  to match. `[S:C]` can, so a shape can grow chevrons without anyone regenerating anything. See
-  [docs/GATES.md](docs/GATES.md).
+- **`[S:C]` marks a chevron where the frame material is also accepted**, so a shape can gain
+  chevrons without breaking gates already built to it. See [docs/GATES.md](docs/GATES.md).
 
 ### Quantum mirrors
 
 **Fixed**
 
-- **A mirror whose capture fails while working out what can be seen is captured again** the
-  next time someone looks at it, instead of never updating until a restart. The failure is
-  logged once.
-
-- **Less of what a small mirror drew hangs outside its opening as you move.** A redraw sends
-  only the blocks visible through the opening from where the eye is now, and blocks that go out of
-  sight stay on the client until the next redraw takes them away. At a mirror one or two banners
-  wide a single step changes a large share of what is visible, and there is only the one block of
-  wall `mirror create` requires to hide the difference behind, so for a redraw or two it stood in
-  the open.
-
-  An opening of six blocks or fewer -- the sizes a one or two banner mirror has -- is now redrawn
-  twenty times a second as the viewer moves rather than ten. That is affordable because a small
-  opening is what makes it cheap: fewer blocks pass the clip, so there is less to project. The cost
-  cap is unchanged, so a redraw that turns out slow still rests three times as long as it took and
-  no viewer can spend more of the main thread than before.
-
-  The redraw that catches a viewer up after they stop gets the same pace. It had its own floor
-  of two ticks, so stopping just inside a small opening's rest was still drawn a hundred
-  milliseconds later -- the moment the lingering shows most. It waits one tick now.
-
-  Torch flames, candles and campfires beside the opening will still outlive their block by up to a
-  second: those particles are spawned on the client and the server cannot recall one. Keeping
-  effects off a small window's edge blocks, and clipping ahead of the viewer's movement, are the
-  two directions still open on this.
-
-### Performance
-
-- **Finding the gate nearest somebody no longer copies and sorts every gate on the server.**
-  It walks them once instead. `/wormhole compass` and `%wormhole_nearest_gate%` both use it,
-  and the placeholder is rebuilt on every scoreboard refresh for every player. Ties between
-  two equidistant gates still resolve to the same gate as before.
+- **A mirror whose capture throws partway is captured again** the next time someone looks at it,
+  instead of never updating until a restart.
+- **Less of a small mirror's picture lingers outside its opening as you move.** Openings of six
+  blocks or fewer redraw twenty times a second rather than ten, inside the same cost cap.
 
 ### Transport rings
 
-Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
-[docs/guide/RINGS.md](docs/guide/RINGS.md).
-
 **Changed**
 
-- **The transport light runs out from the pad putting a traveller back down**, where both
-  sweeps ran towards it. The sweep that takes somebody in is unchanged.
+- **The transport light runs out from the pad putting a traveller back down.**
+
+### Performance
+
+- **Finding the nearest gate walks the list once** instead of copying and sorting it.
+  `/wormhole compass` and `%wormhole_nearest_gate%` use it.
 
 ### Internals
 
-- **The plugin is enabled on [MockBukkit](https://mockbukkit.org)'s simulated server** in the
-  Paper 1.21.11 and 26.2 CI jobs, through a `mockbukkit` profile. Those tests live in
-  `src/mockbukkit/` and need Java 21 or 25; the default build and the jar are unchanged.
-- **A player's whole trip through a gate, a beam, a ring and a mirror is tested there**, from
-  setting it up by command to arriving, with a check that the trip leaves nothing new running.
-- **A following pet is tested coming through a gate with its owner, and beamed after them into
-  another world**; a sitting pet and somebody else's stay where they are.
-- **The iris is tested end to end**: shut by its lever, it refuses a dial with no code and with a
-  wrong one, and the right code opens it; shut after the dial, it turns the traveller back.
-- **Redstone dialling is tested end to end**: a hand-hung dial sign is taken up, right-clicks step
-  it past the network's first gate to the far one, and a pulse dials the gate the sign shows, with
-  the gate-open lever on until it shuts.
+- **The plugin runs on [MockBukkit](https://mockbukkit.org)'s simulated server** in the Paper
+  1.21.11 and 26.2 CI jobs (`mockbukkit` profile, `src/mockbukkit/`, Java 21+). A player's trip
+  through a gate, a beam, a ring and a mirror, a pet following through a gate and a beam, the
+  iris and its code, and redstone dialling are tested end to end there.
 
 ## 1.7.1 (2026-09-19)
 

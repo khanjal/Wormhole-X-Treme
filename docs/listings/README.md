@@ -8,6 +8,7 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`spigot.md`](spigot.md) | [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) — form fields and the description in BBCode. |
 | [`modrinth.md`](modrinth.md) | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) — project fields and the description in Markdown. |
 | [`hangar.md`](hangar.md) | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) — project fields and the page in Markdown. |
+| [`versions.md`](versions.md) | Every version's upload fields and short changelog, Markdown and BBCode, newest first. |
 
 All three are published:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
@@ -33,9 +34,9 @@ changes, you change it there and then carry it into whichever site files quote i
 3. **Re-check Modrinth's game versions.** Its auto-detection reads `api-version` from `plugin.yml`
    and ticks 1.20.x alone, so a version upload can quietly narrow what the page claims. See
    [`modrinth.md`](modrinth.md#fields).
-4. **Rewrite the release notes** in [`shared.md`](shared.md#release-notes) for the new version.
-   Modrinth and Hangar both take a per-version changelog, and the full `CHANGELOG.md` section is
-   too long for one.
+4. **Add the release to [`versions.md`](versions.md)**: title, Minecraft range, and a short
+   changelog in Markdown with its BBCode copy. The full `CHANGELOG.md` section is too
+   long for a download page.
 5. **Check the image URLs still resolve.** They are pinned to `main`, not to a tag, so they follow
    whatever later happens to those files. That is deliberate: a tag URL 404s until the tag exists,
    which is what broke the first Spigot preview. The cost is that renaming a capture breaks three
