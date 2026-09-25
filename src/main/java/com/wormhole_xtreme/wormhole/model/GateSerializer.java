@@ -217,6 +217,7 @@ public final class GateSerializer
             s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
+            s.setGateIrisDefaultActive(s.isGateIrisActive());
 
             int numBlocks = byteBuff.getInt();
             for (int i = 0; i < numBlocks; i++)
@@ -754,8 +755,9 @@ public final class GateSerializer
     /**
      * The iris, its code, and whether the lights were on.
      *
-     * <p>The saved iris state becomes the default as well as the current one: the default is
-     * what the gate returns to after every use, so a gate left shut comes back shut.
+     * <p>The iris byte is the gate's default, and a gate loads with its iris there. Files written
+     * before the default was saved hold the live iris instead, which was the default on any
+     * clean shutdown.
      *
      * @param s
      *            the gate being built
@@ -1024,8 +1026,11 @@ public final class GateSerializer
         dataArr.put(utfFaceBytes);
         dataArr.putInt(utfIdcBytes.length);
         dataArr.put(utfIdcBytes);
-        dataArr.put(s.isGateIrisActive() ? (byte) 1 : (byte) 0);
-        dataArr.put(s.isGateLightsActive() ? (byte) 1 : (byte) 0);
+        // The default, not the live iris: a journey opens a shut iris without changing what the
+        // gate returns to, and a save taken mid-journey must not make that opening permanent.
+        dataArr.put(s.isGateIrisDefaultActive() ? (byte) 1 : (byte) 0);
+        // Always unlit: the lights are drawn on clients, so none of them outlives a restart.
+        dataArr.put((byte) 0);
     }
 
     /** The three redstone activation blocks, and the gate's own material overrides. */

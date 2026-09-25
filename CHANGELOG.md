@@ -112,6 +112,14 @@ The plugin API is in [docs/API.md](docs/API.md).
   shut.
 - **`gate edit <gate> group` lasts past a restart.** The choice was only held in memory, and the
   gate went back to its frame's group. `group -clear` gives it back to the frame.
+- **An iris shut by default stays shut by default after a save taken mid-journey.** The file
+  kept the iris as it stood, and a journey opens it, so a `gate edit` or `redstone` during
+  somebody's trip, then a crash, made that gate open for good. The file keeps the default now,
+  a gate saved open or lit loads idle with its iris back in place, and the iris lever saves
+  the gate as it is pulled. A gate already saved open this way needs its lever pulled once.
+- **`force` opens an iris for good**: it becomes the gate's default, as the lever makes it, and
+  is saved. It used to shut again at the end of the gate's next journey. A dial refused or
+  failed after opening an iris, near or far, now shuts it again.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the
@@ -155,6 +163,13 @@ The plugin API is in [docs/API.md](docs/API.md).
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **A dial sign hung on a placed preview works.** `gate preview place` reads the design before
+  any sign is there, and `gate complete` finished that reading without looking again, so the
+  sign neither chose a destination nor let redstone dial. `gate complete` reads the gate again
+  now, and takes up a sign hung since. The same goes for a Horizontal frame, detected as the
+  plain shape until its sign is hung: it completes as `HorizontalSignDial`, where it used to
+  write its name sign over the dial sign. Gates already completed without their sign are not
+  changed.
 - **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
   close shut it again, with no lever or code left to open it. A gate stuck that way opens on
   `idc -clear` again.
