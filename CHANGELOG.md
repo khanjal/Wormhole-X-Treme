@@ -185,8 +185,7 @@ The plugin API is in [docs/API.md](docs/API.md).
 **Fixed**
 
 - **A gate's owner can set its iris code**, with `gate edit <gate> idc`, without
-  `wormhole.config`. Every other field still needs it. Given no code, it now says what the
-  code is, where it used to wipe it.
+  `wormhole.config`. Every other field still needs it.
 - **A mistyped command gets one short usage line, for that command.** It used to be followed by
   the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
   with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is
@@ -196,6 +195,7 @@ The plugin API is in [docs/API.md](docs/API.md).
   listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
   Each verb now asks the command it is short for. A word that is not a verb at all offers
   nothing, where it used to offer gates the command would then refuse.
+- **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code, and the iris as it was last saved. With no code given it now reports the code rather than clearing it; `-clear`, which it now offers, clears it.
 
 ### For shape authors
 

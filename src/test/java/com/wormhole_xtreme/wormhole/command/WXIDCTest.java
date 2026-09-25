@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
@@ -44,7 +45,6 @@ class WXIDCTest
 {
     private CommandSender console;
     private World world;
-    // Setting a code saves the gate, which would otherwise write gate files into the working directory.
     private MockedStatic<StargateDBManager> db;
 
     @BeforeEach
@@ -85,6 +85,9 @@ class WXIDCTest
         when(b.getZ()).thenReturn(0);
         when(b.getWorld()).thenReturn(world);
         when(b.getLocation()).thenReturn(new Location(world, x, 64, 0));
+        // Setting a code hangs a lever here; without its data that throws, and the command swallows it.
+        final Switch lever = mock(Switch.class);
+        when(b.getBlockData()).thenReturn(lever);
         return b;
     }
 
@@ -93,12 +96,7 @@ class WXIDCTest
     {
         final Stargate s = new Stargate();
         s.setGateName(name);
-        final Block lever = block(1);
-        // Setting a code hangs a lever here. Without block data to shape, that throws, and the
-        // command reports an internal error after storing the code but before saving it.
-        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
-        when(lever.getBlockData()).thenReturn(data);
-        s.setGateIrisLeverBlock(lever);
+        s.setGateIrisLeverBlock(block(1));
         StargateManager.registerStargate(s);
         return s;
     }
@@ -135,6 +133,7 @@ class WXIDCTest
 
         verify(console).sendMessage(contains("is:secret"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not change it");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
 
     /** Giving a value sets it. */
@@ -146,6 +145,66 @@ class WXIDCTest
         assertTrue(idc(console, "alpha", "hunter2"));
 
         assertEquals("hunter2", s.getGateIrisDeactivationCode());
+        verify(console).sendMessage(contains("is:hunter2"));
+    }
+
+    /**
+     * A new code is saved at once, like every other gate edit.
+     *
+     * <p>It used to wait for the next save, at plugin disable, so a crash before then brought
+     * back the old code and the shut iris that goes with it.
+     */
+    @Test
+    void aNewCodeIsSavedAtOnce()
+    {
+        final Stargate s = gateWithIris("alpha");
+
+        assertTrue(idc(console, "alpha", "hunter2"));
+
+        db.verify(() -> StargateDBManager.saveStargate(s));
+    }
+
+    /**
+     * {@code gate edit <gate> idc} with no code reports it, as every other field does.
+     *
+     * <p>It used to clear it, which predates {@code -clear}; with the save above, that asking
+     * would have wiped the code on disk.
+     */
+    @Test
+    void gateEditWithNoCodeReportsItWithoutClearing()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateIrisDeactivationCode("secret");
+
+        assertTrue(new GateEditCommand().execute(console, new String[] { "gate", "edit", "alpha", "idc" }));
+
+        verify(console).sendMessage(contains("is:secret"));
+        assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not clear it");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
+    }
+
+    /** And with a code, {@code gate edit} sets it and saves it. */
+    @Test
+    void gateEditWithACodeSetsAndSavesIt()
+    {
+        final Stargate s = gateWithIris("alpha");
+
+        assertTrue(new GateEditCommand().execute(console, new String[] { "gate", "edit", "alpha", "idc", "hunter2" }));
+
+        assertEquals("hunter2", s.getGateIrisDeactivationCode());
+        db.verify(() -> StargateDBManager.saveStargate(s));
+    }
+
+    /** Clearing is saved at once too, or a crash would bring the code back. */
+    @Test
+    void aClearedCodeIsSavedAtOnce()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateIrisDeactivationCode("secret");
+
+        assertTrue(idc(console, "alpha", "-clear"));
+
+        db.verify(() -> StargateDBManager.saveStargate(s));
     }
 
     /** {@code -clear} empties it rather than setting the code to the literal word. */
@@ -222,6 +281,7 @@ class WXIDCTest
 
         verify(stranger).sendMessage(contains("ermission"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "somebody else's code is untouched");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
 
     /** The gate's owner may change it without holding any node. */
@@ -299,27 +359,6 @@ class WXIDCTest
     }
 
     /**
-     * {@code gate edit <gate> idc} with no value reports the code, as {@code /wormhole idc} does.
-     *
-     * <p>It used to hand the handler an empty value, which it stored as the new code: asking
-     * wiped it, and left the lever indexed as though a code were still set.
-     */
-    @Test
-    void gateEditWithNoValueReportsTheCodeRatherThanWipingIt()
-    {
-        final Stargate s = gateWithIris("alpha");
-        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        s.setGateOwner(owner.toString());
-        s.setGateIrisDeactivationCode("secret");
-        final Player player = playerWithoutNodes(owner);
-
-        wormhole(player, "gate", "edit", "alpha", "idc");
-
-        verify(player).sendMessage(contains("is:secret"));
-        assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not change it");
-    }
-
-    /**
      * A stranger is refused before being told anything about the gate's iris.
      *
      * <p>Now that anybody can reach the handler, whether a gate has an iris lever is the
@@ -388,23 +427,5 @@ class WXIDCTest
 
         verify(player).sendMessage(contains("You lack the permissions"));
         verify(player, never()).sendMessage(contains("No material group"));
-    }
-
-    /**
-     * A code is saved when it is set, not when the server next stops.
-     *
-     * <p>An owner sets it with no admin watching; a crash before shutdown would otherwise take
-     * the code, and the lever it placed, with it.
-     */
-    @Test
-    void aNewCodeIsSavedAtOnce()
-    {
-        final Stargate s = gateWithIris("alpha");
-        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        s.setGateOwner(owner.toString());
-
-        wormhole(playerWithoutNodes(owner), "gate", "edit", "alpha", "idc", "mine");
-
-        db.verify(() -> StargateDBManager.saveStargate(s));
     }
 }
