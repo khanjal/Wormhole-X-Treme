@@ -24,16 +24,26 @@ Tests live in `src/test/java/`, mock the Bukkit API, and run against every suppo
 version in CI, so anything that only works on one of them is caught there.
 
 Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
-simulated server instead. MockBukkit is built for one Paper version and Java 21, so they need
-the profile, JDK 21 and that Paper API; against the default Spigot API they compile, then fail
-with a linkage error. CI runs them in the Paper 1.21.11 job:
+simulated server instead. Each MockBukkit is built for one Paper version and a newer Java, so
+they need the profile, that JDK and that Paper API; against the default Spigot API they compile,
+then fail with a linkage error. CI runs them twice, in the Paper 1.21.11 and 26.2 jobs:
 
 ```bash
 mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=26.2.build.124-stable -Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25   # JDK 25
 ```
 
+Run `clean` when switching between the two, because Maven does not recompile for a change of
+release alone. After 26.2, the 1.21 command fails in the ordinary tests with an
+`UnsupportedClassVersionError`. After 1.21, the 26.2 command passes without having tested 26.2 at
+all: the classes built for 1.21 simply run again.
+
+MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another package, so
+`src/mockbukkit/` could not compile against both.
+
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
-by command, and checks where they arrive and that the trip leaves nothing new running. Annotate
+by command, and a following pet through a gate and by beam into another world. It checks where
+they arrive and that the trip leaves nothing new running. Annotate
 a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
 
 - **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does

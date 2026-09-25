@@ -13,3 +13,4 @@ Written by: ___ (the model that wrote the code; it decides which models review i
 - [ ] **Copilot**, requested once, last. Commit: ___ · Result: reviewed / quota exhausted / no response
 - [ ] Every finding fixed with a test, or written down above with why not
 - [ ] SonarCloud issues on this PR: 0
+- [ ] No new compiler warnings in the CI logs of the jobs that compile the changed files

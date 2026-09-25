@@ -15,7 +15,7 @@ code builds and the tests pass, not that the tests test the right thing.
 
 Every PR description carries the **Reviews** checklist from `.github/pull_request_template.md`:
 who wrote the code, the first review, the final review, Copilot, findings handled, Sonar at
-zero. "Written by" is what step 1's table is read off, so a session picking up somebody else's
+zero, no new compiler warnings. "Written by" is what step 1's table is read off, so a session picking up somebody else's
 PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
 is still owed. A PR is not ready to merge with a box unticked.
@@ -189,6 +189,8 @@ reviewed as if Copilot had done it.
   fixed or answered.
 - The final review in step 3 has run on the latest commit, or on one the later commits only
   fixed its or Copilot's findings in.
+- No new compiler warnings in the logs of the CI jobs that compile the changed files (the
+  `ship-it` skill, step 7, has the commands). Green CI, PMD and Sonar all miss them.
 - All checks green on the latest commit, not an earlier one. A failure that is a registry
   refusing a download (HTTP 429 from Maven Central) is infrastructure: re-run the failed job.
 - Squash merge, which is what the history uses.

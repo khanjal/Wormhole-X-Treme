@@ -191,7 +191,7 @@ final class MockServerSupport
             }
         }
 
-        // WorldMock's block cache is private, so reflection hands it back as a bare Object.
+        // The cast of WorldMock's private map, read by reflection, has nothing to check against.
         @SuppressWarnings("unchecked")
         @Override
         public BlockMock createBlock(final Coordinate c)
