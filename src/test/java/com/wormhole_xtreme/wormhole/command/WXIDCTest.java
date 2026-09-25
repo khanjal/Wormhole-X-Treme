@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,14 +16,18 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -39,6 +45,7 @@ class WXIDCTest
 {
     private CommandSender console;
     private World world;
+    private MockedStatic<StargateDBManager> db;
 
     @BeforeEach
     void setUp() throws Exception
@@ -49,11 +56,13 @@ class WXIDCTest
         when(world.getName()).thenReturn("w");
         console = mock(CommandSender.class);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown()
     {
+        db.close();
         clearGates();
     }
 
@@ -76,6 +85,8 @@ class WXIDCTest
         when(b.getZ()).thenReturn(0);
         when(b.getWorld()).thenReturn(world);
         when(b.getLocation()).thenReturn(new Location(world, x, 64, 0));
+        // Setting a code hangs a lever here; without its data that throws, and the command swallows it.
+        when(b.getBlockData()).thenReturn(mock(Switch.class));
         return b;
     }
 
@@ -121,6 +132,7 @@ class WXIDCTest
 
         verify(console).sendMessage(contains("is:secret"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not change it");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
 
     /** Giving a value sets it. */
@@ -132,6 +144,66 @@ class WXIDCTest
         assertTrue(idc(console, "alpha", "hunter2"));
 
         assertEquals("hunter2", s.getGateIrisDeactivationCode());
+        verify(console).sendMessage(contains("is:hunter2"));
+    }
+
+    /**
+     * A new code is saved at once, like every other gate edit.
+     *
+     * <p>It used to wait for the next save, at plugin disable, so a crash before then brought
+     * back the old code and the shut iris that goes with it.
+     */
+    @Test
+    void aNewCodeIsSavedAtOnce()
+    {
+        final Stargate s = gateWithIris("alpha");
+
+        assertTrue(idc(console, "alpha", "hunter2"));
+
+        db.verify(() -> StargateDBManager.saveStargate(s));
+    }
+
+    /**
+     * {@code gate edit <gate> idc} with no code reports it, as every other field does.
+     *
+     * <p>It used to clear it, which predates {@code -clear}; with the save above, that asking
+     * would have wiped the code on disk.
+     */
+    @Test
+    void gateEditWithNoCodeReportsItWithoutClearing()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateIrisDeactivationCode("secret");
+
+        assertTrue(new GateEditCommand().execute(console, new String[] { "gate", "edit", "alpha", "idc" }));
+
+        verify(console).sendMessage(contains("is:secret"));
+        assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not clear it");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
+    }
+
+    /** And with a code, {@code gate edit} sets it and saves it. */
+    @Test
+    void gateEditWithACodeSetsAndSavesIt()
+    {
+        final Stargate s = gateWithIris("alpha");
+
+        assertTrue(new GateEditCommand().execute(console, new String[] { "gate", "edit", "alpha", "idc", "hunter2" }));
+
+        assertEquals("hunter2", s.getGateIrisDeactivationCode());
+        db.verify(() -> StargateDBManager.saveStargate(s));
+    }
+
+    /** Clearing is saved at once too, or a crash would bring the code back. */
+    @Test
+    void aClearedCodeIsSavedAtOnce()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateIrisDeactivationCode("secret");
+
+        assertTrue(idc(console, "alpha", "-clear"));
+
+        db.verify(() -> StargateDBManager.saveStargate(s));
     }
 
     /** {@code -clear} empties it rather than setting the code to the literal word. */
@@ -208,6 +280,7 @@ class WXIDCTest
 
         verify(stranger).sendMessage(contains("ermission"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "somebody else's code is untouched");
+        db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
 
     /** The gate's owner may change it without holding any node. */

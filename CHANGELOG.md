@@ -187,6 +187,7 @@ The plugin API is in [docs/API.md](docs/API.md).
   listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
   Each verb now asks the command it is short for. A word that is not a verb at all offers
   nothing, where it used to offer gates the command would then refuse.
+- **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code and its shut iris. With no code given it now reports the code rather than clearing it; `-clear` clears it.
 
 ### For shape authors
 
