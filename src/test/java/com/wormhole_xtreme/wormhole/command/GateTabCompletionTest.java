@@ -148,6 +148,24 @@ class GateTabCompletionTest
         assertFalse(group.contains("true"));
     }
 
+    /**
+     * A material field offers the real name and never its LEGACY_ twin.
+     *
+     * <p>Every Bukkit version keeps a LEGACY_ constant beside most modern materials, and no
+     * command accepts one; offering them would double the list with names that only fail.
+     */
+    @Test
+    void aMaterialFieldOffersNoLegacyNames()
+    {
+        gateNamed("alpha");
+
+        final List<String> portal = complete("gate", "edit", "alpha", "portal", "");
+        assertTrue(portal.contains("water"), "the modern name is offered");
+        assertFalse(portal.contains("legacy_water"), "its LEGACY_ twin is not");
+        assertTrue(complete("gate", "edit", "alpha", "portal", "legacy_").isEmpty(),
+            "typing the prefix finds nothing");
+    }
+
     /** A field with no candidates of its own offers nothing rather than guessing. */
     @Test
     void aFieldWithNoCandidatesOffersNothing()

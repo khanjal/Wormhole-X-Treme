@@ -2,7 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -21,6 +21,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event.Result;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
@@ -200,7 +201,9 @@ class InteractLoggingCostTest
 
         new WormholeXTremePlayerListener().onPlayerInteract(event);
 
-        assertTrue(event.isCancelled(), "a registered gate sign swallows the click");
+        assertEquals(Result.DENY, event.useInteractedBlock(),
+            "a registered gate sign swallows the click, so the sign editor never opens");
+        assertEquals(Result.DENY, event.useItemInHand(), "nor does the item in hand act on it");
     }
 
     /** A click on something the plugin does not own is left for everybody else. */
@@ -213,7 +216,9 @@ class InteractLoggingCostTest
 
         new WormholeXTremePlayerListener().onPlayerInteract(event);
 
-        assertFalse(event.isCancelled(), "a plain stone block is nothing to do with this plugin");
+        assertNotEquals(Result.DENY, event.useInteractedBlock(),
+            "a plain stone block is nothing to do with this plugin");
+        assertNotEquals(Result.DENY, event.useItemInHand(), "and the item in hand still works");
     }
 
     /**

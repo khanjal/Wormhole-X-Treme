@@ -96,7 +96,7 @@ class RingOwnershipTransferTest
 
         bukkit = mockStatic(Bukkit.class);
         bukkit.when(() -> Bukkit.getPlayerExact("Grace")).thenReturn(null);
-        bukkit.when(() -> Bukkit.getOfflinePlayer("Grace")).thenReturn(grace);
+        answerByName("Grace", grace);
     }
 
     @AfterEach
@@ -148,7 +148,14 @@ class RingOwnershipTransferTest
         final OfflinePlayer invented = mock(OfflinePlayer.class);
         when(invented.hasPlayedBefore()).thenReturn(Boolean.FALSE);
         bukkit.when(() -> Bukkit.getPlayerExact(name)).thenReturn(null);
-        bukkit.when(() -> Bukkit.getOfflinePlayer(name)).thenReturn(invented);
+        answerByName(name, invented);
+    }
+
+    // RingCommand.findPlayer looks players up by name, deprecated or not, so the stub must too.
+    @SuppressWarnings("deprecation")
+    private void answerByName(final String name, final OfflinePlayer answer)
+    {
+        bukkit.when(() -> Bukkit.getOfflinePlayer(name)).thenReturn(answer);
     }
 
     /**

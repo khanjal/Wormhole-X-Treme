@@ -20,6 +20,8 @@ public class LegacyGateDismountListener implements Listener
      * Holds a rider in place while they are standing in an open portal.
      */
     @EventHandler
+    // The old package is deprecated, but it is the only one servers before 1.20.4 fire.
+    @SuppressWarnings("deprecation")
     public void onEntityDismount(final EntityDismountEvent event)
     {
         if ((event != null) && !event.isCancelled() && GateDismount.shouldRefuse(event.getEntity()))
