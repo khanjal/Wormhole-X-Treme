@@ -112,6 +112,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   shut.
 - **`gate edit <gate> group` lasts past a restart.** The choice was only held in memory, and the
   gate went back to its frame's group. `group -clear` gives it back to the frame.
+- **An iris shut by default stays shut by default after a save taken mid-journey.** The file
+  kept the iris as it stood, and a journey opens it, so a `gate edit` or `redstone` during
+  somebody's trip, then a crash, made that gate open for good. The file keeps the default now,
+  a gate saved open or lit loads idle with its iris back in place, and the iris lever saves
+  the gate as it is pulled. A gate already saved open this way needs its lever pulled once.
 - **A `nether_portal` wormhole fills the opening on every gate, not half of them.** A portal
   block carries the direction its sheet runs in, and nothing set it: a gate built one way got
   a proper sheet and a gate built the other got a sliver seen edge-on. It is laid in the

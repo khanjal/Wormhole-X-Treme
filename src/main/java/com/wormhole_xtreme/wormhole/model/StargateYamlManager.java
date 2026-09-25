@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.model;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -78,6 +80,7 @@ public class StargateYamlManager
         final Yaml yaml = new Yaml();
         int loaded = 0;
         int movedExits = 0;
+        final List<Stargate> read = new ArrayList<>();
         for (final File f : files)
         {
             // Per file: the gates directory is read on startup, and one corrupted file
@@ -98,6 +101,7 @@ public class StargateYamlManager
                 }
                 StargateManager.addStargate(s);
                 loaded++;
+                read.add(s);
             }
             catch (final Exception e)
             {
@@ -107,7 +111,23 @@ public class StargateYamlManager
                 }
             }
         }
+        settleAll(read, gatesDir);
         reportLoad(loaded, movedExits, gatesDir);
+    }
+
+    /**
+     * Settles every gate saved mid-dial, and saves it settled so the next restart finds nothing
+     * to do. After the load's loop: on Windows a file still open for reading cannot be replaced.
+     */
+    private static void settleAll(final List<Stargate> gates, final File gatesDir)
+    {
+        for (final Stargate s : gates)
+        {
+            if (settleIfSavedMidDial(s))
+            {
+                saveStargate(s, gatesDir);
+            }
+        }
     }
 
     /**
@@ -138,6 +158,31 @@ public class StargateYamlManager
         s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
+    }
+
+    /**
+     * Brings a gate saved open or lit back to idle; a clean shutdown closes every gate before
+     * saving, so such a file means a crash, or one written before the lights were saved unlit.
+     *
+     * @return true if the gate needed it, and so needs saving
+     */
+    static boolean settleIfSavedMidDial(final Stargate s)
+    {
+        if (!s.isGateActive() && !s.isGateLightsActive())
+        {
+            return false;
+        }
+        // Past the load's own catch: the gate is loaded, and a block that will not take the
+        // idle state must not read as a gate that failed to.
+        try
+        {
+            StargateLifecycle.settleAfterLoad(s);
+        }
+        catch (final RuntimeException e)
+        {
+            PluginLog.log(Level.WARNING, GATE_QUOTE + s.getGateName() + "\" was saved mid-dial and could not be put back to idle.", e);
+        }
+        return true;
     }
 
     /**
