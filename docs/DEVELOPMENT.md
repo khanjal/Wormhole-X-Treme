@@ -103,7 +103,7 @@ mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Fifty-two at present; the one naming both `unchecked` and
+quiet one that is inconvenient. Fifty-four at present; the one naming both `unchecked` and
 `rawtypes` counts in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -115,7 +115,7 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
 | `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
-| `deprecation` | 1 | – | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone. |
+| `deprecation` | 2 | 1 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. |
 | `java:S2583` | 1 | – | – | A null check that never fires on a server; a mock player with no UUID would throw without it. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
