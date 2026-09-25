@@ -4,16 +4,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
  * The three material commands still accept what they always accepted, and each still edits
@@ -33,6 +48,92 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  */
 class MaterialCommandTest
 {
+    private CommandSender sender;
+
+    // Every test mocks it: a change is saved at once, and the real save writes gate files
+    // into the working directory.
+    private MockedStatic<StargateDBManager> db;
+
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+        // Not a player, so the admin node is not asked for.
+        sender = mock(CommandSender.class);
+        clearGates();
+        db = mockStatic(StargateDBManager.class);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        db.close();
+        clearGates();
+        PluginTestSupport.remove();
+    }
+
+    private static void clearGates()
+    {
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
+        {
+            if (s != null)
+            {
+                StargateManager.removeStargate(s);
+            }
+        }
+    }
+
+    /** A registered gate in custom mode, which is the only kind these commands will change. */
+    private static Stargate customGate(final String name)
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateName(name);
+        gate.setGateCustom(true);
+        StargateManager.registerStargate(gate);
+        return gate;
+    }
+
+    /**
+     * A material it accepts is set and saved at once.
+     *
+     * <p>It used to reach disk only at shutdown, so a crash lost it.
+     */
+    @Test
+    void anAcceptedMaterialIsSetAndSaved()
+    {
+        final Stargate gate = customGate("alpha");
+
+        assertTrue(new MaterialCommand(Kind.IRIS).execute(sender, new String[] { "irismaterial", "alpha", "glass" }));
+
+        assertSame(Material.GLASS, gate.getGateCustomIrisMaterial());
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** A material it refuses changes nothing, so nothing is written. */
+    @Test
+    void aRefusedMaterialIsNotSaved()
+    {
+        final Stargate gate = customGate("alpha");
+
+        assertTrue(new MaterialCommand(Kind.PORTAL).execute(sender, new String[] { "portalmaterial", "alpha", "stone" }));
+
+        assertNull(gate.getGateCustomPortalMaterial());
+        verify(sender).sendMessage(contains("Invalid portal material: stone"));
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
+    /** Asking what the material is changes nothing, so nothing is written. */
+    @Test
+    void askingForTheMaterialSavesNothing()
+    {
+        customGate("alpha");
+
+        assertTrue(new MaterialCommand(Kind.LIGHT).execute(sender, new String[] { "lightmaterial", "alpha" }));
+
+        verify(sender).sendMessage(contains("light material is currently"));
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
     /**
      * The portal override accepts exactly what PortalMaterialCommand accepted.
      *
