@@ -155,6 +155,9 @@ The plugin API is in [docs/API.md](docs/API.md).
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
+  close shut it again, with no lever or code left to open it. A gate stuck that way opens on
+  `idc -clear` again.
 
 ### Commands
 
