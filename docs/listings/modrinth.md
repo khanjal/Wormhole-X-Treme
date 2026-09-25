@@ -291,6 +291,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 

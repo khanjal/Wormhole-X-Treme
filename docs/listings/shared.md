@@ -19,7 +19,7 @@ The values a release changes. Change them here first, then carry them into the s
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none required. Vault, LuckPerms and PlaceholderAPI optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
+| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI and CoreProtect optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live
@@ -289,6 +289,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for
   a scoreboard or tab list.
+- **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it
+  back. Off until `coreprotect-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.
@@ -382,38 +384,32 @@ Rewriting these notes means rewriting that one too.
 
 > **Upgrading from 1.7 — nothing you have to do.**
 >
-> - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
->   `<name>.shape.old`. An edited one is left alone and named in the log.
 > - **Anonymous usage counts now go to bStats**, on by default: Minecraft version, server software,
 >   and how many gates, rings, beams and mirrors, in ranges. `/wormhole config metrics-enabled false`
 >   stops it.
-> - The default `top` dial rests on the top chevron after each lock, so a dial takes about three
->   seconds longer. `/wormhole config gate-dial-spin chevron` keeps the old pace.
-> - Optional: an existing `config.yml` keeps its material groups as they were. For Atlantis and
->   Universe gates to dial their own way, as new installs do, add `dial-spin: pegasus` and
->   `dial-spin: universe` to those groups.
+> - The default `top` dial pauses on each chevron, so a dial takes about three seconds longer.
+>   `/wormhole config gate-dial-spin chevron` keeps the old pace.
+> - Optional: add `dial-spin: pegasus` and `dial-spin: universe` to an existing `config.yml`'s
+>   Atlantis and Universe groups, as new installs have.
 > - Coming from 1.7.0? The `Massive` shape updates itself; then run `/wormhole gate regen <gate>` on
 >   each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
 > - Installing for the first time? None of the above applies. Drop the jar in and start.
 >
-> **Stargates**
+> **New**
 >
-> - The iris sweeps shut a ring at a time, or as a spiral, rows or columns
->   (`gate-iris-animation`), and an upright gate's iris is drawn rather than built from blocks.
-> - Three more dial-spin patterns: `chase`, `universe` (Destiny's) and `overshoot`. A gate picks
->   its own with `/wormhole gate edit <gate> spin`, and a material group with `dial-spin:`.
-> - `gate regen` keeps every `gate edit` setting, and `gate edit group` lasts past a restart.
-> - Many iris and wormhole drawing fixes; the full changelog lists them.
+> - An animated iris — sweep, spiral, rows or columns — that covers the wormhole instead of
+>   replacing it.
+> - Three more dial-spin patterns: `chase`, `universe` and `overshoot`. A gate or a material group
+>   can pick its own pattern and iris style.
+> - Optional CoreProtect logging of gate and ring construction, so it can be rolled back.
+> - For other plugins: wormhole open and close events, and a PlaceholderAPI expansion.
+> - `/wormhole` lists its commands by job, with a short coloured usage line and more tab completion.
 >
-> **Commands**
+> **Fixed**
 >
-> - A mistyped command gets one short coloured usage line for that command, and `/wormhole` on its
->   own lists its commands by job.
->
-> **For other plugins**
->
-> - `StargateActivatedEvent` and `StargateShutdownEvent`, and a PlaceholderAPI expansion, off
->   until `placeholders-enabled` is set.
+> - Gate settings are saved as they are set and survive `gate regen`, so a crash no longer loses
+>   them or leaves an iris open.
+> - Many iris, wormhole and dialling fixes; the full changelog lists them.
 >
 > [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md)
 

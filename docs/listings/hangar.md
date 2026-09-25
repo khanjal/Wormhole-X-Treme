@@ -64,10 +64,10 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]` — every one is optional
+only `softdepend: [Permissions, Vault, LuckPerms, PlaceholderAPI, CoreProtect, WormholeXTremeWorlds]` — every one is optional
 and the plugin loads without them. Declaring a required dependency that is not required would
 make Hangar warn operators off installing it, and the listing's strongest line is "no
-dependencies"; four optional rows dilute that for nothing.
+dependencies"; six optional rows dilute that for nothing.
 
 If the integrations are ever wanted discoverable, **only Vault and LuckPerms** are defensible,
 and only as Optional. The other two never go on the listing:
@@ -232,6 +232,7 @@ this world's hills.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
