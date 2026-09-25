@@ -146,12 +146,18 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
   at the gate it came from but stepped out the way the *far* gate faces, so unless the two
   gates faced the same way it could land in the frame, the ground or a wall.
+- **A lever on the empty iris spot of a gate with no code does nothing, and can be broken.**
+  It shut the iris, and with no code and no lever of its own the gate had nothing to open it
+  with; and the gate took it for its own lever, so nobody could break it.
 - **A gate with no arrival point no longer throws when somebody walks or rolls into it.**
   Nothing checked that the far gate had an arrival point before teleporting to it, and
   Bukkit refuses a teleport to nowhere with an exception, on every tick a cart kept
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
+  close shut it again, with no lever or code left to open it. A gate stuck that way opens on
+  `idc -clear` again.
 
 ### Commands
 
