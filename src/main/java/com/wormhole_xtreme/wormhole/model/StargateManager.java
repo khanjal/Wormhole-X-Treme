@@ -1004,6 +1004,16 @@ public class StargateManager
     }
 
     /**
+     * The gate a player has detected but not yet named.
+     *
+     * @return the gate, or null if none
+     */
+    public static Stargate getIncompleteStargate(final Player p)
+    {
+        return getIncompleteStargates().get(p);
+    }
+
+    /**
      * Normalize a location to its block coordinates (integer XYZ) while preserving world.
      * Use this when storing/retrieving map keys that represent block positions.
      */

@@ -207,6 +207,99 @@ class CompleteCommandTest
         StargateManager.removeIncompleteStargate(player);
     }
 
+    /**
+     * Completing a part-built gate reads its design again, so a dial sign hung since it was
+     * detected is taken up. Placing a preview detects the gate before a sign can be hung.
+     */
+    @Test
+    void completingReadsThePartBuiltGateAgain()
+    {
+        final Stargate fresh = new Stargate();
+        final Stargate completed = completeWhileDetectionAnswers(builder("rereader"),
+            detection -> detection.thenReturn(fresh), null);
+        assertSame(fresh, completed, "the stored detection was completed, not a fresh one");
+    }
+
+    /**
+     * A dial sign found by another shape wins over the held one. Horizontal and its sign twin
+     * share a frame, and without a sign the plain one is detected first.
+     */
+    @Test
+    void aSignFoundByAnotherShapeWinsOverTheHeldShape()
+    {
+        final Stargate plain = new Stargate();
+        final Stargate signed = new Stargate();
+        signed.setGateSignPowered(true);
+        final Stargate completed = completeWhileDetectionAnswers(builder("signer"),
+            detection -> detection.thenReturn(plain), signed);
+        assertSame(signed, completed, "the held shape's reading, without a sign, was completed");
+    }
+
+    /** Another shape without a sign does not replace the held shape's reading. */
+    @Test
+    void anotherShapeWithoutASignLeavesTheHeldShape()
+    {
+        final Stargate plain = new Stargate();
+        final Stargate other = new Stargate();
+        final Stargate completed = completeWhileDetectionAnswers(builder("keeper"),
+            detection -> detection.thenReturn(plain), other);
+        assertSame(plain, completed, "a different shape with no sign replaced the held one");
+    }
+
+    /**
+     * A shape that throws on the second reading leaves the first to be completed, rather than
+     * failing the command with a usage message about arguments that were fine.
+     */
+    @Test
+    void aReReadingThatThrowsCompletesTheGateAsFirstDetected()
+    {
+        final Player player = builder("thrower");
+        final Stargate completed = completeWhileDetectionAnswers(player,
+            detection -> detection.thenThrow(new IllegalStateException("malformed shape")), null);
+        assertEquals("Held", completed.getGateName(), "the gate first detected was not the one completed");
+        verify(player, never()).sendMessage(contains("Invalid arguments"));
+    }
+
+    /**
+     * Holds a part-built gate called Held, runs {@code complete Named} with the second
+     * detection of the held shape answering as told and a scan of every shape finding
+     * {@code anyShape}, and returns the gate that reached completion.
+     */
+    private static Stargate completeWhileDetectionAnswers(final Player player,
+        final java.util.function.Consumer<org.mockito.stubbing.OngoingStubbing<Stargate>> answer,
+        final Stargate anyShape)
+    {
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        StargateManager.addIncompleteStargate(player, held);
+        final Stargate[] completed = new Stargate[1];
+        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.logic.StargateHelper> helper =
+                org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.logic.StargateHelper.class);
+            org.mockito.MockedStatic<StargateManager> mgr =
+                org.mockito.Mockito.mockStatic(StargateManager.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            answer.accept(helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())));
+            helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(anyShape);
+            mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString())).thenAnswer(call -> {
+                    completed[0] = StargateManager.getIncompleteStargate(player);
+                    return false;
+                });
+
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Named"});
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+        }
+        assertNotNull(completed[0], "nothing reached completion");
+        return completed[0];
+    }
+
     private static Player builder(final String name)
     {
         final Player player = builder();
