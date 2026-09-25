@@ -1532,8 +1532,8 @@ public final class SubCommands
      */
     private static boolean worthOffering(final org.bukkit.Material material, final boolean slabsOnly)
     {
-        // Every API from 1.19.4 to 26.3 sets isLegacy() from exactly this prefix, and both it and
-        // LEGACY_PREFIX are deprecated; LEGACY_ names are ones nothing accepts.
+        // Every API from 1.19.4 to 26.3 sets isLegacy() from exactly this prefix; Spigot deprecates
+        // isLegacy() and both deprecate LEGACY_PREFIX. LEGACY_ names are ones nothing accepts.
         if (material.name().startsWith("LEGACY_")
             || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
         {
