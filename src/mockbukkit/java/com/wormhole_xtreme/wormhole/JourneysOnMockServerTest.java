@@ -378,8 +378,11 @@ class JourneysOnMockServerTest
 
     /**
      * A sign gate dialled by redstone: the player hangs a dial sign and names the gate on it,
-     * right-clicks it to choose the far gate, and a pulse into the [RD] cell dials that gate,
-     * switching the [RA] lever on while it is open.
+     * steps the sign past the first gate on its network to the far one, and a pulse into the
+     * [RD] cell dials the one the sign shows, switching the [RA] lever on while it is open.
+     *
+     * <p>Not covered: the guard that stops the plugin's own lever writes counting as a trigger.
+     * MockBukkit never fires a redstone event itself, so nothing here can set one off.
      */
     @Test
     void aRedstonePulseDialsTheGateTheSignShows()
@@ -387,7 +390,9 @@ class JourneysOnMockServerTest
         final MockServerSupport.World world = new MockServerSupport.World("redstone", 4);
         server.addWorld(world);
         final MockServerSupport.Player p = new MockServerSupport.Player(server, "Wirer");
-        // A network of their own, so the sign's first step is Target and not another journey's gate.
+        // A network of their own, away from the other journeys' gates. Relay sorts first, so the
+        // sign has to be stepped past it: dialling the network's first gate would be wrong.
+        final Stargate first = buildGate(p, world, -40.5, "Relay", "net=Wires");
         final Stargate far = buildGate(p, world, 40.5, "Target", "net=Wires");
 
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
@@ -416,15 +421,27 @@ class JourneysOnMockServerTest
         assertTrue(home.isGateSignPowered(), "the dial sign was not taken up");
         assertTrue(home.isGateRedstonePowered(), "a SignDial gate should take redstone");
 
+        p.messages();
         click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
         ticks(5);
-        assertSame(far, home.getGateDialSignTarget(), "the sign does not show Target: " + p.messages());
+        assertSame(first, home.getGateDialSignTarget(), "the first step is not Relay: " + p.messages());
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
+        ticks(5);
+        final List<String> told = p.messages();
+        assertSame(far, home.getGateDialSignTarget(), "the second step is not Target: " + told);
+        assertTrue(told.stream().anyMatch(m -> m.contains("Dialer set to: Target")), "not told: " + told);
+        final String shown = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+            .serialize(((Sign) home.getGateDialSignBlock().getState()).getSide(Side.FRONT).line(2));
+        assertTrue(shown.contains("Target"), "the sign's selected line reads \"" + shown + "\"");
         final Block output = home.getGateRedstoneGateActivatedBlock();
         assertFalse(((Switch) output.getBlockData()).isPowered(), "the [RA] lever is on before any dial");
         p.messages();
         final java.util.Set<Integer> before = settledTasks();
 
-        pulse(home.getGateRedstoneDialActivationBlock());
+        // Dust on the [RD] cell, as a player's circuit leaves it.
+        final Block trigger = home.getGateRedstoneDialActivationBlock();
+        trigger.setType(Material.REDSTONE_WIRE);
+        pulse(trigger);
         ticks(200);
         assertTrue(home.isGateActive(), "the pulse did not dial: " + p.messages());
         assertSame(far, home.getGateTarget());
