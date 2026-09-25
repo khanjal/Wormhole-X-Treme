@@ -72,6 +72,8 @@ final class MockServerSupport
             configBefore.restore();
             PluginTestSupport.forgetAllGates();
             ProjectileGateTracker.clear();
+            // A gate name's last redstone trigger, timed by the clock, would silence the next class's.
+            WormholeXTremeRedstoneListener.clearTriggerHistory();
             com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam.clear();
             com.wormhole_xtreme.wormhole.model.ring.RingManager.clear();
             com.wormhole_xtreme.wormhole.model.beam.BeamManager.clear();
