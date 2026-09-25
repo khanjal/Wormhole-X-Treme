@@ -133,9 +133,9 @@ public final class GateInteractionHandler
      * The gate's iris lever, or null when it has no code.
      *
      * <p>A gate with no code keeps its iris spot but no lever there, so a lever a player puts
-     * on it must not shut an iris nothing could open again.
+     * on it must not shut an iris nothing could open again, nor count as part of the gate.
      */
-    private static Block irisLeverOf(final Stargate stargate)
+    static Block irisLeverOf(final Stargate stargate)
     {
         final String code = stargate.getGateIrisDeactivationCode();
         return ((code == null) || code.isEmpty()) ? null : stargate.getGateIrisLeverBlock();

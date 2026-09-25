@@ -23,6 +23,7 @@ import org.bukkit.entity.Sittable;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -372,7 +373,7 @@ class JourneysOnMockServerTest
 
     /**
      * A lever a player puts on the unused iris spot of a gate with no code does not shut an
-     * iris nobody could open again.
+     * iris nobody could open again, and the player can break it again.
      */
     @Test
     void aLeverOnTheIrisSpotOfAGateWithNoCodeLeavesTheIrisAlone()
@@ -391,6 +392,9 @@ class JourneysOnMockServerTest
 
         assertFalse(gate.isGateIrisActive(), "a stray lever shut an iris with no code");
         assertFalse(gate.isGateIrisDefaultActive(), "a stray lever made a codeless iris shut by default");
+        final BlockBreakEvent breaking = new BlockBreakEvent(spot, p);
+        server.getPluginManager().callEvent(breaking);
+        assertFalse(breaking.isCancelled(), "the player cannot take back their own lever: " + p.messages());
     }
 
     /** A redstone pulse into the block, rising from off. */
