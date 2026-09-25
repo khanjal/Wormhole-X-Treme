@@ -366,6 +366,7 @@ public final class LegacyDatabaseImporter
             movedExits[0]++;
         }
         StargateManager.addStargate(gate);
+        StargateYamlManager.settleIfSavedMidDial(gate);
         StargateDBManager.saveStargate(gate);
     }
 
