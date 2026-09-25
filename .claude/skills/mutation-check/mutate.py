@@ -31,7 +31,7 @@ Guarantees, each learned the hard way:
   - exits non-zero unless every mutation was measured and killed, so neither a refusal nor
     a battery that measured nothing can be mistaken for a clean one.
 
-Exit codes: 0 all killed; 1 a mutation survived; 2 usage, or no mvn; 3 target differs from HEAD;
+Exit codes: 0 all killed; 1 a mutation survived; 2 usage, a malformed battery, or no mvn; 3 target differs from HEAD;
 4 baseline not green; 5 restore failed; 6 nothing survived, but a mutation was not measured
 (UNAPPLIED, NO-COMPILE, NO-TESTS, BUILD-ERROR) or the battery had no mutations. A restore
 failure (5) outranks the rest, and a survivor (1) outranks 6.
@@ -42,6 +42,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 
@@ -89,6 +90,7 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
+    mvn()
     battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     root = repo_root()
     rel = battery["file"].replace("\\", "/")
@@ -150,8 +152,16 @@ def main() -> int:
         print(f"  not measured: {n}")
     if survivors:
         return 1
-    return 6 if unmeasured or not results else 0
+    if not results:
+        print("REFUSING: the battery has no mutations.")
+        return 6
+    return 6 if unmeasured else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (KeyError, TypeError, ValueError, OSError, subprocess.CalledProcessError):
+        # An uncaught exception would exit 1, which reads as a survivor.
+        traceback.print_exc()
+        sys.exit(2)
