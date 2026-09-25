@@ -126,9 +126,11 @@ gh run view <run-id> -R khanjal/Wormhole-X-Treme --json jobs --jq '.jobs[] | "\(
 gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNING\].*<FileName>.java"
 ```
 
-The Paper and Purpur jobs list over a hundred warnings, mostly Bukkit and BungeeCord chat API
-that Paper deprecated in favour of Adventure (`ChatColor`, `SignSide.setLine`). Spigot still
-needs those, so they stay. A warning that says "marked for removal" always needs fixing.
+The Paper and Purpur jobs do not list plain deprecations: Paper deprecates the Spigot text API
+this jar has to call (`ChatColor`, the BungeeCord action bar, `getDescription`), so the
+`paper-api` profile turns `showDeprecation` off. The Spigot jobs still list them. Paper jobs
+still list "marked for removal" warnings, which javac reports separately, and one of those
+always needs fixing.
 
 Say in the PR what was found, including "none". Two MockBukkit PRs (#443, #457) merged calls
 to the deprecated-for-removal `PlayerMock.simulatePlayerMove` that nobody had read.
