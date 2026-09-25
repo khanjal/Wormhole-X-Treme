@@ -315,6 +315,7 @@ class JourneysOnMockServerTest
         assertTrue(bare.stream().anyMatch(m -> m.contains("provide the IDC")), "no refusal: " + bare);
         final List<String> wrong = dial(p, home, "Chulak", "1111");
         assertFalse(home.isGateActive(), "dialled through a shut iris with the wrong code: " + wrong);
+        assertTrue(wrong.stream().anyMatch(m -> m.contains("provide the IDC")), "wrong code not judged: " + wrong);
         assertTrue(far.isGateIrisActive(), "the wrong code opened the iris");
 
         final List<String> right = dial(p, home, "Chulak", "4321");
