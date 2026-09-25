@@ -25,12 +25,13 @@ find must match exactly once, or the mutation is reported as UNAPPLIED and nothi
 Exit codes:
   0  every mutation was killed
   1  at least one mutation survived
-  2  usage
+  2  refused: usage, a malformed battery, a missing target, or no mvn on PATH
   3  refused: the target differs from git HEAD
   4  refused: the unmutated baseline is not green
   5  the original bytes could not be restored
   6  nothing survived, but at least one mutation was not measured (UNAPPLIED, NO-COMPILE,
      NO-TESTS, BUILD-ERROR), or the battery had no mutations
+  7  the harness crashed; the traceback says where
 
 Guarantees, each learned the hard way:
   - refuses to start unless the target's content matches git HEAD, so a battery killed
@@ -47,6 +48,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 
@@ -63,7 +65,8 @@ def head_text(root: Path, rel: str) -> str:
 def mvn() -> str:
     exe = shutil.which("mvn") or shutil.which("mvn.cmd")
     if not exe:
-        sys.exit("REFUSING: mvn is not on PATH.")
+        print("REFUSING: mvn is not on PATH.")
+        sys.exit(2)
     return exe
 
 
@@ -89,14 +92,35 @@ def run_tests(root: Path, tests: str, extra: list):
     return "BUILD-ERROR", log
 
 
+def battery_problem(battery) -> str:
+    if not isinstance(battery, dict):
+        return "the battery is not a JSON object."
+    for key in ("file", "tests"):
+        if not isinstance(battery.get(key), str):
+            return f'the battery has no "{key}" string.'
+    if not isinstance(battery.get("mutations"), list):
+        return 'the battery has no "mutations" list.'
+    for i, m in enumerate(battery["mutations"]):
+        if not (isinstance(m, dict) and all(isinstance(m.get(k), str) for k in ("name", "find", "replace"))):
+            return f'mutation {i} needs "name", "find" and "replace" strings.'
+    return ""
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
     battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    problem = battery_problem(battery)
+    if problem:
+        print(f"REFUSING: {problem}")
+        return 2
     root = repo_root()
     rel = battery["file"].replace("\\", "/")
     target = root / rel
+    if not target.is_file():
+        print(f"REFUSING: {rel} is not a file under {root}.")
+        return 2
     original = target.read_bytes()
     text = original.decode("utf-8")
     crlf = "\r\n" in text
@@ -166,4 +190,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Python exits 1 on an uncaught exception, which here would read as a survivor.
+    try:
+        code = main()
+    except Exception:
+        traceback.print_exc()
+        code = 7
+    sys.exit(code)
