@@ -50,6 +50,7 @@ public final class YamlMaps
      *            whatever the parser produced, may be null
      * @return the value as a map, or an empty map if it is not one
      */
+    // SnakeYAML hands back Object; instanceof checks the map, not its type arguments.
     @SuppressWarnings("unchecked")
     public static Map<String, Object> asMap(final Object value)
     {
@@ -63,6 +64,7 @@ public final class YamlMaps
      *            whatever the parser produced, may be null
      * @return the value as a list, or an empty list if it is not one
      */
+    // SnakeYAML hands back Object; instanceof checks the list, not its type argument.
     @SuppressWarnings("unchecked")
     public static List<Object> asList(final Object value)
     {

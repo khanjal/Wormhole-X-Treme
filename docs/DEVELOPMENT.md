@@ -23,6 +23,69 @@ server's `plugins/`, a copy script — without being repointed every time the ve
 Tests live in `src/test/java/`, mock the Bukkit API, and run against every supported Minecraft
 version in CI, so anything that only works on one of them is caught there.
 
+Tests in `src/mockbukkit/java/` load the whole plugin onto [MockBukkit](https://mockbukkit.org)'s
+simulated server instead. Each MockBukkit is built for one Paper version and a newer Java, so
+they need the profile, that JDK and that Paper API; against the default Spigot API they compile,
+then fail with a linkage error. CI runs them twice, in the Paper 1.21.11 and 26.2 jobs:
+
+```bash
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT   # JDK 21
+mvn verify -Pmodern-api,mockbukkit -Dpaper.api.version=26.2.build.124-stable -Dmockbukkit.artifact=mockbukkit-v26.2 -Dmockbukkit.version=4.116.1 -Dmockbukkit.release=25   # JDK 25
+```
+
+Run `clean` when switching between the two, because Maven does not recompile for a change of
+release alone. After 26.2, the 1.21 command fails in the ordinary tests with an
+`UnsupportedClassVersionError`. After 1.21, the 26.2 command passes without having tested 26.2 at
+all: the classes built for 1.21 simply run again.
+
+MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another package, so
+`src/mockbukkit/` could not compile against both.
+
+`JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
+by command, a following pet through a gate and by beam into another world, a caller up against
+a shut iris, and a sign gate dialled by redstone. It checks where they arrive and that the trip
+leaves nothing new running. Annotate
+a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
+
+- **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does
+  not override. A Mockito test that touches `org.bukkit.Tag` with no server leaves the class
+  unusable for the rest of its JVM, and every MockBukkit player needs it; the other way round,
+  MockBukkit's server is global.
+- **MockBukkit reports a call to a method it has not implemented as a skipped test**, not a
+  failure. The annotation turns it into a failure, so a journey cut short cannot pass. It only
+  sees what reaches the test thread; the plugin's own catches swallow one.
+- **Asynchronous tasks run on the next tick, on the main thread.** MockBukkit runs them on a
+  pool, and a task the pool scheduled back onto the main thread was sometimes lost: a mirror
+  capture then never finished, and the journeys failed now and then.
+- **"Nothing new running" waits on the tasks, not a number of ticks.** `settle` runs a
+  minute, then until no one-off task is pending, up to 30 minutes; every repeating task left
+  must have been running before the trip. A gate's shutdown is timed partly from the clock, so
+  a fixed wait passed or failed with the machine's speed.
+- **`MockServerSupport` stands in for the unimplemented methods a trip reaches**: `isPassable`,
+  `isOccluding`, chunk tickets, `unloadChunkRequest`, a player's target block, line of sight and
+  view distance, and the block data a mirror's view clones, turns and sends. Each is an
+  approximation (passable is "not solid", a view is never really drawn), and one reaches into
+  `WorldMock` by reflection, so a MockBukkit upgrade can break it. Add a stand-in there, not in a
+  test.
+- **Gate previews are not covered, nor how a mirror's view looks.** Previews spawn entities
+  hidden per player, which MockBukkit cannot do; the plugin catches that and carries on. A
+  mirror's capture is taken, 4 blocks deep, and its view worked out, but nothing checks either.
+- **Time here is ticks, not the clock.** A limit measured in milliseconds, such as
+  `max_open_seconds`, never passes.
+
+Static state survives `MockBukkit.unmock()`, which a real server never sees because each load
+gets a new classloader. A second load in one JVM logs every shape as a duplicate, so load the
+plugin once per class, in `@BeforeAll`. `MockServerSupport.stop()` puts the settings back as they
+were before the load and empties the gate, ring, beam and mirror registries, so the next
+MockBukkit class in that JVM starts from the same state whichever order they run in.
+
+The Sonar job builds without the profile, so it never analyses `src/mockbukkit/`. Check those
+files with PMD before pushing; `generate-test-sources` is what adds the folder:
+
+```bash
+mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
+```
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
@@ -40,25 +103,29 @@ version in CI, so anything that only works on one of them is caught there.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Thirty-four at present; the one naming both `unchecked` and
-`rawtypes` counts in each row:
+quiet one that is inconvenient. Fifty-two at present; the one naming both `unchecked` and
+`rawtypes` counts in each row. MockBukkit gets its own column because `src/mockbukkit/java`
+compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
-| Suppresses | Main | Tests | Why |
-|---|---|---|---|
-| `java:S3516` | 12 | – | Command handlers always return `true`, because Bukkit reads it as "handled". |
-| `java:S4144` | 7 | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
-| `java:S1168` | 3 | – | Null means something an empty result cannot; each names the caller relying on it. |
-| `java:S3077` | 3 | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
-| `unchecked` | 3 | 3 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors. |
-| `rawtypes` | – | 1 | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
-| `deprecation` | 1 | – | `getOfflinePlayer(String)` has no Spigot replacement, and a name is all the command has. |
-| `java:S6905` | 1 | – | `SELECT *` from a legacy database whose columns vary by version. |
-| `java:S1612` | – | 1 | A method reference would cast its receiver early, outside `assertThrows`. |
+| Suppresses | Main | Tests | MockBukkit | Why |
+|---|---|---|---|---|
+| `java:S3516` | 20 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
+| `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
+| `java:S2589` | 5 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
+| `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
+| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
+| `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
+| `deprecation` | 1 | – | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone. |
+| `java:S2583` | 1 | – | – | A null check that never fires on a server; a mock player with no UUID would throw without it. |
+| `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
+| `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
+| `java:S1612` | – | 1 | – | A method reference would cast its receiver early, outside `assertThrows`. |
 
-When the table and the code disagree, recount:
+When the table and the code disagree, recount; the second line totals each column:
 
 ```bash
 grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code'
+grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code' | cut -d/ -f2 | sort | uniq -c
 ```
 
 ## Minecraft versions

@@ -5,6 +5,7 @@ import org.bukkit.command.CommandSender;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
@@ -151,6 +152,7 @@ public class WooshDepthCommand implements SubCommand
         stargate.setGateCustomWooshDepth(wooshDepth);
         // Kept alongside so the animation does not square it per block.
         stargate.setGateCustomWooshDepthSquared(wooshDepth * wooshDepth);
+        StargateDBManager.saveStargate(stargate);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + name + " woosh depth set to: " + stargate.getGateCustomWooshDepth());
         warnIfShapeOwnsTheWaves(sender, stargate);

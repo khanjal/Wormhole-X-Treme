@@ -5,6 +5,7 @@ import org.bukkit.command.CommandSender;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
@@ -103,6 +104,7 @@ public class RedstoneCommand implements SubCommand
         }
         stargate.setGateRedstonePowered(Boolean.parseBoolean(value.trim()));
         stargate.setupRedstone(stargate.isGateRedstonePowered());
+        StargateDBManager.saveStargate(stargate);
         reportWiring(sender, name, stargate);
     }
 

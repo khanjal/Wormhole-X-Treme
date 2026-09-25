@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -13,9 +15,11 @@ import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -34,6 +38,10 @@ class RedstoneCommandTest
 {
     private CommandSender sender;
 
+    // Every test mocks it: a change is saved at once, and the real save writes gate files
+    // into the working directory.
+    private MockedStatic<StargateDBManager> db;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -43,11 +51,13 @@ class RedstoneCommandTest
         // own concern and is covered where the permission itself is.
         sender = mock(CommandSender.class);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
+        db.close();
         clearGates();
         PluginTestSupport.remove();
     }
@@ -77,6 +87,18 @@ class RedstoneCommandTest
         return new RedstoneCommand().execute(sender, args);
     }
 
+    /** The gate went to disk once, now, rather than waiting for shutdown. */
+    private void assertSaved(final Stargate gate)
+    {
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** Nothing changed, so nothing was written. */
+    private void assertNothingSaved()
+    {
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
     /** Too few or too many words gets the usage, and true, since it has already said so (#325). */
     @Test
     void theWrongNumberOfArgumentsIsAUsageError()
@@ -95,6 +117,7 @@ class RedstoneCommandTest
         assertTrue(run("redstone", "nowhere", "true"));
 
         verify(sender).sendMessage(contains("Invalid gate target"));
+        assertNothingSaved();
     }
 
     /** Two words reads the setting back without touching it. */
@@ -107,6 +130,7 @@ class RedstoneCommandTest
 
         verify(sender).sendMessage(contains("is redstone powered: false"));
         assertFalse(g.isGateRedstonePowered(), "reading must not turn it on");
+        assertNothingSaved();
     }
 
     /** Three words sets it, and says what it set. */
@@ -118,6 +142,7 @@ class RedstoneCommandTest
         assertTrue(run("redstone", "alpha", "true"));
 
         assertTrue(g.isGateRedstonePowered(), "the gate is wired now");
+        assertSaved(g);
         verify(sender).sendMessage(contains("is redstone powered: true"));
     }
 
@@ -130,6 +155,7 @@ class RedstoneCommandTest
         assertTrue(run("redstone", "alpha", "false"));
 
         assertFalse(g.isGateRedstonePowered(), "the gate is unwired now");
+        assertSaved(g);
         verify(sender).sendMessage(contains("is redstone powered: false"));
     }
 
@@ -147,6 +173,7 @@ class RedstoneCommandTest
         assertTrue(run("redstone", "alpha", "yes"));
 
         assertTrue(g.isGateRedstonePowered(), "still wired: nothing was set");
+        assertNothingSaved();
         verify(sender).sendMessage(contains("Invalid boolean option: yes"));
         verify(sender, never()).sendMessage(contains("is redstone powered"));
     }

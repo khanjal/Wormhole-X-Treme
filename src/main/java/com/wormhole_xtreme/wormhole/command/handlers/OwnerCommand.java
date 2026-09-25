@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
@@ -53,6 +54,7 @@ public class OwnerCommand implements SubCommand
         {
             assignOwner(s, args[2]);
             s.setupGateSign(true);
+            StargateDBManager.saveStargate(s);
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
         }
         return true;

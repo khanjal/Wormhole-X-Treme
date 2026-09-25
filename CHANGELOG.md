@@ -146,12 +146,18 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A cart turned back by a closed far iris lands in front of its own gate.** It was put back
   at the gate it came from but stepped out the way the *far* gate faces, so unless the two
   gates faced the same way it could land in the frame, the ground or a wall.
+- **A lever on the empty iris spot of a gate with no code does nothing, and can be broken.**
+  It shut the iris, and with no code and no lever of its own the gate had nothing to open it
+  with; and the gate took it for its own lever, so nobody could break it.
 - **A gate with no arrival point no longer throws when somebody walks or rolls into it.**
   Nothing checked that the far gate had an arrival point before teleporting to it, and
   Bukkit refuses a teleport to nowhere with an exception, on every tick a cart kept
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
+  close shut it again, with no lever or code left to open it. A gate stuck that way opens on
+  `idc -clear` again.
 
 ### Commands
 
@@ -178,6 +184,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 **Fixed**
 
+- **A gate's owner can set its iris code**, with `gate edit <gate> idc`, without
+  `wormhole.config`. Every other field still needs it.
 - **A mistyped command gets one short usage line, for that command.** It used to be followed by
   the whole usage block from `plugin.yml`, in one colour, listing every subcommand: `/wormhole owner`
   with no gate named printed the lot. A refusal that says why, such as a gate that does not exist, is
@@ -187,6 +195,11 @@ The plugin API is in [docs/API.md](docs/API.md).
   listing to a network -- and wrong for `complete`, whose name has to be one no gate has yet.
   Each verb now asks the command it is short for. A word that is not a verb at all offers
   nothing, where it used to offer gates the command would then refuse.
+- **`gate edit <gate> idc` saves the gate at once**, as every other `gate edit` does. A new or cleared code used to wait for the plugin to shut down, so a crash brought back the old code, and the iris as it was last saved. With no code given it now reports the code rather than clearing it; `-clear`, which it now offers, clears it.
+- **A gate's owner, custom mode, materials, woosh depth and redstone wiring are saved as they
+  are set**, by `gate edit` or by `owner`, `custom`, `portalmaterial`, `irismaterial`,
+  `lightmaterial`, `wooshdepth` and `redstone`. They reached disk only when the server shut down,
+  so a crash lost them.
 
 ### For shape authors
 
@@ -243,6 +256,21 @@ Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
 
 - **The transport light runs out from the pad putting a traveller back down**, where both
   sweeps ran towards it. The sweep that takes somebody in is unchanged.
+
+### Internals
+
+- **The plugin is enabled on [MockBukkit](https://mockbukkit.org)'s simulated server** in the
+  Paper 1.21.11 and 26.2 CI jobs, through a `mockbukkit` profile. Those tests live in
+  `src/mockbukkit/` and need Java 21 or 25; the default build and the jar are unchanged.
+- **A player's whole trip through a gate, a beam, a ring and a mirror is tested there**, from
+  setting it up by command to arriving, with a check that the trip leaves nothing new running.
+- **A following pet is tested coming through a gate with its owner, and beamed after them into
+  another world**; a sitting pet and somebody else's stay where they are.
+- **The iris is tested end to end**: shut by its lever, it refuses a dial with no code and with a
+  wrong one, and the right code opens it; shut after the dial, it turns the traveller back.
+- **Redstone dialling is tested end to end**: a hand-hung dial sign is taken up, right-clicks step
+  it past the network's first gate to the far one, and a pulse dials the gate the sign shows, with
+  the gate-open lever on until it shuts.
 
 ## 1.7.1 (2026-09-19)
 
