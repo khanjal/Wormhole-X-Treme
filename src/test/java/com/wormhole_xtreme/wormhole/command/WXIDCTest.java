@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,9 +21,12 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -40,6 +44,8 @@ class WXIDCTest
 {
     private CommandSender console;
     private World world;
+    // Setting a code saves the gate, which would otherwise write gate files into the working directory.
+    private MockedStatic<StargateDBManager> db;
 
     @BeforeEach
     void setUp() throws Exception
@@ -50,11 +56,13 @@ class WXIDCTest
         when(world.getName()).thenReturn("w");
         console = mock(CommandSender.class);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown()
     {
+        db.close();
         clearGates();
     }
 
@@ -85,7 +93,12 @@ class WXIDCTest
     {
         final Stargate s = new Stargate();
         s.setGateName(name);
-        s.setGateIrisLeverBlock(block(1));
+        final Block lever = block(1);
+        // Setting a code hangs a lever here. Without block data to shape, that throws, and the
+        // command reports an internal error after storing the code but before saving it.
+        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
+        when(lever.getBlockData()).thenReturn(data);
+        s.setGateIrisLeverBlock(lever);
         StargateManager.registerStargate(s);
         return s;
     }
@@ -260,10 +273,13 @@ class WXIDCTest
         final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
         s.setGateOwner(owner.toString());
 
-        wormhole(playerWithoutNodes(owner), "gate", "edit", "alpha", "idc", "mine");
+        final Player player = playerWithoutNodes(owner);
+
+        wormhole(player, "gate", "edit", "alpha", "idc", "mine");
 
         assertEquals("mine", s.getGateIrisDeactivationCode(),
             "the owner holds no node, so only the handler's own owner check can have let them in");
+        verify(player).sendMessage(contains("is:mine"));
     }
 
     /** And through the older {@code /wormhole idc}, which is hidden but still answers. */
@@ -274,9 +290,12 @@ class WXIDCTest
         final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
         s.setGateOwner(owner.toString());
 
-        wormhole(playerWithoutNodes(owner), "idc", "alpha", "mine");
+        final Player player = playerWithoutNodes(owner);
+
+        wormhole(player, "idc", "alpha", "mine");
 
         assertEquals("mine", s.getGateIrisDeactivationCode());
+        verify(player).sendMessage(contains("is:mine"));
     }
 
     /**
@@ -339,8 +358,9 @@ class WXIDCTest
     /**
      * Only the code is opened to owners; every other field still wants the config node.
      *
-     * <p>{@code group} is the one to try because it has no handler of its own to refuse: were
-     * the exception widened to every field, it would be let straight through.
+     * <p>{@code group} is the one to try because it has no handler of its own to refuse. Typed,
+     * it meets two refusals, the dispatcher's and then gate edit's own; this holds the pair, and
+     * the test below holds gate edit's alone.
      */
     @Test
     void theOwnerIsStillRefusedTheOtherFieldsOfTheirGate()
@@ -353,5 +373,38 @@ class WXIDCTest
         wormhole(player, "gate", "edit", "alpha", "group", "anything");
 
         verify(player).sendMessage(contains("You lack the permissions"));
+    }
+
+    /** gate edit's own front door, which the dispatcher otherwise stands in front of. */
+    @Test
+    void gateEditItselfStillRefusesTheOwnerAnyOtherField()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+        final Player player = playerWithoutNodes(owner);
+
+        new GateEditCommand().execute(player, new String[] { "gate", "edit", "alpha", "group", "anything" });
+
+        verify(player).sendMessage(contains("You lack the permissions"));
+        verify(player, never()).sendMessage(contains("No material group"));
+    }
+
+    /**
+     * A code is saved when it is set, not when the server next stops.
+     *
+     * <p>An owner sets it with no admin watching; a crash before shutdown would otherwise take
+     * the code, and the lever it placed, with it.
+     */
+    @Test
+    void aNewCodeIsSavedAtOnce()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+
+        wormhole(playerWithoutNodes(owner), "gate", "edit", "alpha", "idc", "mine");
+
+        db.verify(() -> StargateDBManager.saveStargate(s));
     }
 }

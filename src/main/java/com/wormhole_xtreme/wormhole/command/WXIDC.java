@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -67,6 +68,8 @@ public class WXIDC implements CommandExecutor
         if (a.length >= 2)
         {
             setCode(s, a[1]);
+            // Now, not at shutdown: an owner sets this with no admin around to notice a crash.
+            StargateDBManager.saveStargate(s);
         }
         // Always shown, whether or not anything was changed.
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
