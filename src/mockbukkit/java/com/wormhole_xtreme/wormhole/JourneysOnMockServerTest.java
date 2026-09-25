@@ -370,6 +370,29 @@ class JourneysOnMockServerTest
         assertNothingNewRunning(before, "the traveller was bounced and the gate shut");
     }
 
+    /**
+     * A lever a player puts on the unused iris spot of a gate with no code does not shut an
+     * iris nobody could open again.
+     */
+    @Test
+    void aLeverOnTheIrisSpotOfAGateWithNoCodeLeavesTheIrisAlone()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("nocode", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Builder");
+        final Stargate gate = buildGate(p, world, 0.5, "Edora");
+        final Block spot = gate.getGateIrisLeverBlock();
+        assertNotNull(spot, "Edora has no iris spot, so nothing here reaches the bug");
+        assertSame(gate, StargateManager.getGateFromBlock(spot), "the iris spot is not indexed");
+        spot.setType(Material.LEVER);
+
+        click(p, Action.RIGHT_CLICK_BLOCK, spot, BlockFace.SOUTH);
+        ticks(60);
+
+        assertFalse(gate.isGateIrisActive(), "a stray lever shut an iris with no code");
+        assertFalse(gate.isGateIrisDefaultActive(), "a stray lever made a codeless iris shut by default");
+    }
+
     /** A redstone pulse into the block, rising from off. */
     private static void pulse(final Block block)
     {

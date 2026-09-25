@@ -86,7 +86,7 @@ public final class GateInteractionHandler
         // isSameBlock and isAdjacent both answer false for a null lever, so a gate without
         // one needs no guard of its own here.
         final Block dial = stargate.getGateDialLeverBlock();
-        final Block iris = stargate.getGateIrisLeverBlock();
+        final Block iris = irisLeverOf(stargate);
         final boolean dialSame = WorldUtils.isSameBlock(dial, clickedBlock);
         final boolean irisSame = WorldUtils.isSameBlock(iris, clickedBlock);
         final boolean dialAdj = WorldUtils.isAdjacent(dial, clickedBlock);
@@ -127,6 +127,18 @@ public final class GateInteractionHandler
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         }
+    }
+
+    /**
+     * The gate's iris lever, or null when it has no code.
+     *
+     * <p>A gate with no code keeps its iris spot but no lever there, so a lever a player puts
+     * on it must not shut an iris nothing could open again.
+     */
+    private static Block irisLeverOf(final Stargate stargate)
+    {
+        final String code = stargate.getGateIrisDeactivationCode();
+        return ((code == null) || code.isEmpty()) ? null : stargate.getGateIrisLeverBlock();
     }
 
     /**
