@@ -103,25 +103,29 @@ mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Thirty-four at present; the one naming both `unchecked` and
-`rawtypes` counts in each row:
+quiet one that is inconvenient. Fifty-two at present; the one naming both `unchecked` and
+`rawtypes` counts in each row. MockBukkit gets its own column because `src/mockbukkit/java`
+compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
-| Suppresses | Main | Tests | Why |
-|---|---|---|---|
-| `java:S3516` | 12 | – | Command handlers always return `true`, because Bukkit reads it as "handled". |
-| `java:S4144` | 7 | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
-| `java:S1168` | 3 | – | Null means something an empty result cannot; each names the caller relying on it. |
-| `java:S3077` | 3 | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
-| `unchecked` | 3 | 3 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors. |
-| `rawtypes` | – | 1 | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
-| `deprecation` | 1 | – | `getOfflinePlayer(String)` has no Spigot replacement, and a name is all the command has. |
-| `java:S6905` | 1 | – | `SELECT *` from a legacy database whose columns vary by version. |
-| `java:S1612` | – | 1 | A method reference would cast its receiver early, outside `assertThrows`. |
+| Suppresses | Main | Tests | MockBukkit | Why |
+|---|---|---|---|---|
+| `java:S3516` | 20 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
+| `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
+| `java:S2589` | 5 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
+| `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
+| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
+| `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
+| `deprecation` | 1 | – | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone. |
+| `java:S2583` | 1 | – | – | A null check that never fires on a server; a mock player with no UUID would throw without it. |
+| `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
+| `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
+| `java:S1612` | – | 1 | – | A method reference would cast its receiver early, outside `assertThrows`. |
 
-When the table and the code disagree, recount:
+When the table and the code disagree, recount; the second line totals each column:
 
 ```bash
 grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code'
+grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code' | cut -d/ -f2 | sort | uniq -c
 ```
 
 ## Minecraft versions

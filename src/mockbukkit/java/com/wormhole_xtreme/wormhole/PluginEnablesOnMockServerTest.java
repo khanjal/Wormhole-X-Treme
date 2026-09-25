@@ -53,7 +53,8 @@ class PluginEnablesOnMockServerTest
      * completer of its own, tab offers player names.
      */
     @Test
-    @SuppressWarnings("deprecation") // getDescription(): Paper's replacement has no command map.
+    // getDescription(): Paper's replacement has no command map.
+    @SuppressWarnings("deprecation")
     void everyCommandInPluginYmlHasItsOwnExecutorAndCompleter()
     {
         final Set<String> names = plugin.getDescription().getCommands().keySet();

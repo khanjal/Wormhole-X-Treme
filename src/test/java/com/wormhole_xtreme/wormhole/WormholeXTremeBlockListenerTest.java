@@ -208,6 +208,7 @@ class WormholeXTremeBlockListenerTest
         gate.setGateDialLeverBlock(dial);
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateIrisLeverBlock(belowDial);
+        gate.setGateIrisDeactivationCode("1234");
 
         StargateManager.registerStargate(gate);
         StargateManager.addBlockIndex(belowDial, gate);
@@ -220,6 +221,60 @@ class WormholeXTremeBlockListenerTest
 
             assertTrue(ev.isCancelled(),
                 "a lever that is really there is part of the gate and stays protected");
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
+
+    /**
+     * A lever a player put on the iris spot of a gate with no code is theirs to break.
+     *
+     * <p>The gate never placed it and cannot use it, so refusing the break would leave a dead
+     * lever nobody could take back short of giving the gate a code.
+     */
+    @Test
+    void aLeverOnTheIrisSpotOfAGateWithNoCodeIsBreakable()
+    {
+        final World world = mock(World.class);
+        final int dx = 10, dy = 66, dz = 20;
+
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateName("gateNoCode");
+
+        final Block dial = mock(Block.class);
+        when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getWorld()).thenReturn(world);
+        when(dial.getX()).thenReturn(dx);
+        when(dial.getY()).thenReturn(dy);
+        when(dial.getZ()).thenReturn(dz);
+
+        // A lever on the iris position, as in the refused case, but the gate has no code.
+        final Block belowDial = mock(Block.class);
+        when(belowDial.getLocation()).thenReturn(new Location(world, dx, dy - 1, dz));
+        when(belowDial.getWorld()).thenReturn(world);
+        when(belowDial.getX()).thenReturn(dx);
+        when(belowDial.getY()).thenReturn(dy - 1);
+        when(belowDial.getZ()).thenReturn(dz);
+        when(belowDial.getType()).thenReturn(org.bukkit.Material.LEVER);
+        when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
+
+        gate.setGateDialLeverBlock(dial);
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateIrisLeverBlock(belowDial);
+
+        StargateManager.registerStargate(gate);
+        StargateManager.addBlockIndex(belowDial, gate);
+        try
+        {
+            final BlockBreakEvent ev = new BlockBreakEvent(belowDial, mock(Player.class));
+
+            new WormholeXTremeBlockListener().onBlockBreak(ev);
+
+            assertFalse(ev.isCancelled(),
+                "a gate with no code has no iris lever, so a lever on its spot is the player's");
         }
         finally
         {
