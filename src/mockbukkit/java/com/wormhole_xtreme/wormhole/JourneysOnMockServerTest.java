@@ -372,6 +372,42 @@ class JourneysOnMockServerTest
     }
 
     /**
+     * Clearing the code of a gate whose iris was shut by its lever leaves the iris open.
+     *
+     * <p>The lever remembers a shut iris as the gate's default, and a wormhole shutting down
+     * restores that default. The clear removed the lever and the code but kept the default, so
+     * the next visit shut the iris again with nothing left that could open it.
+     */
+    @Test
+    void clearingTheCodeOfALeverShutIrisLeavesItOpenAfterTheNextVisit()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("irisclear", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Guest");
+        final MockServerSupport.Player keeper = new MockServerSupport.Player(server, "Warden");
+        final Stargate home = buildGate(p, world, 0.5, "Vorash");
+        final Stargate far = buildGate(p, world, 40.5, "Hebridan", "idc=2468");
+        keeper.teleport(new Location(world, 40.5, 64, 0.5, 0f, 0f));
+        pullIrisLever(keeper, far);
+        assertTrue(far.isGateIrisActive(), "Hebridan's iris did not shut");
+
+        keeper.performCommand("wormhole gate edit Hebridan idc -clear");
+        ticks(60);
+        assertFalse(far.isGateIrisActive(), "clearing the code left the iris shut: " + keeper.messages());
+        assertEquals("", far.getGateIrisDeactivationCode(), "the code was not cleared");
+
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        final java.util.Set<Integer> before = settledTasks();
+        final List<String> dialled = dial(p, home, "Hebridan", null);
+        assertTrue(home.isGateActive(), "Vorash did not open: " + dialled);
+        ticks(20 * 320);
+        assertFalse(home.isGateActive(), "Vorash never timed out");
+        assertFalse(far.isGateIrisActive(),
+            "the wormhole closing shut the iris again, on a gate with no lever and no code to open it");
+        assertNothingNewRunning(before, "the wormhole closed on a cleared iris");
+    }
+
+    /**
      * A lever a player puts on the unused iris spot of a gate with no code does not shut an
      * iris nobody could open again, and the player can break it again.
      */
