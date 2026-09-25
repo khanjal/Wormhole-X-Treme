@@ -60,12 +60,4 @@ public class PermissionsSupport
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Permission Plugin support disabled via configuration (config.yml).");
         }
     }
-
-    /**
-     * Disable permissions (placeholder for compatibility).
-     */
-    public static void disablePermissions()
-    {
-        // No-op: permissions are handled via Bukkit API; no persistent handler to detach
-    }
 }

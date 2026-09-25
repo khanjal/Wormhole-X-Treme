@@ -22,6 +22,12 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   until `coreprotect-enabled` is set; a running gate is not logged. See
   [the guide](docs/guide/SERVER.md#coreprotect).
 
+**Removed**
+
+- **`plugin.yml` no longer names the 2011 `Permissions` plugin or `WormholeXTremeWorlds` as soft
+  dependencies.** Neither was used, and neither runs on a supported server. Vault and LuckPerms
+  are unchanged.
+
 ### For other plugins
 
 The plugin API is in [docs/API.md](docs/API.md).

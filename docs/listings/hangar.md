@@ -64,18 +64,12 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Permissions, Vault, LuckPerms, PlaceholderAPI, CoreProtect, WormholeXTremeWorlds]` — every one is optional
+only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect]` — every one is optional
 and the plugin loads without them. Declaring a required dependency that is not required would
 make Hangar warn operators off installing it, and the listing's strongest line is "no
-dependencies"; six optional rows dilute that for nothing.
+dependencies"; four optional rows dilute that for nothing.
 
-If the integrations are ever wanted discoverable, **only Vault, LuckPerms, PlaceholderAPI and
-CoreProtect** are defensible, and only as Optional. The other two never go on the listing:
-
-- **`Permissions`** is the 2011-era Permissions plugin, long dead. It survives in `softdepend`
-  for servers still running it, which is not a reason to advertise it.
-- **`WormholeXTremeWorlds`** is the original project's companion plugin. Unmaintained, and not
-  on Hangar at all.
+If the integrations are ever wanted discoverable, add them as Optional, never Required.
 
 **On the Library tag.** Off, for the reason in [`modrinth.md`](modrinth.md#fields): this is a
 plugin somebody installs, not a dependency installed underneath something else.
