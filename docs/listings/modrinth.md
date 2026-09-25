@@ -411,17 +411,14 @@ image on Modrinth's own CDN.
 | Field | Value |
 |---|---|
 | Version number | `1.8.0` |
-| Version title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name |
+| Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
-| Game versions | every 1.20.x, 1.21.x and 26.x, ticked individually — the auto-detected list is wrong, see [Fields](#fields). Snapshots off. |
+| Game versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually — the auto-detected list is wrong, see [Fields](#fields). Snapshots off. |
 | File | `WormholeXTreme-<version>.jar` from the release |
-| Changelog | the short form in [`shared.md`](shared.md#release-notes) |
+| Changelog | that version's Markdown block in [`versions.md`](versions.md) |
 
-The changelog field takes Markdown, so it pastes in as it stands. Use the short release notes
-rather than the full `CHANGELOG.md` section: that runs to about 150 lines and reads as a wall on a
-download page. It leads with the **Upgrading** bullets, which are what an upgrading operator
-needs before they download.
+The changelog field takes Markdown, so the block pastes in as it stands.
 
 ## Keeping it current
 

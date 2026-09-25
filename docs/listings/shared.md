@@ -367,54 +367,8 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 
 ## Release notes
 
-Modrinth and Hangar both take a per-version changelog, and a release's full section of
-[`CHANGELOG.md`](../../CHANGELOG.md) runs to well over a hundred lines — a wall on a download
-page. Use the short form below there and link the full one. Rewrite it per release; what follows
-is 1.8.0's.
-
-**Keep the Upgrading bullets whatever else is cut.** Shape files are never overwritten, so an
-upgrader who keeps the old `Massive.shape` gets none of this release's fixes, and one who skips
-the regenerate keeps each Massive gate's name sign inside its ring. The 1.6.0 line stays too: this
-page is what somebody still on 1.6.0 downloads. So does the first-install line — a changelog on a
-download page is read by people who have never run the plugin, and a list of upgrade steps with
-nothing saying they do not apply reads as setup they have to do.
-
-**Spigot needs the same block in BBCode**, which [`spigot.md`](spigot.md#version-upload) carries.
-Rewriting these notes means rewriting that one too.
-
-> **Upgrading from 1.7 — nothing you have to do.**
->
-> - **Anonymous usage counts now go to bStats**, on by default: Minecraft version, server software,
->   and how many gates, rings, beams and mirrors, in ranges. `/wormhole config metrics-enabled false`
->   stops it.
-> - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
->   `<name>.shape.old`. An edited one is left alone and named in the log.
-> - The default `top` dial rests on the top chevron after each lock, so a dial takes about three seconds longer.
->   `/wormhole config gate-dial-spin chevron` keeps the old pace.
-> - Optional: add `dial-spin: pegasus` and `dial-spin: universe` to an existing `config.yml`'s
->   Atlantis and Universe groups, as new installs have.
-> - A coded gate whose iris came back open after a crash under 1.7 needs its lever pulled once.
-> - Coming from 1.7.0? The `Massive` shape updates itself; then run `/wormhole gate regen <gate>` on
->   each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
-> - Installing for the first time? None of the above applies. Drop the jar in and start.
->
-> **New**
->
-> - An animated iris — sweep, spiral, rows or columns — that covers the wormhole instead of
->   replacing it.
-> - Three more dial-spin patterns: `chase`, `universe` and `overshoot`. A gate or a material group
->   can pick its own pattern and iris style.
-> - Optional CoreProtect logging of gate and ring construction, so it can be rolled back.
-> - For other plugins: wormhole open and close events, and a PlaceholderAPI expansion.
-> - `/wormhole` lists its commands by job, with a short coloured usage line and more tab completion.
->
-> **Fixed**
->
-> - Gate settings are saved as they are set and survive `gate regen`, so a crash no longer loses
->   them or leaves an iris open.
-> - Many iris, wormhole and dialling fixes; the full changelog lists them.
->
-> [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md)
+Each version's upload fields and short changelog, in Markdown and in Spigot's BBCode, are in
+[`versions.md`](versions.md), newest first. Add a section there for each release.
 
 ## Credits
 

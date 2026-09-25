@@ -334,15 +334,13 @@ text.
 | Field | Value |
 |---|---|
 | Version | `1.8.0` |
-| Version title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name and beats a bare version string in a list |
 | Release channel | Release |
 | Platform | Paper |
-| Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
+| Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
 | File | `WormholeXTreme-<version>.jar` from the release |
-| Changelog | the short form in [`shared.md`](shared.md#release-notes) |
+| Changelog | that version's Markdown block in [`versions.md`](versions.md), on the screen after the upload |
 
-Use the short release notes rather than the full `CHANGELOG.md` section, which runs to about 150
-lines and reads as a wall on a download page.
+Hangar's form has no version title; the version string is the title.
 
 ## Keeping it current
 

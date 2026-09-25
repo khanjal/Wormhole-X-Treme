@@ -334,61 +334,19 @@ statement about your own resource, which is fine.
 
 ## Version upload
 
-Spigot calls this posting a resource update. It takes a title, a message and the jar, and the
-message is the one piece of release copy this file does not otherwise carry.
+Spigot calls this posting a resource update: the jar, a version string, an update title and a
+message.
 
 | Field | Value |
 |---|---|
-| Update title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name |
-| Update message | the short form in [`shared.md`](shared.md#release-notes), converted to BBCode |
 | File | `WormholeXTreme-<version>.jar` from the release |
-| Version | set it to match, so the resource header stops advertising the old one |
+| Version string | the version, e.g. `1.8.0`, so the resource header stops advertising the old one |
+| Update title | that version's title in [`versions.md`](versions.md) |
+| Update message | that version's **Spigot update message** block in [`versions.md`](versions.md), already in BBCode |
 
-**The message needs converting; Modrinth's and Hangar's do not.** Those two take the release
-notes as Markdown and paste in unchanged. Spigot takes BBCode, so the same block needs
-`**bold**` as `[B]bold[/B]`, `` `code` `` as `[ICODE]code[/ICODE]`, the `>` blockquote dropped and
-the bullet list wrapped in `[LIST]` with `[*]` per item. The [BBCode notes](#bbcode-notes) above
-apply here too — in particular, do not reach for `[HR]`.
+The [BBCode notes](#bbcode-notes) above apply to the message; in particular, do not reach for `[HR]`.
 
-The converted block is kept below so the upload is a paste rather than a conversion. It is the
-one place the release notes are duplicated, so **rewriting
-[`shared.md`](shared.md#release-notes) means rewriting this too.** What follows is 1.8.0's.
-
-```
-[B]Upgrading from 1.7 - nothing you have to do.[/B]
-[LIST]
-[*][B]Anonymous usage counts now go to bStats[/B], on by default: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]/wormhole config metrics-enabled false[/ICODE] stops it.
-[*]Bundled shapes you have not edited update themselves at startup, keeping the old copy as [ICODE]<name>.shape.old[/ICODE]. An edited one is left alone and named in the log.
-[*]The default [ICODE]top[/ICODE] dial rests on the top chevron after each lock, so a dial takes about three seconds longer. [ICODE]/wormhole config gate-dial-spin chevron[/ICODE] keeps the old pace.
-[*]Optional: add [ICODE]dial-spin: pegasus[/ICODE] and [ICODE]dial-spin: universe[/ICODE] to an existing [ICODE]config.yml[/ICODE]'s Atlantis and Universe groups, as new installs have.
-[*]A coded gate whose iris came back open after a crash under 1.7 needs its lever pulled once.
-[*]Coming from 1.7.0? The [ICODE]Massive[/ICODE] shape updates itself; then run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
-[*]Installing for the first time? None of the above applies. Drop the jar in and start.
-[/LIST]
-
-[B]New[/B]
-[LIST]
-[*]An animated iris - sweep, spiral, rows or columns - that covers the wormhole instead of replacing it.
-[*]Three more dial-spin patterns: [ICODE]chase[/ICODE], [ICODE]universe[/ICODE] and [ICODE]overshoot[/ICODE]. A gate or a material group can pick its own pattern and iris style.
-[*]Optional CoreProtect logging of gate and ring construction, so it can be rolled back.
-[*]For other plugins: wormhole open and close events, and a PlaceholderAPI expansion.
-[*][ICODE]/wormhole[/ICODE] lists its commands by job, with a short coloured usage line and more tab completion.
-[/LIST]
-
-[B]Fixed[/B]
-[LIST]
-[*]Gate settings are saved as they are set and survive [ICODE]gate regen[/ICODE], so a crash no longer loses them or leaves an iris open.
-[*]Many iris, wormhole and dialling fixes; the full changelog lists them.
-[/LIST]
-
-[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md]Full changelog[/URL]
-```
-
-**The dash in the first line is a plain hyphen**, where `shared.md` has an em-dash. Not verified
-as necessary — the description above uses real em-dashes and they render fine — just one less
-thing to go wrong in a field that is typed rather than pasted from a file.
-
-Tick **Notify followers** so people watching the resource hear about it. That notification is
+Tick **Notify followers** for a new release so people watching the resource hear about it. That notification is
 most of what uploading to Spigot buys over linking a jar, which is the reason the resource type
 is an upload in the first place — see [Fields](#fields).
 
