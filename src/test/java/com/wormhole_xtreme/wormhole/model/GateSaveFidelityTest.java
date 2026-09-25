@@ -116,7 +116,7 @@ class GateSaveFidelityTest
 
         s.setGateIrisDeactivationCode("hunter2");
         s.setGateIrisActive(true);
-        s.setGateLightsActive(true);
+        s.setGateIrisDefaultActive(true);
 
         s.setGateRedstoneDialActivationBlock(blockAt(14, 64, 20));
         s.setGateRedstoneSignActivationBlock(blockAt(15, 64, 20));
@@ -235,26 +235,42 @@ class GateSaveFidelityTest
         assertEquals(BlockFace.NORTH, after.getGateFacing(), "facing");
         assertEquals("hunter2", after.getGateIrisDeactivationCode(), "iris code");
         assertTrue(after.isGateIrisActive(), "iris active");
-        assertTrue(after.isGateLightsActive(), "lights active");
         assertTrue(after.isGateSignPowered(), "sign powered");
         assertEquals(3, after.getGateDialSignIndex(), "dial sign index");
     }
 
     /**
-     * An iris that was closed when the server stopped is closed by default when it starts.
+     * The iris is saved as its default, and loads there.
      *
-     * <p>Not a copy of the saved flag for its own sake: the default is what the gate returns
-     * to after every use, so losing it turns a gate that was left shut into one that opens.
+     * <p>The default is what the gate returns to after every use, and a journey opens a shut
+     * iris without changing it. Saving the live iris instead made any save taken during a
+     * journey open that gate for good on the next restart.
      */
     @Test
-    void aClosedIrisComesBackClosedByDefault()
+    void theIrisIsSavedAsItsDefaultNotAsItIsNow()
     {
-        final Stargate closed = fullyDressedGate();
-        assertTrue(roundTrip(closed).isGateIrisDefaultActive(), "a closed iris defaults closed");
+        final Stargate opened = fullyDressedGate();
+        opened.setGateIrisActive(false);
+        final Stargate back = roundTrip(opened);
+        assertTrue(back.isGateIrisDefaultActive(), "an iris opened for a journey is still shut by default");
+        assertTrue(back.isGateIrisActive(), "and the gate loads with it shut");
 
         final Stargate open = fullyDressedGate();
-        open.setGateIrisActive(false);
-        assertFalse(roundTrip(open).isGateIrisDefaultActive(), "and an open one defaults open");
+        open.setGateIrisDefaultActive(false);
+        final Stargate openBack = roundTrip(open);
+        assertFalse(openBack.isGateIrisDefaultActive(), "an iris open by default stays open by default");
+        assertFalse(openBack.isGateIrisActive(), "and loads open, however it stood when saved");
+    }
+
+    /** A gate saved lit comes back unlit: its lights are drawn on clients and none survive. */
+    @Test
+    void aLitGateComesBackUnlit()
+    {
+        final Stargate lit = fullyDressedGate();
+        lit.setGateLightsActive(true);
+
+        assertFalse(roundTrip(lit).isGateLightsActive(),
+            "a gate flagged lit with nothing drawn refuses regen until somebody pulls its lever");
     }
 
     /** The material overrides and the animation timings. */

@@ -6,6 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
@@ -32,7 +33,8 @@ public class CommandUtilities
      * @param stargate
      *            null does nothing
      * @param iris
-     *            true to also open an iris that is closed
+     *            true to also open an iris that is closed, for good; false puts it back to
+     *            its default
      */
     public static void closeGate(final Stargate stargate, final boolean iris)
     {
@@ -53,8 +55,30 @@ public class CommandUtilities
             }
             if (iris && stargate.isGateIrisActive())
             {
-                stargate.toggleIrisActive(false);
+                // As its default too: the file keeps only the default, and a floor gate left
+                // open against a shut one comes back shut over an empty opening.
+                stargate.toggleIrisActive(true);
+                StargateDBManager.saveStargate(stargate);
             }
+            else if (!iris)
+            {
+                restoreIrisDefault(stargate);
+            }
+        }
+    }
+
+    /**
+     * Puts an idle gate's iris back to its default, which a dial that opened it and then
+     * stopped short leaves open; an open gate's own shutdown does this.
+     *
+     * @param stargate
+     *            the gate
+     */
+    public static void restoreIrisDefault(final Stargate stargate)
+    {
+        if (!stargate.isGateActive() && (stargate.isGateIrisActive() != stargate.isGateIrisDefaultActive()))
+        {
+            stargate.toggleIrisActive(false);
         }
     }
 

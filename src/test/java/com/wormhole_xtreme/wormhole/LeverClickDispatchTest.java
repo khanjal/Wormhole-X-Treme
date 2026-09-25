@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,9 +20,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
@@ -42,11 +45,14 @@ class LeverClickDispatchTest
 
     private World world;
     private Player player;
+    /** The iris lever saves the gate, and the real save writes into the working directory. */
+    private MockedStatic<StargateDBManager> db;
 
     @BeforeEach
     void setUp() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
+        db = mockStatic(StargateDBManager.class);
 
         // Toggling a lever schedules the block update that follows it.
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
@@ -68,6 +74,7 @@ class LeverClickDispatchTest
     @AfterEach
     void tearDown()
     {
+        db.close();
         GateSpatialIndex.clear();
         for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
         {
@@ -154,6 +161,43 @@ class LeverClickDispatchTest
     }
 
     /**
+     * The iris lever changes the gate's default, and the gate is saved there and then.
+     *
+     * <p>Left to the next save, a crash lost it: the gate came back with the iris it had before
+     * somebody pulled the lever.
+     */
+    @Test
+    void theIrisLeverSavesTheDefaultItSets()
+    {
+        final Block dial = blockAt(5, 64, 5);
+        final Block iris = blockAt(5, 64, 6);
+        final Stargate gate = gateWithLevers(dial, iris, iris);
+        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+
+        click(iris);
+
+        org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisDefaultActive(), "the lever sets the default");
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** A click next to the iris lever alone is the same toggle, and saves the same way. */
+    @Test
+    void aClickBesideOnlyTheIrisLeverSavesTheDefaultToo()
+    {
+        final Block dial = blockAt(5, 64, 5);
+        final Block iris = blockAt(5, 64, 7);
+        final Block beside = blockAt(5, 64, 8);
+        final Stargate gate = gateWithLevers(dial, iris, beside);
+        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+
+        click(beside);
+
+        org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisDefaultActive(),
+            "adjacent to the iris lever and not the dial is an iris toggle");
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /**
      * A gate with no code still keeps its iris spot, and a lever a player puts there must not
      * shut the iris: with no code and no lever of its own, nothing could open it again.
      */
@@ -221,6 +265,7 @@ class LeverClickDispatchTest
         verify(player).sendMessage(contains("ermission"));
         org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive(),
             "a refused click must not toggle the iris anyway");
+        db.verifyNoInteractions();
     }
 
     /** A click on a gate block that is neither lever does not toggle anything. */

@@ -127,6 +127,9 @@ class LegacySaveVersionTest
         assertEquals(BlockFace.NORTH, s.getGateFacing());
         assertEquals("letmein", s.getGateIrisDeactivationCode());
         assertTrue(s.isGateIrisActive());
+        // A gate that loads idle goes to its default, so a shut v3 iris left open by default
+        // opened on its first shutdown -- and on load, once a file saved mid-dial is settled.
+        assertTrue(s.isGateIrisDefaultActive(), "a v3 iris saved shut is shut by default");
     }
 
     /** The reader's field order is what a fixture like this actually pins. */
