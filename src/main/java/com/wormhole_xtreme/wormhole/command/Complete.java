@@ -174,7 +174,8 @@ public class Complete implements CommandExecutor, TabCompleter
 
     /**
      * Detects the part-built gate again, since a dial sign hung after it was first detected is
-     * otherwise never taken up; a frame that no longer reads keeps the gate already held.
+     * otherwise never taken up; a frame that no longer reads, or a shape that throws, keeps the
+     * gate already held.
      */
     private static void rereadDesign(final Player player)
     {
@@ -183,8 +184,18 @@ public class Complete implements CommandExecutor, TabCompleter
         {
             return;
         }
-        final Stargate fresh = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
-            held.getGateFacing(), held.getGateShape());
+        final Stargate fresh;
+        try
+        {
+            fresh = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
+                held.getGateFacing(), held.getGateShape());
+        }
+        catch (final RuntimeException e)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+                "Re-reading " + held.getGateName() + " failed; completing it as first detected", e);
+            return;
+        }
         if (fresh != null)
         {
             StargateManager.addIncompleteStargate(player, fresh);

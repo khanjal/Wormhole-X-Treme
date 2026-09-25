@@ -207,6 +207,69 @@ class CompleteCommandTest
         StargateManager.removeIncompleteStargate(player);
     }
 
+    /**
+     * Completing a part-built gate reads its design again, so a dial sign hung since it was
+     * detected is taken up. Placing a preview detects the gate before a sign can be hung.
+     */
+    @Test
+    void completingReadsThePartBuiltGateAgain()
+    {
+        final Stargate fresh = new Stargate();
+        final Stargate completed = completeWhileDetectionAnswers(builder("rereader"),
+            detection -> detection.thenReturn(fresh));
+        assertSame(fresh, completed, "the stored detection was completed, not a fresh one");
+    }
+
+    /**
+     * A shape that throws on the second reading leaves the first to be completed, rather than
+     * failing the command with a usage message about arguments that were fine.
+     */
+    @Test
+    void aReReadingThatThrowsCompletesTheGateAsFirstDetected()
+    {
+        final Player player = builder("thrower");
+        final Stargate completed = completeWhileDetectionAnswers(player,
+            detection -> detection.thenThrow(new IllegalStateException("malformed shape")));
+        assertEquals("Held", completed.getGateName(), "the gate first detected was not the one completed");
+        verify(player, never()).sendMessage(contains("Invalid arguments"));
+    }
+
+    /**
+     * Holds a part-built gate called Held, runs {@code complete Named} with the second
+     * detection answering as told, and returns the gate that reached completion.
+     */
+    private static Stargate completeWhileDetectionAnswers(final Player player,
+        final java.util.function.Consumer<org.mockito.stubbing.OngoingStubbing<Stargate>> answer)
+    {
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        StargateManager.addIncompleteStargate(player, held);
+        final Stargate[] completed = new Stargate[1];
+        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.logic.StargateHelper> helper =
+                org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.logic.StargateHelper.class);
+            org.mockito.MockedStatic<StargateManager> mgr =
+                org.mockito.Mockito.mockStatic(StargateManager.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            answer.accept(helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())));
+            mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString())).thenAnswer(call -> {
+                    completed[0] = StargateManager.getIncompleteStargate(player);
+                    return false;
+                });
+
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Named"});
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+        }
+        assertNotNull(completed[0], "nothing reached completion");
+        return completed[0];
+    }
+
     private static Player builder(final String name)
     {
         final Player player = builder();
