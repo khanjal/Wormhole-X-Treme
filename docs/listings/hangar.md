@@ -69,8 +69,8 @@ and the plugin loads without them. Declaring a required dependency that is not r
 make Hangar warn operators off installing it, and the listing's strongest line is "no
 dependencies"; six optional rows dilute that for nothing.
 
-If the integrations are ever wanted discoverable, **only Vault and LuckPerms** are defensible,
-and only as Optional. The other two never go on the listing:
+If the integrations are ever wanted discoverable, **only Vault, LuckPerms, PlaceholderAPI and
+CoreProtect** are defensible, and only as Optional. The other two never go on the listing:
 
 - **`Permissions`** is the 2011-era Permissions plugin, long dead. It survives in `softdepend`
   for servers still running it, which is not a reason to advertise it.

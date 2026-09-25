@@ -387,6 +387,8 @@ Rewriting these notes means rewriting that one too.
 > - **Anonymous usage counts now go to bStats**, on by default: Minecraft version, server software,
 >   and how many gates, rings, beams and mirrors, in ranges. `/wormhole config metrics-enabled false`
 >   stops it.
+> - Bundled shapes you have not edited update themselves at startup, keeping the old copy as
+>   `<name>.shape.old`. An edited one is left alone and named in the log.
 > - The default `top` dial pauses on each chevron, so a dial takes about three seconds longer.
 >   `/wormhole config gate-dial-spin chevron` keeps the old pace.
 > - Optional: add `dial-spin: pegasus` and `dial-spin: universe` to an existing `config.yml`'s

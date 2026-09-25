@@ -86,7 +86,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **An iris shut by default stays that way through a save taken mid-journey.** A gate already
   saved open this way needs its lever pulled once.
 - **`force` and `idc -clear` open an iris for good.** Both used to leave it to shut again at the
-  end of the next journey, and `idc -clear` could leave it with no way to open.
+  end of the next journey, and `idc -clear` could leave it with no way to open. A dial refused
+  or failed after opening an iris, near or far, shuts it again.
 - **No kawoosh through a closed iris**, on a gate or a preview.
 - **`gate-sound-iris-open` and `gate-sound-iris-close` play.** They never did.
 - **A `nether_portal` wormhole fills the opening on every gate**; half of them showed a sliver
