@@ -39,7 +39,7 @@ A gate is one `Stargate` object holding the world positions of everything the sh
 | Name sign | `:N` | Always placed; shows the gate's name, network and owner |
 | Dial sign | `:D` | Optional; makes the button dial what the sign shows, rather than wait for `/dial` |
 | DHD | `:A` | The button or lever that activates it |
-| Iris lever | `:IA` | Optional; without it the gate cannot take an iris |
+| Iris lever | `:IA` | Optional; without it the lever goes just below the DHD |
 | Player arrival | `:EP` | Where a traveller's feet land |
 | Minecart arrival | `:EM` | Where a cart's wheels land |
 | Lights | `:L#n` | What lights during the dialling sequence, in order |
@@ -590,7 +590,8 @@ per gate at load where the chunk is already loaded, and otherwise when the gate 
 for somebody; only cells holding that gate's own iris material are touched, because a player
 may have built in the opening.
 
-A gate can only take an iris if its shape marks `:IA`. The lever toggles it;
+A gate's iris lever is placed once it has a deactivation code: at the shape's `:IA` marker, or
+just below the DHD on a shape without one. The lever toggles the iris;
 `/wormhole gate edit <gate> idc <code>` sets the deactivation code, and the default state is
 remembered. Applying a state that is already true is silent rather than announcing an iris that
 did not move.

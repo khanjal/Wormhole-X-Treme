@@ -136,6 +136,8 @@ final class MockServerSupport
      * can be lost to a race in its task list: a mirror capture then never finished, sometimes.
      * An asynchronous body now holds up the tick it runs in, as it would not on a server.
      */
+    // ServerMock implements Server's generic getBanList with a raw BanList, and a subclass inherits the warning.
+    @SuppressWarnings("unchecked")
     static final class Server extends ServerMock
     {
         // Not initialised in the declaration: ServerMock's constructor already asks for it.
