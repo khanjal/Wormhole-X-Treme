@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -140,6 +141,21 @@ public final class MirrorCaptures
         ChunkSnapshot read(World world, int chunkX, int chunkZ);
     }
 
+    /** Works out what a capture keeps between its passes, so a test can make it fail. */
+    @FunctionalInterface
+    interface Sifter
+    {
+        /** @return how far the capture ended up seeing */
+        int sift(MirrorCapture.Builder builder, MirrorCapture.Arrival from, int reach, int floor);
+    }
+
+    private static final Sifter SIFT = (builder, from, reach, floor) ->
+    {
+        final int kept = builder.keepOnlySeenWithin(from, reach, floor, MOST_KEPT);
+        builder.prune();
+        return kept;
+    };
+
     /** Captures in memory, by destination key. */
     private static final Map<String, Held> LOADED = new HashMap<>();
 
@@ -152,11 +168,16 @@ public final class MirrorCaptures
     /** Keys already warned about, so an unloaded far world is said once and not every sweep. */
     private static final Set<String> WARNED = new HashSet<>();
 
+    /** Keys whose capture failed and was said so, so one failing every time is said once. */
+    private static final Set<String> FAILED = new HashSet<>();
+
     /** Bumped whenever a capture arrives or changes, so every view knows to look again. */
     private static int generation;
 
     private static ChunkReader reader = (world, chunkX, chunkZ) ->
         world.getChunkAt(chunkX, chunkZ).getChunkSnapshot();
+
+    private static Sifter sifter = SIFT;
 
     /** A capture in memory and when it was last wanted. */
     private static final class Held
@@ -368,6 +389,11 @@ public final class MirrorCaptures
      */
     public static boolean retake(final QuantumMirror mirror)
     {
+        if (mirror.destination() != null)
+        {
+            // Whoever asked hears if it fails again.
+            FAILED.remove(keyOf(mirror.destination()));
+        }
         return request(mirror);
     }
 
@@ -399,6 +425,7 @@ public final class MirrorCaptures
         }
         LOADED.remove(key);
         ABSENT.remove(key);
+        FAILED.remove(key);
         final File file = fileOf(key);
         if (file.isFile())
         {
@@ -467,6 +494,7 @@ public final class MirrorCaptures
         LOADED.clear();
         ABSENT.clear();
         WARNED.clear();
+        FAILED.clear();
         changed();
     }
 
@@ -539,6 +567,12 @@ public final class MirrorCaptures
     static void readChunksWith(final ChunkReader other)
     {
         reader = other;
+    }
+
+    /** Sifts captures another way, for a test; null for the usual way. */
+    static void siftWith(final Sifter other)
+    {
+        sifter = (other == null) ? SIFT : other;
     }
 
     /**
@@ -734,28 +768,63 @@ public final class MirrorCaptures
             reachKept = depth;
             // A third of a million rays: off the main thread, since the box is noted and
             // nothing here reads the world again.
-            final Runnable work = () ->
-            {
-                reachKept = builder.keepOnlySeenWithin(arrival, depth, floor, MOST_KEPT);
-                builder.prune();
-            };
-            final Runnable again = () ->
-            {
-                next = 0;
-                sifting = false;
-            };
+            final Runnable work = () -> reachKept = sifter.sift(builder, arrival, depth, floor);
             try
             {
-                WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(), () ->
-                {
-                    work.run();
-                    WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), again);
-                });
+                WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(),
+                    () -> siftThen(work,
+                        then -> WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), then)));
             }
             catch (final RuntimeException noScheduler)
             {
+                siftThen(work, Runnable::run);
+            }
+        }
+
+        /**
+         * Sifts, then hands the main thread either the second pass or the job's end.
+         *
+         * <p>An OutOfMemoryError is not caught, so the pool still reports it, but the finally puts the
+         * job down all the same, letting go of what it held.
+         */
+        private void siftThen(final Runnable work, final Consumer<Runnable> onMain)
+        {
+            boolean sifted = false;
+            Throwable why = null;
+            try
+            {
                 work.run();
-                again.run();
+                sifted = true;
+            }
+            catch (final Exception | LinkageError failed)
+            {
+                why = failed;
+            }
+            finally
+            {
+                final Throwable failure = why;
+                onMain.accept(sifted ? this::again : () -> giveUp(failure));
+            }
+        }
+
+        /** Reads the chunks again for the blocks the sift kept. */
+        private void again()
+        {
+            next = 0;
+            sifting = false;
+        }
+
+        /** Drops a job whose sift failed, so the next look at the mirror starts a fresh one. */
+        private void giveUp(final Throwable failure)
+        {
+            done = true;
+            cancel();
+            // A job forgotten while it sifted says nothing, or it would hide its successor's failure.
+            if (JOBS.remove(key, this) && FAILED.add(key))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not work out what the mirror"
+                    + " capture of " + far.getName() + " around " + key + " can see; it is tried again when"
+                    + " next wanted", failure);
             }
         }
 
@@ -768,6 +837,7 @@ public final class MirrorCaptures
             LOADED.put(key, new Held(capture, System.currentTimeMillis()));
             ABSENT.remove(key);
             WARNED.remove(key);
+            FAILED.remove(key);
             changed();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept

@@ -6,16 +6,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
@@ -25,6 +37,9 @@ import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +64,7 @@ class MirrorCapturesTest
     @TempDir
     File dataFolder;
 
+    private WormholeXTreme plugin;
     private World far;
     /** A torch on the sand three blocks ahead of the arrival point, or null for none. */
     private BlockData torch;
@@ -62,7 +78,7 @@ class MirrorCapturesTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        plugin = mock(WormholeXTreme.class);
         when(plugin.getDataFolder()).thenReturn(dataFolder);
         PluginTestSupport.install(plugin);
         // No scheduler, so the capture's file is written on this thread rather than handed to a
@@ -113,6 +129,8 @@ class MirrorCapturesTest
     void tearDown() throws Exception
     {
         MirrorCaptures.clear();
+        MirrorCaptures.siftWith(null);
+        PluginTestSupport.scheduler(null);
         MirrorManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
@@ -460,6 +478,252 @@ class MirrorCapturesTest
             ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 120);
             assertTrue(MirrorCaptures.outgrown(mirror, toTheReach), "a depth past the reach is the one thing that grows it");
         });
+    }
+
+    /**
+     * A sift that throws puts its job down, and the mirror's next request starts a fresh one.
+     *
+     * <p>The sift runs on the scheduler's pool, which swallows what it throws. Nothing then handed
+     * the job back to the main thread, so it sat sifting for good, held its place in the jobs, and
+     * that mirror's view never updated again until a restart.
+     */
+    @Test
+    void aSiftThatThrowsLetsTheNextRequestStartAgain() throws Exception
+    {
+        final Pool pool = new Pool();
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.request(mirror));
+            assertEquals(1, pool.timers.size(), "the job's tick");
+            pool.tickUntilIdle();
+        });
+
+        assertEquals(0, MirrorCaptures.taking(), "the job is put down");
+        assertTrue(pool.timers.isEmpty(), "and its tick cancelled");
+        assertTrue(pool.escaped.isEmpty(), "nothing left for the pool to swallow");
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+            any(IllegalStateException.class));
+        takenAfresh(pool);
+    }
+
+    /**
+     * An OutOfMemoryError in the sift still reaches the pool, and still puts the job down.
+     *
+     * <p>A deep capture is tens of megabytes. The error is not caught, but a job left sifting
+     * would hold all of that for good.
+     */
+    @Test
+    void aSiftOutOfMemoryStillPutsTheJobDown() throws Exception
+    {
+        final Pool pool = new Pool();
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new OutOfMemoryError("a deep capture");
+        });
+
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.request(mirror));
+            assertThrows(OutOfMemoryError.class, pool::tickUntilIdle, "the error is not swallowed");
+            pool.runMain();
+        });
+
+        assertEquals(0, MirrorCaptures.taking(), "the job is put down");
+        assertTrue(pool.timers.isEmpty(), "and its tick cancelled");
+        takenAfresh(pool);
+    }
+
+    /**
+     * A sift that fails every time is logged once, even after the far world was warned about.
+     *
+     * <p>The two warnings first shared one set, so a world that had once been unloaded hid every
+     * sift failure after it.
+     */
+    @Test
+    void aSiftFailureIsLoggedOnceWhateverWasWarnedBefore() throws Exception
+    {
+        final Pool pool = new Pool();
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
+            assertFalse(MirrorCaptures.request(mirror), "the far world is not loaded yet");
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                assertTrue(MirrorCaptures.request(mirror));
+                pool.tickUntilIdle();
+            }
+            verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+                any(IllegalStateException.class));
+
+            // An admin's retake is said again, so whoever ran it hears that it failed.
+            assertTrue(MirrorCaptures.retake(mirror));
+            pool.tickUntilIdle();
+        }
+
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("is not loaded"));
+        verify(plugin, times(2)).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+            any(IllegalStateException.class));
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A job forgotten while its sift runs says nothing when the sift fails, and leaves the job
+     * that replaced it alone.
+     *
+     * <p>Otherwise its warning used up the place's one, and the successor's own failure was never
+     * logged.
+     */
+    @Test
+    void aJobForgottenWhileItSiftsSaysNothingWhenItFails() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.request(mirror));
+            for (int i = 0; (i < 100) && pool.held.isEmpty(); i++)
+            {
+                pool.tick();
+            }
+            assertEquals(1, pool.held.size(), "the first job's sift, still on the pool");
+            MirrorCaptures.forget(mirror);
+            assertTrue(MirrorCaptures.request(mirror));
+            pool.runHeld();
+            pool.runMain();
+            assertEquals(1, MirrorCaptures.taking(), "the second job is untouched");
+            assertEquals(1, pool.timers.size(), "and still ticking");
+            verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+                any(IllegalStateException.class));
+
+            pool.holdAsync = false;
+            pool.tickUntilIdle();
+        });
+
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
+            any(IllegalStateException.class));
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /** With the sift working again, a request takes the capture from the start. */
+    private void takenAfresh(final Pool pool)
+    {
+        MirrorCaptures.siftWith(null);
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.request(mirror));
+            assertEquals(1, MirrorCaptures.taking(), "a fresh job");
+            assertEquals(1, pool.timers.size(), "with a tick of its own");
+            pool.tickUntilIdle();
+        });
+        assertNotNull(MirrorCaptures.get(mirror), "the capture is taken after all");
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A scheduler whose repeating tasks run when told and stop when cancelled, whose async tasks
+     * run at once, or are held when asked, and whose main-thread tasks wait for the next tick.
+     *
+     * <p>An async task's RuntimeException is swallowed, as a server's pool does; an Error is
+     * let through to the test, where a server's pool would log it.
+     */
+    private static final class Pool
+    {
+        final Map<Integer, Runnable> timers = new LinkedHashMap<>();
+        final List<Runnable> main = new ArrayList<>();
+        final List<Runnable> held = new ArrayList<>();
+        final List<RuntimeException> escaped = new ArrayList<>();
+        boolean holdAsync;
+        private int nextId;
+
+        Pool() throws Exception
+        {
+            final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+            when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
+                .thenAnswer(invocation ->
+                {
+                    final int id = nextId++;
+                    timers.put(id, invocation.getArgument(1));
+                    final BukkitTask task = mock(BukkitTask.class);
+                    doAnswer(cancel -> timers.remove(id)).when(task).cancel();
+                    return task;
+                });
+            when(scheduler.runTaskAsynchronously(any(Plugin.class), any(Runnable.class))).thenAnswer(invocation ->
+            {
+                if (holdAsync)
+                {
+                    held.add(invocation.getArgument(1));
+                }
+                else
+                {
+                    runAsync(invocation.getArgument(1));
+                }
+                return mock(BukkitTask.class);
+            });
+            when(scheduler.runTask(any(Plugin.class), any(Runnable.class))).thenAnswer(invocation ->
+            {
+                main.add(invocation.getArgument(1));
+                return mock(BukkitTask.class);
+            });
+            PluginTestSupport.scheduler(scheduler);
+        }
+
+        private void runAsync(final Runnable task)
+        {
+            try
+            {
+                task.run();
+            }
+            catch (final RuntimeException swallowed)
+            {
+                escaped.add(swallowed);
+            }
+        }
+
+        /** Finishes the async tasks being held. */
+        void runHeld()
+        {
+            final List<Runnable> due = new ArrayList<>(held);
+            held.clear();
+            due.forEach(this::runAsync);
+        }
+
+        /** Runs every task due this tick. */
+        void tick()
+        {
+            new ArrayList<>(timers.values()).forEach(Runnable::run);
+            runMain();
+        }
+
+        void runMain()
+        {
+            final List<Runnable> due = new ArrayList<>(main);
+            main.clear();
+            due.forEach(Runnable::run);
+        }
+
+        /** Ticks until no job is left, or long enough that one must be stuck. */
+        void tickUntilIdle()
+        {
+            for (int i = 0; (i < 100) && !timers.isEmpty(); i++)
+            {
+                tick();
+            }
+        }
     }
 
     private void withServer(final Runnable body)

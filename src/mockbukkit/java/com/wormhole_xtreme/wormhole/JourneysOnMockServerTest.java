@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -440,6 +441,74 @@ class JourneysOnMockServerTest
     }
 
     /**
+     * Places a SignDial preview at the world's origin, hangs a dial sign reading {@code signName}
+     * on it, and completes it with {@code complete}, the arguments to {@code gate complete}.
+     */
+    private static Stargate placeSignGate(final MockServerSupport.Player p, final MockServerSupport.World world,
+        final String signName, final String complete)
+    {
+        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
+        p.performCommand("wormhole gate build StandardSignDial");
+        p.performCommand("wormhole gate preview place");
+        // The dial sign hangs on the [D] block beside the DHD's activation block, facing the
+        // same way as the button: here, one block west of it.
+        final Block button = world.getBlockAt(0, 65, 0);
+        assertTrue(org.bukkit.Tag.BUTTONS.isTagged(button.getType()), "no DHD button where expected: " + button.getType());
+        final Block sign = button.getRelative(BlockFace.WEST);
+        sign.setType(Material.OAK_WALL_SIGN);
+        final BlockData facing = sign.getBlockData();
+        ((Directional) facing).setFacing(((Directional) button.getBlockData()).getFacing());
+        sign.setBlockData(facing);
+        final Sign written = (Sign) sign.getState();
+        // Paper's text component, since the tests compile only against Paper and setLine is deprecated there.
+        written.getSide(Side.FRONT).line(0, net.kyori.adventure.text.Component.text(signName));
+        written.update(true);
+        p.performCommand("wormhole gate complete " + complete);
+        final String name = complete.split(" ")[0];
+        final Stargate gate = StargateManager.getStargate(name);
+        assertNotNull(gate, name + " was not built: " + p.messages());
+        assertTrue(gate.isGateSignPowered(), "the dial sign hung after placing was not taken up");
+        assertSame(sign, gate.getGateDialSignBlock());
+        return gate;
+    }
+
+    /**
+     * A placed preview is detected before its dial sign can be hung. Completing it straight
+     * away, with no DHD click, still takes up the sign: the gate steps through its network from
+     * the sign and dials what it shows. The name typed wins over the one written on the sign.
+     */
+    @Test
+    void aDialSignHungOnAPlacedPreviewDialsOnceTheGateIsCompleted()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("signdial", 4);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Signer");
+        final Stargate first = buildGate(p, world, -40.5, "Aspen", "net=Signs");
+        final Stargate far = buildGate(p, world, 40.5, "Cedar", "net=Signs");
+
+        final Stargate home = placeSignGate(p, world, "Written", "Typed net=Signs");
+        assertEquals("Typed", home.getGateName());
+        assertNull(StargateManager.getStargate("Written"), "the sign's name was registered too");
+        p.messages();
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
+        ticks(5);
+        assertSame(first, home.getGateDialSignTarget(), "the first step is not Aspen: " + p.messages());
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
+        ticks(5);
+        assertSame(far, home.getGateDialSignTarget(), "the second step is not Cedar: " + p.messages());
+        final java.util.Set<Integer> before = settledTasks();
+
+        click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialLeverBlock(), BlockFace.NORTH);
+        ticks(200);
+        assertTrue(home.isGateActive(), "the button did not dial: " + p.messages());
+        assertSame(far, home.getGateTarget());
+
+        ticks(20 * 320);
+        assertFalse(home.isGateActive(), "Typed never timed out");
+        assertNothingNewRunning(before, "the sign dial");
+    }
+
+    /**
      * A sign gate dialled by redstone: the player hangs a dial sign and names the gate on it,
      * steps the sign past the first gate on its network to the far one, and a pulse into the
      * [RD] cell dials the one the sign shows, switching the [RA] lever on while it is open.
@@ -458,30 +527,7 @@ class JourneysOnMockServerTest
         final Stargate first = buildGate(p, world, -40.5, "Relay", "net=Wires");
         final Stargate far = buildGate(p, world, 40.5, "Target", "net=Wires");
 
-        p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
-        p.performCommand("wormhole gate build StandardSignDial");
-        p.performCommand("wormhole gate preview place");
-        // Placing reads the design at once, before any sign is there, so it is set aside and
-        // the gate completed the way a player building by hand does: sign first, then button.
-        p.performCommand("wormhole gate complete -cancel");
-        // The dial sign hangs on the [D] block beside the DHD's activation block, facing the
-        // same way as the button: here, one block west of it.
-        final Block button = world.getBlockAt(0, 65, 0);
-        assertTrue(org.bukkit.Tag.BUTTONS.isTagged(button.getType()), "no DHD button where expected: " + button.getType());
-        final Block sign = button.getRelative(BlockFace.WEST);
-        sign.setType(Material.OAK_WALL_SIGN);
-        final BlockData facing = sign.getBlockData();
-        ((Directional) facing).setFacing(((Directional) button.getBlockData()).getFacing());
-        sign.setBlockData(facing);
-        final Sign written = (Sign) sign.getState();
-        // Paper's text component, since the tests compile only against Paper and setLine is deprecated there.
-        written.getSide(Side.FRONT).line(0, net.kyori.adventure.text.Component.text("Signal"));
-        written.update(true);
-        p.performCommand("wormhole gate complete Signal net=Wires");
-        click(p, Action.RIGHT_CLICK_BLOCK, button, BlockFace.NORTH);
-        final Stargate home = StargateManager.getStargate("Signal");
-        assertNotNull(home, "Signal was not built: " + p.messages());
-        assertTrue(home.isGateSignPowered(), "the dial sign was not taken up");
+        final Stargate home = placeSignGate(p, world, "Signal", "Signal net=Wires");
         assertTrue(home.isGateRedstonePowered(), "a SignDial gate should take redstone");
 
         p.messages();

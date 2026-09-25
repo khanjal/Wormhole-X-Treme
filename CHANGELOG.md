@@ -163,6 +163,13 @@ The plugin API is in [docs/API.md](docs/API.md).
   rolling. A healthy gate always has one; a damaged save need not. The trip is simply
   not made now, and a cart bounced off a far iris by such a gate is left where it
   stopped. SonarCloud found all three.
+- **A dial sign hung on a placed preview works.** `gate preview place` reads the design before
+  any sign is there, and `gate complete` finished that reading without looking again, so the
+  sign neither chose a destination nor let redstone dial. `gate complete` reads the gate again
+  now, and takes up a sign hung since. The same goes for a Horizontal frame, detected as the
+  plain shape until its sign is hung: it completes as `HorizontalSignDial`, where it used to
+  write its name sign over the dial sign. Gates already completed without their sign are not
+  changed.
 - **`gate edit <gate> idc -clear` opens for good an iris its lever shut.** The next wormhole to
   close shut it again, with no lever or code left to open it. A gate stuck that way opens on
   `idc -clear` again.
@@ -221,6 +228,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 ### Quantum mirrors
 
 **Fixed**
+
+- **A mirror whose capture fails while working out what can be seen is captured again** the
+  next time someone looks at it, instead of never updating until a restart. The failure is
+  logged once.
 
 - **Less of what a small mirror drew hangs outside its opening as you move.** A redraw sends
   only the blocks visible through the opening from where the eye is now, and blocks that go out of

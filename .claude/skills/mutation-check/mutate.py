@@ -2,7 +2,9 @@
 """Mutation battery for Wormhole X-Treme: break production code on purpose, run the tests
 that claim to guard it, and report which mutations the tests noticed.
 
-    python -u .claude/skills/mutation-check/mutate.py BATTERY.json | tee <log>
+    set -o pipefail; python -u .claude/skills/mutation-check/mutate.py BATTERY.json | tee <log>
+
+Without pipefail the pipeline's status is tee's, which is 0 whatever the harness exited.
 
 BATTERY.json:
 
@@ -19,8 +21,19 @@ BATTERY.json:
 "mvn_args" is optional: extra Maven arguments, for tests that only run under a profile.
 
 "find" is matched against the file with CRLF normalised to LF, so write multi-line finds
-with plain \\n. Each must match exactly once, or the mutation is reported as UNAPPLIED and
-nothing runs for it.
+with plain \\n. A find containing \\r can never match, and the harness warns about it. Each
+find must match exactly once, or the mutation is reported as UNAPPLIED and nothing runs for it.
+
+Exit codes:
+  0  every mutation was killed
+  1  at least one mutation survived
+  2  refused: usage, an unreadable or malformed battery, a missing target, or no mvn on PATH
+  3  refused: the target differs from git HEAD, or HEAD does not have it
+  4  refused: the unmutated baseline is not green
+  5  the original bytes could not be restored, or the write back raised
+  6  nothing survived, but at least one mutation was not measured (UNAPPLIED, NO-COMPILE,
+     NO-TESTS, BUILD-ERROR), or the battery had no mutations
+  7  the harness crashed; the traceback says where
 
 Guarantees, each learned the hard way:
   - refuses to start unless the target's content matches git HEAD, so a battery killed
@@ -28,13 +41,8 @@ Guarantees, each learned the hard way:
   - checks each mutation actually changed the file before running anything;
   - restores the original bytes after every mutation and proves they match;
   - separates "tests failed" (KILLED) from "did not compile" (NO-COMPILE), which is not a kill;
-  - exits non-zero unless every mutation was measured and killed, so neither a refusal nor
-    a battery that measured nothing can be mistaken for a clean one.
-
-Exit codes: 0 all killed; 1 a mutation survived; 2 usage, a malformed battery, or no mvn; 3 target differs from HEAD;
-4 baseline not green; 5 restore failed; 6 nothing survived, but a mutation was not measured
-(UNAPPLIED, NO-COMPILE, NO-TESTS, BUILD-ERROR) or the battery had no mutations. A restore
-failure (5) outranks the rest, and a survivor (1) outranks 6.
+  - exits non-zero on refusal, and on any mutation it could not measure, so neither can be
+    mistaken for a clean battery.
 """
 
 import json
@@ -51,8 +59,11 @@ def repo_root() -> Path:
     return Path(out.stdout.strip())
 
 
-def head_text(root: Path, rel: str) -> str:
-    out = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=root, capture_output=True, check=True)
+def head_text(root: Path, rel: str):
+    """The file at HEAD with CRLF normalised, or None if HEAD has no such file."""
+    out = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=root, capture_output=True)
+    if out.returncode != 0:
+        return None
     return out.stdout.decode("utf-8").replace("\r\n", "\n")
 
 
@@ -86,24 +97,65 @@ def run_tests(root: Path, tests: str, extra: list):
     return "BUILD-ERROR", log
 
 
+def battery_problem(battery) -> str:
+    if not isinstance(battery, dict):
+        return "the battery is not a JSON object."
+    for key in ("file", "tests"):
+        if not isinstance(battery.get(key), str):
+            return f'the battery has no "{key}" string.'
+    if not isinstance(battery.get("mutations"), list):
+        return 'the battery has no "mutations" list.'
+    for i, m in enumerate(battery["mutations"]):
+        if not (isinstance(m, dict) and all(isinstance(m.get(k), str) for k in ("name", "find", "replace"))):
+            return f'mutation {i} needs "name", "find" and "replace" strings.'
+    extra = battery.get("mvn_args", [])
+    if not (isinstance(extra, list) and all(isinstance(a, str) for a in extra)):
+        return '"mvn_args" must be a list of strings.'
+    return ""
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
-    mvn()
-    battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    try:
+        battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(f"REFUSING: cannot read the battery {sys.argv[1]}: {e}")
+        return 2
+    problem = battery_problem(battery)
+    if problem:
+        print(f"REFUSING: {problem}")
+        return 2
     root = repo_root()
     rel = battery["file"].replace("\\", "/")
     target = root / rel
+    if not target.is_file():
+        print(f"REFUSING: {rel} is not a file under {root}.")
+        return 2
     original = target.read_bytes()
     text = original.decode("utf-8")
     crlf = "\r\n" in text
     lf_text = text.replace("\r\n", "\n")
 
-    if lf_text != head_text(root, rel):
+    head = head_text(root, rel)
+    if head is None:
+        print(f"REFUSING: git HEAD has no {rel}. Give the path relative to the repository root, "
+              f"and commit the file first (a WIP commit is fine).")
+        return 3
+    if lf_text != head:
         print(f"REFUSING: {rel} differs in content from git HEAD. Commit your work first "
               f"(a WIP commit is fine), or restore the file if a previous battery was killed.")
         return 3
+
+    # Warn before the baseline run, which takes minutes, rather than after it.
+    for m in battery["mutations"]:
+        if "\r" in m["find"]:
+            print(f"WARNING    {m['name']}: find contains \\r, which the CRLF-normalised file never "
+                  f"does, so it cannot match. Write line breaks as plain \\n.", flush=True)
+        if "\r" in m["replace"]:
+            print(f"WARNING    {m['name']}: replace contains \\r, which is written back as a stray "
+                  f"carriage return. Write line breaks as plain \\n.", flush=True)
 
     extra = battery.get("mvn_args", [])
     baseline, log = run_tests(root, battery["tests"], extra)
@@ -116,7 +168,7 @@ def main() -> int:
 
     results = []
     try:
-        for m in battery.get("mutations", []):
+        for m in battery["mutations"]:
             name = m["name"]
             count = lf_text.count(m["find"])
             if count != 1:
@@ -136,32 +188,37 @@ def main() -> int:
                 print(log[-2000:], flush=True)
             results.append((name, verdict))
     finally:
-        target.write_bytes(original)
-        if target.read_bytes() != original:
+        try:
+            target.write_bytes(original)
+            restored = target.read_bytes() == original
+        except OSError as e:
+            print(f"restore of {rel} raised {e!r}")
+            restored = False
+        if not restored:
             print(f"RESTORE FAILED: {rel} does not match its original bytes. Check it by hand.")
             return 5
         print(f"restored {rel}", flush=True)
 
     survivors = [n for n, v in results if v == "SURVIVED"]
-    unmeasured = [n for n, v in results if v not in ("KILLED", "SURVIVED")]
+    unmeasured = [(n, v) for n, v in results if v not in ("KILLED", "SURVIVED")]
     print(f"\n{sum(v == 'KILLED' for _, v in results)} killed, {len(survivors)} survived, "
           f"{len(unmeasured)} not measured")
     for n in survivors:
         print(f"  survived: {n}")
-    for n in unmeasured:
-        print(f"  not measured: {n}")
+    for n, v in unmeasured:
+        print(f"  not measured ({v}): {n}")
     if survivors:
         return 1
-    if not results:
-        print("REFUSING: the battery has no mutations.")
+    if unmeasured or not results:
         return 6
-    return 6 if unmeasured else 0
+    return 0
 
 
 if __name__ == "__main__":
+    # Python exits 1 on an uncaught exception, which here would read as a survivor.
     try:
-        sys.exit(main())
-    except (KeyError, TypeError, ValueError, OSError, subprocess.CalledProcessError):
-        # An uncaught exception would exit 1, which reads as a survivor.
+        code = main()
+    except Exception:
         traceback.print_exc()
-        sys.exit(2)
+        code = 7
+    sys.exit(code)
