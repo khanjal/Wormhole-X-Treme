@@ -67,14 +67,14 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 > logo — its SVG was hand-authored as markup rather than image-generated, but written with Claude
 > Code at a maintainer's direction, which TRADEMARK.md states in as many words.
 >
-> No image on this page is AI-generated. The icon, the gallery and every screenshot are unedited
-> captures from a running Minecraft server. The placeholder logo is deliberately not used here;
+> No image on this page is AI-generated. The icon, the gallery and every screenshot are real
+> captures from a running Minecraft server, cropped but not generated. The placeholder logo is deliberately not used here;
 > replacing it with a commissioned mark is tracked as issue #187.
 
 ### Rule 6: no AI-generated images on the page
 
-This is a takedown rule, not a disclosure question, and it is the reason the icon and the banner
-above differ from the other two sites. Modrinth's Content Rules, section 6.2.1:
+This is a takedown rule, not a disclosure question, and it is the reason the icon above and the
+description's missing banner differ from the other two sites. Modrinth's Content Rules, section 6.2.1:
 
 > No images uploaded to a gallery, icon, description, or any other part of a project page may be
 > created or derived from generative AI output. Any such images may be removed.
@@ -367,7 +367,7 @@ STARGATE and all related marks are the property of their respective owners, and 
 here only to describe the kind of gate the plugin builds.
 
 The plugin ships no franchise material of any kind: every sound it plays is a stock Minecraft
-sound, and every image is either a Minecraft screenshot or hand-drawn for this project.
+sound, and every image is a Minecraft screenshot.
 
 ### On how this is built
 
@@ -428,15 +428,19 @@ Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar 
 so there is a jar to upload. What is left:
 
 1. **Check which version the project carries.** `v1.8.0` is the newest release.
-2. **Re-check the game versions after every release.** Modrinth's auto-detection ticks 1.20.x
+2. **Check the live page for the logo now, not at the next upload.** The page was set up on
+   2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
+   rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
+   delete the banner line from the description; a moderator may remove the images before then.
+3. **Re-check the game versions after every release.** Modrinth's auto-detection ticks 1.20.x
    alone, as above, so a new version upload can silently narrow what the page claims.
-3. **Crop the icon from a capture, never from the logo.** Modrinth wants 512×512 **(assumed)**.
+4. **Crop the icon from a capture, never from the logo.** Modrinth wants 512×512 **(assumed)**.
    `docs/images/gates/gate-shapes-active.png` is the source; the Massive gate dialled reads at
    that size. Rendering `logo.svg` here would breach Rule 6.2.1 — see below. One such crop was
    prepared on 2026-09-20 and measured 512×512; it is not in the repository, so if it has been
    lost, re-crop from the same capture.
-4. **Do not add the banner back.** Whether Modrinth's renderer handles SVG is beside the point
+5. **Do not add the banner back.** Whether Modrinth's renderer handles SVG is beside the point
    now; `logo-banner.svg` is AI-authored and may not go on the page at all.
-5. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
+6. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
    type from `raw.githubusercontent.com`. If any fails to render, upload it to the gallery and
    point the description at the gallery URL.

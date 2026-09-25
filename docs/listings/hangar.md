@@ -355,7 +355,8 @@ Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. Th
 so there is a jar to upload. What is left:
 
 1. **Check which version the project carries.** `v1.8.0` is the newest release.
-2. **Render the avatar** from `docs/images/logo.svg`. Size unverified; the 256×256 rendered for
+2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
+   of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.
 3. **Read the platform picker** and settle the Paper-only question properly, per the note above.
 4. **Confirm the keywords** on the form, per the provenance note above.

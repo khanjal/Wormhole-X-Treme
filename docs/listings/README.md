@@ -54,7 +54,8 @@ changes, you change it there and then carry it into whichever site files quote i
 - **Images are pinned to `main`.** See above.
 - **The logo may not go on the Modrinth page.** Its Content Rules 6.2.1 ban any page image
   "created or derived from generative AI output", and the logo SVG was written with Claude Code.
-  Modrinth's icon is cropped from a gameplay capture and its description carries no banner.
+  Modrinth's icon is cropped from a gameplay capture and its description carries no banner; the
+  live page predates the rule, so check it (step 2 in `modrinth.md`'s Keeping it current).
   **SpigotMC has no such rule** — its Terms & Rules were read and carry no AI clause — so the logo
   stays there. **Hangar is unchecked** and still uses the logo; check before the next upload.
   Reasoning in
