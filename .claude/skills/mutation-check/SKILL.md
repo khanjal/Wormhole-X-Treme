@@ -70,8 +70,12 @@ Otherwise the baseline is refused as not green, and the cause is the old classes
 Then run it:
 
 ```bash
-python -u .claude/skills/mutation-check/mutate.py <scratchpad>/battery.json | tee <scratchpad>/battery.log
+set -o pipefail; python -u .claude/skills/mutation-check/mutate.py <scratchpad>/battery.json | tee <scratchpad>/battery.log
 ```
+
+Keep the `pipefail`. Without it the command's exit status is `tee`'s, which is always 0, so a
+refusal, a survivor and an unmeasured battery all look clean. Read the exit status, not just
+the summary line.
 
 Run anything longer than a couple of mutations with `run_in_background: true`. A foreground
 timeout kills the process, and a killed process never reaches its `finally`. The `-u` and
@@ -88,8 +92,8 @@ What the harness does for you:
 | Refuses (exit 4) if the unmutated baseline is not green | Otherwise every mutation reads as killed. |
 | Exits non-zero on any refusal or survivor (exit 1 for a survivor) | A refusal that exits 0 looks exactly like a clean battery. |
 | Exits 6 when nothing survived but a mutation was not measured, or there were none | A battery whose four finds all had `\r\n` printed "0 killed, 0 survived, 4 not measured" and exited 0, like a clean one. |
-| Exits 2 on a malformed battery, a missing target or no `mvn`, and 7 on a crash | Python exits 1 on an uncaught exception, the same code as a survivor. |
-| Warns, before the baseline runs, about a find containing `\r` | The file is matched with CRLF normalised to LF, so such a find can never apply. |
+| Exits 2 on an unreadable or malformed battery (including `mvn_args` that is not a list of strings), a missing target or no `mvn`; 3 on a target HEAD does not have; 5 if the write back raises; and 7 on any other crash | Python exits 1 on an uncaught exception, the same code as a survivor. |
+| Warns, before the baseline runs, about a find or replace containing `\r` | The file is matched with CRLF normalised to LF, so such a find can never apply, and such a replace writes a stray carriage return. |
 
 Because of the HEAD guard, **commit before you mutate.** A WIP commit on the feature branch is
 fine. Don't edit the target while a battery runs, either. The harness writes its startup copy

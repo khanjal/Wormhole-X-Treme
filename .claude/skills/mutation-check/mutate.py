@@ -2,7 +2,9 @@
 """Mutation battery for Wormhole X-Treme: break production code on purpose, run the tests
 that claim to guard it, and report which mutations the tests noticed.
 
-    python -u .claude/skills/mutation-check/mutate.py BATTERY.json | tee <log>
+    set -o pipefail; python -u .claude/skills/mutation-check/mutate.py BATTERY.json | tee <log>
+
+Without pipefail the pipeline's status is tee's, which is 0 whatever the harness exited.
 
 BATTERY.json:
 
@@ -25,10 +27,10 @@ find must match exactly once, or the mutation is reported as UNAPPLIED and nothi
 Exit codes:
   0  every mutation was killed
   1  at least one mutation survived
-  2  refused: usage, a malformed battery, a missing target, or no mvn on PATH
-  3  refused: the target differs from git HEAD
+  2  refused: usage, an unreadable or malformed battery, a missing target, or no mvn on PATH
+  3  refused: the target differs from git HEAD, or HEAD does not have it
   4  refused: the unmutated baseline is not green
-  5  the original bytes could not be restored
+  5  the original bytes could not be restored, or the write back raised
   6  nothing survived, but at least one mutation was not measured (UNAPPLIED, NO-COMPILE,
      NO-TESTS, BUILD-ERROR), or the battery had no mutations
   7  the harness crashed; the traceback says where
@@ -57,8 +59,11 @@ def repo_root() -> Path:
     return Path(out.stdout.strip())
 
 
-def head_text(root: Path, rel: str) -> str:
-    out = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=root, capture_output=True, check=True)
+def head_text(root: Path, rel: str):
+    """The file at HEAD with CRLF normalised, or None if HEAD has no such file."""
+    out = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=root, capture_output=True)
+    if out.returncode != 0:
+        return None
     return out.stdout.decode("utf-8").replace("\r\n", "\n")
 
 
@@ -103,6 +108,9 @@ def battery_problem(battery) -> str:
     for i, m in enumerate(battery["mutations"]):
         if not (isinstance(m, dict) and all(isinstance(m.get(k), str) for k in ("name", "find", "replace"))):
             return f'mutation {i} needs "name", "find" and "replace" strings.'
+    extra = battery.get("mvn_args", [])
+    if not (isinstance(extra, list) and all(isinstance(a, str) for a in extra)):
+        return '"mvn_args" must be a list of strings.'
     return ""
 
 
@@ -110,7 +118,11 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
-    battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    try:
+        battery = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(f"REFUSING: cannot read the battery {sys.argv[1]}: {e}")
+        return 2
     problem = battery_problem(battery)
     if problem:
         print(f"REFUSING: {problem}")
@@ -126,7 +138,12 @@ def main() -> int:
     crlf = "\r\n" in text
     lf_text = text.replace("\r\n", "\n")
 
-    if lf_text != head_text(root, rel):
+    head = head_text(root, rel)
+    if head is None:
+        print(f"REFUSING: git HEAD has no {rel}. Give the path relative to the repository root, "
+              f"and commit the file first (a WIP commit is fine).")
+        return 3
+    if lf_text != head:
         print(f"REFUSING: {rel} differs in content from git HEAD. Commit your work first "
               f"(a WIP commit is fine), or restore the file if a previous battery was killed.")
         return 3
@@ -136,6 +153,9 @@ def main() -> int:
         if "\r" in m["find"]:
             print(f"WARNING    {m['name']}: find contains \\r, which the CRLF-normalised file never "
                   f"does, so it cannot match. Write line breaks as plain \\n.", flush=True)
+        if "\r" in m["replace"]:
+            print(f"WARNING    {m['name']}: replace contains \\r, which is written back as a stray "
+                  f"carriage return. Write line breaks as plain \\n.", flush=True)
 
     extra = battery.get("mvn_args", [])
     baseline, log = run_tests(root, battery["tests"], extra)
@@ -168,8 +188,13 @@ def main() -> int:
                 print(log[-2000:], flush=True)
             results.append((name, verdict))
     finally:
-        target.write_bytes(original)
-        if target.read_bytes() != original:
+        try:
+            target.write_bytes(original)
+            restored = target.read_bytes() == original
+        except OSError as e:
+            print(f"restore of {rel} raised {e!r}")
+            restored = False
+        if not restored:
             print(f"RESTORE FAILED: {rel} does not match its original bytes. Check it by hand.")
             return 5
         print(f"restored {rel}", flush=True)
