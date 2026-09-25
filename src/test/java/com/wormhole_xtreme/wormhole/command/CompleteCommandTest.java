@@ -216,8 +216,34 @@ class CompleteCommandTest
     {
         final Stargate fresh = new Stargate();
         final Stargate completed = completeWhileDetectionAnswers(builder("rereader"),
-            detection -> detection.thenReturn(fresh));
+            detection -> detection.thenReturn(fresh), null);
         assertSame(fresh, completed, "the stored detection was completed, not a fresh one");
+    }
+
+    /**
+     * A dial sign found by another shape wins over the held one. Horizontal and its sign twin
+     * share a frame, and without a sign the plain one is detected first.
+     */
+    @Test
+    void aSignFoundByAnotherShapeWinsOverTheHeldShape()
+    {
+        final Stargate plain = new Stargate();
+        final Stargate signed = new Stargate();
+        signed.setGateSignPowered(true);
+        final Stargate completed = completeWhileDetectionAnswers(builder("signer"),
+            detection -> detection.thenReturn(plain), signed);
+        assertSame(signed, completed, "the held shape's reading, without a sign, was completed");
+    }
+
+    /** Another shape without a sign does not replace the held shape's reading. */
+    @Test
+    void anotherShapeWithoutASignLeavesTheHeldShape()
+    {
+        final Stargate plain = new Stargate();
+        final Stargate other = new Stargate();
+        final Stargate completed = completeWhileDetectionAnswers(builder("keeper"),
+            detection -> detection.thenReturn(plain), other);
+        assertSame(plain, completed, "a different shape with no sign replaced the held one");
     }
 
     /**
@@ -229,17 +255,19 @@ class CompleteCommandTest
     {
         final Player player = builder("thrower");
         final Stargate completed = completeWhileDetectionAnswers(player,
-            detection -> detection.thenThrow(new IllegalStateException("malformed shape")));
+            detection -> detection.thenThrow(new IllegalStateException("malformed shape")), null);
         assertEquals("Held", completed.getGateName(), "the gate first detected was not the one completed");
         verify(player, never()).sendMessage(contains("Invalid arguments"));
     }
 
     /**
      * Holds a part-built gate called Held, runs {@code complete Named} with the second
-     * detection answering as told, and returns the gate that reached completion.
+     * detection of the held shape answering as told and a scan of every shape finding
+     * {@code anyShape}, and returns the gate that reached completion.
      */
     private static Stargate completeWhileDetectionAnswers(final Player player,
-        final java.util.function.Consumer<org.mockito.stubbing.OngoingStubbing<Stargate>> answer)
+        final java.util.function.Consumer<org.mockito.stubbing.OngoingStubbing<Stargate>> answer,
+        final Stargate anyShape)
     {
         final Stargate held = new Stargate();
         held.setGateName("Held");
@@ -253,6 +281,8 @@ class CompleteCommandTest
             answer.accept(helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any())));
+            helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(anyShape);
             mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString())).thenAnswer(call -> {

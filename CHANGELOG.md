@@ -155,7 +155,10 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A dial sign hung on a placed preview works.** `gate preview place` reads the design before
   any sign is there, and `gate complete` finished that reading without looking again, so the
   sign neither chose a destination nor let redstone dial. `gate complete` reads the gate again
-  now, and takes up a sign hung since. Gates already completed without their sign are not changed.
+  now, and takes up a sign hung since. The same goes for a Horizontal frame, detected as the
+  plain shape until its sign is hung: it completes as `HorizontalSignDial`, where it used to
+  write its name sign over the dial sign. Gates already completed without their sign are not
+  changed.
 
 ### Commands
 

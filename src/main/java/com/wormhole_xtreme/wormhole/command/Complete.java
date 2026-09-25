@@ -176,6 +176,9 @@ public class Complete implements CommandExecutor, TabCompleter
      * Detects the part-built gate again, since a dial sign hung after it was first detected is
      * otherwise never taken up; a frame that no longer reads, or a shape that throws, keeps the
      * gate already held.
+     *
+     * <p>Without a sign a plain shape can win over its sign twin -- Horizontal and
+     * HorizontalSignDial share a frame -- so a sign found by any shape wins over the held one.
      */
     private static void rereadDesign(final Player player)
     {
@@ -184,11 +187,20 @@ public class Complete implements CommandExecutor, TabCompleter
         {
             return;
         }
-        final Stargate fresh;
+        Stargate fresh;
         try
         {
             fresh = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
                 held.getGateFacing(), held.getGateShape());
+            if ((fresh == null) || !fresh.isGateSignPowered())
+            {
+                final Stargate signed = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
+                    held.getGateFacing());
+                if ((signed != null) && signed.isGateSignPowered())
+                {
+                    fresh = signed;
+                }
+            }
         }
         catch (final RuntimeException e)
         {
