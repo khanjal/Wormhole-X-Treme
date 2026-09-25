@@ -302,4 +302,130 @@ class WXIDCTest
 
         assertEquals("mine", s.getGateIrisDeactivationCode());
     }
+
+    /** A player holding no node at all, who owns gates under this UUID. */
+    private static Player playerWithoutNodes(final UUID id)
+    {
+        final Player player = mock(Player.class);
+        when(player.getName()).thenReturn("owner");
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
+        when(player.getUniqueId()).thenReturn(id);
+        return player;
+    }
+
+    private static void wormhole(final CommandSender who, final String... args)
+    {
+        new Wormhole().onCommand(who, null, "wormhole", args);
+    }
+
+    /**
+     * The owner reaches their own code through {@code gate edit}, the route the guide gives.
+     *
+     * <p>The test above calls the handler directly, and the handler has always admitted the
+     * owner. Nothing typed ever got that far: the dispatcher and {@code gate edit} both refused
+     * anyone without {@code wormhole.config} first, so an owner had no way to set their code.
+     */
+    @Test
+    void theOwnerMaySetTheirCodeThroughGateEdit()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+
+        final Player player = playerWithoutNodes(owner);
+
+        wormhole(player, "gate", "edit", "alpha", "idc", "mine");
+
+        assertEquals("mine", s.getGateIrisDeactivationCode(),
+            "the owner holds no node, so only the handler's own owner check can have let them in");
+        verify(player).sendMessage(contains("is:mine"));
+    }
+
+    /** And through the older {@code /wormhole idc}, which is hidden but still answers. */
+    @Test
+    void theOwnerMaySetTheirCodeThroughTheStandaloneCommand()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+
+        final Player player = playerWithoutNodes(owner);
+
+        wormhole(player, "idc", "alpha", "mine");
+
+        assertEquals("mine", s.getGateIrisDeactivationCode());
+        verify(player).sendMessage(contains("is:mine"));
+    }
+
+    /**
+     * A stranger is refused before being told anything about the gate's iris.
+     *
+     * <p>Now that anybody can reach the handler, whether a gate has an iris lever is the
+     * owner's business, not the reply to whoever typed its name.
+     */
+    @Test
+    void aStrangerIsRefusedBeforeLearningWhetherTheGateHasAnIris()
+    {
+        final Stargate s = new Stargate();
+        s.setGateName("noiris");
+        s.setGateOwner("00000000-0000-0000-0000-000000000001");
+        StargateManager.registerStargate(s);
+        final Player stranger = playerWithoutNodes(UUID.fromString("00000000-0000-0000-0000-0000000000ff"));
+
+        wormhole(stranger, "gate", "edit", "noiris", "idc", "x");
+
+        verify(stranger).sendMessage(contains("You lack the permissions"));
+        verify(stranger, never()).sendMessage(contains("Iris not available"));
+    }
+
+    /** Opening the door to owners must not open it to everybody. */
+    @Test
+    void aStrangerIsStillRefusedThroughGateEdit()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateOwner("00000000-0000-0000-0000-000000000001");
+        s.setGateIrisDeactivationCode("secret");
+        final Player stranger = playerWithoutNodes(UUID.fromString("00000000-0000-0000-0000-0000000000ff"));
+
+        wormhole(stranger, "gate", "edit", "alpha", "idc", "mine-now");
+
+        verify(stranger).sendMessage(contains("You lack the permissions"));
+        assertEquals("secret", s.getGateIrisDeactivationCode(), "somebody else's code is untouched");
+    }
+
+    /**
+     * Only the code is opened to owners; every other field still wants the config node.
+     *
+     * <p>{@code group} is the one to try because it has no handler of its own to refuse. Typed,
+     * it meets two refusals, the dispatcher's and then gate edit's own; this holds the pair, and
+     * the test below holds gate edit's alone.
+     */
+    @Test
+    void theOwnerIsStillRefusedTheOtherFieldsOfTheirGate()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+        final Player player = playerWithoutNodes(owner);
+
+        wormhole(player, "gate", "edit", "alpha", "group", "anything");
+
+        verify(player).sendMessage(contains("You lack the permissions"));
+    }
+
+    /** gate edit's own front door, which the dispatcher otherwise stands in front of. */
+    @Test
+    void gateEditItselfStillRefusesTheOwnerAnyOtherField()
+    {
+        final Stargate s = gateWithIris("alpha");
+        final UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        s.setGateOwner(owner.toString());
+        final Player player = playerWithoutNodes(owner);
+
+        new GateEditCommand().execute(player, new String[] { "gate", "edit", "alpha", "group", "anything" });
+
+        verify(player).sendMessage(contains("You lack the permissions"));
+        verify(player, never()).sendMessage(contains("No material group"));
+    }
 }

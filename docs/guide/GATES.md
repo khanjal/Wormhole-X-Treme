@@ -322,7 +322,8 @@ closed gets you nowhere at all, dialled or idle.
   `:IA` marker, or just below the DHD on a shape without one, and takes it away when the code is
   cleared. The code is also what lets a caller open the iris remotely:
   - `gate complete <name> idc=<code>` when building, or
-  - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it.
+  - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it. A
+    gate's owner may do this without `wormhole.config`.
 
 ### How it arrives
 
