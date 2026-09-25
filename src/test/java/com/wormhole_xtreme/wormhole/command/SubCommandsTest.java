@@ -155,7 +155,7 @@ class SubCommandsTest
         // unreachable for anyone but an operator; adding one that does not in fact check
         // anything hands it to every player on the server.
         final Set<String> expected = new HashSet<>(
-            java.util.Arrays.asList("beam", "ring", "go", "list", "compass", "freya"));
+            java.util.Arrays.asList("beam", "ring", "go", "list", "compass", "idc", "freya"));
         for (final SubCommands.Entry e : SubCommands.all())
         {
             assertEquals(expected.contains(e.getName()), e.checksOwnPermissions(),
