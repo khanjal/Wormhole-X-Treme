@@ -67,7 +67,7 @@ public class WXIDC implements CommandExecutor
         if (a.length >= 2)
         {
             setCode(s, a[1]);
-            // Saved now, as every other gate edit is: the load re-derives a shut iris from the code.
+            // Saved now, as every other gate edit is, or a crash restores the old code and iris.
             StargateDBManager.saveStargate(s);
         }
         // Always shown, whether or not anything was changed.

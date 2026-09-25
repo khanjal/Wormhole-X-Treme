@@ -636,6 +636,10 @@ public final class SubCommands
         {
             return prefixed(typed, TRUE, FALSE);
         }
+        if ("idc".equals(field))
+        {
+            return prefixed(typed, "-clear");
+        }
         if ("iris-animation".equals(field))
         {
             return prefixed(typed,
