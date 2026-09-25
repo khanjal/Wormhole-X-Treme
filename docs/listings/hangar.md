@@ -64,18 +64,12 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]` — every one is optional
+only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect]` — every one is optional
 and the plugin loads without them. Declaring a required dependency that is not required would
 make Hangar warn operators off installing it, and the listing's strongest line is "no
 dependencies"; four optional rows dilute that for nothing.
 
-If the integrations are ever wanted discoverable, **only Vault and LuckPerms** are defensible,
-and only as Optional. The other two never go on the listing:
-
-- **`Permissions`** is the 2011-era Permissions plugin, long dead. It survives in `softdepend`
-  for servers still running it, which is not a reason to advertise it.
-- **`WormholeXTremeWorlds`** is the original project's companion plugin. Unmaintained, and not
-  on Hangar at all.
+If the integrations are ever wanted discoverable, add them as Optional, never Required.
 
 **On the Library tag.** Off, for the reason in [`modrinth.md`](modrinth.md#fields): this is a
 plugin somebody installs, not a dependency installed underneath something else.
@@ -232,6 +226,7 @@ this world's hills.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
@@ -339,15 +334,13 @@ text.
 | Field | Value |
 |---|---|
 | Version | `1.8.0` |
-| Version title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name and beats a bare version string in a list |
 | Release channel | Release |
 | Platform | Paper |
-| Platform versions | every 1.20.x, 1.21.x and 26.x, ticked individually. Snapshots off. |
+| Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
 | File | `WormholeXTreme-<version>.jar` from the release |
-| Changelog | the short form in [`shared.md`](shared.md#release-notes) |
+| Changelog | that version's Markdown block in [`versions.md`](versions.md), on the screen after the upload |
 
-Use the short release notes rather than the full `CHANGELOG.md` section, which runs to about 150
-lines and reads as a wall on a download page.
+Hangar's form has no version title; the version string is the title.
 
 ## Keeping it current
 

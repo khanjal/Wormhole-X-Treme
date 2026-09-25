@@ -160,6 +160,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Plain YAML storage[/B], one file per gate. No database.
 [*][B]Events for other plugins[/B] to watch or cancel travel, and to hear a wormhole open and close.
 [*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+[*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
 [*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]metrics-enabled: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
 [/LIST]
@@ -333,63 +334,19 @@ statement about your own resource, which is fine.
 
 ## Version upload
 
-Spigot calls this posting a resource update. It takes a title, a message and the jar, and the
-message is the one piece of release copy this file does not otherwise carry.
+Spigot calls this posting a resource update: the jar, a version string, an update title and a
+message.
 
 | Field | Value |
 |---|---|
-| Update title | `Wormhole X-Treme v1.8.0 (MC 1.20-26.3)` — matches the GitHub release name |
-| Update message | the short form in [`shared.md`](shared.md#release-notes), converted to BBCode |
 | File | `WormholeXTreme-<version>.jar` from the release |
-| Version | set it to match, so the resource header stops advertising the old one |
+| Version string | the version, e.g. `1.8.0`, so the resource header stops advertising the old one |
+| Update title | that version's title in [`versions.md`](versions.md) |
+| Update message | that version's **Spigot update message** block in [`versions.md`](versions.md), already in BBCode |
 
-**The message needs converting; Modrinth's and Hangar's do not.** Those two take the release
-notes as Markdown and paste in unchanged. Spigot takes BBCode, so the same block needs
-`**bold**` as `[B]bold[/B]`, `` `code` `` as `[ICODE]code[/ICODE]`, the `>` blockquote dropped and
-the bullet list wrapped in `[LIST]` with `[*]` per item. The [BBCode notes](#bbcode-notes) above
-apply here too — in particular, do not reach for `[HR]`.
+The [BBCode notes](#bbcode-notes) above apply to the message; in particular, do not reach for `[HR]`.
 
-The converted block is kept below so the upload is a paste rather than a conversion. It is the
-one place the release notes are duplicated, so **rewriting
-[`shared.md`](shared.md#release-notes) means rewriting this too.** What follows is 1.8.0's.
-
-```
-[B]Upgrading from 1.7 - nothing you have to do.[/B]
-[LIST]
-[*]Bundled shapes you have not edited update themselves at startup, keeping the old copy as [ICODE]<name>.shape.old[/ICODE]. An edited one is left alone and named in the log.
-[*][B]Anonymous usage counts now go to bStats[/B], on by default: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]/wormhole config metrics-enabled false[/ICODE] stops it.
-[*]The default [ICODE]top[/ICODE] dial rests on the top chevron after each lock, so a dial takes about three seconds longer. [ICODE]/wormhole config gate-dial-spin chevron[/ICODE] keeps the old pace.
-[*]Optional: an existing [ICODE]config.yml[/ICODE] keeps its material groups as they were. For Atlantis and Universe gates to dial their own way, as new installs do, add [ICODE]dial-spin: pegasus[/ICODE] and [ICODE]dial-spin: universe[/ICODE] to those groups.
-[*]Coming from 1.7.0? The [ICODE]Massive[/ICODE] shape updates itself; then run [ICODE]/wormhole gate regen <gate>[/ICODE] on each Massive gate, as 1.7.1 said. From 1.6.0, 1.7.0's step too: command keywords now need a dash.
-[*]Installing for the first time? None of the above applies. Drop the jar in and start.
-[/LIST]
-
-[B]Stargates[/B]
-[LIST]
-[*]The iris sweeps shut a ring at a time, or as a spiral, rows or columns ([ICODE]gate-iris-animation[/ICODE]), and an upright gate's iris is drawn rather than built from blocks.
-[*]Three more dial-spin patterns: [ICODE]chase[/ICODE], [ICODE]universe[/ICODE] (Destiny's) and [ICODE]overshoot[/ICODE]. A gate picks its own with [ICODE]/wormhole gate edit <gate> spin[/ICODE], and a material group with [ICODE]dial-spin:[/ICODE].
-[*][ICODE]gate regen[/ICODE] keeps every [ICODE]gate edit[/ICODE] setting, and [ICODE]gate edit group[/ICODE] lasts past a restart.
-[*]Many iris and wormhole drawing fixes; the full changelog lists them.
-[/LIST]
-
-[B]Commands[/B]
-[LIST]
-[*]A mistyped command gets one short coloured usage line for that command, and [ICODE]/wormhole[/ICODE] on its own lists its commands by job.
-[/LIST]
-
-[B]For other plugins[/B]
-[LIST]
-[*][ICODE]StargateActivatedEvent[/ICODE] and [ICODE]StargateShutdownEvent[/ICODE], and a PlaceholderAPI expansion, off until [ICODE]placeholders-enabled[/ICODE] is set.
-[/LIST]
-
-[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md]Full changelog[/URL]
-```
-
-**The dash in the first line is a plain hyphen**, where `shared.md` has an em-dash. Not verified
-as necessary — the description above uses real em-dashes and they render fine — just one less
-thing to go wrong in a field that is typed rather than pasted from a file.
-
-Tick **Notify followers** so people watching the resource hear about it. That notification is
+Tick **Notify followers** for a new release so people watching the resource hear about it. That notification is
 most of what uploading to Spigot buys over linking a jar, which is the reason the resource type
 is an upload in the first place — see [Fields](#fields).
 
