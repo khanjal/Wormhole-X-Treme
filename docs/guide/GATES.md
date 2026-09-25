@@ -318,8 +318,9 @@ closed gets you nowhere at all, dialled or idle.
 
 ![The iris closed, in each of the four palettes](../images/gates/standard-palettes-iris.png)
 
-- Build from a shape with an `:IA` marker (most have one). The plugin places the iris lever there.
-- Set an iris deactivation code so callers can open it remotely:
+- Give the gate an iris deactivation code. The plugin then places the iris lever at the shape's
+  `:IA` marker, or just below the DHD on a shape without one, and takes it away when the code is
+  cleared. The code is also what lets a caller open the iris remotely:
   - `gate complete <name> idc=<code>` when building, or
   - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it.
 
