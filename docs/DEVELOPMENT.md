@@ -42,8 +42,9 @@ MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another 
 `src/mockbukkit/` could not compile against both.
 
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
-by command, a following pet through a gate and by beam into another world, and a caller up
-against a shut iris. It checks where they arrive and that the trip leaves nothing new running. Annotate
+by command, a following pet through a gate and by beam into another world, a caller up against
+a shut iris, and a sign gate dialled by redstone. It checks where they arrive and that the trip
+leaves nothing new running. Annotate
 a class `@OnMockServer`, and start and stop the server with `MockServerSupport`:
 
 - **They run in a JVM of their own**, by the annotation's `mockbukkit` tag, which `-Dtest` does
