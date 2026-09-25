@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +26,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -39,6 +42,10 @@ class OwnerCommandTest
 {
     private Player sender;
 
+    // Every test mocks it: a change is saved at once, and the real save writes gate files
+    // into the working directory.
+    private MockedStatic<StargateDBManager> db;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -48,11 +55,13 @@ class OwnerCommandTest
         when(sender.getName()).thenReturn("admin");
         when(sender.isOp()).thenReturn(true);
         clearGates();
+        db = mockStatic(StargateDBManager.class);
     }
 
     @AfterEach
     void tearDown()
     {
+        db.close();
         clearGates();
     }
 
@@ -82,6 +91,18 @@ class OwnerCommandTest
         return new OwnerCommand().execute(sender, args);
     }
 
+    /** The gate went to disk once, now, rather than waiting for shutdown. */
+    private void assertSaved(final Stargate gate)
+    {
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+    }
+
+    /** Nothing changed, so nothing was written. */
+    private void assertNothingSaved()
+    {
+        db.verify(() -> StargateDBManager.saveStargate(any()), never());
+    }
+
     /**
      * {@code gate edit <gate> owner} with no name reports the owner, and leaves them the owner.
      *
@@ -98,6 +119,7 @@ class OwnerCommandTest
         assertEquals("Ada", s.getGateOwnerName());
         assertEquals("Ada", s.getGateOwner());
         verify(sender).sendMessage(contains("Owned by: Ada"));
+        assertNothingSaved();
     }
 
     /** A player without the config node is refused, whatever they were asking for. */
@@ -112,6 +134,7 @@ class OwnerCommandTest
         assertTrue(run("owner", "alpha"));
 
         verify(sender).sendMessage(contains("ermission"));
+        assertNothingSaved();
     }
 
     /** Naming no gate is a usage error, and says so by returning false. */
@@ -142,6 +165,7 @@ class OwnerCommandTest
 
         verify(sender).sendMessage(contains("Owned by: Ada"));
         assertEquals("Ada", s.getGateOwner(), "asking must not reassign");
+        assertNothingSaved();
     }
 
 
@@ -225,6 +249,7 @@ class OwnerCommandTest
         assertEquals(id.toString(), s.getGateOwner(), "the UUID is what is stored");
         assertEquals("Grace", s.getGateOwnerName());
         verify(sender).sendMessage(contains("Now owned by: Grace"));
+        assertSaved(s);
     }
 
     /**
@@ -253,6 +278,7 @@ class OwnerCommandTest
 
         assertEquals(id.toString(), s.getGateOwner(), "matched without regard to case");
         assertEquals("Grace", s.getGateOwnerName(), "the server's spelling is what is stored");
+        assertSaved(s);
     }
 
     /**
@@ -276,5 +302,6 @@ class OwnerCommandTest
 
         assertEquals("Stranger", s.getGateOwner());
         assertEquals("Stranger", s.getGateOwnerName());
+        assertSaved(s);
     }
 }
