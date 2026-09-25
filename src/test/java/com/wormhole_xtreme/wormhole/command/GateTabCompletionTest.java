@@ -148,19 +148,6 @@ class GateTabCompletionTest
         assertFalse(group.contains("true"));
     }
 
-    /**
-     * {@code idc} offers {@code -clear}: with no code it only reports now, so that word is the
-     * one way to clear, and the standalone command that offered it is hidden.
-     */
-    @Test
-    void idcOffersClear()
-    {
-        gateNamed("alpha");
-
-        final List<String> idc = complete("gate", "edit", "alpha", "idc", "");
-        assertEquals(List.of("-clear"), idc, "a code is the player's own; -clear is the only word to offer");
-    }
-
     /** A field with no candidates of its own offers nothing rather than guessing. */
     @Test
     void aFieldWithNoCandidatesOffersNothing()

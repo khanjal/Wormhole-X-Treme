@@ -79,10 +79,9 @@ public class GateEditCommand implements SubCommand
             new CustomCommand().execute(sender, new String[] { "custom", gate, value }));
         // The odd one out: WXIDC was written as a standalone command and takes its own
         // arguments from index zero, where the handlers above still expect the subcommand
-        // name in front of them. No value reports the code; -clear is what clears it.
+        // name in front of them.
         FIELDS.put("idc", (sender, gate, value) ->
-            new WXIDC().onCommand(sender, null, "idc", value.isEmpty()
-                ? new String[] { gate } : new String[] { gate, value }));
+            new WXIDC().onCommand(sender, null, "idc", new String[] { gate, value }));
         FIELDS.put("group", GateEditCommand::setGroup);
         FIELDS.put("spin", GateEditCommand::setSpin);
         FIELDS.put(IRIS_ANIMATION, GateEditCommand::setIrisAnimation);
@@ -373,8 +372,9 @@ public class GateEditCommand implements SubCommand
                 + String.join(", ", FIELDS.keySet()) + ".");
             return true;
         }
-        // Most fields report their current value when given nothing, so an absent value is
-        // passed through rather than refused here. The handler that owns the field decides.
+        // Several of these read as "unset" when given nothing -- idc clears a code, owner
+        // reports the current one -- so an absent value is passed through rather than
+        // refused here. The handler that owns the field decides what no value means.
         final String value = (args.length > 4)
             ? String.join(" ", Arrays.copyOfRange(args, 4, args.length)) : "";
         return handler.apply(sender, gate, value);

@@ -38,7 +38,6 @@ public final class SubCommands
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
     private static final String FREYA = "freya";
-    private static final String CLEAR = "-clear";
 
     /**
      * Supplies tab-completion candidates for a subcommand's arguments.
@@ -247,7 +246,7 @@ public final class SubCommands
                     return gateNames(args[1]);
                 }
                 // The code itself is theirs to invent; -clear is the one word that is ours.
-                return args.length == 3 ? prefixed(args[2], CLEAR) : none();
+                return args.length == 3 ? prefixed(args[2], "-clear") : none();
             });
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
@@ -630,16 +629,12 @@ public final class SubCommands
         {
             final List<String> groups = new java.util.ArrayList<>(
                 com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames());
-            groups.add(CLEAR);
+            groups.add("-clear");
             return prefixed(typed, groups.toArray(new String[0]));
         }
         if (REDSTONE.equals(field))
         {
             return prefixed(typed, TRUE, FALSE);
-        }
-        if ("idc".equals(field))
-        {
-            return prefixed(typed, CLEAR);
         }
         if ("iris-animation".equals(field))
         {
