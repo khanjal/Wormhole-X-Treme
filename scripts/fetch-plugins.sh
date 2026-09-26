@@ -12,6 +12,11 @@ as_of="${PLUGINS_AS_OF:-$(tr -d '\r\n ' < "$(dirname "$0")/plugins-as-of.txt")}"
 ua="WormholeXTreme-boot-test (https://github.com/khanjal/Wormhole-X-Treme)"
 py="$(command -v python3 || command -v python)"
 get() { curl -fsS --retry 3 --retry-all-errors "$@"; }
+# Anything else would compare as a string and silently mean no cutoff, or skip every plugin.
+if [[ "$as_of" != "latest" && ! "$as_of" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  echo "PLUGINS_AS_OF must be YYYY-MM-DD or latest, not: $as_of" >&2
+  exit 2
+fi
 mkdir -p "$out"
 : > "$out/skipped.txt"
 
@@ -25,7 +30,8 @@ as_of, mc = os.environ["AS_OF"], os.environ["MC"]
 def key(v):
     # Padded so that 26.3 and 26.3.0 compare equal.
     return (tuple(int(n) for n in v.split(".")) + (0, 0))[:3]
-for v in json.load(sys.stdin):
+# Newest first by date, rather than trusting the order the API happens to return.
+for v in sorted(json.load(sys.stdin), key=lambda v: v["date_published"], reverse=True):
     if v["version_type"] != "release" or (as_of != "latest" and v["date_published"][:10] > as_of):
         continue
     tagged = [key(g) for g in v["game_versions"] if re.fullmatch(r"\d+(\.\d+)*", g)]

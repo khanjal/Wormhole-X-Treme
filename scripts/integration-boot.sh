@@ -15,8 +15,13 @@ require=""
 commands=""
 add() { printf -v "$1" '%s%s\n' "${!1}" "$2"; }
 
+# Vault registers its own SuperPerms fallback, and an economy as soon as Essentials is on the
+# classpath, so our hook's lines appear even when LuckPerms or EssentialsX failed; vault-info names
+# the provider Vault actually settled on.
+add commands 'vault-info'
 if has luckperms; then
   add require 'Vault provider detected'
+  add require 'Permission: LuckPerms \['
 fi
 if has placeholderapi; then
   add config 'placeholders-enabled: true'
@@ -27,16 +32,24 @@ if has placeholderapi; then
 fi
 if has coreprotect; then
   add config 'coreprotect-enabled: true'
+  # Coexistence only: our hook connects on the first block change, which nothing makes here.
+  # migration-boot.sh takes a gate down beside CoreProtect to exercise it.
   # Not "Enabling CoreProtect": the server prints that before CoreProtect's own startup runs.
   add require 'CoreProtect.* has been successfully enabled'
 fi
 if has essentialsx; then
   add config 'economy-enabled: true'
   add require 'Attached to Vault economy provider'
+  add require 'Economy: EssentialsX Economy \['
 fi
 
+if [[ $(wc -l < "$deps/skipped.txt") -ge 4 ]]; then
+  echo "no integration plugin has a release for $3, so there is nothing to test" >&2
+  exit 1
+fi
 if [[ -s "$deps/skipped.txt" ]]; then
-  echo "not tested on $3: $(tr '\n' ' ' < "$deps/skipped.txt")"
+  # A GitHub annotation, so a partly untested leg shows on the run's summary and not only in its log.
+  echo "::warning::not tested on $3: $(tr '\n' ' ' < "$deps/skipped.txt")"
 fi
 # The permission fallback warning is not allowed here: with LuckPerms and Vault it must not appear.
 EXTRA_PLUGINS="$deps" BOOT_CONFIG="$config" BOOT_REQUIRE="$require" BOOT_COMMANDS="$commands" \
