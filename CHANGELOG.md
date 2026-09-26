@@ -107,6 +107,7 @@ The plugin API is in [docs/API.md](docs/API.md).
   completes as `HorizontalSignDial` instead of writing its name sign over the dial sign. Gates
   already completed without their sign are not changed.
 - **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
+- **`gate import` says why a damaged gate was skipped**, instead of `null`.
 
 ### Commands
 

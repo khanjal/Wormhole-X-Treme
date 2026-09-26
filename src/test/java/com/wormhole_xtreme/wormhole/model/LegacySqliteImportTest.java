@@ -217,14 +217,19 @@ class LegacySqliteImportTest
             insert(db, sql, "Abydos", LegacySaveVersionTest.version3Gate(world), "gw");
             insert(db, sql, "Tollana", LegacySaveVersionTest.version3Gate(world), "unloaded");
             insert(db, sql, "Empty", new byte[0], "gw");
+            // Cut short, as a copy interrupted mid-write leaves it: the reader runs off the end.
+            insert(db, sql, "Cut", java.util.Arrays.copyOf(LegacySaveVersionTest.version3Gate(world), 40), "gw");
         }
 
         final LegacyDatabaseImporter.Result first = importWithWorldLoaded();
         assertEquals(1, first.getImported(), "skipped: " + first.getSkipped());
-        assertEquals(2, first.getSkipped().size(), "skipped: " + first.getSkipped());
+        assertEquals(3, first.getSkipped().size(), "skipped: " + first.getSkipped());
         assertTrue(first.getSkipped().contains("Tollana: world \"unloaded\" is not loaded"),
             "skipped: " + first.getSkipped());
         assertTrue(first.getSkipped().contains("Empty: no gate data"), "skipped: " + first.getSkipped());
+        // It used to say "Cut: null", which tells the operator nothing about what to look at.
+        assertTrue(first.getSkipped().contains("Cut: its gate data could not be read (BufferUnderflowException)"),
+            "skipped: " + first.getSkipped());
 
         final LegacyDatabaseImporter.Result second = importWithWorldLoaded();
         assertEquals(0, second.getImported(), "a second run must not duplicate gates");
