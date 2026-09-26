@@ -107,9 +107,39 @@ public final class GateConsoleCommands
             return true;
         }
         StargateManager.completeStargate(placed.gate(), null, rest[1], options[0], options[1]);
+        // Where to drop something through it and where it comes out, for whoever is scripting this.
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Built " + rest[1] + " at "
-            + rest[3] + " " + rest[4] + " " + rest[5] + " in " + world.getName() + ".");
+            + rest[3] + " " + rest[4] + " " + rest[5] + " in " + world.getName() + ". Opening centred on "
+            + openingCentre(placed.gate()) + "; arrivals at " + where(placed.gate().getGatePlayerTeleportLocation())
+            + ".");
         return true;
+    }
+
+    /** The middle of a gate's opening, block centres averaged, as "x y z" to one decimal. */
+    static String openingCentre(final Stargate gate)
+    {
+        final java.util.List<org.bukkit.Location> blocks = gate.getGatePortalBlocks();
+        if (blocks.isEmpty())
+        {
+            return "nothing";
+        }
+        double x = 0;
+        double y = 0;
+        double z = 0;
+        for (final org.bukkit.Location block : blocks)
+        {
+            x += block.getBlockX() + 0.5;
+            y += block.getBlockY() + 0.5;
+            z += block.getBlockZ() + 0.5;
+        }
+        return String.format(Locale.ROOT, "%.1f %.1f %.1f", x / blocks.size(), y / blocks.size(), z / blocks.size());
+    }
+
+    /** A location as "x y z" to one decimal, or "nowhere". */
+    static String where(final org.bukkit.Location at)
+    {
+        return (at == null) ? "nowhere"
+            : String.format(Locale.ROOT, "%.1f %.1f %.1f", at.getX(), at.getY(), at.getZ());
     }
 
     /**
