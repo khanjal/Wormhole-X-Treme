@@ -23,6 +23,14 @@ final class LegacySettingsNotice
 
     static final long MAX_BYTES = 1024L * 1024L;
 
+    /**
+     * Names this file shares with a setting that is not the same setting now. In 2012 disabling
+     * permissions support meant not attaching to the old Permissions plugin; now it means ignoring
+     * LuckPerms and Vault. Nothing reads the Help plugin setting any more.
+     */
+    private static final java.util.Set<String> NOT_THE_SAME_SETTING =
+        java.util.Set.of("PERMISSIONS_SUPPORT_DISABLE", "HELP_SUPPORT_DISABLE");
+
     private LegacySettingsNotice()
     {
     }
@@ -81,9 +89,10 @@ final class LegacySettingsNotice
             }
             else if (line.startsWith("Value:") && (name != null))
             {
-                final String value = line.substring("Value:".length()).trim();
-                final Setting current = find(defaults, name);
-                if ((current != null) && !sameValue(current.getValue(), value))
+                final Setting current = NOT_THE_SAME_SETTING.contains(name) ? null : find(defaults, name);
+                final String value = (current == null) ? null
+                    : asConfigValue(current.getValue(), line.substring("Value:".length()).trim());
+                if ((value != null) && !value.equals(String.valueOf(current.getValue())))
                 {
                     differing.add(ConfigurationYAML.kebabKeyName(name) + ": " + value);
                 }
@@ -105,17 +114,37 @@ final class LegacySettingsNotice
         return null;
     }
 
-    private static boolean sameValue(final Object defaultValue, final String written)
+    /**
+     * The value as config.yml has to spell it for a setting of the default's type, or null if it
+     * could not be one. Pasted as the old file wrote it, 45.0 for a whole-number setting fails on
+     * first use, and a lower-case log level fails at enable.
+     */
+    static String asConfigValue(final Object defaultValue, final String written)
     {
-        final String expected = String.valueOf(defaultValue);
         try
         {
-            // So 30 and 30.0 agree.
-            return Double.compare(Double.parseDouble(expected), Double.parseDouble(written)) == 0;
+            if (defaultValue instanceof Integer)
+            {
+                final double number = Double.parseDouble(written);
+                return (number == Math.rint(number)) && (Math.abs(number) <= Integer.MAX_VALUE)
+                    ? String.valueOf((int) number) : null;
+            }
+            if (defaultValue instanceof Double)
+            {
+                return String.valueOf(Double.parseDouble(written));
+            }
         }
-        catch (final NumberFormatException notBothNumbers)
+        catch (final NumberFormatException notANumber)
         {
-            return expected.toLowerCase(Locale.ROOT).equals(written.toLowerCase(Locale.ROOT));
+            return null;
         }
+        if (defaultValue instanceof Boolean)
+        {
+            final String flag = written.toLowerCase(Locale.ROOT);
+            return ("true".equals(flag) || "false".equals(flag)) ? flag : null;
+        }
+        final String text = String.valueOf(defaultValue);
+        // An upper-case default is a constant name, such as a log level, and is only read in capitals.
+        return text.equals(text.toUpperCase(Locale.ROOT)) ? written.toUpperCase(Locale.ROOT) : written;
     }
 }

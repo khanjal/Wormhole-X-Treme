@@ -34,7 +34,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 class LegacySettingsNoticeTest
 {
-    /** The shape the old plugin wrote: two settings changed, two at their default and one long gone. */
+    /**
+     * The shape the old plugin wrote: three settings changed, one at its default, one long gone,
+     * and two whose names survive but whose settings do not.
+     */
     private static final List<String> SETTINGS_TXT = List.of(
         "WormholeXTreme 1.031",
         "WormholeXTreme Config Settings",
@@ -43,23 +46,35 @@ class LegacySettingsNoticeTest
         "Value: false",
         "Description: (the old file described each setting here)",
         "---------------",
-        "Setting: WORMHOLE_USE_IS_TELEPORT",
+        // In 2012 this meant not attaching to the old Permissions plugin; now it turns LuckPerms off.
+        "Setting: PERMISSIONS_SUPPORT_DISABLE",
         "Value: true",
+        "Description: (the old file described each setting here)",
+        "---------------",
+        // Nothing reads it now.
+        "Setting: HELP_SUPPORT_DISABLE",
+        "Value: true",
+        "Description: (the old file described each setting here)",
+        "---------------",
+        "Setting: WORMHOLE_USE_IS_TELEPORT",
+        "Value: TRUE",
         "Description: (the old file described each setting here)",
         "---------------",
         "Setting: TIMEOUT_ACTIVATE",
         // Written as a decimal where today's default is the whole number 30: still the default.
         "Value: 30.0",
+        // A hand-edited file with a line repeated: it belongs to no setting and must not be read as TIMEOUT_ACTIVATE's.
+        "Value: 99",
         "Description: (the old file described each setting here)",
         "---------------",
         "Setting: TIMEOUT_SHUTDOWN",
-        "Value: 60",
+        // A decimal pasted as it is would fail as a whole-number setting on first use.
+        "Value: 60.0",
         "Description: (the old file described each setting here)",
         "---------------",
         "Setting: LOG_LEVEL",
-        "Value: INFO",
-        // A hand-edited file with a line repeated: it belongs to no setting and must not be read as LOG_LEVEL's.
-        "Value: FINE",
+        // Level.parse takes only capitals.
+        "Value: fine",
         "Description: (the old file described each setting here)");
 
     @TempDir
@@ -97,11 +112,11 @@ class LegacySettingsNoticeTest
     @Test
     void onlySettingsThatStillExistAndDifferFromTheirDefaultAreNamed()
     {
-        assertEquals(List.of("wormhole-use-is-teleport: true", "timeout-shutdown: 60"),
+        assertEquals(List.of("wormhole-use-is-teleport: true", "timeout-shutdown: 60", "log-level: FINE"),
             LegacySettingsNotice.carryOver(SETTINGS_TXT, DefaultSettings.config),
-            "TIMEOUT_ACTIVATE 30.0 and LOG_LEVEL INFO are the defaults, BUILT_IN_PERMISSIONS_ENABLED no"
-                + " longer exists, and the stray Value: FINE is nobody's, so naming any of them would send"
-                + " the operator after nothing");
+            "TIMEOUT_ACTIVATE 30.0 is the default, BUILT_IN_PERMISSIONS_ENABLED no longer exists, the stray"
+                + " Value: 99 is nobody's, and the permissions and Help settings are not the same settings now;"
+                + " each value is spelled the way config.yml can read it");
     }
 
     @Test
@@ -113,7 +128,8 @@ class LegacySettingsNoticeTest
         LegacySettingsNotice.announce(directory);
 
         verify(plugin).prettyLog(eq(Level.INFO),
-            contains("Set these again in config.yml to keep them: wormhole-use-is-teleport: true, timeout-shutdown: 60."));
+            contains("Set these again in config.yml to keep them: wormhole-use-is-teleport: true,"
+                + " timeout-shutdown: 60, log-level: FINE."));
     }
 
     /** A file that size is not a settings file, and reading it all during plugin load would cost for nothing. */
@@ -131,6 +147,30 @@ class LegacySettingsNoticeTest
         LegacySettingsNotice.announce(directory);
 
         verify(plugin, never()).prettyLog(eq(Level.INFO), anyString());
+    }
+
+    /** A server that already has config.yml lost nothing to Settings.txt on this start. */
+    @Test
+    void aStartWithAConfigYmlAlreadyThereSaysNothing() throws IOException
+    {
+        when(plugin.getDataFolder()).thenReturn(directory);
+        Files.write(new File(directory, LegacySettingsNotice.LEGACY_FILE).toPath(), SETTINGS_TXT,
+            StandardCharsets.ISO_8859_1);
+        Files.write(new File(directory, "config.yml").toPath(), List.of("timeout-activate: 30"),
+            StandardCharsets.UTF_8);
+
+        Configuration.loadConfiguration("WormholeXTreme");
+
+        verify(plugin, never()).prettyLog(eq(Level.INFO), contains(LegacySettingsNotice.LEGACY_FILE));
+    }
+
+    @Test
+    void aValueThatCannotBeOneForItsSettingIsLeftOut()
+    {
+        assertEquals(null, LegacySettingsNotice.asConfigValue(30, "45.5"),
+            "a fraction cannot go in a whole-number setting, so naming it would only move the failure");
+        assertEquals(null, LegacySettingsNotice.asConfigValue(Boolean.FALSE, "yes"),
+            "nor can a word other than true or false go in an on-or-off one");
     }
 
     @Test
