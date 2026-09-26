@@ -224,6 +224,78 @@ jobs:
           path: target/surefire-reports/
           if-no-files-found: ignore
           retention-days: 7
+
+  # The shipped jar on a real server. Compiling against an API cannot see what only fails when the
+  # server loads a class or registers a listener, and onEnable logs its failures rather than throwing.
+  boot-test:
+    name: Boot ${{ matrix.server }} ${{ matrix.version }}
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # "version:", not "minecraft:", for the same release.yml reason as paper-api.
+        include:
+          - { server: paper, version: "1.20", java: "17" }
+          - { server: paper, version: "1.20.1", java: "17" }
+          - { server: paper, version: "1.20.4", java: "21" }
+          - { server: paper, version: "1.20.6", java: "21" }
+          - { server: paper, version: "1.21.1", java: "21" }
+          - { server: paper, version: "1.21.4", java: "21" }
+          - { server: paper, version: "1.21.10", java: "21" }
+          - { server: paper, version: "1.21.11", java: "21" }
+          - { server: paper, version: "26.1.2", java: "25" }
+          - { server: paper, version: "26.2", java: "25" }
+          - { server: paper, version: "26.3", java: "25" }
+          - { server: purpur, version: "26.3", java: "25" }
+          # No Spigot API on CraftBukkit, which is where a stray spigot() call breaks.
+          - { server: craftbukkit, version: "26.2", java: "25" }
+          - { server: spigot, version: "26.3", java: "25" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: WormholeXTreme-snapshot
+          path: plugin
+
+      # BuildTools takes minutes, so its output is kept; Paper and Purpur are a quick download.
+      - name: Cache the BuildTools server
+        if: matrix.server == 'spigot' || matrix.server == 'craftbukkit'
+        id: server-cache
+        uses: actions/cache@v6
+        with:
+          path: server.jar
+          key: buildtools-${{ matrix.server }}-${{ matrix.version }}-v1
+
+      - name: Fetch ${{ matrix.server }} ${{ matrix.version }}
+        if: steps.server-cache.outputs.cache-hit != 'true'
+        run: bash scripts/fetch-server.sh ${{ matrix.server }} ${{ matrix.version }} server.jar
+
+      - name: Boot the plugin
+        env:
+          # Expected on a bare server; the OBSIDIAN one is a real default-config fault still to fix.
+          BOOT_TEST_ALLOW: "No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree"
+          BOOT_DIR: boot
+        run: bash scripts/boot-test.sh server.jar plugin/WormholeXTreme-*.jar
+
+      - name: Upload the server log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: boot-log-${{ matrix.server }}-${{ matrix.version }}
+          path: boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest
