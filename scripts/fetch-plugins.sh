@@ -10,14 +10,16 @@ mc="$1"
 out="$2"
 as_of="${PLUGINS_AS_OF:-$(tr -d '\r\n ' < "$(dirname "$0")/plugins-as-of.txt")}"
 ua="WormholeXTreme-boot-test (https://github.com/khanjal/Wormhole-X-Treme)"
+py="$(command -v python3 || command -v python)"
+get() { curl -fsS --retry 3 --retry-all-errors "$@"; }
 mkdir -p "$out"
 : > "$out/skipped.txt"
 
 for slug in luckperms placeholderapi coreprotect essentialsx; do
   # Within a build's declared range rather than an exact tag: EssentialsX tags only a few versions.
-  pick="$(curl -fsS -A "$ua" -G "https://api.modrinth.com/v2/project/$slug/version" \
+  pick="$(get -A "$ua" -G "https://api.modrinth.com/v2/project/$slug/version" \
       --data-urlencode 'loaders=["paper","spigot","bukkit"]' \
-    | AS_OF="$as_of" MC="$mc" python3 -c '
+    | AS_OF="$as_of" MC="$mc" "$py" -c '
 import json, os, re, sys
 as_of, mc = os.environ["AS_OF"], os.environ["MC"]
 def key(v):
@@ -42,12 +44,12 @@ for v in json.load(sys.stdin):
     continue
   fi
   read -r version url sha512 filename <<< "$pick"
-  curl -fsS -A "$ua" -o "$out/$filename" "$url"
+  get -A "$ua" -o "$out/$filename" "$url"
   echo "$sha512  $out/$filename" | sha512sum -c --quiet
   echo "fetched $slug $version"
 done
 
 # Vault is not on Modrinth; its last release is from 2020 and still what servers run.
-curl -fsSL -A "$ua" -o "$out/Vault.jar" "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar"
+get -L -A "$ua" -o "$out/Vault.jar" "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar"
 echo "a6b5ed97f43a5cf5bbaf00a7c8cd23c5afc9bd003f849875af8b36e6cf77d01d  $out/Vault.jar" | sha256sum -c --quiet
 echo "fetched vault 1.7.3"

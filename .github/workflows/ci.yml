@@ -352,7 +352,7 @@ jobs:
         run: bash scripts/integration-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.version }}
 
       - name: Upload the server log
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: integration-log-${{ matrix.version }}
