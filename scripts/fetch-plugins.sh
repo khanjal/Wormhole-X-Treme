@@ -8,7 +8,7 @@ set -euo pipefail
 
 mc="$1"
 out="$2"
-as_of="${PLUGINS_AS_OF:-$(cat "$(dirname "$0")/plugins-as-of.txt")}"
+as_of="${PLUGINS_AS_OF:-$(tr -d '\r\n ' < "$(dirname "$0")/plugins-as-of.txt")}"
 ua="WormholeXTreme-boot-test (https://github.com/khanjal/Wormhole-X-Treme)"
 mkdir -p "$out"
 : > "$out/skipped.txt"
