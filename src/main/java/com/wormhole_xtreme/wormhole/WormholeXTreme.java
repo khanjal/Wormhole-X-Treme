@@ -381,8 +381,11 @@ public class WormholeXTreme extends JavaPlugin
     /** The shutdown's one line about gates, which must not read as all saved when some were not. */
     static String savedSummary(final int saved, final int total)
     {
-        return (saved == total) ? "Saved " + total + " gate" + (total == 1 ? "" : "s") + " to disk."
-            : "Saved " + saved + " of " + total + " gates to disk; the errors above say which were not.";
+        if (saved != total)
+        {
+            return "Saved " + saved + " of " + total + " gates to disk; the errors above say which were not.";
+        }
+        return "Saved " + total + ((total == 1) ? " gate" : " gates") + " to disk.";
     }
 
     /**
