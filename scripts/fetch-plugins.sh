@@ -16,19 +16,23 @@ mkdir -p "$out"
 for slug in luckperms placeholderapi coreprotect essentialsx; do
   # Within a build's declared range rather than an exact tag: EssentialsX tags only a few versions.
   pick="$(curl -fsS -A "$ua" -G "https://api.modrinth.com/v2/project/$slug/version" \
-      --data-urlencode 'loaders=["paper"]' \
+      --data-urlencode 'loaders=["paper","spigot","bukkit"]' \
     | AS_OF="$as_of" MC="$mc" python3 -c '
 import json, os, re, sys
 as_of, mc = os.environ["AS_OF"], os.environ["MC"]
 def key(v):
-    return tuple(int(n) for n in v.split("."))
+    # Padded so that 26.3 and 26.3.0 compare equal.
+    return (tuple(int(n) for n in v.split(".")) + (0, 0))[:3]
 for v in json.load(sys.stdin):
     if v["version_type"] != "release" or (as_of != "latest" and v["date_published"][:10] > as_of):
         continue
     tagged = [key(g) for g in v["game_versions"] if re.fullmatch(r"\d+(\.\d+)*", g)]
     if not tagged or not (min(tagged) <= key(mc) <= max(tagged)):
         continue
-    f = next((f for f in v["files"] if f["primary"]), v["files"][0])
+    jars = [f for f in v["files"] if f["filename"].endswith(".jar")]
+    if not jars:
+        continue
+    f = next((f for f in jars if f["primary"]), jars[0])
     print(v["version_number"], f["url"], f["hashes"]["sha512"], f["filename"])
     break
 ')"

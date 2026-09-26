@@ -102,11 +102,12 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title="Latest integration plugins break the boot test"
-          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
           if [[ -n "$existing" ]]; then
             gh issue comment "$existing" --body "Still failing: $RUN_URL"
           else
-            gh issue create --title "$title" --body "The weekly boot test against the newest LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX releases failed: $RUN_URL
-
-          Each failed leg uploads its server log. If a plugin update is at fault and it is theirs to fix, leave scripts/plugins-as-of.txt where it is; once we are compatible, move the date forward so the PR checks use the new release."
+            body="$(printf '%s\n\n%s\n' \
+              "The weekly boot test against the newest LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX releases failed: $RUN_URL" \
+              "Each failed leg uploads its server log. If a plugin update is at fault and it is theirs to fix, leave scripts/plugins-as-of.txt where it is; once we are compatible, move the date forward so the PR checks use the new release.")"
+            gh issue create --title "$title" --body "$body"
           fi

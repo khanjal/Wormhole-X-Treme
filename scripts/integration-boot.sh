@@ -27,7 +27,8 @@ if has placeholderapi; then
 fi
 if has coreprotect; then
   add config 'coreprotect-enabled: true'
-  add require 'Enabling CoreProtect'
+  # Not "Enabling CoreProtect": the server prints that before CoreProtect's own startup runs.
+  add require 'CoreProtect.* has been successfully enabled'
 fi
 if has essentialsx; then
   add config 'economy-enabled: true'
