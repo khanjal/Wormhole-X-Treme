@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +74,21 @@ class LegacySettingsNoticeTest
     @AfterEach
     void tearDown() throws Exception
     {
+        ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /** Through the real first start, which is where the note has to fire for anyone to see it. */
+    @Test
+    void theFirstStartWithoutAConfigYmlAnnouncesTheSettingsTxtBesideIt() throws IOException
+    {
+        when(plugin.getDataFolder()).thenReturn(directory);
+        Files.write(new File(directory, LegacySettingsNotice.LEGACY_FILE).toPath(), SETTINGS_TXT,
+            StandardCharsets.ISO_8859_1);
+
+        Configuration.loadConfiguration("WormholeXTreme");
+
+        verify(plugin).prettyLog(eq(Level.INFO), contains("wormhole-use-is-teleport: true"));
     }
 
     @Test
