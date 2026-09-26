@@ -1,0 +1,112 @@
+name: Integrations (latest)
+
+# ci.yml boots the plugin beside pinned versions of the plugins it integrates with. This tries the
+# newest releases weekly, so a LuckPerms, PlaceholderAPI, CoreProtect or EssentialsX update that
+# breaks us is found within days, without turning a PR red for a change it did not make. Run it by
+# hand from the Actions tab on any branch to check a significant change before merging.
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      plugins_as_of:
+        description: "Plugin releases up to this date (YYYY-MM-DD), or latest"
+        default: "latest"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      # The test suite runs in ci.yml; this only needs the jar.
+      - name: Build the jar
+        run: mvn --batch-mode package -DskipTests
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: WormholeXTreme-integrations
+          path: target/WormholeXTreme-*.jar
+          retention-days: 7
+
+  boot:
+    name: Boot paper ${{ matrix.version }} with latest integrations
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { version: "1.20.4", java: "21" }
+          - { version: "1.21.11", java: "21" }
+          - { version: "26.2", java: "25" }
+          - { version: "26.3", java: "25" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: WormholeXTreme-integrations
+          path: plugin
+
+      - name: Fetch paper ${{ matrix.version }}
+        run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
+
+      - name: Boot the plugin with integrations
+        env:
+          BOOT_DIR: boot
+          PLUGINS_AS_OF: ${{ inputs.plugins_as_of || 'latest' }}
+        run: bash scripts/integration-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.version }}
+
+      - name: Upload the server log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-log-${{ matrix.version }}
+          path: boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # One open issue for the breakage, commented on each week it stays broken.
+  report:
+    name: Report a scheduled failure
+    needs: boot
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Latest integration plugins break the boot test"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body "Still failing: $RUN_URL"
+          else
+            gh issue create --title "$title" --body "The weekly boot test against the newest LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX releases failed: $RUN_URL
+
+          Each failed leg uploads its server log. If a plugin update is at fault and it is theirs to fix, leave scripts/plugins-as-of.txt where it is; once we are compatible, move the date forward so the PR checks use the new release."
+          fi
