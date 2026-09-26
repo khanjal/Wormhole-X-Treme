@@ -552,7 +552,7 @@ public final class GateSerializer
     }
 
     /**
-     * The iris and its code, which is all of {@link #readIrisAndLights} before version 5.
+     * The iris and its code: {@link #readIrisAndLights} without the lights flag, for versions 3 to 5.
      *
      * @param s
      *            the gate being built

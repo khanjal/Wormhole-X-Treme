@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
@@ -38,11 +42,13 @@ import com.wormhole_xtreme.wormhole.utils.DataUtils;
 class LegacyGateFidelityV3Test
 {
     private World world;
+    private WormholeXTreme plugin;
 
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -95,6 +101,25 @@ class LegacyGateFidelityV3Test
      */
     private byte[] version3Gate()
     {
+        return version3Gate(true, 41, 42, 0);
+    }
+
+    /**
+     * The same record with the sign flag, the two ids and some trailing padding chosen.
+     *
+     * @param signPowered
+     *            what the sign-powered byte says
+     * @param signTarget
+     *            the temp sign target, as the int version 3 wrote
+     * @param targetId
+     *            the temp target id, as the int version 3 wrote
+     * @param trailing
+     *            how many zero bytes follow the record
+     * @return the gate record
+     */
+    private byte[] version3Gate(final boolean signPowered, final int signTarget, final int targetId,
+        final int trailing)
+    {
         final byte[] facing = "EAST".getBytes(StandardCharsets.UTF_8);
         final byte[] idc = "letmein".getBytes(StandardCharsets.UTF_8);
 
@@ -105,12 +130,12 @@ class LegacyGateFidelityV3Test
         b.put(DataUtils.blockToBytes(blockAt(12, 64, 20)));       // name holder
         b.put(DataUtils.locationToBytes(new Location(world, 65.0, 69.0, 66.0, 33.0f, 45.0f)));
 
-        b.put((byte) 1);                                           // sign powered
+        b.put((byte) (signPowered ? 1 : 0));                       // sign powered
         b.put(DataUtils.blockToBytes(blockAt(13, 64, 20)));        // dial sign
         b.putInt(3);                                               // dial sign index
-        b.putInt(41);                                              // temp sign target, an int in v3
+        b.putInt(signTarget);                                      // temp sign target, an int in v3
         b.put((byte) 1);                                           // active
-        b.putInt(42);                                              // temp target id, an int in v3
+        b.putInt(targetId);                                        // temp target id, an int in v3
 
         b.putInt(facing.length);
         b.put(facing);
@@ -123,6 +148,7 @@ class LegacyGateFidelityV3Test
         b.put(DataUtils.blockToBytes(blockAt(2, 64, 1)));
         b.putInt(1);                                               // portal blocks
         b.put(DataUtils.blockToBytes(blockAt(3, 64, 1)));
+        b.put(new byte[trailing]);
 
         final byte[] out = new byte[b.position()];
         b.rewind();
@@ -210,5 +236,50 @@ class LegacyGateFidelityV3Test
         assertTrue(s.getGateLightBlocks().isEmpty(), "no light waves");
         assertTrue(s.getGateWooshBlocks().isEmpty(), "no woosh waves");
         assertNull(s.getGateMinecartTeleportLocation(), "no minecart arrival point");
+    }
+
+    /**
+     * A gate whose sign was not powered keeps no dial sign, though the slot is still read.
+     *
+     * <p>The slot holds a real block position here, so a reader that set it regardless of the
+     * flag would come back with 13,64,20 rather than none.
+     */
+    @Test
+    void anUnpoweredVersionThreeGateKeepsNoDialSign()
+    {
+        final Stargate s = GateSerializer.parseVersionedData(version3Gate(false, 41, 42, 0), world, "old", null);
+
+        assertFalse(s.isGateSignPowered(), "the flag says unpowered");
+        assertNull(s.getGateDialSignBlock(), "so the stored slot is not made its dial sign");
+        assertEquals(3, s.getGateDialSignIndex(), "and the fields after the slot still line up");
+    }
+
+    /**
+     * Negative ids keep their sign when the int widens to the long the gate holds.
+     *
+     * <p>An unsigned widening would turn -5 into 4294967291, a gate id nothing has.
+     */
+    @Test
+    void negativeVersionThreeIdsKeepTheirSign()
+    {
+        final Stargate s = GateSerializer.parseVersionedData(version3Gate(true, -5, -7, 0), world, "old", null);
+
+        assertEquals(-5L, s.getGateTempSignTarget(), "temp sign target");
+        assertEquals(-7L, s.getGateTempTargetId(), "temp target id");
+    }
+
+    /**
+     * Versions 3 to 5 have never warned about bytes left over, unlike the readers after them.
+     *
+     * <p>Kept that way on purpose: an old database with padding on each blob would otherwise log
+     * a warning per gate on every load and every import.
+     */
+    @Test
+    void trailingBytesAfterAVersionThreeGateAreNotWarnedAbout()
+    {
+        final Stargate s = GateSerializer.parseVersionedData(version3Gate(true, 41, 42, 3), world, "old", null);
+
+        assertEquals(List.of("3,64,1"), allAt(s.getGatePortalBlocks()), "the record itself still reads");
+        verify(plugin, never()).prettyLog(any(), contains("not all byte data was read"));
     }
 }
