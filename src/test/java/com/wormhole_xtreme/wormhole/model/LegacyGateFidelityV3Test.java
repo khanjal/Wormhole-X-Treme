@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -345,8 +344,8 @@ class LegacyGateFidelityV3Test
         assertEquals("13,64,20", at(s.getGateDialSignBlock()), "though the block is still known");
         assertEquals(42L, s.getGateTempTargetId(), "and the fields after the sign still line up");
         assertEquals(List.of("3,64,1"), allAt(s.getGatePortalBlocks()), "through to the end of the record");
-        verify(plugin).prettyLog(eq(Level.WARNING),
-            eq("Unable to get sign for stargate: old and will be unable to change dial target."));
+        verify(plugin).prettyLog(Level.WARNING,
+            "Unable to get sign for stargate: old and will be unable to change dial target.");
     }
 
     /**
