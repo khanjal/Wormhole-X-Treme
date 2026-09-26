@@ -57,6 +57,8 @@ class LegacySettingsNoticeTest
         "---------------",
         "Setting: LOG_LEVEL",
         "Value: INFO",
+        // A hand-edited file with a line repeated: it belongs to no setting and must not be read as LOG_LEVEL's.
+        "Value: FINE",
         "Description: (the old file described each setting here)");
 
     @TempDir
@@ -96,8 +98,9 @@ class LegacySettingsNoticeTest
     {
         assertEquals(List.of("wormhole-use-is-teleport: true", "timeout-shutdown: 60"),
             LegacySettingsNotice.carryOver(SETTINGS_TXT, DefaultSettings.config),
-            "TIMEOUT_ACTIVATE 30 and LOG_LEVEL INFO are the defaults, and BUILT_IN_PERMISSIONS_ENABLED no"
-                + " longer exists, so naming any of them would send the operator after nothing");
+            "TIMEOUT_ACTIVATE 30 and LOG_LEVEL INFO are the defaults, BUILT_IN_PERMISSIONS_ENABLED no"
+                + " longer exists, and the stray Value: FINE is nobody's, so naming any of them would send"
+                + " the operator after nothing");
     }
 
     @Test
