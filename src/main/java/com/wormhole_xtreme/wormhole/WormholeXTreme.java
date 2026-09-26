@@ -123,10 +123,9 @@ public class WormholeXTreme extends JavaPlugin
      * single import covers the versions this plugin supports, so there is a listener for
      * each and only one of them will resolve on any given server.
      *
-     * <p>The failure being caught is {@link NoClassDefFoundError}, raised when the listener
-     * class is loaded and its event type is not there. That is an Error rather than an
-     * Exception, and this is the one place where catching one is right: it is the documented
-     * way to ask a server which API it has, and the answer decides nothing else.
+     * <p>Chosen by whether the event class exists, not by trying to register: {@code registerEvents}
+     * catches a missing event type itself, logs an ERROR and registers nothing, so on 1.20 and
+     * 1.20.1 the first listener looked registered and the legacy one was never tried.
      *
      * @param pm
      *            the plugin manager to register with
@@ -134,9 +133,7 @@ public class WormholeXTreme extends JavaPlugin
     private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
                                                  final WormholeXTreme plugin)
     {
-        for (final String candidate : new String[] {
-            "com.wormhole_xtreme.wormhole.GateDismountListener",
-            "com.wormhole_xtreme.wormhole.LegacyGateDismountListener" })
+        for (final String candidate : dismountListenersFor(WormholeXTreme::serverHasClass))
         {
             try
             {
@@ -157,6 +154,40 @@ public class WormholeXTreme extends JavaPlugin
         }
         plugin.prettyLog(Level.WARNING,
             "No dismount event found on this server; riders will be able to dismount inside an open gate.");
+    }
+
+    /**
+     * The dismount listeners whose event this server has, newest package first.
+     *
+     * @param serverHasClass
+     *            whether a class of the given name is on the server
+     * @return listener class names to try in order; empty if neither event exists
+     */
+    static List<String> dismountListenersFor(final java.util.function.Predicate<String> serverHasClass)
+    {
+        final List<String> listeners = new java.util.ArrayList<>(2);
+        if (serverHasClass.test("org.bukkit.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.GateDismountListener");
+        }
+        if (serverHasClass.test("org.spigotmc.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.LegacyGateDismountListener");
+        }
+        return listeners;
+    }
+
+    private static boolean serverHasClass(final String name)
+    {
+        try
+        {
+            Class.forName(name, false, WormholeXTreme.class.getClassLoader());
+            return true;
+        }
+        catch (final ClassNotFoundException | LinkageError absent)
+        {
+            return false;
+        }
     }
 
     // Help integration removed; no setHelp
