@@ -112,6 +112,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
 - **Riders can no longer dismount inside an open gate on 1.20 through 1.20.3.** Nothing stopped
   them there, and the server logged an error about `EntityDismountEvent` at startup.
+- **`gate import` skips a damaged gate and says why**, instead of listing it as `null`, or
+  stopping the whole import on one.
 
 ### Commands
 
