@@ -1,6 +1,11 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +51,7 @@ class StargateLifecycleTest
         final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
             mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
-        org.mockito.Mockito.when(plugin.isEnabled()).thenReturn(false);
+        when(plugin.isEnabled()).thenReturn(false);
         PluginTestSupport.install(plugin);
         PluginTestSupport.scheduler(scheduler);
         try
@@ -55,9 +60,9 @@ class StargateLifecycleTest
 
             StargateLifecycle.startAfterShutdownTimer(gate);
 
-            org.mockito.Mockito.verify(scheduler, org.mockito.Mockito.never()).scheduleSyncDelayedTask(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Runnable.class),
-                org.mockito.ArgumentMatchers.anyLong());
+            verify(scheduler, never()).scheduleSyncDelayedTask(
+                any(), any(Runnable.class),
+                anyLong());
             assertFalse(gate.isGateRecentlyActive(),
                 "with no task to clear it later, the recently-active flag has to go now");
         }
@@ -75,9 +80,9 @@ class StargateLifecycleTest
         final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
             mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
-        org.mockito.Mockito.when(plugin.isEnabled()).thenReturn(true);
-        org.mockito.Mockito.when(scheduler.scheduleSyncDelayedTask(org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(Runnable.class), org.mockito.ArgumentMatchers.anyLong())).thenReturn(7);
+        when(plugin.isEnabled()).thenReturn(true);
+        when(scheduler.scheduleSyncDelayedTask(any(),
+            any(Runnable.class), anyLong())).thenReturn(7);
         PluginTestSupport.install(plugin);
         PluginTestSupport.scheduler(scheduler);
         try

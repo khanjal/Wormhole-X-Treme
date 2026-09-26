@@ -315,8 +315,8 @@ public class WormholeXTreme extends JavaPlugin
                 // hundred gates does not need a hundred identical lines on every restart.
                 for (final Stargate gate : gates)
                 {
-                    shutDownForDisable(gate);
-                    saveForDisable(gate);
+                    shutDownForDisable(this, gate);
+                    saveForDisable(this, gate);
                 }
                 if (!gates.isEmpty())
                 {
@@ -343,7 +343,7 @@ public class WormholeXTreme extends JavaPlugin
      * <p>One gate that fails to shut used to end the save loop, so every gate after it, and the rings,
      * beams and mirrors, went unsaved.
      */
-    private void shutDownForDisable(final Stargate gate)
+    static void shutDownForDisable(final WormholeXTreme plugin, final Stargate gate)
     {
         if (!(gate.isGateActive() || gate.isGateLightsActive()))
         {
@@ -355,12 +355,12 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception | LinkageError e)
         {
-            prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
+            plugin.prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
         }
     }
 
     /** Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved. */
-    private void saveForDisable(final Stargate gate)
+    static void saveForDisable(final WormholeXTreme plugin, final Stargate gate)
     {
         try
         {
@@ -368,7 +368,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception | LinkageError e)
         {
-            prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
+            plugin.prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
         }
     }
 
