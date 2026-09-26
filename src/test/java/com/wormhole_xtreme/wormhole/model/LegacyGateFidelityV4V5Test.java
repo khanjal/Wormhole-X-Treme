@@ -261,6 +261,26 @@ class LegacyGateFidelityV4V5Test
     }
 
     /**
+     * And every flag and number a version 4 one carries.
+     *
+     * <p>The two versions share a reader, so this and the version 4 test together pin the
+     * target ids as longs for both.
+     */
+    @Test
+    void aVersionFiveGateComesBackWithEveryFlagAVersionFourOneDoes()
+    {
+        final Stargate s = read(5);
+
+        assertTrue(s.isGateSignPowered(), "sign powered");
+        assertEquals(3, s.getGateDialSignIndex(), "dial sign index");
+        assertEquals(41L, s.getGateTempSignTarget(), "temp sign target");
+        assertTrue(s.isGateActive(), "active");
+        assertEquals(42L, s.getGateTempTargetId(), "temp target id");
+        assertTrue(s.isGateIrisActive(), "iris active");
+        assertTrue(s.isGateIrisDefaultActive(), "and that is remembered as the default");
+    }
+
+    /**
      * Version 5 is the version that started remembering whether the lights were on.
      *
      * <p>Version 4 stores no such byte, so a version 4 gate comes back with its lights off

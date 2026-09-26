@@ -102,6 +102,21 @@ class LegacySqliteImportTest
             "jdbc:sqlite:" + new File(dir, "WormholeXTreme.sqlite").getAbsolutePath());
     }
 
+    /** The gate with its facing's length prefix replaced, as a damaged blob might carry. */
+    private static byte[] withFacingLength(final byte[] gate, final int length)
+    {
+        final byte[] facing = "NORTH".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        for (int at = 4; at + facing.length <= gate.length; at++)
+        {
+            if (java.util.Arrays.equals(gate, at, at + facing.length, facing, 0, facing.length))
+            {
+                java.nio.ByteBuffer.wrap(gate).putInt(at - 4, length);
+                return gate;
+            }
+        }
+        throw new IllegalStateException("the fixture gate should carry a NORTH facing");
+    }
+
     private static void insert(final Connection db, final String sql, final Object... values)
         throws Exception
     {
@@ -217,18 +232,37 @@ class LegacySqliteImportTest
             insert(db, sql, "Abydos", LegacySaveVersionTest.version3Gate(world), "gw");
             insert(db, sql, "Tollana", LegacySaveVersionTest.version3Gate(world), "unloaded");
             insert(db, sql, "Empty", new byte[0], "gw");
+            // Cut short, as a copy interrupted mid-write leaves it: the reader runs off the end.
+            insert(db, sql, "Cut", java.util.Arrays.copyOf(LegacySaveVersionTest.version3Gate(world), 40), "gw");
+            insert(db, sql, "Garbled", withFacingLength(LegacySaveVersionTest.version3Gate(world), Integer.MAX_VALUE - 8), "gw");
         }
 
         final LegacyDatabaseImporter.Result first = importWithWorldLoaded();
         assertEquals(1, first.getImported(), "skipped: " + first.getSkipped());
-        assertEquals(2, first.getSkipped().size(), "skipped: " + first.getSkipped());
+        assertEquals(4, first.getSkipped().size(), "skipped: " + first.getSkipped());
         assertTrue(first.getSkipped().contains("Tollana: world \"unloaded\" is not loaded"),
             "skipped: " + first.getSkipped());
         assertTrue(first.getSkipped().contains("Empty: no gate data"), "skipped: " + first.getSkipped());
+        // It used to say "Cut: null", which tells the operator nothing about what to look at.
+        assertTrue(first.getSkipped().contains("Cut: its gate data could not be read (BufferUnderflowException)"),
+            "skipped: " + first.getSkipped());
+        // Allocating what the garbled length claimed threw OutOfMemoryError, which aborted the whole import.
+        assertTrue(first.getSkipped().stream().anyMatch(s -> s.startsWith(
+                "Garbled: its gate data is damaged: a field claims " + (Integer.MAX_VALUE - 8) + " bytes")),
+            "skipped: " + first.getSkipped());
 
         final LegacyDatabaseImporter.Result second = importWithWorldLoaded();
         assertEquals(0, second.getImported(), "a second run must not duplicate gates");
         assertTrue(second.getSkipped().contains("Abydos: a gate of that name is already here"),
             "skipped: " + second.getSkipped());
+    }
+
+    /** A failure that does say what went wrong is passed on as it is, not replaced by the generic line. */
+    @Test
+    void aSkippedGatesOwnReasonIsKeptWhenItHasOne()
+    {
+        assertEquals("No enum constant org.bukkit.block.BlockFace.SIDEWAYS",
+            LegacyDatabaseImporter.reasonFor(new IllegalArgumentException("No enum constant org.bukkit.block.BlockFace.SIDEWAYS")),
+            "the exception's own message is more use to the operator than the fallback");
     }
 }

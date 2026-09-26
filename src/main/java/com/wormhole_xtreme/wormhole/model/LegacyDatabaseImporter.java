@@ -223,9 +223,16 @@ public final class LegacyDatabaseImporter
         catch (final RuntimeException oneGate)
         {
             // One unreadable gate is not a reason to abandon the rest.
-            skipped.add(name + ": " + oneGate.getMessage());
+            skipped.add(name + ": " + reasonFor(oneGate));
         }
         return false;
+    }
+
+    /** A cut-short blob throws with no message, which printed as "null". */
+    static String reasonFor(final RuntimeException oneGate)
+    {
+        return (oneGate.getMessage() != null) ? oneGate.getMessage()
+            : "its gate data could not be read (" + oneGate.getClass().getSimpleName() + ")";
     }
 
     /**
