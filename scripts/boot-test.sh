@@ -2,6 +2,8 @@
 # Starts a real server with the plugin and fails on anything short of a clean enable, run and stop:
 #   boot-test.sh <server.jar> <plugin.jar>
 # JAVA picks the runtime (default: java on PATH); BOOT_DIR keeps the server folder for inspection.
+# Optional: EXTRA_PLUGINS, a folder of jars installed alongside; BOOT_CONFIG, lines for the plugin's
+# config.yml before first start; BOOT_COMMANDS and BOOT_REQUIRE, one console command or log regex a line.
 set -uo pipefail
 
 if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
@@ -19,6 +21,13 @@ mkdir -p "$dir/plugins"
 dir="$(cd "$dir" && pwd)"
 rm -f "$dir"/plugins/*.jar
 cp "$plugin_jar" "$dir/plugins/"
+if [[ -n "${EXTRA_PLUGINS:-}" ]]; then
+  cp "$EXTRA_PLUGINS"/*.jar "$dir/plugins/"
+fi
+if [[ -n "${BOOT_CONFIG:-}" ]]; then
+  mkdir -p "$dir/plugins/WormholeXTreme"
+  printf '%s\n' "$BOOT_CONFIG" > "$dir/plugins/WormholeXTreme/config.yml"
+fi
 echo "eula=true" > "$dir/eula.txt"
 cat > "$dir/server.properties" <<'EOF'
 online-mode=false
@@ -54,6 +63,9 @@ if [[ $started -eq 1 ]]; then
   # The repeating tasks first run 20 to 100 ticks after enable, so give them time to throw.
   send "wormhole"
   send "wx list"
+  while IFS= read -r command; do
+    [[ -n "$command" ]] && send "$command"
+  done <<< "${BOOT_COMMANDS:-}"
   sleep "$settle_seconds"
   send "stop"
   for ((i = 0; i < 120; i++)); do
@@ -70,6 +82,9 @@ failures=()
 grep -q 'Enable Completed' "$log" || failures+=("the plugin never logged Enable Completed")
 [[ $started -eq 0 || $stopped -eq 1 ]] || failures+=("server did not exit within 120s of stop")
 [[ $started -eq 1 ]] && ! grep -q 'Disabling WormholeXTreme' "$log" && failures+=("the plugin was never disabled")
+while IFS= read -r required; do
+  [[ -z "$required" ]] || grep -qE "$required" "$log" || failures+=("never logged: $required")
+done <<< "${BOOT_REQUIRE:-}"
 
 # onEnable catches its own failures and logs them, so a warning is the failure signal, not an exception escaping.
 pattern='(WARN|ERROR|SEVERE)\]:? .*(WormholeXTreme|wormhole_xtreme)|^\s+at com\.wormhole_xtreme|Could not load .plugins/|Error occurred while (enabling|disabling)'
