@@ -21,6 +21,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off
   until `coreprotect-enabled` is set; a running gate is not logged. See
   [the guide](docs/guide/SERVER.md#coreprotect).
+- **A server upgrading from a `Settings.txt` build is told which of its settings to set again.**
+  That file is still not read; the first start names only those that exist and differ from
+  the default.
 
 **Removed**
 
@@ -109,6 +112,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 - **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
 - **Riders can no longer dismount inside an open gate on 1.20 through 1.20.3.** Nothing stopped
   them there, and the server logged an error about `EntityDismountEvent` at startup.
+- **`gate import` skips a damaged gate and says why**, instead of listing it as `null`, or
+  stopping the whole import on one.
 
 ### Commands
 

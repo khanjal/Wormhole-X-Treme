@@ -65,7 +65,7 @@ public final class GateSerializer
         {
             return null; // no custom material stored
         }
-        final byte[] raw = new byte[length];
+        final byte[] raw = sized(byteBuff, length);
         byteBuff.get(raw);
         final String materialName = new String(raw, java.nio.charset.StandardCharsets.UTF_8);
         final Material material = Material.matchMaterial(materialName);
@@ -328,7 +328,7 @@ public final class GateSerializer
     private static void readEarlyFacing(final Stargate s, final ByteBuffer byteBuff)
     {
         final int facingSize = byteBuff.getInt();
-        final byte[] strBytes = new byte[facingSize];
+        final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
         final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
         s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
@@ -511,7 +511,7 @@ public final class GateSerializer
     private static void readFacingAndOrientation(final Stargate s, final ByteBuffer byteBuff)
     {
         final int facingSize = byteBuff.getInt();
-        final byte[] strBytes = new byte[facingSize];
+        final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
         final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
         s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
@@ -560,7 +560,7 @@ public final class GateSerializer
     private static void readIris(final Stargate s, final ByteBuffer byteBuff)
     {
         final int idcLen = byteBuff.getInt();
-        final byte[] idcBytes = new byte[idcLen];
+        final byte[] idcBytes = sized(byteBuff, idcLen);
         byteBuff.get(idcBytes);
         s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
@@ -683,6 +683,13 @@ public final class GateSerializer
                                   final List<List<Location>> waves)
     {
         final int numLayers = byteBuff.getInt();
+        // Growing the list reads nothing, so a garbled count would run to OutOfMemoryError; every
+        // layer carries at least its own four-byte count.
+        if ((numLayers < 0) || (numLayers > byteBuff.remaining() / 4))
+        {
+            throw new IllegalArgumentException("its gate data is damaged: it claims " + numLayers
+                + " layers with " + byteBuff.remaining() + " bytes left");
+        }
         while (waves.size() < numLayers)
         {
             waves.add(new ArrayList<>());
@@ -755,6 +762,22 @@ public final class GateSerializer
     private static byte[] emptyBlock()
     {
         return new byte[12];
+    }
+
+    /**
+     * An array for a length-prefixed field, refused if the length cannot be right.
+     *
+     * <p>A damaged blob can carry any number there. A huge one used to throw OutOfMemoryError, which
+     * no per-gate catch stops, so one bad gate aborted a whole import.
+     */
+    private static byte[] sized(final ByteBuffer byteBuff, final int length)
+    {
+        if ((length < 0) || (length > byteBuff.remaining()))
+        {
+            throw new IllegalArgumentException("its gate data is damaged: a field claims " + length
+                + " bytes with " + byteBuff.remaining() + " left");
+        }
+        return new byte[length];
     }
 
     /**
