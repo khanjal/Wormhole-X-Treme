@@ -121,7 +121,7 @@ public class WormholeXTreme extends JavaPlugin
      * <p>Spigot moved {@code EntityDismountEvent} from {@code org.spigotmc.event.entity} to
      * {@code org.bukkit.event.entity} in 1.20.4, and dropped the old package in 1.20.6. No
      * single import covers the versions this plugin supports, so there is a listener for
-     * each and only one of them will resolve on any given server.
+     * each. 1.20.4 has both classes, but only the new one fires there.
      *
      * <p>Chosen by whether the event class exists, not by trying to register: {@code registerEvents}
      * catches a missing event type itself, logs an ERROR and registers nothing, so on 1.20 and
@@ -142,11 +142,8 @@ public class WormholeXTreme extends JavaPlugin
                 plugin.prettyLog(Level.FINE, "Dismount handling registered via " + candidate);
                 return;
             }
-            catch (final NoClassDefFoundError notOnThisServer)
-            {
-                // Not on this server's Bukkit; the loop moves to the next candidate by itself.
-            }
-            catch (final ReflectiveOperationException | RuntimeException e)
+            // LinkageError too: a listener that fails to link must not stop the plugin enabling.
+            catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
             {
                 plugin.prettyLog(Level.FINE,
                     "Could not register " + candidate, e);
