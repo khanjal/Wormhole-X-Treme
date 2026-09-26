@@ -3,7 +3,7 @@
 #   fetch-plugins.sh <minecraft-version> <out-dir>
 # Each Modrinth plugin is its newest build for that version published on or before PLUGINS_AS_OF
 # (YYYY-MM-DD); PLUGINS_AS_OF=latest drops the cutoff. A plugin with no build for the version is
-# skipped and named in <out-dir>/skipped.txt.
+# skipped and named in <out-dir>/skipped.txt. PLUGINS, a space-separated list, fetches only those.
 set -euo pipefail
 
 mc="$1"
@@ -20,7 +20,9 @@ fi
 mkdir -p "$out"
 : > "$out/skipped.txt"
 
+wanted="${PLUGINS:-luckperms placeholderapi coreprotect essentialsx vault}"
 for slug in luckperms placeholderapi coreprotect essentialsx; do
+  [[ " $wanted " == *" $slug "* ]] || continue
   # Within a build's declared range rather than an exact tag: EssentialsX tags only a few versions.
   pick="$(get -A "$ua" -G "https://api.modrinth.com/v2/project/$slug/version" \
       --data-urlencode 'loaders=["paper","spigot","bukkit"]' \
@@ -56,6 +58,7 @@ for v in sorted(json.load(sys.stdin), key=lambda v: v["date_published"], reverse
 done
 
 # Vault is not on Modrinth; its last release is from 2020 and still what servers run.
+[[ " $wanted " == *" vault "* ]] || exit 0
 get -L -A "$ua" -o "$out/Vault.jar" "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar"
 echo "a6b5ed97f43a5cf5bbaf00a7c8cd23c5afc9bd003f849875af8b36e6cf77d01d  $out/Vault.jar" | sha256sum -c --quiet
 echo "fetched vault 1.7.3"
