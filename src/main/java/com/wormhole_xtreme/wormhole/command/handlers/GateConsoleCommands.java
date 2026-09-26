@@ -200,10 +200,13 @@ public final class GateConsoleCommands
         {
             return "Usage: " + BUILD_USAGE;
         }
-        if (!(StargateShapeRegistry.isStargateShape(rest[0])
-            && (StargateShapeRegistry.getStargateShape(rest[0]) instanceof Stargate3DShape)))
+        if (!StargateShapeRegistry.isStargateShape(rest[0]))
         {
             return "No shape called " + rest[0] + ".";
+        }
+        if (!(StargateShapeRegistry.getStargateShape(rest[0]) instanceof Stargate3DShape))
+        {
+            return rest[0] + " is a flat shape; only a 3D shape can be built from coordinates.";
         }
         final String badName = Complete.whyNotAName(rest[1]);
         if (badName != null)

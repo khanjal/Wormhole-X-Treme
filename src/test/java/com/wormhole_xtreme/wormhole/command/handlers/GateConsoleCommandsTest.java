@@ -46,6 +46,9 @@ class GateConsoleCommandsTest
             final Stargate3DShape standard = mock(Stargate3DShape.class);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Flat")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat"))
+                .thenReturn(mock(com.wormhole_xtreme.wormhole.model.StargateShape.class));
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(mock(World.class));
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
             return GateConsoleCommands.whyNotBuildable(words);
@@ -72,6 +75,9 @@ class GateConsoleCommandsTest
     void everythingWrongWithTheLineIsRefusedBeforeAnythingIsBuilt()
     {
         assertEquals("No shape called Nope.", refusal("Nope", "A", "world", "0", "0", "0", "south"));
+        assertEquals("Flat is a flat shape; only a 3D shape can be built from coordinates.",
+            refusal("Flat", "A", "world", "0", "0", "0", "south"),
+            "a 2D shape has no blueprint to place, and saying it does not exist would be wrong");
         assertTrue(refusal("Standard", "-A", "world", "0", "0", "0", "south").contains("cannot start with '-'"),
             "a dash word is an option, so no gate may be called one");
         assertTrue(refusal("Standard", "Averylongname", "world", "0", "0", "0", "south").contains("too long"));
