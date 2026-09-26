@@ -227,6 +227,8 @@ jobs:
 
   # The shipped jar on a real server. Compiling against an API cannot see what only fails when the
   # server loads a class or registers a listener, and onEnable logs its failures rather than throwing.
+  # It cannot see what the plugin logs at INFO or swallows, what needs a player, or a server error
+  # with no plugin frame, and a leg can go red on a new server build with no plugin change.
   boot-test:
     name: Boot ${{ matrix.server }} ${{ matrix.version }}
     needs: build-and-test
@@ -274,10 +276,10 @@ jobs:
         id: month
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache the BuildTools server
+      - name: Restore the BuildTools server
         if: matrix.server == 'spigot' || matrix.server == 'craftbukkit'
         id: server-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: server.jar
           key: buildtools-${{ matrix.server }}-${{ matrix.version }}-${{ steps.month.outputs.month }}
@@ -286,6 +288,14 @@ jobs:
         if: steps.server-cache.outputs.cache-hit != 'true'
         run: bash scripts/fetch-server.sh ${{ matrix.server }} ${{ matrix.version }} server.jar
 
+      # Saved before the boot, so a red leg does not recompile on every retry.
+      - name: Save the BuildTools server
+        if: (matrix.server == 'spigot' || matrix.server == 'craftbukkit') && steps.server-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: server.jar
+          key: buildtools-${{ matrix.server }}-${{ matrix.version }}-${{ steps.month.outputs.month }}
+
       - name: Boot the plugin
         env:
           # Expected on a bare server; the OBSIDIAN one is a real default-config fault still to fix.
@@ -293,8 +303,9 @@ jobs:
           BOOT_DIR: boot
         run: bash scripts/boot-test.sh server.jar plugin/WormholeXTreme-*.jar
 
+      # Kept on a pass too, so a leg that passed for the wrong reason can be read afterwards.
       - name: Upload the server log
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: boot-log-${{ matrix.server }}-${{ matrix.version }}

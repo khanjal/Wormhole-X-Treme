@@ -35,7 +35,7 @@ log="$dir/console.log"
 
 send() { echo "$1" >> "$dir/commands.txt"; }
 
-cd "$dir"
+cd "$dir" || exit 2
 rm -f tail.pid
 { tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" -Xmx1G -DIReallyKnowWhatIAmDoingISwear=true \
   -Dterminal.jline=false -Dterminal.ansi=false -jar "$server_jar" nogui > "$log" 2>&1 &
@@ -68,12 +68,19 @@ kill -0 "$server_pid" 2>/dev/null || stopped=1
 failures=()
 [[ $started -eq 1 ]] || failures+=("server did not finish starting within ${start_timeout}s")
 grep -q 'Enable Completed' "$log" || failures+=("the plugin never logged Enable Completed")
-[[ $stopped -eq 1 ]] || failures+=("server did not exit within 120s of stop")
+[[ $started -eq 0 || $stopped -eq 1 ]] || failures+=("server did not exit within 120s of stop")
 [[ $started -eq 1 ]] && ! grep -q 'Disabling WormholeXTreme' "$log" && failures+=("the plugin was never disabled")
 
 # onEnable catches its own failures and logs them, so a warning is the failure signal, not an exception escaping.
 pattern='(WARN|ERROR|SEVERE)\]:? .*(WormholeXTreme|wormhole_xtreme)|^\s+at com\.wormhole_xtreme|Could not load .plugins/|Error occurred while (enabling|disabling)'
 if [[ -n "${BOOT_TEST_ALLOW:-}" ]]; then
+  # A broken or match-everything allowlist would hide every warning and pass.
+  echo | grep -Eq "$BOOT_TEST_ALLOW"
+  allow_check=$?
+  if [[ $allow_check -ne 1 ]]; then
+    echo "BOOT_TEST_ALLOW is not a usable regex, or matches every line: $BOOT_TEST_ALLOW" >&2
+    exit 2
+  fi
   flagged="$(grep -E "$pattern" "$log" | grep -Ev "$BOOT_TEST_ALLOW")"
 else
   flagged="$(grep -E "$pattern" "$log")"
