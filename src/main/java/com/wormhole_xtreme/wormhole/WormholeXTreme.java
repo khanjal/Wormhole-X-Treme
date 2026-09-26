@@ -316,7 +316,7 @@ public class WormholeXTreme extends JavaPlugin
                 for (final Stargate gate : gates)
                 {
                     shutDownForDisable(gate);
-                    StargateDBManager.saveStargate(gate);
+                    saveForDisable(gate);
                 }
                 if (!gates.isEmpty())
                 {
@@ -356,6 +356,19 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
+        }
+    }
+
+    /** Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved. */
+    private void saveForDisable(final Stargate gate)
+    {
+        try
+        {
+            StargateDBManager.saveStargate(gate);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
         }
     }
 
