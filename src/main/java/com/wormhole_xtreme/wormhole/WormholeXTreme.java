@@ -121,22 +121,19 @@ public class WormholeXTreme extends JavaPlugin
      * <p>Spigot moved {@code EntityDismountEvent} from {@code org.spigotmc.event.entity} to
      * {@code org.bukkit.event.entity} in 1.20.4, and dropped the old package in 1.20.6. No
      * single import covers the versions this plugin supports, so there is a listener for
-     * each and only one of them will resolve on any given server.
+     * each. 1.20.4 has both classes, but only the new one fires there.
      *
-     * <p>The failure being caught is {@link NoClassDefFoundError}, raised when the listener
-     * class is loaded and its event type is not there. That is an Error rather than an
-     * Exception, and this is the one place where catching one is right: it is the documented
-     * way to ask a server which API it has, and the answer decides nothing else.
+     * <p>Chosen by whether the event class exists, not by trying to register: {@code registerEvents}
+     * catches a missing event type itself, logs an ERROR and registers nothing, so before 1.20.4
+     * the first listener looked registered and the legacy one was never tried.
      *
      * @param pm
      *            the plugin manager to register with
      */
-    private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
+    static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
                                                  final WormholeXTreme plugin)
     {
-        for (final String candidate : new String[] {
-            "com.wormhole_xtreme.wormhole.GateDismountListener",
-            "com.wormhole_xtreme.wormhole.LegacyGateDismountListener" })
+        for (final String candidate : dismountListenersFor(WormholeXTreme::serverHasClass))
         {
             try
             {
@@ -145,11 +142,8 @@ public class WormholeXTreme extends JavaPlugin
                 plugin.prettyLog(Level.FINE, "Dismount handling registered via " + candidate);
                 return;
             }
-            catch (final NoClassDefFoundError notOnThisServer)
-            {
-                // Not on this server's Bukkit; the loop moves to the next candidate by itself.
-            }
-            catch (final ReflectiveOperationException | RuntimeException e)
+            // LinkageError too: a listener that fails to link must not stop the plugin enabling.
+            catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
             {
                 plugin.prettyLog(Level.FINE,
                     "Could not register " + candidate, e);
@@ -157,6 +151,40 @@ public class WormholeXTreme extends JavaPlugin
         }
         plugin.prettyLog(Level.WARNING,
             "No dismount event found on this server; riders will be able to dismount inside an open gate.");
+    }
+
+    /**
+     * The dismount listeners whose event this server has, newest package first.
+     *
+     * @param serverHasClass
+     *            whether a class of the given name is on the server
+     * @return listener class names to try in order; empty if neither event exists
+     */
+    static List<String> dismountListenersFor(final java.util.function.Predicate<String> serverHasClass)
+    {
+        final List<String> listeners = new java.util.ArrayList<>(2);
+        if (serverHasClass.test("org.bukkit.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.GateDismountListener");
+        }
+        if (serverHasClass.test("org.spigotmc.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.LegacyGateDismountListener");
+        }
+        return listeners;
+    }
+
+    static boolean serverHasClass(final String name)
+    {
+        try
+        {
+            Class.forName(name, false, WormholeXTreme.class.getClassLoader());
+            return true;
+        }
+        catch (final ClassNotFoundException | LinkageError absent)
+        {
+            return false;
+        }
     }
 
     // Help integration removed; no setHelp
