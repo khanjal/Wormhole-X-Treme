@@ -315,10 +315,7 @@ public class WormholeXTreme extends JavaPlugin
                 // hundred gates does not need a hundred identical lines on every restart.
                 for (final Stargate gate : gates)
                 {
-                    if (gate.isGateActive() || gate.isGateLightsActive())
-                    {
-                        gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
-                    }
+                    shutDownForDisable(gate);
                     StargateDBManager.saveStargate(gate);
                 }
                 if (!gates.isEmpty())
@@ -338,6 +335,28 @@ public class WormholeXTreme extends JavaPlugin
             {
                     prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
+    }
+
+    /**
+     * Shuts one open gate for the plugin stopping, without letting it stop the saves after it.
+     *
+     * <p>One gate that fails to shut used to end the save loop, so every gate after it, and the rings,
+     * beams and mirrors, went unsaved.
+     */
+    private void shutDownForDisable(final Stargate gate)
+    {
+        if (!(gate.isGateActive() || gate.isGateLightsActive()))
+        {
+            return;
+        }
+        try
+        {
+            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
+        }
     }
 
     /**
