@@ -107,7 +107,10 @@ The plugin API is in [docs/API.md](docs/API.md).
   completes as `HorizontalSignDial` instead of writing its name sign over the dial sign. Gates
   already completed without their sign are not changed.
 - **A gate's saved minecart arrival point keeps its pitch and yaw the right way round.**
-- **`gate import` says why a damaged gate was skipped**, instead of `null`.
+- **Riders can no longer dismount inside an open gate on 1.20 through 1.20.3.** Nothing stopped
+  them there, and the server logged an error about `EntityDismountEvent` at startup.
+- **`gate import` skips a damaged gate and says why**, instead of listing it as `null`, or
+  stopping the whole import on one.
 
 ### Commands
 
