@@ -72,6 +72,8 @@ public class ConfigurationYAML
             writeFile(cfg, DefaultSettings.config);
         }
 
+        // An unread file must still leave a group claiming OBSIDIAN, or the shipped shapes warn.
+        boolean groupsLoaded = false;
         try (InputStream in = new FileInputStream(cfg))
         {
             // The one reader that cannot treat "not a mapping" as "an empty mapping". Every
@@ -83,6 +85,7 @@ public class ConfigurationYAML
             final Object loaded = new Yaml().load(in);
             if (!(loaded instanceof Map))
             {
+                MaterialGroupRegistry.load(null);
                 return;
             }
             final Map<String, Object> map = YamlMaps.asMap(loaded);
@@ -95,6 +98,7 @@ public class ConfigurationYAML
             final Object groups = map.containsKey(MATERIAL_GROUPS_KEY)
                 ? map.get(MATERIAL_GROUPS_KEY) : seedMaterialGroups(cfg);
             loadMaterialGroups(groups);
+            groupsLoaded = true;
 
             // A line under a setting's old name is written back under its new one, so the file
             // says what the plugin reads rather than keeping an orphan beside a new default.
@@ -112,6 +116,10 @@ public class ConfigurationYAML
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml", e);
+            if (!groupsLoaded)
+            {
+                MaterialGroupRegistry.load(null);
+            }
         }
     }
 

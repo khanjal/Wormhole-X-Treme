@@ -13,7 +13,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 
 /**
  * The Class Configuration.
@@ -54,25 +53,15 @@ public class Configuration
             {
                 ConfigManager.getConfigurations().put(s.getName(), s);
             }
-            try
+            // Logs its own failure rather than throwing.
+            ConfigurationYAML.writeCurrentConfiguration(yamlFile);
+            if (yamlFile.exists())
             {
-                ConfigurationYAML.writeCurrentConfiguration(yamlFile);
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
-            }
-            catch (final RuntimeException t)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml", t);
             }
         }
         // Read back even a file just written: that read is what seeds and loads gate-material-groups.
-        if (yamlFile.exists())
-        {
-            ConfigurationYAML.loadConfiguration(directory);
-        }
-        else
-        {
-            MaterialGroupRegistry.load(null);
-        }
+        ConfigurationYAML.loadConfiguration(directory);
     }
 
     /**

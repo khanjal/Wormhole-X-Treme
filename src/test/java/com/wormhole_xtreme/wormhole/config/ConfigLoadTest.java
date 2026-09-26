@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -252,6 +253,63 @@ class ConfigLoadTest
             "an unreadable file leaves the built-in default in place");
         assertEquals(List.of("just a sentence"), configLines(),
             "and the file itself is left exactly as it was, not appended to");
+    }
+
+    /**
+     * A config.yml whose groups could not be read still leaves a group claiming OBSIDIAN.
+     *
+     * <p>Otherwise the registry stays empty and the shipped shapes, which disagree on their
+     * iris, warn the operator to add a group by hand, on top of the error that actually matters.
+     */
+    @Test
+    void aFileThatIsNotAMappingStillLeavesTheBuiltinGroup() throws Exception
+    {
+        MaterialGroupRegistry.load(Map.of("Lapis", Map.of("structure", "LAPIS_BLOCK")));
+        writeConfig("just a sentence\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN),
+            "the builtin Standard group stands in for the groups the file could not give");
+    }
+
+    /** The same, when the file cannot be opened at all: here a directory where the file should be. */
+    @Test
+    void aFileThatCannotBeReadStillLeavesTheBuiltinGroup()
+    {
+        MaterialGroupRegistry.load(Map.of("Lapis", Map.of("structure", "LAPIS_BLOCK")));
+        assertTrue(new File(directory, "config.yml").mkdir(), "set up an unreadable config.yml");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN),
+            "the builtin Standard group stands in for the groups the file could not give");
+    }
+
+    /**
+     * A write that fails after the groups were read does not throw them away for the builtin one.
+     *
+     * <p>Renaming an old key rewrites the file after the groups have loaded, inside the same
+     * catch as the read; a read-only file makes that rewrite fail.
+     */
+    @Test
+    void aFailedRewriteKeepsTheGroupsTheFileGave() throws Exception
+    {
+        writeConfig("mirror-proximity-radius: 11\ngate-material-groups:\n  Lapis:\n    structure: LAPIS_BLOCK\n");
+        final File cfg = new File(directory, "config.yml");
+        assertTrue(cfg.setWritable(false), "set up a config.yml the rename cannot rewrite");
+        assumeFalse(cfg.canWrite(), "running as root, which writes a read-only file anyway");
+        try
+        {
+            ConfigurationYAML.loadConfiguration(directory);
+        }
+        finally
+        {
+            cfg.setWritable(true);
+        }
+
+        assertEquals("Lapis", MaterialGroupRegistry.getDefaultGroup().getName(),
+            "the file's own group, not the builtin Standard that stands in for an unread one");
     }
 
     /**
