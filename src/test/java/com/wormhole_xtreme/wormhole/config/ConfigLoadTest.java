@@ -2,14 +2,27 @@ package com.wormhole_xtreme.wormhole.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.stream.Stream;
+
+import org.bukkit.Material;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +31,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
 
 /**
  * Reading config.yml at startup.
@@ -73,6 +89,42 @@ class ConfigLoadTest
 
         assertTrue(new File(directory, "config.yml").isFile(), "a config file is written on a first run");
         assertFalse(ConfigManager.getConfigurations().isEmpty(), "and the defaults are loaded");
+    }
+
+    /**
+     * A fresh install loads the shipped material groups on its first boot, so the shipped shapes raise no warning.
+     *
+     * <p>The no-config.yml path wrote the flat settings and never read the file back, so
+     * gate-material-groups was neither seeded nor loaded until the second boot. With no group
+     * claiming OBSIDIAN, discovery saw the stock shapes disagree on their iris (Horizontal pins
+     * GLASS) and told the operator to fix config they had never written.
+     */
+    @Test
+    void aFreshInstallClaimsObsidianBeforeTheShippedShapesAreRead() throws Exception
+    {
+        // Not the builtin fallback the teardown leaves behind: that claims OBSIDIAN, and would pass this unread.
+        MaterialGroupRegistry.load(Map.of("Lapis", Map.of("structure", "LAPIS_BLOCK")));
+
+        Configuration.loadConfiguration(directory);
+
+        assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN),
+            "the shipped Standard group is loaded on the first boot, not the second");
+        assertTrue(configLines().contains("gate-material-groups:"), "and written to the new config.yml");
+
+        final List<StargateShape> shipped = new ArrayList<>();
+        try (Stream<Path> files = Files.list(Paths.get("src/main/resources/shapes/gate")))
+        {
+            for (final Path file : files.filter(f -> f.toString().endsWith(".shape")).toList())
+            {
+                shipped.add(StargateShapeFactory.createShapeFromFile(
+                    Files.readAllLines(file, StandardCharsets.UTF_8).toArray(new String[0])));
+            }
+        }
+        assertEquals(9, shipped.size(), "every shipped gate shape was read");
+
+        MaterialGroupRegistry.discoverUndeclaredGroups(shipped);
+
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("disagree"));
     }
 
     /** A value in the file wins over the default. */
