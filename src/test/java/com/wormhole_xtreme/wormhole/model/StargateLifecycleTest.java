@@ -1,6 +1,11 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +31,74 @@ class StargateLifecycleTest
     {
         gate = new Stargate();
         gate.setGateName("TestGate");
+    }
+
+    // -----------------------------------------------------------------------
+    // startAfterShutdownTimer
+    // -----------------------------------------------------------------------
+
+    /**
+     * Stopping the server with a wormhole open schedules nothing.
+     *
+     * <p>Found by a boot test that dialled two gates from the console and then stopped the server:
+     * onDisable shut the open gate, the shutdown scheduled its three-second follow-up, and Bukkit
+     * threw IllegalPluginAccessException because the plugin was already disabled. The throw ended
+     * the save loop, so every gate after it, and the rings, beams and mirrors, went unsaved.
+     */
+    @Test
+    void aGateShutWhileThePluginIsDisablingSchedulesNothingAndIsNoLongerRecentlyActive() throws Exception
+    {
+        final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
+            mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        when(plugin.isEnabled()).thenReturn(false);
+        PluginTestSupport.install(plugin);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            gate.setGateRecentlyActive(true);
+
+            StargateLifecycle.startAfterShutdownTimer(gate);
+
+            verify(scheduler, never()).scheduleSyncDelayedTask(
+                any(), any(Runnable.class),
+                anyLong());
+            assertFalse(gate.isGateRecentlyActive(),
+                "with no task to clear it later, the recently-active flag has to go now");
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+            PluginTestSupport.remove();
+        }
+    }
+
+    /** The counterpart: running normally, the follow-up is scheduled and the flag waits for it. */
+    @Test
+    void aGateShutWhileRunningSchedulesItsFollowUp() throws Exception
+    {
+        final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
+            mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        when(plugin.isEnabled()).thenReturn(true);
+        when(scheduler.scheduleSyncDelayedTask(any(),
+            any(Runnable.class), anyLong())).thenReturn(7);
+        PluginTestSupport.install(plugin);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            gate.setGateRecentlyActive(true);
+
+            StargateLifecycle.startAfterShutdownTimer(gate);
+
+            assertEquals(7, gate.getGateAfterShutdownTaskId(), "the follow-up task should be the one kept");
+            assertTrue(gate.isGateRecentlyActive(), "the flag stays until the follow-up clears it");
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+            PluginTestSupport.remove();
+        }
     }
 
     // -----------------------------------------------------------------------
