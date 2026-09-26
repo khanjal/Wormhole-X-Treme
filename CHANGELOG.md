@@ -21,6 +21,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off
   until `coreprotect-enabled` is set; a running gate is not logged. See
   [the guide](docs/guide/SERVER.md#coreprotect).
+- **A server upgrading from a `Settings.txt` build is told which of its settings to set again.**
+  That file is still not read; the first start names only those that exist and differ from
+  the default.
 
 **Removed**
 
