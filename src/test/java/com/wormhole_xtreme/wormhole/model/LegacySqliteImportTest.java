@@ -236,4 +236,13 @@ class LegacySqliteImportTest
         assertTrue(second.getSkipped().contains("Abydos: a gate of that name is already here"),
             "skipped: " + second.getSkipped());
     }
+
+    /** A failure that does say what went wrong is passed on as it is, not replaced by the generic line. */
+    @Test
+    void aSkippedGatesOwnReasonIsKeptWhenItHasOne()
+    {
+        assertEquals("No enum constant org.bukkit.block.BlockFace.SIDEWAYS",
+            LegacyDatabaseImporter.reasonFor(new IllegalArgumentException("No enum constant org.bukkit.block.BlockFace.SIDEWAYS")),
+            "the exception's own message is more use to the operator than the fallback");
+    }
 }

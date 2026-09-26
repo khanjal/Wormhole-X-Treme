@@ -229,7 +229,7 @@ public final class LegacyDatabaseImporter
     }
 
     /** A cut-short blob throws with no message, which printed as "null". */
-    private static String reasonFor(final RuntimeException oneGate)
+    static String reasonFor(final RuntimeException oneGate)
     {
         return (oneGate.getMessage() != null) ? oneGate.getMessage()
             : "its gate data could not be read (" + oneGate.getClass().getSimpleName() + ")";
