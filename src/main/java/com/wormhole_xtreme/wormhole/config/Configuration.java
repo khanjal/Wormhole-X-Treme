@@ -57,6 +57,8 @@ public class Configuration
             {
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml", t);
             }
+            // Only here, where config.yml is first made: that is the moment an upgrade loses Settings.txt.
+            LegacySettingsNotice.announce(yamlFile.getParentFile());
         }
     }
 
