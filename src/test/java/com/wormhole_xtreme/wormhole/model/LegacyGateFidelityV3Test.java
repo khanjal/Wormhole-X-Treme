@@ -350,21 +350,21 @@ class LegacyGateFidelityV3Test
     }
 
     /**
-     * A dial sign whose chunk is not loaded is left for later rather than read.
+     * A dial sign whose chunk reports unloaded is left for later rather than read.
      *
-     * <p>Reading a block's state on a real server loads its chunk, synchronously, so without the
-     * check every powered gate would pull its sign's chunk in on startup. The stub hands back a
-     * sign if asked, so a reader that asked would come back holding it.
+     * <p>Only a mock reaches this branch today: the guard asks through {@code Block.getChunk()},
+     * which on a real server loads the chunk first (see {@code WorldUtils.scheduleChunkLoad}).
+     * The stub hands back a sign if asked, so a reader that asked would come back holding it.
      */
     @Test
     void aDialSignInAnUnloadedChunkIsNotRead()
     {
-        final Block block = dialSignInAChunk(false, mock(Sign.class));
+        final Block signBlock = dialSignInAChunk(false, mock(Sign.class));
 
         final Stargate s = read();
 
         assertEquals("13,64,20", at(s.getGateDialSignBlock()), "the block is known");
         assertNull(s.getGateDialSign(), "but the sign is not read out of an unloaded chunk");
-        verify(block, never()).getState();
+        verify(signBlock, never()).getState();
     }
 }
