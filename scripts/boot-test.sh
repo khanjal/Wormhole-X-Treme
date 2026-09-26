@@ -3,7 +3,8 @@
 #   boot-test.sh <server.jar> <plugin.jar>
 # JAVA picks the runtime (default: java on PATH); BOOT_DIR keeps the server folder for inspection.
 # Optional: EXTRA_PLUGINS, a folder of jars installed alongside; BOOT_CONFIG, lines for the plugin's
-# config.yml before first start; BOOT_COMMANDS and BOOT_REQUIRE, one console command or log regex a line.
+# config.yml before first start; BOOT_COMMANDS and BOOT_REQUIRE, one console command or log regex a line
+# ("sleep N" in BOOT_COMMANDS waits N seconds).
 set -uo pipefail
 
 if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
@@ -63,8 +64,14 @@ if [[ $started -eq 1 ]]; then
   # The repeating tasks first run 20 to 100 ticks after enable, so give them time to throw.
   send "wormhole"
   send "wx list"
+  # A "sleep N" line waits N seconds here instead of going to the server, for a command whose
+  # effect takes the server some ticks, such as an item crossing a wormhole.
   while IFS= read -r command; do
-    [[ -n "$command" ]] && send "$command"
+    if [[ "$command" =~ ^sleep\ ([0-9]+)$ ]]; then
+      sleep "${BASH_REMATCH[1]}"
+    elif [[ -n "$command" ]]; then
+      send "$command"
+    fi
   done <<< "${BOOT_COMMANDS:-}"
   sleep "$settle_seconds"
   send "stop"
