@@ -59,6 +59,8 @@ public class Configuration
             {
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
             }
+            // Only here, where config.yml is first made: that is the moment an upgrade loses Settings.txt.
+            LegacySettingsNotice.announce(yamlFile.getParentFile());
         }
         // Read back even a file just written: that read is what seeds and loads gate-material-groups.
         ConfigurationYAML.loadConfiguration(directory);
