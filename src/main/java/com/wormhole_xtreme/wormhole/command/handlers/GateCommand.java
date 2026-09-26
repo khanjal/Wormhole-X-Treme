@@ -186,12 +186,17 @@ public class GateCommand implements SubCommand
         {
             // With coordinates it is built where it is told, by anyone with wormhole.config; the
             // shape-and-group form is a player's, building in front of them.
-            return (rest.length >= GateConsoleCommands.SHORTEST_COORDINATE_ATTEMPT)
-                ? GateConsoleCommands.build(sender, rest) : new Build().onCommand(sender, null, verb, rest);
+            if (rest.length < GateConsoleCommands.SHORTEST_COORDINATE_ATTEMPT)
+            {
+                return new Build().onCommand(sender, null, verb, rest);
+            }
+            GateConsoleCommands.build(sender, rest);
+            return true;
         }
         if (DIAL.equals(verb))
         {
-            return GateConsoleCommands.dial(sender, rest);
+            GateConsoleCommands.dial(sender, rest);
+            return true;
         }
         if (PREVIEW.equals(verb))
         {

@@ -67,20 +67,19 @@ public final class GateConsoleCommands
      *            who asked
      * @param rest
      *            the words after {@code build}
-     * @return true, having answered
      */
-    public static boolean build(final CommandSender sender, final String[] rest)
+    public static void build(final CommandSender sender, final String[] rest)
     {
         if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            return true;
+            return;
         }
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         final String refused = whyNotBuildable(rest);
         if (refused != null)
         {
             sender.sendMessage(error + refused);
-            return true;
+            return;
         }
         // A player needs build rights on the network as well, as completing a gate asks; the console
         // and command blocks are not held to per-network rights.
@@ -88,7 +87,7 @@ public final class GateConsoleCommands
             && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
+            return;
         }
         final Stargate3DShape shape = (Stargate3DShape) StargateShapeRegistry.getStargateShape(rest[0]);
         final World world = Bukkit.getWorld(rest[2]);
@@ -98,13 +97,13 @@ public final class GateConsoleCommands
         if (grid == null)
         {
             sender.sendMessage(error + rest[0] + " has no DHD to build it from.");
-            return true;
+            return;
         }
         if (GateBlueprint.of(shape, grid).stream().anyMatch(cell -> cell.part() == GateBlueprint.Part.DIAL_SIGN))
         {
             sender.sendMessage(error + rest[0] + " dials by sign, and a sign cannot be placed for it here. Build a"
                 + " shape with a DHD button.");
-            return true;
+            return;
         }
         MaterialGroup group = MaterialGroupRegistry.getDefaultGroup();
         if ((group != null) && !shape.acceptsMaterialGroup(group.getName()))
@@ -116,14 +115,14 @@ public final class GateConsoleCommands
         if (outOfHeight != null)
         {
             sender.sendMessage(error + "Not built: " + outOfHeight);
-            return true;
+            return;
         }
         loadChunksUnder(world, shape, grid);
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
         {
             sender.sendMessage(error + "Not built: " + why(placed));
-            return true;
+            return;
         }
         // A preview anyone had standing there is now built; take it down, as a DHD press does.
         GatePreviews.builtAt(world, placed.button().getX(), placed.button().getY(), placed.button().getZ());
@@ -133,7 +132,6 @@ public final class GateConsoleCommands
             + rest[3] + " " + rest[4] + " " + rest[5] + " in " + world.getName() + ". Opening centred on "
             + openingCentre(placed.gate()) + "; arrivals at " + where(placed.gate().getGatePlayerTeleportLocation())
             + ".");
-        return true;
     }
 
     /** The middle of a gate's opening, block centres averaged, as "x y z" to one decimal. */
@@ -171,48 +169,46 @@ public final class GateConsoleCommands
      *            who asked
      * @param rest
      *            the words after {@code dial}
-     * @return true, having answered
      */
-    public static boolean dial(final CommandSender sender, final String[] rest)
+    public static void dial(final CommandSender sender, final String[] rest)
     {
         if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            return true;
+            return;
         }
         if ((rest.length < 2) || (rest.length > 3))
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Usage: " + DIAL_USAGE);
-            return true;
+            return;
         }
         final Stargate start = StargateManager.getStargate(rest[0]);
         if (start == null)
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + rest[0] + ".");
-            return true;
+            return;
         }
         // A refused dial puts the start gate out, which would cut off a connection it already has.
         if (start.isGateActive() || (start.getGateTarget() != null))
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
                 + " is already open.");
-            return true;
+            return;
         }
         // Its DHD pressed by a player who has not dialled yet: their /dial would find it taken and shut it.
         if (start.isGateLightsActive())
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
                 + " is being dialled.");
-            return true;
+            return;
         }
         // A player needs the right to dial from that gate, as /dial asks.
         if ((sender instanceof org.bukkit.entity.Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
+            return;
         }
         Dial.dialFrom(sender, start, java.util.Arrays.copyOfRange(rest, 1, rest.length));
-        return true;
     }
 
     /**
