@@ -45,12 +45,6 @@ public class Complete implements CommandExecutor, TabCompleter
     }
 
     /**
-     * Do complete.
-     * 
-     * @param args
-     *            the gate's name, or {@code cancel}, then any {@code key=value} options
-     */
-    /**
      * Why a gate cannot be called this, or null if it can. Not whether the name is taken.
      *
      * @param name
@@ -72,6 +66,12 @@ public class Complete implements CommandExecutor, TabCompleter
         return null;
     }
 
+    /**
+     * Do complete.
+     * 
+     * @param args
+     *            the gate's name, or {@code cancel}, then any {@code key=value} options
+     */
     private static void doComplete(final Player player, final String[] args)
     {
         final String name = args[0].trim().replace("\n", "").replace("\r", "");

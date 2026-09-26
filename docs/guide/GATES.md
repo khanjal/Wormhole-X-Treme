@@ -536,7 +536,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | Command | What it does |
 |---|---|
 | `gate build <shape> [group]` | Start building; with `wormhole.build.preview`, [show it in front of you](#previews) |
-| `gate build <shape> <name> <world> <x> <y> <z> <facing> [net=] [idc=]` | Build and complete a gate with its DHD button on the block at x y z, facing north, south, east or west. For the console, command blocks and scripts; needs `wormhole.config`. The gate has no owner until `gate edit owner` gives it one. Not for shapes that dial by sign. |
+| `gate build <shape> <name> <world> <x> <y> <z> <facing> [net=] [idc=]` | Build and complete a gate with its DHD button on the block at x y z, facing north, south, east or west. For the console, command blocks and scripts; needs `wormhole.config`, and a player also needs build rights on the network. Built in the default material group when the shape takes it, else in the shape's own materials. The gate has no owner until `gate edit owner` gives it one. Not for shapes that dial by sign. |
 | `gate preview <action>` | Change the preview you look at: `activate`, `iris`, `material`, `guide`, `share`, `place` and the rest, all [under Previews](#previews) |
 | `gate preview clear [-all]` | Take away the preview you look at, or all of yours |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
@@ -547,7 +547,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 |---|---|
 | `gate list [network]` | Gates you can see |
 | `gate go <gate>` | Teleport to it |
-| `gate dial <from> <to> [idc]` | Open a wormhole from one named gate to another, under the rules `/dial` keeps; needs `wormhole.config` |
+| `gate dial <from> <to> [idc]` | Open a wormhole from one named gate to another, under the rules `/dial` keeps; needs `wormhole.config`, and a player also needs the right to dial from that gate. A gate already open, or being dialled, is refused. |
 | `gate force <gate>` | Dial past the usual refusals |
 
 **Looking after gates**

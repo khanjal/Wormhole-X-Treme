@@ -231,6 +231,65 @@ class GateConsoleCommandsTest
         }
     }
 
+    /**
+     * A gate reaching past the world's floor or ceiling is refused before anything is placed.
+     *
+     * <p>A block set outside the build height is silently dropped, so the rest of the frame went down
+     * and the console was told no gate was found in it, with no hint why.
+     */
+    @Test
+    void aGateOutsideTheBuildHeightIsRefusedAndOneInsideIsNot()
+    {
+        final World world = mock(World.class);
+        when(world.getMinHeight()).thenReturn(-64);
+        when(world.getMaxHeight()).thenReturn(320);
+        final com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part frame =
+            com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part.FRAME;
+
+        assertEquals("part of it would be below the world's floor at -64.", GateConsoleCommands.outsideHeight(world,
+            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -65, 0, frame, 0))));
+        assertEquals("part of it would be above the world's build height of 320.", GateConsoleCommands.outsideHeight(world,
+            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 320, 0, frame, 0))));
+        assertNull(GateConsoleCommands.outsideHeight(world,
+            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -64, 0, frame, 0),
+                new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 319, 0, frame, 0))),
+            "the floor and the top block are both inside");
+    }
+
+    /**
+     * A gate a player has activated but not yet dialled is not taken over: their /dial would find it
+     * connected, and shut the wormhole the console opened.
+     */
+    @Test
+    void aGateBeingDialledByAPlayerIsNotDialledFrom()
+    {
+        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final Stargate start = mock(Stargate.class);
+        when(start.isGateLightsActive()).thenReturn(true);
+        when(start.getGateName()).thenReturn("Abydos");
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+
+            GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
+
+            verify(console).sendMessage(contains("Abydos is being dialled."));
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
+
+    /** A line of four words or more that is not quite the coordinate form is answered with that form's usage. */
+    @Test
+    void aNearMissCoordinateLineIsToldTheCoordinateUsage()
+    {
+        assertTrue(refusal("Standard", "A", "world", "0.5", "-60", "0", "south").startsWith("Usage: /wormhole gate build <shape> <name> <world>"),
+            "a fraction for x is not the coordinate form, and the player form would not help");
+        assertTrue(refusal("Standard", "A", "world", "0", "-60", "0").startsWith("Usage: /wormhole gate build <shape> <name>"),
+            "six words is one short");
+    }
+
     @Test
     void aRefusedPlacingSaysWhyInWords()
     {

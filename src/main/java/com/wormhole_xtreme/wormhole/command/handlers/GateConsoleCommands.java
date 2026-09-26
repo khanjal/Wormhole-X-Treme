@@ -34,6 +34,9 @@ public final class GateConsoleCommands
     /** How many words {@code build <shape> <name> <world> <x> <y> <z> <facing>} takes. */
     public static final int BUILD_WORDS = 7;
 
+    /** The player form takes at most a shape and a group, so four words or more mean coordinates. */
+    public static final int SHORTEST_COORDINATE_ATTEMPT = 4;
+
     static final String BUILD_USAGE =
         "/wormhole gate build <shape> <name> <world> <x> <y> <z> <facing> [net=NET] [idc=IDC]";
 
@@ -109,6 +112,12 @@ public final class GateConsoleCommands
             group = null;
         }
         final String[] options = optionsOf(rest);
+        final String outOfHeight = outsideHeight(world, cellsOf(shape, grid));
+        if (outOfHeight != null)
+        {
+            sender.sendMessage(error + "Not built: " + outOfHeight);
+            return true;
+        }
         loadChunksUnder(world, shape, grid);
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
@@ -188,6 +197,13 @@ public final class GateConsoleCommands
                 + " is already open.");
             return true;
         }
+        // Its DHD pressed by a player who has not dialled yet: their /dial would find it taken and shut it.
+        if (start.isGateLightsActive())
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
+                + " is being dialled.");
+            return true;
+        }
         // A player needs the right to dial from that gate, as /dial asks.
         if ((sender instanceof org.bukkit.entity.Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
@@ -206,9 +222,7 @@ public final class GateConsoleCommands
     private static void loadChunksUnder(final World world, final Stargate3DShape shape, final GateGrid grid)
     {
         final java.util.Set<Long> done = new java.util.HashSet<>();
-        final java.util.List<GateBlueprint.Cell> cells = new java.util.ArrayList<>(GateBlueprint.of(shape, grid));
-        cells.addAll(GateBlueprint.openingOf(shape, grid));
-        for (final GateBlueprint.Cell cell : cells)
+        for (final GateBlueprint.Cell cell : cellsOf(shape, grid))
         {
             final int cx = cell.x() >> 4;
             final int cz = cell.z() >> 4;
@@ -217,6 +231,34 @@ public final class GateConsoleCommands
                 world.getChunkAt(cx, cz);
             }
         }
+    }
+
+    /** Every block the gate will take: its frame, DHD and opening. */
+    private static java.util.List<GateBlueprint.Cell> cellsOf(final Stargate3DShape shape, final GateGrid grid)
+    {
+        final java.util.List<GateBlueprint.Cell> cells = new java.util.ArrayList<>(GateBlueprint.of(shape, grid));
+        cells.addAll(GateBlueprint.openingOf(shape, grid));
+        return cells;
+    }
+
+    /**
+     * Why part of the gate would fall outside the world's build height, or null if none does. A block
+     * set there is silently dropped, which left a part-built frame reported as a gate not found.
+     */
+    static String outsideHeight(final World world, final java.util.List<GateBlueprint.Cell> cells)
+    {
+        for (final GateBlueprint.Cell cell : cells)
+        {
+            if (cell.y() < world.getMinHeight())
+            {
+                return "part of it would be below the world's floor at " + world.getMinHeight() + ".";
+            }
+            if (cell.y() >= world.getMaxHeight())
+            {
+                return "part of it would be above the world's build height of " + world.getMaxHeight() + ".";
+            }
+        }
+        return null;
     }
 
     /** What is wrong with the line, before the world is looked at for room; null if nothing. */

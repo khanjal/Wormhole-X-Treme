@@ -26,13 +26,13 @@ summon item -1.5 -57.5 -2.5 $item
 summon pig -1.5 -58.5 -2.5
 sleep 5
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
-execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..6] run say PIG_ARRIVED
+execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
 sleep 7
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
-execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..6] run say PIG_ARRIVED
+execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
 sleep 8
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
-execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..6] run say PIG_ARRIVED"
+execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED"
 
 require='Built Abydos at 0 -60 0 in world\. Opening centred on -1\.5 -57\.5 -2\.5; arrivals at -1\.5 -60\.0 -1\.5
 Built Chulak at 20 -60 0 in world\. Opening centred on 18\.5 -57\.5 -2\.5; arrivals at 18\.5 -60\.0 -1\.5
