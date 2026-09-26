@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,11 +18,15 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -281,5 +286,84 @@ class LegacyGateFidelityV3Test
 
         assertEquals(List.of("3,64,1"), allAt(s.getGatePortalBlocks()), "the record itself still reads");
         verify(plugin, never()).prettyLog(any(), contains("not all byte data was read"));
+    }
+
+    /**
+     * Puts the dial sign's block in a chunk, loaded or not, holding the given state.
+     *
+     * <p>{@code doReturn} rather than {@code when}: calling getBlockAt inside {@code when} would
+     * run the catch-all answer, which stubs a block of its own mid-stubbing.
+     */
+    private Block dialSignInAChunk(final boolean loaded, final BlockState state)
+    {
+        final Chunk chunk = mock(Chunk.class);
+        final Block signBlock = mock(Block.class);
+        when(signBlock.getX()).thenReturn(Integer.valueOf(13));
+        when(signBlock.getY()).thenReturn(Integer.valueOf(64));
+        when(signBlock.getZ()).thenReturn(Integer.valueOf(20));
+        when(signBlock.getWorld()).thenReturn(world);
+        when(signBlock.getChunk()).thenReturn(chunk);
+        when(signBlock.getState()).thenReturn(state);
+        when(world.isChunkLoaded(chunk)).thenReturn(Boolean.valueOf(loaded));
+        doReturn(signBlock).when(world).getBlockAt(13, 64, 20);
+        return signBlock;
+    }
+
+    /**
+     * A powered gate whose sign's chunk is loaded comes back holding the sign itself.
+     *
+     * <p>Every other fixture here reports its chunks unloaded, so the gate keeps only the sign's
+     * block and nothing reached the branch that picks the sign up. Without it the gate cannot
+     * change its dial target until something re-reads the sign.
+     */
+    @Test
+    void aPoweredGateInALoadedChunkPicksUpItsDialSign()
+    {
+        final Sign sign = mock(Sign.class);
+        dialSignInAChunk(true, sign);
+
+        final Stargate s = read();
+
+        assertEquals(sign, s.getGateDialSign(), "the sign in the loaded chunk is the gate's dial sign");
+    }
+
+    /**
+     * A dial sign's block that no longer holds a sign costs the gate its dialling, not its load.
+     *
+     * <p>The block could have been broken or replaced while the server was down. The failed
+     * cast is caught and named in a warning, and the rest of the record still reads.
+     */
+    @Test
+    void aDialSignBlockThatIsNoLongerASignStillLoadsTheGateAndWarns()
+    {
+        dialSignInAChunk(true, mock(BlockState.class));
+
+        final Stargate s = read();
+
+        assertNull(s.getGateDialSign(), "no sign to hold");
+        assertEquals("13,64,20", at(s.getGateDialSignBlock()), "though the block is still known");
+        assertEquals(42L, s.getGateTempTargetId(), "and the fields after the sign still line up");
+        assertEquals(List.of("3,64,1"), allAt(s.getGatePortalBlocks()), "through to the end of the record");
+        verify(plugin).prettyLog(Level.WARNING,
+            "Unable to get sign for stargate: old and will be unable to change dial target.");
+    }
+
+    /**
+     * A dial sign whose chunk reports unloaded is left for later rather than read.
+     *
+     * <p>Only a mock reaches this branch today: the guard asks through {@code Block.getChunk()},
+     * which on a real server loads the chunk first (see {@code WorldUtils.scheduleChunkLoad}).
+     * The stub hands back a sign if asked, so a reader that asked would come back holding it.
+     */
+    @Test
+    void aDialSignInAnUnloadedChunkIsNotRead()
+    {
+        final Block signBlock = dialSignInAChunk(false, mock(Sign.class));
+
+        final Stargate s = read();
+
+        assertEquals("13,64,20", at(s.getGateDialSignBlock()), "the block is known");
+        assertNull(s.getGateDialSign(), "but the sign is not read out of an unloaded chunk");
+        verify(signBlock, never()).getState();
     }
 }

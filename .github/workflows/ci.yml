@@ -298,8 +298,8 @@ jobs:
 
       - name: Boot the plugin
         env:
-          # Expected on a bare server; the OBSIDIAN one is a real default-config fault still to fix.
-          BOOT_TEST_ALLOW: "No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree"
+          # Expected on a bare server.
+          BOOT_TEST_ALLOW: "No Vault/LuckPerms provider detected"
           BOOT_DIR: boot
         run: bash scripts/boot-test.sh server.jar plugin/WormholeXTreme-*.jar
 
