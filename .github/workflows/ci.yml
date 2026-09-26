@@ -231,7 +231,8 @@ jobs:
     name: Boot ${{ matrix.server }} ${{ matrix.version }}
     needs: build-and-test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # A BuildTools leg with a cold cache spends most of this compiling.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -267,14 +268,19 @@ jobs:
           name: WormholeXTreme-snapshot
           path: plugin
 
-      # BuildTools takes minutes, so its output is kept; Paper and Purpur are a quick download.
+      # BuildTools takes minutes, so its output is kept, and rebuilt monthly to pick up Spigot's
+      # fixes within a version. Paper and Purpur are a quick download of their latest build.
+      - name: Name this month's BuildTools cache
+        id: month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
       - name: Cache the BuildTools server
         if: matrix.server == 'spigot' || matrix.server == 'craftbukkit'
         id: server-cache
         uses: actions/cache@v6
         with:
           path: server.jar
-          key: buildtools-${{ matrix.server }}-${{ matrix.version }}-v1
+          key: buildtools-${{ matrix.server }}-${{ matrix.version }}-${{ steps.month.outputs.month }}
 
       - name: Fetch ${{ matrix.server }} ${{ matrix.version }}
         if: steps.server-cache.outputs.cache-hit != 'true'

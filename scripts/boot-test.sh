@@ -4,6 +4,10 @@
 # JAVA picks the runtime (default: java on PATH); BOOT_DIR keeps the server folder for inspection.
 set -uo pipefail
 
+if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
+  echo "usage: boot-test.sh <server.jar> <plugin.jar>, both existing files (got: $*)" >&2
+  exit 2
+fi
 server_jar="$(realpath "$1")"
 plugin_jar="$(realpath "$2")"
 java_bin="${JAVA:-java}"
@@ -13,6 +17,7 @@ dir="${BOOT_DIR:-$(mktemp -d)}"
 
 mkdir -p "$dir/plugins"
 dir="$(cd "$dir" && pwd)"
+rm -f "$dir"/plugins/*.jar
 cp "$plugin_jar" "$dir/plugins/"
 echo "eula=true" > "$dir/eula.txt"
 cat > "$dir/server.properties" <<'EOF'
@@ -31,10 +36,11 @@ log="$dir/console.log"
 send() { echo "$1" >> "$dir/commands.txt"; }
 
 cd "$dir"
-tail -f commands.txt | "$java_bin" -Xmx1G -DIReallyKnowWhatIAmDoingISwear=true -Dterminal.jline=false -Dterminal.ansi=false \
-  -jar "$server_jar" nogui > "$log" 2>&1 &
+rm -f tail.pid
+{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" -Xmx1G -DIReallyKnowWhatIAmDoingISwear=true \
+  -Dterminal.jline=false -Dterminal.ansi=false -jar "$server_jar" nogui > "$log" 2>&1 &
 server_pid=$!
-cleanup() { pkill -P $$ tail 2>/dev/null; kill "$server_pid" 2>/dev/null; }
+cleanup() { [[ -f tail.pid ]] && kill "$(cat tail.pid)" 2>/dev/null; kill "$server_pid" 2>/dev/null; }
 trap cleanup EXIT
 
 started=0
@@ -56,8 +62,6 @@ if [[ $started -eq 1 ]]; then
   done
 fi
 
-# A stopped server still leaves the piped tail waiting; one more write ends it.
-send ""
 stopped=0
 kill -0 "$server_pid" 2>/dev/null || stopped=1
 
