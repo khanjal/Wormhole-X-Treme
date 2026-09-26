@@ -146,6 +146,20 @@ public class GateCommand implements SubCommand
         }
     }
 
+    /**
+     * With coordinates a gate is built where it is told, by anyone with wormhole.config; the
+     * shape-and-group form is a player's, building in front of them.
+     */
+    private static boolean build(final CommandSender sender, final String verb, final String[] rest)
+    {
+        if (rest.length < GateConsoleCommands.SHORTEST_COORDINATE_ATTEMPT)
+        {
+            return new Build().onCommand(sender, null, verb, rest);
+        }
+        GateConsoleCommands.build(sender, rest);
+        return true;
+    }
+
     /** Runs one verb; false when its handler could not use the line. */
     private static boolean dispatch(final CommandSender sender, final String[] args, final String verb)
     {
@@ -184,14 +198,7 @@ public class GateCommand implements SubCommand
         }
         if (BUILD.equals(verb))
         {
-            // With coordinates it is built where it is told, by anyone with wormhole.config; the
-            // shape-and-group form is a player's, building in front of them.
-            if (rest.length < GateConsoleCommands.SHORTEST_COORDINATE_ATTEMPT)
-            {
-                return new Build().onCommand(sender, null, verb, rest);
-            }
-            GateConsoleCommands.build(sender, rest);
-            return true;
+            return build(sender, verb, rest);
         }
         if (DIAL.equals(verb))
         {
