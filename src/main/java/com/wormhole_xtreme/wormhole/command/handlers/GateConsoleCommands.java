@@ -20,6 +20,8 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * Building and dialling gates by name and coordinates, with nobody standing there.
@@ -77,6 +79,14 @@ public final class GateConsoleCommands
             sender.sendMessage(error + refused);
             return true;
         }
+        // A player needs build rights on the network as well, as completing a gate asks; the console
+        // and command blocks are not held to per-network rights.
+        if ((sender instanceof org.bukkit.entity.Player player)
+            && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return true;
+        }
         final Stargate3DShape shape = (Stargate3DShape) StargateShapeRegistry.getStargateShape(rest[0]);
         final World world = Bukkit.getWorld(rest[2]);
         final BlockFace facing = BlockFace.valueOf(rest[6].toUpperCase(Locale.ROOT));
@@ -106,6 +116,8 @@ public final class GateConsoleCommands
             sender.sendMessage(error + "Not built: " + why(placed));
             return true;
         }
+        // A preview anyone had standing there is now built; take it down, as a DHD press does.
+        GatePreviews.builtAt(world, placed.button().getX(), placed.button().getY(), placed.button().getZ());
         StargateManager.completeStargate(placed.gate(), null, rest[1], options[0], options[1]);
         // Where to drop something through it and where it comes out, for whoever is scripting this.
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Built " + rest[1] + " at "
@@ -167,6 +179,20 @@ public final class GateConsoleCommands
         if (start == null)
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + rest[0] + ".");
+            return true;
+        }
+        // A refused dial puts the start gate out, which would cut off a connection it already has.
+        if (start.isGateActive() || (start.getGateTarget() != null))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
+                + " is already open.");
+            return true;
+        }
+        // A player needs the right to dial from that gate, as /dial asks.
+        if ((sender instanceof org.bukkit.entity.Player player)
+            && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         Dial.dialFrom(sender, start, java.util.Arrays.copyOfRange(rest, 1, rest.length));

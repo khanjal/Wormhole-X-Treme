@@ -7,6 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 
 import java.util.List;
 
@@ -112,6 +117,118 @@ class GateConsoleCommandsTest
         assertEquals("-1.0 -57.0 -2.5", GateConsoleCommands.openingCentre(gate),
             "block centres averaged, not block corners");
         assertEquals("nothing", GateConsoleCommands.openingCentre(new Stargate()));
+    }
+
+    /** A player that may configure but not dial from that gate is refused, as /dial would refuse them. */
+    @Test
+    void aPlayerWithoutTheRightToDialFromTheGateIsRefused()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Stargate start = new Stargate();
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
+                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+            // Config granted, so it is the dial right, not the config one, that refuses.
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, start, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.DIALER)).thenReturn(false);
+
+            GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
+
+            verify(player).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
+
+    /** The counterpart: with the right to dial from it, the same player dials. */
+    @Test
+    void aPlayerWithTheRightToDialFromTheGateDials()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Stargate start = new Stargate();
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms = mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, start, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.DIALER)).thenReturn(true);
+
+            GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
+
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(player, start, new String[] { "Chulak" }));
+        }
+    }
+
+    /**
+     * A gate already open is not dialled from: a refused dial puts its start gate out, and would cut
+     * off the connection it already has.
+     */
+    @Test
+    void aGateAlreadyOpenIsNotDialledFrom()
+    {
+        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final Stargate start = mock(Stargate.class);
+        when(start.isGateActive()).thenReturn(true);
+        when(start.getGateName()).thenReturn("Abydos");
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+
+            GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
+
+            verify(console).sendMessage(contains("Abydos is already open."));
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
+
+    /** The counterpart: a closed gate the console names is dialled. */
+    @Test
+    void theConsoleDialsFromAClosedGate()
+    {
+        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final Stargate start = new Stargate();
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+
+            GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
+
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(console, start, new String[] { "Chulak" }));
+        }
+    }
+
+    /** A player that may configure but not build on the network named is refused before anything is placed. */
+    @Test
+    void aPlayerWithoutBuildRightsOnTheNetworkIsRefusedBeforeAnythingIsPlaced()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
+                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+             MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(mock(Stargate3DShape.class));
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(mock(World.class));
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, "Private", com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.BUILD)).thenReturn(false);
+
+            GateConsoleCommands.build(player, line("Standard", "A", "world", "0", "-60", "0", "south", "net=Private"));
+
+            verify(player).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()), never());
+        }
     }
 
     @Test

@@ -418,6 +418,11 @@ public final class SubCommands
             // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
         }
+        if ("dial".equals(verb))
+        {
+            // From and to are gate names; there is no flat dial subcommand to ask, /dial being its own.
+            return ((args.length == 3) || (args.length == 4)) ? gateNames(args[args.length - 1]) : none();
+        }
         return completeFlatVerb(sender, args);
     }
 
