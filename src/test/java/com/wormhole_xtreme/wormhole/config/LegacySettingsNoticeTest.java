@@ -48,7 +48,8 @@ class LegacySettingsNoticeTest
         "Description: (the old file described each setting here)",
         "---------------",
         "Setting: TIMEOUT_ACTIVATE",
-        "Value: 30",
+        // Written as a decimal where today's default is the whole number 30: still the default.
+        "Value: 30.0",
         "Description: (the old file described each setting here)",
         "---------------",
         "Setting: TIMEOUT_SHUTDOWN",
@@ -98,7 +99,7 @@ class LegacySettingsNoticeTest
     {
         assertEquals(List.of("wormhole-use-is-teleport: true", "timeout-shutdown: 60"),
             LegacySettingsNotice.carryOver(SETTINGS_TXT, DefaultSettings.config),
-            "TIMEOUT_ACTIVATE 30 and LOG_LEVEL INFO are the defaults, BUILT_IN_PERMISSIONS_ENABLED no"
+            "TIMEOUT_ACTIVATE 30.0 and LOG_LEVEL INFO are the defaults, BUILT_IN_PERMISSIONS_ENABLED no"
                 + " longer exists, and the stray Value: FINE is nobody's, so naming any of them would send"
                 + " the operator after nothing");
     }
@@ -113,6 +114,23 @@ class LegacySettingsNoticeTest
 
         verify(plugin).prettyLog(eq(Level.INFO),
             contains("Set these again in config.yml to keep them: wormhole-use-is-teleport: true, timeout-shutdown: 60."));
+    }
+
+    /** A file that size is not a settings file, and reading it all during plugin load would cost for nothing. */
+    @Test
+    void aSettingsTxtFarTooBigToBeOneIsLeftUnread() throws IOException
+    {
+        final List<String> padded = new java.util.ArrayList<>(SETTINGS_TXT);
+        final String filler = "#".repeat(1023);
+        for (long written = 0; written <= LegacySettingsNotice.MAX_BYTES; written += filler.length() + 1)
+        {
+            padded.add(filler);
+        }
+        Files.write(new File(directory, LegacySettingsNotice.LEGACY_FILE).toPath(), padded, StandardCharsets.ISO_8859_1);
+
+        LegacySettingsNotice.announce(directory);
+
+        verify(plugin, never()).prettyLog(eq(Level.INFO), anyString());
     }
 
     @Test

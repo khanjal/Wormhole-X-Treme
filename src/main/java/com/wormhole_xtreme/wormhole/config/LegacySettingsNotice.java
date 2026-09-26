@@ -21,6 +21,8 @@ final class LegacySettingsNotice
 {
     static final String LEGACY_FILE = "Settings.txt";
 
+    static final long MAX_BYTES = 1024L * 1024L;
+
     private LegacySettingsNotice()
     {
     }
@@ -33,28 +35,29 @@ final class LegacySettingsNotice
      */
     static void announce(final File pluginDirectory)
     {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         final File legacy = new File(pluginDirectory, LEGACY_FILE);
-        if (!legacy.isFile())
+        // A real one is a few kilobytes; anything far bigger is not that file.
+        if ((plugin == null) || !legacy.isFile() || (legacy.length() > MAX_BYTES))
         {
             return;
         }
-        final List<String> lines;
+        // Runs during plugin load, so nothing it throws may reach the caller: it is only a note.
         try
         {
             // ISO-8859-1 reads any byte, and the file predates any promise of UTF-8.
-            lines = Files.readAllLines(legacy.toPath(), StandardCharsets.ISO_8859_1);
+            final List<String> lines = Files.readAllLines(legacy.toPath(), StandardCharsets.ISO_8859_1);
+            final List<String> differing = carryOver(lines, DefaultSettings.config);
+            plugin.prettyLog(Level.INFO, "Found " + LEGACY_FILE
+                + " from an older Wormhole X-Treme; it is not read, config.yml replaces it. "
+                + (differing.isEmpty()
+                    ? "None of its settings that still exist differ from the defaults."
+                    : "Set these again in config.yml to keep them: " + String.join(", ", differing) + "."));
         }
-        catch (final IOException e)
+        catch (final IOException | RuntimeException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not read " + LEGACY_FILE, e);
-            return;
+            plugin.prettyLog(Level.FINE, "Could not read " + LEGACY_FILE, e);
         }
-        final List<String> differing = carryOver(lines, DefaultSettings.config);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Found " + LEGACY_FILE
-            + " from an older Wormhole X-Treme; it is not read, config.yml replaces it. "
-            + (differing.isEmpty()
-                ? "None of its settings that still exist differ from the defaults."
-                : "Set these again in config.yml to keep them: " + String.join(", ", differing) + "."));
     }
 
     /**
@@ -104,6 +107,15 @@ final class LegacySettingsNotice
 
     private static boolean sameValue(final Object defaultValue, final String written)
     {
-        return String.valueOf(defaultValue).toLowerCase(Locale.ROOT).equals(written.toLowerCase(Locale.ROOT));
+        final String expected = String.valueOf(defaultValue);
+        try
+        {
+            // So 30 and 30.0 agree.
+            return Double.compare(Double.parseDouble(expected), Double.parseDouble(written)) == 0;
+        }
+        catch (final NumberFormatException notBothNumbers)
+        {
+            return expected.toLowerCase(Locale.ROOT).equals(written.toLowerCase(Locale.ROOT));
+        }
     }
 }
