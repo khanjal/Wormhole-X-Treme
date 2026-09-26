@@ -185,6 +185,28 @@ class GateSerializerTest
         }
     }
 
+    /**
+     * A garbled wave count is refused rather than grown into.
+     *
+     * <p>The reader grows its list of layers to the saved count before reading any of them, and
+     * growing reads nothing from the buffer, so a count of two billion ran to OutOfMemoryError. No
+     * per-gate catch stops that: one damaged gate file failed the whole load, and one damaged row
+     * the whole import. This gate has no light or woosh blocks, so its last four bytes are the
+     * woosh wave count.
+     */
+    @Test
+    void aGarbledWaveCountIsRefusedNotAllocated()
+    {
+        final World w = mockWorld();
+        final byte[] data = GateSerializer.stargateToBinary(minimalGate(w));
+        java.nio.ByteBuffer.wrap(data).putInt(data.length - 4, Integer.MAX_VALUE);
+
+        final IllegalArgumentException refused = org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class, () -> GateSerializer.parseVersionedData(data, w, "garbled", null));
+        assertTrue(refused.getMessage().contains("claims " + Integer.MAX_VALUE + " layers"),
+            "the reason should name the count that cannot be right: " + refused.getMessage());
+    }
+
     @Test
     void writerEmitsCurrentSaveVersion()
     {

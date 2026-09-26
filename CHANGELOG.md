@@ -114,6 +114,8 @@ The plugin API is in [docs/API.md](docs/API.md).
   open gate used to throw on its way down, and nothing after it was saved.
 - **Riders can no longer dismount inside an open gate on 1.20 through 1.20.3.** Nothing stopped
   them there, and the server logged an error about `EntityDismountEvent` at startup.
+- **`gate import` skips a damaged gate and says why**, instead of listing it as `null`, or
+  stopping the whole import on one.
 
 ### Commands
 
