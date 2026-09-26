@@ -1,5 +1,8 @@
 package com.wormhole_xtreme.wormhole;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,9 +77,28 @@ class ShutdownSavesEveryGateTest
         {
             db.when(() -> StargateDBManager.saveStargate(gate)).thenThrow(new IllegalStateException("disk full"));
 
-            WormholeXTreme.saveForDisable(plugin, gate);
+            assertFalse(WormholeXTreme.saveForDisable(plugin, gate), "a failed write is reported as not saved");
 
             verify(plugin).prettyLog(eq(Level.SEVERE), contains("Could not save Chulak"), any(Throwable.class));
         }
+    }
+
+    @Test
+    void aGateWrittenIsReportedSaved()
+    {
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            assertTrue(WormholeXTreme.saveForDisable(mock(WormholeXTreme.class), mock(Stargate.class)));
+        }
+    }
+
+    /** The summary must not tell an operator scanning the log's tail that every gate was saved. */
+    @Test
+    void theSummarySaysHowManyWereNotSaved()
+    {
+        assertEquals("Saved 3 gates to disk.", WormholeXTreme.savedSummary(3, 3));
+        assertEquals("Saved 1 gate to disk.", WormholeXTreme.savedSummary(1, 1));
+        assertEquals("Saved 2 of 3 gates to disk; the errors above say which were not.",
+            WormholeXTreme.savedSummary(2, 3));
     }
 }

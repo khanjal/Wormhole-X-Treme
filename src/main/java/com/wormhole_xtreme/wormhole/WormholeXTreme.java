@@ -313,15 +313,15 @@ public class WormholeXTreme extends JavaPlugin
                 // confirmation is FINE-level (see StargateYamlManager.saveStargate), so
                 // this logs one summary line instead of one per gate -- a server with a
                 // hundred gates does not need a hundred identical lines on every restart.
+                int saved = 0;
                 for (final Stargate gate : gates)
                 {
                     shutDownForDisable(this, gate);
-                    saveForDisable(this, gate);
+                    saved += saveForDisable(this, gate) ? 1 : 0;
                 }
                 if (!gates.isEmpty())
                 {
-                    prettyLog(Level.INFO, "Saved " + gates.size() + " gate"
-                        + (gates.size() == 1 ? "" : "s") + " to disk.");
+                    prettyLog(Level.INFO, savedSummary(saved, gates.size()));
                 }
 
                 saveRings();
@@ -359,17 +359,30 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
-    /** Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved. */
-    static void saveForDisable(final WormholeXTreme plugin, final Stargate gate)
+    /**
+     * Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved.
+     *
+     * @return whether it was written
+     */
+    static boolean saveForDisable(final WormholeXTreme plugin, final Stargate gate)
     {
         try
         {
             StargateDBManager.saveStargate(gate);
+            return true;
         }
         catch (final Exception | LinkageError e)
         {
             plugin.prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
+            return false;
         }
+    }
+
+    /** The shutdown's one line about gates, which must not read as all saved when some were not. */
+    static String savedSummary(final int saved, final int total)
+    {
+        return (saved == total) ? "Saved " + total + " gate" + (total == 1 ? "" : "s") + " to disk."
+            : "Saved " + saved + " of " + total + " gates to disk; the errors above say which were not.";
     }
 
     /**
