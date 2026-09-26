@@ -292,9 +292,9 @@ public final class MaterialGroupRegistry
      *
      * <p>Only unambiguous palettes are returned. A group is identified by its frame
      * material, so a frame material can name exactly one palette — and shapes do not
-     * necessarily agree. The shipped set is the illustration: all seven are framed in
-     * obsidian but ask for three different irises (glass, stone, bedrock), so there is no
-     * single obsidian palette to derive and none is offered. A lone diamond gate with gold
+     * necessarily agree. The shipped set is the illustration: all nine are framed in
+     * obsidian but the horizontal ones pin a glass iris, so there is no single obsidian
+     * palette to derive; the shipped Standard group claims obsidian instead. A lone diamond gate with gold
      * chevrons has no such conflict and is offered as "Diamond".
      *
      * <p>Shapes keep working either way. This only surfaces a palette so it can be reused

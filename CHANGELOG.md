@@ -31,6 +31,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   dependencies.** Neither did anything, and neither runs on a supported server. Vault and LuckPerms
   are unchanged.
 
+**Fixed**
+
+- **A fresh install loads the example `gate-material-groups` on its first start**, not its second.
+  It used to warn that "Shapes framed in OBSIDIAN disagree on their other materials" about config
+  nobody had written. A config.yml that cannot be read now falls back to the built-in obsidian
+  group too. Nothing to do; an upgraded server was never affected.
+
 ### For other plugins
 
 The plugin API is in [docs/API.md](docs/API.md).

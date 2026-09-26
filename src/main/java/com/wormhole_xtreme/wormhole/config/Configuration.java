@@ -34,32 +34,36 @@ public class Configuration
      */
     protected static void loadConfiguration(final String pluginName)
     {
-        // Prefer YAML config if present, otherwise fall back to legacy flat file.
-        final File yamlFile = ConfigurationYAML.getConfigFile(pluginName);
-        if (yamlFile.exists())
+        loadConfiguration(ConfigurationYAML.pluginDirectory(pluginName));
+    }
+
+    /**
+     * Loads config.yml from the given directory, writing the defaults first on a fresh install.
+     *
+     * @param directory
+     *            the plugin directory
+     */
+    static void loadConfiguration(final File directory)
+    {
+        final File yamlFile = new File(directory, "config.yml");
+        if (!yamlFile.exists())
         {
-            ConfigurationYAML.loadConfiguration(pluginName);
-        }
-        else
-        {
-            // No YAML present: initialize runtime config with defaults and
-            // write a new `config.yml`. We no longer read or generate Settings.txt.
+            // Defaults in memory first, so a failed write still leaves a working server.
             for (final Setting s : DefaultSettings.config)
             {
                 ConfigManager.getConfigurations().put(s.getName(), s);
             }
-            try
+            // Logs its own failure rather than throwing.
+            ConfigurationYAML.writeCurrentConfiguration(yamlFile);
+            if (yamlFile.exists())
             {
-                ConfigurationYAML.writeCurrentConfiguration(yamlFile);
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
-            }
-            catch (final RuntimeException t)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml", t);
             }
             // Only here, where config.yml is first made: that is the moment an upgrade loses Settings.txt.
             LegacySettingsNotice.announce(yamlFile.getParentFile());
         }
+        // Read back even a file just written: that read is what seeds and loads gate-material-groups.
+        ConfigurationYAML.loadConfiguration(directory);
     }
 
     /**
