@@ -21,6 +21,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `gate preview -place`, and the slabs `ring create` takes and `ring remove` gives back. Off
   until `coreprotect-enabled` is set; a running gate is not logged. See
   [the guide](docs/guide/SERVER.md#coreprotect).
+- **Gates can be built and dialled from the console, command blocks and scripts.**
+  `gate build <shape> <name> <world> <x> <y> <z> <facing>` builds and completes one with its DHD
+  button on that block, and says where its opening and arrivals are; `gate dial <from> <to>` opens a
+  wormhole between two named gates. Both need `wormhole.config`. A gate built this way has no owner
+  until `gate edit owner` gives it one; shapes that dial by sign cannot be built this way.
 - **A server upgrading from a `Settings.txt` build is told which of its settings to set again.**
   That file is still not read; the first start names only those that exist and differ from
   the default.

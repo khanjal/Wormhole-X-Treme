@@ -106,6 +106,34 @@ class CompleteStargateTest
         return b;
     }
 
+    /**
+     * A gate built by a command, with nobody standing there, is registered with no owner.
+     *
+     * <p>{@code gate build} with coordinates, from the console or a command block. An owner there would
+     * have to be invented; a name such as CONSOLE would be read as a legacy player name and handed to
+     * whoever took that name. No owner is what legacy ownerless gates already have: anyone may use it,
+     * and {@code gate edit owner} can give it one.
+     */
+    @Test
+    void aGateCompletedWithNoBuilderIsRegisteredWithNoOwner()
+    {
+        final Stargate gate = new Stargate();
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class);
+             MockedStatic<GateEvents> events = mockStatic(GateEvents.class);
+             MockedStatic<StargateDialManager> dial = mockStatic(StargateDialManager.class))
+        {
+            StargateManager.completeStargate(gate, null, "beta", "", "");
+
+            db.verify(() -> StargateDBManager.saveStargate(gate));
+            events.verify(() -> GateEvents.fireCreated(gate, null));
+        }
+
+        assertSame(gate, StargateManager.getStargate("beta"), "it is findable by name");
+        assertEquals("beta", gate.getGateName());
+        assertNull(gate.getGateOwner(), "nobody built it, so nobody owns it");
+        assertNull(gate.getGateOwnerName());
+    }
+
     /** Nothing waiting means nothing to complete. */
     @Test
     void aPlayerWithNoHalfBuiltGateCompletesNothing()
