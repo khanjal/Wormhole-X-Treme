@@ -174,7 +174,7 @@ public class WormholeXTreme extends JavaPlugin
         return listeners;
     }
 
-    private static boolean serverHasClass(final String name)
+    static boolean serverHasClass(final String name)
     {
         try
         {

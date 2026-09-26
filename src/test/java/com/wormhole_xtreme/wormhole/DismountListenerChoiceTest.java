@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Set;
@@ -54,5 +56,20 @@ class DismountListenerChoiceTest
     void aServerWithNeitherEventGetsNoListener()
     {
         assertEquals(List.of(), onAServerWith(), "with no dismount event there is nothing to register");
+    }
+
+    /** The tests compile against 1.20.4, the one API that carries both events. */
+    @Test
+    void theProbeFindsBothEventsOnTheApiThisPluginIsBuiltAgainst()
+    {
+        assertTrue(WormholeXTreme.serverHasClass(NEW_EVENT), "1.20.4 has the org.bukkit event");
+        assertTrue(WormholeXTreme.serverHasClass(OLD_EVENT), "1.20.4 still has the org.spigotmc event");
+    }
+
+    @Test
+    void theProbeReportsAMissingClassAsAbsentRatherThanThrowing()
+    {
+        assertFalse(WormholeXTreme.serverHasClass("org.bukkit.event.entity.NoSuchDismountEvent"),
+            "a missing class must read as absent, so the next listener is tried");
     }
 }
