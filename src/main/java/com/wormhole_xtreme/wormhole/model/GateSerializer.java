@@ -65,7 +65,7 @@ public final class GateSerializer
         {
             return null; // no custom material stored
         }
-        final byte[] raw = new byte[length];
+        final byte[] raw = sized(byteBuff, length);
         byteBuff.get(raw);
         final String materialName = new String(raw, java.nio.charset.StandardCharsets.UTF_8);
         final Material material = Material.matchMaterial(materialName);
@@ -202,7 +202,7 @@ public final class GateSerializer
             s.setGateTempTargetId(byteBuff.getInt());
 
             final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
+            final byte[] strBytes = sized(byteBuff, facingSize);
             byteBuff.get(strBytes);
             final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
@@ -212,7 +212,7 @@ public final class GateSerializer
             s.getGatePlayerTeleportLocation().setPitch(0);
 
             final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
+            final byte[] idcBytes = sized(byteBuff, idcLen);
             byteBuff.get(idcBytes);
             s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
@@ -292,7 +292,7 @@ public final class GateSerializer
             s.setGateTempTargetId(byteBuff.getLong());
 
             final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
+            final byte[] strBytes = sized(byteBuff, facingSize);
             byteBuff.get(strBytes);
             final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
@@ -302,7 +302,7 @@ public final class GateSerializer
             s.getGatePlayerTeleportLocation().setPitch(0);
 
             final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
+            final byte[] idcBytes = sized(byteBuff, idcLen);
             byteBuff.get(idcBytes);
             s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
@@ -381,7 +381,7 @@ public final class GateSerializer
             s.setGateTempTargetId(byteBuff.getLong());
 
             final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
+            final byte[] strBytes = sized(byteBuff, facingSize);
             byteBuff.get(strBytes);
             final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
@@ -391,7 +391,7 @@ public final class GateSerializer
             s.getGatePlayerTeleportLocation().setPitch(0);
 
             final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
+            final byte[] idcBytes = sized(byteBuff, idcLen);
             byteBuff.get(idcBytes);
             s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
@@ -559,7 +559,7 @@ public final class GateSerializer
     private static void readEarlyFacing(final Stargate s, final ByteBuffer byteBuff)
     {
         final int facingSize = byteBuff.getInt();
-        final byte[] strBytes = new byte[facingSize];
+        final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
         final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
         s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
@@ -728,7 +728,7 @@ public final class GateSerializer
     private static void readFacingAndOrientation(final Stargate s, final ByteBuffer byteBuff)
     {
         final int facingSize = byteBuff.getInt();
-        final byte[] strBytes = new byte[facingSize];
+        final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
         final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
         s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
@@ -765,7 +765,7 @@ public final class GateSerializer
     private static void readIrisAndLights(final Stargate s, final ByteBuffer byteBuff)
     {
         final int idcLen = byteBuff.getInt();
-        final byte[] idcBytes = new byte[idcLen];
+        final byte[] idcBytes = sized(byteBuff, idcLen);
         byteBuff.get(idcBytes);
         s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
@@ -961,6 +961,22 @@ public final class GateSerializer
     private static byte[] emptyBlock()
     {
         return new byte[12];
+    }
+
+    /**
+     * An array for a length-prefixed field, refused if the length cannot be right.
+     *
+     * <p>A damaged blob can carry any number there. A huge one used to throw OutOfMemoryError, which
+     * no per-gate catch stops, so one bad gate aborted a whole import.
+     */
+    private static byte[] sized(final ByteBuffer byteBuff, final int length)
+    {
+        if ((length < 0) || (length > byteBuff.remaining()))
+        {
+            throw new IllegalArgumentException("its gate data is damaged: a field claims " + length
+                + " bytes with " + byteBuff.remaining() + " left");
+        }
+        return new byte[length];
     }
 
     /**
