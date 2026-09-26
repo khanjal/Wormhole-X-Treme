@@ -2,4 +2,4 @@
 *.sh text eol=lf
 
 # The 2016 fixture is kept byte for byte as the old server wrote it, CRLF and LF mixed.
-scripts/fixtures/** -text
+scripts/fixtures/legacy-2016/** -text

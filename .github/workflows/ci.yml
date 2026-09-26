@@ -406,6 +406,7 @@ jobs:
           name: migration-logs-${{ matrix.version }}-${{ matrix.variant }}
           path: |
             boot/console-import.log
+            boot/console-reload.log
             boot/console.log
           if-no-files-found: ignore
           retention-days: 7

@@ -9,6 +9,11 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 variant="${3:-real}"
 dir="${BOOT_DIR:-$(mktemp -d)}"
+# The folder is emptied first, so it has to be one a previous run made, or not exist yet.
+if [[ -e "$dir" && -n "$(ls -A "$dir" 2>/dev/null)" && ! -f "$dir/eula.txt" ]]; then
+  echo "BOOT_DIR $dir is not empty and not a previous server run; refusing to empty it" >&2
+  exit 2
+fi
 rm -rf "$dir"
 mkdir -p "$dir/plugins"
 dir="$(cd "$dir" && pwd)"
@@ -27,6 +32,12 @@ add() { printf -v "$1" '%s%s\n' "${!1}" "$2"; }
 if [[ "$variant" == "enriched" ]]; then
   db="$data/WormholeXTremeDB/WormholeXTreme.sqlite"
   python3 "$here/enrich-legacy-db.py" "$here/fixtures/legacy-2016/WormholeXTremeDB/WormholeXTreme.sqlite" "$db"
+  # The pair saved mid-trip must really be saved open, or "comes across shut" proves nothing.
+  python3 - "$db" <<'EOF' || { echo "the enriched database has no gate saved open" >&2; exit 1; }
+import sqlite3, sys
+blob = sqlite3.connect(sys.argv[1]).execute("SELECT GateData FROM Stargates WHERE Name = 'Gallium'").fetchone()[0]
+sys.exit(0 if blob[1 + 3 * 12 + 2 * 32 + 1 + 12 + 4 + 8] == 1 else 1)
+EOF
   imported=81 # and the truncated one
   add require 'skipped Oxygen: '
 fi
@@ -59,6 +70,7 @@ if [[ "$variant" == "enriched" ]]; then
 fi
 echo "== second boot: reload"
 BOOT_COMMANDS="$commands" BOOT_REQUIRE="$require" bash "$here/boot-test.sh" "$1" "$2"
+cp "$dir/console.log" "$dir/console-reload.log"
 
 failures=()
 files=0
@@ -71,6 +83,18 @@ if [[ "$variant" == "enriched" ]]; then
   grep -q '^Network: Traders' "$data/data/gates/Zinc.yml" || failures+=("Zinc lost its Traders network")
   grep -q '^WorldName: world_nether' "$data/data/gates/Cobalt.yml" || failures+=("Cobalt is not in world_nether")
   grep -q '^WorldName: world_the_end' "$data/data/gates/Xenon.yml" || failures+=("Xenon is not in world_the_end")
+  # Vanadium's iris was saved shut and Potassium's open; each must come across that way.
+  python3 - "$data/data/gates" <<'EOF' || failures+=("an iris state did not come across")
+import base64, os, re, struct, sys
+def iris(name):
+    text = open(os.path.join(sys.argv[1], name + ".yml"), encoding="utf-8").read()
+    blob = base64.b64decode(re.search(r"GateData:\s*(\S+)", text).group(1))
+    at = 1 + 3 * 12 + 2 * 32 + 1 + 12 + 4 + 8 + 1 + 8
+    at += 4 + struct.unpack(">i", blob[at:at + 4])[0]
+    at += 4 + struct.unpack(">i", blob[at:at + 4])[0]
+    return blob[at]
+sys.exit(0 if (iris("Vanadium"), iris("Potassium")) == (1, 0) else 1)
+EOF
   # Saved open mid-trip in 2016; it must come across shut, not stuck open or pointing at nothing.
   for gate in Gallium Manganese; do
     python3 - "$data/data/gates/$gate.yml" <<'EOF' || failures+=("$gate came across open")
@@ -86,15 +110,23 @@ fi
 # Last, because it removes a gate the checks above count.
 if [[ ${#failures[@]} -eq 0 && "$variant" == "real" && -n "${4:-}" ]]; then
   deps="$(mktemp -d)"
-  bash "$here/fetch-plugins.sh" "$4" "$deps" > /dev/null
-  if compgen -G "$deps/CoreProtect*.jar" > /dev/null; then
-    mkdir -p "$deps/only" && cp "$deps"/CoreProtect*.jar "$deps/only/"
+  if ! PLUGINS=coreprotect bash "$here/fetch-plugins.sh" "$4" "$deps"; then
+    echo "::notice::could not fetch CoreProtect for $4; its hook is not tested here"
+  elif compgen -G "$deps/CoreProtect*.jar" > /dev/null; then
     echo "== third boot: take a gate down beside CoreProtect"
-    EXTRA_PLUGINS="$deps/only" BOOT_CONFIG='coreprotect-enabled: true' BOOT_COMMANDS=$'wx gate regen Vanadium -fill\nwx gate remove Vanadium -destroy' \
+    EXTRA_PLUGINS="$deps" BOOT_CONFIG='coreprotect-enabled: true' BOOT_COMMANDS=$'wx gate regen Vanadium -fill\nwx gate remove Vanadium -destroy' \
       BOOT_REQUIRE=$'Logging gate and ring construction to CoreProtect\nWormhole Removed: Vanadium' \
       bash "$here/boot-test.sh" "$1" "$2" || failures+=("the CoreProtect boot failed")
+    # The hook line appears on the first change, which regen makes; the removals are what -destroy logs.
+    python3 - "$dir/plugins/CoreProtect/database.db" <<'EOF' || failures+=("CoreProtect holds no removals from the plugin")
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+removed = db.execute("SELECT COUNT(*) FROM co_block b JOIN co_user u ON u.id = b.user"
+                     " WHERE u.user = '#wormhole' AND b.action = 0").fetchone()[0]
+sys.exit(0 if removed > 0 else 1)
+EOF
   else
-    echo "no CoreProtect release for $4; its hook is not tested here"
+    echo "::notice::no CoreProtect release for $4; its hook is not tested here"
   fi
 fi
 if [[ ${#failures[@]} -gt 0 ]]; then
