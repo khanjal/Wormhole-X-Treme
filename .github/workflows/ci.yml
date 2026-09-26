@@ -360,6 +360,56 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # An upgrade from a real server's 2016 plugin folder: import, import again, then reload.
+  # "enriched" adds the states that folder lacks: IDCs, networks, other worlds, a gate saved
+  # mid-trip and a damaged one (scripts/enrich-legacy-db.py).
+  boot-migration:
+    name: Migrate 2016 gates on paper ${{ matrix.version }} (${{ matrix.variant }})
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.20.4", "26.3"]
+        variant: ["real", "enriched"]
+        include:
+          - { version: "1.20.4", java: "21" }
+          - { version: "26.3", java: "25" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: WormholeXTreme-snapshot
+          path: plugin
+
+      - name: Fetch paper ${{ matrix.version }}
+        run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
+
+      - name: Import and reload the 2016 gates
+        env:
+          BOOT_DIR: boot
+        run: bash scripts/migration-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.variant }} ${{ matrix.version }}
+
+      - name: Upload the server logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: migration-logs-${{ matrix.version }}-${{ matrix.variant }}
+          path: |
+            boot/console-import.log
+            boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest
