@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Upgrades a server from a real 2016 plugin folder and checks every gate comes across and stays:
-#   migration-boot.sh <server.jar> <plugin.jar> [real|enriched]
+#   migration-boot.sh <server.jar> <plugin.jar> [real|enriched] [minecraft-version]
 # "enriched" first gives the fixture's database the states it lacks (see enrich-legacy-db.py). The
-# first boot imports, the second reloads what the first wrote. JAVA and BOOT_DIR pass through.
+# first boot imports, the second reloads what the first wrote. Given the Minecraft version, a real
+# run then takes a gate down beside CoreProtect. JAVA and BOOT_DIR pass through.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -72,6 +73,23 @@ blob = base64.b64decode(re.search(r"GateData:\s*(\S+)", open(sys.argv[1], encodi
 sys.exit(blob[1 + 3 * 12 + 2 * 32 + 1 + 12 + 4 + 8])
 EOF
   done
+fi
+
+# CoreProtect's hook connects on the first block change it is given. Without a player, regen and
+# then remove make one; remove alone, on a gate with nothing standing in this world, does not.
+# Last, because it removes a gate the checks above count.
+if [[ ${#failures[@]} -eq 0 && "$variant" == "real" && -n "${4:-}" ]]; then
+  deps="$(mktemp -d)"
+  bash "$here/fetch-plugins.sh" "$4" "$deps" > /dev/null
+  if compgen -G "$deps/CoreProtect*.jar" > /dev/null; then
+    mkdir -p "$deps/only" && cp "$deps"/CoreProtect*.jar "$deps/only/"
+    echo "== third boot: take a gate down beside CoreProtect"
+    EXTRA_PLUGINS="$deps/only" BOOT_CONFIG='coreprotect-enabled: true' BOOT_COMMANDS=$'wx gate regen Vanadium -fill\nwx gate remove Vanadium -destroy' \
+      BOOT_REQUIRE=$'Logging gate and ring construction to CoreProtect\nWormhole Removed: Vanadium' \
+      bash "$here/boot-test.sh" "$1" "$2" || failures+=("the CoreProtect boot failed")
+  else
+    echo "no CoreProtect release for $4; its hook is not tested here"
+  fi
 fi
 if [[ ${#failures[@]} -gt 0 ]]; then
   printf 'migration FAILED\n' >&2

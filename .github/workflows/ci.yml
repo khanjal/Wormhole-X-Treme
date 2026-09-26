@@ -397,7 +397,7 @@ jobs:
       - name: Import and reload the 2016 gates
         env:
           BOOT_DIR: boot
-        run: bash scripts/migration-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.variant }}
+        run: bash scripts/migration-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.variant }} ${{ matrix.version }}
 
       - name: Upload the server logs
         if: always()
