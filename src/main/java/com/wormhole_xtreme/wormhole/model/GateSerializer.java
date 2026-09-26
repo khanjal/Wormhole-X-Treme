@@ -889,6 +889,13 @@ public final class GateSerializer
                                   final List<List<Location>> waves)
     {
         final int numLayers = byteBuff.getInt();
+        // Growing the list reads nothing, so a garbled count would run to OutOfMemoryError; every
+        // layer carries at least its own four-byte count.
+        if ((numLayers < 0) || (numLayers > byteBuff.remaining() / 4))
+        {
+            throw new IllegalArgumentException("its gate data is damaged: it claims " + numLayers
+                + " layers with " + byteBuff.remaining() + " bytes left");
+        }
         while (waves.size() < numLayers)
         {
             waves.add(new ArrayList<>());
