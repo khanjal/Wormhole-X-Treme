@@ -313,18 +313,15 @@ public class WormholeXTreme extends JavaPlugin
                 // confirmation is FINE-level (see StargateYamlManager.saveStargate), so
                 // this logs one summary line instead of one per gate -- a server with a
                 // hundred gates does not need a hundred identical lines on every restart.
+                int saved = 0;
                 for (final Stargate gate : gates)
                 {
-                    if (gate.isGateActive() || gate.isGateLightsActive())
-                    {
-                        gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
-                    }
-                    StargateDBManager.saveStargate(gate);
+                    shutDownForDisable(this, gate);
+                    saved += saveForDisable(this, gate) ? 1 : 0;
                 }
                 if (!gates.isEmpty())
                 {
-                    prettyLog(Level.INFO, "Saved " + gates.size() + " gate"
-                        + (gates.size() == 1 ? "" : "s") + " to disk.");
+                    prettyLog(Level.INFO, savedSummary(saved, gates.size()));
                 }
 
                 saveRings();
@@ -338,6 +335,54 @@ public class WormholeXTreme extends JavaPlugin
             {
                     prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
+    }
+
+    /**
+     * Shuts one open gate for the plugin stopping, without letting it stop the saves after it.
+     *
+     * <p>One gate that fails to shut used to end the save loop, so every gate after it, and the rings,
+     * beams and mirrors, went unsaved.
+     */
+    static void shutDownForDisable(final WormholeXTreme plugin, final Stargate gate)
+    {
+        if (!(gate.isGateActive() || gate.isGateLightsActive()))
+        {
+            return;
+        }
+        try
+        {
+            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            plugin.prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
+        }
+    }
+
+    /**
+     * Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved.
+     *
+     * @return whether it was written
+     */
+    static boolean saveForDisable(final WormholeXTreme plugin, final Stargate gate)
+    {
+        try
+        {
+            StargateDBManager.saveStargate(gate);
+            return true;
+        }
+        catch (final Exception | LinkageError e)
+        {
+            plugin.prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
+            return false;
+        }
+    }
+
+    /** The shutdown's one line about gates, which must not read as all saved when some were not. */
+    static String savedSummary(final int saved, final int total)
+    {
+        return (saved == total) ? "Saved " + total + " gate" + (total == 1 ? "" : "s") + " to disk."
+            : "Saved " + saved + " of " + total + " gates to disk; the errors above say which were not.";
     }
 
     /**

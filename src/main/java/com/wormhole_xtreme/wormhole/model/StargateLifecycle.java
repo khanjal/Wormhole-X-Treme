@@ -395,11 +395,19 @@ class StargateLifecycle
      * recently-active flag after 3 seconds (60 ticks). This prevents fire
      * and lava damage to players who just exited the wormhole.
      */
-    private static void startAfterShutdownTimer(final Stargate gate)
+    static void startAfterShutdownTimer(final Stargate gate)
     {
         if (gate.getGateAfterShutdownTaskId() > 0)
         {
             WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
+        }
+        // Stopping the server shuts open gates while the plugin is disabled, when the scheduler throws
+        // on a new task; nothing is left to wait for, so the flag goes now.
+        if (!WormholeXTreme.getThisPlugin().isEnabled())
+        {
+            gate.setGateAfterShutdownTaskId(-1);
+            gate.setGateRecentlyActive(false);
+            return;
         }
         final int timeout = 60;
         gate.setGateAfterShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(

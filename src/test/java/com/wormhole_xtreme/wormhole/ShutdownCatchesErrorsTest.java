@@ -61,7 +61,7 @@ class ShutdownCatchesErrorsTest
     /** Every step the shutdown path is known to take, used to prove the region is the region. */
     private static final List<String> SHUTDOWN_STEPS =
         List.of("MirrorProximity.restoreAll", "saveRings", "saveBeams", "saveMirrors",
-            "disableEconomyQuietly");
+            "disableEconomyQuietly", "shutDownForDisable", "saveForDisable");
 
     /** The shutdown path's source, between the two markers. */
     private static String shutdownPath() throws IOException
