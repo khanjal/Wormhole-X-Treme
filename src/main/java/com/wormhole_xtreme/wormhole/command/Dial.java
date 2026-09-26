@@ -47,6 +47,22 @@ public class Dial implements CommandExecutor
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
+        dialFrom(player, start, args);
+    }
+
+    /**
+     * Dials from a gate to the one named, under the same rules as {@code /dial}: same network, not
+     * itself, and past a closed remote iris only with its code. A refusal puts the start gate out.
+     *
+     * @param player
+     *            who is told what happened
+     * @param start
+     *            the gate dialling
+     * @param args
+     *            the target's name, and optionally the IDC for a closed remote iris
+     */
+    public static void dialFrom(final CommandSender player, final Stargate start, final String[] args)
+    {
         final String startnetwork = CommandUtilities.getGateNetwork(start);
         if (start.getGateName().equals(args[0]))
         {
@@ -95,7 +111,7 @@ public class Dial implements CommandExecutor
      * <p>A wrong code is not reported here: the dial is stopped by the iris still being
      * active, which is what the player is told.
      */
-    private static void openRemoteIrisIfIdcMatches(final Player player, final Stargate target, final String[] args)
+    private static void openRemoteIrisIfIdcMatches(final CommandSender player, final Stargate target, final String[] args)
     {
         if ( !target.getGateIrisDeactivationCode().equals("") && target.isGateIrisActive()
             && (args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
@@ -113,7 +129,7 @@ public class Dial implements CommandExecutor
      * closing. Forcing past a target that is genuinely connected would cut someone else off,
      * so that case is reported instead.
      */
-    private static void recoverFailedDial(final Player player, final Stargate start, final Stargate target)
+    private static void recoverFailedDial(final CommandSender player, final Stargate start, final Stargate target)
     {
         if (isTargetInUse(start, target))
         {
