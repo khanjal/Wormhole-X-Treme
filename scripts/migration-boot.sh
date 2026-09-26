@@ -36,6 +36,7 @@ add commands 'wx gate import'
 add require 'Found WormholeXTreme\.sqlite from an older Wormhole X-Treme'
 add require "Imported $imported gates"
 add require 'skipped Travel: world "world_tutorial" is not loaded'
+add require 'skipped Protection: world "world_tutorial" is not loaded'
 # The second import must add nothing: the importer promises not to double up.
 add require 'Imported 0 gates'
 if [[ "$variant" == "enriched" ]]; then
@@ -50,7 +51,8 @@ cp "$dir/console.log" "$dir/console-import.log"
 
 commands=""
 require=""
-add require "$imported Wormholes loaded"
+# Anchored, so a count that merely ends in these digits does not pass.
+add require "\\] $imported Wormholes loaded"
 if [[ "$variant" == "enriched" ]]; then
   add commands 'wx idc Silver'
   add require 'IDC for gate: Silver is:ag47'
@@ -59,7 +61,11 @@ echo "== second boot: reload"
 BOOT_COMMANDS="$commands" BOOT_REQUIRE="$require" bash "$here/boot-test.sh" "$1" "$2"
 
 failures=()
-files=$(find "$data/data/gates" -name '*.yml' | wc -l)
+files=0
+# Guarded: with no gates at all there is no folder, and set -e would abort before saying why.
+if [[ -d "$data/data/gates" ]]; then
+  files=$(find "$data/data/gates" -name '*.yml' | wc -l)
+fi
 [[ "$files" -eq "$imported" ]] || failures+=("$files gate files written, not $imported")
 if [[ "$variant" == "enriched" ]]; then
   grep -q '^Network: Traders' "$data/data/gates/Zinc.yml" || failures+=("Zinc lost its Traders network")

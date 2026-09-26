@@ -19,9 +19,12 @@ FACING = TARGET + 8
 IDCS = {"Vanadium": ("vanadium23", True), "Silver": ("ag47", True), "Potassium": ("k19", False)}
 NETWORKS = {"Zinc": "Traders", "Boron": "Traders", "Chromium": "Traders",
             "Neon": "Mining", "Aluminium": "Mining", "Sulfur": "Admin", "Flourine": "Explorers"}
+# Paper creates both beside the default level-name, which boot-test.sh leaves as "world".
 WORLDS = {"Cobalt": ("world_nether", "NETHER"), "Nickel": ("world_nether", "NETHER"),
           "Xenon": ("world_the_end", "THE_END")}
 MID_TRIP = ("Gallium", "Manganese")
+# Cut where version 8 holds fixed-width material ordinals, so the reader runs out of bytes; a cut
+# inside a length prefix would be a different test (see GateSerializer.sized).
 TRUNCATED = "Oxygen"
 
 

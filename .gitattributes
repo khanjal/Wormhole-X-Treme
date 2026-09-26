@@ -1,2 +1,5 @@
 # Shell scripts run on Linux runners; CRLF would break the shebang line.
 *.sh text eol=lf
+
+# The 2016 fixture is kept byte for byte as the old server wrote it, CRLF and LF mixed.
+scripts/fixtures/** -text
