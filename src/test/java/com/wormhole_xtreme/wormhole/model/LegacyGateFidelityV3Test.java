@@ -298,16 +298,16 @@ class LegacyGateFidelityV3Test
     private Block dialSignInAChunk(final boolean loaded, final BlockState state)
     {
         final Chunk chunk = mock(Chunk.class);
-        final Block sign = mock(Block.class);
-        when(sign.getX()).thenReturn(Integer.valueOf(13));
-        when(sign.getY()).thenReturn(Integer.valueOf(64));
-        when(sign.getZ()).thenReturn(Integer.valueOf(20));
-        when(sign.getWorld()).thenReturn(world);
-        when(sign.getChunk()).thenReturn(chunk);
-        when(sign.getState()).thenReturn(state);
+        final Block signBlock = mock(Block.class);
+        when(signBlock.getX()).thenReturn(Integer.valueOf(13));
+        when(signBlock.getY()).thenReturn(Integer.valueOf(64));
+        when(signBlock.getZ()).thenReturn(Integer.valueOf(20));
+        when(signBlock.getWorld()).thenReturn(world);
+        when(signBlock.getChunk()).thenReturn(chunk);
+        when(signBlock.getState()).thenReturn(state);
         when(world.isChunkLoaded(chunk)).thenReturn(Boolean.valueOf(loaded));
-        doReturn(sign).when(world).getBlockAt(13, 64, 20);
-        return sign;
+        doReturn(signBlock).when(world).getBlockAt(13, 64, 20);
+        return signBlock;
     }
 
     /**
