@@ -124,8 +124,8 @@ public class WormholeXTreme extends JavaPlugin
      * each. 1.20.4 has both classes, but only the new one fires there.
      *
      * <p>Chosen by whether the event class exists, not by trying to register: {@code registerEvents}
-     * catches a missing event type itself, logs an ERROR and registers nothing, so on 1.20 and
-     * 1.20.1 the first listener looked registered and the legacy one was never tried.
+     * catches a missing event type itself, logs an ERROR and registers nothing, so before 1.20.4
+     * the first listener looked registered and the legacy one was never tried.
      *
      * @param pm
      *            the plugin manager to register with

@@ -23,7 +23,7 @@ import org.mockito.ArgumentCaptor;
  * {@code EntityDismountEvent} exists there, but the plugin tried the {@code org.bukkit} listener
  * first. {@code registerEvents} does not throw for a missing event type; it logs an ERROR and
  * registers nothing. So the attempt looked like a success, the legacy listener was never tried,
- * and riders could dismount inside an open gate on 1.20 and 1.20.1.
+ * and riders could dismount inside an open gate on 1.20 through 1.20.3.
  */
 class DismountListenerChoiceTest
 {
@@ -41,7 +41,7 @@ class DismountListenerChoiceTest
     void aServerWithOnlyTheSpigotEventGetsOnlyTheLegacyListener()
     {
         assertEquals(List.of(OLD_LISTENER), onAServerWith(OLD_EVENT),
-            "1.20 and 1.20.1 have only the org.spigotmc event; offering the org.bukkit listener"
+            "1.20 through 1.20.3 have only the org.spigotmc event; offering the org.bukkit listener"
                 + " there registers nothing and stops the legacy one being tried");
     }
 
