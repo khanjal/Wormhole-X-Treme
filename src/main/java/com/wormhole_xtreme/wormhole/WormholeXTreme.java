@@ -130,7 +130,7 @@ public class WormholeXTreme extends JavaPlugin
      * @param pm
      *            the plugin manager to register with
      */
-    private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
+    static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
                                                  final WormholeXTreme plugin)
     {
         for (final String candidate : dismountListenersFor(WormholeXTreme::serverHasClass))

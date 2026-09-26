@@ -3,11 +3,18 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Set;
 
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * The dismount listener is chosen by which event class the server has.
@@ -58,12 +65,31 @@ class DismountListenerChoiceTest
         assertEquals(List.of(), onAServerWith(), "with no dismount event there is nothing to register");
     }
 
-    /** The tests compile against 1.20.4, the one API that carries both events. */
+    /** CI runs these against every API from 1.20 to 26.3, so only a class all of them have. */
     @Test
-    void theProbeFindsBothEventsOnTheApiThisPluginIsBuiltAgainst()
+    void theProbeFindsAClassEveryServerHas()
     {
-        assertTrue(WormholeXTreme.serverHasClass(NEW_EVENT), "1.20.4 has the org.bukkit event");
-        assertTrue(WormholeXTreme.serverHasClass(OLD_EVENT), "1.20.4 still has the org.spigotmc event");
+        assertTrue(WormholeXTreme.serverHasClass("org.bukkit.event.Event"),
+            "a class that is there must read as present, or no listener is ever registered");
+    }
+
+    /**
+     * Whichever API the tests run against, exactly one listener this server can carry is
+     * registered: the wiring the pure choice above feeds, which is where 1.20 went wrong.
+     */
+    @Test
+    void exactlyOneListenerTheServerCanCarryIsRegistered()
+    {
+        final PluginManager pm = mock(PluginManager.class);
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+
+        WormholeXTreme.registerDismountListener(pm, plugin);
+
+        final ArgumentCaptor<Listener> registered = ArgumentCaptor.forClass(Listener.class);
+        verify(pm, times(1)).registerEvents(registered.capture(), eq(plugin));
+        final String expected = WormholeXTreme.dismountListenersFor(WormholeXTreme::serverHasClass).get(0);
+        assertEquals(expected, registered.getValue().getClass().getName(),
+            "the first listener whose event this API has should be the one registered");
     }
 
     @Test
