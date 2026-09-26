@@ -1,0 +1,113 @@
+WormholeXTreme 1.031
+WormholeXTreme Config Settings
+-------------------------------
+
+---------------
+Setting: BUILT_IN_PERMISSIONS_ENABLED
+Value: false
+Description: This should be set to true if you want the built in permissions enabled. This
+             setting does nothing if you have Permissions plugin installed.
+---------------
+Setting: BUILT_IN_DEFAULT_PERMISSION_LEVEL
+Value: WORMHOLE_USE_PERMISSION
+Description: If built in permissions are being used, this is the default level of control
+             users (non-ops) have.
+---------------
+Setting: PERMISSIONS_SUPPORT_DISABLE
+Value: false
+Description: If set to true, Permissions plugin will not be attached to evem if available.
+---------------
+Setting: SIMPLE_PERMISSIONS
+Value: false
+Description: If using Permissions plugin based permissions, setting this to true switches
+             WormholeXTreme to use an extremely simplified permissions set
+             ('wormhole.simple.use', 'wormhole.simple.build',
+             'wormhole.simple.config', and 'wormhole.simple.remove').
+---------------
+Setting: WORMHOLE_USE_IS_TELEPORT
+Value: true
+Description: The wormhole.use (or wormhole.simple.use) permission means that a user can
+             teleport through gate. When false a user will be able to teleport
+             but not activate a gate. When true only users with wormhole.use (or
+             wormhole.simple.use) can even teleport.
+---------------
+Setting: TIMEOUT_ACTIVATE
+Value: 30
+Description: Number of seconds after a gate is activated, but before dialing before timing
+             out.
+---------------
+Setting: TIMEOUT_SHUTDOWN
+Value: 38
+Description: Number of seconds after a gate is dialed before automatically shutdown. With 0
+             timeout a gate won't shutdown until something goes through the
+             gate.
+---------------
+Setting: BUILD_RESTRICTION_ENABLED
+Value: false
+Description: Enable build count restrictions. Reuires complex permissions.
+---------------
+Setting: BUILD_RESTRICTION_GROUP_ONE
+Value: 1
+Description: Total number of stargates a member of build restriction group one can build.
+---------------
+Setting: BUILD_RESTRICTION_GROUP_TWO
+Value: 2
+Description: Total number of stargates a member of build restriction group two can build.
+---------------
+Setting: BUILD_RESTRICTION_GROUP_THREE
+Value: 3
+Description: Total number of stargates a member of build restriction group three can build.
+---------------
+Setting: USE_COOLDOWN_ENABLED
+Value: false
+Description: Enable Cooldown timers on stargate usage. Timer only activates on passage
+             through wormholes. Requires complex permissions enabled.
+---------------
+Setting: USE_COOLDOWN_GROUP_ONE
+Value: 120
+Description: Cooldown time in seconds between stargate use for members of use cooldown group
+             one.
+---------------
+Setting: USE_COOLDOWN_GROUP_TWO
+Value: 60
+Description: Cooldown time in seconds between stargate use for members of use cooldown group
+             two.
+---------------
+Setting: USE_COOLDOWN_GROUP_THREE
+Value: 30
+Description: Cooldown time in seconds between stargate use for members of use cooldown group
+             three.
+---------------
+Setting: HELP_SUPPORT_DISABLE
+Value: false
+Description: If set to true, Help plugin will not be attached to even if available.
+---------------
+Setting: WORLDS_SUPPORT_ENABLED
+Value: false
+Description: If set to true, the Wormhole X-Treme will offload all of its Chunk and World
+             loading functionality to Wormhole Extreme Worlds.
+---------------
+Setting: LOG_LEVEL
+Value: INFO
+Description: Log level to use for minecraft logging purposes. Values are SEVERE, WARNING,
+             INFO, CONFIG, FINE, FINER, and FINEST. In order of least to most
+             logging output.
+---------------
+Setting: SHOW_GATE_WELCOME_MESSAGE
+Value: true
+Description: If set to true, the player will receive a welcome message after arrival
+---------------
+Setting: USE_EVENT_OR_TP_TRANSPORT
+Value: true
+Description: If set to true, the player will be transported via event handling. If you use
+             plugins that can overwrite onPlayerMove() then you may want to
+             change this to false
+---------------
+Setting: WORMHOLE_KICKBACK_BLOCK_COUNT
+Value: 2
+Description: Set the amount of blocks the player will be kicked back if the target's gate is
+             active. Default is 2. Set to 0 to disable this feature.
+---------------
+Setting: PERMISSIONS_BACKEND
+Value: pex
+Description: Set used PermissionsBackend. See documentation for possible values
