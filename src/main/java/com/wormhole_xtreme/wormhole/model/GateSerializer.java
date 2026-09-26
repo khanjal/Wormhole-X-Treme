@@ -122,17 +122,9 @@ public final class GateSerializer
         s.setLoadedVersion(byteBuff.get());
         s.setGateWorld(w);
 
-        if (s.getLoadedVersion() == 3)
+        if (s.getLoadedVersion() >= 3 && s.getLoadedVersion() <= 5)
         {
-            return readVersion3(s, byteBuff, w);
-        }
-        else if (s.getLoadedVersion() == 4)
-        {
-            return readVersion4(s, byteBuff, w);
-        }
-        else if (s.getLoadedVersion() == 5)
-        {
-            return readVersion5(s, byteBuff, w);
+            return readVersion3To5(s, byteBuff, w);
         }
         else if (s.getLoadedVersion() == 6)
         {
@@ -150,287 +142,65 @@ public final class GateSerializer
     }
 
     /**
-     * Reads a save-version 3 gate out of the buffer.
+     * Reads a save-version 3, 4 or 5 gate out of the buffer.
+     *
+     * <p>Version 4 widened the two target ids from int to long, and version 5 added the lights
+     * flag and one wave of light blocks. Unlike the later readers, none of them warns about
+     * trailing bytes.
      *
      * @param s
-     *            the gate being built, already carrying its name, network and world
+     *            the gate being built, already carrying its name, network, world and version
      * @param byteBuff
      *            the buffer, positioned just past the version byte
      * @param w
      *            the world the gate belongs to
      * @return the gate
      */
-    private static Stargate readVersion3(final Stargate s, final ByteBuffer byteBuff, final World w)
+    private static Stargate readVersion3To5(final Stargate s, final ByteBuffer byteBuff, final World w)
     {
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        final byte[] blocArray = new byte[12];
+        final boolean hasLights = s.getLoadedVersion() >= 5;
 
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getInt());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getInt());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = sized(byteBuff, facingSize);
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = sized(byteBuff, idcLen);
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
-
-            int numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
-
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            return s;
-    }
-
-    /**
-     * Reads a save-version 4 gate out of the buffer.
-     *
-     * @param s
-     *            the gate being built, already carrying its name, network and world
-     * @param byteBuff
-     *            the buffer, positioned just past the version byte
-     * @param w
-     *            the world the gate belongs to
-     * @return the gate
-     */
-    private static Stargate readVersion4(final Stargate s, final ByteBuffer byteBuff, final World w)
-    {
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
-
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getLong());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getLong());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = sized(byteBuff, facingSize);
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = sized(byteBuff, idcLen);
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
-            int numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
-
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            return s;
-    }
-
-    /**
-     * Reads a save-version 5 gate out of the buffer.
-     *
-     * @param s
-     *            the gate being built, already carrying its name, network and world
-     * @param byteBuff
-     *            the buffer, positioned just past the version byte
-     * @param w
-     *            the world the gate belongs to
-     * @return the gate
-     */
-    private static Stargate readVersion5(final Stargate s, final ByteBuffer byteBuff, final World w)
-    {
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
-
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getLong());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getLong());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = sized(byteBuff, facingSize);
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = sized(byteBuff, idcLen);
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
+        readEarlyAnchors(s, byteBuff, w, blocArray, false);
+        readSignAndTarget(s, byteBuff, w, blocArray, s.getLoadedVersion() >= 4);
+        readEarlyFacing(s, byteBuff);
+        readIris(s, byteBuff);
+        if (hasLights)
+        {
             s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
+        }
 
-            int numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
+        readBlockRun(byteBuff, w, blocArray, s.getGateStructureBlocks());
+        readBlockRun(byteBuff, w, blocArray, s.getGatePortalBlocks());
+        if (hasLights)
+        {
+            readVersion5Lights(s, byteBuff, w, blocArray);
+        }
+        return s;
+    }
 
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            while (s.getGateLightBlocks().size() < 2)
-            {
-                s.getGateLightBlocks().add(null);
-            }
-
-            s.getGateLightBlocks().set(1, new ArrayList<>());
-
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateLightBlocks().get(1).add(bl.getLocation());
-            }
-
-            return s;
+    /**
+     * Version 5's one run of light blocks, which it kept as the second wave.
+     *
+     * <p>The first wave is left null rather than empty, as the version 5 reader always left it.
+     *
+     * @param s
+     *            the gate being built
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     */
+    private static void readVersion5Lights(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final byte[] blocArray)
+    {
+        final List<List<Location>> waves = s.getGateLightBlocks();
+        while (waves.size() < 2)
+        {
+            waves.add(null);
+        }
+        waves.set(1, new ArrayList<>());
+        readBlockRun(byteBuff, w, blocArray, waves.get(1));
     }
 
     /**
@@ -493,7 +263,7 @@ public final class GateSerializer
         final byte[] blocArray = new byte[12];
 
         readEarlyAnchors(s, byteBuff, w, blocArray, hasMinecartLocation);
-        readSignAndTarget(s, byteBuff, w, blocArray);
+        readSignAndTarget(s, byteBuff, w, blocArray, true);
         readEarlyFacing(s, byteBuff);
         readIrisAndLights(s, byteBuff);
         readEarlyRedstone(s, byteBuff, w, blocArray);
@@ -508,10 +278,9 @@ public final class GateSerializer
     }
 
     /**
-     * The blocks and locations a version 6 or 7 gate has.
+     * The blocks and locations a version 3 to 7 gate has.
      *
-     * <p>Version 6 stores one arrival point and version 7 two, which is the whole difference
-     * between the formats.
+     * <p>Versions 3 to 6 store one arrival point and version 7 two.
      *
      * @param s
      *            the gate being built
@@ -550,7 +319,7 @@ public final class GateSerializer
      * The way the gate faces, and the arrival point it stands a player on.
      *
      * <p>Only the player's, unlike version 8: version 7 stores a minecart arrival point but
-     * never stood it up, and version 6 has none at all. Recorded rather than corrected --
+     * never stood it up, and versions 3 to 6 have none at all. Recorded rather than corrected --
      * whether that was deliberate is a question about the old format, not about this reader.
      *
      * @param s
@@ -611,7 +380,7 @@ public final class GateSerializer
         final byte[] blocArray = new byte[12];
 
         readAnchors(s, byteBuff, w, blocArray);
-        readSignAndTarget(s, byteBuff, w, blocArray);
+        readSignAndTarget(s, byteBuff, w, blocArray, true);
         readFacingAndOrientation(s, byteBuff);
         readIrisAndLights(s, byteBuff);
         readRedstone(s, byteBuff, w, blocArray);
@@ -672,15 +441,17 @@ public final class GateSerializer
      *            the world the gate belongs to
      * @param blocArray
      *            a block-sized scratch array
+     * @param longIds
+     *            whether the target ids are longs, which they are from version 4; version 3 wrote ints
      */
     private static void readSignAndTarget(final Stargate s, final ByteBuffer byteBuff, final World w,
-                                          final byte[] blocArray)
+                                          final byte[] blocArray, final boolean longIds)
     {
         s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
 
         byteBuff.get(blocArray);
         s.setGateDialSignIndex(byteBuff.getInt());
-        s.setGateTempSignTarget(byteBuff.getLong());
+        s.setGateTempSignTarget(readTargetId(byteBuff, longIds));
         if (s.isGateSignPowered())
         {
             s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
@@ -688,7 +459,19 @@ public final class GateSerializer
         }
 
         s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-        s.setGateTempTargetId(byteBuff.getLong());
+        s.setGateTempTargetId(readTargetId(byteBuff, longIds));
+    }
+
+    /**
+     * Reads one gate id, at the width its version wrote it.
+     *
+     * @param longIds
+     *            true from version 4, false for version 3
+     * @return the id
+     */
+    private static long readTargetId(final ByteBuffer byteBuff, final boolean longIds)
+    {
+        return longIds ? byteBuff.getLong() : byteBuff.getInt();
     }
 
     /**
@@ -764,6 +547,18 @@ public final class GateSerializer
      */
     private static void readIrisAndLights(final Stargate s, final ByteBuffer byteBuff)
     {
+        readIris(s, byteBuff);
+        s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
+    }
+
+    /**
+     * The iris and its code: {@link #readIrisAndLights} without the lights flag, for versions 3 to 5.
+     *
+     * @param s
+     *            the gate being built
+     */
+    private static void readIris(final Stargate s, final ByteBuffer byteBuff)
+    {
         final int idcLen = byteBuff.getInt();
         final byte[] idcBytes = sized(byteBuff, idcLen);
         byteBuff.get(idcBytes);
@@ -771,7 +566,6 @@ public final class GateSerializer
 
         s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateIrisDefaultActive(s.isGateIrisActive());
-        s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
     }
 
     /**
