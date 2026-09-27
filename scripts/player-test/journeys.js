@@ -176,14 +176,16 @@ const gate = {
     if (!button || !button.name.endsWith('_button')) {
       throw new Error(`no DHD button at 0 -60 1, but ${button ? button.name : 'an unloaded block'}`)
     }
+    // Watched to see the gate open, so it must start empty, or that check proves nothing.
+    const opening = v(-2, -58, -3)
+    const kawoosh = v(-2, -60, -2)
+    if (bot.blockAt(opening).name !== 'air') throw new Error(`Abydos's opening is ${bot.blockAt(opening).name} before dialling`)
     messages()
     await bot.activateBlock(button)
     await sleep(1000)
     bot.chat('/dial Chulak')
 
     // Portal blocks fill the opening, then the kawoosh in front of it comes and goes.
-    const opening = v(-2, -58, -3)
-    const kawoosh = v(-2, -60, -2)
     await waitFor(() => bot.blockAt(opening).name !== 'air', 20,
       `Abydos opening (heard: ${JSON.stringify(heard)})`)
     await sleep(1000)

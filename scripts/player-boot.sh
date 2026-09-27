@@ -11,7 +11,8 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 client="$here/player-test"
 
-if [[ ! -d "$client/node_modules" ]]; then
+# Checks for the bot's own dependency, not the folder, so an install cut short is done again.
+if [[ ! -d "$client/node_modules/mineflayer" ]]; then
   npm ci --prefix "$client" --no-audit --no-fund
 fi
 
