@@ -891,13 +891,8 @@ class MirrorCommandTest
     }
 
     /**
-     * Naming a banner on a post says where it has to be clicked.
-     *
-     * <p>The one thing the plugin can say about a limitation it cannot fix. Only the base of a
-     * standing banner can be clicked; a right-click at the cloth passes through it, and no
-     * event reaches the plugin at all -- so there is no moment later at which it could explain
-     * itself. This is that moment, with the player standing in front of the banner they just
-     * named.
+     * Naming a banner on a post is refused, without the click-near-its-base advice meant for a
+     * mirror already on one: that would tell the player how to use a mirror they were not given.
      */
     @Test
     void namingABannerOnAPostIsRefusedBeforeAnyAdviceAboutItsBase()
