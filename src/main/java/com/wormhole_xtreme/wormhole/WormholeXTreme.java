@@ -302,6 +302,8 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.FINE, "Failed to stop iris sweeps", e);
             }
+            // Bukkit drops the tickets themselves; a reload must not start with stale counts.
+            com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
