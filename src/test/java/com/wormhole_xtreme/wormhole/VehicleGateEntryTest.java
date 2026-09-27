@@ -113,6 +113,8 @@ class VehicleGateEntryTest
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
         when(cart.getType()).thenReturn(EntityType.MINECART);
         when(cart.isValid()).thenReturn(true);
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(cart.teleport(any(Location.class))).thenReturn(true);
     }
 
     @AfterEach
@@ -152,6 +154,7 @@ class VehicleGateEntryTest
     private Player putARiderAboard()
     {
         final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         when(rider.getName()).thenReturn("rider");
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.isValid()).thenReturn(true);
@@ -354,6 +357,247 @@ class VehicleGateEntryTest
             rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider));
             rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(rider, dst));
         }
+    }
+
+    /**
+     * On Paper 1.20.4 a ridden cart still goes, and its rider with it.
+     *
+     * <p>1.20.4 will not teleport anything with a passenger, and the plugin ignored the answer:
+     * the cart stayed in the gate with the rider in it, and the rider was still charged the
+     * cooldown for a trip that never happened (#506).
+     */
+    @Test
+    void aCartThatWillNotMoveWithItsRiderAboardStillGoesAndTakesThemAlong()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        // Where the rider stands decides whether the cart will seat them: not across a gate.
+        PetTestSupport.standsWhereTeleported(rider, new Location(world, BX + 0.5, BY + 0.5, BZ + 0.5));
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class))
+        {
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+
+            rollIn();
+            runArrivalTasks();
+
+            assertEquals(100.5 + 1.0, stack.at().getX(), 0.001, "the cart must reach the far gate");
+            assertEquals(stack.at().getX(), rider.getLocation().getX(), 0.001, "the rider arrives with it");
+            assertTrue(stack.carries(rider), "and is back in the cart there");
+            rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider));
+        }
+    }
+
+    /** Runs the tasks a trip booked for its first second, as though their ticks had passed. */
+    private void runArrivalTasks()
+    {
+        final ArgumentCaptor<Runnable> tasks = ArgumentCaptor.forClass(Runnable.class);
+        final ArgumentCaptor<Long> delays = ArgumentCaptor.forClass(Long.class);
+        verify(scheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), tasks.capture(), delays.capture());
+        for (int i = 0; i < tasks.getAllValues().size(); i++)
+        {
+            if (delays.getAllValues().get(i).longValue() < 20L)
+            {
+                tasks.getAllValues().get(i).run();
+            }
+        }
+    }
+
+    /**
+     * A cart that will not move keeps its rider, and nobody is charged.
+     *
+     * <p>Another plugin cancelling the teleport, say. The rider stays in the cart at this end
+     * rather than being sent on without it.
+     */
+    @Test
+    void aCartThatWillNotMoveKeepsItsRiderAndChargesNobody()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        final Location seat = new Location(world, BX + 0.5, BY + 0.5, BZ + 0.5);
+        PetTestSupport.standsWhereTeleported(rider, seat);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        when(cart.teleport(any(Location.class))).thenReturn(false);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class))
+        {
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+
+            rollIn();
+
+            assertTrue(stack.carries(rider), "the rider must still be in the cart");
+            assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
+            rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider), never());
+            rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(any(), any()), never());
+        }
+    }
+
+    /**
+     * A cart's rider pays once the cart has gone, and not if it has not.
+     *
+     * <p>The fare used to be taken by the player listener as the rider rolled in, before this
+     * listener had moved the cart at all; on Paper 1.20.4 the cart then stayed put, and the
+     * rider had paid for nothing.
+     */
+    @Test
+    void aCartRiderPaysOnlyForATripThatHappened()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        Paper1204Riding.refusesWhileRidden(cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(Boolean.TRUE);
+            when(cart.teleport(any(Location.class))).thenReturn(false);
+
+            rollIn();
+
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+
+            clearRecentMarksQuietly();
+            when(cart.teleport(any(Location.class))).thenReturn(true);
+            rollIn();
+
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(rider, 5.0));
+        }
+    }
+
+    /**
+     * A rider another plugin will not let through keeps the cart here, and pays nothing.
+     *
+     * <p>A region or combat plugin cancels the player's teleport. The cart used to go anyway,
+     * leaving the rider on foot at the source, charged and marked as having travelled.
+     */
+    @Test
+    void aRiderRefusedTheirTeleportKeepsTheCartHereAndPaysNothing()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        when(rider.teleport(any(Location.class))).thenReturn(false);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(Boolean.TRUE);
+
+            rollIn();
+
+            assertEquals(BX + 0.5, stack.at().getX(), 0.001, "the cart must stay with its rider");
+            assertTrue(stack.carries(rider), "the rider must still be in it");
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+            rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider), never());
+        }
+    }
+
+    /**
+     * A rider on cooldown hears about the cooldown, not the fare: the order the player
+     * listener asks them in, so the same rider is told the same thing on foot or in a cart.
+     */
+    @Test
+    void aCartRiderOnCooldownIsToldOfTheCooldownBeforeTheFare()
+    {
+        final Player rider = putARiderAboard();
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            rules.when(() -> StargateRestrictions.isPlayerUseCooldown(rider)).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+
+            rollIn();
+
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+            verify(cart, never()).teleport(any(Location.class));
+        }
+    }
+
+    /** A rider who cannot afford the trip is not taken, cart and all. */
+    @Test
+    void aCartRiderWhoCannotPayIsNotTaken()
+    {
+        final Player rider = putARiderAboard();
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+
+            rollIn();
+
+            verify(cart, never()).teleport(any(Location.class));
+            verify(rider).sendMessage(org.mockito.ArgumentMatchers.anyString());
+        }
+    }
+
+    private static void clearRecentMarksQuietly()
+    {
+        try
+        {
+            clearRecentMarks();
+        }
+        catch (final Exception e)
+        {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * A cart that will not move is not a trip either, and is sent back out the way it came.
+     *
+     * <p>Left stopped in the opening and marked as just travelled, it sat there, its riders
+     * held aboard by the portal's dismount rule, until the gate shut.
+     */
+    @Test
+    void aCartThatWillNotMoveIsTurnedBackOutOfThePortal()
+    {
+        final Player rider = putARiderAboard();
+        when(cart.teleport(any(Location.class))).thenReturn(false);
+
+        rollIn();
+
+        verify(cart).setVelocity(new Vector(-1.0, 0.0, 0.0));
+        assertFalse(WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(cart.getUniqueId()),
+            "a cart that never went must not be ignored as one that just arrived");
+        assertFalse(WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(rider.getUniqueId()));
     }
 
     /**

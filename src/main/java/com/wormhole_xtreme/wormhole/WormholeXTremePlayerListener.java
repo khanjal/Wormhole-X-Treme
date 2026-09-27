@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -31,6 +32,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -155,8 +157,9 @@ class WormholeXTremePlayerListener implements Listener
      *
      * @param safeTarget
      *            the vetted arrival location
+     * @return false if the teleport was refused and they are still here
      */
-    private static void teleportPlayerAlone(final Player player, final Location safeTarget)
+    private static boolean teleportPlayerAlone(final Player player, final Location safeTarget)
     {
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
         try
@@ -164,33 +167,17 @@ class WormholeXTremePlayerListener implements Listener
             WorldUtils.forceLoadDestinationChunks(safeTarget);
         }
         catch (final RuntimeException ignore) { /* best effort */ }
-        player.teleport(safeTarget);
+        if (!player.teleport(safeTarget))
+        {
+            return false;
+        }
         try
         {
             player.setVelocity(new Vector(0, 0, 0));
             player.setFallDistance(0);
         }
         catch (final RuntimeException ignore) { /* settling the arrival is cosmetic */ }
-    }
-
-    /**
-     * Re-seats every passenger of {@code ridden} after it has been teleported through a
-     * gate, then applies its exit velocity once the whole stack is aboard.
-     *
-     * <p>Moved to {@link PassengerReattach} once beaming needed to re-seat a stack too.
-     * Kept here as a delegate so the callers in this package read the same as they always
-     * did.
-     *
-     * @param ridden
-     *            the boat or mount that was just teleported
-     * @param player
-     *            the moving player, re-seated even when the teleport already detached them
-     * @param exitVelocity
-     *            velocity to apply once everyone is aboard, may be null
-     */
-    private static void schedulePassengerReattach(final Entity ridden, final Player player, final Vector exitVelocity)
-    {
-        PassengerReattach.schedule(ridden, player, exitVelocity);
+        return true;
     }
 
     /**
@@ -540,7 +527,7 @@ class WormholeXTremePlayerListener implements Listener
 
         // Affordability is checked here so the player is turned away for the right reason
         // and in the right order, but the money does not move until the trip is certain.
-        final double pendingUseCost = affordableFare(player);
+        final double pendingUseCost = GateFare.affordable(player);
         if (pendingUseCost < 0)
         {
             return false;
@@ -571,9 +558,7 @@ class WormholeXTremePlayerListener implements Listener
             return holdBackCancelledTraveller(event, stargate);
         }
 
-        // Travel is settled, so the fare can be taken.
-        chargeFare(player, pendingUseCost);
-        return performGateTeleport(event, player, stargate, target, safeTarget);
+        return performGateTeleport(event, player, stargate, target, safeTarget, pendingUseCost);
     }
 
     /**
@@ -624,51 +609,6 @@ class WormholeXTremePlayerListener implements Listener
         // further down: spending it at the check charged a player for a trip that had not
         // happened yet and might still not.
         return false;
-    }
-
-    /**
-     * What this trip will cost, if the player can afford it.
-     *
-     * @param player
-     *            the traveller
-     * @return the fare to take once the trip is certain, 0 if there is none, or -1 if they
-     *         cannot afford it and have been told so
-     */
-    private static double affordableFare(final Player player)
-    {
-        if (!ConfigManager.isEconomyEnabled() || !com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
-        {
-            return 0.0;
-        }
-        final double useCost = ConfigManager.getEconomyUseCost();
-        if (useCost <= 0)
-        {
-            return 0.0;
-        }
-        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
-            return -1.0;
-        }
-        return useCost;
-    }
-
-    /**
-     * Takes the fare, now that the trip has actually happened.
-     *
-     * @param player
-     *            the traveller
-     * @param fare
-     *            what they owe, 0 for nothing
-     */
-    private static void chargeFare(final Player player, final double fare)
-    {
-        if (fare > 0)
-        {
-            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, fare);
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
-                + fare + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(fare));
-        }
     }
 
     /**
@@ -728,10 +668,10 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Moves the traveller, and records what follows from their having gone.
      *
-     * <p>Reached only once travel is certain: every check has passed, no listener objected,
-     * and the fare is paid. What is left is the awkward part — a rider has to travel with
-     * whatever is carrying them, and the client has to be told about both in an order it
-     * will accept.
+     * <p>Reached only once travel is settled: every check has passed and no listener objected.
+     * The fare is taken only once somebody has actually moved. What is left is the awkward
+     * part — a rider has to travel with whatever is carrying them, and the client has to be
+     * told about both in an order it will accept.
      *
      * @param event
      *            the move that carried them in
@@ -743,22 +683,26 @@ class WormholeXTremePlayerListener implements Listener
      *            the far gate's arrival point, before the safe-location search
      * @param safeTarget
      *            where they will actually land
+     * @param fare
+     *            what the trip costs, 0 for nothing
      * @return true if the move should be cancelled
      */
     private static boolean performGateTeleport(final PlayerMoveEvent event, final Player player,
                                                final Stargate stargate, final Location target,
-                                               final Location safeTarget)
+                                               final Location safeTarget, final double fare)
     {
         logTeleportTarget(player, stargate, target);
         player.setNoDamageTicks(5);
         // Captured before any event or teleport manipulation moves it.
         final Location playerCurrentLoc = event.getFrom().clone();
+        final Location playerHeadingTo = event.getTo().clone();
         // Whatever the player is riding: boat, horse, camel, pig, strider. Minecarts
         // are the one exception -- they raise VehicleMoveEvent, so the vehicle listener
         // owns them and teleports them in place with passenger state preserved.
         final Entity ridden = player.getVehicle();
         if (ridden instanceof Minecart)
         {
+            // Not charged here: the cart has not moved yet, and may not. Its listener charges.
             return false;
         }
         // Read while the player still stands at the origin; the event changes below move it.
@@ -766,17 +710,13 @@ class WormholeXTremePlayerListener implements Listener
         // For every other flow, mark the event position to the safe target and continue.
         event.setFrom(safeTarget);
         event.setTo(safeTarget);
-        boolean vehiclePathUsed = false;
+        final boolean vehiclePathUsed = ridden != null;
+        boolean moved = false;
         try
         {
-            if (ridden != null)
-            {
-                vehiclePathUsed = sendRiderWithMount(event, player, stargate, safeTarget, playerCurrentLoc, ridden);
-            }
-            else
-            {
-                teleportPlayerAlone(player, safeTarget);
-            }
+            moved = vehiclePathUsed
+                ? sendRiderWithMount(event, player, stargate, safeTarget, ridden)
+                : teleportPlayerAlone(player, safeTarget);
         }
         catch (final Exception e)
         {
@@ -787,6 +727,14 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
 
+        if (!moved)
+        {
+            // Nobody went anywhere, so nothing is charged, marked or logged as a trip.
+            event.setFrom(playerCurrentLoc);
+            event.setTo(playerHeadingTo);
+            return holdBackCancelledTraveller(event, stargate);
+        }
+        GateFare.charge(player, fare);
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
         scheduleArrivalSettle(player, target, vehiclePathUsed);
@@ -830,12 +778,12 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Sends a mounted traveller through with whatever is carrying them.
      *
-     * @return true if the mount moved and the player rode along, false if the mount could
-     *         not be moved and the player was sent through alone instead
+     * @return true if the mount moved and its riders were sent after it; false if it would
+     *         not move, and everyone is still aboard at this end
      */
     private static boolean sendRiderWithMount(final PlayerMoveEvent event, final Player player,
                                               final Stargate stargate, final Location safeTarget,
-                                              final Location playerCurrentLoc, final Entity ridden)
+                                              final Entity ridden)
     {
         final BlockFace exitFacing = stargate.getGateTarget().getGateFacing();
         final Location riddenTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, exitFacing, 1.0, 1.0);
@@ -860,27 +808,41 @@ class WormholeXTremePlayerListener implements Listener
         }
         catch (final RuntimeException ignore) { /* best effort */ }
 
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
+        EntityUtils.collectPassengerPairs(ridden, parents, children);
+        // The one rider known for certain, even if the mount's own list has not caught up.
+        if (!children.contains(player))
+        {
+            parents.add(ridden);
+            children.add(player);
+        }
+        boolean moved;
         try
         {
-            ridden.teleport(riddenTarget);
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerTeleport: teleported "
-                + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
+            moved = RiddenTeleport.move(ridden, riddenTarget, parents, children);
         }
         catch (final RuntimeException tt)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to teleport what " + player.getName() + " was riding", tt);
-            // Could not move what they were riding; send the player through alone
-            // rather than stranding them on the source side.
-            teleportPlayerAlone(player, safeTarget);
+            moved = false;
+        }
+        if (!moved)
+        {
+            // Not split from the mount: sending the player on alone would leave it here.
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "What you are riding could not be sent through.");
             return false;
         }
-
-        // Ride-first: no player.teleport() at all, so there is no teleport-ack race when
-        // the client processes the follow-up set-passengers packet.
-        event.setFrom(playerCurrentLoc);
-        event.setTo(playerCurrentLoc);
-        schedulePassengerReattach(ridden, player, exitVelocity);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerTeleport: teleported "
+            + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
+        // The player is at the far end now, so a cancelled move must hold them there.
+        event.setFrom(riddenTarget);
+        event.setTo(riddenTarget);
+        // Five ticks, as for a cart: the riders were teleported, and a client withholds the
+        // seat packet until it has acknowledged that.
+        PassengerReattach.schedule(ridden, parents, children, exitVelocity, 5L);
         return true;
     }
 

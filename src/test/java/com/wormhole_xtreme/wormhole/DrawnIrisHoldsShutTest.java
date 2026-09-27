@@ -549,6 +549,8 @@ class DrawnIrisHoldsShutTest
         when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(0, 0, 1));
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(cart.teleport(any(Location.class))).thenReturn(true);
         return cart;
     }
 
@@ -638,6 +640,7 @@ class DrawnIrisHoldsShutTest
         final org.bukkit.entity.Minecart cart = cartAt();
         final Player rider = mock(Player.class);
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         when(cart.getPassengers()).thenReturn(java.util.List.<org.bukkit.entity.Entity>of(rider));
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
