@@ -547,7 +547,7 @@ public final class RingTransit
     {
         for (final Chunk chunk : chunksOf(world, pair))
         {
-            chunk.addPluginChunkTicket(WormholeXTreme.getThisPlugin());
+            com.wormhole_xtreme.wormhole.utils.ChunkTickets.hold(chunk);
         }
     }
 
@@ -563,7 +563,7 @@ public final class RingTransit
     {
         for (final Chunk chunk : chunksOf(world, pair))
         {
-            chunk.removePluginChunkTicket(WormholeXTreme.getThisPlugin());
+            com.wormhole_xtreme.wormhole.utils.ChunkTickets.release(chunk);
         }
     }
 

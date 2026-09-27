@@ -1,9 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -17,6 +15,7 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
@@ -204,18 +203,27 @@ public final class PetEscort
         {
             return;
         }
-        final Set<Chunk> held = hold(pets);
-        final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+        final List<Chunk> held = hold(pets);
+        int task = -1;
+        try
         {
-            try
+            task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
             {
-                bring(pets, owner);
-            }
-            finally
-            {
-                release(held);
-            }
-        }, FOLLOW_DELAY_TICKS);
+                try
+                {
+                    bring(pets, owner);
+                }
+                finally
+                {
+                    release(held);
+                }
+            }, FOLLOW_DELAY_TICKS);
+        }
+        catch (final RuntimeException e)
+        {
+            // A plugin being disabled cannot book the task; the pets stay, as nothing will bring them.
+            PluginLog.log(Level.FINE, "Could not send " + owner.getName() + "'s pets after them", e);
+        }
         if (task == -1)
         {
             release(held);
@@ -225,13 +233,16 @@ public final class PetEscort
     /**
      * Keeps the chunks the pets stand in loaded until they have been brought.
      *
+     * <p>One chunk each is enough. A plugin ticket also keeps the chunks around it loaded, and
+     * only the held chunk ticks its entities, so a pet cannot wander out of reach of it.
+     *
      * @param pets
      *            the pets about to follow
-     * @return the chunks this ticketed, leaving out any the plugin already held for something else
+     * @return the chunks held, one entry per hold taken
      */
-    private static Set<Chunk> hold(final List<Entity> pets)
+    private static List<Chunk> hold(final List<Entity> pets)
     {
-        final Set<Chunk> held = new LinkedHashSet<>();
+        final List<Chunk> held = new ArrayList<>();
         for (final Entity pet : pets)
         {
             try
@@ -242,10 +253,8 @@ public final class PetEscort
                     continue;
                 }
                 final Chunk chunk = at.getWorld().getChunkAt(at);
-                if (!held.contains(chunk) && chunk.addPluginChunkTicket(WormholeXTreme.getThisPlugin()))
-                {
-                    held.add(chunk);
-                }
+                ChunkTickets.hold(chunk);
+                held.add(chunk);
             }
             catch (final RuntimeException e)
             {
@@ -257,18 +266,18 @@ public final class PetEscort
     }
 
     /**
-     * Lets go of the chunks {@link #hold} ticketed.
+     * Lets go of the holds {@link #hold} took.
      *
      * @param held
      *            what it returned
      */
-    private static void release(final Set<Chunk> held)
+    private static void release(final List<Chunk> held)
     {
         for (final Chunk chunk : held)
         {
             try
             {
-                chunk.removePluginChunkTicket(WormholeXTreme.getThisPlugin());
+                ChunkTickets.release(chunk);
             }
             catch (final RuntimeException e)
             {
