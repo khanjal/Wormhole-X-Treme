@@ -1,10 +1,13 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Entity;
@@ -157,13 +160,27 @@ public final class PetEscort
      */
     static boolean follows(final Entity entity, final UUID ownerId)
     {
-        if (!(entity instanceof Tameable pet) || !(entity instanceof Sittable sittable) || !pet.isTamed())
+        return belongsTo(entity, ownerId) && !((Sittable) entity).isSitting();
+    }
+
+    /**
+     * Whether an entity is a following kind of pet tamed to this owner, free to come, sitting or not.
+     *
+     * @param entity
+     *            an entity
+     * @param ownerId
+     *            the owner
+     * @return true if it is theirs, alive and riding nothing
+     */
+    private static boolean belongsTo(final Entity entity, final UUID ownerId)
+    {
+        if (!(entity instanceof Tameable pet) || !(entity instanceof Sittable) || !pet.isTamed())
         {
             return false;
         }
         final AnimalTamer tamer = pet.getOwner();
-        return (tamer != null) && ownerId.equals(tamer.getUniqueId()) && !sittable.isSitting()
-            && !entity.isInsideVehicle() && !entity.isDead();
+        return (tamer != null) && ownerId.equals(tamer.getUniqueId()) && !entity.isInsideVehicle()
+            && !entity.isDead();
     }
 
     /**
@@ -173,6 +190,8 @@ public final class PetEscort
      * a refused trip leaves the owner where they were, and a client that has just changed world
      * drops an entity sent before it has loaded, which in play left a pet beside its owner on
      * the server and invisible to them. After the delay the owner is wherever they really are.
+     * The pets' chunks are held loaded until then: with the owner gone to another world nothing
+     * else keeps them, and an unloaded pet cannot be teleported.
      *
      * @param pets
      *            what {@link #gather(Player)} found before the trip
@@ -185,8 +204,77 @@ public final class PetEscort
         {
             return;
         }
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            () -> bring(pets, owner), FOLLOW_DELAY_TICKS);
+        final Set<Chunk> held = hold(pets);
+        final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+        {
+            try
+            {
+                bring(pets, owner);
+            }
+            finally
+            {
+                release(held);
+            }
+        }, FOLLOW_DELAY_TICKS);
+        if (task == -1)
+        {
+            release(held);
+        }
+    }
+
+    /**
+     * Keeps the chunks the pets stand in loaded until they have been brought.
+     *
+     * @param pets
+     *            the pets about to follow
+     * @return the chunks this ticketed, leaving out any the plugin already held for something else
+     */
+    private static Set<Chunk> hold(final List<Entity> pets)
+    {
+        final Set<Chunk> held = new LinkedHashSet<>();
+        for (final Entity pet : pets)
+        {
+            try
+            {
+                final Location at = pet.getLocation();
+                if ((at == null) || (at.getWorld() == null))
+                {
+                    continue;
+                }
+                final Chunk chunk = at.getWorld().getChunkAt(at);
+                if (!held.contains(chunk) && chunk.addPluginChunkTicket(WormholeXTreme.getThisPlugin()))
+                {
+                    held.add(chunk);
+                }
+            }
+            catch (final RuntimeException e)
+            {
+                // Without the ticket this pet may still make it, as it did before there was one.
+                PluginLog.log(Level.FINE, "Could not hold " + pet.getType() + "'s chunk", e);
+            }
+        }
+        return held;
+    }
+
+    /**
+     * Lets go of the chunks {@link #hold} ticketed.
+     *
+     * @param held
+     *            what it returned
+     */
+    private static void release(final Set<Chunk> held)
+    {
+        for (final Chunk chunk : held)
+        {
+            try
+            {
+                chunk.removePluginChunkTicket(WormholeXTreme.getThisPlugin());
+            }
+            catch (final RuntimeException e)
+            {
+                PluginLog.log(Level.FINE, "Could not release a pet's chunk", e);
+            }
+        }
     }
 
     /**
@@ -229,8 +317,12 @@ public final class PetEscort
     {
         try
         {
-            // Told to sit in the meantime, or still beside an owner whose trip was refused.
-            if (!follows(pet, ownerId) || !apart(pet.getLocation(), arrival))
+            // Told to sit in the meantime, or still beside an owner whose trip was refused. Vanilla
+            // sits a pet whose owner is in another world, so only a sit in the owner's world is an order.
+            final Location from = pet.getLocation();
+            final boolean ownerElsewhere = (from != null) && (from.getWorld() != null)
+                && !from.getWorld().equals(arrival.getWorld());
+            if (!(ownerElsewhere ? belongsTo(pet, ownerId) : follows(pet, ownerId)) || !apart(from, arrival))
             {
                 return false;
             }

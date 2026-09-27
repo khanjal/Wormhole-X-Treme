@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.UUID;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Cat;
@@ -250,11 +251,30 @@ class PetEscortTest
     void aPetToldToSitBeforeItFollowedStays()
     {
         ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
-        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
+        final Wolf wolf = at(wolfOf(owner), new Location(ownerWorld, 0.5, 64.0, 0.5));
         when(wolf.isSitting()).thenReturn(true);
 
         assertEquals(0, PetEscort.bring(List.of(wolf), owner),
             "sitting in the second before it follows still means stay");
+    }
+
+    /**
+     * A pet sitting because its owner has gone to another world still comes.
+     *
+     * <p>Issue #505: vanilla sits a pet down once its owner is in another world, so a pet whose
+     * chunk stayed loaded through the delay read as sitting by the time it was to follow, and
+     * stayed. Its owner, a world away, cannot have told it to.
+     */
+    @Test
+    void aPetVanillaSatDownWhenItsOwnerLeftTheWorldStillComes()
+    {
+        final Location arrival = new Location(ownerWorld, 100.5, 64.0, 0.5);
+        ownerNowAt(arrival);
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
+        when(wolf.isSitting()).thenReturn(true);
+
+        assertEquals(1, PetEscort.bring(List.of(wolf), owner));
+        verify(wolf).teleport(arrival);
     }
 
     @Test
@@ -298,6 +318,90 @@ class PetEscortTest
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
             org.mockito.ArgumentMatchers.eq(PetEscort.FOLLOW_DELAY_TICKS));
         verify(wolf, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * A pet's chunk is held loaded from the trip until the pet has been brought, then let go.
+     *
+     * <p>Issue #505: with its owner gone to another world nothing kept the pet's chunk loaded
+     * through the second before it follows, so it unloaded and the pet stayed behind. Paper
+     * 1.20.4 refused the teleport as "Illegal Entity Teleport"; 1.21 read the wolf as dead.
+     */
+    @Test
+    void aPetsChunkIsHeldUntilItHasFollowedAndThenLetGo() throws Exception
+    {
+        final Chunk chunk = mock(Chunk.class);
+        when(chunk.addPluginChunkTicket(plugin)).thenReturn(true);
+        when(petWorld.getChunkAt(any(Location.class))).thenReturn(chunk);
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
+        ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
+        final Runnable later = followLater(wolf);
+
+        verify(chunk).addPluginChunkTicket(plugin);
+        verify(chunk, never()).removePluginChunkTicket(any());
+        later.run();
+
+        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(wolf, chunk);
+        order.verify(wolf).teleport(any(Location.class));
+        order.verify(chunk).removePluginChunkTicket(plugin);
+    }
+
+    /**
+     * A chunk the plugin already held for something else, a ring mid-cycle, is left held.
+     *
+     * <p>The plugin has one ticket per chunk, not a count, so letting it go here would unload a
+     * ring's end under it.
+     */
+    @Test
+    void aChunkThePluginAlreadyHeldIsNotLetGo() throws Exception
+    {
+        final Chunk chunk = mock(Chunk.class);
+        when(chunk.addPluginChunkTicket(plugin)).thenReturn(false);
+        when(petWorld.getChunkAt(any(Location.class))).thenReturn(chunk);
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
+        ownerNowAt(new Location(ownerWorld, 100.5, 64.0, 0.5));
+
+        followLater(wolf).run();
+
+        verify(wolf).teleport(any(Location.class));
+        verify(chunk, never()).removePluginChunkTicket(any());
+    }
+
+    /** A pet whose owner logged off in the meantime still lets its chunk go. */
+    @Test
+    void aPetsChunkIsLetGoEvenWhenItsOwnerHasLeft() throws Exception
+    {
+        final Chunk chunk = mock(Chunk.class);
+        when(chunk.addPluginChunkTicket(plugin)).thenReturn(true);
+        when(petWorld.getChunkAt(any(Location.class))).thenReturn(chunk);
+        final Wolf wolf = at(wolfOf(owner), new Location(petWorld, 0.5, 64.0, 0.5));
+        when(owner.isOnline()).thenReturn(false);
+
+        followLater(wolf).run();
+
+        verify(wolf, never()).teleport(any(Location.class));
+        verify(chunk).removePluginChunkTicket(plugin);
+    }
+
+    /**
+     * Sends one pet after its owner and hands back what the scheduler was given to run later.
+     *
+     * @param pet
+     *            the pet following
+     * @return the delayed task, not yet run
+     */
+    private Runnable followLater(final Wolf pet) throws Exception
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
+        PluginTestSupport.scheduler(scheduler);
+
+        PetEscort.follow(List.of(pet), owner);
+
+        final org.mockito.ArgumentCaptor<Runnable> task = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler).scheduleSyncDelayedTask(any(), task.capture(), eq(PetEscort.FOLLOW_DELAY_TICKS));
+        verify(pet, never()).teleport(any(Location.class));
+        return task.getValue();
     }
 
     /**

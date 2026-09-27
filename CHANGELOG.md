@@ -32,6 +32,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
   rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
 
+### Travel
+
+**Fixed**
+
+- **A following pet comes with its owner into another world** by gate, beam, ring or mirror,
+  where it used to stay behind.
+
 ## 1.8.0 (2026-09-26)
 
 ### For server admins
