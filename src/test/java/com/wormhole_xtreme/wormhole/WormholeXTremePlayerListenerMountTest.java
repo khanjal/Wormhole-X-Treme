@@ -99,8 +99,8 @@ class WormholeXTremePlayerListenerMountTest
         when(mount.isValid()).thenReturn(true);
         when(mount.getType()).thenReturn(EntityType.PIG);
 
-        when(rider1.getVehicle()).thenReturn((Entity) mount);
-        when(rider2.getVehicle()).thenReturn((Entity) mount);
+        seatedOn(rider1, mount);
+        seatedOn(rider2, mount);
         when(rider1.isValid()).thenReturn(true);
         when(rider2.isValid()).thenReturn(true);
         when(rider1.getName()).thenReturn("r1");
@@ -202,7 +202,7 @@ class WormholeXTremePlayerListenerMountTest
         when(mount.getLocation()).thenReturn(new Location(world, bx + 0.5, by, bz + 0.5));
 
         final Player rider = mock(Player.class);
-        when(rider.getVehicle()).thenReturn((Entity) mount);
+        seatedOn(rider, mount);
         when(rider.isValid()).thenReturn(true);
         when(rider.getName()).thenReturn("camelRider");
 
@@ -226,6 +226,23 @@ class WormholeXTremePlayerListenerMountTest
             "gate under the mount should have been detected and the mount teleported");
 
         StargateManager.removeBlockIndex(portal);
+    }
+
+    /**
+     * Seats a rider who really does get off when the mount is told to let them go.
+     *
+     * <p>The move asks each passenger whether it is still aboard before it moves the mount, so
+     * a rider stubbed to ride forever reads as one another plugin would not let off.
+     */
+    private static void seatedOn(final Player rider, final Entity mount)
+    {
+        final boolean[] aboard = { true };
+        when(rider.getVehicle()).thenAnswer(call -> aboard[0] ? mount : null);
+        when(mount.removePassenger(rider)).thenAnswer(call ->
+        {
+            aboard[0] = false;
+            return Boolean.TRUE;
+        });
     }
 
     /**

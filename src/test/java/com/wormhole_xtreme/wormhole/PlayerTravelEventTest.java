@@ -436,6 +436,32 @@ class PlayerTravelEventTest
     }
 
     /**
+     * A minecart rider is not charged here: the cart has not moved yet, and may not.
+     *
+     * <p>The vehicle listener moves the cart and charges once it has gone. Charged here, the
+     * rider paid as they rolled in, and on Paper 1.20.4 for a cart that then stayed put.
+     */
+    @Test
+    void aMinecartRiderIsLeftToTheCartsListenerToCharge()
+    {
+        final org.bukkit.entity.Minecart cart = mock(org.bukkit.entity.Minecart.class);
+        when(player.getVehicle()).thenReturn(cart);
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(true);
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.canAfford(any(), anyDouble()));
+            economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+        }
+    }
+
+    /**
      * A trip the server refuses is not charged for, and costs no cooldown.
      *
      * <p>Another plugin cancelling the teleport leaves the traveller where they are. The

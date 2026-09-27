@@ -442,6 +442,8 @@ class WormholeXTremeVehicleListener implements Listener
             {
                 if (veh.isValid())
                 {
+                    // Refused on Paper 1.20.4 with riders aboard, a harmless no-op there;
+                    // unseating everyone for a cosmetic nudge would flicker the seat.
                     veh.teleport(resyncLoc);
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
                 }
@@ -458,6 +460,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             try
             {
+                // Refused on Paper 1.20.4 once anyone is back aboard: the retry still runs.
                 veh.teleport(safeTarget);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported " + veh.getUniqueId()
                     + " to force client update (attempt " + attempt + ")");
@@ -616,6 +619,10 @@ class WormholeXTremeVehicleListener implements Listener
             return false;
         }
         // The vehicle has gone, so what follows from having travelled can be applied.
+        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player driver))
+        {
+            GateFare.charge(driver, GateFare.affordable(driver));
+        }
         applyTravelRestrictions(st, pendingRestrictions);
         return true;
     }
@@ -841,6 +848,10 @@ class WormholeXTremeVehicleListener implements Listener
      */
     private static boolean admitUnderCooldown(final Player p, final List<Player> pendingRestrictions)
     {
+        if (GateFare.affordable(p) < 0)
+        {
+            return false;
+        }
         if (!ConfigManager.isUseCooldownEnabled())
         {
             return true;

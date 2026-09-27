@@ -419,6 +419,79 @@ class VehicleGateEntryTest
         }
     }
 
+    /**
+     * A cart's rider pays once the cart has gone, and not if it has not.
+     *
+     * <p>The fare used to be taken by the player listener as the rider rolled in, before this
+     * listener had moved the cart at all; on Paper 1.20.4 the cart then stayed put, and the
+     * rider had paid for nothing.
+     */
+    @Test
+    void aCartRiderPaysOnlyForATripThatHappened()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        Paper1204Riding.refusesWhileRidden(cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(Boolean.TRUE);
+            when(cart.teleport(any(Location.class))).thenReturn(false);
+
+            rollIn();
+
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+
+            clearRecentMarksQuietly();
+            when(cart.teleport(any(Location.class))).thenReturn(true);
+            rollIn();
+
+            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(rider, 5.0));
+        }
+    }
+
+    /** A rider who cannot afford the trip is not taken, cart and all. */
+    @Test
+    void aCartRiderWhoCannotPayIsNotTaken()
+    {
+        final Player rider = putARiderAboard();
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
+                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+            cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
+            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+
+            rollIn();
+
+            verify(cart, never()).teleport(any(Location.class));
+            verify(rider).sendMessage(org.mockito.ArgumentMatchers.anyString());
+        }
+    }
+
+    private static void clearRecentMarksQuietly()
+    {
+        try
+        {
+            clearRecentMarks();
+        }
+        catch (final Exception e)
+        {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** An empty cart that will not move is not a trip either. */
     @Test
     void anEmptyCartThatWillNotMoveIsNotSentOnItsWay()

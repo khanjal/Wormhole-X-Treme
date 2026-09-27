@@ -30,7 +30,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
   vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
   frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
-- **A ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.** It stayed behind with its rider aboard while the trip was reported and charged; one that cannot be moved now keeps its riders and costs nothing.
+- **A ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.** It stayed behind with its rider aboard while the trip was reported and charged; one that cannot be moved now keeps its riders and costs nothing, and a rider pays once the boat or cart has gone.
 
 ### Quantum mirrors
 

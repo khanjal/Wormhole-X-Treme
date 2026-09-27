@@ -40,6 +40,12 @@ public final class Paper1204Riding
 
     private Paper1204Riding() {}
 
+    /** A rider whose position the test gave is refused a seat more than two blocks away. */
+    private static boolean tooFarToSeat(final Location riderAt, final Location seat)
+    {
+        return (riderAt != null) && (seat != null) && (riderAt.distanceSquared(seat) > 4.0);
+    }
+
     /**
      * Wires {@code vehicle}'s seats and teleport, with {@code riders} aboard to start with.
      *
@@ -64,6 +70,10 @@ public final class Paper1204Riding
         when(vehicle.addPassenger(any())).thenAnswer(call ->
         {
             final Entity rider = call.getArgument(0);
+            if (tooFarToSeat(rider.getLocation(), stack.at))
+            {
+                return false;
+            }
             if (!stack.aboard.contains(rider))
             {
                 stack.aboard.add(rider);

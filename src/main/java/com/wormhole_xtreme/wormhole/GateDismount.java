@@ -27,8 +27,12 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 final class GateDismount
 {
-    /** Set while {@link RiddenTeleport} unseats a stack to move it; main thread only. */
-    private static boolean unseatingOnPurpose;
+    /**
+     * The passengers {@link RiddenTeleport} is taking off right now; main thread only. By
+     * identity: the event hands back the same cached Bukkit entity the passenger list held.
+     */
+    private static final java.util.Set<Entity> UNSEATING =
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 
     /** Static helpers only. */
     private GateDismount()
@@ -36,23 +40,31 @@ final class GateDismount
     }
 
     /**
-     * Runs {@code unseat} with this rule off, so the plugin's own dismount at a portal is not
-     * refused by its own listener.
+     * Runs {@code unseat} with this rule off for {@code riders} alone, so the plugin's own
+     * dismount at a portal is not refused by its own listener, and nobody else's is waved through.
      *
+     * @param riders
+     *            the passengers being taken off
      * @param unseat
      *            the dismounts to allow
      */
-    static void allowWhile(final Runnable unseat)
+    static void allowWhile(final java.util.Collection<? extends Entity> riders, final Runnable unseat)
     {
-        final boolean was = unseatingOnPurpose;
-        unseatingOnPurpose = true;
+        final java.util.List<Entity> added = new java.util.ArrayList<>();
+        for (final Entity rider : riders)
+        {
+            if (UNSEATING.add(rider))
+            {
+                added.add(rider);
+            }
+        }
         try
         {
             unseat.run();
         }
         finally
         {
-            unseatingOnPurpose = was;
+            added.forEach(UNSEATING::remove);
         }
     }
 
@@ -65,7 +77,7 @@ final class GateDismount
      */
     static boolean shouldRefuse(final Entity who)
     {
-        if (unseatingOnPurpose || !(who instanceof Player))
+        if (!(who instanceof Player) || UNSEATING.contains(who))
         {
             return false;
         }

@@ -289,6 +289,8 @@ public final class PassengerReattach
                 {
                     if (ridden.isValid())
                     {
+                        // A same-spot client nudge. Paper 1.20.4 refuses it with riders aboard,
+                        // a harmless no-op there; unseating for it would flicker the seat.
                         ridden.teleport(resyncLoc);
                     }
                 }

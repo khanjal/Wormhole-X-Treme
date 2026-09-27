@@ -527,7 +527,7 @@ class WormholeXTremePlayerListener implements Listener
 
         // Affordability is checked here so the player is turned away for the right reason
         // and in the right order, but the money does not move until the trip is certain.
-        final double pendingUseCost = affordableFare(player);
+        final double pendingUseCost = GateFare.affordable(player);
         if (pendingUseCost < 0)
         {
             return false;
@@ -609,51 +609,6 @@ class WormholeXTremePlayerListener implements Listener
         // further down: spending it at the check charged a player for a trip that had not
         // happened yet and might still not.
         return false;
-    }
-
-    /**
-     * What this trip will cost, if the player can afford it.
-     *
-     * @param player
-     *            the traveller
-     * @return the fare to take once the trip is certain, 0 if there is none, or -1 if they
-     *         cannot afford it and have been told so
-     */
-    private static double affordableFare(final Player player)
-    {
-        if (!ConfigManager.isEconomyEnabled() || !com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
-        {
-            return 0.0;
-        }
-        final double useCost = ConfigManager.getEconomyUseCost();
-        if (useCost <= 0)
-        {
-            return 0.0;
-        }
-        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
-            return -1.0;
-        }
-        return useCost;
-    }
-
-    /**
-     * Takes the fare, now that the trip has actually happened.
-     *
-     * @param player
-     *            the traveller
-     * @param fare
-     *            what they owe, 0 for nothing
-     */
-    private static void chargeFare(final Player player, final double fare)
-    {
-        if (fare > 0)
-        {
-            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, fare);
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
-                + fare + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(fare));
-        }
     }
 
     /**
@@ -747,7 +702,7 @@ class WormholeXTremePlayerListener implements Listener
         final Entity ridden = player.getVehicle();
         if (ridden instanceof Minecart)
         {
-            chargeFare(player, fare);
+            // Not charged here: the cart has not moved yet, and may not. Its listener charges.
             return false;
         }
         // Read while the player still stands at the origin; the event changes below move it.
@@ -779,7 +734,7 @@ class WormholeXTremePlayerListener implements Listener
             event.setTo(playerHeadingTo);
             return holdBackCancelledTraveller(event, stargate);
         }
-        chargeFare(player, fare);
+        GateFare.charge(player, fare);
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
         scheduleArrivalSettle(player, target, vehiclePathUsed);

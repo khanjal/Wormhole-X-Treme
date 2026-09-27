@@ -635,18 +635,16 @@ public final class GateEntityScanner implements Runnable
             }, 1L);
         }
 
-        // Marked too, or a rider left unseated in the far portal is swept straight back.
-        for (int i = 0; i < children.size(); i++)
+        if (children.isEmpty())
         {
-            try
-            {
-                WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(children.get(i).getUniqueId());
-                parents.get(i).addPassenger(children.get(i));
-            }
-            catch (final RuntimeException t)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep", t);
-            }
+            return;
         }
+        // Marked too, or a rider waiting in the far portal for its seat is swept straight back.
+        for (final Entity child : children)
+        {
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(child.getUniqueId());
+        }
+        // The shared re-seat, whose retries fetch a passenger that did not land beside its mount.
+        com.wormhole_xtreme.wormhole.utils.PassengerReattach.schedule(entity, parents, children, exit, 1L);
     }
 }

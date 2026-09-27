@@ -29,7 +29,7 @@ public final class RiddenTeleport
      * @param root
      *            the vehicle or mount
      * @param target
-     *            where it goes; each passenger is sent its own copy, yaw and all
+     *            where it goes; the vehicle and each passenger get their own copy, yaw and all
      * @param parents
      *            what each passenger rides, read before this call, in the order
      *            {@link com.wormhole_xtreme.wormhole.utils.EntityUtils#collectPassengerPairs}
@@ -37,16 +37,22 @@ public final class RiddenTeleport
      * @param children
      *            the passengers, parallel to {@code parents}
      * @return true if {@code root} moved and its passengers were sent after it, unseated; false
-     *         if it would not move, in which case everyone is back aboard where they started
+     *         if a passenger would not come off or it would not move, in which case everyone is
+     *         back aboard where they started
      */
     public static boolean move(final Entity root, final Location target, final List<Entity> parents,
         final List<Entity> children)
     {
-        unseat(parents, children);
+        if (!unseat(parents, children))
+        {
+            // Moving now would leave a rider aboard: refused on 1.20.4, carried alone on 1.21.
+            reseatWhereTheyAre(parents, children);
+            return false;
+        }
         final boolean moved;
         try
         {
-            moved = root.teleport(target);
+            moved = root.teleport(target.clone());
         }
         catch (final RuntimeException e)
         {
@@ -60,36 +66,56 @@ public final class RiddenTeleport
         }
         for (final Entity child : children)
         {
-            try
-            {
-                child.teleport(target.clone());
-            }
-            // The caller's re-seat closes the gap to the vehicle if this one did not land.
-            catch (final RuntimeException e)
-            {
-                PluginLog.log(Level.FINE, "Could not send a passenger after " + root.getType(), e);
-            }
+            sendAfter(root, child, target);
         }
         return true;
     }
 
-    /** Deepest first, so nothing is left riding anything when the root moves. */
-    private static void unseat(final List<Entity> parents, final List<Entity> children)
+    /** The caller's re-seat moves a passenger that did not land here to its vehicle, and retries. */
+    private static void sendAfter(final Entity root, final Entity child, final Location target)
     {
-        GateDismount.allowWhile(() ->
+        try
+        {
+            if (!child.teleport(target.clone()))
+            {
+                PluginLog.log(Level.FINE, "A passenger was refused on the way after " + root.getType());
+            }
+        }
+        catch (final RuntimeException e)
+        {
+            PluginLog.log(Level.FINE, "Could not send a passenger after " + root.getType(), e);
+        }
+    }
+
+    /**
+     * Takes every passenger off, deepest first.
+     *
+     * @return false if any is still aboard, say because another plugin cancelled the dismount
+     */
+    private static boolean unseat(final List<Entity> parents, final List<Entity> children)
+    {
+        final boolean[] allOff = { true };
+        GateDismount.allowWhile(children, () ->
         {
             for (int i = children.size() - 1; i >= 0; i--)
             {
                 try
                 {
                     parents.get(i).removePassenger(children.get(i));
+                    // removePassenger answers true whatever happened, so ask the passenger.
+                    if (children.get(i).getVehicle() != null)
+                    {
+                        allOff[0] = false;
+                    }
                 }
                 catch (final RuntimeException e)
                 {
                     PluginLog.log(Level.FINE, "Could not unseat a passenger before a teleport", e);
+                    allOff[0] = false;
                 }
             }
         });
+        return allOff[0];
     }
 
     /** Nobody moved, so no teleport is waiting on an acknowledgement and the seats can be taken now. */

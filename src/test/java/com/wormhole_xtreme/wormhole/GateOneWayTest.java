@@ -230,6 +230,7 @@ class GateOneWayTest
         final Entity zombie = zombieIn(10, 64, 20);
         final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
         when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.isValid()).thenReturn(true);
         when(chicken.teleport(any(Location.class))).thenReturn(true);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             zombie, new Location(world, 10.5, 64, 20.5), chicken);
@@ -238,8 +239,50 @@ class GateOneWayTest
             GateEntityScanner.create().run();
 
             assertEquals(99.5, stack.at().getX(), 1.5, "the mob must reach the far gate");
-            verify(chicken).teleport(any(Location.class));
+            verify(chicken, atLeastOnce()).teleport(any(Location.class));
             assertTrue(stack.carries(chicken), "its passenger rides on at the far end");
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
+     * A passenger whose own teleport fails is fetched to its mount, not left at the source.
+     *
+     * <p>The sweep used to re-seat once, on the spot, with no retry: a passenger that had not
+     * landed beside its mount was refused its seat and stayed behind for good.
+     */
+    @Test
+    void aSweptPassengerWhoseTeleportFailsIsFetchedToItsMount()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.isValid()).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            zombie, new Location(world, 10.5, 64, 20.5), chicken);
+        final Location[] chickenAt = { new Location(world, 10.5, 65, 20.5) };
+        when(chicken.teleport(any(Location.class)))
+            .thenThrow(new IllegalStateException("not this tick"))
+            .thenAnswer(call ->
+            {
+                chickenAt[0] = call.getArgument(0);
+                return true;
+            });
+        // Where it stands decides whether the zombie will seat it: not from the far side of a gate.
+        when(chicken.getLocation()).thenAnswer(call -> chickenAt[0]);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertTrue(chickenAt[0].getX() > 90, "the chicken must be fetched to the far gate");
+            assertTrue(stack.carries(chicken), "and ride on there");
         }
         finally
         {
