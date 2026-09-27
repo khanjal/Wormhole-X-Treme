@@ -411,8 +411,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # Gate travel with no player: two gates built and dialled from the console, then an item and a pig
-  # dropped into one and looked for at the other.
+  # Travel with no player: two gates built and dialled from the console, then an item and a pig
+  # dropped into one and looked for at the other; the same through a pair of rings; and a mirror made
+  # from the console and found again after a restart.
   boot-travel:
     name: Travel on paper ${{ matrix.version }}
     needs: build-and-test
@@ -448,12 +449,27 @@ jobs:
           BOOT_DIR: boot
         run: bash scripts/travel-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.version }}
 
-      - name: Upload the server log
+      - name: Pair, fire and ride transport rings
+        if: success() || failure()
+        env:
+          BOOT_DIR: boot-ring
+        run: bash scripts/ring-travel-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.version }}
+
+      - name: Make a mirror and keep it across a restart
+        if: success() || failure()
+        env:
+          BOOT_DIR: boot-mirror
+        run: bash scripts/mirror-boot.sh server.jar plugin/WormholeXTreme-*.jar
+
+      - name: Upload the server logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: travel-log-${{ matrix.version }}
-          path: boot/console.log
+          path: |
+            boot/console.log
+            boot-ring/console.log
+            boot-mirror/console-*.log
           if-no-files-found: ignore
           retention-days: 7
 
