@@ -1170,43 +1170,12 @@ class StargateBlockSetup
 
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (!isNearEnoughToRedraw(gate, playerAt))
+            if (isNearEnoughToRedraw(gate, playerAt))
             {
-                continue;
-            }
-            if (!gate.isGatePortalOpen())
-            {
-                // Still dialling: the opening stays empty until the kawoosh settles, and only the
-                // chevrons locked so far are lit. Counted as drawn, so the take-back below does
-                // not darken them.
-                if (gate.isGateIrisActive())
-                {
-                    sendIrisTo(player, gate);
-                }
-                else if (gate.isGateLightsActive())
-                {
-                    sendLights(player, gate, true);
-                }
+                // Counted as drawn either way, so the take-back below leaves it alone.
+                sendOpenGateTo(player, gate);
                 stillDrawn.add(gate.getGateName());
-                continue;
             }
-            if (isLayered(gate))
-            {
-                // Iris and horizon, stacked from whichever side this player is on.
-                sendLayeredTo(player, gate);
-            }
-            else if (gate.isGateIrisActive())
-            {
-                // A built iris, on a horizontal gate: the blocks are the iris, so all that is
-                // owed is the horizon behind them.
-                sendPortalBackdropTo(player, gate, true);
-                sendIrisTo(player, gate);
-            }
-            else
-            {
-                sendPortalTo(player, gate);
-            }
-            stillDrawn.add(gate.getGateName());
         }
 
         drawIdleIrises(player, playerAt, stillDrawn);
@@ -1228,6 +1197,47 @@ class StargateBlockSetup
         }
         showing.clear();
         showing.addAll(stillDrawn);
+    }
+
+    /**
+     * Sends one player an active gate as it stands: dialling, or open.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the gate, active and near enough to them
+     */
+    private static void sendOpenGateTo(final Player player, final Stargate gate)
+    {
+        if (!gate.isGatePortalOpen())
+        {
+            // Still dialling: the opening stays empty until the kawoosh settles, and only the
+            // chevrons locked so far are lit.
+            if (gate.isGateIrisActive())
+            {
+                sendIrisTo(player, gate);
+            }
+            else if (gate.isGateLightsActive())
+            {
+                sendLights(player, gate, true);
+            }
+        }
+        else if (isLayered(gate))
+        {
+            // Iris and horizon, stacked from whichever side this player is on.
+            sendLayeredTo(player, gate);
+        }
+        else if (gate.isGateIrisActive())
+        {
+            // A built iris, on a horizontal gate: the blocks are the iris, so all that is
+            // owed is the horizon behind them.
+            sendPortalBackdropTo(player, gate, true);
+            sendIrisTo(player, gate);
+        }
+        else
+        {
+            sendPortalTo(player, gate);
+        }
     }
 
     /**
