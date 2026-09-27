@@ -1017,6 +1017,10 @@ const boat = {
     }
     await sleep(1000)
   },
+  cleanup () {
+    const [[, fx, fz]] = this.gates
+    clearAround(['boat', 'oak_boat'], fx + 10, -60, fz, 30)
+  },
   async run () {
     const [[fromLabel, fx, fz], [toLabel, tx, tz]] = this.gates
     const from = standardGate(fx, fz)
@@ -1082,6 +1086,10 @@ const minecart = {
     }
     serverCommand(`setblock ${bx - 2} -60 ${bz + 14} powered_rail[shape=north_south]`)
     await sleep(1000)
+  },
+  cleanup () {
+    const [[, fx, fz]] = this.gates
+    clearAround('minecart', fx + 10, -60, fz, 30)
   },
   async run () {
     const [[fromLabel, fx, fz], [toLabel, tx, tz]] = this.gates
@@ -1159,6 +1167,9 @@ const mount = {
     if (!made.some((line) => line.includes('is live'))) throw new Error(`the pair was not made: ${JSON.stringify(made)} (the beam: ${JSON.stringify(set)})`)
     // Off the pad, so it does not carry the bot back and forth while other trips run.
     await teleport(this.rings[1] + 0.5, -63, this.ringZ + 8.5, 180)
+  },
+  cleanup () {
+    clearAround('horse', 135, -60, 175, 40)
   },
   async run () {
     const [[fromLabel, fx, fz], [toLabel, tx, tz]] = this.gates
@@ -1382,6 +1393,14 @@ const pet = {
     }
   },
   /** With the plugin's FINE log on, which says which pets it takes and why it leaves any. */
+  /** Its wolves, and the nether room setup force-loads, which only a run in progress needs. */
+  cleanup () {
+    const [, hx, hz] = this.home
+    const [, ax, az, ay] = this.away
+    clearAround('wolf', hx, -60, hz, 30)
+    inNether(`kill @e[type=wolf,x=${ax},y=${ay},z=${az},distance=..30]`)
+    inNether(`forceload remove ${ax - 16} ${az - 16} ${ax + 16} ${az + 16}`)
+  },
   async run () {
     const from = logSize()
     serverCommand('wx config log-level FINE')
@@ -1404,6 +1423,8 @@ const pet = {
   async legs () {
     const [homeLabel, hx, hz] = this.home
     const [awayLabel, ax, az, ay] = this.away
+    // Held loaded again for this run: the last one's cleanup let it go.
+    inNether(`forceload add ${ax - 16} ${az - 16} ${ax + 16} ${az + 16}`)
     const home = standardGate(hx, hz)
     const away = standardGate(ax, az, ay)
     const homePad = this.pad(hx, hz)
@@ -1573,8 +1594,11 @@ async function main () {
       detail = e.message
     }
     bot.clearControlStates()
-    // A trip that failed in the saddle would leave the next one mounted.
+    // A trip that failed in the saddle would leave the next one mounted, or its vehicle behind.
     await getOff().catch(() => {})
+    if (trip.cleanup) {
+      try { await trip.cleanup() } catch (e) { console.log(`  cleaning up after ${trip.name}: ${e.message}`) }
+    }
     console.log(`${outcome} ${trip.name}${detail ? ': ' + detail : ''}`)
     const seen = observe ? await askObserver(trip.sight) : 'not watched'
     results.push({ trip: trip.name + (again ? '*' : ''), outcome, seen, detail })
