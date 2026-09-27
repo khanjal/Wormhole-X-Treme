@@ -703,6 +703,11 @@ public final class SubCommands
         {
             return prefixed(args[2], mirrorNames());
         }
+        // The world of create's coordinate form, for the console and command blocks.
+        if ("create".equals(verb) && (args.length == 4))
+        {
+            return worldNames(args[3]);
+        }
         return none();
     }
 
