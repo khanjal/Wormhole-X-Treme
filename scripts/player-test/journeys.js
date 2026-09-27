@@ -900,6 +900,9 @@ async function main () {
   // in 1.21.11; whichever name this server does not know is only an error in its log.
   serverCommand('gamerule doMobSpawning false')
   serverCommand('gamerule spawn_mobs false')
+  // Otherwise every console command, the watcher's action bar included, is echoed to the opped bot.
+  serverCommand('gamerule logAdminCommands false')
+  serverCommand('gamerule log_admin_commands false')
   clearMobs()
   await sleep(2000)
 
