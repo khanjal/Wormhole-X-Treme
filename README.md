@@ -148,9 +148,11 @@ It could not be tested the way it is without:
 - [JUnit 5](https://junit.org/junit5/) and [Mockito](https://site.mockito.org/), with
   [SQLite JDBC](https://github.com/xerial/sqlite-jdbc) building the old databases the importer is
   tested against
-- [SpotBugs](https://spotbugs.github.io/), [PMD](https://pmd.github.io/),
-  [JaCoCo](https://www.jacoco.org/) and [SonarCloud](https://sonarcloud.io/), which read every
-  pull request
+- [Mineflayer](https://github.com/PrismarineJS/mineflayer), a bot that joins a real server and
+  travels its gates, beams and rings as a player would
+- [SpotBugs](https://spotbugs.github.io/) and [SonarCloud](https://sonarcloud.io/), which read
+  every pull request, SonarCloud with [JaCoCo](https://www.jacoco.org/jacoco/)'s coverage, and
+  [PMD](https://pmd.github.io/) before a change is pushed
 - [GitHub Actions](https://github.com/features/actions), which builds it against every supported
   version
 
