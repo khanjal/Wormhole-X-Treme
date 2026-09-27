@@ -6,6 +6,16 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.8.1 (unreleased)
+
+### Transport rings
+
+**Changed**
+
+- **The transport flash defaults to glowstone**, against the lit redstone lamp pad. A server with a
+  `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
+  rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
+
 ## 1.8.0 (2026-09-26)
 
 ### For server admins

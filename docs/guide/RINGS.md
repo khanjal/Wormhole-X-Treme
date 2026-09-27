@@ -89,7 +89,7 @@ In `config.yml`, under its `# --- Transport rings ---` heading. Every key is fla
 | `ring-default-access` | `PRIVATE` | What a new pair starts as. |
 | `ring-default-style` | `CONCURRENT` | How the stack deploys. |
 | `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as. |
-| `ring-default-flash` | `REDSTONE_LAMP` | What a ring turns to as the light passes. |
+| `ring-default-flash` | `GLOWSTONE` | What a ring turns to as the light passes. |
 | `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
 | `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `ring-outline-ticks` | 40 | How long that outline stays up. |
