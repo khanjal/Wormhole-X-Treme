@@ -104,7 +104,7 @@ bot sees, not the plugin's state: the opening filling and emptying, and where th
 | `horizontal` | Two `Horizontal` gates flat in the floor; steps off into the opening after the kawoosh and comes out at the partner's arrival point |
 | `lava` | A gate whose portal is set to lava; lava fills the opening after the kawoosh, it still travels, and the far gate shows nether portal |
 | `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("Remote Iris is locked!"); opened, it travels |
-| `mirror` | Makes two banners mirrors; right-clicked, the first shows the second's room (a gold block) behind its wall; punched, it puts the bot at the second |
+| `mirror` | Makes two banners mirrors and waits for their rooms to be captured (15 seconds or so); the first's view is drawn with no gold behind its wall; right-clicked, it shows the second's room (a gold block); punched, it puts the bot at the second |
 
 `TRIPS=iris,mirror` runs only the trips named.
 
@@ -132,7 +132,8 @@ spectator and moved to a spot facing each trip before it starts, and the bot say
 watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
 with a summary of each trip's automatic result and your answer, and a `n` fails the run just as a
 failed check does. So does no answer in time, or the watcher leaving: a watched run that nobody
-confirmed does not pass. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`.
+confirmed does not pass. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`;
+use a new folder each run, since a world already holding the gates makes every setup fail.
 
 The **Player journeys** workflow (`player.yml`) runs the same thing without an observer on
 Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness

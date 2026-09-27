@@ -270,7 +270,7 @@ const gate = {
     // Watched to see the gate open, so it must start empty, or that check proves nothing.
     const opening = v(-2, -58, -3)
     const kawoosh = v(-2, -60, -2)
-    if (bot.blockAt(opening).name !== 'air') throw new Error(`Abydos's opening is ${bot.blockAt(opening).name} before dialling`)
+    if (nameAt(opening) !== 'air') throw new Error(`Abydos's opening is ${nameAt(opening)} before dialling`)
     messages()
     traceStart = Date.now()
     const untrace = traceGate({ min: v(-6, -61, -6), max: v(3, -51, 2) })
@@ -293,10 +293,10 @@ const gate = {
       }
       bot.on('blockUpdate', watch)
       try {
-        await waitFor(() => kawooshAt !== null, 60, `the kawoosh (heard: ${JSON.stringify(heard)})`)
+        await waitFor(() => kawooshAt !== null, 60, () => `the kawoosh (heard: ${JSON.stringify(heard)})`)
         narrate(`${kawooshAt} kawoosh; waiting for it to fall back`)
         await waitFor(() => bot.blockAt(kawoosh).name === 'air', 15, 'the kawoosh falling back')
-        await waitFor(() => filledAt !== null || bot.blockAt(opening).name !== 'air', 15, 'Abydos\'s opening filling')
+        await waitFor(() => filledAt !== null || nameAt(opening) !== 'air', 15, 'Abydos\'s opening filling')
       } finally {
         bot.removeListener('blockUpdate', watch)
       }
@@ -309,7 +309,7 @@ const gate = {
       narrate(`${stamp()} arrived at Chulak; waiting for Abydos to shut`)
       console.log(`  ${where()}`)
 
-      await waitFor(() => bot.blockAt(opening).name === 'air', 90, 'Abydos shutting behind the bot')
+      await waitFor(() => nameAt(opening) === 'air', 90, 'Abydos shutting behind the bot')
       narrate(`${stamp()} Abydos shut`)
       // Checked last, so a watcher still sees the whole trip.
       if (early) throw new Error(`Abydos's opening filled at ${filledAt}, before the kawoosh at ${kawooshAt}`)
@@ -727,10 +727,12 @@ const iris = {
     const cimmeria = standardGate(70, 80)
     const tollan = standardGate(90, 80)
     await teleport(...tollan.stand, 180)
-    // A run cut short can leave the iris either way, or the wormhole still open; it starts idle and shut.
-    if (!['air', 'stone'].includes(nameAt(tollan.opening))) {
-      narrate('Waiting for Tollan, left open by an earlier run, to shut')
-      await waitFor(() => ['air', 'stone'].includes(nameAt(tollan.opening)), 120, 'Tollan shutting')
+    // A run cut short can leave the iris either way, or the wormhole still open, with the iris shut
+    // over it or not; it starts idle and shut. Cimmeria's opening is what says the wormhole is gone.
+    const idle = () => ['air', 'stone'].includes(nameAt(tollan.opening)) && nameAt(cimmeria.opening) === 'air'
+    if (!idle()) {
+      narrate('Waiting for the wormhole an earlier run left open to shut')
+      await waitFor(idle, 120, () => `the wormhole shutting (Tollan shows ${nameAt(tollan.opening)}, Cimmeria ${nameAt(cimmeria.opening)})`)
     }
     if (nameAt(tollan.opening) === 'air') await this.flipIris(tollan, 'stone', 'shutting the iris')
     if (nameAt(tollan.opening) !== 'stone') throw new Error(`Tollan's shut iris shows ${nameAt(tollan.opening)}, not stone`)
@@ -813,8 +815,25 @@ const mirror = {
       }
       console.log(`  ${JSON.stringify(said)}`)
     }
-    // Its capture is taken within a second of being made.
-    await sleep(2000)
+    // A mirror is only a banner until its room is captured, which took 13 to 20 seconds here, not
+    // the second once assumed: a click before Beta's was done drew nothing, one run in five.
+    for (const [label] of this.banners) await this.captured(label)
+  },
+  /** Waits for a mirror's room to be captured, as `mirror debug <name> -all` reports it. */
+  async captured (label) {
+    const deadline = Date.now() + 60000
+    let line = 'nothing'
+    while (Date.now() < deadline) {
+      const from = heard.length
+      bot.chat(`/wormhole mirror debug ${label} -all`)
+      await sleep(2000)
+      line = heard.slice(from).find((l) => l.includes('file: ')) || 'no file line'
+      if (/file: \d+ bytes/.test(line) && !line.includes('being taken')) {
+        narrate(`${label}'s room is captured`)
+        return
+      }
+    }
+    throw new Error(`${label}'s room was not captured within 60s (${line.trim()})`)
   },
   async run () {
     const [[, ax, az], [, bx, bz]] = this.banners
@@ -830,16 +849,41 @@ const mirror = {
       }
       return null
     }
+    const banner = v(ax, -62, az)
+    // What the bot's client holds behind Alpha's wall, short of the floor, for a failure to say.
+    const drawnBehind = () => {
+      const cells = []
+      for (let x = ax - 20; x <= ax + 20; x++) for (let z = az - 40; z <= az - 4; z++) for (let y = -63; y <= -56; y++) {
+        const name = nameAt(v(x, y, z))
+        if (name !== 'air') cells.push(`${name} at ${x} ${y} ${z}`)
+      }
+      return cells.length === 0 ? 'nothing' : `${cells.length} blocks (${cells.slice(0, 8).join(', ')}${cells.length > 8 ? ', ...' : ''})`
+    }
+    // A view stands a barrier in for the opening, the wall behind the banner.
+    const opening = [v(ax, -63, az - 1), v(ax, -62, az - 1)]
+    const seen = () => `the opening shows ${opening.map(nameAt).join(' and ')}, the banner reads ${nameAt(banner)}, and behind the wall the bot has ${drawnBehind()}`
     await teleport(ax + 0.5, -63, az + 3.5, 180)
     narrate('At Alpha, which shows its own room')
-    await sleep(3000)
-    if (gold()) throw new Error(`gold at ${gold()} behind Alpha before it was turned to Beta`)
-    const banner = v(ax, -62, az)
+    // Only with the view drawn does no gold behind the wall mean anything.
+    await waitFor(() => opening.every((cell) => nameAt(cell) === 'barrier'), 10, () => `Alpha's view being drawn for the bot (${seen()})`)
+    await sleep(1000)
+    if (gold()) {
+      // A run just before left Alpha open onto Beta; it settles back once nobody is near it.
+      narrate('Alpha still shows Beta from the last run; stepping away until it settles')
+      await teleport(ax + 0.5, -63, az + 40.5, 180)
+      await sleep(5000)
+      await teleport(ax + 0.5, -63, az + 3.5, 180)
+      await waitFor(() => opening.every((cell) => nameAt(cell) === 'barrier'), 10, () => `Alpha's view being drawn for the bot (${seen()})`)
+      await sleep(1000)
+    }
+    if (gold()) throw new Error(`gold at ${gold()} behind Alpha before it was turned to Beta (a run just before may have left it open onto Beta; a fresh server gives the check a clean start)`)
     messages()
     narrate('Right-clicking Alpha to open it onto Beta')
     await bot.lookAt(banner.offset(0.5, 0.2, 0.9), true)
     // Its answer, above the hotbar, says the click was taken. Once in a full run it was not heard and
     // nothing changed, so a click that goes unanswered is tried again, as a player would, and said.
+    // The likely miss is aim, not the plugin: the server raytraces from the bot's own look, and on a
+    // thin wall banner that can land on the wall behind, which the plugin rightly ignores.
     const chose = () => heard.some((line) => line.includes("opens onto 'Beta'"))
     for (let click = 1; !chose(); click++) {
       if (click > 3) throw new Error(`three right-clicks on Alpha went unanswered (heard ${JSON.stringify(heard)}; the banner reads ${nameAt(banner)})`)
@@ -848,13 +892,7 @@ const mirror = {
       const until = Date.now() + 4000
       while (Date.now() < until && !chose()) await sleep(100)
     }
-    try {
-      await waitFor(() => gold() !== null, 10, "Beta's gold block showing behind Alpha")
-    } catch (e) {
-      let drawn = 0
-      for (let x = ax - 5; x <= ax + 5; x++) for (let z = az - 15; z <= az - 4; z++) for (let y = -64; y <= -58; y++) if (nameAt(v(x, y, z)) !== 'air') drawn++
-      throw new Error(`${e.message} (heard ${JSON.stringify(heard)}; ${drawn} blocks drawn behind the wall; the banner reads ${nameAt(banner)})`)
-    }
+    await waitFor(() => gold() !== null, 10, () => `Beta's gold block showing behind Alpha (heard ${JSON.stringify([...new Set(heard)])}; ${seen()})`)
     narrate(`Beta's room shows through Alpha: gold at ${gold()}`)
     await sleep(2000)
     narrate('Punching Alpha to go through')

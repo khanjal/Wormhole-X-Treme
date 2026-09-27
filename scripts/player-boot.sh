@@ -21,6 +21,8 @@ if [[ ! -d "$client/node_modules/mineflayer" ]]; then
   npm ci --prefix "$client" --no-audit --no-fund
 fi
 
+# The same warning allowlist as travel-boot.sh: no permissions plugin, and the shipped shapes
+# that frame in obsidian with differing settings, which the plugin notes at load.
 BOOT_CLIENT="$(printf 'node %q %q' "$client/journeys.js" "$3")" \
   BOOT_FLOOR="${BOOT_FLOOR:-minecraft:grass_block}" \
   BOOT_TEST_ALLOW="${BOOT_TEST_ALLOW:-No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree}" \
