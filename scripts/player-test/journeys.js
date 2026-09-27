@@ -727,7 +727,11 @@ const iris = {
     const cimmeria = standardGate(70, 80)
     const tollan = standardGate(90, 80)
     await teleport(...tollan.stand, 180)
-    // A run cut short can leave the iris either way; it starts shut.
+    // A run cut short can leave the iris either way, or the wormhole still open; it starts idle and shut.
+    if (!['air', 'stone'].includes(nameAt(tollan.opening))) {
+      narrate('Waiting for Tollan, left open by an earlier run, to shut')
+      await waitFor(() => ['air', 'stone'].includes(nameAt(tollan.opening)), 120, 'Tollan shutting')
+    }
     if (nameAt(tollan.opening) === 'air') await this.flipIris(tollan, 'stone', 'shutting the iris')
     if (nameAt(tollan.opening) !== 'stone') throw new Error(`Tollan's shut iris shows ${nameAt(tollan.opening)}, not stone`)
 
@@ -902,7 +906,9 @@ async function main () {
   if (observe) await waitForObserver()
 
   const every = [gate, beam, ring, atlantis, horizontal, lava, iris, mirror]
-  const trips = only ? only.map((n) => every.find((t) => t.name === n)).filter(Boolean) : every
+  const unknown = (only || []).filter((n) => !every.some((t) => t.name === n))
+  if (unknown.length > 0) throw new Error(`TRIPS names no trip called ${unknown.join(', ')}; there are ${every.map((t) => t.name).join(', ')}`)
+  const trips = only ? only.map((n) => every.find((t) => t.name === n)) : every
   const results = []
   const setUp = new Set()
   async function take (trip, again) {

@@ -35,7 +35,7 @@ fi
 echo "eula=true" > "$dir/eula.txt"
 # server.properties escapes a colon in a value.
 floor="${BOOT_FLOOR:-minecraft:bedrock}"
-floor="${floor//:/\\:}"
+floor="$(printf '%s' "$floor" | sed 's/:/\\:/g')"
 cat > "$dir/server.properties" <<EOF
 online-mode=false
 server-port=${BOOT_PORT:-25599}
