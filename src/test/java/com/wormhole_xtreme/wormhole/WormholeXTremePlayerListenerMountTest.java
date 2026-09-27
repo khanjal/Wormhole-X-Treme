@@ -24,6 +24,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
 /**
  * Tests for player-mounted entities teleport/reattach behavior (horses, pigs, camels).
@@ -107,7 +108,7 @@ class WormholeXTremePlayerListenerMountTest
 
         // Track teleport and addPassenger invocations and simulate successful addPassenger
         final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
-        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] mount.teleport called"); return null; }).when(mount).teleport(any(Location.class));
+        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] mount.teleport called"); return true; }).when(mount).teleport(any(Location.class));
         final java.util.concurrent.atomic.AtomicInteger adds = new java.util.concurrent.atomic.AtomicInteger(0);
         doAnswer(inv -> { adds.incrementAndGet(); return true; }).when(mount).addPassenger(any());
 
@@ -138,7 +139,9 @@ class WormholeXTremePlayerListenerMountTest
         // JVM runs with -ea and would otherwise let this test pass without checking anything.
         org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0, "the mount should have been teleported");
         org.junit.jupiter.api.Assertions.assertTrue(adds.get() >= 2, "both riders should have been re-seated");
-        verify(mockScheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(2L));
+        // Five ticks: the riders were teleported too, and a client will not take a seat until
+        // it has acknowledged that.
+        verify(mockScheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(5L));
 
         // Cleanup
         StargateManager.removeBlockIndex(ch);
@@ -204,7 +207,7 @@ class WormholeXTremePlayerListenerMountTest
         when(rider.getName()).thenReturn("camelRider");
 
         final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
-        doAnswer(inv -> { teleports.incrementAndGet(); return null; }).when(mount).teleport(any(Location.class));
+        doAnswer(inv -> { teleports.incrementAndGet(); return true; }).when(mount).teleport(any(Location.class));
         doAnswer(inv -> true).when(mount).addPassenger(any());
 
         doAnswer(inv -> {
@@ -226,19 +229,12 @@ class WormholeXTremePlayerListenerMountTest
     }
 
     /**
-     * A mount that will not teleport must not strand its rider on the departure side: the
-     * player goes through alone instead. This is the branch the teleport path folds into an
-     * early return, so it is worth pinning separately.
+     * A gate whose portal block is at {@code bx, by, bz}, leading to a far gate facing north.
+     *
+     * @return the far gate's arrival point
      */
-    @Test
-    void aRiderWhoseMountCannotMoveStillGoesThrough()
+    private static Location gateAt(final World world, final int bx, final int by, final int bz, final String name)
     {
-        final World world = mock(World.class);
-        when(world.getName()).thenReturn("w");
-
-        final int bx = 60, by = 64, bz = 70;
-        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
-
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
         when(ch.getX()).thenReturn(Integer.valueOf(bx));
@@ -249,42 +245,147 @@ class WormholeXTremePlayerListenerMountTest
         when(ch.getType()).thenReturn(Material.WATER);
 
         final Stargate src = new Stargate();
-        src.setGateName("srcStuckMount");
+        src.setGateName(name);
         src.setGateActive(true);
         src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
-        target.setGatePlayerTeleportLocation(new Location(world, 500.5, 70.0, 600.5));
+        final Location arrival = new Location(world, 500.5, 70.0, 600.5);
+        target.setGatePlayerTeleportLocation(arrival);
         target.setGateFacing(BlockFace.NORTH);
         StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+        return arrival;
+    }
 
+    private Pig pig()
+    {
         final Pig mount = mock(Pig.class);
-        final Player rider = mock(Player.class);
         when(mount.getUniqueId()).thenReturn(UUID.randomUUID());
         when(mount.isValid()).thenReturn(true);
         when(mount.getType()).thenReturn(EntityType.PIG);
-        when(rider.getVehicle()).thenReturn((Entity) mount);
+        return mount;
+    }
+
+    private static Player riderNamed(final String name)
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.isValid()).thenReturn(true);
-        when(rider.getName()).thenReturn("stranded");
+        when(rider.getName()).thenReturn(name);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        return rider;
+    }
 
-        // The mount refuses to move.
-        doThrow(new IllegalStateException("mount will not move")).when(mount).teleport(any(Location.class));
-
+    /** Runs the arrival's tasks at once; not the cooldown's expiry, which is seconds away. */
+    private void runTasksAtOnce()
+    {
         doAnswer(inv -> {
-            final Runnable r = inv.getArgument(1, Runnable.class);
-            try { r.run(); } catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
+            if (inv.getArgument(2, Long.class).longValue() < 20L)
+            {
+                inv.getArgument(1, Runnable.class).run();
+            }
             return 1;
         }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+    }
 
-        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 1.5);
-        final WormholeXTremePlayerListener listener = new WormholeXTremePlayerListener();
-        listener.onPlayerMove(new PlayerMoveEvent(rider, fromLoc, toLoc));
+    /**
+     * On Paper 1.20.4 a ridden pig goes through with its rider, and sits them back on it there.
+     *
+     * <p>1.20.4 will not teleport anything with a passenger, and the plugin ignored the answer:
+     * the pig stayed in the gate with the rider on it while the log said they had used the
+     * wormhole (#506).
+     */
+    @Test
+    void aMountThatWillNotMoveWithItsRiderAboardStillArrivesWithThemSeated()
+    {
+        final World world = mock(World.class);
+        final Location arrival = gateAt(world, 70, 64, 80, "srcPaper1204");
+        final Pig mount = pig();
+        final Player rider = riderNamed("rider");
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            mount, new Location(world, 70.5, 64, 80.5), rider);
+        runTasksAtOnce();
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        try
+        {
+            new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
+                new Location(world, 70.5, 64, 78.5), new Location(world, 70.5, 64, 80.5)));
 
-        verify(rider, atLeastOnce()).teleport(any(Location.class));
+            org.junit.jupiter.api.Assertions.assertEquals(arrival.getX(), stack.at().getX(), 0.001,
+                "the pig must reach the far gate rather than stay in this one");
+            org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider),
+                "the rider must be back in the saddle at the far end");
+            org.junit.jupiter.api.Assertions.assertTrue(StargateRestrictions.isPlayerUseCooldown(rider),
+                "a trip that happened spends the cooldown");
+        }
+        finally
+        {
+            StargateRestrictions.removePlayerUseCooldown(rider);
+            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
 
-        StargateManager.removeBlockIndex(ch);
+    /**
+     * A mount that will not move keeps its rider, at this end, and the trip is not counted.
+     *
+     * <p>This used to send the player on alone, leaving the mount at the source, and on 1.20.4
+     * it did not even notice: the refusal is an answer, not an exception.
+     */
+    @Test
+    void aRiderWhoseMountWillNotMoveStaysAboardAndIsNotChargedForATrip()
+    {
+        final World world = mock(World.class);
+        gateAt(world, 60, 64, 70, "srcStuckMount");
+        final Pig mount = pig();
+        final Player rider = riderNamed("stranded");
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            mount, new Location(world, 60.5, 64, 70.5), rider);
+        // Something else refuses: another plugin cancelling the teleport, say.
+        when(mount.teleport(any(Location.class))).thenReturn(false);
+        runTasksAtOnce();
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        try
+        {
+            new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
+                new Location(world, 60.5, 64, 68.5), new Location(world, 60.5, 64, 70.5)));
+
+            verify(rider, never()).teleport(any(Location.class));
+            org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
+            org.junit.jupiter.api.Assertions.assertFalse(StargateRestrictions.isPlayerUseCooldown(rider),
+                "no cooldown for a trip that did not happen");
+            verify(rider).sendMessage(org.mockito.ArgumentMatchers.contains("could not be sent through"));
+        }
+        finally
+        {
+            StargateRestrictions.removePlayerUseCooldown(rider);
+            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
+
+    /** The same when the mount throws rather than refusing. */
+    @Test
+    void aRiderWhoseMountThrowsIsNotSentOnWithoutIt()
+    {
+        final World world = mock(World.class);
+        gateAt(world, 90, 64, 70, "srcThrowingMount");
+        final Pig mount = pig();
+        final Player rider = riderNamed("stranded");
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            mount, new Location(world, 90.5, 64, 70.5), rider);
+        doThrow(new IllegalStateException("mount will not move")).when(mount).teleport(any(Location.class));
+        runTasksAtOnce();
+
+        new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
+            new Location(world, 90.5, 64, 68.5), new Location(world, 90.5, 64, 70.5)));
+
+        verify(rider, never()).teleport(any(Location.class));
+        org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
     }
 }

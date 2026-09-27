@@ -549,6 +549,8 @@ class DrawnIrisHoldsShutTest
         when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(0, 0, 1));
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(cart.teleport(any(Location.class))).thenReturn(true);
         return cart;
     }
 

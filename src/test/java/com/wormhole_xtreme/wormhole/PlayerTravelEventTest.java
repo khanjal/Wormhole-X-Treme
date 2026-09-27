@@ -101,6 +101,8 @@ class PlayerTravelEventTest
         when(player.getName()).thenReturn("traveller");
         when(player.isOp()).thenReturn(true);
         when(player.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-0000000000aa"));
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(player.teleport(any(Location.class))).thenReturn(true);
 
         GateEvents.setDispatcherForTest(raised::add);
     }
@@ -430,6 +432,38 @@ class PlayerTravelEventTest
             walkIn();
 
             economy.verify(() -> EconomySupport.charge(player, 5.0));
+        }
+    }
+
+    /**
+     * A trip the server refuses is not charged for, and costs no cooldown.
+     *
+     * <p>Another plugin cancelling the teleport leaves the traveller where they are. The
+     * answer was ignored, so they paid, were put on cooldown and logged as having gone.
+     */
+    @Test
+    void aTripTheServerRefusesTakesNoFareAndNoCooldown()
+    {
+        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
+        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            config.when(ConfigManager::isUseCooldownEnabled).thenReturn(true);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(true);
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+            assertFalse(com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+                "no cooldown for a trip that did not happen");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
         }
     }
 

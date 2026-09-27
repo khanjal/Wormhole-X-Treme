@@ -110,6 +110,8 @@ class GateTollAndRefusalOrderTest
         when(walker.getMaximumAir()).thenReturn(Integer.valueOf(300));
         when(walker.hasPermission(anyString())).thenReturn(Boolean.TRUE);
         when(walker.isOp()).thenReturn(Boolean.TRUE);
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(walker.teleport(any(Location.class))).thenReturn(true);
 
         config = mockStatic(ConfigManager.class);
         // Off by default: each test turns on the one rule it is about, so a refusal can only

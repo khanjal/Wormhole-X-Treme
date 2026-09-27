@@ -27,9 +27,33 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 final class GateDismount
 {
+    /** Set while {@link RiddenTeleport} unseats a stack to move it; main thread only. */
+    private static boolean unseatingOnPurpose;
+
     /** Static helpers only. */
     private GateDismount()
     {
+    }
+
+    /**
+     * Runs {@code unseat} with this rule off, so the plugin's own dismount at a portal is not
+     * refused by its own listener.
+     *
+     * @param unseat
+     *            the dismounts to allow
+     */
+    static void allowWhile(final Runnable unseat)
+    {
+        final boolean was = unseatingOnPurpose;
+        unseatingOnPurpose = true;
+        try
+        {
+            unseat.run();
+        }
+        finally
+        {
+            unseatingOnPurpose = was;
+        }
     }
 
     /**
@@ -41,7 +65,7 @@ final class GateDismount
      */
     static boolean shouldRefuse(final Entity who)
     {
-        if (!(who instanceof Player))
+        if (unseatingOnPurpose || !(who instanceof Player))
         {
             return false;
         }

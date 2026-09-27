@@ -601,6 +601,8 @@ public final class GateEntityScanner implements Runnable
             ? respawnProjectile(shot, arrival, exit, exitGate)
             : null;
 
+        final List<Entity> parents = new java.util.ArrayList<>();
+        final List<Entity> children = new java.util.ArrayList<>();
         final Entity moved;
         if (arrived != null)
         {
@@ -608,7 +610,11 @@ public final class GateEntityScanner implements Runnable
         }
         else
         {
-            entity.teleport(arrival);
+            WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
+            if (!RiddenTeleport.move(entity, arrival, parents, children))
+            {
+                return;
+            }
             moved = entity;
         }
 
@@ -629,23 +635,12 @@ public final class GateEntityScanner implements Runnable
             }, 1L);
         }
 
-        if (arrived != null)
-        {
-            return; // a fresh projectile carries no passengers
-        }
-
-        final List<Entity> passengers = entity.getPassengers();
-        if (passengers.isEmpty())
-        {
-            return;
-        }
-        final java.util.List<Entity> parents = new java.util.ArrayList<Entity>();
-        final java.util.List<Entity> children = new java.util.ArrayList<Entity>();
-        WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
+        // Marked too, or a rider left unseated in the far portal is swept straight back.
         for (int i = 0; i < children.size(); i++)
         {
             try
             {
+                WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(children.get(i).getUniqueId());
                 parents.get(i).addPassenger(children.get(i));
             }
             catch (final RuntimeException t)

@@ -381,6 +381,7 @@ class WormholeXTremeVehicleListenerEventTest
         // 1.21.3 when boats split per wood type, and this test has no interest in which
         // kind of boat it is — only that the code asks the boat rather than assuming.
         when(boat.getType()).thenReturn(anyBoatType());
+        when(boat.teleport(any(Location.class))).thenReturn(true);
 
         // Simulate immediate successful attach when addPassenger is attempted in the reattach task
         when(boat.addPassenger(rider)).thenReturn(true);

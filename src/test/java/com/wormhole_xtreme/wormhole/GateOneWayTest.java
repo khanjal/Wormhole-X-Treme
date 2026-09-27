@@ -94,6 +94,8 @@ class GateOneWayTest
         when(zombie.isInsideVehicle()).thenReturn(false);
         when(zombie.isValid()).thenReturn(true);
         when(zombie.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, -1.5));
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(zombie.teleport(any(Location.class))).thenReturn(true);
         when(world.getNearbyEntities(any(BoundingBox.class)))
             .thenReturn(Collections.<Entity>singletonList(zombie));
         return zombie;
@@ -205,6 +207,39 @@ class GateOneWayTest
             assertEquals(0.0, v.getZ(), 1e-9, "the original northward component should be gone");
             // Speed is preserved; only the direction changes, so a slow entity stays slow.
             assertEquals(1.5, v.length(), 1e-6);
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
+     * A mob with a passenger is swept through with it on Paper 1.20.4.
+     *
+     * <p>1.20.4 will not teleport anything with a passenger, and the sweep ignored the answer,
+     * so a ridden mob stayed in the portal, rider and all, and was marked as having gone (#506).
+     */
+    @Test
+    void aSweptMobCarryingAnotherArrivesWithItsPassengerAboard()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.teleport(any(Location.class))).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            zombie, new Location(world, 10.5, 64, 20.5), chicken);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertEquals(99.5, stack.at().getX(), 1.5, "the mob must reach the far gate");
+            verify(chicken).teleport(any(Location.class));
+            assertTrue(stack.carries(chicken), "its passenger rides on at the far end");
         }
         finally
         {

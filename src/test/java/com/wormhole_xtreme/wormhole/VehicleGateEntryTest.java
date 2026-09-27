@@ -113,6 +113,8 @@ class VehicleGateEntryTest
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
         when(cart.getType()).thenReturn(EntityType.MINECART);
         when(cart.isValid()).thenReturn(true);
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(cart.teleport(any(Location.class))).thenReturn(true);
     }
 
     @AfterEach
@@ -354,6 +356,79 @@ class VehicleGateEntryTest
             rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider));
             rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(rider, dst));
         }
+    }
+
+    /**
+     * On Paper 1.20.4 a ridden cart still goes, and its rider with it.
+     *
+     * <p>1.20.4 will not teleport anything with a passenger, and the plugin ignored the answer:
+     * the cart stayed in the gate with the rider in it, and the rider was still charged the
+     * cooldown for a trip that never happened (#506).
+     */
+    @Test
+    void aCartThatWillNotMoveWithItsRiderAboardStillGoesAndTakesThemAlong()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class))
+        {
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+
+            rollIn();
+
+            assertEquals(100.5 + 1.0, stack.at().getX(), 0.001, "the cart must reach the far gate");
+            verify(rider).teleport(any(Location.class));
+            rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider));
+        }
+    }
+
+    /**
+     * A cart that will not move keeps its rider, and nobody is charged.
+     *
+     * <p>Another plugin cancelling the teleport, say. The rider stays in the cart at this end
+     * rather than being sent on without it.
+     */
+    @Test
+    void aCartThatWillNotMoveKeepsItsRiderAndChargesNobody()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.isValid()).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
+        when(cart.teleport(any(Location.class))).thenReturn(false);
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class))
+        {
+            cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+
+            rollIn();
+
+            assertTrue(stack.carries(rider), "the rider must still be in the cart");
+            verify(rider, never()).teleport(any(Location.class));
+            rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider), never());
+            rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(any(), any()), never());
+        }
+    }
+
+    /** An empty cart that will not move is not a trip either. */
+    @Test
+    void anEmptyCartThatWillNotMoveIsNotSentOnItsWay()
+    {
+        when(cart.teleport(any(Location.class))).thenReturn(false);
+
+        rollIn();
+
+        verify(cart, never()).setVelocity(org.mockito.ArgumentMatchers.argThat(
+            (Vector v) -> (v != null) && (v.lengthSquared() > 0)));
     }
 
     /**
