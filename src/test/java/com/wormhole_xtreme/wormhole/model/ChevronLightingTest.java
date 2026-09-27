@@ -255,6 +255,7 @@ class ChevronLightingTest
         gate.setGateTarget(eightChevronGate("beta", world("here")));
         gate.setGateLightsActive(true);
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
 
         assertEquals(7, StargateAnimator.lastShownWave(gate, gate.getGateLightBlocks()));
     }
