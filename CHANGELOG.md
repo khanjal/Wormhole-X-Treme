@@ -23,6 +23,12 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   from the command block or player that runs them, so a map's command blocks keep working wherever
   it is pasted.
 
+**Fixed**
+
+- **A player running a command through `/execute as` is held to their own rights.** They got past
+  `wormhole.config`, the build and dial rights of `gate build` and `gate dial`, and ring admin
+  that way. A command block running a command as a player is still trusted as a command block.
+
 ### Internals
 
 - The travel boot test now also rides a ring pair with an item and a pig, and makes a mirror from
