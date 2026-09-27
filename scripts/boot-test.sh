@@ -4,7 +4,9 @@
 # JAVA picks the runtime (default: java on PATH); BOOT_DIR keeps the server folder for inspection.
 # Optional: EXTRA_PLUGINS, a folder of jars installed alongside; BOOT_CONFIG, lines for the plugin's
 # config.yml before first start; BOOT_COMMANDS and BOOT_REQUIRE, one console command or log regex a line
-# ("sleep N" in BOOT_COMMANDS waits N seconds).
+# ("sleep N" in BOOT_COMMANDS waits N seconds); BOOT_CLIENT, a shell command run once those are sent,
+# with BOOT_CONSOLE (append a line to send it to the console) and BOOT_LOG set, which fails the test
+# by exiting non-zero.
 set -uo pipefail
 
 if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
@@ -54,6 +56,7 @@ cleanup() { [[ -f tail.pid ]] && kill "$(cat tail.pid)" 2>/dev/null; kill "$serv
 trap cleanup EXIT
 
 started=0
+client_status=0
 for ((i = 0; i < start_timeout; i++)); do
   if grep -q 'Done (' "$log"; then started=1; break; fi
   kill -0 "$server_pid" 2>/dev/null || break
@@ -73,6 +76,10 @@ if [[ $started -eq 1 ]]; then
       send "$command"
     fi
   done <<< "${BOOT_COMMANDS:-}"
+  if [[ -n "${BOOT_CLIENT:-}" ]]; then
+    BOOT_CONSOLE="$dir/commands.txt" BOOT_LOG="$log" bash -c "$BOOT_CLIENT"
+    client_status=$?
+  fi
   sleep "$settle_seconds"
   send "stop"
   for ((i = 0; i < 120; i++)); do
@@ -88,6 +95,7 @@ failures=()
 [[ $started -eq 1 ]] || failures+=("server did not finish starting within ${start_timeout}s")
 grep -q 'Enable Completed' "$log" || failures+=("the plugin never logged Enable Completed")
 [[ $started -eq 0 || $stopped -eq 1 ]] || failures+=("server did not exit within 120s of stop")
+[[ $client_status -eq 0 ]] || failures+=("the client exited with status $client_status")
 [[ $started -eq 1 ]] && ! grep -q 'Disabling WormholeXTreme' "$log" && failures+=("the plugin was never disabled")
 while IFS= read -r required; do
   [[ -z "$required" ]] || grep -qE "$required" "$log" || failures+=("never logged: $required")

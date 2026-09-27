@@ -86,6 +86,47 @@ files with PMD before pushing; `generate-test-sources` is what adds the folder:
 mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
 ```
 
+## A player on a real server
+
+MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real server with no player
+on it: `travel-boot.sh` sends an item and a pig through a gate. `scripts/player-boot.sh` puts a
+player on a real server. A [Mineflayer](https://github.com/PrismarineJS/mineflayer) bot joins,
+and the bot, as a player, presses a gate's DHD, runs `/dial`, walks through, and then beams and
+rides a ring pair. Each trip fails unless the bot comes out where it should. It checks what the
+bot sees, not the plugin's state: the opening filling and emptying, and where the server puts it.
+
+```bash
+bash scripts/fetch-server.sh paper 1.21.11 server.jar    # or download a Paper jar by hand
+mvn -DskipTests package
+bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
+```
+
+It needs Node 18 or newer; the first run installs the bot into `scripts/player-test/node_modules`.
+The version must be one Mineflayer speaks: 1.20.1 to 1.21.11 and 26.1 as of 4.39, not 26.2 or
+26.3. The server listens on port 25599 in offline mode, the same flat world as the boot tests.
+
+**Watching it.** With `OBSERVE=1`, the bot waits (ten minutes, `OBSERVE_WAIT` seconds) for
+someone to join before it starts:
+
+```bash
+OBSERVE=1 bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
+```
+
+Join `localhost:25599` from a Minecraft client of that version under any name. You are made a
+spectator and moved to a spot facing each trip before it starts, and the bot says in chat what to
+watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
+with a summary of each trip's automatic result and your answer, and a `n` fails the run just as a
+failed check does. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`.
+
+The **Player journeys** workflow (`player.yml`) runs the same thing without an observer on
+Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
+itself changes. It does not run on pull requests yet.
+
+What it does not cover yet: mirrors, irises, sign dialling, pets, other worlds, and the gate
+preview, which Mineflayer can see only as entities. Each is another trip in
+`scripts/player-test/journeys.js`: set up from the console, act as the player, then check where
+the bot is and what it sees.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:

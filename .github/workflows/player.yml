@@ -1,0 +1,57 @@
+name: Player journeys
+
+# A bot joins a real Paper server as a player and travels by gate, beam and ring; see
+# scripts/player-boot.sh. Run by hand from the Actions tab, and whenever the harness itself changes.
+# Not on every pull request yet: it is new, and a flaky bot there would cost more than it catches.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/player-boot.sh
+      - scripts/player-test/**
+      - scripts/boot-test.sh
+      - .github/workflows/player.yml
+
+permissions:
+  contents: read
+
+jobs:
+  journeys:
+    name: Player on paper ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # The versions boot-travel runs that Mineflayer can speak; it has no 26.2 or 26.3 yet.
+        version: ["1.20.4", "1.21.11"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build the plugin
+        run: mvn --batch-mode -DskipTests package
+
+      - name: Fetch paper ${{ matrix.version }}
+        run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
+
+      - name: Travel as a player
+        env:
+          BOOT_DIR: boot
+        run: bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar ${{ matrix.version }}
+
+      - name: Upload the server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: player-log-${{ matrix.version }}
+          path: boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
