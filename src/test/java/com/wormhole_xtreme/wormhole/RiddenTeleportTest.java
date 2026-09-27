@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -205,7 +207,7 @@ class RiddenTeleportTest
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, zombie, rider);
         // The zombie's dismount is cancelled: it says yes, and stays.
         // doReturn, not when(): calling the stubbed method to stub it would take the zombie off.
-        org.mockito.Mockito.doReturn(Boolean.TRUE).when(boat).removePassenger(zombie);
+        doReturn(Boolean.TRUE).when(boat).removePassenger(zombie);
         final List<Entity>[] pairs = pairsOf(boat);
 
         assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));
@@ -222,7 +224,7 @@ class RiddenTeleportTest
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, rider);
-        org.mockito.Mockito.doThrow(new IllegalStateException("not now")).when(boat).removePassenger(rider);
+        doThrow(new IllegalStateException("not now")).when(boat).removePassenger(rider);
         final List<Entity>[] pairs = pairsOf(boat);
 
         assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));

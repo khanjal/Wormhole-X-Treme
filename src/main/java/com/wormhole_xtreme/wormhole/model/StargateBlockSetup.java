@@ -33,6 +33,8 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class StargateBlockSetup
 {
+    private static final String CLEAR_OF_IRIS = " clear of closing iris on gate: ";
+
     private StargateBlockSetup() {}
 
     // -----------------------------------------------------------------------
@@ -2364,7 +2366,7 @@ class StargateBlockSetup
                 // the rest of the sweep. Errors are left to propagate rather than being
                 // swallowed here, where they would look like an ordinary immovable mob.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Failed to move " + entity.getType() + " clear of closing iris on gate: "
+                    "Failed to move " + entity.getType() + CLEAR_OF_IRIS
                         + gate.getGateName(), t);
             }
         }
@@ -2398,7 +2400,7 @@ class StargateBlockSetup
         if (!com.wormhole_xtreme.wormhole.RiddenTeleport.move(root, safe, parents, children))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not move " + root.getType() + " clear of closing iris on gate: " + gate.getGateName());
+                "Could not move " + root.getType() + CLEAR_OF_IRIS + gate.getGateName());
             return;
         }
         if (!children.isEmpty())
@@ -2416,7 +2418,7 @@ class StargateBlockSetup
             }
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            "Moved " + root.getType() + " clear of closing iris on gate: " + gate.getGateName());
+            "Moved " + root.getType() + CLEAR_OF_IRIS + gate.getGateName());
     }
 
     /** What an entity is riding, and what that is riding, down to the one on the ground. */
