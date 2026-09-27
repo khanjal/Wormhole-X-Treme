@@ -193,6 +193,8 @@ public class Stargate implements GateIris
     private boolean gateAnimationRemoving = false;
     /** The current_lighting_iteration. */
     private int gateLightingCurrentIteration = 0;
+    /** How many chevrons this dial has locked, for a player who arrives before the wormhole forms. */
+    private int gateChevronsLocked = 0;
     /** List of all blocks contained in this stargate, including buttons and levers. */
     private final List<Location> gateStructureBlocks = new ArrayList<>();
     /** List of all blocks that that are part of the "portal". */
@@ -1949,6 +1951,18 @@ public class Stargate implements GateIris
     void setGateLightingCurrentIteration(final int gateLightingCurrentIteration)
     {
         this.gateLightingCurrentIteration = gateLightingCurrentIteration;
+    }
+
+    /** @return how many chevrons this dial has locked so far */
+    int getGateChevronsLocked()
+    {
+        return gateChevronsLocked;
+    }
+
+    /** Sets how many chevrons this dial has locked so far. */
+    void setGateChevronsLocked(final int gateChevronsLocked)
+    {
+        this.gateChevronsLocked = gateChevronsLocked;
     }
 
     /**

@@ -301,4 +301,22 @@ class PortalVisualRefreshTest
 
         assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here));
     }
+
+    /**
+     * Somebody arriving while the gate still dials is shown the chevrons locked so far, and no more.
+     *
+     * <p>Once the wormhole stopped being drawn before the kawoosh, a late arrival saw a dark frame
+     * until it formed, however many chevrons had locked.
+     */
+    @Test
+    void aGateStillDiallingIsShownOnlyTheChevronsLockedSoFar()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final Stargate gate = openEightChevronGate(here, here);
+        gate.setGatePortalOpen(false);
+        gate.setGateChevronsLocked(3);
+
+        assertEquals(java.util.Set.of(1, 2, 3), chevronsSentFor(here));
+    }
 }

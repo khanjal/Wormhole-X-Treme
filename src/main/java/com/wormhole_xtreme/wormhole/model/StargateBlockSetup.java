@@ -1176,12 +1176,16 @@ class StargateBlockSetup
             }
             if (!gate.isGatePortalOpen())
             {
-                // Still dialling: the opening stays empty until the kawoosh settles, and the
-                // chevrons are the dial's own to light, one at a time. Counted as drawn, so the
-                // take-back below does not darken the ones already locked.
+                // Still dialling: the opening stays empty until the kawoosh settles, and only the
+                // chevrons locked so far are lit. Counted as drawn, so the take-back below does
+                // not darken them.
                 if (gate.isGateIrisActive())
                 {
                     sendIrisTo(player, gate);
+                }
+                else if (gate.isGateLightsActive())
+                {
+                    sendLights(player, gate, true);
                 }
                 stillDrawn.add(gate.getGateName());
                 continue;
@@ -1350,9 +1354,8 @@ class StargateBlockSetup
                 irisData);
         }
         // Chevrons stay lit behind a shut iris on an open gate, and a player who arrives after
-        // it shut is owed those too -- the portal path sends them, and this one skips it. Not
-        // while it dials, whose chevrons are still locking one at a time.
-        if (gate.isGateLightsActive() && (gate.isGatePortalOpen() || !gate.isGateActive()))
+        // it shut is owed those too -- the portal path sends them, and this one skips it.
+        if (gate.isGateLightsActive())
         {
             sendLights(player, gate, true);
         }

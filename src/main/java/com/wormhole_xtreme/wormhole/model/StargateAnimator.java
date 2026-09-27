@@ -316,6 +316,7 @@ class StargateAnimator
         }
         final int step = gate.getGateLightingCurrentIteration() + 1;
         gate.setGateLightingCurrentIteration(step);
+        gate.setGateChevronsLocked(step);
         drawLightWave(gate, waves, step);
         scheduleNextStep(gate, waves, step);
     }
@@ -601,11 +602,15 @@ class StargateAnimator
 
     /**
      * The last chevron a client should see lit: all of them while the button has the gate waiting
-     * for {@code /dial}, otherwise the ones its dial uses.
+     * for {@code /dial}, the ones locked so far while it dials, otherwise the ones its dial uses.
      */
     static int lastShownWave(final Stargate gate, final List<List<Location>> waves)
     {
-        return (gate.isGateLightsActive() && !gate.isGateActive()) ? (waves.size() - 1) : lastWave(gate, waves);
+        if (gate.isGateLightsActive() && !gate.isGateActive())
+        {
+            return waves.size() - 1;
+        }
+        return gate.isGatePortalOpen() ? lastWave(gate, waves) : Math.min(lastWave(gate, waves), gate.getGateChevronsLocked());
     }
 
     /**
@@ -661,6 +666,7 @@ class StargateAnimator
         final List<List<Location>> waves = gate.getGateLightBlocks();
         if (waves != null)
         {
+            gate.setGateChevronsLocked(lastWave(gate, waves));
             for (int step = 1; step <= lastWave(gate, waves); step++)
             {
                 if (waves.get(step) != null)
@@ -695,6 +701,7 @@ class StargateAnimator
             }
         }
         gate.setGateLightingCurrentIteration(0);
+        gate.setGateChevronsLocked(0);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
     }
@@ -705,6 +712,7 @@ class StargateAnimator
     private static void darkenStargate(final Stargate gate)
     {
         gate.setGateLightsActive(false);
+        gate.setGateChevronsLocked(0);
         // The ring's light may be part way round; put back whatever it was showing.
         final Turning turning = TURNING.remove(gate);
         if ((turning != null) && !turning.cells.isEmpty())
