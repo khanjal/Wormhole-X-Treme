@@ -86,6 +86,16 @@ class JourneysOnMockServerTest
         server.getScheduler().performTicks(n);
     }
 
+    /** Ticks until the gate's wormhole forms, after its chevrons and kawoosh; nothing travels before. */
+    private static void untilFormed(final Stargate gate)
+    {
+        for (int tick = 0; (tick < 20 * 60) && !gate.isGatePortalOpen(); tick++)
+        {
+            ticks(1);
+        }
+        assertTrue(gate.isGatePortalOpen(), gate.getGateName() + "'s wormhole never formed");
+    }
+
     // PlayerMock's own simulatePlayerMove is deprecated for removal.
     private static void walk(final MockServerSupport.Player p, final Location to)
     {
@@ -128,7 +138,10 @@ class JourneysOnMockServerTest
         return gate;
     }
 
-    /** Built, dialled from its DHD, walked through, and shut again when it times out. */
+    /**
+     * Built, dialled from its DHD, walked through, and shut again when it times out. Walked into
+     * while it still dials, it is only an empty frame.
+     */
     @Test
     void aPlayerDialsAGateWalksThroughAndItShutsBehindThem()
     {
@@ -143,12 +156,20 @@ class JourneysOnMockServerTest
 
         click(p, Action.RIGHT_CLICK_BLOCK, alpha.getGateDialLeverBlock(), BlockFace.SOUTH);
         p.performCommand("dial Beta");
-        ticks(200);
+        ticks(20);
         assertTrue(alpha.isGateActive(), "Alpha did not open: " + p.messages());
         assertSame(beta, alpha.getGateTarget());
+        assertFalse(alpha.isGatePortalOpen(), "a second after the dial its chevrons are still locking");
 
         final List<Location> portal = alpha.getGatePortalBlocks();
-        walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
+        final Location inTheFrame = portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5);
+        walk(p, inTheFrame);
+        ticks(5);
+        assertAt(inTheFrame, p.getLocation());
+        walk(p, new Location(world, 0.5, 64, 0.5, 0f, 0f));
+
+        untilFormed(alpha);
+        walk(p, inTheFrame);
         ticks(20);
         assertAt(beta.getGatePlayerTeleportLocation(), p.getLocation());
 
@@ -244,6 +265,7 @@ class JourneysOnMockServerTest
         p.performCommand("dial Park");
         ticks(200);
         assertTrue(home.isGateActive(), "Kennel did not open: " + p.messages());
+        untilFormed(home);
         final List<Location> portal = home.getGatePortalBlocks();
         final Location near = strangers.getLocation();
         walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
@@ -331,6 +353,7 @@ class JourneysOnMockServerTest
         assertTrue(right.stream().anyMatch(m -> m.contains("IDC accepted")), "code not accepted: " + right);
         assertFalse(far.isGateIrisActive(), "the right code left the iris shut");
         assertTrue(home.isGateActive(), "Abydos did not open: " + right);
+        untilFormed(home);
         final List<Location> portal = home.getGatePortalBlocks();
         walk(p, portal.get(portal.size() / 2).clone().add(0.5, 0, 0.5));
         ticks(20);
