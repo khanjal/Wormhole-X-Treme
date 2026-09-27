@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -53,13 +54,19 @@ public class RingCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
+        final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "help";
+        if (RingConsoleCommands.handles(verb))
+        {
+            RingConsoleCommands.run(sender, verb, args);
+            return true;
+        }
         if (!(sender instanceof Player))
         {
-            sender.sendMessage("Transport rings are built and edited in the world, so this is a player command.");
+            sender.sendMessage("Transport rings are built and edited in the world, so this is a player command. From"
+                + " here, " + RingConsoleCommands.BUILD_USAGE + " and " + RingConsoleCommands.FIRE_USAGE + " work.");
             return true;
         }
         final Player player = (Player) sender;
-        final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "help";
 
         if ("create".equals(verb))
         {
@@ -136,7 +143,7 @@ public class RingCommand implements SubCommand
             player.sendMessage(explain(refusal));
             return;
         }
-        if (touchesGate(player, ring))
+        if (touchesGate(player.getWorld(), ring))
         {
             player.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks.");
             return;
@@ -220,56 +227,33 @@ public class RingCommand implements SubCommand
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
             return;
         }
-        // Ground distance and height are asked separately, because they are different
-        // questions. Straight down is what rings are for; sprawling sideways is what gates
-        // are for.
-        final int maxDistance = ConfigManager.getRingMaxLinkDistance();
-        if ((maxDistance > 0)
-            && (waiting.ring().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
+        // A pair built over the waiting end since it was laid, from the console, would share its circle.
+        final RingManager.Refusal taken =
+            RingManager.checkPlacement(waiting.ring(), world, ConfigManager.getRingMinSeparation());
+        if (taken != null)
         {
-            player.sendMessage("Those two rings are " + apart(waiting.ring(), ring)
-                + " blocks apart on the ground, and rings reach " + maxDistance + ".");
-            player.sendMessage("Build a stargate for a trip that long — rings are for getting "
-                + "around one place.");
+            player.sendMessage("Your first ring is not free any more: " + explain(taken));
+            player.sendMessage("Run /wormhole ring cancel to give up on it.");
             return;
         }
-        final int maxHeight = ConfigManager.getRingMaxLinkHeight();
-        final int climb = Math.abs(waiting.ring().getAnchorY() - ring.getAnchorY());
-        if ((maxHeight > 0) && (climb > maxHeight))
+        final List<String> refused = whyNotAPair(waiting.ring(), ring);
+        if (!refused.isEmpty())
         {
-            player.sendMessage("Those two rings are " + climb + " blocks apart in height, and "
-                + "rings reach " + maxHeight + ".");
+            refused.forEach(player::sendMessage);
             return;
         }
 
-        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.ring(), ring);
+        final RingPair pair = newPair(world, waiting.ring(), ring);
         pair.setOwner(player.getUniqueId().toString());
         pair.setOwnerName(player.getName());
-        pair.setCreated(System.currentTimeMillis());
         pair.setAccess(ConfigManager.getRingDefaultAccess());
-        for (final Ring end : new Ring[] { waiting.ring(), ring })
-        {
-            end.setStyle(ConfigManager.getRingDefaultStyle());
-            end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
-        }
-
-        if ((waiting.ring().getAnchorX() == ring.getAnchorX())
-            && (waiting.ring().getAnchorY() == ring.getAnchorY())
-            && (waiting.ring().getAnchorZ() == ring.getAnchorZ()))
-        {
-            // The first ring's slabs are still lying there, so running the command again in
-            // the same circle finds the same ring. Pairing it with itself would make a
-            // transport that goes nowhere.
-            player.sendMessage("That is the ring you already laid. Go and build the other end.");
-            return;
-        }
 
         RingManager.clearPending(player.getUniqueId());
         RingYamlManager.savePending();
         // Both templates come up now, together, because only now is there a pair to show for
         // them.
-        consumeTemplate(player, waiting.ring());
-        consumeTemplate(player, ring);
+        consumeTemplate(player.getWorld(), waiting.ring(), player.getName());
+        consumeTemplate(player.getWorld(), ring, player.getName());
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);
 
@@ -277,6 +261,65 @@ public class RingCommand implements SubCommand
         player.sendMessage("It is " + pair.getAccess()
             + (pair.getAccess() == RingAccess.PRIVATE
                 ? " — use /wormhole ring allow <player> to let others in." : "."));
+    }
+
+    /**
+     * Why two ends cannot be a pair, as the lines to tell the builder, or none if they can be.
+     * The world is the caller's to check: a player is told where their first end is.
+     *
+     * @param first
+     *            the end built first
+     * @param second
+     *            the other end
+     * @return what to say, or an empty list
+     */
+    static List<String> whyNotAPair(final Ring first, final Ring second)
+    {
+        // Ground distance and height are asked separately, because they are different
+        // questions. Straight down is what rings are for; sprawling sideways is what gates
+        // are for.
+        final int maxDistance = ConfigManager.getRingMaxLinkDistance();
+        if ((maxDistance > 0) && (first.anchorDistanceSquared(second) > ((long) maxDistance * maxDistance)))
+        {
+            return List.of("Those two rings are " + apart(first, second) + " blocks apart on the ground, and rings"
+                + " reach " + maxDistance + ".", "Build a stargate for a trip that long — rings are for getting "
+                + "around one place.");
+        }
+        final int maxHeight = ConfigManager.getRingMaxLinkHeight();
+        final int climb = Math.abs(first.getAnchorY() - second.getAnchorY());
+        if ((maxHeight > 0) && (climb > maxHeight))
+        {
+            return List.of("Those two rings are " + climb + " blocks apart in height, and rings reach " + maxHeight
+                + ".");
+        }
+        if ((first.getAnchorX() == second.getAnchorX()) && (first.getAnchorY() == second.getAnchorY())
+            && (first.getAnchorZ() == second.getAnchorZ()))
+        {
+            // The first ring's slabs are still lying there, so running the command again in
+            // the same circle finds the same ring. Pairing it with itself would make a
+            // transport that goes nowhere.
+            return List.of("That is the ring you already laid. Go and build the other end.");
+        }
+        return List.of();
+    }
+
+    /**
+     * A new pair of two ends, in the server's default style and flash, with no owner or access yet.
+     *
+     * @param world
+     *            the world both ends are in
+     * @return the pair, not yet registered
+     */
+    static RingPair newPair(final String world, final Ring first, final Ring second)
+    {
+        final RingPair pair = new RingPair(RingManager.newId(), world, first, second);
+        pair.setCreated(System.currentTimeMillis());
+        for (final Ring end : new Ring[] { first, second })
+        {
+            end.setStyle(ConfigManager.getRingDefaultStyle());
+            end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
+        }
+        return pair;
     }
 
     /**
@@ -298,19 +341,21 @@ public class RingCommand implements SubCommand
      * comes up and the floor looks as it did. Only blocks that are still the slab the ring
      * was read from are touched, so anything changed in between is left where it is.
      *
-     * @param player
-     *            the builder, whose world this is
+     * @param world
+     *            the world the ring is in
      * @param ring
      *            the ring whose template to clear
+     * @param user
+     *            who the slabs are logged to CoreProtect as
      */
-    private static void consumeTemplate(final Player player, final Ring ring)
+    static void consumeTemplate(final org.bukkit.World world, final Ring ring, final String user)
     {
         for (final int[] block : ring.perimeterBlocks())
         {
-            final org.bukkit.block.Block at = player.getWorld().getBlockAt(block[0], block[1], block[2]);
+            final org.bukkit.block.Block at = world.getBlockAt(block[0], block[1], block[2]);
             if (at.getType() == ring.getRingMaterial())
             {
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(player.getName(), at);
+                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(user, at);
                 at.setType(Material.AIR, false);
             }
         }
@@ -384,18 +429,18 @@ public class RingCommand implements SubCommand
      * <p>Gates and rings both act on the move path and both animate their own blocks, so
      * they are never allowed to share ground. Gates were built first, so rings give way.
      *
-     * @param player
-     *            the builder, whose world this is
+     * @param world
+     *            the world the ring is in
      * @param ring
      *            the ring being placed
      * @return true if it touches gate blocks
      */
-    private static boolean touchesGate(final Player player, final Ring ring)
+    static boolean touchesGate(final org.bukkit.World world, final Ring ring)
     {
         for (final int[] block : ring.perimeterBlocks())
         {
             if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
-                player.getWorld().getBlockAt(block[0], block[1], block[2])))
+                world.getBlockAt(block[0], block[1], block[2])))
             {
                 return true;
             }
@@ -403,7 +448,7 @@ public class RingCommand implements SubCommand
         for (final int[] block : ring.interiorBlocks())
         {
             if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
-                player.getWorld().getBlockAt(block[0], block[1], block[2])))
+                world.getBlockAt(block[0], block[1], block[2])))
             {
                 return true;
             }
@@ -421,7 +466,7 @@ public class RingCommand implements SubCommand
      *            what detection objected to
      * @return something the player can act on
      */
-    private static String explain(final RingTemplate.Failure failure)
+    static String explain(final RingTemplate.Failure failure)
     {
         if (failure == RingTemplate.Failure.MIXED_MATERIALS)
         {
@@ -494,7 +539,7 @@ public class RingCommand implements SubCommand
      *            what placement objected to
      * @return something the player can act on
      */
-    private static String explain(final RingManager.Refusal refusal)
+    static String explain(final RingManager.Refusal refusal)
     {
         if (refusal == RingManager.Refusal.TOO_CLOSE)
         {
@@ -1168,6 +1213,8 @@ public class RingCommand implements SubCommand
         player.sendMessage("/wormhole ring edit [id] <ring|light|flash|name|access|style> <value>");
         player.sendMessage("/wormhole ring allow|deny <player> [id] — who may use a private pair");
         player.sendMessage("/wormhole ring owner <player> [id] — hand a pair to somebody else");
+        player.sendMessage(RingConsoleCommands.BUILD_USAGE + " — pair two laid circles by coordinates (admin)");
+        player.sendMessage(RingConsoleCommands.FIRE_USAGE + " — fire a pair with nobody in it (admin)");
     }
 
     /**

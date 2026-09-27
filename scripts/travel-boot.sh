@@ -21,6 +21,7 @@ fi
 # seconds in, the opening is an empty frame, and a pig dropped into it could wander out first.
 # Asked three times, at 4, 9 and 15 seconds after that: a busy runner can fall seconds behind, and
 # the wormhole stays open 38. Any one answer is enough.
+# Last, where the item is, for a run that fails: landed too far off, or never crossed.
 commands="wx gate build Standard Abydos world 0 -60 0 south
 wx gate build Standard Chulak world 20 -60 0 south
 wx gate dial Abydos Chulak
@@ -35,7 +36,8 @@ execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_AR
 execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
 sleep 6
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
-execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED"
+execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
+data get entity @e[type=item,limit=1] Pos"
 
 require='Built Abydos at 0 -60 0 in world\. Opening centred on -1\.5 -57\.5 -2\.5; arrivals at -1\.5 -60\.0 -1\.5
 Built Chulak at 20 -60 0 in world\. Opening centred on 18\.5 -57\.5 -2\.5; arrivals at 18\.5 -60\.0 -1\.5
