@@ -128,21 +128,24 @@ async function showObserver (x, y, z, yaw, pitch) {
 
 async function askObserver (what) {
   if (!observer) return 'not watched'
+  if (!bot.players[observer]) return 'left'
   let answer = null
-  // Chat arrives as "<name> text" on every version Mineflayer speaks.
+  // Chat arrives as "<name> text" on every version Mineflayer speaks. Only a whole y, yes, n or no
+  // counts, so a remark that happens to start with one is not taken as the answer.
   const listen = (text) => {
-    const said = text.match(/^<([^>]+)> *([yn])/i)
-    if (said && said[1] === observer) answer = said[2].toLowerCase()
+    const said = text.match(/^<([^>]+)> *(y|yes|n|no)[.!]? *$/i)
+    if (said && said[1] === observer) answer = said[2][0].toLowerCase()
   }
   bot.on('messagestr', listen)
   bot.chat(`Did you see ${what}? y or n`)
   try {
-    await waitFor(() => answer !== null, observeWait, `${observer} answering`)
+    await waitFor(() => answer !== null || !bot.players[observer], observeWait, `${observer} answering`)
   } catch {
     return 'no answer'
   } finally {
     bot.removeListener('messagestr', listen)
   }
+  if (answer === null) return 'left'
   return answer === 'y' ? 'saw it' : 'did NOT see it'
 }
 
@@ -185,7 +188,8 @@ const gate = {
     await sleep(1000)
     bot.chat('/dial Chulak')
 
-    // Portal blocks fill the opening, then the kawoosh in front of it comes and goes.
+    // Portal blocks fill the opening. Then wait for the kawoosh in front of it to be gone before
+    // walking in; that is only a wait, not a check that there was one.
     await waitFor(() => bot.blockAt(opening).name !== 'air', 20,
       `Abydos opening (heard: ${JSON.stringify(heard)})`)
     await sleep(1000)
@@ -291,7 +295,8 @@ async function main () {
   const gone = new Promise((resolve, reject) => {
     bot.once('kicked', (reason) => reject(new Error(`kicked: ${JSON.stringify(reason)}`)))
     bot.once('end', (reason) => reject(new Error(`disconnected: ${reason}`)))
-    bot.once('error', reject)
+    // on, not once: a second error with no listener would end the process before the summary.
+    bot.on('error', reject)
   })
   gone.catch(() => {})
   await Promise.race([new Promise((resolve) => bot.once('spawn', resolve)), gone,
@@ -330,7 +335,8 @@ async function main () {
   for (const r of results) {
     console.log(`  ${r.outcome.padEnd(4)} ${r.trip.padEnd(5)} observer: ${r.seen}${r.detail ? '  (' + r.detail + ')' : ''}`)
   }
-  const failed = results.some((r) => r.outcome !== 'PASS' || r.seen === 'did NOT see it')
+  // Watched, only a "y" counts: no answer, or a watcher who left, did not confirm anything.
+  const failed = results.some((r) => r.outcome !== 'PASS' || (observe && r.seen !== 'saw it'))
   if (observe) await say(failed ? 'Some trips failed; see the summary in the terminal.' : 'All trips passed. Stopping the server.')
   bot.quit()
   await sleep(1000)

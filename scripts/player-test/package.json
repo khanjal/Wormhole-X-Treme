@@ -3,7 +3,7 @@
   "private": true,
   "description": "A bot player for scripts/player-boot.sh: joins a real server and travels by gate, beam and ring.",
   "license": "GPL-3.0-or-later",
-  "engines": { "node": ">=18" },
+  "engines": { "node": ">=22" },
   "dependencies": {
     "mineflayer": "4.39.0",
     "vec3": "0.1.10"

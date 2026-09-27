@@ -101,12 +101,12 @@ mvn -DskipTests package
 bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
 ```
 
-It needs Node 18 or newer; the first run installs the bot into `scripts/player-test/node_modules`.
+It needs Node 22 or newer, which Mineflayer 4.39 requires; the first run installs the bot into `scripts/player-test/node_modules`.
 The version must be one Mineflayer speaks: 1.20.1 to 1.21.11 and 26.1 as of 4.39, not 26.2 or
 26.3. The server listens on port 25599 in offline mode, the same flat world as the boot tests.
 
-**Watching it.** With `OBSERVE=1`, the bot waits (ten minutes, `OBSERVE_WAIT` seconds) for
-someone to join before it starts:
+**Watching it.** With `OBSERVE=1`, the bot waits for someone to join before it starts, and
+for their answer after each trip; `OBSERVE_WAIT` sets both waits, in seconds (default 600):
 
 ```bash
 OBSERVE=1 bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
@@ -116,7 +116,8 @@ Join `localhost:25599` from a Minecraft client of that version under any name. Y
 spectator and moved to a spot facing each trip before it starts, and the bot says in chat what to
 watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
 with a summary of each trip's automatic result and your answer, and a `n` fails the run just as a
-failed check does. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`.
+failed check does. So does no answer in time, or the watcher leaving: a watched run that nobody
+confirmed does not pass. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`.
 
 The **Player journeys** workflow (`player.yml`) runs the same thing without an observer on
 Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
