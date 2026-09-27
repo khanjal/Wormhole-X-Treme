@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
@@ -74,7 +75,7 @@ public final class RingConsoleCommands
      */
     static void run(final CommandSender sender, final String verb, final String[] args)
     {
-        if ((sender instanceof Player player) && !RingPermissions.has(player, RingPermissions.ADMIN))
+        if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && !RingPermissions.has(player, RingPermissions.ADMIN))
         {
             sender.sendMessage("Building and firing rings by coordinates and id needs " + RingPermissions.ADMIN + ".");
             return;

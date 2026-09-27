@@ -540,4 +540,29 @@ class GateConsoleCommandsTest
             verify(commandBlock).sendMessage(contains("Not built: part of it is outside the world border."));
         }
     }
+
+    /** A player without the right to dial from the gate does not get it through /execute as themselves. */
+    @Test
+    void executeAsDoesNotLendAPlayerTheRightToDial()
+    {
+        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final org.bukkit.command.ProxiedCommandSender asThemselves = mock(org.bukkit.command.ProxiedCommandSender.class);
+        when(asThemselves.getCaller()).thenReturn(player);
+        when(asThemselves.getCallee()).thenReturn(player);
+        final Stargate start = new Stargate();
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
+                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
+                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+
+            GateConsoleCommands.dial(asThemselves, line("Abydos", "Chulak"));
+
+            verify(asThemselves).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
 }

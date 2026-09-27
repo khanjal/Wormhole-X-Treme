@@ -90,7 +90,26 @@ public final class CommandHandlerUtils
      */
     public static boolean hasConfigPermission(final CommandSender sender)
     {
-        return !(sender instanceof Player player) || WXPermissions.checkWXPermissions(player, PermissionType.CONFIG);
+        return !(issuer(sender) instanceof Player player) || WXPermissions.checkWXPermissions(player, PermissionType.CONFIG);
+    }
+
+    /**
+     * Who a command's rights are asked of: through {@code /execute as}, whoever ran the
+     * {@code /execute}, not whoever it runs as. A player running it as themselves is still that
+     * player, and a command block running it as a player is still a command block.
+     *
+     * @param sender
+     *            the sender Bukkit handed the command, or null
+     * @return the sender behind any proxies
+     */
+    public static CommandSender issuer(final CommandSender sender)
+    {
+        CommandSender who = sender;
+        while (who instanceof org.bukkit.command.ProxiedCommandSender proxied)
+        {
+            who = proxied.getCaller();
+        }
+        return who;
     }
 
     public static void setGateCustomAll(final Stargate stargate, final boolean customEnabled)

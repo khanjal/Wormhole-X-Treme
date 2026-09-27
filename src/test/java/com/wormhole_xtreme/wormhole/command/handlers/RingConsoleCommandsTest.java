@@ -324,4 +324,30 @@ class RingConsoleCommandsTest
 
         verify(console).sendMessage(contains(RingConsoleCommands.BUILD_USAGE));
     }
+
+    /**
+     * A player without ring admin does not get it by running the command through /execute as
+     * themselves, while a command block running it as a player is still trusted.
+     */
+    @Test
+    void executeAsDoesNotLendAPlayerRingAdmin()
+    {
+        final Player player = mock(Player.class);
+        when(player.hasPermission(anyString())).thenReturn(Boolean.FALSE);
+        final org.bukkit.command.ProxiedCommandSender asThemselves = mock(org.bukkit.command.ProxiedCommandSender.class);
+        when(asThemselves.getCaller()).thenReturn(player);
+        when(asThemselves.getCallee()).thenReturn(player);
+
+        run(asThemselves, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(asThemselves).sendMessage(contains("needs " + RingPermissions.ADMIN));
+        assertTrue(pairs().isEmpty());
+
+        final org.bukkit.command.ProxiedCommandSender fromAMap = mock(org.bukkit.command.ProxiedCommandSender.class);
+        when(fromAMap.getCaller()).thenReturn(mock(BlockCommandSender.class));
+        when(fromAMap.getCallee()).thenReturn(player);
+        run(fromAMap, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        assertEquals(1, pairs().size());
+    }
 }

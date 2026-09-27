@@ -95,4 +95,15 @@ class CoordinatesTest
         assertEquals("~ counts from where the command was run, in world_nether, not world.",
             Coordinates.whyNotReadable(commandBlockAt(here, 0, 0, 0), named, "~", "~", "~"));
     }
+
+    /** A place with no world cannot be said to be in the one named, so ~ from it is refused. */
+    @Test
+    void aTildeFromAPlaceWithNoWorldIsRefused()
+    {
+        final World named = mock(World.class);
+        when(named.getName()).thenReturn("world");
+
+        assertEquals("~ counts from where the command was run, in no loaded world, not world.",
+            Coordinates.whyNotReadable(commandBlockAt(null, 0, 0, 0), named, "~", "~", "~"));
+    }
 }

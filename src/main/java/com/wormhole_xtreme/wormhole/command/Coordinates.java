@@ -113,9 +113,11 @@ public final class Coordinates
         {
             return "~ counts from a command block or player; from here, give whole numbers.";
         }
-        if ((from.getWorld() != null) && !from.getWorld().equals(world))
+        // A place with no world cannot be said to be in this one, so it is refused rather than guessed at.
+        if ((from.getWorld() == null) || !from.getWorld().equals(world))
         {
-            return "~ counts from where the command was run, in " + from.getWorld().getName() + ", not "
+            return "~ counts from where the command was run, in "
+                + ((from.getWorld() == null) ? "no loaded world" : from.getWorld().getName()) + ", not "
                 + world.getName() + ".";
         }
         return null;

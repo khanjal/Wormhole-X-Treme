@@ -86,7 +86,7 @@ public final class GateConsoleCommands
         }
         // A player needs build rights on the network as well, as completing a gate asks; the console
         // and command blocks are not held to per-network rights.
-        if ((sender instanceof org.bukkit.entity.Player player)
+        if ((CommandHandlerUtils.issuer(sender) instanceof org.bukkit.entity.Player player)
             && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
@@ -205,7 +205,7 @@ public final class GateConsoleCommands
             return;
         }
         // A player needs the right to dial from that gate, as /dial asks.
-        if ((sender instanceof org.bukkit.entity.Player player)
+        if ((CommandHandlerUtils.issuer(sender) instanceof org.bukkit.entity.Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
