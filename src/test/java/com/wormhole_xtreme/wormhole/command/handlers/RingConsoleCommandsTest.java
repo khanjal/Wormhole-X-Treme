@@ -279,8 +279,8 @@ class RingConsoleCommandsTest
     }
 
     /**
-     * A block inside either end fires the pair, so a map's command block fires the ring beside it
-     * without knowing the id it was given where it was built.
+     * A block inside either end, or in its circle, fires the pair, so a map's command block fires the
+     * ring beside it without knowing the id it was given where it was built.
      */
     @Test
     void firingByABlockInsideEitherEndFiresThatPair()
@@ -297,8 +297,10 @@ class RingConsoleCommandsTest
 
             run(console, "ring", "fire", WORLD, "101", "65", "99");
             run(commandBlock, "ring", "fire", WORLD, "~-1", "~1", "~");
+            // Where a slab of the circle lay, which is not inside the ring but is still the ring.
+            run(console, "ring", "fire", WORLD, "103", "64", "120");
 
-            transit.verify(() -> RingTransit.start(pair, null, false), org.mockito.Mockito.times(2));
+            transit.verify(() -> RingTransit.start(pair, null, false), org.mockito.Mockito.times(3));
         }
         run(console, "ring", "fire", WORLD, "100", "64", "110");
         verify(console).sendMessage("No ring at 100 64 110 in world.");
