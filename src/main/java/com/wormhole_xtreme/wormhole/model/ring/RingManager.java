@@ -250,6 +250,45 @@ public final class RingManager
     }
 
     /**
+     * Whether a ring may stand beside a half-built pair's waiting end, which placement does not see
+     * because it is not registered yet.
+     *
+     * @param candidate
+     *            the ring somebody wants to build
+     * @param worldName
+     *            the world it would be in
+     * @param minSeparation
+     *            required distance between anchors, in blocks
+     * @return the reason it may not be built, or null if it may
+     */
+    public static Refusal checkAgainstPending(final Ring candidate, final String worldName, final int minSeparation)
+    {
+        for (final PendingRing waiting : getAllPending().values())
+        {
+            final Refusal refusal = waiting.worldName().equals(worldName)
+                ? checkBetween(candidate, waiting.ring(), minSeparation) : null;
+            if (refusal != null)
+            {
+                return refusal;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether two rings of different pairs may stand where they are: not sharing a column, and as far
+     * apart as any two rings must be. Not for a pair's own two ends, which may stand one above the other.
+     *
+     * @param minSeparation
+     *            required distance between anchors, in blocks
+     * @return the reason they may not, or null if they may
+     */
+    public static Refusal checkBetween(final Ring one, final Ring other, final int minSeparation)
+    {
+        return checkAgainst(one, other, (long) minSeparation * minSeparation);
+    }
+
+    /**
      * Tests a candidate ring against one existing ring.
      *
      * @param candidate

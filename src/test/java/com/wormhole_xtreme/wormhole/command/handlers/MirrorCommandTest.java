@@ -234,6 +234,72 @@ class MirrorCommandTest
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
     }
 
+    /** Runs a mirror command with the world "world" loaded, as {@link #here}. */
+    private boolean runWithTheWorldLoaded(final CommandSender sender, final String... args)
+    {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(here);
+            return run(sender, args);
+        }
+    }
+
+    /**
+     * The console names the banner by world and coordinates, since it has nothing to look at, and
+     * gets the same mirror a player looking at it would: bound to that banner, showing its own room.
+     */
+    @Test
+    void theConsoleMakesTheBannerAtCoordinatesAMirror()
+    {
+        final Block banner = banner(Material.WHITE_WALL_BANNER);
+        when(here.getBlockAt(1, 64, 1)).thenReturn(banner);
+        final CommandSender console = mock(CommandSender.class);
+
+        assertTrue(runWithTheWorldLoaded(console, "mirror", "create", "museum", "world", "1", "64", "1"));
+
+        final QuantumMirror mirror = MirrorManager.byName("museum");
+        assertNotNull(mirror);
+        assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
+        assertNotNull(mirror.destination(), "given its own room, as a player's mirror is");
+    }
+
+    /** A command block's ~ counts from its own block, so a map names the banner beside it. */
+    @Test
+    void aCommandBlockNamesTheBannerRelativeToItself()
+    {
+        final Block banner = banner(Material.WHITE_WALL_BANNER);
+        when(here.getBlockAt(1, 64, 1)).thenReturn(banner);
+        final org.bukkit.command.BlockCommandSender commandBlock = mock(org.bukkit.command.BlockCommandSender.class);
+        final Block itsBlock = mock(Block.class);
+        when(commandBlock.getBlock()).thenReturn(itsBlock);
+        when(itsBlock.getLocation()).thenReturn(new Location(here, 1, 62, 3));
+
+        runWithTheWorldLoaded(commandBlock, "mirror", "create", "museum", "world", "~", "~2", "~-2");
+
+        assertEquals(new MirrorBlock("world", 1, 64, 1), MirrorManager.byName("museum").banner());
+    }
+
+    /** Everything wrong with a coordinate line is said, and no mirror is made. */
+    @Test
+    void aCoordinateLineThatIsWrongMakesNoMirrorAndSaysWhy()
+    {
+        final Block stone = mock(Block.class);
+        when(stone.getType()).thenReturn(Material.STONE);
+        when(here.getBlockAt(5, 64, 5)).thenReturn(stone);
+        final CommandSender console = mock(CommandSender.class);
+
+        runWithTheWorldLoaded(console, "mirror", "create", "museum", "world", "5", "64", "5");
+        runWithTheWorldLoaded(console, "mirror", "create", "museum", "nether", "5", "64", "5");
+        runWithTheWorldLoaded(console, "mirror", "create", "museum", "world", "5", "64");
+        runWithTheWorldLoaded(console, "mirror", "create", "museum", "world", "5", "~", "5");
+
+        verify(console).sendMessage(contains("The block at 5 64 5 is " + MirrorText.name("stone") + ", not a banner."));
+        verify(console).sendMessage(contains("No world called " + MirrorText.name("nether") + " is loaded."));
+        verify(console).sendMessage(contains("create <name> [<world> <x> <y> <z>]"));
+        verify(console).sendMessage(contains("~ counts from a command block or player"));
+        assertNull(MirrorManager.byName("museum"));
+    }
+
     /**
      * A mirror made too close to another is made, and says it will not be drawn whole.
      *
@@ -430,6 +496,24 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("museum"));
         verify(player, atLeastOnce()).sendMessage(contains("not a banner"));
+    }
+
+    /**
+     * Missing a banner says a mirror goes on a wall, not that any banner will do.
+     *
+     * <p>It used to say "wall-mounted or freestanding, either is fine", and a player who took
+     * it at its word and put up a banner on a post was then refused by the placement check.
+     */
+    @Test
+    void setRefusingABlockThatIsNotABannerAsksForAWallBanner()
+    {
+        final Block notABanner = banner(Material.STONE);
+        when(player.getTargetBlockExact(6)).thenReturn(notABanner);
+
+        run(player, "mirror", "create", "museum");
+
+        verify(player).sendMessage(contains("A mirror has to be a banner hung on a wall."));
+        verify(player, never()).sendMessage(contains("freestanding"));
     }
 
     /**
@@ -873,13 +957,8 @@ class MirrorCommandTest
     }
 
     /**
-     * Naming a banner on a post says where it has to be clicked.
-     *
-     * <p>The one thing the plugin can say about a limitation it cannot fix. Only the base of a
-     * standing banner can be clicked; a right-click at the cloth passes through it, and no
-     * event reaches the plugin at all -- so there is no moment later at which it could explain
-     * itself. This is that moment, with the player standing in front of the banner they just
-     * named.
+     * Naming a banner on a post is refused, without the click-near-its-base advice meant for a
+     * mirror already on one: that would tell the player how to use a mirror they were not given.
      */
     @Test
     void namingABannerOnAPostIsRefusedBeforeAnyAdviceAboutItsBase()
@@ -893,6 +972,29 @@ class MirrorCommandTest
 
         verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
         verify(player, never()).sendMessage(contains("click near its base"));
+    }
+
+    /**
+     * A mirror made on a post before posts were refused can still be renamed, and is told
+     * where to click.
+     *
+     * <p>Renaming skips the placement check, so the refusal that keeps new mirrors off posts
+     * must not strand one already there.
+     */
+    @Test
+    void renamingAMirrorAlreadyOnAPostKeepsItAndSaysWhereToClick()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        final Block post = banner(Material.WHITE_BANNER);
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
+        when(player.getTargetBlockExact(6)).thenReturn(post);
+
+        assertTrue(run(player, "mirror", "create", "gallery"));
+
+        assertNotNull(MirrorManager.byName("gallery"), "the mirror on the post takes the new name");
+        verify(player, never()).sendMessage(contains("hangs on a wall"));
+        verify(player).sendMessage(contains("click near its base"));
     }
 
     /**

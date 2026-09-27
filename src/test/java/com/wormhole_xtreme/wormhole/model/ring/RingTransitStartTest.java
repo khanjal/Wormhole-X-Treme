@@ -88,6 +88,7 @@ class RingTransitStartTest
     {
         RingTransit.clock = () -> now;
         RingTransit.clear();
+        com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
         RingManager.clear();
         blocks.clear();
         chunks.clear();
@@ -102,7 +103,7 @@ class RingTransitStartTest
             inv.getArgument(2, Integer.class).intValue()));
         when(world.getChunkAt(anyInt(), anyInt())).thenAnswer(inv -> chunks.computeIfAbsent(
             inv.getArgument(0, Integer.class) + "," + inv.getArgument(1, Integer.class),
-            key -> mock(Chunk.class)));
+            key -> chunkAt(inv.getArgument(0, Integer.class).intValue(), inv.getArgument(1, Integer.class).intValue())));
 
         final Server server = mock(Server.class);
         when(server.getWorld(WORLD)).thenReturn(world);
@@ -151,6 +152,7 @@ class RingTransitStartTest
             config.close();
             RingTransit.clear();
             RingManager.clear();
+            com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
             PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
             PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
         }
@@ -176,6 +178,24 @@ class RingTransitStartTest
     private static Map<String, Long> surveyed() throws Exception
     {
         return PrivateStatics.of(RingTransit.class, "surveyed");
+    }
+
+    /**
+     * A chunk that says where it is, which is how chunk tickets tell one from another.
+     *
+     * @param x
+     *            its chunk x
+     * @param z
+     *            its chunk z
+     * @return the chunk
+     */
+    private Chunk chunkAt(final int x, final int z)
+    {
+        final Chunk chunk = mock(Chunk.class);
+        when(chunk.getWorld()).thenReturn(world);
+        when(chunk.getX()).thenReturn(Integer.valueOf(x));
+        when(chunk.getZ()).thenReturn(Integer.valueOf(z));
+        return chunk;
     }
 
     /**
@@ -399,6 +419,27 @@ class RingTransitStartTest
             verify(chunk, atLeastOnce()).addPluginChunkTicket(any());
             verify(chunk, atLeastOnce()).removePluginChunkTicket(any());
         }
+    }
+
+    /**
+     * A ring letting its chunks go leaves one a pet is still waiting to follow from.
+     *
+     * <p>Issue #505: the plugin has one ticket per chunk, so a ring removing it outright unloaded
+     * the pet under it, and the pet stayed behind.
+     */
+    @Test
+    void aRefusedPairLeavesAHoldSomethingElseTookOnItsChunk()
+    {
+        final RingPair pair = pair();
+        buildOver(BX, BY, BZ);
+        final Chunk shared = world.getChunkAt(AX >> 4, AZ >> 4);
+        com.wormhole_xtreme.wormhole.utils.ChunkTickets.hold(shared);
+
+        walkIn(pair, walker);
+
+        verify(shared, never()).removePluginChunkTicket(any());
+        com.wormhole_xtreme.wormhole.utils.ChunkTickets.release(shared);
+        verify(shared).removePluginChunkTicket(any());
     }
 
     /**

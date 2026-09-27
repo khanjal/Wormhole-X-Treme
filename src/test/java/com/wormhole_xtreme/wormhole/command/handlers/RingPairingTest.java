@@ -433,4 +433,17 @@ class RingPairingTest
 
         verify(broken, never()).setType(any(Material.class), anyBoolean());
     }
+
+    /** A pair built over the waiting end since it was laid, from the console, leaves it nothing to pair. */
+    @Test
+    void aWaitingEndThatAPairWasBuiltOverIsRefused()
+    {
+        final RingPair built = new RingPair(RingManager.newId(), WORLD, ringAt(0, 64, 0), ringAt(0, 64, 40));
+        RingManager.addPair(built, 4);
+
+        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(0, 64, 20));
+
+        verify(player).sendMessage(contains("Your first ring is not free any more"));
+        assertEquals(1, RingManager.getAllPairs().size(), "only the pair that was already there");
+    }
 }

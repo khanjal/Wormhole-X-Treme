@@ -33,6 +33,8 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class StargateBlockSetup
 {
+    private static final String CLEAR_OF_IRIS = " clear of closing iris on gate: ";
+
     private StargateBlockSetup() {}
 
     // -----------------------------------------------------------------------
@@ -2336,6 +2338,8 @@ class StargateBlockSetup
         }
 
         Location safe = null;
+        final java.util.Set<org.bukkit.entity.Entity> moved =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         for (final org.bukkit.entity.Entity entity : candidates)
         {
             try
@@ -2354,13 +2358,7 @@ class StargateBlockSetup
                 {
                     safe = WorldUtils.findSafePlayerLocation(exit);
                 }
-                entity.teleport(safe);
-                if (entity instanceof Player traveller)
-                {
-                    traveller.setNoDamageTicks(5);
-                }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Moved " + entity.getType() + " clear of closing iris on gate: " + gate.getGateName());
+                moveClearOfIris(outermostVehicle(entity), safe, moved, gate);
             }
             catch (final RuntimeException t)
             {
@@ -2368,10 +2366,70 @@ class StargateBlockSetup
                 // the rest of the sweep. Errors are left to propagate rather than being
                 // swallowed here, where they would look like an ordinary immovable mob.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Failed to move " + entity.getType() + " clear of closing iris on gate: "
+                    "Failed to move " + entity.getType() + CLEAR_OF_IRIS
                         + gate.getGateName(), t);
             }
         }
+    }
+
+    /**
+     * Moves a stack clear of a closing iris once, riders and all.
+     *
+     * <p>A plain teleport of a ridden mount does nothing on Paper 1.20.4, which would leave
+     * it and its rider under the iris; the shared ridden move works on every version.
+     *
+     * @param root
+     *            the bottom of the stack
+     * @param safe
+     *            where it goes
+     * @param moved
+     *            stacks already moved by this sweep, updated
+     * @param gate
+     *            the gate, for the log
+     */
+    private static void moveClearOfIris(final org.bukkit.entity.Entity root, final Location safe,
+        final java.util.Set<org.bukkit.entity.Entity> moved, final Stargate gate)
+    {
+        if (!moved.add(root))
+        {
+            return;
+        }
+        final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<>();
+        final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<>();
+        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(root, parents, children);
+        if (!com.wormhole_xtreme.wormhole.RiddenTeleport.move(root, safe, parents, children))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Could not move " + root.getType() + CLEAR_OF_IRIS + gate.getGateName());
+            return;
+        }
+        if (!children.isEmpty())
+        {
+            // Five ticks, as at a gate: a rider was teleported, and must acknowledge it first.
+            com.wormhole_xtreme.wormhole.utils.PassengerReattach.schedule(root, parents, children, null, 5L);
+        }
+        final java.util.List<org.bukkit.entity.Entity> everyone = new java.util.ArrayList<>(children);
+        everyone.add(root);
+        for (final org.bukkit.entity.Entity one : everyone)
+        {
+            if (one instanceof Player traveller)
+            {
+                traveller.setNoDamageTicks(5);
+            }
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+            "Moved " + root.getType() + CLEAR_OF_IRIS + gate.getGateName());
+    }
+
+    /** What an entity is riding, and what that is riding, down to the one on the ground. */
+    private static org.bukkit.entity.Entity outermostVehicle(final org.bukkit.entity.Entity entity)
+    {
+        org.bukkit.entity.Entity root = entity;
+        for (int depth = 0; (depth < 16) && (root.getVehicle() != null); depth++)
+        {
+            root = root.getVehicle();
+        }
+        return root;
     }
 
     /**

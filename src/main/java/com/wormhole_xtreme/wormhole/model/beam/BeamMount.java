@@ -11,6 +11,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
@@ -233,9 +234,15 @@ final class BeamMount
         {
             return;
         }
+        // The rider is off already; a mob sharing the saddle is not, and Paper 1.20.4 will not
+        // move a mount with anything aboard.
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
+        EntityUtils.collectPassengerPairs(mount, parents, children);
+        final boolean moved;
         try
         {
-            mount.teleport(destination);
+            moved = RiddenTeleport.move(mount, destination, parents, children);
         }
         catch (final RuntimeException e)
         {
@@ -243,7 +250,15 @@ final class BeamMount
                 "Could not beam " + rider.getName() + "'s mount to the destination; they arrive on foot", e);
             return;
         }
-        PassengerReattach.schedule(mount, rider, null);
+        if (!moved)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "The server refused to beam " + rider.getName() + "'s mount; they arrive on foot");
+            return;
+        }
+        parents.add(mount);
+        children.add(rider);
+        PassengerReattach.schedule(mount, parents, children, null, 2L);
     }
 
     /**

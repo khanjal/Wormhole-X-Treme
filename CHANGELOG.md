@@ -8,6 +8,21 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.8.1 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Rings can be paired and fired from the console and command blocks.**
+  `ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>` pairs two laid circles, each named by a block
+  inside it, and says where each end puts an arrival; `ring fire <id>` or
+  `ring fire <world> <x> <y> <z>` sets a pair off with nobody in it. A player needs
+  `wormhole.ring.admin`. A pair built this way has no owner, so it is public.
+- **A mirror can be made from the console and command blocks**:
+  `mirror create <name> <world> <x> <y> <z>` makes the wall banner there one.
+- **Coordinates in `gate build`, `ring build`, `ring fire` and `mirror create` may be `~`**, counted
+  from the command block or player that runs them, so a map's command blocks keep working wherever
+  it is pasted. Under `/execute`, they still count from whoever ran it.
+
 ### Stargates
 
 **Fixed**
@@ -15,6 +30,17 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
   vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
   frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
+- **A ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.** It stayed behind
+  with its rider aboard while the trip was reported and charged. One that cannot be moved now
+  keeps its riders and costs nothing, and a boat or cart's rider pays once it has gone.
+
+### Quantum mirrors
+
+**Fixed**
+
+- **`mirror create` aimed off a banner no longer says a banner on a post will do.** It asks for a
+  banner hung on a wall, which is the only kind `create` accepts. A mirror already on a post can
+  still be renamed.
 
 ### Transport rings
 
@@ -23,6 +49,18 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **The transport flash defaults to glowstone**, against the lit redstone lamp pad. A server with a
   `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
   rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
+
+### Travel
+
+**Fixed**
+
+- **A following pet comes with its owner into another world** by gate, beam, ring or mirror,
+  where it used to stay behind.
+
+### Internals
+
+- The travel boot test now also rides a ring pair with an item and a pig, and makes a mirror from
+  the console and finds it again after a restart, on Paper 1.20.4, 1.21.11 and 26.3.
 
 ## 1.8.0 (2026-09-26)
 
