@@ -369,4 +369,18 @@ class RingConsoleCommandsTest
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
     }
+
+    /** A circle laid at the same place in another world is no reason to refuse this one. */
+    @Test
+    void aCirclePairedAtTheSamePlaceInAnotherWorldDoesNotStandInTheWay()
+    {
+        final Ring waiting = com.wormhole_xtreme.wormhole.model.ring.RingTemplate.detect(
+            new com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
+            .getRing();
+        RingManager.setPending(java.util.UUID.randomUUID(), waiting, "world_nether");
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        assertEquals(1, pairs().size());
+    }
 }
