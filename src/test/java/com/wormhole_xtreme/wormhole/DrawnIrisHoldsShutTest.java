@@ -640,6 +640,7 @@ class DrawnIrisHoldsShutTest
         final org.bukkit.entity.Minecart cart = cartAt();
         final Player rider = mock(Player.class);
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         when(cart.getPassengers()).thenReturn(java.util.List.<org.bukkit.entity.Entity>of(rider));
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);

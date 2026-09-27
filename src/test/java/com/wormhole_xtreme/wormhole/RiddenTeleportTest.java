@@ -107,6 +107,7 @@ class RiddenTeleportTest
         final Boat boat = mock(Boat.class);
         final Zombie zombie = mock(Zombie.class);
         final Player player = mock(Player.class);
+        when(player.teleport(any(Location.class))).thenReturn(true);
         final Paper1204Riding.Stack boatSeats = Paper1204Riding.refusesWhileRidden(boat, start, zombie);
         final Paper1204Riding.Stack zombieSeats = Paper1204Riding.refusesWhileRidden(zombie, start, player);
         final Location arrival = arrivalFacing(world, 0f);
@@ -132,6 +133,8 @@ class RiddenTeleportTest
     {
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
+        final Location seat = new Location(world, 0.5, 65, 0.5);
+        PetTestSupport.standsWhereTeleported(rider, seat);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, rider);
         when(boat.teleport(any(Location.class))).thenReturn(false);
         final List<Entity>[] pairs = pairsOf(boat);
@@ -140,8 +143,8 @@ class RiddenTeleportTest
             "a refused move must be reported as one");
 
         assertSame(start, stack.at());
+        assertEquals(seat, rider.getLocation(), "the rider sent ahead must be brought back");
         assertTrue(stack.carries(rider), "the rider must be back aboard at this end");
-        verify(rider, never()).teleport(any(Location.class));
     }
 
     @Test
@@ -149,6 +152,7 @@ class RiddenTeleportTest
     {
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, rider);
         when(boat.teleport(any(Location.class))).thenThrow(new IllegalStateException("gone"));
         final List<Entity>[] pairs = pairsOf(boat);
@@ -173,49 +177,148 @@ class RiddenTeleportTest
         final Player bystander = mock(Player.class);
         when(boat.getPassengers()).thenReturn(List.<Entity>of(rider));
         when(boat.teleport(any(Location.class))).thenReturn(true);
-        final boolean[] refusedAtUnseat = { true };
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        final boolean[] ruleLooked = { true };
         when(boat.removePassenger(any())).thenAnswer(call ->
         {
-            refusedAtUnseat[0] = GateDismount.shouldRefuse(rider);
+            // Where the rider stands is what the rule would look up; aside, it must not look.
+            org.mockito.Mockito.clearInvocations(rider);
+            GateDismount.shouldRefuse(rider);
+            ruleLooked[0] = !org.mockito.Mockito.mockingDetails(rider).getInvocations().isEmpty();
             // Somebody else getting off in the same instant is still asked about.
             GateDismount.shouldRefuse(bystander);
             return Boolean.TRUE;
         });
-        // Where the rider stands is what the rule would look up; with it aside, it must not look.
-        when(rider.getLocation()).thenThrow(new AssertionError("the dismount rule was consulted"));
         final List<Entity>[] pairs = pairsOf(boat);
 
         RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]);
 
-        assertFalse(refusedAtUnseat[0], "the plugin must not refuse its own dismount");
+        assertFalse(ruleLooked[0], "the plugin must not refuse its own dismount");
         verify(bystander).getLocation();
     }
 
     /**
-     * A passenger that will not come off stops the move before anything goes.
+     * A player who will not come off stops the move before anything goes, and nobody else is
+     * taken off for it.
      *
      * <p>Another plugin can cancel the dismount, and {@code removePassenger} says true whatever
-     * happened. Moving on would be refused on 1.20.4, or on 1.21 would carry that one passenger
-     * along while the rest were sent separately.
+     * happened. Moving on would be refused on 1.20.4, or on 1.21 carry that one player along
+     * while the rest were sent separately. Stopping at the first one spares the rest an
+     * exit and re-entry on every step the rider takes in the portal.
      */
     @Test
-    void aPassengerThatWillNotComeOffStopsTheMoveWithEveryoneBackAboard()
+    void aPlayerWhoWillNotComeOffStopsTheMoveBeforeAnythingGoes()
     {
         final Boat boat = mock(Boat.class);
         final Zombie zombie = mock(Zombie.class);
         final Player rider = mock(Player.class);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, zombie, rider);
-        // The zombie's dismount is cancelled: it says yes, and stays.
-        // doReturn, not when(): calling the stubbed method to stub it would take the zombie off.
-        doReturn(Boolean.TRUE).when(boat).removePassenger(zombie);
+        // doReturn, not when(): calling the stubbed method to stub it would take the rider off.
+        doReturn(Boolean.TRUE).when(boat).removePassenger(rider);
         final List<Entity>[] pairs = pairsOf(boat);
 
         assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));
 
         verify(boat, never()).teleport(any(Location.class));
         verify(rider, never()).teleport(any(Location.class));
-        assertTrue(stack.carries(rider), "the rider taken off first is put back");
+        verify(boat, never()).removePassenger(zombie);
+        assertTrue(stack.carries(rider));
         assertTrue(stack.carries(zombie));
+    }
+
+    /**
+     * Something other than a player that will not come off stays aboard, and the vehicle is
+     * still tried: 1.21 carries it, and 1.20.4's refusal is then reported honestly.
+     */
+    @Test
+    void aStuckPassengerThatIsNotAPlayerIsLeftAboardAndTheMoveStillTried()
+    {
+        final Boat boat = mock(Boat.class);
+        final Zombie zombie = mock(Zombie.class);
+        final Player rider = mock(Player.class);
+        final Location seat = new Location(world, 0.5, 65, 0.5);
+        PetTestSupport.standsWhereTeleported(rider, seat);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, zombie, rider);
+        doReturn(Boolean.TRUE).when(boat).removePassenger(zombie);
+        final List<Entity>[] pairs = pairsOf(boat);
+
+        assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]),
+            "1.20.4 refuses a boat with the zombie still in it");
+
+        verify(boat).teleport(any(Location.class));
+        verify(zombie, never()).teleport(any(Location.class));
+        assertSame(start, stack.at());
+        assertEquals(seat, rider.getLocation(), "the rider is brought back");
+        assertTrue(stack.carries(rider));
+        assertTrue(stack.carries(zombie));
+    }
+
+    /**
+     * On a server that carries passengers, a stuck one that is not a player rides along
+     * rather than being teleported off its seat.
+     *
+     * <p>Teleporting it on its own would pull it off the vehicle it is stuck to.
+     */
+    @Test
+    void aStuckPassengerThatIsNotAPlayerRidesAlongWhereTheServerCarriesIt()
+    {
+        final Boat boat = mock(Boat.class);
+        final Zombie zombie = mock(Zombie.class);
+        final Player rider = mock(Player.class);
+        when(boat.getPassengers()).thenReturn(List.<Entity>of(zombie, rider));
+        // Its dismount is cancelled every time; the server carries the boat anyway, as 1.21 does.
+        when(zombie.getVehicle()).thenReturn(boat);
+        when(boat.teleport(any(Location.class))).thenReturn(true);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        final List<Entity>[] pairs = pairsOf(boat);
+
+        assertTrue(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));
+
+        verify(zombie, never()).teleport(any(Location.class));
+        verify(rider).teleport(any(Location.class));
+    }
+
+    /**
+     * A rider another plugin will not let go stops the trip, mount and all.
+     *
+     * <p>A region or combat plugin cancels the player's teleport. The mount used to go
+     * anyway, leaving the rider on foot at the source, charged and logged as having gone,
+     * and then yanked at by the re-seat a dozen times.
+     */
+    @Test
+    void aRiderWhoseTeleportIsRefusedKeepsTheMountHereAndStaysAboard()
+    {
+        final Boat boat = mock(Boat.class);
+        final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(false);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, rider);
+        final List<Entity>[] pairs = pairsOf(boat);
+
+        assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));
+
+        verify(boat, never()).teleport(any(Location.class));
+        assertSame(start, stack.at());
+        assertTrue(stack.carries(rider), "the rider must be back aboard");
+    }
+
+    /** A second rider refused brings back the first, who had already gone. */
+    @Test
+    void aSecondRiderRefusedBringsBackTheFirst()
+    {
+        final Boat boat = mock(Boat.class);
+        final Player first = mock(Player.class);
+        final Player second = mock(Player.class);
+        final Location firstSeat = new Location(world, 0.5, 65, 0.5);
+        PetTestSupport.standsWhereTeleported(first, firstSeat);
+        when(second.teleport(any(Location.class))).thenReturn(false);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(boat, start, first, second);
+        final List<Entity>[] pairs = pairsOf(boat);
+
+        assertFalse(RiddenTeleport.move(boat, arrivalFacing(world, 0f), pairs[0], pairs[1]));
+
+        assertEquals(firstSeat, first.getLocation(), "the first rider must not be left at the far end");
+        assertTrue(stack.carries(first));
+        assertTrue(stack.carries(second));
     }
 
     @Test

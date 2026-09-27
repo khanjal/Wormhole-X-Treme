@@ -249,6 +249,41 @@ class GateOneWayTest
     }
 
     /**
+     * A mount with a player aboard is left to the player listener, which asks permission,
+     * cooldown and fare first.
+     *
+     * <p>Once the sweep could carry a whole stack, a rider the player listener had turned away
+     * (sitting in the portal on their horse) was swept through on the next scan, past every
+     * check that had just refused them.
+     */
+    @Test
+    void aMountWithAPlayerAboardIsNotSwept()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity horse = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Player rider = mock(org.bukkit.entity.Player.class);
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            horse, new Location(world, 10.5, 64, 20.5), rider);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertEquals(10.5, stack.at().getX(), 0.001, "the horse must stay where the player listener left it");
+            verify(rider, never()).teleport(any(Location.class));
+            assertTrue(stack.carries(rider));
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
      * A passenger whose own teleport fails is fetched to its mount, not left at the source.
      *
      * <p>The sweep used to re-seat once, on the spot, with no retry: a passenger that had not

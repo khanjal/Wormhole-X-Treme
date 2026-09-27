@@ -75,15 +75,16 @@ class IrisClearsRiddenMountTest
         final Player rider = mock(Player.class);
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.isValid()).thenReturn(true);
-        when(rider.teleport(any(Location.class))).thenReturn(true);
+        // Sitting in the opening too; where they are decides whether the horse will seat them.
+        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(rider, new Location(world, BX + 0.5, BY + 1, BZ + 0.5));
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             horse, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
-        when(rider.getLocation()).thenReturn(null);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(horse, rider));
 
         StargateBlockSetup.clearIrisPath(gate);
 
         assertEquals(BZ + 3.5, stack.at().getZ(), 0.001, "the horse must be moved out of the opening");
-        assertTrue(stack.carries(rider), "with its rider back in the saddle");
+        assertEquals(BZ + 3.5, rider.getLocation().getZ(), 0.001, "its rider goes with it");
+        assertTrue(stack.carries(rider), "and is back in the saddle");
     }
 }

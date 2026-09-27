@@ -102,6 +102,8 @@ class WormholeXTremePlayerListenerMountTest
         seatedOn(rider1, mount);
         seatedOn(rider2, mount);
         when(rider1.isValid()).thenReturn(true);
+        when(rider1.teleport(any(Location.class))).thenReturn(true);
+        when(rider2.teleport(any(Location.class))).thenReturn(true);
         when(rider2.isValid()).thenReturn(true);
         when(rider1.getName()).thenReturn("r1");
         when(rider2.getName()).thenReturn("r2");
@@ -205,6 +207,7 @@ class WormholeXTremePlayerListenerMountTest
         seatedOn(rider, mount);
         when(rider.isValid()).thenReturn(true);
         when(rider.getName()).thenReturn("camelRider");
+        when(rider.teleport(any(Location.class))).thenReturn(true);
 
         final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
         doAnswer(inv -> { teleports.incrementAndGet(); return true; }).when(mount).teleport(any(Location.class));
@@ -360,6 +363,8 @@ class WormholeXTremePlayerListenerMountTest
         gateAt(world, 60, 64, 70, "srcStuckMount");
         final Pig mount = pig();
         final Player rider = riderNamed("stranded");
+        final Location seat = new Location(world, 60.5, 65, 70.5);
+        PetTestSupport.standsWhereTeleported(rider, seat);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             mount, new Location(world, 60.5, 64, 70.5), rider);
         // Something else refuses: another plugin cancelling the teleport, say.
@@ -372,7 +377,7 @@ class WormholeXTremePlayerListenerMountTest
             new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
                 new Location(world, 60.5, 64, 68.5), new Location(world, 60.5, 64, 70.5)));
 
-            verify(rider, never()).teleport(any(Location.class));
+            org.junit.jupiter.api.Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
             org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
             org.junit.jupiter.api.Assertions.assertFalse(StargateRestrictions.isPlayerUseCooldown(rider),
                 "no cooldown for a trip that did not happen");
@@ -394,6 +399,8 @@ class WormholeXTremePlayerListenerMountTest
         gateAt(world, 90, 64, 70, "srcThrowingMount");
         final Pig mount = pig();
         final Player rider = riderNamed("stranded");
+        final Location seat = new Location(world, 90.5, 65, 70.5);
+        PetTestSupport.standsWhereTeleported(rider, seat);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             mount, new Location(world, 90.5, 64, 70.5), rider);
         doThrow(new IllegalStateException("mount will not move")).when(mount).teleport(any(Location.class));
@@ -402,7 +409,7 @@ class WormholeXTremePlayerListenerMountTest
         new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
             new Location(world, 90.5, 64, 68.5), new Location(world, 90.5, 64, 70.5)));
 
-        verify(rider, never()).teleport(any(Location.class));
+        org.junit.jupiter.api.Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
         org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
     }
 }

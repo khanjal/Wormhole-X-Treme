@@ -616,6 +616,7 @@ class WormholeXTremeVehicleListener implements Listener
         }
         if (!dispatchVehicleTeleport(st, veh, v, target, passengers))
         {
+            turnBack(veh, v, passengers);
             return false;
         }
         // The vehicle has gone, so what follows from having travelled can be applied.
@@ -625,6 +626,44 @@ class WormholeXTremeVehicleListener implements Listener
         }
         applyTravelRestrictions(st, pendingRestrictions);
         return true;
+    }
+
+    /**
+     * Sends a vehicle whose trip was refused back out of the portal the way it came.
+     *
+     * <p>Left stopped in the opening, marked as just travelled, it sat there with its riders
+     * held aboard by the portal's dismount rule until the gate shut.
+     *
+     * @param v
+     *            its velocity on the way in
+     */
+    private static void turnBack(final Vehicle veh, final Vector v, final List<Entity> passengers)
+    {
+        forget(recentlyTeleported, veh.getUniqueId());
+        for (final Entity psg : passengers)
+        {
+            if (psg instanceof Player)
+            {
+                forget(recentlyTeleportedPlayersByVehicle, psg.getUniqueId());
+            }
+        }
+        try
+        {
+            veh.setVelocity(v.clone().multiply(-1));
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not turn back a refused vehicle", e);
+        }
+    }
+
+    /** A concurrent set will not look up a null, which a half-built entity can answer. */
+    private static void forget(final Set<UUID> marks, final UUID id)
+    {
+        if (id != null)
+        {
+            marks.remove(id);
+        }
     }
 
     /**
@@ -848,21 +887,22 @@ class WormholeXTremeVehicleListener implements Listener
      */
     private static boolean admitUnderCooldown(final Player p, final List<Player> pendingRestrictions)
     {
-        if (GateFare.affordable(p) < 0)
-        {
-            return false;
-        }
-        if (!ConfigManager.isUseCooldownEnabled())
-        {
-            return true;
-        }
-        if (StargateRestrictions.isPlayerUseCooldown(p))
+        // Cooldown before fare, the order the player listener asks them in.
+        final boolean cooldown = ConfigManager.isUseCooldownEnabled();
+        if (cooldown && StargateRestrictions.isPlayerUseCooldown(p))
         {
             p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
             p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
             return false;
         }
-        pendingRestrictions.add(p);
+        if (GateFare.affordable(p) < 0)
+        {
+            return false;
+        }
+        if (cooldown)
+        {
+            pendingRestrictions.add(p);
+        }
         return true;
     }
 

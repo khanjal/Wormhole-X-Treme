@@ -545,6 +545,12 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
+        // A mount with a player aboard is the player listener's, which asks permission,
+        // cooldown and fare; one it turned away would otherwise be carried through from here.
+        if (carriesAPlayer(entity))
+        {
+            return false;
+        }
         // Projectiles belong to ProjectileGateTracker, which follows each one and catches
         // it the tick it reaches a portal. This sweep is far too slow to see one crossing.
         if (entity instanceof Projectile)
@@ -565,6 +571,22 @@ public final class GateEntityScanner implements Runnable
         // An entity that just arrived here is standing in the destination wormhole; without
         // this it would be bounced straight back on the next sweep.
         return !WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(entity.getUniqueId());
+    }
+
+    /** Whether a player rides anywhere in this entity's passenger stack. */
+    private static boolean carriesAPlayer(final Entity entity)
+    {
+        final List<Entity> parents = new java.util.ArrayList<>();
+        final List<Entity> children = new java.util.ArrayList<>();
+        WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
+        for (final Entity child : children)
+        {
+            if (child instanceof Player)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

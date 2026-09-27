@@ -121,6 +121,8 @@ class RingRiddenDeliveryTest
     {
         final Horse horse = horse();
         final Player rider = rider();
+        final Location seat = new Location(world, 0.5, 65, 0.5);
+        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(rider, seat);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             horse, new Location(world, 0.5, 64, 0.5), rider);
         when(horse.teleport(any(Location.class))).thenReturn(false);
@@ -130,7 +132,7 @@ class RingRiddenDeliveryTest
 
         assertEquals(0.5, stack.at().getX(), 0.001);
         assertTrue(stack.carries(rider), "the rider must still be on the horse");
-        verify(rider, never()).teleport(any(Location.class));
+        assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
         verify(rider, never()).spigot();
     }
 }

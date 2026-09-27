@@ -43,7 +43,15 @@ public final class Paper1204Riding
     /** A rider whose position the test gave is refused a seat more than two blocks away. */
     private static boolean tooFarToSeat(final Location riderAt, final Location seat)
     {
-        return (riderAt != null) && (seat != null) && (riderAt.distanceSquared(seat) > 4.0);
+        if ((riderAt == null) || (seat == null))
+        {
+            return false;
+        }
+        // By hand: Location refuses to measure when a test leaves the world null.
+        final double dx = riderAt.getX() - seat.getX();
+        final double dy = riderAt.getY() - seat.getY();
+        final double dz = riderAt.getZ() - seat.getZ();
+        return (riderAt.getWorld() != seat.getWorld()) || (((dx * dx) + (dy * dy) + (dz * dz)) > 4.0);
     }
 
     /**
