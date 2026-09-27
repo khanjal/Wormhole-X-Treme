@@ -29,6 +29,9 @@ if [[ -n "${BOOT_CONFIG:-}" ]]; then
   mkdir -p "$dir/plugins/WormholeXTreme"
   printf '%s\n' "$BOOT_CONFIG" > "$dir/plugins/WormholeXTreme/config.yml"
 fi
+# Every boot has a fresh bStats id, so each one would count as another server on the public page.
+mkdir -p "$dir/plugins/bStats"
+printf 'enabled: false\n' > "$dir/plugins/bStats/config.yml"
 echo "eula=true" > "$dir/eula.txt"
 cat > "$dir/server.properties" <<'EOF'
 online-mode=false
