@@ -30,6 +30,9 @@ public final class SubCommands
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String BUILD = "build";
+
+    /** The verb that makes a thing: a gate's alias for complete, a ring end, a mirror. */
+    private static final String CREATE = "create";
     private static final String REMOVE = "remove";
     private static final String COMPLETE = "complete";
     private static final String REGENERATE = "regenerate";
@@ -447,7 +450,7 @@ public final class SubCommands
         final String verb = args[1].toLowerCase(Locale.ROOT);
         // create is complete's second name, accepted by the handler but not registered as a
         // subcommand of its own, so there is no entry to look up under it.
-        final String flatName = "create".equals(verb) ? COMPLETE : verb;
+        final String flatName = CREATE.equals(verb) ? COMPLETE : verb;
         // Only the verbs gate actually dispatches. Without this, a word that happens to name
         // some other subcommand -- gate set, gate timeout -- would complete as that one, and
         // then be refused the moment it was run.
@@ -704,7 +707,7 @@ public final class SubCommands
             return prefixed(args[2], mirrorNames());
         }
         // The world of create's coordinate form, for the console and command blocks.
-        if ("create".equals(verb) && (args.length == 4))
+        if (CREATE.equals(verb) && (args.length == 4))
         {
             return worldNames(args[3]);
         }
@@ -1120,10 +1123,10 @@ public final class SubCommands
         if (args.length == 2)
         {
             // build and fire are offered only to whoever may run them.
-            final String[] verbs = { "create", "cancel", "list", REMOVE, "edit", "allow", "deny", OWNER };
-            return prefixed(args[1], admin ? both(verbs, new String[] { "build", "fire" }) : verbs);
+            final String[] verbs = { CREATE, "cancel", "list", REMOVE, "edit", "allow", "deny", OWNER };
+            return prefixed(args[1], admin ? both(verbs, new String[] { BUILD, "fire" }) : verbs);
         }
-        if ("build".equalsIgnoreCase(args[1]) && admin && (args.length == 3))
+        if (BUILD.equalsIgnoreCase(args[1]) && admin && (args.length == 3))
         {
             return worldNames(args[2]);
         }

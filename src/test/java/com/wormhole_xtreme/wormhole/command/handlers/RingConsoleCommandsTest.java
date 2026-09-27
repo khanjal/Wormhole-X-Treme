@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -300,7 +301,7 @@ class RingConsoleCommandsTest
             // Where a slab of the circle lay, which is not inside the ring but is still the ring.
             run(console, "ring", "fire", WORLD, "103", "64", "120");
 
-            transit.verify(() -> RingTransit.start(pair, null, false), org.mockito.Mockito.times(3));
+            transit.verify(() -> RingTransit.start(pair, null, false), times(3));
         }
         run(console, "ring", "fire", WORLD, "100", "64", "110");
         verify(console).sendMessage("No ring at 100 64 110 in world.");
@@ -344,7 +345,8 @@ class RingConsoleCommandsTest
         assertTrue(pairs().isEmpty());
 
         final org.bukkit.command.ProxiedCommandSender fromAMap = mock(org.bukkit.command.ProxiedCommandSender.class);
-        when(fromAMap.getCaller()).thenReturn(mock(BlockCommandSender.class));
+        final BlockCommandSender commandBlock = mock(BlockCommandSender.class);
+        when(fromAMap.getCaller()).thenReturn(commandBlock);
         when(fromAMap.getCallee()).thenReturn(player);
         run(fromAMap, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 

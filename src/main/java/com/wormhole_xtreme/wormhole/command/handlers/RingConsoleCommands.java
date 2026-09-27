@@ -37,6 +37,10 @@ public final class RingConsoleCommands
 
     static final String FIRE_USAGE = "/wormhole ring fire <id | world x y z>";
 
+    private static final String USAGE = "Usage: ";
+
+    private static final String RING_PAIR = "Ring pair ";
+
     private static final String BUILD = "build";
 
     private static final String FIRE = "fire";
@@ -125,7 +129,7 @@ public final class RingConsoleCommands
         RingCommand.consumeTemplate(world, b, sender.getName());
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world.getName());
-        sender.sendMessage("Ring pair " + pair.getId() + " is live and public. Arrivals at " + arrival(a) + " and "
+        sender.sendMessage(RING_PAIR + pair.getId() + " is live and public. Arrivals at " + arrival(a) + " and "
             + arrival(b) + ". Fire it with /wormhole ring fire " + pair.getId() + ".");
     }
 
@@ -134,13 +138,13 @@ public final class RingConsoleCommands
     {
         if (args.length != BUILD_WORDS)
         {
-            return "Usage: " + BUILD_USAGE;
+            return USAGE + BUILD_USAGE;
         }
         for (int i = 3; i < BUILD_WORDS; i++)
         {
             if (!Coordinates.isCoordinate(args[i]))
             {
-                return "Usage: " + BUILD_USAGE;
+                return USAGE + BUILD_USAGE;
             }
         }
         final World world = Bukkit.getWorld(args[2]);
@@ -211,10 +215,10 @@ public final class RingConsoleCommands
         }
         if (RingTransit.start(pair, null, false))
         {
-            sender.sendMessage("Ring pair " + pair.describe() + " is counting down.");
+            sender.sendMessage(RING_PAIR + pair.describe() + " is counting down.");
             return;
         }
-        sender.sendMessage("Ring pair " + pair.describe() + " did not fire: it is already cycling or cooling"
+        sender.sendMessage(RING_PAIR + pair.describe() + " did not fire: it is already cycling or cooling"
             + " down, an end is blocked, or its world is not loaded.");
     }
 
@@ -223,7 +227,7 @@ public final class RingConsoleCommands
     {
         if (args.length != 3)
         {
-            sender.sendMessage("Usage: " + FIRE_USAGE);
+            sender.sendMessage(USAGE + FIRE_USAGE);
             return null;
         }
         final RingPair pair = RingManager.getPair(args[2]);
@@ -245,7 +249,7 @@ public final class RingConsoleCommands
         }
         if (!Coordinates.isCoordinate(args[3]) || !Coordinates.isCoordinate(args[4]) || !Coordinates.isCoordinate(args[5]))
         {
-            sender.sendMessage("Usage: " + FIRE_USAGE);
+            sender.sendMessage(USAGE + FIRE_USAGE);
             return null;
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, args[3], args[4], args[5]);
