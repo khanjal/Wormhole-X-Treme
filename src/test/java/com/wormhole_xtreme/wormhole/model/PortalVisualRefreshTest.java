@@ -247,6 +247,9 @@ class PortalVisualRefreshTest
         return gate;
     }
 
+    /** Whether the last {@link #chevronsSentFor} sent anything to the opening's cells, at x = 100. */
+    private static boolean irisCellsSent;
+
     /** Which light blocks, by x, a player arriving by the open gate is sent. */
     private static java.util.Set<Integer> chevronsSentFor(final World here)
     {
@@ -267,6 +270,7 @@ class PortalVisualRefreshTest
             StargateBlockSetup.refreshPortalVisuals(player);
         }
         verify(player, atLeastOnce()).sendBlockChange(sent.capture(), any());
+        irisCellsSent = sent.getAllValues().stream().anyMatch(l -> l.getBlockX() == 100);
         final java.util.Set<Integer> xs = new java.util.TreeSet<>();
         for (final Location l : sent.getAllValues())
         {
@@ -318,5 +322,22 @@ class PortalVisualRefreshTest
         gate.setGateChevronsLocked(3);
 
         assertEquals(java.util.Set.of(1, 2, 3), chevronsSentFor(here));
+    }
+
+    /** Dialling behind its own shut iris, a gate is shown its iris, and the chevrons locked so far. */
+    @Test
+    void aGateDiallingBehindAShutIrisIsShownItsIris()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final Stargate gate = openEightChevronGate(here, here);
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        gate.setGateIrisActive(true);
+        gate.setGatePortalOpen(false);
+        gate.setGateChevronsLocked(2);
+
+        final java.util.Set<Integer> xs = chevronsSentFor(here);
+        assertEquals(java.util.Set.of(1, 2), xs, "only the chevrons locked so far");
+        assertTrue(irisCellsSent, "the shut iris is drawn over the empty opening");
     }
 }
