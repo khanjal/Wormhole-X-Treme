@@ -1198,7 +1198,7 @@ const mount = {
     await sleep(300)
     await mountOn(horse, 'horse')
 
-    const onHorse = () => bot.vehicle === horse || riding(/^horse$/)
+    const onHorse = () => bot.vehicle === horse
     // Each leg is checked on its own, so one that fails does not hide the next; one that leaves
     // the bot off the horse skips the rest, having nothing to ride.
     const failed = []
@@ -1240,12 +1240,14 @@ const mount = {
     })
 
     await leg('ring', async () => {
+      if (!onHorse()) throw new Error(`not run, the bot being off the horse (${describeRide()})`)
       if (bot.vehicle.position.distanceTo(corral) > 1.5) throw new Error(`not run, the horse not being in Corral (${describeRide()})`)
       const partner = v(this.rings[1] + 0.5, -63, this.ringZ + 0.5)
       const inPartner = () => onHorse() && Math.hypot(bot.vehicle.position.x - partner.x, bot.vehicle.position.z - partner.z) < 3
       // A ring arms on its rider moving inside it; landing by beam is not a move. A ring used a
       // moment ago recharges first, and says for how long.
       for (let attempt = 1; !inPartner(); attempt++) {
+        if (!onHorse()) throw new Error(`off the horse before the rings came (${describeRide()})`)
         messages()
         narrate('Stepping the horse about in the ring; its countdown runs before the rings rise')
         await drive(corral.offset(0.6, 0, 0), 0.1, inPartner, 2)
@@ -1459,17 +1461,27 @@ const pet = {
         failed.push(`${label}: ${e.message}`)
         narrate(`${label} FAILED: ${e.message}`)
       }
-      if (inTheNether()) await this.beam(`${homeLabel}Pad`, homePad, false)
+      if (inTheNether()) {
+        try {
+          await this.beam(`${homeLabel}Pad`, homePad, false)
+        } catch (e) {
+          // Said, and the bot fetched home from the console, so the legs after still run.
+          failed.push(`beaming home after ${label}: ${e.message}`)
+          await teleport(...home.stand, 180)
+        }
+      }
       if (this.wolf(sitter.uuid, 60) && this.wolf(sitter.uuid, 60).position.distanceTo(sat) > 1) {
         failed.push(`the sitting wolf moved from ${sat} to ${this.wolf(sitter.uuid, 60).position} during ${label}`)
       }
     }
 
+    let controlTag = null
     await leg('control', async () => {
       narrate('Control: with pets-follow-owner off, a following wolf must not come to the nether')
       const tag = `wxcontrol${run}`
       await teleport(...home.stand, 180)
       const wolf = await this.tamedWolf(followAt, tag)
+      controlTag = tag
       await this.setPets(false)
       try {
         await this.beam(`${awayLabel}Pad`, awayPad, true)
@@ -1479,6 +1491,15 @@ const pet = {
         await this.setPets(true)
       }
     })
+
+    // Its not coming means something only while it is still here to come. Asked of the server, since
+    // the bot, just back from the nether, may not have been sent the overworld's entities yet.
+    if (controlTag) {
+      const from = logSize()
+      serverCommand(`data get entity @e[type=wolf,tag=${controlTag},limit=1] Pos`)
+      await waitForLog(/has the following entity data: \[/, 10, from)
+        .catch(() => failed.push('control: the wolf is gone, so its not coming to the nether proves nothing'))
+    }
 
     await leg('beam', async () => {
       narrate('Beaming to the nether with a following wolf; it must come too')
@@ -1499,7 +1520,7 @@ const pet = {
       const wolf = await this.tamedWolf(followAt, tag)
       await dialAndOpen(home, homeLabel, awayLabel)
       // It has wandered while the gate opened; within twelve blocks is what counts as following.
-      await this.waitForWolf(wolf, tag, 8, 10, 'the wolf coming near before going in')
+      await this.waitForWolf(wolf, tag, 12, 10, 'the wolf coming near before going in')
       narrate(`Walking in with the wolf ${this.wolf(wolf.uuid, 30).position.distanceTo(bot.entity.position).toFixed(1)} blocks off; should come out at ${awayLabel}, in the nether`)
       await walk(home.into, () => inTheNether(), 15)
       await waitFor(() => inTheNether() && near(away.arrival, 1.5), 10, `arriving at ${awayLabel} in the nether`)
@@ -1595,7 +1616,7 @@ async function main () {
     }
     bot.clearControlStates()
     // A trip that failed in the saddle would leave the next one mounted, or its vehicle behind.
-    await getOff().catch(() => {})
+    await getOff().catch((e) => console.log(`  getting off after ${trip.name}: ${e.message}`))
     if (trip.cleanup) {
       try { await trip.cleanup() } catch (e) { console.log(`  cleaning up after ${trip.name}: ${e.message}`) }
     }
