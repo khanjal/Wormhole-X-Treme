@@ -411,6 +411,52 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Gate travel with no player: two gates built and dialled from the console, then an item and a pig
+  # dropped into one and looked for at the other.
+  boot-travel:
+    name: Travel on paper ${{ matrix.version }}
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { version: "1.20.4", java: "21" }
+          - { version: "1.21.11", java: "21" }
+          - { version: "26.3", java: "25" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: WormholeXTreme-snapshot
+          path: plugin
+
+      - name: Fetch paper ${{ matrix.version }}
+        run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
+
+      - name: Build, dial and travel
+        env:
+          BOOT_DIR: boot
+        run: bash scripts/travel-boot.sh server.jar plugin/WormholeXTreme-*.jar ${{ matrix.version }}
+
+      - name: Upload the server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: travel-log-${{ matrix.version }}
+          path: boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest

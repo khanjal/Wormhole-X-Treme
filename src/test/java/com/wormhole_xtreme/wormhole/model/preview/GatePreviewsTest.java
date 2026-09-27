@@ -2009,6 +2009,30 @@ class GatePreviewsTest
     }
 
     /**
+     * Building by coordinates places the gate as a preview's place does, with no player: nothing is
+     * drawn.
+     */
+    @Test
+    void placingAtAGridBuildsTheGateWithoutShowingOrKeepingAPreview()
+    {
+        obsidianFramesAreFindable();
+        final com.wormhole_xtreme.wormhole.model.Stargate gate = detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+
+        final GatePreviews.Placed placed = GatePreviews.placeAt(world, standard, null,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+
+        assertEquals(GatePreviews.Outcome.PLACED, placed.outcome());
+        assertEquals(gate, placed.gate());
+        for (final Cell cell : cells)
+        {
+            assertEquals((cell.part() == Part.BUTTON) ? Material.STONE_BUTTON : Material.OBSIDIAN,
+                standing.get(List.of(cell.x(), cell.y(), cell.z())), cell.toString());
+        }
+        assertTrue(spawned.isEmpty(), "nothing drawn");
+    }
+
+    /**
      * A button or lever already on the wall facing the builder stays; one facing away or on the floor is
      * replaced by the wall button a placed gate has.
      */

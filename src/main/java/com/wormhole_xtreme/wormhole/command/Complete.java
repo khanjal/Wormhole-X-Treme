@@ -45,6 +45,28 @@ public class Complete implements CommandExecutor, TabCompleter
     }
 
     /**
+     * Why a gate cannot be called this, or null if it can. Not whether the name is taken.
+     *
+     * @param name
+     *            the name asked for
+     * @return the message to send, or null
+     */
+    public static String whyNotAName(final String name)
+    {
+        // Words starting with a dash are options, so a gate may not be called one.
+        if (name.startsWith("-"))
+        {
+            return ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "A gate name cannot start with '-'; words that do are options, like " + CANCEL + ".";
+        }
+        if (name.length() >= 12)
+        {
+            return ConfigManager.MessageStrings.CONSTRUCT_NAME_TOO_LONG.toString() + "\"" + name + "\"";
+        }
+        return null;
+    }
+
+    /**
      * Do complete.
      * 
      * @param args
@@ -63,16 +85,10 @@ public class Complete implements CommandExecutor, TabCompleter
                 + (waiting ? "Gate completion cancelled." : "There was no gate completion to cancel."));
             return;
         }
-        // Words starting with a dash are options, so a gate may not be called one.
-        if (name.startsWith("-"))
+        final String badName = whyNotAName(name);
+        if (badName != null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "A gate name cannot start with '-'; words that do are options, like " + CANCEL + ".");
-            return;
-        }
-        if (name.length() >= 12)
-        {
-            player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_TOO_LONG.toString() + "\"" + name + "\"");
+            player.sendMessage(badName);
             return;
         }
 
