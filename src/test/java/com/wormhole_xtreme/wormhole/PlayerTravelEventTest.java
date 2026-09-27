@@ -90,6 +90,7 @@ class PlayerTravelEventTest
         origin.setGateWorld(world);
         origin.setGateFacing(BlockFace.NORTH);
         origin.setGateActive(true);
+        origin.setGatePortalOpen(true);
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
         StargateTestSupport.target(origin, destination);
@@ -179,6 +180,25 @@ class PlayerTravelEventTest
 
         assertNull(theTravelEvent(), "there is nowhere to announce a trip to");
         verify(player, never()).teleport(org.mockito.ArgumentMatchers.<Location>any());
+    }
+
+    /**
+     * Stepping into a gate that is still dialling walks you through its empty frame.
+     *
+     * <p>A gate is active from the moment it is dialled, and travel used to ask nothing more, so a
+     * player could walk into the opening while the chevrons were still locking and be sent
+     * through before the kawoosh.
+     */
+    @Test
+    void walkingIntoAGateStillDiallingSendsNobodyAndHoldsNobodyBack()
+    {
+        origin.setGatePortalOpen(false);
+
+        final PlayerMoveEvent event = walkIn();
+
+        verify(player, never()).teleport(org.mockito.ArgumentMatchers.<Location>any());
+        assertNull(theTravelEvent(), "there is no wormhole yet to announce a trip through");
+        assertFalse(event.isCancelled(), "they walk on through the frame rather than being held");
     }
 
     @Test

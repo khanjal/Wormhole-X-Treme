@@ -50,7 +50,7 @@ final class GateDismount
             final Location loc = who.getLocation();
             final Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             final Stargate s = StargateManager.getGateFromBlock(b);
-            return (s != null) && s.isGateActive() && StargateManager.isPortalBlock(b);
+            return (s != null) && s.isGatePortalOpen() && StargateManager.isPortalBlock(b);
         }
         catch (final RuntimeException ignore)
         {

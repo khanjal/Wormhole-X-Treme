@@ -100,6 +100,7 @@ class IrisLayeringTest
         gate.setGateCustomPortalMaterial(Material.WATER);
         gate.getGatePortalBlocks().add(new Location(world, X, Y, Z));
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         gate.setGateIrisActive(true);
 
         viewer = mock(Player.class);

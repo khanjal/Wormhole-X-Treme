@@ -8,6 +8,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.8.1 (unreleased)
 
+### Stargates
+
+**Fixed**
+
+- **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
+  vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
+  frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
+
 ### Transport rings
 
 **Changed**

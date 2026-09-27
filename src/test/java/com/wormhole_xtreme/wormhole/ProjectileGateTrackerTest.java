@@ -90,6 +90,7 @@ class ProjectileGateTrackerTest
         destination.setGateWorld(world);
         destination.setGateFacing(BlockFace.EAST);
         destination.setGateActive(true);
+        destination.setGatePortalOpen(true);
         destination.setGatePlayerTeleportLocation(new Location(world, 99.5, 70, 99.5));
 
         origin = new Stargate();
@@ -97,6 +98,7 @@ class ProjectileGateTrackerTest
         origin.setGateWorld(world);
         origin.setGateFacing(BlockFace.NORTH);
         origin.setGateActive(true);
+        origin.setGatePortalOpen(true);
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         StargateTestSupport.target(origin, destination);

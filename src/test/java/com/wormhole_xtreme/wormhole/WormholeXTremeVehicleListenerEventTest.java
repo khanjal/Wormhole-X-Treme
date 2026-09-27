@@ -119,6 +119,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
 
         final Stargate target = new Stargate();
@@ -181,6 +182,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateFacing(BlockFace.EAST);
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
 
@@ -241,6 +243,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
 
         final Stargate target = new Stargate();
@@ -299,6 +302,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
@@ -354,6 +358,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("srcBoat");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 200.5, 80.0, 300.5));
@@ -434,6 +439,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("srcCart");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 300.5, 90.0, 400.5));
@@ -519,6 +525,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateFacing(BlockFace.EAST);
         final Stargate target = new Stargate();
         target.setGateFacing(BlockFace.NORTH);
@@ -543,6 +550,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateFacing(BlockFace.EAST);
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
@@ -570,6 +578,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         src.setGateFacing(BlockFace.EAST);
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
         final Stargate target = new Stargate();

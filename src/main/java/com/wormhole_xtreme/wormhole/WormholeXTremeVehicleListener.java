@@ -617,7 +617,7 @@ class WormholeXTremeVehicleListener implements Listener
             return false;
         }
         // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
-        if (!st.isGateActive() || (st.getGateTarget() == null))
+        if (!st.isGatePortalOpen() || (st.getGateTarget() == null))
         {
             return false;
         }
