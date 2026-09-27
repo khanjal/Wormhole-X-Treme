@@ -1009,8 +1009,8 @@ public class MirrorCommand implements SubCommand
     /**
      * The banner the player is looking at, or null with the reason already sent.
      *
-     * <p>Both banner families are accepted. Requiring a wall would rule out a banner on a post
-     * in the middle of a room, which is most of what a museum corridor is made of.
+     * <p>Both banner families are found, so a mirror made on a post before those were refused
+     * can still be named; {@link MirrorPlacement#refusal} is what keeps a new one off a post.
      *
      * @param sender
      *            whoever is looking; anyone but a player is told it has to be run in game
@@ -1036,8 +1036,7 @@ public class MirrorCommand implements SubCommand
         }
         say(player, "That is a "
             + MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))
-            + ", not a banner. A mirror has to be a banner -- wall-mounted or"
-            + " freestanding, either is fine.");
+            + ", not a banner. A mirror has to be a banner hung on a wall.");
         return null;
     }
 
@@ -1110,7 +1109,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Says where a banner on a post has to be clicked, at the moment one becomes a mirror.
+     * Says where a banner on a post has to be clicked, when a mirror on one is renamed.
      *
      * <p>A standing banner is drawn about two blocks tall and only its base can be clicked --
      * the cloth above has nothing to hit, so a right-click aimed at it passes straight through
@@ -1122,9 +1121,8 @@ public class MirrorCommand implements SubCommand
      * just named. Only for the standing family; a wall banner is drawn inside its own block and
      * can be clicked anywhere on it.
      *
-     * <p>Not a refusal. A banner on a post in the middle of a room is most of what a museum
-     * corridor is made of, and the mechanic is worth keeping for it -- what was missing was
-     * anybody being told how it behaves.
+     * <p>A new mirror is refused a post before this is reached, so only one made on a post
+     * before that refusal existed, and renamed since, ever hears it.
      */
     private static void sayWhereToClick(final CommandSender sender, final Block block)
     {

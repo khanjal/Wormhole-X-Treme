@@ -31,6 +31,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
   frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
 
+### Quantum mirrors
+
+**Fixed**
+
+- **`mirror create` aimed off a banner no longer says a banner on a post will do.** It asks for a
+  banner hung on a wall, which is the only kind `create` accepts. A mirror already on a post can
+  still be renamed.
+
 ### Transport rings
 
 **Changed**
