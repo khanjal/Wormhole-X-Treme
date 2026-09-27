@@ -6,6 +6,16 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## Unreleased
+
+### Quantum mirrors
+
+**Fixed**
+
+- **`mirror create` aimed off a banner no longer says a banner on a post will do.** It asks for a
+  banner hung on a wall, which is the only kind `create` accepts. A mirror already on a post can
+  still be renamed.
+
 ## 1.8.0 (2026-09-26)
 
 ### For server admins

@@ -433,6 +433,24 @@ class MirrorCommandTest
     }
 
     /**
+     * Missing a banner says a mirror goes on a wall, not that any banner will do.
+     *
+     * <p>It used to say "wall-mounted or freestanding, either is fine", and a player who took
+     * it at its word and put up a banner on a post was then refused by the placement check.
+     */
+    @Test
+    void setRefusingABlockThatIsNotABannerAsksForAWallBanner()
+    {
+        final Block notABanner = banner(Material.STONE);
+        when(player.getTargetBlockExact(6)).thenReturn(notABanner);
+
+        run(player, "mirror", "create", "museum");
+
+        verify(player).sendMessage(contains("A mirror has to be a banner hung on a wall."));
+        verify(player, never()).sendMessage(contains("freestanding"));
+    }
+
+    /**
      * A plain white banner made a mirror is given the mirror look.
      *
      * <p>So a new mirror looks like one from across a room, without anybody choosing a look.
@@ -893,6 +911,29 @@ class MirrorCommandTest
 
         verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
         verify(player, never()).sendMessage(contains("click near its base"));
+    }
+
+    /**
+     * A mirror made on a post before posts were refused can still be renamed, and is told
+     * where to click.
+     *
+     * <p>Renaming skips the placement check, so the refusal that keeps new mirrors off posts
+     * must not strand one already there.
+     */
+    @Test
+    void renamingAMirrorAlreadyOnAPostKeepsItAndSaysWhereToClick()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        final Block post = banner(Material.WHITE_BANNER);
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
+        when(player.getTargetBlockExact(6)).thenReturn(post);
+
+        assertTrue(run(player, "mirror", "create", "gallery"));
+
+        assertNotNull(MirrorManager.byName("gallery"), "the mirror on the post takes the new name");
+        verify(player, never()).sendMessage(contains("hangs on a wall"));
+        verify(player).sendMessage(contains("click near its base"));
     }
 
     /**
