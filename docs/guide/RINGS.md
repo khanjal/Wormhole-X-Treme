@@ -55,7 +55,8 @@ For adventure maps, scripts and servers set up with nobody standing in the rings
 | `ring fire <id>` | Sets a pair off as if somebody had walked in. Whatever is inside either end when it flashes goes to the other. |
 | `ring fire <world> <x> <y> <z>` | The same, for the pair with an end around that block, so a command block beside a ring fires it without knowing its id. |
 
-Coordinates may be `~`, counted from the command block or player running the command. A player
+Coordinates may be `~`, counted from the command block or player running the command; under
+`/execute as` or `positioned`, still from whoever ran it, not from where `/execute` points. A player
 needs `wormhole.ring.admin`; the console and command blocks may always. A pair built this way has
 no owner, so it is public until `ring owner` gives it one.
 

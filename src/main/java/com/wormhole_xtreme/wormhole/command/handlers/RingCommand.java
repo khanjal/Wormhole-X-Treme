@@ -227,6 +227,15 @@ public class RingCommand implements SubCommand
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
             return;
         }
+        // A pair built over the waiting end since it was laid, from the console, would share its circle.
+        final RingManager.Refusal taken =
+            RingManager.checkPlacement(waiting.ring(), world, ConfigManager.getRingMinSeparation());
+        if (taken != null)
+        {
+            player.sendMessage("Your first ring is not free any more: " + explain(taken));
+            player.sendMessage("Run /wormhole ring cancel to give up on it.");
+            return;
+        }
         final List<String> refused = whyNotAPair(waiting.ring(), ring);
         if (!refused.isEmpty())
         {

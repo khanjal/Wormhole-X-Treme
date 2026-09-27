@@ -17,11 +17,10 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
- * Whose rights a command asks for when it comes through {@code /execute as}.
+ * Whose rights a command asks for when a plugin runs it through a proxy.
  *
- * <p>Bukkit hands such a command a proxy, not a player, so a check that only asked "is this a
- * player?" let a player skip their own rights by running {@code /execute as @s run ...}. The rights
- * asked are those of whoever ran the {@code /execute}: a player stays a player, and a map's command
+ * <p>A check that only asked "is this a player?" would wave a proxy through as though it were the
+ * console. The rights asked are those of the proxy's caller: a player stays a player, and a command
  * block running a command as a player stays a command block.
  */
 class CommandIssuerTest

@@ -119,7 +119,7 @@ public final class RingConsoleCommands
         final List<String> notAPair = RingCommand.whyNotAPair(a, b);
         if (!notAPair.isEmpty())
         {
-            sender.sendMessage(notAPair.get(0));
+            notAPair.forEach(sender::sendMessage);
             return;
         }
         final RingPair pair = RingCommand.newPair(world.getName(), a, b);
@@ -176,6 +176,13 @@ public final class RingConsoleCommands
         if (refusal != null)
         {
             sender.sendMessage(RingCommand.explain(refusal) + where);
+            return null;
+        }
+        // A player's first end, waiting for its partner, would otherwise be taken out from under them.
+        if (RingManager.checkAgainstPending(ring, world.getName(), ConfigManager.getRingMinSeparation()) != null)
+        {
+            sender.sendMessage("A player has laid that circle, or one beside it, as the first end of a pair they"
+                + " are building." + where);
             return null;
         }
         if (RingCommand.touchesGate(world, ring))

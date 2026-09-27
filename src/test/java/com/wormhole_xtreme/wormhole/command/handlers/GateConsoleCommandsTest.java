@@ -541,9 +541,9 @@ class GateConsoleCommandsTest
         }
     }
 
-    /** A player without the right to dial from the gate does not get it through /execute as themselves. */
+    /** A player without the right to dial from the gate does not get it through a proxy as themselves. */
     @Test
-    void executeAsDoesNotLendAPlayerTheRightToDial()
+    void aProxyDoesNotLendAPlayerTheRightToDial()
     {
         final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
         final org.bukkit.command.ProxiedCommandSender asThemselves = mock(org.bukkit.command.ProxiedCommandSender.class);

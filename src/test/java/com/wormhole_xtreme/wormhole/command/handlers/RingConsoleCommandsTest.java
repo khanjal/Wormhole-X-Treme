@@ -327,11 +327,11 @@ class RingConsoleCommandsTest
     }
 
     /**
-     * A player without ring admin does not get it by running the command through /execute as
-     * themselves, while a command block running it as a player is still trusted.
+     * A player without ring admin does not get it through a proxy that runs the command as themselves,
+     * while a command block's proxy running it as a player is still trusted.
      */
     @Test
-    void executeAsDoesNotLendAPlayerRingAdmin()
+    void aProxyDoesNotLendAPlayerRingAdmin()
     {
         final Player player = mock(Player.class);
         when(player.hasPermission(anyString())).thenReturn(Boolean.FALSE);
@@ -351,5 +351,22 @@ class RingConsoleCommandsTest
         run(fromAMap, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
         assertEquals(1, pairs().size());
+    }
+
+    /** A circle a player has laid as the first end of their pair is not taken out from under them. */
+    @Test
+    void aCircleAPlayerIsPairingIsNotTaken()
+    {
+        final Ring waiting = com.wormhole_xtreme.wormhole.model.ring.RingTemplate.detect(
+            new com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
+            .getRing();
+        RingManager.setPending(java.util.UUID.randomUUID(), waiting, WORLD);
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(console).sendMessage(contains("A player has laid that circle, or one beside it, as the first end of a"
+            + " pair they are building. (at 100 64 100)"));
+        assertTrue(pairs().isEmpty());
+        verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
     }
 }

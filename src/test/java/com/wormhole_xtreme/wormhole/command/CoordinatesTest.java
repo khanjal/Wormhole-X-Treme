@@ -59,7 +59,7 @@ class CoordinatesTest
     }
 
     @Test
-    void aTildeCountsFromAPlayerAndFromWhoeverExecuteRunsAs()
+    void aTildeCountsFromAPlayerAndFromAProxysCallee()
     {
         final World world = mock(World.class);
         final Player player = mock(Player.class);

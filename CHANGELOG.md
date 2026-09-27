@@ -21,13 +21,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `mirror create <name> <world> <x> <y> <z>` makes the wall banner there one.
 - **Coordinates in `gate build`, `ring build`, `ring fire` and `mirror create` may be `~`**, counted
   from the command block or player that runs them, so a map's command blocks keep working wherever
-  it is pasted.
-
-**Fixed**
-
-- **A player running a command through `/execute as` is held to their own rights.** They got past
-  `wormhole.config`, the build and dial rights of `gate build` and `gate dial`, and ring admin
-  that way. A command block running a command as a player is still trusted as a command block.
+  it is pasted. Under `/execute`, they still count from whoever ran it.
 
 ### Internals
 

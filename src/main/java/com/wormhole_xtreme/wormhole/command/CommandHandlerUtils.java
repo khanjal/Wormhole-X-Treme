@@ -94,9 +94,9 @@ public final class CommandHandlerUtils
     }
 
     /**
-     * Who a command's rights are asked of: through {@code /execute as}, whoever ran the
-     * {@code /execute}, not whoever it runs as. A player running it as themselves is still that
-     * player, and a command block running it as a player is still a command block.
+     * Who a command's rights are asked of: for a command a plugin runs through a proxy, the proxy's
+     * caller, not its callee. Paper hands a plugin command run under {@code /execute} the sender that
+     * ran it, not a proxy, so this matters only to another plugin dispatching through one.
      *
      * @param sender
      *            the sender Bukkit handed the command, or null

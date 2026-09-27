@@ -46,7 +46,7 @@ public final class Coordinates
 
     /**
      * Where the sender is, for {@code ~} to count from: a command block's own block, an entity's
-     * block, or whoever an {@code execute as} runs the command as. Null for the console, which is
+     * block, or a proxy's callee. Null for the console, which is
      * nowhere.
      *
      * @param sender
