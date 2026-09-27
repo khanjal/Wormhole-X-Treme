@@ -248,7 +248,7 @@ public final class PetEscort
             try
             {
                 final Location at = pet.getLocation();
-                if ((at == null) || (at.getWorld() == null))
+                if (at.getWorld() == null)
                 {
                     continue;
                 }
@@ -329,8 +329,7 @@ public final class PetEscort
             // Told to sit in the meantime, or still beside an owner whose trip was refused. Vanilla
             // sits a pet whose owner is in another world, so only a sit in the owner's world is an order.
             final Location from = pet.getLocation();
-            final boolean ownerElsewhere = (from != null) && (from.getWorld() != null)
-                && !from.getWorld().equals(arrival.getWorld());
+            final boolean ownerElsewhere = (from.getWorld() != null) && !from.getWorld().equals(arrival.getWorld());
             if (!(ownerElsewhere ? belongsTo(pet, ownerId) : follows(pet, ownerId)) || !apart(from, arrival))
             {
                 return false;

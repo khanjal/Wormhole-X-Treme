@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
-import org.bukkit.World;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
@@ -83,7 +82,6 @@ public final class ChunkTickets
      */
     private static Key keyOf(final Chunk chunk)
     {
-        final World world = chunk.getWorld();
-        return new Key((world == null) ? null : world.getUID(), chunk.getX(), chunk.getZ());
+        return new Key(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
     }
 }
