@@ -140,7 +140,7 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     final Block b = world.getBlockAt(bx, by, bz);
                     final Stargate s = StargateManager.getGateFromBlock(b);
-                    if (s != null && s.isGateActive() && StargateManager.isPortalBlock(b))
+                    if (s != null && s.isGatePortalOpen() && StargateManager.isPortalBlock(b))
                     {
                         return b;
                     }
@@ -362,7 +362,7 @@ class WormholeXTremePlayerListener implements Listener
 
         // Everything past here is about what to do about the gate the player stepped into,
         // and each answer is its own method. This reads as the order they are asked in.
-        if ((stargate == null) || !stargate.isGateActive() || !StargateManager.isPortalBlock(gateBlockFinal))
+        if ((stargate == null) || !stargate.isGatePortalOpen() || !StargateManager.isPortalBlock(gateBlockFinal))
         {
             if (stargate != null)
             {
@@ -1466,7 +1466,7 @@ class WormholeXTremePlayerListener implements Listener
     {
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if ((gate.getGateWorld() != null) && gate.getGateWorld().equals(at.getWorld())
+            if (gate.isGatePortalOpen() && (gate.getGateWorld() != null) && gate.getGateWorld().equals(at.getWorld())
                 && gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
             {
                 return true;

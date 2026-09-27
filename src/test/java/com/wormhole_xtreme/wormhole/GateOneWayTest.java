@@ -73,6 +73,7 @@ class GateOneWayTest
         gate.setGatePlayerTeleportLocation(new Location(world, x + 0.5, y, z + 0.5));
         gate.getGatePortalBlocks().add(new Location(world, x, y, z));
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         return gate;
     }
 
@@ -130,6 +131,27 @@ class GateOneWayTest
         {
             GateEntityScanner.create().run();
             verify(zombie, atLeastOnce()).teleport(any(Location.class));
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /** A gate still dialling has no wormhole yet, so a mob standing in its frame stays put. */
+    @Test
+    void aMobInAGateStillDiallingIsNotSentThrough()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        origin.setGatePortalOpen(false);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(10, 64, 20);
+        try
+        {
+            GateEntityScanner.create().run();
+            verify(zombie, never()).teleport(any(Location.class));
         }
         finally
         {

@@ -116,6 +116,9 @@ class StargateAnimator
             // Opening the iris later draws the portal through setIrisState.
             gate.setGateAnimationStep3D(0);
             gate.setGateAnimationRemoving(false);
+            // Formed behind the iris; the iris itself is what keeps travellers out now.
+            gate.setGatePortalOpen(gate.isGateActive());
+            StargateBlockSetup.sendLayered(gate);
         }
 
         /**
@@ -178,6 +181,7 @@ class StargateAnimator
         {
             gate.setGateAnimationStep3D(0);
             gate.setGateAnimationRemoving(false);
+            gate.setGatePortalOpen(gate.isGateActive());
             if (gate.isGateLightsActive())
             {
                 gate.fillGateInterior(wooshMaterial);

@@ -273,6 +273,21 @@ class StargateAnimatorTest
      * left mid-count would otherwise start its next opening partway through the woosh, which
      * is the same class of bug as the two this class was written for.
      */
+    /** The wormhole forms when the opening settles, and not before: that is what travel waits for. */
+    @Test
+    void theWormholeFormsWhenTheOpeningSettles()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomWooshDepth(0);
+        assertFalse(gate.isGatePortalOpen(), "dialled, but nothing has formed yet");
+
+        StargateAnimator.animateOpening(gate);
+
+        assertTrue(gate.isGatePortalOpen());
+    }
+
     @Test
     void aGateWithNoWavesSettlesFromWhereverItsCounterWas()
     {

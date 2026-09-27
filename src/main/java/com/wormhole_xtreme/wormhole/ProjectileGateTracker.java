@@ -295,7 +295,7 @@ class ProjectileGateTracker implements Listener
             projectile.remove();
             return true;
         }
-        if (!gate.isGateActive() || gate.getGateTarget() == null)
+        if (!gate.isGatePortalOpen() || gate.getGateTarget() == null)
         {
             return false;
         }

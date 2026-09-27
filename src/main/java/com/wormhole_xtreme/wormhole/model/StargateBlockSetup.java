@@ -1174,6 +1174,18 @@ class StargateBlockSetup
             {
                 continue;
             }
+            if (!gate.isGatePortalOpen())
+            {
+                // Still dialling: the opening stays empty until the kawoosh settles, and the
+                // chevrons are the dial's own to light, one at a time. Counted as drawn, so the
+                // take-back below does not darken the ones already locked.
+                if (gate.isGateIrisActive())
+                {
+                    sendIrisTo(player, gate);
+                }
+                stillDrawn.add(gate.getGateName());
+                continue;
+            }
             if (isLayered(gate))
             {
                 // Iris and horizon, stacked from whichever side this player is on.
@@ -1338,8 +1350,9 @@ class StargateBlockSetup
                 irisData);
         }
         // Chevrons stay lit behind a shut iris on an open gate, and a player who arrives after
-        // it shut is owed those too -- the portal path sends them, and this one skips it.
-        if (gate.isGateLightsActive())
+        // it shut is owed those too -- the portal path sends them, and this one skips it. Not
+        // while it dials, whose chevrons are still locking one at a time.
+        if (gate.isGateLightsActive() && (gate.isGatePortalOpen() || !gate.isGateActive()))
         {
             sendLights(player, gate, true);
         }
@@ -1527,7 +1540,7 @@ class StargateBlockSetup
      */
     static boolean isLayered(final Stargate gate)
     {
-        return (gate != null) && gate.isGateActive() && gate.isGateIrisActive() && irisIsDrawn(gate);
+        return (gate != null) && gate.isGatePortalOpen() && gate.isGateIrisActive() && irisIsDrawn(gate);
     }
 
     /**
@@ -1820,7 +1833,7 @@ class StargateBlockSetup
         // refused the hand-back on every ring of every open, and the stand-in sat behind the
         // uncovered rings until the sweep ended. What matters is that there are layers to move:
         // a wormhole to draw, and an iris that is drawn rather than built.
-        if ((gate == null) || !gate.isGateActive() || !irisIsDrawn(gate) || (gate.getGateWorld() == null))
+        if ((gate == null) || !gate.isGatePortalOpen() || !irisIsDrawn(gate) || (gate.getGateWorld() == null))
         {
             return;
         }

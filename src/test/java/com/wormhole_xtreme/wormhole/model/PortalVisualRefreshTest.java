@@ -40,6 +40,7 @@ class PortalVisualRefreshTest
         gate.getGatePortalBlocks().add(new Location(world, x, y, z));
         gate.getGatePortalBlocks().add(new Location(world, x, y + 1, z));
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         return gate;
     }
 
@@ -57,6 +58,7 @@ class PortalVisualRefreshTest
         assertFalse(StargateManager.getOpenGates().contains(gate), "a new gate is not open");
 
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         assertTrue(StargateManager.getOpenGates().contains(gate));
 
         gate.setGateActive(false);
@@ -118,6 +120,7 @@ class PortalVisualRefreshTest
         final Stargate gate = new Stargate();
         gate.setGateWorld(world);
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
 
         assertFalse(StargateBlockSetup.shouldRedrawFor(gate, new Location(world, 0, 64, 0)));
     }
@@ -179,6 +182,30 @@ class PortalVisualRefreshTest
         final Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         when(player.isOnline()).thenReturn(false);
+
+        StargateBlockSetup.refreshPortalVisuals(player);
+
+        verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A gate still dialling is not drawn open to a player who crosses a chunk nearby.
+     *
+     * <p>Its opening filled, and all its chevrons lit, the moment a player near it crossed a
+     * chunk boundary, seconds before the kawoosh. {@link #aNearbyOpenGateReachesTheSend} is the
+     * same player and gate once the wormhole has formed.
+     */
+    @Test
+    void aGateStillDiallingIsNotDrawnOpenToAPlayerBesideIt()
+    {
+        final World world = mock(World.class);
+        final Stargate gate = openGateAt(world, 100, 64, 100);
+        gate.setGatePortalOpen(false);
+
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.isOnline()).thenReturn(true);
+        when(player.getLocation()).thenReturn(new Location(world, 102, 64, 100));
 
         StargateBlockSetup.refreshPortalVisuals(player);
 

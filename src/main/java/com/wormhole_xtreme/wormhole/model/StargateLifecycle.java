@@ -275,7 +275,7 @@ class StargateLifecycle
     {
         // What the opening looks like with no iris over it: the portal if a wormhole is up,
         // otherwise nothing. Both the sweep and the instant path need it.
-        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
+        final Material uncovered = gate.isGatePortalOpen() ? gate.getEffectivePortalMaterial() : Material.AIR;
         final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {

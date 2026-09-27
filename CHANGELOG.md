@@ -6,6 +6,16 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## Unreleased
+
+### Stargates
+
+**Fixed**
+
+- **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
+  vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
+  frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
+
 ## 1.8.0 (2026-09-26)
 
 ### For server admins

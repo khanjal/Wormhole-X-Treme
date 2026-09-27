@@ -113,7 +113,7 @@ public final class GateEntityScanner implements Runnable
         // one still being detected, or one built in a test. Sweeping filtered the registry
         // before and must go on excluding those, or an entity gets sent through a gate that
         // is not on the server.
-        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null
+        if (gate == null || !gate.isGatePortalOpen() || gate.getGateTarget() == null
             || !StargateManager.isRegistered(gate))
         {
             return;

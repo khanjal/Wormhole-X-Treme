@@ -58,6 +58,8 @@ public class Stargate implements GateIris
     private World gateWorld;
     /** Is this stargate already active? Can be active remotely and have no target of its own. */
     private boolean gateActive = false;
+    /** Has the wormhole formed: active, and its kawoosh over. Nothing travels until it has. */
+    private boolean gatePortalOpen = false;
 
     /** Has this stargate been recently active?. */
     private boolean gateRecentlyActive = false;
@@ -1565,6 +1567,29 @@ public class Stargate implements GateIris
     }
 
     /**
+     * Whether the wormhole has formed. A gate is active from the moment it is dialled, while its
+     * chevrons lock and its kawoosh plays; only once that settles is there anything to travel
+     * through, or to draw in the opening.
+     *
+     * @return true once the gate is active and its opening has settled
+     */
+    public boolean isGatePortalOpen()
+    {
+        return gateActive && gatePortalOpen;
+    }
+
+    /**
+     * Marks the wormhole formed, when the kawoosh settles. Cleared whenever the gate opens or closes.
+     *
+     * @param gatePortalOpen
+     *            whether it has formed
+     */
+    public void setGatePortalOpen(final boolean gatePortalOpen)
+    {
+        this.gatePortalOpen = gatePortalOpen;
+    }
+
+    /**
      * Checks if is gate animation removing.
      */
     boolean isGateAnimationRemoving()
@@ -1695,6 +1720,11 @@ public class Stargate implements GateIris
      */
     public void setGateActive(final boolean gateActive)
     {
+        // Re-dialling an open gate keeps its wormhole; opening or closing one starts it unformed.
+        if (this.gateActive != gateActive)
+        {
+            gatePortalOpen = false;
+        }
         this.gateActive = gateActive;
         StargateManager.setGateOpenState(this, gateActive);
     }

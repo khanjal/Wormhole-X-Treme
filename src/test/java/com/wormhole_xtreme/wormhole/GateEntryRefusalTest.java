@@ -64,6 +64,7 @@ class GateEntryRefusalTest
         destination.setGateWorld(world);
         destination.setGateFacing(BlockFace.NORTH);
         destination.setGateActive(true);
+        destination.setGatePortalOpen(true);
         destination.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
         destination.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         StargateManager.addBlockIndex(portal, destination);
@@ -73,6 +74,7 @@ class GateEntryRefusalTest
         origin.setGateName("origin");
         origin.setGateWorld(world);
         origin.setGateActive(true);
+        origin.setGatePortalOpen(true);
         origin.setGatePlayerTeleportLocation(new Location(world, 500, 70, 500));
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
