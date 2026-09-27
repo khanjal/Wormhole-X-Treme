@@ -275,7 +275,7 @@ class StargateLifecycle
     {
         // What the opening looks like with no iris over it: the portal if a wormhole is up,
         // otherwise nothing. Both the sweep and the instant path need it.
-        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
+        final Material uncovered = gate.isGatePortalOpen() ? gate.getEffectivePortalMaterial() : Material.AIR;
         final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {
@@ -288,7 +288,7 @@ class StargateLifecycle
                 // while there was one comes down with it.
                 StargateBlockSetup.takeBackLayers(gate);
             }
-            else if (!StargateBlockSetup.irisIsDrawn(gate))
+            else if (gate.isGatePortalOpen() && !StargateBlockSetup.irisIsDrawn(gate))
             {
                 // A horizontal gate's iris is real blocks filling the opening, so the horizon
                 // has nowhere left inside the ring and is shown a block below instead.

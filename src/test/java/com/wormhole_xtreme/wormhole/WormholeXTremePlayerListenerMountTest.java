@@ -78,6 +78,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate src = new Stargate();
         src.setGateName("srcMount");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
@@ -180,6 +181,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate src = new Stargate();
         src.setGateName("srcCamel");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
@@ -249,6 +251,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate src = new Stargate();
         src.setGateName("srcStuckMount");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
 
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 500.5, 70.0, 600.5));

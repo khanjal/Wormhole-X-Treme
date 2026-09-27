@@ -93,6 +93,7 @@ class GateTollAndRefusalOrderTest
         src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         dst = new Stargate();
         dst.setGateName("dst");
         dst.setGateFacing(BlockFace.EAST);
