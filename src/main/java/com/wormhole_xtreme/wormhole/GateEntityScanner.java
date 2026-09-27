@@ -190,7 +190,7 @@ public final class GateEntityScanner implements Runnable
                 splatOnIris(entity);
                 return;
             }
-            sendThrough(entity, arrival, facing, null);
+            sendThrough(entity, arrival, gate.getGateFacing(), facing, null);
         }
         catch (final RuntimeException t)
         {
@@ -455,7 +455,7 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        sendThrough(projectile, arrival, target.getGateFacing(), target);
+        sendThrough(projectile, arrival, gate.getGateFacing(), target.getGateFacing(), target);
         return true;
     }
 
@@ -475,19 +475,23 @@ public final class GateEntityScanner implements Runnable
      * destination no matter how the velocity was applied.
      *
      * <p>So a projectile that has landed, or is barely moving, is relaunched at a sensible
-     * speed rather than at the speed it happens to have. Anything else keeps its own.
+     * speed rather than at the speed it happens to have. Anything else keeps only the speed it
+     * had through the gate: the opening is air, so an item dropped into it is falling when the
+     * sweep finds it, and that fall came out of the far gate as a sideways throw.
      *
      * @param entity
      *            the entity crossing the gate
      * @param incoming
      *            its velocity on arrival
+     * @param entryFacing
+     *            the way the gate it entered faces, or null if unknown
      * @return the velocity to derive the exit speed from
      */
-    private static Vector launchSpeed(final Entity entity, final Vector incoming)
+    private static Vector launchSpeed(final Entity entity, final Vector incoming, final BlockFace entryFacing)
     {
         if (!(entity instanceof Projectile))
         {
-            return incoming;
+            return throughGate(incoming, entryFacing);
         }
         final boolean stopped = (entity instanceof AbstractArrow arrow) && arrow.isInBlock();
         if (stopped || incoming.lengthSquared() < (PROJECTILE_LAUNCH_SPEED * PROJECTILE_LAUNCH_SPEED))
@@ -495,6 +499,30 @@ public final class GateEntityScanner implements Runnable
             return new Vector(PROJECTILE_LAUNCH_SPEED, 0, 0);
         }
         return incoming;
+    }
+
+    /**
+     * The part of a velocity that carries an entity through a gate facing this way.
+     *
+     * @param incoming
+     *            the entity's velocity
+     * @param facing
+     *            the way the gate faces, or null, which keeps the whole velocity
+     * @return the velocity along the gate's axis
+     */
+    static Vector throughGate(final Vector incoming, final BlockFace facing)
+    {
+        if (facing == null)
+        {
+            return incoming;
+        }
+        final Vector axis = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
+        if (axis.lengthSquared() == 0)
+        {
+            return incoming;
+        }
+        axis.normalize();
+        return axis.multiply(incoming.dot(axis));
     }
 
     /**
@@ -573,25 +601,28 @@ public final class GateEntityScanner implements Runnable
      *
      * <p>Redirecting matters most for things that arrive under their own momentum. An
      * arrow shot north into a gate used to come out of the far end still travelling north,
-     * whichever way that gate faced — often straight back into its own frame. Speed is
-     * preserved and only the direction changes, so an item that rolled in at walking pace
+     * whichever way that gate faced — often straight back into its own frame. Speed through the
+     * gate is preserved and only the direction changes, so an item that rolled in at walking pace
      * still leaves at walking pace rather than being launched.
      *
      * @param entity
      *            the entity to move
      * @param arrival
      *            the destination
+     * @param entryFacing
+     *            the direction the gate it enters faces
      * @param exitFacing
      *            the direction the destination gate faces
      * @param exitGate
      *            the gate it comes out of, or null where that does not matter
      */
-    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace exitFacing,
-        final Stargate exitGate)
+    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
+        final BlockFace exitFacing, final Stargate exitGate)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
-        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, launchSpeed(entity, incoming), 1.0);
+        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing,
+            launchSpeed(entity, incoming, entryFacing), 1.0);
 
         // A projectile cannot simply be moved. Teleporting an arrow leaves it flagged as
         // having landed — AbstractArrow.isInBlock() is readable but not settable — so it

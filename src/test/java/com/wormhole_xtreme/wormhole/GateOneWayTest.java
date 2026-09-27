@@ -212,6 +212,40 @@ class GateOneWayTest
         }
     }
 
+    /**
+     * An item dropped into an opening is falling when the sweep finds it, since the opening is
+     * air. Its fall came out of the far gate as a sideways throw that put it further off the
+     * slower the server, which is what failed the 1.20.4 travel boot test on a busy runner.
+     */
+    @Test
+    void anEntityFallingThroughAGateLeavesWithOnlyTheSpeedItHadThroughIt()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        destination.setGateFacing(BlockFace.EAST);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity falling = zombieIn(10, 64, 20);
+        when(falling.getVelocity()).thenReturn(new org.bukkit.util.Vector(0.3, -0.4, -0.2));
+        try
+        {
+            GateEntityScanner.create().run();
+
+            final org.mockito.ArgumentCaptor<org.bukkit.util.Vector> sent =
+                org.mockito.ArgumentCaptor.forClass(org.bukkit.util.Vector.class);
+            verify(falling, times(2)).setVelocity(sent.capture());
+            final org.bukkit.util.Vector v = sent.getValue();
+            // 0.2 north into a north-facing gate; the fall and the drift along it are dropped.
+            assertEquals(0.2, v.getX(), 1e-9, "should leave east at the 0.2 it was moving through the gate");
+            assertEquals(0.0, v.getY(), 1e-9);
+            assertEquals(0.0, v.getZ(), 1e-9);
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
     @Test
     void anEntityAtRestIsNotGivenANextTickReapply()
     {
