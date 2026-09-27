@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Complete;
+import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -55,12 +56,14 @@ public final class GateConsoleCommands
      */
     public static boolean isCoordinateBuild(final String[] rest)
     {
-        return (rest.length >= BUILD_WORDS) && isInteger(rest[3]) && isInteger(rest[4]) && isInteger(rest[5]);
+        return (rest.length >= BUILD_WORDS) && Coordinates.isCoordinate(rest[3]) && Coordinates.isCoordinate(rest[4])
+            && Coordinates.isCoordinate(rest[5]);
     }
 
     /**
      * {@code gate build <shape> <name> <world> <x> <y> <z> <facing> [net=NET] [idc=IDC]}: builds the shape
      * with its DHD button hung on the block at x y z, facing that way, and completes it under that name.
+     * x y z may be {@code ~}, counted from the command block or player that ran it.
      * The gate has no owner. Refused before anything is placed if any part of the line is wrong.
      *
      * @param sender
@@ -75,7 +78,7 @@ public final class GateConsoleCommands
             return;
         }
         final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
-        final String refused = whyNotBuildable(rest);
+        final String refused = whyNotBuildable(sender, rest);
         if (refused != null)
         {
             sender.sendMessage(error + refused);
@@ -92,8 +95,8 @@ public final class GateConsoleCommands
         final Stargate3DShape shape = (Stargate3DShape) StargateShapeRegistry.getStargateShape(rest[0]);
         final World world = Bukkit.getWorld(rest[2]);
         final BlockFace facing = BlockFace.valueOf(rest[6].toUpperCase(Locale.ROOT));
-        final GateGrid grid = GateGrid.fromActivationHolder(shape, Integer.parseInt(rest[3]),
-            Integer.parseInt(rest[4]), Integer.parseInt(rest[5]), facing);
+        final int[] at = Coordinates.resolve(sender, rest[3], rest[4], rest[5]);
+        final GateGrid grid = GateGrid.fromActivationHolder(shape, at[0], at[1], at[2], facing);
         if (grid == null)
         {
             sender.sendMessage(error + rest[0] + " has no DHD to build it from.");
@@ -129,7 +132,7 @@ public final class GateConsoleCommands
         StargateManager.completeStargate(placed.gate(), null, rest[1], options[0], options[1]);
         // Where to drop something through it and where it comes out, for whoever is scripting this.
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Built " + rest[1] + " at "
-            + rest[3] + " " + rest[4] + " " + rest[5] + " in " + world.getName() + ". Opening centred on "
+            + at[0] + " " + at[1] + " " + at[2] + " in " + world.getName() + ". Opening centred on "
             + openingCentre(placed.gate()) + "; arrivals at " + where(placed.gate().getGatePlayerTeleportLocation())
             + ".");
     }
@@ -258,7 +261,7 @@ public final class GateConsoleCommands
     }
 
     /** What is wrong with the line, before the world is looked at for room; null if nothing. */
-    static String whyNotBuildable(final String[] rest)
+    static String whyNotBuildable(final CommandSender sender, final String[] rest)
     {
         if (!isCoordinateBuild(rest))
         {
@@ -281,9 +284,15 @@ public final class GateConsoleCommands
         {
             return "A gate called " + rest[1] + " is already here.";
         }
-        if (Bukkit.getWorld(rest[2]) == null)
+        final World world = Bukkit.getWorld(rest[2]);
+        if (world == null)
         {
             return "No world called " + rest[2] + " is loaded.";
+        }
+        final String unreadable = Coordinates.whyNotReadable(sender, world, rest[3], rest[4], rest[5]);
+        if (unreadable != null)
+        {
+            return unreadable;
         }
         final String face = rest[6].toUpperCase(Locale.ROOT);
         if (!("NORTH".equals(face) || "SOUTH".equals(face) || "EAST".equals(face) || "WEST".equals(face)))
@@ -331,18 +340,5 @@ public final class GateConsoleCommands
             case NOT_FOUND -> "its blocks were placed, but no gate was found in them.";
             default -> "it could not be placed (" + placed.outcome() + ").";
         };
-    }
-
-    private static boolean isInteger(final String word)
-    {
-        try
-        {
-            Integer.parseInt(word);
-            return true;
-        }
-        catch (final NumberFormatException notOne)
-        {
-            return false;
-        }
     }
 }

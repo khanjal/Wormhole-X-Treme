@@ -63,7 +63,7 @@ class GateConsoleCommandsTest
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat")).thenReturn(flat);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
-            return GateConsoleCommands.whyNotBuildable(words);
+            return GateConsoleCommands.whyNotBuildable(mock(org.bukkit.command.ConsoleCommandSender.class), words);
         }
     }
 
@@ -75,6 +75,16 @@ class GateConsoleCommandsTest
             "the shape-and-group form is a player's and must still reach the player path");
         assertFalse(GateConsoleCommands.isCoordinateBuild(line("Standard", "A", "world", "0", "up", "0", "south")),
             "a word where y goes is not coordinates");
+        assertTrue(GateConsoleCommands.isCoordinateBuild(line("Standard", "A", "world", "~", "~1", "~-3", "south")),
+            "a command block names where to build relative to itself");
+    }
+
+    /** The console is nowhere, so a ~ from it is refused before anything is placed. */
+    @Test
+    void aTildeFromTheConsoleIsRefused()
+    {
+        assertEquals("~ counts from a command block or player; from here, give whole numbers.",
+            refusal("Standard", "Abydos", "world", "~", "-60", "0", "south"));
     }
 
     @Test
@@ -312,7 +322,7 @@ class GateConsoleCommandsTest
     /** A line built with one 3D shape called Standard in a world from -64 to 320, as the console. */
     private static final class Building implements AutoCloseable
     {
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final org.bukkit.command.CommandSender console;
         final Stargate3DShape standard = mock(Stargate3DShape.class);
         final World world = mock(World.class);
         final GateGrid grid = new GateGrid(0, -60, 0, BlockFace.SOUTH, BlockFace.WEST);
@@ -325,6 +335,12 @@ class GateConsoleCommandsTest
 
         Building()
         {
+            this(mock(org.bukkit.command.ConsoleCommandSender.class));
+        }
+
+        Building(final org.bukkit.command.CommandSender sender)
+        {
+            console = sender;
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
@@ -498,6 +514,30 @@ class GateConsoleCommandsTest
             verify(console, times(2)).sendMessage(contains("Usage: " + GateConsoleCommands.DIAL_USAGE));
             verify(console).sendMessage(contains("No gate called Nowhere."));
             dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
+
+    /**
+     * A command block's ~ counts from its own block, so an adventure map names its gate relative to
+     * itself. The grid is only found at 0 -60 0, so reaching the placing proves the line was read there.
+     */
+    @Test
+    void aCommandBlockBuildsWhereItsTildesPoint()
+    {
+        final org.bukkit.command.BlockCommandSender commandBlock = mock(org.bukkit.command.BlockCommandSender.class);
+        final org.bukkit.block.Block itsBlock = mock(org.bukkit.block.Block.class);
+        when(commandBlock.getBlock()).thenReturn(itsBlock);
+        try (Building building = new Building(commandBlock))
+        {
+            when(itsBlock.getLocation()).thenReturn(new Location(building.world, 2, -61, 3));
+            final GatePreviews.Placed refused =
+                new GatePreviews.Placed(GatePreviews.Outcome.OUTSIDE_BORDER, List.of(), null, null);
+            building.previews.when(() -> GatePreviews.placeAt(building.world, building.standard, null, building.grid))
+                .thenReturn(refused);
+
+            building.build("Standard", "Abydos", "world", "~-2", "~1", "~-3", "south");
+
+            verify(commandBlock).sendMessage(contains("Not built: part of it is outside the world border."));
         }
     }
 }
