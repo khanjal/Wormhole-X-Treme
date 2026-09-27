@@ -6,7 +6,7 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## Unreleased
+## 1.8.1 (unreleased)
 
 ### Transport rings
 
