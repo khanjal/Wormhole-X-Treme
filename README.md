@@ -133,6 +133,30 @@ This fork brings it to modern Minecraft, and adds rings, beaming and mirrors.
 [docs/LOGO.md](docs/LOGO.md) explains it, [TRADEMARK.md](TRADEMARK.md) covers use of the name and
 mark, and [issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187) tracks replacing it.
 
+### Built with
+
+The plugin runs on the [Spigot](https://www.spigotmc.org/) and [Paper](https://papermc.io/) APIs,
+is tested against [Purpur](https://purpurmc.org/) as well, and keeps its data with the server's
+own copy of [SnakeYAML](https://codeberg.org/snakeyaml/snakeyaml). It hooks into
+[PlaceholderAPI](https://github.com/PlaceholderAPI/PlaceholderAPI) when present, and reports
+anonymous usage through [bStats](https://bstats.org/).
+
+It could not be tested the way it is without:
+
+- [MockBukkit](https://mockbukkit.org/), a simulated server the whole plugin loads onto, so a
+  journey through a gate runs as a test
+- [JUnit 5](https://junit.org/junit5/) and [Mockito](https://site.mockito.org/), with
+  [SQLite JDBC](https://github.com/xerial/sqlite-jdbc) building the old databases the importer is
+  tested against
+- [SpotBugs](https://spotbugs.github.io/), [PMD](https://pmd.github.io/),
+  [JaCoCo](https://www.jacoco.org/) and [SonarCloud](https://sonarcloud.io/), which read every
+  pull request
+- [GitHub Actions](https://github.com/features/actions), which builds it against every supported
+  version
+
+Much of this fork was written with [Claude Code](https://claude.com/claude-code), and pull
+requests are also reviewed by [GitHub Copilot](https://github.com/features/copilot).
+
 ## Contributing
 
 Pull requests against `main`, with tests where the change touches behaviour. See
