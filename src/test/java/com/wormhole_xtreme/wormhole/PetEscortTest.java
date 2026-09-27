@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +61,9 @@ class PetEscortTest
         PluginTestSupport.install(plugin);
         ownerWorld = mock(World.class);
         petWorld = mock(World.class);
+        // Two worlds for ChunkTickets, which keys a chunk by its world's UID.
+        when(ownerWorld.getUID()).thenReturn(UUID.randomUUID());
+        when(petWorld.getUID()).thenReturn(UUID.randomUUID());
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
@@ -416,7 +420,8 @@ class PetEscortTest
         second.run();
 
         verify(theirs).teleport(any(Location.class));
-        verify(chunk).addPluginChunkTicket(plugin);
+        // Taken by each hold, which Bukkit ignores when it is already there; let go once, by the last.
+        verify(chunk, times(2)).addPluginChunkTicket(plugin);
         verify(chunk).removePluginChunkTicket(plugin);
     }
 

@@ -26,7 +26,11 @@ public final class ChunkTickets
     private ChunkTickets() {}
 
     /**
-     * Holds a chunk loaded, taking the plugin's ticket if nothing else of ours holds it.
+     * Holds a chunk loaded, with the plugin's ticket.
+     *
+     * <p>The ticket is added on every hold, not only the first: adding one already there does
+     * nothing, and a ticket that went with its world, unloaded and loaded again under the same
+     * UID while counted here, is taken again rather than trusted to the count.
      *
      * @param chunk
      *            the chunk
@@ -34,12 +38,8 @@ public final class ChunkTickets
     public static void hold(final Chunk chunk)
     {
         final Key key = keyOf(chunk);
-        final int holders = HOLDERS.getOrDefault(key, Integer.valueOf(0)).intValue();
-        if (holders == 0)
-        {
-            chunk.addPluginChunkTicket(WormholeXTreme.getThisPlugin());
-        }
-        HOLDERS.put(key, Integer.valueOf(holders + 1));
+        chunk.addPluginChunkTicket(WormholeXTreme.getThisPlugin());
+        HOLDERS.merge(key, Integer.valueOf(1), Integer::sum);
     }
 
     /**

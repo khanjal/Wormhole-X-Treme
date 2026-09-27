@@ -89,7 +89,6 @@ class ChunkTicketsTest
         ChunkTickets.release(ring);
 
         verify(ring).addPluginChunkTicket(plugin);
-        verify(pet, never()).addPluginChunkTicket(any());
         verify(ring, never()).removePluginChunkTicket(any());
         verify(pet, never()).removePluginChunkTicket(any());
 
@@ -112,6 +111,23 @@ class ChunkTicketsTest
         verify(there).addPluginChunkTicket(plugin);
         verify(there).removePluginChunkTicket(plugin);
         verify(here, never()).removePluginChunkTicket(any());
+    }
+
+    /**
+     * A second hold takes the ticket again. A world unloaded and loaded again under the same UID
+     * loses its tickets but not this count, and trusting the count left the chunk unheld: #505
+     * again, silently.
+     */
+    @Test
+    void aSecondHoldTakesTheTicketAgainInCaseItWasLostWithItsWorld()
+    {
+        final Chunk before = chunk(world, 5, 5);
+        final Chunk afterReload = chunk(world, 5, 5);
+
+        ChunkTickets.hold(before);
+        ChunkTickets.hold(afterReload);
+
+        verify(afterReload).addPluginChunkTicket(plugin);
     }
 
     /** A release nobody held for must not take a ticket something outside the count put there. */

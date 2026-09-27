@@ -500,8 +500,12 @@ public final class RingTransit
      */
     private static void finished(final RingCycle cycle, final World world)
     {
-        release(world, cycle.getPair());
-        running.remove(cycle.getPair().getId());
+        // Once only: a recovery that itself throws reaches here a second time, and a second release
+        // would take a hold something else, a pet waiting in the same chunk, still counts on.
+        if (running.remove(cycle.getPair().getId()))
+        {
+            release(world, cycle.getPair());
+        }
     }
 
     /**

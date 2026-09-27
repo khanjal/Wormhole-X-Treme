@@ -277,6 +277,7 @@ class JourneysOnMockServerTest
         assertAt(near, strangers.getLocation());
         ticks(20 * 320);
         assertNothingNewRunning(before, "the pet came through");
+        assertEquals(0, world.ticketedChunks(), "a pet's chunk was left held after it came through");
     }
 
     /** A cat following its owner is beamed after them into another world. */
@@ -302,6 +303,7 @@ class JourneysOnMockServerTest
         assertAt(den, p.getLocation());
         assertAt(p.getLocation(), follower.getLocation());
         assertNothingNewRunning(before, "the pet was beamed");
+        assertEquals(0, here.ticketedChunks() + there.ticketedChunks(), "a pet's chunk was left held after the beam");
     }
 
     /** Presses a gate's DHD and dials, with a code for the far iris when one is given. */
