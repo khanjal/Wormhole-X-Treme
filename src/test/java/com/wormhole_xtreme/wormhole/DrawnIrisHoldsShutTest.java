@@ -235,9 +235,11 @@ class DrawnIrisHoldsShutTest
         destination.setGateWorld(world);
         destination.setGateFacing(BlockFace.SOUTH);
         destination.setGateActive(true);
+        destination.setGatePortalOpen(true);
         destination.setGatePlayerTeleportLocation(new Location(world, 99.5, 70, 99.5));
         StargateTestSupport.target(gate, destination);
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
     }
 
     /**
@@ -616,6 +618,7 @@ class DrawnIrisHoldsShutTest
     void anItemAtTheFarEndsShutIrisIsDestroyed()
     {
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
 
         GateEntityScanner.create().run();

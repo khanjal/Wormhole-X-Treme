@@ -347,6 +347,7 @@ class IrisSweepOrderingTest
     {
         gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         gate.setGateCustom(true);
         gate.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
         gate.setGateCustomPortalMaterial(Material.WATER);
@@ -560,6 +561,7 @@ class IrisSweepOrderingTest
     void closingOverALiveWormholeHidesTheIrisBehindTheWater()
     {
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         clearInvocations(watcher);
 
         gate.toggleIrisActive(false);
@@ -744,6 +746,7 @@ class IrisSweepOrderingTest
     void aGateShuttingMidOpeningSweepPaintsNoWormholeAfterward()
     {
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 2));
         gate.toggleIrisActive(false);
         finishSweep();
@@ -771,6 +774,7 @@ class IrisSweepOrderingTest
     void aGateRemovedMidSweepCallsTheSweepOff()
     {
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         gate.toggleIrisActive(false);
         finishSweep();
         gate.toggleIrisActive(false);

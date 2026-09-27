@@ -56,6 +56,13 @@ class StargateAnimator
         {
             return;
         }
+        // Closed and dialled again since this was booked: the new dial's chevrons are still
+        // locking, and it books its own woosh after the last.
+        final List<List<Location>> lights = gate.getGateLightBlocks();
+        if ((lights != null) && (gate.getGateChevronsLocked() < lastWave(gate, lights)))
+        {
+            return;
+        }
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         // A shape with no authored waves and no WOOSH_DEPTH to derive any from has none, and
         // settles straight into the open portal.
@@ -116,6 +123,17 @@ class StargateAnimator
             // Opening the iris later draws the portal through setIrisState.
             gate.setGateAnimationStep3D(0);
             gate.setGateAnimationRemoving(false);
+            // Formed behind the iris; the iris itself is what keeps travellers out now. A sweep
+            // still crossing layers the gate itself when it finishes.
+            gate.setGatePortalOpen(gate.isGateActive());
+            if (!StargateBlockSetup.irisIsDrawn(gate))
+            {
+                StargateBlockSetup.sendPortalBackdrop(gate, true);
+            }
+            else if (!StargateIrisAnimator.isSweeping(gate))
+            {
+                StargateBlockSetup.sendLayered(gate);
+            }
         }
 
         /**
@@ -178,6 +196,7 @@ class StargateAnimator
         {
             gate.setGateAnimationStep3D(0);
             gate.setGateAnimationRemoving(false);
+            gate.setGatePortalOpen(gate.isGateActive());
             if (gate.isGateLightsActive())
             {
                 gate.fillGateInterior(wooshMaterial);
@@ -312,6 +331,7 @@ class StargateAnimator
         }
         final int step = gate.getGateLightingCurrentIteration() + 1;
         gate.setGateLightingCurrentIteration(step);
+        gate.setGateChevronsLocked(step);
         drawLightWave(gate, waves, step);
         scheduleNextStep(gate, waves, step);
     }
@@ -597,11 +617,20 @@ class StargateAnimator
 
     /**
      * The last chevron a client should see lit: all of them while the button has the gate waiting
-     * for {@code /dial}, otherwise the ones its dial uses.
+     * for {@code /dial}, the ones locked so far while it dials, otherwise the ones its dial uses.
      */
     static int lastShownWave(final Stargate gate, final List<List<Location>> waves)
     {
-        return (gate.isGateLightsActive() && !gate.isGateActive()) ? (waves.size() - 1) : lastWave(gate, waves);
+        if (gate.isGateLightsActive() && !gate.isGateActive())
+        {
+            return waves.size() - 1;
+        }
+        if (gate.isGatePortalOpen())
+        {
+            return lastWave(gate, waves);
+        }
+        // A Universe gate's locked chevrons ride its ring, and are back in place only once the last locks.
+        return ridesTheRing(gate) ? 0 : Math.min(lastWave(gate, waves), gate.getGateChevronsLocked());
     }
 
     /**
@@ -657,6 +686,7 @@ class StargateAnimator
         final List<List<Location>> waves = gate.getGateLightBlocks();
         if (waves != null)
         {
+            gate.setGateChevronsLocked(lastWave(gate, waves));
             for (int step = 1; step <= lastWave(gate, waves); step++)
             {
                 if (waves.get(step) != null)
@@ -691,6 +721,7 @@ class StargateAnimator
             }
         }
         gate.setGateLightingCurrentIteration(0);
+        gate.setGateChevronsLocked(0);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
     }
@@ -701,6 +732,7 @@ class StargateAnimator
     private static void darkenStargate(final Stargate gate)
     {
         gate.setGateLightsActive(false);
+        gate.setGateChevronsLocked(0);
         // The ring's light may be part way round; put back whatever it was showing.
         final Turning turning = TURNING.remove(gate);
         if ((turning != null) && !turning.cells.isEmpty())

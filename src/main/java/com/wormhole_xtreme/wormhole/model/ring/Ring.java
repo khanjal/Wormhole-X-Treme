@@ -108,7 +108,8 @@ public class Ring
      * @param ringMaterial
      *            the travelling slabs; must be a slab
      * @param lightMaterial
-     *            what the pad shows while the ring is working; also the initial flash
+     *            what the pad shows while the ring is working; also the flash, until pairing or
+     *            loading sets its own
      */
     public Ring(final int anchorX, final int anchorY, final int anchorZ, final RingPattern pattern,
         final RingOrientation orientation, final Material ringMaterial, final Material lightMaterial)
@@ -123,8 +124,7 @@ public class Ring
         // is edited, so the material it arrives with is the template's.
         this.builtMaterial = ringMaterial;
         this.lightMaterial = lightMaterial;
-        // Starts matched, so a ring that nobody has fiddled with looks like one thing rather
-        // than two. Setting them apart is what makes the transport read as its own moment.
+        // A placeholder: pairing sets the server's default flash, and loading the saved one.
         this.flashMaterial = lightMaterial;
     }
 
@@ -223,8 +223,7 @@ public class Ring
      *
      * <p>Separate from the pad's own light because they are two different moments. The pad
      * lights to say the ring is working and stays lit throughout; the flash is the instant of
-     * transport running through the stack. Left matched they read as one effect, which is a
-     * fine default and a waste of the distinction.
+     * transport running through the stack, glowstone by default against the lamp-lit pad.
      */
     public void setFlashMaterial(final Material flashMaterial)
     {

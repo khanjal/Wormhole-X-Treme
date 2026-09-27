@@ -6,7 +6,7 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## Unreleased
+## 1.8.1 (unreleased)
 
 ### For server admins
 
@@ -22,6 +22,22 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Coordinates in `gate build`, `ring build`, `ring fire` and `mirror create` may be `~`**, counted
   from the command block or player that runs them, so a map's command blocks keep working wherever
   it is pasted. Under `/execute`, they still count from whoever ran it.
+
+### Stargates
+
+**Fixed**
+
+- **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
+  vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
+  frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
+
+### Transport rings
+
+**Changed**
+
+- **The transport flash defaults to glowstone**, against the lit redstone lamp pad. A server with a
+  `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
+  rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
 
 ### Internals
 

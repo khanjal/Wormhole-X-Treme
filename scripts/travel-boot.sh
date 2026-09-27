@@ -17,21 +17,24 @@ fi
 # takes arrivals at 18.5 -60 -1.5. The flat test world's ground is at -64. Within six blocks of that
 # point, because what comes through keeps moving and lands further off on some versions (1.20.4
 # drops an item about 3.7 blocks away); Abydos is twenty blocks off, so nothing left there counts.
-# Asked three times, at 5, 12 and 20 seconds: a busy runner can fall seconds behind, and the
-# wormhole stays open 38. Any one answer is enough.
+# Sent in 13 seconds after the dial, once the wormhole has formed: until the kawoosh, about ten
+# seconds in, the opening is an empty frame, and a pig dropped into it could wander out first.
+# Asked three times, at 4, 9 and 15 seconds after that: a busy runner can fall seconds behind, and
+# the wormhole stays open 38. Any one answer is enough.
 # Last, where the item is, for a run that fails: landed too far off, or never crossed.
 commands="wx gate build Standard Abydos world 0 -60 0 south
 wx gate build Standard Chulak world 20 -60 0 south
 wx gate dial Abydos Chulak
+sleep 13
 summon item -1.5 -57.5 -2.5 $item
 summon pig -1.5 -58.5 -2.5
+sleep 4
+execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
+execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
 sleep 5
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
 execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
-sleep 7
-execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
-execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
-sleep 8
+sleep 6
 execute if entity @e[type=item,x=18.5,y=-60,z=-1.5,distance=..6] run say ITEM_ARRIVED
 execute if entity @e[type=pig,x=18.5,y=-60,z=-1.5,distance=..12] run say PIG_ARRIVED
 data get entity @e[type=item,limit=1] Pos"
