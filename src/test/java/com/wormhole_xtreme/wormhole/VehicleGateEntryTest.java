@@ -93,6 +93,7 @@ class VehicleGateEntryTest
         src = new Stargate();
         src.setGateName("src");
         src.setGateActive(true);
+        src.setGatePortalOpen(true);
         dst = new Stargate();
         dst.setGateName("dst");
         // East, so the exit runs along +X. A north-facing exit would hide a sign error in
@@ -192,6 +193,17 @@ class VehicleGateEntryTest
         {
             assertEquals(BZ - 0.5, landed.getZ(), 0.001, "back where it was a move ago, not out in front");
         }
+    }
+
+    /** Nor does a gate still dialling, whose wormhole has not formed. */
+    @Test
+    void aGateStillDiallingCarriesNoVehicle()
+    {
+        src.setGatePortalOpen(false);
+
+        rollIn();
+
+        verify(cart, never()).teleport(any(Location.class));
     }
 
     /** A gate that is not open carries nobody, however far into it they roll. */

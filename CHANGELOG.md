@@ -6,7 +6,15 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## Unreleased
+## 1.8.1 (unreleased)
+
+### Stargates
+
+**Fixed**
+
+- **Nothing goes through a gate until its kawoosh is over.** Players, mounts, mobs, items,
+  vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
+  frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
 
 ### Quantum mirrors
 
@@ -15,6 +23,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`mirror create` aimed off a banner no longer says a banner on a post will do.** It asks for a
   banner hung on a wall, which is the only kind `create` accepts. A mirror already on a post can
   still be renamed.
+
+### Transport rings
+
+**Changed**
+
+- **The transport flash defaults to glowstone**, against the lit redstone lamp pad. A server with a
+  `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
+  rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
 
 ## 1.8.0 (2026-09-26)
 

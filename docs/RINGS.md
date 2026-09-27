@@ -251,8 +251,8 @@ protecting everything else would mean the pattern never appearing.
 | Flash | `ring-default-flash` | Any placeable block | A ring, as the transport light passes through it |
 
 **The pad light and the transport flash are separate** because they are separate moments. They
-start matched, so an untouched ring reads as one effect rather than two, and setting them apart
-is what makes the transport its own moment.
+start apart, a lit redstone lamp pad and a glowstone flash, so even an untouched ring shows the
+transport as its own moment.
 
 **The ring material is constrained and the light one is not.** The rise is built out of slab
 halves, and that is the only way to move half a block per frame. A full block would silently
