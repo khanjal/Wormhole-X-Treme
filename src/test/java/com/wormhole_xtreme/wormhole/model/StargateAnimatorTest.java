@@ -307,6 +307,34 @@ class StargateAnimatorTest
     }
 
     /**
+     * A woosh booked by a dial the gate has since been closed on does not form the next dial early.
+     *
+     * <p>Nothing cancels a booked woosh. Closed within the two seconds after its last chevron and
+     * dialled again, a gate had the old woosh run and form it while the new chevrons still locked.
+     */
+    @Test
+    void aWooshLeftFromAnEarlierDialDoesNotFormTheGateWhileItsChevronsLock()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomWooshDepth(0);
+        gate.getGateLightBlocks().add(null);
+        for (int n = 1; n <= 7; n++)
+        {
+            gate.getGateLightBlocks().add(new java.util.ArrayList<>());
+        }
+        gate.setGateChevronsLocked(2);
+
+        StargateAnimator.animateOpening(gate);
+        assertFalse(gate.isGatePortalOpen(), "two chevrons locked of seven");
+
+        gate.setGateChevronsLocked(7);
+        StargateAnimator.animateOpening(gate);
+        assertTrue(gate.isGatePortalOpen(), "all seven locked, so this woosh is the dial's own");
+    }
+
+    /**
      * An iris shut partway through the woosh takes back what was drawn, and says nothing more.
      *
      * <p>The iris was asked on every step, but the branch that answered it only stopped the woosh:

@@ -56,6 +56,13 @@ class StargateAnimator
         {
             return;
         }
+        // Closed and dialled again since this was booked: the new dial's chevrons are still
+        // locking, and it books its own woosh after the last.
+        final List<List<Location>> lights = gate.getGateLightBlocks();
+        if ((lights != null) && (gate.getGateChevronsLocked() < lastWave(gate, lights)))
+        {
+            return;
+        }
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         // A shape with no authored waves and no WOOSH_DEPTH to derive any from has none, and
         // settles straight into the open portal.
@@ -116,9 +123,17 @@ class StargateAnimator
             // Opening the iris later draws the portal through setIrisState.
             gate.setGateAnimationStep3D(0);
             gate.setGateAnimationRemoving(false);
-            // Formed behind the iris; the iris itself is what keeps travellers out now.
+            // Formed behind the iris; the iris itself is what keeps travellers out now. A sweep
+            // still crossing layers the gate itself when it finishes.
             gate.setGatePortalOpen(gate.isGateActive());
-            StargateBlockSetup.sendLayered(gate);
+            if (!StargateBlockSetup.irisIsDrawn(gate))
+            {
+                StargateBlockSetup.sendPortalBackdrop(gate, true);
+            }
+            else if (!StargateIrisAnimator.isSweeping(gate))
+            {
+                StargateBlockSetup.sendLayered(gate);
+            }
         }
 
         /**
@@ -610,7 +625,12 @@ class StargateAnimator
         {
             return waves.size() - 1;
         }
-        return gate.isGatePortalOpen() ? lastWave(gate, waves) : Math.min(lastWave(gate, waves), gate.getGateChevronsLocked());
+        if (gate.isGatePortalOpen())
+        {
+            return lastWave(gate, waves);
+        }
+        // A Universe gate's locked chevrons ride its ring, and are back in place only once the last locks.
+        return ridesTheRing(gate) ? 0 : Math.min(lastWave(gate, waves), gate.getGateChevronsLocked());
     }
 
     /**

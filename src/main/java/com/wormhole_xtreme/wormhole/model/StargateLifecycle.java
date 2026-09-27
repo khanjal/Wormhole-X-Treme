@@ -288,7 +288,7 @@ class StargateLifecycle
                 // while there was one comes down with it.
                 StargateBlockSetup.takeBackLayers(gate);
             }
-            else if (!StargateBlockSetup.irisIsDrawn(gate))
+            else if (gate.isGatePortalOpen() && !StargateBlockSetup.irisIsDrawn(gate))
             {
                 // A horizontal gate's iris is real blocks filling the opening, so the horizon
                 // has nowhere left inside the ring and is shown a block below instead.
