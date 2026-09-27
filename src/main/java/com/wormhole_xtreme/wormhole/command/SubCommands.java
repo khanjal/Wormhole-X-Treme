@@ -304,7 +304,7 @@ public final class SubCommands
             });
 
         // --- Transport rings --------------------------------------------------
-        register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
+        register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner|build|fire>",
             new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
             SubCommands::completeRing);
 
@@ -1114,10 +1114,18 @@ public final class SubCommands
      */
     private static List<String> completeRing(final CommandSender sender, final String[] args)
     {
+        final boolean admin = !(sender instanceof org.bukkit.entity.Player player)
+            || com.wormhole_xtreme.wormhole.model.ring.RingPermissions.has(player,
+                com.wormhole_xtreme.wormhole.model.ring.RingPermissions.ADMIN);
         if (args.length == 2)
         {
-            return prefixed(args[1], "create", "cancel", "list", REMOVE, "edit",
-                "allow", "deny", OWNER);
+            // build and fire are offered only to whoever may run them.
+            final String[] verbs = { "create", "cancel", "list", REMOVE, "edit", "allow", "deny", OWNER };
+            return prefixed(args[1], admin ? both(verbs, new String[] { "build", "fire" }) : verbs);
+        }
+        if ("build".equalsIgnoreCase(args[1]) && admin && (args.length == 3))
+        {
+            return worldNames(args[2]);
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {
