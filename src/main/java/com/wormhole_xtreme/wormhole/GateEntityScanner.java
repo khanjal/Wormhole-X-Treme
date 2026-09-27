@@ -510,7 +510,7 @@ public final class GateEntityScanner implements Runnable
      *            the way the gate faces, or null, which keeps the whole velocity
      * @return the velocity along the gate's axis
      */
-    static Vector throughGate(final Vector incoming, final BlockFace facing)
+    private static Vector throughGate(final Vector incoming, final BlockFace facing)
     {
         if (facing == null)
         {
@@ -610,7 +610,7 @@ public final class GateEntityScanner implements Runnable
      * @param arrival
      *            the destination
      * @param entryFacing
-     *            the direction the gate it enters faces
+     *            the direction the gate it enters faces, or null if unknown
      * @param exitFacing
      *            the direction the destination gate faces
      * @param exitGate
