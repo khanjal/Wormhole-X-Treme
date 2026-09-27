@@ -95,6 +95,19 @@ and the bot, as a player, presses a gate's DHD, runs `/dial`, walks through, and
 rides a ring pair. Each trip fails unless the bot comes out where it should. It checks what the
 bot sees, not the plugin's state: the opening filling and emptying, and where the server puts it.
 
+| Trip | What the bot does, and what must happen |
+|---|---|
+| `gate` | Two Standard gates: DHD, `/dial`, walk in; out at the partner, and the opening fills only after the kawoosh |
+| `beam` | Saves a destination, beams to it from twenty blocks off; lands there facing the way it was saved |
+| `ring` | Makes two circles of slabs a ring pair, walks into one; comes out in the other |
+| `atlantis` | Builds two gates as a player does, `gate build Standard Atlantis` on a DHD button, `preview place`, `gate complete`; the frame is lapis, the chevrons light as sea lanterns, and it travels |
+| `horizontal` | Two `Horizontal` gates flat in the floor; steps off into the opening after the kawoosh and comes out at the partner's arrival point |
+| `lava` | A gate whose portal is set to lava; lava fills the opening after the kawoosh, it still travels, and the far gate shows nether portal |
+| `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("Remote Iris is locked!"); opened, it travels |
+| `mirror` | Makes two banners mirrors; right-clicked, the first shows the second's room (a gold block) behind its wall; punched, it puts the bot at the second |
+
+`TRIPS=iris,mirror` runs only the trips named.
+
 ```bash
 bash scripts/fetch-server.sh paper 1.21.11 server.jar    # or download a Paper jar by hand
 mvn -DskipTests package
@@ -103,7 +116,9 @@ bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
 
 It needs Node 22 or newer, which Mineflayer 4.39 requires; the first run installs the bot into `scripts/player-test/node_modules`.
 The version must be one Mineflayer speaks: 1.20.1 to 1.21.11 and 26.1 as of 4.39, not 26.2 or
-26.3. The server listens on port 25599 in offline mode, the same flat world as the boot tests.
+26.3. The server listens on port 25599 in offline mode (`BOOT_PORT` changes it, for a second
+server beside one being watched), on the boot tests' flat world with a grass floor rather than
+bedrock (`BOOT_FLOOR`); mob spawning is turned off and anything that spawned is cleared.
 
 **Watching it.** With `OBSERVE=1`, the bot waits for someone to join before it starts, and
 for their answer after each trip; `OBSERVE_WAIT` sets both waits, in seconds (default 600):
@@ -123,10 +138,12 @@ The **Player journeys** workflow (`player.yml`) runs the same thing without an o
 Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
 itself changes. It does not run on pull requests yet.
 
-What it does not cover yet: mirrors, irises, sign dialling, pets, other worlds, and the gate
-preview, which Mineflayer can see only as entities. Each is another trip in
-`scripts/player-test/journeys.js`: set up from the console, act as the player, then check where
-the bot is and what it sees.
+What it does not cover yet: sign dialling, pets, other worlds (so a mirror's trip is within one
+world, with `mirror-per-world-limit` set to 0), a horizontal gate's iris, the other shipped shapes
+and the Universe and MilkyWay groups, and what a preview looks like, which Mineflayer can see only
+as entities; the `atlantis` trip uses a preview but checks only the gate it places. Each is another
+trip in `scripts/player-test/journeys.js`: set up from the console, act as the player, then check
+where the bot is and what it sees.
 
 ## Static analysis
 

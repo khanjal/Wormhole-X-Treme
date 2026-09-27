@@ -6,7 +6,8 @@
 # config.yml before first start; BOOT_COMMANDS and BOOT_REQUIRE, one console command or log regex a line
 # ("sleep N" in BOOT_COMMANDS waits N seconds); BOOT_CLIENT, a shell command run once those are sent,
 # with BOOT_CONSOLE (append a line to send it to the console) and BOOT_LOG set, which fails the test
-# by exiting non-zero.
+# by exiting non-zero. BOOT_PORT (default 25599) and BOOT_FLOOR, the flat world's one layer (default
+# minecraft:bedrock), shape the server.
 set -uo pipefail
 
 if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
@@ -32,11 +33,14 @@ if [[ -n "${BOOT_CONFIG:-}" ]]; then
   printf '%s\n' "$BOOT_CONFIG" > "$dir/plugins/WormholeXTreme/config.yml"
 fi
 echo "eula=true" > "$dir/eula.txt"
-cat > "$dir/server.properties" <<'EOF'
+# server.properties escapes a colon in a value.
+floor="${BOOT_FLOOR:-minecraft:bedrock}"
+floor="${floor//:/\\:}"
+cat > "$dir/server.properties" <<EOF
 online-mode=false
-server-port=25599
-level-type=minecraft\:flat
-generator-settings={"layers"\:[{"block"\:"minecraft\:bedrock","height"\:1}],"biome"\:"minecraft\:plains"}
+server-port=${BOOT_PORT:-25599}
+level-type=minecraft\\:flat
+generator-settings={"layers"\\:[{"block"\\:"${floor}","height"\\:1}],"biome"\\:"minecraft\\:plains"}
 generate-structures=false
 spawn-protection=0
 view-distance=3

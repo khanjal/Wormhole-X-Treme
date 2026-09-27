@@ -5,7 +5,8 @@
 # The player is a Mineflayer bot (player-test/journeys.js), so this needs Node 22 or newer and a
 # version Mineflayer speaks: 1.20.1 to 1.21.11 and 26.1, as of 4.39. OBSERVE=1 waits for you to join
 # localhost:25599 and watch, and asks you after each trip whether you saw it; see
-# docs/DEVELOPMENT.md. JAVA and BOOT_DIR pass through to boot-test.sh.
+# docs/DEVELOPMENT.md. JAVA, BOOT_DIR and BOOT_PORT pass through to boot-test.sh; the floor is grass
+# unless BOOT_FLOOR says otherwise.
 set -euo pipefail
 
 if [[ $# -ne 3 ]]; then
@@ -21,5 +22,6 @@ if [[ ! -d "$client/node_modules/mineflayer" ]]; then
 fi
 
 BOOT_CLIENT="$(printf 'node %q %q' "$client/journeys.js" "$3")" \
+  BOOT_FLOOR="${BOOT_FLOOR:-minecraft:grass_block}" \
   BOOT_TEST_ALLOW="${BOOT_TEST_ALLOW:-No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree}" \
   bash "$here/boot-test.sh" "$1" "$2"
