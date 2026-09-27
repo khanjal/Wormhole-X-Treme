@@ -155,7 +155,7 @@ class DefaultSettings
             new Setting(ConfigKeys.RING_DEFAULT_STYLE, "CONCURRENT", "How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).", SECTION),
             new Setting(ConfigKeys.RING_DEFAULT_MATERIAL, "SMOOTH_STONE_SLAB", "Fallback ring material, used only when the slab a ring was built from cannot be read. SMOOTH_STONE_SLAB is the plain stone slab, not STONE_SLAB, which is the rougher one.", SECTION),
             new Setting(ConfigKeys.RING_DEFAULT_LIGHT, "REDSTONE_LAMP", "What the ring pad lights up as while it is working.", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_FLASH, "REDSTONE_LAMP", "What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.", SECTION)),
+            new Setting(ConfigKeys.RING_DEFAULT_FLASH, "GLOWSTONE", "What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.", SECTION)),
 
         group("Transport ring sounds", SOUNDS,
             new Setting(ConfigKeys.RING_SOUNDS_ENABLED, true, "Whether rings make any noise. Everything below is ignored when this is false.", SECTION),

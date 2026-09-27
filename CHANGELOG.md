@@ -16,6 +16,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   vehicles and arrows stepping into the opening while the chevrons lock pass through the empty
   frame; the opening no longer shows water before the kawoosh to a player crossing a chunk nearby.
 
+### Transport rings
+
+**Changed**
+
+- **The transport flash defaults to glowstone**, against the lit redstone lamp pad. A server with a
+  `config.yml` keeps `ring-default-flash: REDSTONE_LAMP` until it is changed there, and existing
+  rings keep theirs until `/wormhole ring edit [id] flash glowstone` or `reset`.
+
 ## 1.8.0 (2026-09-26)
 
 ### For server admins
