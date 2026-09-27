@@ -82,8 +82,11 @@ async function teleport (x, y, z, yaw) {
   await sleep(1000)
 }
 
-/** Walks on the level towards `target` until `done`, or until the bot stands on the target. */
-async function walk (target, done, seconds, what) {
+/**
+ * Walks on the level towards `target` until `done`, or until the bot stands on the target, and
+ * stops. Whatever happens next (a ring's countdown, say) is the caller's to wait for.
+ */
+async function walk (target, done, seconds) {
   const deadline = Date.now() + seconds * 1000
   try {
     while (Date.now() < deadline) {
@@ -97,7 +100,6 @@ async function walk (target, done, seconds, what) {
   } finally {
     bot.clearControlStates()
   }
-  if (!done()) await waitFor(done, 5, what)
 }
 
 async function say (text) {
@@ -188,7 +190,8 @@ const gate = {
     await waitFor(() => bot.blockAt(kawoosh).name === 'air', 15, 'the kawoosh clearing')
 
     const chulak = v(18.5, -60, -1.5)
-    await walk(v(-1.5, -60, -3.5), () => near(chulak, 1.5), 15, 'arriving at Chulak')
+    await walk(v(-1.5, -60, -3.5), () => near(chulak, 1.5), 15)
+    await waitFor(() => near(chulak, 1.5), 5, 'arriving at Chulak')
     console.log(`  arrived at Chulak; ${where()}`)
 
     await waitFor(() => bot.blockAt(opening).name === 'air', 90, 'Abydos shutting behind the bot')
@@ -271,7 +274,8 @@ const ring = {
     await sleep(2000)
     messages()
     const partner = v(30.5, -63, 40.5)
-    await walk(v(0.5, -63, 40.5), () => near(partner, 3), 10, 'walking in')
+    // The countdown is 100 ticks by default before the rings even rise.
+    await walk(v(0.5, -63, 40.5), () => near(partner, 3), 10)
     await waitFor(() => near(partner, 3), 30, `arriving in the partner ring (heard: ${JSON.stringify(heard)})`)
     console.log(`  arrived in the partner ring; ${where()}`)
   }
