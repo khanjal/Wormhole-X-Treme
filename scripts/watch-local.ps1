@@ -71,26 +71,45 @@ $jdk17 = Find-Jdk '17' $Jdk17
 $jdk21 = Find-Jdk '21' $Jdk21
 
 # A server, bot or script left from an earlier run of this checkout holds the port, and a leftover
-# boot-test.sh writes "stop" into the next run's console. Only this checkout's: its folder name is in
-# every such command line, as a Windows or a Git Bash path.
-Write-Host 'Stopping anything left from an earlier local run...'
-$leaf = Split-Path -Leaf $repo
-$ours = "*$leaf?.local-server*"
-$left = @(Get-CimInstance Win32_Process | Where-Object {
-    ($_.Name -eq 'java.exe' -and $_.CommandLine -like $ours) -or
-    ($_.Name -eq 'node.exe' -and $_.CommandLine -like "*$leaf?scripts?player-test?journeys.js*") -or
-    ($_.Name -eq 'bash.exe' -and $_.CommandLine -like $ours -and
-        ($_.CommandLine -like '*boot-test.sh*' -or $_.CommandLine -like '*player-boot.sh*'))
-})
-# The tail feeding the server's console names no path, so it is known by its parent.
-$parents = $left | ForEach-Object { $_.ProcessId }
-$left += @(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'tail.exe' -and $parents -contains $_.ParentProcessId })
-$left | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -Confirm:$false -ErrorAction SilentlyContinue }
-Start-Sleep -Seconds 2
-if ((Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) -and
-    (Get-NetTCPConnection -LocalPort 25599 -State Listen -ErrorAction SilentlyContinue)) {
-    throw 'Port 25599 is still in use by something else; stop it and try again.'
+# boot-test.sh writes "stop" into the next run's console. Only this checkout's: its folder, between
+# separators, is in every such command line, as a Windows or a Git Bash path. Braced, because a "?"
+# after a variable name is read as part of it; escaped, for a folder name with [ or ] in it.
+$ours = '*[\/]' + [WildcardPattern]::Escape((Split-Path -Leaf $repo)) + '[\/]'
+function Get-Leftover {
+    Get-CimInstance Win32_Process | Where-Object {
+        ($_.Name -eq 'java.exe' -and $_.CommandLine -like "${ours}.local-server*") -or
+        ($_.Name -eq 'node.exe' -and $_.CommandLine -like "${ours}scripts[\/]player-test[\/]journeys.js*") -or
+        ($_.Name -eq 'bash.exe' -and $_.CommandLine -like "${ours}.local-server*" -and
+            ($_.CommandLine -like '*boot-test.sh*' -or $_.CommandLine -like '*player-boot.sh*')) -or
+        # The tail feeding a server's console names no folder, and its parent has exited, so any
+        # checkout's is taken; a stray one only follows a deleted file, and holds nothing.
+        ($_.Name -eq 'tail.exe' -and $_.CommandLine -like '*-f commands.txt')
+    }
 }
+
+# Whether something is listening on the port, where Get-NetTCPConnection is missing too.
+function Test-PortInUse([int]$port) {
+    if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
+        return [bool](Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+    }
+    return [bool](netstat -ano | Select-String ":$port\s.*LISTENING")
+}
+
+Write-Host 'Stopping anything left from an earlier local run...'
+Get-Leftover | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -Confirm:$false -ErrorAction SilentlyContinue }
+Start-Sleep -Seconds 2
+# One that has already exited is fine; one still running, say started from an elevated window, is not.
+$survivors = @(Get-Leftover | Where-Object { $_.Name -ne 'tail.exe' })
+if ($survivors.Count -gt 0) {
+    throw ('Could not stop an earlier run: ' + (($survivors | ForEach-Object { "$($_.Name) $($_.ProcessId)" }) -join ', ') + '. Stop it and try again.')
+}
+if (Test-PortInUse 25599) {
+    throw 'Port 25599 is in use by another server, perhaps another checkout''s; stop it and try again.'
+}
+
+# Mvn and bash write warnings to stderr, which Windows PowerShell 5.1 turns into errors when its own
+# output is redirected; failures from here on are told by exit codes.
+$ErrorActionPreference = 'Continue'
 
 $jar = Join-Path $work 'wx.jar'
 if ($NoBuild -and -not (Test-Path $jar)) { Write-Host 'No build to reuse yet, so building once.' }
@@ -102,7 +121,7 @@ if (-not $NoBuild -or -not (Test-Path $jar)) {
         & mvn -q -DskipTests package
         if ($LASTEXITCODE -ne 0) { throw 'The build failed.' }
     } finally { Pop-Location }
-    Copy-Item (Join-Path $repo 'target\WormholeXTreme.jar') $jar -Force
+    Copy-Item (Join-Path $repo 'target\WormholeXTreme.jar') $jar -Force -ErrorAction Stop
 }
 
 $paper = Join-Path $work "paper-$Version.jar"
@@ -116,7 +135,7 @@ if (-not (Test-Path $paper)) {
 }
 
 # A fresh world each time: a world that already has the gates makes every trip's setup fail.
-if (Test-Path $run) { Remove-Item -Recurse -Force $run }
+if (Test-Path $run) { Remove-Item -Recurse -Force $run -ErrorAction Stop }
 
 $env:BOOT_DIR = ConvertTo-BashPath $run
 $env:JAVA = ConvertTo-BashPath (Join-Path $jdk21 'bin\java.exe')
