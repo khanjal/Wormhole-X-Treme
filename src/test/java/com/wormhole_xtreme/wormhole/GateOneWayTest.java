@@ -359,13 +359,17 @@ class GateOneWayTest
         }
     }
 
-    /** Through a floor gate a fall is the way in, so it is kept, not dropped as it is at a wall. */
+    /**
+     * A floor gate still faces the way its DHD does, not up -- Stargate only reads its flat
+     * portal as "leave upward" -- so a fall into one is dropped as it is at a wall, and an item
+     * dropped through comes out at rest instead of thrown along the far gate's facing.
+     */
     @Test
-    void aFallThroughAFloorGateIsKept()
+    void aFallThroughAFloorGateIsDroppedToo()
     {
         final org.bukkit.util.Vector through = GateEntityScanner.throughGate(
-            new org.bukkit.util.Vector(0.3, -0.4, -0.2), BlockFace.UP);
-        assertEquals(new org.bukkit.util.Vector(0, -0.4, 0), through);
+            new org.bukkit.util.Vector(0, -0.6, 0), BlockFace.NORTH);
+        assertEquals(0.0, through.length(), 1e-9);
     }
 
     /** A gate with no way it faces cannot say what is through it, so the whole velocity is kept. */
