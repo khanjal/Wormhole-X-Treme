@@ -275,7 +275,7 @@ class StargateLifecycle
     {
         // What the opening looks like with no iris over it: the portal if a wormhole is up,
         // otherwise nothing. Both the sweep and the instant path need it.
-        final Material uncovered = gate.isGateActive() ? gate.getEffectivePortalMaterial() : Material.AIR;
+        final Material uncovered = gate.isGatePortalOpen() ? gate.getEffectivePortalMaterial() : Material.AIR;
         final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {
@@ -288,7 +288,7 @@ class StargateLifecycle
                 // while there was one comes down with it.
                 StargateBlockSetup.takeBackLayers(gate);
             }
-            else if (!StargateBlockSetup.irisIsDrawn(gate))
+            else if (gate.isGatePortalOpen() && !StargateBlockSetup.irisIsDrawn(gate))
             {
                 // A horizontal gate's iris is real blocks filling the opening, so the horizon
                 // has nowhere left inside the ring and is shown a block below instead.
@@ -395,11 +395,19 @@ class StargateLifecycle
      * recently-active flag after 3 seconds (60 ticks). This prevents fire
      * and lava damage to players who just exited the wormhole.
      */
-    private static void startAfterShutdownTimer(final Stargate gate)
+    static void startAfterShutdownTimer(final Stargate gate)
     {
         if (gate.getGateAfterShutdownTaskId() > 0)
         {
             WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
+        }
+        // Stopping the server shuts open gates while the plugin is disabled, when the scheduler throws
+        // on a new task; nothing is left to wait for, so the flag goes now.
+        if (!WormholeXTreme.getThisPlugin().isEnabled())
+        {
+            gate.setGateAfterShutdownTaskId(-1);
+            gate.setGateRecentlyActive(false);
+            return;
         }
         final int timeout = 60;
         gate.setGateAfterShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(

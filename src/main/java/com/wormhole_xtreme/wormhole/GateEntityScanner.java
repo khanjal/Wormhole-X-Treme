@@ -113,7 +113,7 @@ public final class GateEntityScanner implements Runnable
         // one still being detected, or one built in a test. Sweeping filtered the registry
         // before and must go on excluding those, or an entity gets sent through a gate that
         // is not on the server.
-        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null
+        if (gate == null || !gate.isGatePortalOpen() || gate.getGateTarget() == null
             || !StargateManager.isRegistered(gate))
         {
             return;
@@ -190,7 +190,7 @@ public final class GateEntityScanner implements Runnable
                 splatOnIris(entity);
                 return;
             }
-            sendThrough(entity, arrival, facing, null);
+            sendThrough(entity, arrival, gate.getGateFacing(), facing, null);
         }
         catch (final RuntimeException t)
         {
@@ -455,7 +455,7 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        sendThrough(projectile, arrival, target.getGateFacing(), target);
+        sendThrough(projectile, arrival, gate.getGateFacing(), target.getGateFacing(), target);
         return true;
     }
 
@@ -475,19 +475,23 @@ public final class GateEntityScanner implements Runnable
      * destination no matter how the velocity was applied.
      *
      * <p>So a projectile that has landed, or is barely moving, is relaunched at a sensible
-     * speed rather than at the speed it happens to have. Anything else keeps its own.
+     * speed rather than at the speed it happens to have. Anything else keeps only the speed it
+     * had through the gate: the opening is air, so an item dropped into it is falling when the
+     * sweep finds it, and that fall came out of the far gate as a sideways throw.
      *
      * @param entity
      *            the entity crossing the gate
      * @param incoming
      *            its velocity on arrival
+     * @param entryFacing
+     *            the way the gate it entered faces, or null if unknown
      * @return the velocity to derive the exit speed from
      */
-    private static Vector launchSpeed(final Entity entity, final Vector incoming)
+    private static Vector launchSpeed(final Entity entity, final Vector incoming, final BlockFace entryFacing)
     {
         if (!(entity instanceof Projectile))
         {
-            return incoming;
+            return throughGate(incoming, entryFacing);
         }
         final boolean stopped = (entity instanceof AbstractArrow arrow) && arrow.isInBlock();
         if (stopped || incoming.lengthSquared() < (PROJECTILE_LAUNCH_SPEED * PROJECTILE_LAUNCH_SPEED))
@@ -495,6 +499,30 @@ public final class GateEntityScanner implements Runnable
             return new Vector(PROJECTILE_LAUNCH_SPEED, 0, 0);
         }
         return incoming;
+    }
+
+    /**
+     * The part of a velocity that carries an entity through a gate facing this way.
+     *
+     * @param incoming
+     *            the entity's velocity
+     * @param facing
+     *            the way the gate faces, or null, which keeps the whole velocity
+     * @return the velocity along the gate's axis
+     */
+    static Vector throughGate(final Vector incoming, final BlockFace facing)
+    {
+        if (facing == null)
+        {
+            return incoming;
+        }
+        final Vector axis = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
+        if (axis.lengthSquared() == 0)
+        {
+            return incoming;
+        }
+        axis.normalize();
+        return axis.multiply(incoming.dot(axis));
     }
 
     /**
@@ -545,6 +573,12 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
+        // A mount with a player aboard is the player listener's, which asks permission,
+        // cooldown and fare; one it turned away would otherwise be carried through from here.
+        if (carriesAPlayer(entity))
+        {
+            return false;
+        }
         // Projectiles belong to ProjectileGateTracker, which follows each one and catches
         // it the tick it reaches a portal. This sweep is far too slow to see one crossing.
         if (entity instanceof Projectile)
@@ -567,31 +601,50 @@ public final class GateEntityScanner implements Runnable
         return !WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(entity.getUniqueId());
     }
 
+    /** Whether a player rides anywhere in this entity's passenger stack. */
+    private static boolean carriesAPlayer(final Entity entity)
+    {
+        final List<Entity> parents = new java.util.ArrayList<>();
+        final List<Entity> children = new java.util.ArrayList<>();
+        WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
+        for (final Entity child : children)
+        {
+            if (child instanceof Player)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Teleports an entity, points it out of the destination gate, and re-seats anything
      * riding it.
      *
      * <p>Redirecting matters most for things that arrive under their own momentum. An
      * arrow shot north into a gate used to come out of the far end still travelling north,
-     * whichever way that gate faced — often straight back into its own frame. Speed is
-     * preserved and only the direction changes, so an item that rolled in at walking pace
+     * whichever way that gate faced — often straight back into its own frame. Speed through the
+     * gate is preserved and only the direction changes, so an item that rolled in at walking pace
      * still leaves at walking pace rather than being launched.
      *
      * @param entity
      *            the entity to move
      * @param arrival
      *            the destination
+     * @param entryFacing
+     *            the direction the gate it enters faces, or null if unknown
      * @param exitFacing
      *            the direction the destination gate faces
      * @param exitGate
      *            the gate it comes out of, or null where that does not matter
      */
-    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace exitFacing,
-        final Stargate exitGate)
+    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
+        final BlockFace exitFacing, final Stargate exitGate)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
-        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, launchSpeed(entity, incoming), 1.0);
+        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing,
+            launchSpeed(entity, incoming, entryFacing), 1.0);
 
         // A projectile cannot simply be moved. Teleporting an arrow leaves it flagged as
         // having landed — AbstractArrow.isInBlock() is readable but not settable — so it
@@ -601,6 +654,8 @@ public final class GateEntityScanner implements Runnable
             ? respawnProjectile(shot, arrival, exit, exitGate)
             : null;
 
+        final List<Entity> parents = new java.util.ArrayList<>();
+        final List<Entity> children = new java.util.ArrayList<>();
         final Entity moved;
         if (arrived != null)
         {
@@ -608,7 +663,11 @@ public final class GateEntityScanner implements Runnable
         }
         else
         {
-            entity.teleport(arrival);
+            WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
+            if (!RiddenTeleport.move(entity, arrival, parents, children))
+            {
+                return;
+            }
             moved = entity;
         }
 
@@ -629,29 +688,16 @@ public final class GateEntityScanner implements Runnable
             }, 1L);
         }
 
-        if (arrived != null)
-        {
-            return; // a fresh projectile carries no passengers
-        }
-
-        final List<Entity> passengers = entity.getPassengers();
-        if (passengers.isEmpty())
+        if (children.isEmpty())
         {
             return;
         }
-        final java.util.List<Entity> parents = new java.util.ArrayList<Entity>();
-        final java.util.List<Entity> children = new java.util.ArrayList<Entity>();
-        WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
-        for (int i = 0; i < children.size(); i++)
+        // Marked too, or a rider waiting in the far portal for its seat is swept straight back.
+        for (final Entity child : children)
         {
-            try
-            {
-                parents.get(i).addPassenger(children.get(i));
-            }
-            catch (final RuntimeException t)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep", t);
-            }
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(child.getUniqueId());
         }
+        // The shared re-seat, whose retries fetch a passenger that did not land beside its mount.
+        com.wormhole_xtreme.wormhole.utils.PassengerReattach.schedule(entity, parents, children, exit, 1L);
     }
 }

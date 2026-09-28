@@ -765,14 +765,13 @@ public class ConfigManager
     /**
      * What a ring turns to as the transport light passes through it.
      *
-     * <p>Matches the pad light by default, so an untouched ring reads as one effect rather
-     * than two. Setting them apart is what makes the transport its own moment.
+     * <p>Glowstone against the lamp-lit pad, so the transport reads as its own moment.
      *
-     * @return the configured material, or the light material when it is missing or unknown
+     * @return the configured material, or glowstone when it is missing or unknown
      */
     public static Material getRingDefaultFlash()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_FLASH, getRingDefaultLight());
+        return materialSetting(ConfigKeys.RING_DEFAULT_FLASH, Material.GLOWSTONE);
     }
 
     /**

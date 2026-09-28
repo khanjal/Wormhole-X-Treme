@@ -598,6 +598,26 @@ public final class GatePreviews
     }
 
     /**
+     * Builds a shape where a grid stands, with no player: for {@code gate build} given coordinates, from
+     * the console or a command block. Nothing is shown or remembered; it is placed or refused exactly as
+     * a preview's {@code place} would be, and never over a gate already there.
+     *
+     * @param group
+     *            its material group, or null for the shape's own materials
+     * @param grid
+     *            where it stands
+     * @return what happened
+     */
+    public static Placed placeAt(final World world, final Stargate3DShape shape, final MaterialGroup group,
+        final GateGrid grid)
+    {
+        final GatePreview preview = new GatePreview(world, shape, grid, Palette.of(shape, group),
+            GateBlueprint.of(shape, grid), GateBlueprint.openingOf(shape, grid), GateBlueprint.wooshOf(shape, grid));
+        preview.plainChevrons(classic(shape, group));
+        return PreviewPlacer.place(preview, false);
+    }
+
+    /**
      * Shows the preview a player is looking at to another player, or stops. They see it change, dial
      * and guide as its owner does, and cannot change it.
      *

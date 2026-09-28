@@ -291,6 +291,49 @@ class StargateAnimatorTest
         assertFalse(gate.isGateAnimationRemoving());
     }
 
+    /** The wormhole forms when the opening settles, and not before: that is what travel waits for. */
+    @Test
+    void theWormholeFormsWhenTheOpeningSettles()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomWooshDepth(0);
+        assertFalse(gate.isGatePortalOpen(), "dialled, but nothing has formed yet");
+
+        StargateAnimator.animateOpening(gate);
+
+        assertTrue(gate.isGatePortalOpen());
+    }
+
+    /**
+     * A woosh booked by a dial the gate has since been closed on does not form the next dial early.
+     *
+     * <p>Nothing cancels a booked woosh. Closed within the two seconds after its last chevron and
+     * dialled again, a gate had the old woosh run and form it while the new chevrons still locked.
+     */
+    @Test
+    void aWooshLeftFromAnEarlierDialDoesNotFormTheGateWhileItsChevronsLock()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.setGateCustom(true);
+        gate.setGateCustomWooshDepth(0);
+        gate.getGateLightBlocks().add(null);
+        for (int n = 1; n <= 7; n++)
+        {
+            gate.getGateLightBlocks().add(new java.util.ArrayList<>());
+        }
+        gate.setGateChevronsLocked(2);
+
+        StargateAnimator.animateOpening(gate);
+        assertFalse(gate.isGatePortalOpen(), "two chevrons locked of seven");
+
+        gate.setGateChevronsLocked(7);
+        StargateAnimator.animateOpening(gate);
+        assertTrue(gate.isGatePortalOpen(), "all seven locked, so this woosh is the dial's own");
+    }
+
     /**
      * An iris shut partway through the woosh takes back what was drawn, and says nothing more.
      *

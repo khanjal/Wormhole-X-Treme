@@ -40,6 +40,7 @@ class PortalVisualRefreshTest
         gate.getGatePortalBlocks().add(new Location(world, x, y, z));
         gate.getGatePortalBlocks().add(new Location(world, x, y + 1, z));
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         return gate;
     }
 
@@ -57,6 +58,7 @@ class PortalVisualRefreshTest
         assertFalse(StargateManager.getOpenGates().contains(gate), "a new gate is not open");
 
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
         assertTrue(StargateManager.getOpenGates().contains(gate));
 
         gate.setGateActive(false);
@@ -118,6 +120,7 @@ class PortalVisualRefreshTest
         final Stargate gate = new Stargate();
         gate.setGateWorld(world);
         gate.setGateActive(true);
+        gate.setGatePortalOpen(true);
 
         assertFalse(StargateBlockSetup.shouldRedrawFor(gate, new Location(world, 0, 64, 0)));
     }
@@ -185,6 +188,30 @@ class PortalVisualRefreshTest
         verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 
+    /**
+     * A gate still dialling is not drawn open to a player who crosses a chunk nearby.
+     *
+     * <p>Its opening filled, and all its chevrons lit, the moment a player near it crossed a
+     * chunk boundary, seconds before the kawoosh. {@link #aNearbyOpenGateReachesTheSend} is the
+     * same player and gate once the wormhole has formed.
+     */
+    @Test
+    void aGateStillDiallingIsNotDrawnOpenToAPlayerBesideIt()
+    {
+        final World world = mock(World.class);
+        final Stargate gate = openGateAt(world, 100, 64, 100);
+        gate.setGatePortalOpen(false);
+
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.isOnline()).thenReturn(true);
+        when(player.getLocation()).thenReturn(new Location(world, 102, 64, 100));
+
+        StargateBlockSetup.refreshPortalVisuals(player);
+
+        verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
     @Test
     void aClosedGateIsSentToNobodyEvenStandingInIt()
     {
@@ -220,6 +247,9 @@ class PortalVisualRefreshTest
         return gate;
     }
 
+    /** Whether the last {@link #chevronsSentFor} sent anything to the opening's cells, at x = 100. */
+    private static boolean irisCellsSent;
+
     /** Which light blocks, by x, a player arriving by the open gate is sent. */
     private static java.util.Set<Integer> chevronsSentFor(final World here)
     {
@@ -240,6 +270,7 @@ class PortalVisualRefreshTest
             StargateBlockSetup.refreshPortalVisuals(player);
         }
         verify(player, atLeastOnce()).sendBlockChange(sent.capture(), any());
+        irisCellsSent = sent.getAllValues().stream().anyMatch(l -> l.getBlockX() == 100);
         final java.util.Set<Integer> xs = new java.util.TreeSet<>();
         for (final Location l : sent.getAllValues())
         {
@@ -273,5 +304,40 @@ class PortalVisualRefreshTest
         openEightChevronGate(here, there);
 
         assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here));
+    }
+
+    /**
+     * Somebody arriving while the gate still dials is shown the chevrons locked so far, and no more.
+     *
+     * <p>Once the wormhole stopped being drawn before the kawoosh, a late arrival saw a dark frame
+     * until it formed, however many chevrons had locked.
+     */
+    @Test
+    void aGateStillDiallingIsShownOnlyTheChevronsLockedSoFar()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final Stargate gate = openEightChevronGate(here, here);
+        gate.setGatePortalOpen(false);
+        gate.setGateChevronsLocked(3);
+
+        assertEquals(java.util.Set.of(1, 2, 3), chevronsSentFor(here));
+    }
+
+    /** Dialling behind its own shut iris, a gate is shown its iris, and the chevrons locked so far. */
+    @Test
+    void aGateDiallingBehindAShutIrisIsShownItsIris()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("here");
+        final Stargate gate = openEightChevronGate(here, here);
+        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        gate.setGateIrisActive(true);
+        gate.setGatePortalOpen(false);
+        gate.setGateChevronsLocked(2);
+
+        final java.util.Set<Integer> xs = chevronsSentFor(here);
+        assertEquals(java.util.Set.of(1, 2), xs, "only the chevrons locked so far");
+        assertTrue(irisCellsSent, "the shut iris is drawn over the empty opening");
     }
 }

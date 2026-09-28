@@ -117,6 +117,7 @@ class PortalFlightExemptionTest
         destination.setGateWorld(world);
         destination.setGateFacing(BlockFace.NORTH);
         destination.setGateActive(true);
+        destination.setGatePortalOpen(true);
         destination.setGatePlayerTeleportLocation(inside());
         destination.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         StargateManager.addBlockIndex(portal, destination);
@@ -125,6 +126,7 @@ class PortalFlightExemptionTest
         origin.setGateName("origin");
         origin.setGateWorld(world);
         origin.setGateActive(true);
+        origin.setGatePortalOpen(true);
         origin.setGatePlayerTeleportLocation(new Location(world, 500, 70, 500));
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
@@ -280,6 +282,7 @@ class PortalFlightExemptionTest
         // in this fixture: open the same gate and the same step into the same block does
         // hand out the exemption.
         destination.setGateActive(true);
+        destination.setGatePortalOpen(true);
 
         move(outside(), inside());
 

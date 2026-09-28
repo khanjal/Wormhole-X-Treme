@@ -86,6 +86,91 @@ files with PMD before pushing; `generate-test-sources` is what adds the folder:
 mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
 ```
 
+## A player on a real server
+
+MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real server with no player
+on it: `travel-boot.sh` sends an item and a pig through a gate. `scripts/player-boot.sh` puts a
+player on a real server. A [Mineflayer](https://github.com/PrismarineJS/mineflayer) bot joins,
+and the bot, as a player, presses a gate's DHD, runs `/dial`, walks through, and then beams and
+rides a ring pair; it rides a boat, a minecart and a horse through gates, and takes wolves along.
+Each trip fails unless the bot comes out where it should. It checks what the
+bot sees, not the plugin's state: the opening filling and emptying, and where the server puts it.
+
+| Trip | What the bot does, and what must happen |
+|---|---|
+| `gate` | Two Standard gates: DHD, `/dial`, walk in; out at the partner, and the opening fills only after the kawoosh |
+| `beam` | Saves a destination, beams to it from twenty blocks off; lands there facing the way it was saved |
+| `ring` | Makes two circles of slabs a ring pair, walks into one; comes out in the other |
+| `atlantis` | Builds two gates as a player does, `gate build Standard Atlantis` on a DHD button, `preview place`, `gate complete`; the frame is lapis, the chevrons light as sea lanterns, and it travels |
+| `horizontal` | Two `Horizontal` gates flat in the floor; steps off into the opening after the kawoosh and comes out at the partner's arrival point |
+| `lava` | A gate whose portal is set to lava; lava fills the opening after the kawoosh, it still travels, and the far gate shows nether portal |
+| `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("Remote Iris is locked!"); opened, it travels |
+| `mirror` | Makes two banners mirrors and waits for their rooms to be captured (15 seconds or so); the first's view is drawn with no gold behind its wall; right-clicked, it shows the second's room (a gold block); punched, it puts the bot at the second |
+| `boat` | Gets into a boat on a lane of blue ice and drives it into an open gate; out at the partner still in the boat, and still in it two seconds later |
+| `minecart` | Sits in a minecart on a rail line whose end stops short of the opening; powering the first rail launches it, it rolls off the end into the gate, and it must be on the far gate's line, still in the cart, a moment later |
+| `mount` | Saddles and rides a tame horse the whole way: through a gate, then `/wormhole beam` into a ring, then that ring to its partner; still on the same horse after each. Each leg is checked on its own, and the trip names each that failed |
+| `pet` | Wolves tamed to the bot beside a gate whose partner is in the nether. A sitting wolf stays put throughout. With `pets-follow-owner` off, a following wolf must not come when the bot beams there (vanilla brings one within a world, so the trip crosses worlds); with it on, one must come by beam, there and back, and one through the gate. Every leg runs, and the trip names each that failed |
+
+`TRIPS=iris,mirror` runs only the trips named.
+
+A ridden boat or horse is moved by its rider's client, which reports each step to the server;
+Mineflayer does not simulate one, so `drive()` in `journeys.js` sends those steps itself, in a
+straight line on the level. A minecart is the server's, so that trip powers rails instead.
+
+```bash
+bash scripts/fetch-server.sh paper 1.21.11 server.jar    # or download a Paper jar by hand
+mvn -DskipTests package
+bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
+```
+
+It needs Node 22 or newer, which Mineflayer 4.39 requires; the first run installs the bot into `scripts/player-test/node_modules`.
+The version must be one Mineflayer speaks: 1.20.1 to 1.21.11 and 26.1 as of 4.39, not 26.2 or
+26.3. The server listens on port 25599 in offline mode (`BOOT_PORT` changes it, for a second
+server beside one being watched), on the boot tests' flat world with a grass floor rather than
+bedrock (`BOOT_FLOOR`); mob spawning is turned off and anything that spawned is cleared.
+
+**Watching it.** With `OBSERVE=1`, the bot waits for someone to join before it starts, and
+for their answer after each trip; `OBSERVE_WAIT` sets both waits, in seconds (default 600):
+
+```bash
+OBSERVE=1 bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
+```
+
+On Windows, `scripts\watch-local.ps1` does all of it from PowerShell. It stops anything left
+from an earlier local run, builds the plugin, downloads the Paper jar the first time, and starts
+the server in `.local-server\run-<version>` with a fresh world. `-Version 1.20.4`,
+`-Trips gate,boat`, `-Headless` and `-NoBuild` change what it does:
+
+```powershell
+.\scripts\watch-local.ps1
+```
+
+Where PowerShell will not run scripts, `powershell -ExecutionPolicy Bypass -File .\scripts\watch-local.ps1`
+does the same.
+
+Join `localhost:25599` from a Minecraft client of that version under any name. You are made a
+spectator and moved to a spot facing each trip before it starts, and the bot says in chat what to
+watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
+with a summary of each trip's automatic result and your answer, and a `n` fails the run just as a
+failed check does. So does no answer in time, or the watcher leaving: a watched run that nobody
+confirmed does not pass. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`;
+use a new folder each run, since a world already holding the gates makes every setup fail.
+
+The **Player journeys** workflow (`player.yml`) runs the same thing without an observer on
+Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
+itself changes. It does not run on pull requests yet.
+
+What it does not cover yet: sign dialling, other worlds beyond the `pet` trip's gate and beam into
+the nether (so a mirror's trip is within one world, with `mirror-per-world-limit` set to 0), a
+horizontal gate's iris, the other shipped shapes and the Universe and MilkyWay groups, and what a
+preview looks like, which Mineflayer can see only as entities; the `atlantis` trip uses a preview
+but checks only the gate it places. Of vehicles and pets: a boat on water rather than ice, pigs,
+camels, llamas and striders, a mount shared with a second player (which a beam deliberately
+leaves behind, and which needs a second bot), pets by ring or mirror, and pets within one world,
+which vanilla brings along by itself. An item and a mob dropped into a gate are `travel-boot.sh`'s,
+with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
+from the console, act as the player, then check where the bot is and what it sees.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:

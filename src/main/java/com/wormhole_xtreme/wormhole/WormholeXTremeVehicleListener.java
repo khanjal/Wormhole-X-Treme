@@ -207,45 +207,6 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
 
-    /**
-     * Points a rider the way the vehicle is travelling, before they are re-seated.
-     *
-     * <p>The arrival location already carries a yaw worked out from the exit velocity, but
-     * it was only ever applied to the vehicle. A passenger's view direction is theirs, not
-     * the seat's: teleporting the cart does not turn the person in it, and neither does
-     * re-seating them. So a rider arrived still looking the way they had been looking when
-     * they entered, which on a gate turning a corner meant arriving facing sideways or
-     * backwards while the cart drove on ahead.
-     *
-     * <p>Only players have a view to correct. The vehicle teleport has already ejected its
-     * passengers when this runs, so there is no mount to disturb -- and it runs there, right
-     * after the vehicle moves, rather than in the reattach tick. A player teleport makes the
-     * client withhold the packets that follow until it acknowledges the move, and the mount
-     * packet is exactly what would be withheld, which is the failure the delay before
-     * reattaching already exists to avoid. Both moves now sit on the same side of that wait.
-     *
-     * @param child
-     *            the passenger about to be re-seated
-     * @param arrival
-     *            the vehicle's arrival location, carrying the travel-direction yaw
-     */
-    static void faceTravelDirection(final Entity child, final Location arrival)
-    {
-        if (!(child instanceof Player) || (arrival == null))
-        {
-            return;
-        }
-        try
-        {
-            child.teleport(arrival.clone());
-        }
-        catch (final RuntimeException t)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not face rider along travel direction", t);
-        }
-    }
-
     /** What differs between a minecart and a boat when an occupied one goes through a gate. */
     private enum VehicleKind
     {
@@ -274,14 +235,16 @@ class WormholeXTremeVehicleListener implements Listener
     /**
      * Teleport an occupied vehicle through a gate.
      *
-     * <p>Teleports the vehicle, which ejects its passengers server-side, then re-seats them
-     * with exponential backoff and applies the exit velocity once the whole stack is aboard.
+     * <p>{@link RiddenTeleport} moves the vehicle bare and sends the riders after it, each
+     * facing the arrival's travel-direction yaw; they are re-seated here with exponential
+     * backoff and the exit velocity is applied once the whole stack is aboard.
      *
      * @param veh        the vehicle to teleport
      * @param safeTarget the destination location
      * @param exitSpeed  the velocity to apply after reattachment
+     * @return false if the vehicle would not move, everyone left aboard where they were
      */
-    private static void teleportOccupiedVehicle(final Vehicle veh, final Location safeTarget,
+    private static boolean teleportOccupiedVehicle(final Vehicle veh, final Location safeTarget,
         final Vector exitSpeed)
     {
         final VehicleKind kind = VehicleKind.of(veh);
@@ -290,23 +253,20 @@ class WormholeXTremeVehicleListener implements Listener
         collectPassengerPairs(veh, parents, children);
         try
         {
-            veh.teleport(safeTarget);
-            // Face the riders now rather than in the reattach tick below. A player teleport
-            // makes the client withhold the packets that follow until it has acknowledged
-            // the move, and the mount packet is exactly what would be withheld -- the
-            // failure mode the delay before reattaching already exists to avoid. The vehicle
-            // teleport has already ejected them, so there is no mount to disturb yet.
-            for (final Entity rider : children)
+            if (!RiddenTeleport.move(veh, safeTarget, parents, children))
             {
-                faceTravelDirection(rider, safeTarget);
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not move occupied "
+                    + kind.noun + " " + veh.getUniqueId() + "; its riders stay aboard where they are");
+                return false;
             }
             scheduleReattach(veh, parents, children, safeTarget, exitSpeed, kind);
+            return true;
         }
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to teleport occupied " + kind.noun + ", falling back to respawn", t);
-            respawnAndReattach(veh, parents, children, safeTarget, exitSpeed);
+            return respawnAndReattach(veh, parents, children, safeTarget, exitSpeed);
         }
     }
 
@@ -482,6 +442,8 @@ class WormholeXTremeVehicleListener implements Listener
             {
                 if (veh.isValid())
                 {
+                    // Refused on Paper 1.20.4 with riders aboard, a harmless no-op there;
+                    // unseating everyone for a cosmetic nudge would flicker the seat.
                     veh.teleport(resyncLoc);
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
                 }
@@ -498,6 +460,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             try
             {
+                // Refused on Paper 1.20.4 once anyone is back aboard: the retry still runs.
                 veh.teleport(safeTarget);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported " + veh.getUniqueId()
                     + " to force client update (attempt " + attempt + ")");
@@ -518,13 +481,16 @@ class WormholeXTremeVehicleListener implements Listener
      * <p>The replacement is spawned as the vehicle's own type rather than a hardcoded one. A
      * birch boat should come back a birch boat, a chest minecart a chest minecart, and
      * {@code EntityType.BOAT} stopped existing in 1.21.3 when boats were split per wood type.
+     *
+     * @return true if the replacement was spawned, so the riders have somewhere to go
      */
-    private static void respawnAndReattach(final Vehicle veh, final List<Entity> parents,
+    private static boolean respawnAndReattach(final Vehicle veh, final List<Entity> parents,
         final List<Entity> children, final Location safeTarget, final Vector exitSpeed)
     {
+        Vehicle newveh = null;
         try
         {
-            final Vehicle newveh = (Vehicle) safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
+            newveh = (Vehicle) safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
             if ((veh instanceof Minecart oldCart) && (newveh instanceof Minecart newCart))
             {
                 WormholeXTreme.getThisPlugin().getServer().getPluginManager()
@@ -542,6 +508,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed", tt);
         }
+        return newveh != null;
     }
 
 
@@ -617,7 +584,7 @@ class WormholeXTremeVehicleListener implements Listener
             return false;
         }
         // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
-        if (!st.isGateActive() || (st.getGateTarget() == null))
+        if (!st.isGatePortalOpen() || (st.getGateTarget() == null))
         {
             return false;
         }
@@ -647,9 +614,56 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
-        // Travel is settled, so what follows from having travelled can be applied.
+        if (!dispatchVehicleTeleport(st, veh, v, target, passengers))
+        {
+            turnBack(veh, v, passengers);
+            return false;
+        }
+        // The vehicle has gone, so what follows from having travelled can be applied.
+        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player driver))
+        {
+            GateFare.charge(driver, GateFare.affordable(driver));
+        }
         applyTravelRestrictions(st, pendingRestrictions);
-        return dispatchVehicleTeleport(st, veh, v, target, passengers);
+        return true;
+    }
+
+    /**
+     * Sends a vehicle whose trip was refused back out of the portal the way it came.
+     *
+     * <p>Left stopped in the opening, marked as just travelled, it sat there with its riders
+     * held aboard by the portal's dismount rule until the gate shut.
+     *
+     * @param v
+     *            its velocity on the way in
+     */
+    private static void turnBack(final Vehicle veh, final Vector v, final List<Entity> passengers)
+    {
+        forget(recentlyTeleported, veh.getUniqueId());
+        for (final Entity psg : passengers)
+        {
+            if (psg instanceof Player)
+            {
+                forget(recentlyTeleportedPlayersByVehicle, psg.getUniqueId());
+            }
+        }
+        try
+        {
+            veh.setVelocity(v.clone().multiply(-1));
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not turn back a refused vehicle", e);
+        }
+    }
+
+    /** A concurrent set will not look up a null, which a half-built entity can answer. */
+    private static void forget(final Set<UUID> marks, final UUID id)
+    {
+        if (id != null)
+        {
+            marks.remove(id);
+        }
     }
 
     /**
@@ -873,17 +887,22 @@ class WormholeXTremeVehicleListener implements Listener
      */
     private static boolean admitUnderCooldown(final Player p, final List<Player> pendingRestrictions)
     {
-        if (!ConfigManager.isUseCooldownEnabled())
-        {
-            return true;
-        }
-        if (StargateRestrictions.isPlayerUseCooldown(p))
+        // Cooldown before fare, the order the player listener asks them in.
+        final boolean cooldown = ConfigManager.isUseCooldownEnabled();
+        if (cooldown && StargateRestrictions.isPlayerUseCooldown(p))
         {
             p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
             p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
             return false;
         }
-        pendingRestrictions.add(p);
+        if (GateFare.affordable(p) < 0)
+        {
+            return false;
+        }
+        if (cooldown)
+        {
+            pendingRestrictions.add(p);
+        }
         return true;
     }
 
@@ -904,7 +923,7 @@ class WormholeXTremeVehicleListener implements Listener
      *            the far gate's arrival point
      * @param passengers
      *            who is aboard, empty for a vehicle travelling alone
-     * @return true if the vehicle was sent
+     * @return true if the vehicle was sent; false if it would not move, nobody charged
      */
     private static boolean dispatchVehicleTeleport(final Stargate st, final Vehicle veh,
                                                    final Vector v, final Location target,
@@ -918,31 +937,9 @@ class WormholeXTremeVehicleListener implements Listener
             return false;
         }
         faceTheWayItIsGoing(safeTarget, newSpeed, st.getGateTarget().getGateFacing());
-        if (veh != null)
+        if ((veh != null) && !sendVehicle(st, veh, safeTarget, newSpeed, passengers))
         {
-            final java.util.Map<Player, List<Entity>> pets = new java.util.LinkedHashMap<>();
-            for (final Entity passenger : passengers)
-            {
-                if (passenger instanceof Player rider)
-                {
-                    pets.put(rider, PetEscort.gather(rider));
-                }
-            }
-            markVehicleRecentlyTeleported(veh.getUniqueId());
-            if (passengers.isEmpty())
-            {
-                // Unoccupied vehicle: teleport directly and apply exit velocity.
-                veh.teleport(safeTarget);
-                veh.setVelocity(newSpeed);
-            }
-            else
-            {
-                markRidersAsTravellingByVehicle(passengers);
-                // Occupied vehicle: dispatch to type-specific handler.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                teleportOccupiedVehicle(veh, safeTarget, newSpeed);
-            }
-            pets.forEach((rider, theirs) -> PetEscort.follow(theirs, rider));
+            return false;
         }
 
         if (ConfigManager.getTimeoutShutdown() == 0)
@@ -950,6 +947,46 @@ class WormholeXTremeVehicleListener implements Listener
             st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
         }
         return true;
+    }
+
+    /**
+     * Moves the vehicle and whoever is aboard, and brings the riders' pets after them.
+     *
+     * @return false if the vehicle would not move, so nobody went anywhere
+     */
+    private static boolean sendVehicle(final Stargate st, final Vehicle veh, final Location safeTarget,
+                                       final Vector newSpeed, final List<Entity> passengers)
+    {
+        final java.util.Map<Player, List<Entity>> pets = new java.util.LinkedHashMap<>();
+        for (final Entity passenger : passengers)
+        {
+            if (passenger instanceof Player rider)
+            {
+                pets.put(rider, PetEscort.gather(rider));
+            }
+        }
+        // Left in place if the move fails, where it holds off a retry for a second.
+        markVehicleRecentlyTeleported(veh.getUniqueId());
+        final boolean moved;
+        if (passengers.isEmpty())
+        {
+            moved = veh.teleport(safeTarget);
+            if (moved)
+            {
+                veh.setVelocity(newSpeed);
+            }
+        }
+        else
+        {
+            markRidersAsTravellingByVehicle(passengers);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
+            moved = teleportOccupiedVehicle(veh, safeTarget, newSpeed);
+        }
+        if (moved)
+        {
+            pets.forEach((rider, theirs) -> PetEscort.follow(theirs, rider));
+        }
+        return moved;
     }
 
     /**
@@ -990,9 +1027,9 @@ class WormholeXTremeVehicleListener implements Listener
     /**
      * Marks the players aboard, so the player listener leaves them where they are.
      *
-     * <p>{@code veh.teleport()} ejects its passengers on the source side, which the player
-     * listener sees as a player moving inside a gate. Unmarked, it sends each of them through
-     * on foot and the vehicle arrives empty.
+     * <p>The passengers are taken off the vehicle to move it, which the player listener sees
+     * as a player moving inside a gate. Unmarked, it sends each of them through on foot and
+     * the vehicle arrives empty.
      *
      * @param passengers
      *            who is aboard; anything that is not a player is left alone

@@ -63,6 +63,7 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | Command | What it does |
 | --- | --- |
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
+| `mirror create <name> <world> <x> <y> <z>` | The same for the banner at those coordinates, for the console and command blocks; x y z may be `~`, counted from whoever runs it |
 | `mirror set [name] -start <mirror\|-none>` | The mirror a right-click opens onto first; `-none` takes it away |
 | `mirror set [name] -stamp [look]` | Makes the banner look like where it goes. See [Its look](#its-look) |
 | `mirror set [name] -capture` | Takes the room's capture again |

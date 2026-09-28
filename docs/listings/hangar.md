@@ -333,7 +333,7 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.8.0` |
+| Version | `1.8.1` |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
@@ -347,7 +347,7 @@ Hangar's form has no version title; the version string is the title.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.8.0` is the newest release.
+1. **Check which version the project carries.** `v1.8.1` is the newest release.
 2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
    of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.

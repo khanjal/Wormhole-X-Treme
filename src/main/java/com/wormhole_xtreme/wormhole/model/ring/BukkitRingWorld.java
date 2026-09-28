@@ -318,8 +318,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             traveller.setNoDamageTicks(5);
         }
-        // Teleporting an entity throws off whatever is riding it, so the stack is noted
-        // first and put back once everything has landed.
+        // The stack is noted first, moved apart, and put back once everything has landed.
         final List<Entity> parents = new ArrayList<>();
         final List<Entity> children = new ArrayList<>();
         com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
@@ -327,10 +326,12 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         final List<Entity> pets = (entity instanceof Player owner)
             ? com.wormhole_xtreme.wormhole.PetEscort.gather(owner) : List.of();
 
-        entity.teleport(arrival);
-        for (final Entity child : children)
+        if (!com.wormhole_xtreme.wormhole.RiddenTeleport.move(entity, arrival, parents, children))
         {
-            child.teleport(arrival);
+            // Everyone is still aboard at this end, so nobody is told they arrived.
+            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+                "Rings could not move " + entity.getType() + "; it stays where it is");
+            return;
         }
         reseat(parents, children);
         if (entity instanceof Player owner)

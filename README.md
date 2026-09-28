@@ -133,6 +133,15 @@ This fork brings it to modern Minecraft, and adds rings, beaming and mirrors.
 [docs/LOGO.md](docs/LOGO.md) explains it, [TRADEMARK.md](TRADEMARK.md) covers use of the name and
 mark, and [issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187) tracks replacing it.
 
+### Tested with
+
+The plugin could not be tested the way it is without:
+
+- [MockBukkit](https://mockbukkit.org/), a simulated server the whole plugin loads onto, so a
+  journey through a gate runs as a test
+- [Mineflayer](https://github.com/PrismarineJS/mineflayer), a bot that joins a real server and
+  travels its gates, beams and rings as a player would
+
 ## Contributing
 
 Pull requests against `main`, with tests where the change touches behaviour. See

@@ -121,22 +121,19 @@ public class WormholeXTreme extends JavaPlugin
      * <p>Spigot moved {@code EntityDismountEvent} from {@code org.spigotmc.event.entity} to
      * {@code org.bukkit.event.entity} in 1.20.4, and dropped the old package in 1.20.6. No
      * single import covers the versions this plugin supports, so there is a listener for
-     * each and only one of them will resolve on any given server.
+     * each. 1.20.4 has both classes, but only the new one fires there.
      *
-     * <p>The failure being caught is {@link NoClassDefFoundError}, raised when the listener
-     * class is loaded and its event type is not there. That is an Error rather than an
-     * Exception, and this is the one place where catching one is right: it is the documented
-     * way to ask a server which API it has, and the answer decides nothing else.
+     * <p>Chosen by whether the event class exists, not by trying to register: {@code registerEvents}
+     * catches a missing event type itself, logs an ERROR and registers nothing, so before 1.20.4
+     * the first listener looked registered and the legacy one was never tried.
      *
      * @param pm
      *            the plugin manager to register with
      */
-    private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
+    static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
                                                  final WormholeXTreme plugin)
     {
-        for (final String candidate : new String[] {
-            "com.wormhole_xtreme.wormhole.GateDismountListener",
-            "com.wormhole_xtreme.wormhole.LegacyGateDismountListener" })
+        for (final String candidate : dismountListenersFor(WormholeXTreme::serverHasClass))
         {
             try
             {
@@ -145,11 +142,8 @@ public class WormholeXTreme extends JavaPlugin
                 plugin.prettyLog(Level.FINE, "Dismount handling registered via " + candidate);
                 return;
             }
-            catch (final NoClassDefFoundError notOnThisServer)
-            {
-                // Not on this server's Bukkit; the loop moves to the next candidate by itself.
-            }
-            catch (final ReflectiveOperationException | RuntimeException e)
+            // LinkageError too: a listener that fails to link must not stop the plugin enabling.
+            catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
             {
                 plugin.prettyLog(Level.FINE,
                     "Could not register " + candidate, e);
@@ -157,6 +151,40 @@ public class WormholeXTreme extends JavaPlugin
         }
         plugin.prettyLog(Level.WARNING,
             "No dismount event found on this server; riders will be able to dismount inside an open gate.");
+    }
+
+    /**
+     * The dismount listeners whose event this server has, newest package first.
+     *
+     * @param serverHasClass
+     *            whether a class of the given name is on the server
+     * @return listener class names to try in order; empty if neither event exists
+     */
+    static List<String> dismountListenersFor(final java.util.function.Predicate<String> serverHasClass)
+    {
+        final List<String> listeners = new java.util.ArrayList<>(2);
+        if (serverHasClass.test("org.bukkit.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.GateDismountListener");
+        }
+        if (serverHasClass.test("org.spigotmc.event.entity.EntityDismountEvent"))
+        {
+            listeners.add("com.wormhole_xtreme.wormhole.LegacyGateDismountListener");
+        }
+        return listeners;
+    }
+
+    static boolean serverHasClass(final String name)
+    {
+        try
+        {
+            Class.forName(name, false, WormholeXTreme.class.getClassLoader());
+            return true;
+        }
+        catch (final ClassNotFoundException | LinkageError absent)
+        {
+            return false;
+        }
     }
 
     // Help integration removed; no setHelp
@@ -274,6 +302,8 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.FINE, "Failed to stop iris sweeps", e);
             }
+            // Bukkit drops the tickets themselves; a reload must not start with stale counts.
+            com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
@@ -285,18 +315,15 @@ public class WormholeXTreme extends JavaPlugin
                 // confirmation is FINE-level (see StargateYamlManager.saveStargate), so
                 // this logs one summary line instead of one per gate -- a server with a
                 // hundred gates does not need a hundred identical lines on every restart.
+                int saved = 0;
                 for (final Stargate gate : gates)
                 {
-                    if (gate.isGateActive() || gate.isGateLightsActive())
-                    {
-                        gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
-                    }
-                    StargateDBManager.saveStargate(gate);
+                    shutDownForDisable(this, gate);
+                    saved += saveForDisable(this, gate) ? 1 : 0;
                 }
                 if (!gates.isEmpty())
                 {
-                    prettyLog(Level.INFO, "Saved " + gates.size() + " gate"
-                        + (gates.size() == 1 ? "" : "s") + " to disk.");
+                    prettyLog(Level.INFO, savedSummary(saved, gates.size()));
                 }
 
                 saveRings();
@@ -310,6 +337,57 @@ public class WormholeXTreme extends JavaPlugin
             {
                     prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
+    }
+
+    /**
+     * Shuts one open gate for the plugin stopping, without letting it stop the saves after it.
+     *
+     * <p>One gate that fails to shut used to end the save loop, so every gate after it, and the rings,
+     * beams and mirrors, went unsaved.
+     */
+    static void shutDownForDisable(final WormholeXTreme plugin, final Stargate gate)
+    {
+        if (!(gate.isGateActive() || gate.isGateLightsActive()))
+        {
+            return;
+        }
+        try
+        {
+            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            plugin.prettyLog(Level.WARNING, "Could not shut " + gate.getGateName() + " cleanly; it is saved as it stands", e);
+        }
+    }
+
+    /**
+     * Writes one gate out for the plugin stopping; a failed write is said, and the next gate still saved.
+     *
+     * @return whether it was written
+     */
+    static boolean saveForDisable(final WormholeXTreme plugin, final Stargate gate)
+    {
+        try
+        {
+            StargateDBManager.saveStargate(gate);
+            return true;
+        }
+        catch (final Exception | LinkageError e)
+        {
+            plugin.prettyLog(Level.SEVERE, "Could not save " + gate.getGateName() + " on shutdown", e);
+            return false;
+        }
+    }
+
+    /** The shutdown's one line about gates, which must not read as all saved when some were not. */
+    static String savedSummary(final int saved, final int total)
+    {
+        if (saved != total)
+        {
+            return "Saved " + saved + " of " + total + " gates to disk; the errors above say which were not.";
+        }
+        return "Saved " + total + ((total == 1) ? " gate" : " gates") + " to disk.";
     }
 
     /**

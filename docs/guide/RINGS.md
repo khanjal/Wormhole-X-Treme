@@ -45,6 +45,21 @@ notes.
 A refusal says exactly what is wrong. `/wormhole ring cancel` abandons a half-built pair and gives
 its slabs back; `/wormhole ring remove` lays both circles back out so a pair can be moved.
 
+### From the console and command blocks
+
+For adventure maps, scripts and servers set up with nobody standing in the rings:
+
+| Command | What it does |
+| --- | --- |
+| `ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>` | Pairs the two circles laid around those blocks, each a block inside its circle, checked as `ring create` checks them. Says the pair's id and where each end puts an arrival. |
+| `ring fire <id>` | Sets a pair off as if somebody had walked in. Whatever is inside either end when it flashes goes to the other. |
+| `ring fire <world> <x> <y> <z>` | The same, for the pair with an end around that block, so a command block beside a ring fires it without knowing its id. |
+
+Coordinates may be `~`, counted from the command block or player running the command; under
+`/execute as` or `positioned`, still from whoever ran it, not from where `/execute` points. A player
+needs `wormhole.ring.admin`; the console and command blocks may always. A pair built this way has
+no owner, so it is public until `ring owner` gives it one.
+
 ## Using rings
 
 Walk in. The floor opens along the ring's pattern and counts down; step clear before it commits and
@@ -89,7 +104,7 @@ In `config.yml`, under its `# --- Transport rings ---` heading. Every key is fla
 | `ring-default-access` | `PRIVATE` | What a new pair starts as. |
 | `ring-default-style` | `CONCURRENT` | How the stack deploys. |
 | `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as. |
-| `ring-default-flash` | `REDSTONE_LAMP` | What a ring turns to as the light passes. |
+| `ring-default-flash` | `GLOWSTONE` | What a ring turns to as the light passes. |
 | `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
 | `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `ring-outline-ticks` | 40 | How long that outline stays up. |
@@ -116,7 +131,9 @@ Access is per pair because both ends fire together. A private pair is usable by 
 anyone named with `/wormhole ring allow <player>` — which covers being carried as well as setting it
 off. `ring deny <player>` takes that back, and `ring owner <player>` hands the pair over.
 
-Other ring commands: `ring list`, `ring remove [id]`, `ring cancel`.
+Other ring commands: `ring list`, `ring remove [id]`, `ring cancel`, and
+[`ring build` and `ring fire`](#from-the-console-and-command-blocks) for the console and command
+blocks.
 
 Who may build, use and manage rings is set by the four `wormhole.ring.*` nodes in the
 [server guide](SERVER.md#permissions). Being on an allow list lets somebody travel, not recolour,

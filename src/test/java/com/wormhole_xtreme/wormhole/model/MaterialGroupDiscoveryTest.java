@@ -64,8 +64,8 @@ class MaterialGroupDiscoveryTest
     @Test
     void shapesDisagreeingOnMaterialsYieldNoPalette()
     {
-        // This is the shipped situation: every stock shape is framed in obsidian but they
-        // ask for three different irises, so no single obsidian palette exists. Guessing
+        // The shipped shapes are like this: all framed in obsidian, but the horizontal
+        // ones pin a glass iris, so no single obsidian palette exists. Guessing
         // one would silently restyle whichever shapes lost the vote.
         final List<StargateShape> shapes = new ArrayList<>();
         shapes.add(shape(Material.BLACKSTONE, Material.GLASS, Material.GLOWSTONE));

@@ -13,7 +13,7 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.8.0` — newest release. Check which jar each site actually carries before bumping its field. |
+| Version | `1.8.1` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
@@ -224,6 +224,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum
   distance and height between two ends.
 - **Name an end** and its partner tells travellers where they are heading.
+- **Build and fire them from command blocks.** `ring build` pairs two laid circles by their
+  coordinates and `ring fire` sets a pair off with nobody in it, from console or a command block,
+  and `~` counts from the block — so a map's rings keep working wherever it is pasted.
 
 ### Beaming
 
@@ -247,7 +250,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 ### Quantum mirrors
 
 - **One banner on a wall** and `/wormhole mirror create <name>`. That is the whole job. Hang two
-  banners side by side and the pair is one mirror, two wide and two tall.
+  banners side by side and the pair is one mirror, two wide and two tall. From console or a
+  command block, give the banner's world and coordinates instead.
 - **It opens onto the room beyond.** Walk up and the banner gives way to an opening its own size
   showing another world's room in real blocks — so the view has depth and shifts as you move past
   it. Nothing in the world changes; only the players looking in are sent the view.

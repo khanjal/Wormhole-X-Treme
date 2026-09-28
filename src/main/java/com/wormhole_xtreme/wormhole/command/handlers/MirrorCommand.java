@@ -17,6 +17,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
@@ -111,6 +112,12 @@ public class MirrorCommand implements SubCommand
 
     /** The verb that makes a mirror. */
     private static final String CREATE = "create";
+
+    /** {@code mirror create <name> <world> <x> <y> <z>}, with the verb's own word in front. */
+    private static final int CREATE_AT_WORDS = 7;
+
+    /** Both forms of {@code create}, for a usage line. */
+    private static final String CREATE_USAGE = "create <name> [<world> <x> <y> <z>]";
 
     /** The verb that changes one thing a mirror has. */
     private static final String SET = "set";
@@ -269,6 +276,9 @@ public class MirrorCommand implements SubCommand
      * both, different mirrors  refused; one of them would be abandoned silently
      * </pre>
      *
+     * <p>Given a world and x y z, it takes the banner there instead, so the console and command
+     * blocks can make one.
+     *
      * <p>The first four all carry the whole mirror forward rather than rebuilding it from a
      * name and a block. Rebuilding was the old behaviour and it lost the destination and the look
      * quietly. A renamed mirror came out valid and blank, and the reply said "It goes nowhere
@@ -281,13 +291,12 @@ public class MirrorCommand implements SubCommand
      */
     private static void create(final CommandSender sender, final String[] args)
     {
-        final Player player = asPlayer(sender);
-        if ((player == null) || !named(sender, args, "create <name>") || !nameFree(sender, args[2]))
+        if (!named(sender, args, CREATE_USAGE) || !nameFree(sender, args[2]))
         {
             return;
         }
         final String name = args[2];
-        final Block block = lookedAtBanner(player);
+        final Block block = (args.length > 3) ? bannerAt(sender, args) : lookedAtBanner(sender);
         if (block == null)
         {
             return;
@@ -963,17 +972,57 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
+     * The banner at {@code <world> <x> <y> <z>}, for {@code create} from the console or a command
+     * block, or null with the reason already sent. x y z may be {@code ~}, counted from whoever ran it.
+     */
+    private static Block bannerAt(final CommandSender sender, final String[] args)
+    {
+        if ((args.length != CREATE_AT_WORDS) || !Coordinates.isCoordinate(args[4])
+            || !Coordinates.isCoordinate(args[5]) || !Coordinates.isCoordinate(args[6]))
+        {
+            sayUsage(sender, CREATE_USAGE);
+            return null;
+        }
+        final World world = Bukkit.getWorld(args[3]);
+        if (world == null)
+        {
+            say(sender, "No world called " + MirrorText.name(args[3]) + " is loaded.");
+            return null;
+        }
+        final String unreadable = Coordinates.whyNotReadable(sender, world, args[4], args[5], args[6]);
+        if (unreadable != null)
+        {
+            say(sender, unreadable);
+            return null;
+        }
+        final int[] at = Coordinates.resolve(sender, args[4], args[5], args[6]);
+        final Block block = world.getBlockAt(at[0], at[1], at[2]);
+        if (!isBanner(block))
+        {
+            say(sender, "The block at " + at[0] + " " + at[1] + " " + at[2] + " is "
+                + MirrorText.name(block.getType().name().toLowerCase(Locale.ROOT)) + ", not a banner.");
+            return null;
+        }
+        return block;
+    }
+
+    /**
      * The banner the player is looking at, or null with the reason already sent.
      *
-     * <p>Both banner families are accepted. Requiring a wall would rule out a banner on a post
-     * in the middle of a room, which is most of what a museum corridor is made of.
+     * <p>Both banner families are found, so a mirror made on a post before those were refused
+     * can still be named; {@link MirrorPlacement#refusal} is what keeps a new one off a post.
      *
-     * @param player
-     *            whoever is looking
+     * @param sender
+     *            whoever is looking; anyone but a player is told it has to be run in game
      * @return the banner block, or null
      */
-    private static Block lookedAtBanner(final Player player)
+    private static Block lookedAtBanner(final CommandSender sender)
     {
+        final Player player = asPlayer(sender);
+        if (player == null)
+        {
+            return null;
+        }
         final Block exact = player.getTargetBlockExact(REACH);
         final Block banner = bannerInSight(exact, player.getLineOfSight(null, REACH));
         if (banner != null)
@@ -987,8 +1036,7 @@ public class MirrorCommand implements SubCommand
         }
         say(player, "That is a "
             + MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))
-            + ", not a banner. A mirror has to be a banner -- wall-mounted or"
-            + " freestanding, either is fine.");
+            + ", not a banner. A mirror has to be a banner hung on a wall.");
         return null;
     }
 
@@ -1061,7 +1109,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Says where a banner on a post has to be clicked, at the moment one becomes a mirror.
+     * Says where a banner on a post has to be clicked, when a mirror on one is renamed.
      *
      * <p>A standing banner is drawn about two blocks tall and only its base can be clicked --
      * the cloth above has nothing to hit, so a right-click aimed at it passes straight through
@@ -1073,9 +1121,8 @@ public class MirrorCommand implements SubCommand
      * just named. Only for the standing family; a wall banner is drawn inside its own block and
      * can be clicked anywhere on it.
      *
-     * <p>Not a refusal. A banner on a post in the middle of a room is most of what a museum
-     * corridor is made of, and the mechanic is worth keeping for it -- what was missing was
-     * anybody being told how it behaves.
+     * <p>A new mirror is refused a post before this is reached, so only one made on a post
+     * before that refusal existed, and renamed since, ever hears it.
      */
     private static void sayWhereToClick(final CommandSender sender, final Block block)
     {

@@ -27,9 +27,45 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 final class GateDismount
 {
+    /**
+     * The passengers {@link RiddenTeleport} is taking off right now; main thread only. By
+     * identity: the event hands back the same cached Bukkit entity the passenger list held.
+     */
+    private static final java.util.Set<Entity> UNSEATING =
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
     /** Static helpers only. */
     private GateDismount()
     {
+    }
+
+    /**
+     * Runs {@code unseat} with this rule off for {@code riders} alone, so the plugin's own
+     * dismount at a portal is not refused by its own listener, and nobody else's is waved through.
+     *
+     * @param riders
+     *            the passengers being taken off
+     * @param unseat
+     *            the dismounts to allow
+     */
+    static void allowWhile(final java.util.Collection<? extends Entity> riders, final Runnable unseat)
+    {
+        final java.util.List<Entity> added = new java.util.ArrayList<>();
+        for (final Entity rider : riders)
+        {
+            if (UNSEATING.add(rider))
+            {
+                added.add(rider);
+            }
+        }
+        try
+        {
+            unseat.run();
+        }
+        finally
+        {
+            added.forEach(UNSEATING::remove);
+        }
     }
 
     /**
@@ -41,7 +77,7 @@ final class GateDismount
      */
     static boolean shouldRefuse(final Entity who)
     {
-        if (!(who instanceof Player))
+        if (!(who instanceof Player) || UNSEATING.contains(who))
         {
             return false;
         }
@@ -50,7 +86,7 @@ final class GateDismount
             final Location loc = who.getLocation();
             final Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             final Stargate s = StargateManager.getGateFromBlock(b);
-            return (s != null) && s.isGateActive() && StargateManager.isPortalBlock(b);
+            return (s != null) && s.isGatePortalOpen() && StargateManager.isPortalBlock(b);
         }
         catch (final RuntimeException ignore)
         {

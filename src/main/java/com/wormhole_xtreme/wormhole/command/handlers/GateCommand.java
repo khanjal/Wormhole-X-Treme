@@ -45,11 +45,12 @@ public class GateCommand implements SubCommand
     private static final String IMPORT = "import";
     private static final String SHAPES = "shapes";
     private static final String GO = "go";
+    private static final String DIAL = "dial";
 
     /** The verbs, in the order they are offered: building, using, looking after, then shapes and imports. */
     private static final List<String> VERBS = Arrays.asList(
         BUILD, PREVIEW, COMPLETE,
-        "list", GO, FORCE,
+        "list", GO, DIAL, FORCE,
         "edit", REMOVE, REGEN, VALIDATE,
         SHAPES, IMPORT);
 
@@ -89,6 +90,7 @@ public class GateCommand implements SubCommand
     static
     {
         usage("/wormhole gate build <shape> [group]", BUILD);
+        usage(GateConsoleCommands.DIAL_USAGE, DIAL);
         usage("/wormhole gate preview <action>", PREVIEW);
         usage("/wormhole gate complete <name> [idc=IDC] [net=NET]", COMPLETE, "create");
         usage("/wormhole gate list [network]", "list");
@@ -124,7 +126,7 @@ public class GateCommand implements SubCommand
     /** The verbs under the job they are for, as the guide groups them. */
     private static final String[][] JOBS = {
         { "Building", BUILD, PREVIEW, COMPLETE },
-        { "Using gates", "list", GO, FORCE },
+        { "Using gates", "list", GO, DIAL, FORCE },
         { "Looking after gates", "edit", REMOVE, REGEN, VALIDATE },
         { "Shapes and imports", SHAPES, IMPORT } };
 
@@ -142,6 +144,20 @@ public class GateCommand implements SubCommand
             }
             sender.sendMessage("  " + ChatText.heading(job[0] + ":") + " " + String.join(", ", verbs));
         }
+    }
+
+    /**
+     * With coordinates a gate is built where it is told, by anyone with wormhole.config; the
+     * shape-and-group form is a player's, building in front of them.
+     */
+    private static boolean build(final CommandSender sender, final String verb, final String[] rest)
+    {
+        if (rest.length < GateConsoleCommands.SHORTEST_COORDINATE_ATTEMPT)
+        {
+            return new Build().onCommand(sender, null, verb, rest);
+        }
+        GateConsoleCommands.build(sender, rest);
+        return true;
     }
 
     /** Runs one verb; false when its handler could not use the line. */
@@ -182,7 +198,12 @@ public class GateCommand implements SubCommand
         }
         if (BUILD.equals(verb))
         {
-            return new Build().onCommand(sender, null, verb, rest);
+            return build(sender, verb, rest);
+        }
+        if (DIAL.equals(verb))
+        {
+            GateConsoleCommands.dial(sender, rest);
+            return true;
         }
         if (PREVIEW.equals(verb))
         {

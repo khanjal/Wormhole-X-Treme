@@ -290,12 +290,37 @@ public class StargateManager
         {
             return false;
         }
+        completeStargate(complete, p, name, idc, network);
+        return true;
+    }
 
+    /**
+     * Completes a gate already detected, and registers and saves it.
+     *
+     * <p>With no builder, as from the console, the gate has no owner: anyone may use it, and an admin
+     * can give it one with {@code gate edit owner}.
+     *
+     * @param complete
+     *            the detected gate
+     * @param builder
+     *            who built it, or null
+     * @param idc
+     *            the iris deactivation code; null or empty for no iris
+     * @param network
+     *            the network name, empty for none
+     */
+    public static void completeStargate(final Stargate complete, final Player builder, final String name,
+        final String idc, final String network)
+    {
         joinNetwork(complete, network);
-        complete.setGateOwner(p.getUniqueId().toString());
-        complete.setGateOwnerName(p.getName());
+        if (builder != null)
+        {
+            complete.setGateOwner(builder.getUniqueId().toString());
+            complete.setGateOwnerName(builder.getName());
+        }
         complete.completeGate(name, idc);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, ((builder != null) ? "Player: " + builder.getName()
+            : "A command") + " completed a wormhole: " + complete.getGateName());
 
         addStargate(complete);
         logGateBlocks(complete);
@@ -303,10 +328,9 @@ public class StargateManager
 
         // Announced once the gate is registered and saved, so a listener can look it up by
         // name and find it already there.
-        com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, p);
+        com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, builder);
 
         initialiseDialSign(complete);
-        return true;
     }
 
     /**

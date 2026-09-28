@@ -90,7 +90,26 @@ public final class CommandHandlerUtils
      */
     public static boolean hasConfigPermission(final CommandSender sender)
     {
-        return !(sender instanceof Player player) || WXPermissions.checkWXPermissions(player, PermissionType.CONFIG);
+        return !(issuer(sender) instanceof Player player) || WXPermissions.checkWXPermissions(player, PermissionType.CONFIG);
+    }
+
+    /**
+     * Who a command's rights are asked of: for a command a plugin runs through a proxy, the proxy's
+     * caller, not its callee. Paper hands a plugin command run under {@code /execute} the sender that
+     * ran it, not a proxy, so this matters only to another plugin dispatching through one.
+     *
+     * @param sender
+     *            the sender Bukkit handed the command, or null
+     * @return the sender behind any proxies
+     */
+    public static CommandSender issuer(final CommandSender sender)
+    {
+        CommandSender who = sender;
+        while (who instanceof org.bukkit.command.ProxiedCommandSender proxied)
+        {
+            who = proxied.getCaller();
+        }
+        return who;
     }
 
     public static void setGateCustomAll(final Stargate stargate, final boolean customEnabled)
