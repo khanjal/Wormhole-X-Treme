@@ -16,7 +16,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 
 - **Post oldest first.** Each site treats the newest upload as current, and Spigot makes the last
   update posted the resource's download. Going oldest to newest in one sitting leaves each site on
-  1.8.0 with the history in order.
+  1.8.1 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
 - **Tick each version's own Minecraft range** on Modrinth and Hangar, from its section below, not
@@ -35,6 +35,46 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+
+## 1.8.1
+
+Released 2026-09-28.
+
+| Field | Value |
+|---|---|
+| Version (all three sites) | `1.8.1` |
+| Title (Spigot update title, Modrinth version title) | `1.8.1 - Rings and mirrors from command blocks; travel fixes` |
+| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+
+Modrinth and Hangar changelog:
+
+````markdown
+**Upgrading from 1.8.0 — nothing you have to do.** Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
+
+- **Rings and mirrors from the console and command blocks**: `ring build`, `ring fire` and `mirror create` take a world and coordinates, and `~` coordinates count from the command block, so a map's command blocks keep working wherever it is pasted.
+- **Nothing goes through a gate until its kawoosh is over.**
+- **A following pet comes with its owner into another world**, and a ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.
+- **An item dropped into a gate comes out below the far gate**, not thrown several blocks from it.
+- A ring's transport now flashes glowstone by default. An existing `config.yml` and existing rings keep the redstone lamp.
+
+[Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#181-2026-09-28)
+````
+
+Spigot update message:
+
+```
+[B]Upgrading from 1.8.0 - nothing you have to do.[/B] Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
+
+[LIST]
+[*][B]Rings and mirrors from the console and command blocks[/B]: [ICODE]ring build[/ICODE], [ICODE]ring fire[/ICODE] and [ICODE]mirror create[/ICODE] take a world and coordinates, and [ICODE]~[/ICODE] coordinates count from the command block, so a map's command blocks keep working wherever it is pasted.
+[*][B]Nothing goes through a gate until its kawoosh is over.[/B]
+[*][B]A following pet comes with its owner into another world[/B], and a ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.
+[*][B]An item dropped into a gate comes out below the far gate[/B], not thrown several blocks from it.
+[*]A ring's transport now flashes glowstone by default. An existing [ICODE]config.yml[/ICODE] and existing rings keep the redstone lamp.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#181-2026-09-28]Full changelog[/URL]
+```
 
 ## 1.8.0
 

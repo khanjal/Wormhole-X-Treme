@@ -18,7 +18,7 @@ Spigot's. The ones that are *not* marked were confirmed against a live resource 
 | Title | `Wormhole X-Treme` |
 | Tag line | `Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3` |
 | Category **(assumed)** | Transportation, under Spigot Plugins. Mechanics is the second choice. |
-| Version | `1.8.0` — newest release |
+| Version | `1.8.1` — newest release |
 | Native Major MC Version | `1.20` |
 | Tested Major MC Versions | everything from 1.20 through 26.3 |
 | Tags **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
@@ -355,7 +355,7 @@ is an upload in the first place — see [Fields](#fields).
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the resource carries.** `v1.8.0` is the newest release. Upload the newer
+1. **Check which version the resource carries.** `v1.8.1` is the newest release. Upload the newer
    jar and update the Version field if it has not been done.
 2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,
