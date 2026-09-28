@@ -18,7 +18,7 @@ Spigot's. The ones that are *not* marked were confirmed against a live resource 
 | Title | `Wormhole X-Treme` |
 | Tag line | `Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3` |
 | Category **(assumed)** | Transportation, under Spigot Plugins. Mechanics is the second choice. |
-| Version | `1.8.0` — newest release |
+| Version | `1.8.1` — newest release |
 | Native Major MC Version | `1.20` |
 | Tested Major MC Versions | everything from 1.20 through 26.3 |
 | Tags **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
@@ -114,6 +114,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Owners, access and quotas.[/B] Pairs start public or private, [ICODE]ring allow[/ICODE] and [ICODE]ring deny[/ICODE] manage a private pair's list, [ICODE]ring owner[/ICODE] hands it over, and a per-player quota caps how many anyone may own.
 [*][B]Every timing is a setting[/B] — countdown, cooldown, animation speed, how long the stack settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum distance and height between two ends.
 [*][B]Name an end[/B] and its partner tells travellers where they are heading.
+[*][B]Build and fire them from command blocks.[/B] [ICODE]ring build[/ICODE] pairs two laid circles by their coordinates and [ICODE]ring fire[/ICODE] sets a pair off with nobody in it, from console or a command block, and [ICODE]~[/ICODE] counts from the block — so a map's rings keep working wherever it is pasted.
 [/LIST]
 
 
@@ -138,7 +139,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/mirrors/mirror-effects.webp[/IMG][/CENTER]
 
 [LIST]
-[*][B]One banner on a wall[/B] and [ICODE]/wormhole mirror create <name>[/ICODE]. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall.
+[*][B]One banner on a wall[/B] and [ICODE]/wormhole mirror create <name>[/ICODE]. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall. From console or a command block, give the banner's world and coordinates instead.
 [*][B]It opens onto the room beyond.[/B] Walk up and the banner gives way to an opening its own size showing another world's room in real blocks — so the view has depth and shifts as you move past it. Nothing in the world changes; only the players looking in are sent the view.
 [*][B]Right-click to choose, punch to travel.[/B] Right-click steps through the other mirrors by name; punch it and you land in front of that mirror's banner, facing out into its room. A whole round trip takes three seconds and no commands.
 [*][B]A look for every biome in the game[/B], plus [ICODE]hub[/ICODE], [ICODE]exit[/ICODE], [ICODE]market[/ICODE], [ICODE]warning[/ICODE], [ICODE]private[/ICODE], [ICODE]shrine[/ICODE], [ICODE]vault[/ICODE] and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
@@ -355,7 +356,7 @@ is an upload in the first place — see [Fields](#fields).
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the resource carries.** `v1.8.0` is the newest release. Upload the newer
+1. **Check which version the resource carries.** `v1.8.1` is the newest release. Upload the newer
    jar and update the Version field if it has not been done.
 2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,

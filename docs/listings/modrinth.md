@@ -252,6 +252,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Owners, access and quotas.** Pairs start public or private, `ring allow` and `ring deny` manage a private pair's list, `ring owner` hands it over, and a per-player quota caps how many anyone may own.
 - **Every timing is a setting** — countdown, cooldown, animation speed, how long the stack settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum distance and height between two ends.
 - **Name an end** and its partner tells travellers where they are heading.
+- **Build and fire them from command blocks.** `ring build` pairs two laid circles by their coordinates and `ring fire` sets a pair off with nobody in it, from console or a command block, and `~` counts from the block — so a map's rings keep working wherever it is pasted.
 
 ## ★ Beaming
 
@@ -270,7 +271,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 ![A mirror opening onto another world](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/mirrors/mirror-effects.webp)
 
-- **One banner on a wall** and `/wormhole mirror create <name>`. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall.
+- **One banner on a wall** and `/wormhole mirror create <name>`. That is the whole job. Hang two banners side by side and the pair is one mirror, two wide and two tall. From console or a command block, give the banner's world and coordinates instead.
 - **It opens onto the room beyond.** Walk up and the banner gives way to an opening its own size showing another world's room in real blocks — so the view has depth and shifts as you move past it. Nothing in the world changes; only the players looking in are sent the view.
 - **Right-click to choose, punch to travel.** Right-click steps through the other mirrors by name; punch it and you land in front of that mirror's banner, facing out into its room. A whole round trip takes three seconds and no commands.
 - **A look for every biome in the game**, plus `hub`, `exit`, `market`, `warning`, `private`, `shrine`, `vault` and more. They are plain text files: edit one and it stays edited, delete one and it comes back, add your own and the plugin offers it.
@@ -410,7 +411,7 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.8.0` |
+| Version number | `1.8.1` |
 | Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
@@ -425,7 +426,7 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.8.0` is the newest release.
+1. **Check which version the project carries.** `v1.8.1` is the newest release.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
