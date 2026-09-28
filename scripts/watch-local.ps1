@@ -9,7 +9,10 @@
     Minecraft client of that version. After the trips, type a trip's name, "all" or "done" in chat.
 
     Needs Git for Windows (for bash), Node 22 or newer, Maven, Python, and JDK 17 and 21
-    (Eclipse Adoptium is looked for; -Jdk17 and -Jdk21 name others).
+    (Eclipse Adoptium is looked for; -Jdk17 and -Jdk21 name others). Where scripts are not allowed
+    to run: powershell -ExecutionPolicy Bypass -File .\scripts\watch-local.ps1
+
+    Ctrl+C can leave the server running; the next run stops it first.
 
 .EXAMPLE
     .\scripts\watch-local.ps1
@@ -33,6 +36,8 @@ param(
     [string]$Jdk21 = ''
 )
 $ErrorActionPreference = 'Stop'
+# PowerShell 7.3+ would otherwise throw on bash's exit code and lose the trips' own result.
+$PSNativeCommandUseErrorActionPreference = $false
 
 $repo = Split-Path -Parent $PSScriptRoot
 $work = Join-Path $repo '.local-server'
@@ -65,21 +70,30 @@ $bash = Find-Bash
 $jdk17 = Find-Jdk '17' $Jdk17
 $jdk21 = Find-Jdk '21' $Jdk21
 
-# A server, bot or script left from an earlier run holds the port, and a leftover boot-test.sh writes
-# "stop" into the next run's console.
+# A server, bot or script left from an earlier run of this checkout holds the port, and a leftover
+# boot-test.sh writes "stop" into the next run's console. Only this checkout's: its folder name is in
+# every such command line, as a Windows or a Git Bash path.
 Write-Host 'Stopping anything left from an earlier local run...'
-Get-CimInstance Win32_Process | Where-Object {
-    ($_.Name -eq 'java.exe' -and $_.CommandLine -like '*.local-server*paper-*') -or
-    ($_.Name -eq 'node.exe' -and $_.CommandLine -like '*journeys.js*') -or
-    ($_.Name -eq 'tail.exe' -and $_.CommandLine -like '*commands.txt*') -or
-    ($_.Name -eq 'bash.exe' -and ($_.CommandLine -like '*boot-test.sh*' -or $_.CommandLine -like '*player-boot.sh*'))
-} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -Confirm:$false }
+$leaf = Split-Path -Leaf $repo
+$ours = "*$leaf?.local-server*"
+$left = @(Get-CimInstance Win32_Process | Where-Object {
+    ($_.Name -eq 'java.exe' -and $_.CommandLine -like $ours) -or
+    ($_.Name -eq 'node.exe' -and $_.CommandLine -like "*$leaf?scripts?player-test?journeys.js*") -or
+    ($_.Name -eq 'bash.exe' -and $_.CommandLine -like $ours -and
+        ($_.CommandLine -like '*boot-test.sh*' -or $_.CommandLine -like '*player-boot.sh*'))
+})
+# The tail feeding the server's console names no path, so it is known by its parent.
+$parents = $left | ForEach-Object { $_.ProcessId }
+$left += @(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'tail.exe' -and $parents -contains $_.ParentProcessId })
+$left | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -Confirm:$false -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 2
-if (Get-NetTCPConnection -LocalPort 25599 -State Listen -ErrorAction SilentlyContinue) {
+if ((Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) -and
+    (Get-NetTCPConnection -LocalPort 25599 -State Listen -ErrorAction SilentlyContinue)) {
     throw 'Port 25599 is still in use by something else; stop it and try again.'
 }
 
 $jar = Join-Path $work 'wx.jar'
+if ($NoBuild -and -not (Test-Path $jar)) { Write-Host 'No build to reuse yet, so building once.' }
 if (-not $NoBuild -or -not (Test-Path $jar)) {
     Write-Host 'Building the plugin...'
     Push-Location $repo
