@@ -15,8 +15,8 @@ fi
 # Standard gates with their DHD buttons hung on these blocks, facing south. Where their openings and
 # arrival points fall is what `gate build` reports: Abydos opens around -1.5 -57.5 -2.5, and Chulak
 # takes arrivals at 18.5 -60 -1.5. The flat test world's ground is at -64. Within six blocks of that
-# point, because what comes through keeps moving and lands further off on some versions (1.20.4
-# drops an item about 3.7 blocks away); Abydos is twenty blocks off, so nothing left there counts.
+# point, because what comes through is put out a block ahead of the gate, a block up, and falls to the
+# ground three below; Abydos is twenty blocks off, so nothing left there counts.
 # Sent in 13 seconds after the dial, once the wormhole has formed: until the kawoosh, about ten
 # seconds in, the opening is an empty frame, and a pig dropped into it could wander out first.
 # Asked three times, at 4, 9 and 15 seconds after that: a busy runner can fall seconds behind, and

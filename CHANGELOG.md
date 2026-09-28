@@ -33,6 +33,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **A ridden boat, cart or mount goes through a gate or ring on Paper 1.20.4.** It stayed behind
   with its rider aboard while the trip was reported and charged. One that cannot be moved now
   keeps its riders and costs nothing, and a boat or cart's rider pays once it has gone.
+- **An item or mob dropped into an opening comes out below the far gate**, not thrown up to six
+  blocks out of it: its fall no longer turns into a sideways speed on the way through.
 
 ### Quantum mirrors
 
