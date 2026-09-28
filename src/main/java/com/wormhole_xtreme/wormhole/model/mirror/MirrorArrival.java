@@ -34,9 +34,9 @@ public final class MirrorArrival
      *
      * <p>The two banner families carry their facing in different interfaces and there is no
      * shared one: a wall banner is {@link Directional} and faces one of four cardinals, a
-     * freestanding banner is {@link Rotatable} and faces one of sixteen. Both are accepted,
-     * because requiring a wall would rule out a banner on a post in the middle of a room --
-     * which is most of a museum corridor.
+     * freestanding banner is {@link Rotatable} and faces one of sixteen. Both are read: a new
+     * mirror must hang on a wall, but one made on a post before that was refused still needs
+     * somewhere to land its travellers.
      *
      * @param data
      *            the banner's block data

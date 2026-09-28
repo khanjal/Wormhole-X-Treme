@@ -94,6 +94,8 @@ class GateOneWayTest
         when(zombie.isInsideVehicle()).thenReturn(false);
         when(zombie.isValid()).thenReturn(true);
         when(zombie.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, -1.5));
+        // A real server says whether it moved; an unstubbed mock would say it refused.
+        when(zombie.teleport(any(Location.class))).thenReturn(true);
         when(world.getNearbyEntities(any(BoundingBox.class)))
             .thenReturn(Collections.<Entity>singletonList(zombie));
         return zombie;
@@ -213,6 +215,117 @@ class GateOneWayTest
     }
 
     /**
+     * A mob with a passenger is swept through with it on Paper 1.20.4.
+     *
+     * <p>1.20.4 will not teleport anything with a passenger, and the sweep ignored the answer,
+     * so a ridden mob stayed in the portal, rider and all, and was marked as having gone (#506).
+     */
+    @Test
+    void aSweptMobCarryingAnotherArrivesWithItsPassengerAboard()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.isValid()).thenReturn(true);
+        when(chicken.teleport(any(Location.class))).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            zombie, new Location(world, 10.5, 64, 20.5), chicken);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertEquals(99.5, stack.at().getX(), 1.5, "the mob must reach the far gate");
+            verify(chicken, atLeastOnce()).teleport(any(Location.class));
+            assertTrue(stack.carries(chicken), "its passenger rides on at the far end");
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
+     * A mount with a player aboard is left to the player listener, which asks permission,
+     * cooldown and fare first.
+     *
+     * <p>Once the sweep could carry a whole stack, a rider the player listener had turned away
+     * (sitting in the portal on their horse) was swept through on the next scan, past every
+     * check that had just refused them.
+     */
+    @Test
+    void aMountWithAPlayerAboardIsNotSwept()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity horse = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Player rider = mock(org.bukkit.entity.Player.class);
+        when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rider.teleport(any(Location.class))).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            horse, new Location(world, 10.5, 64, 20.5), rider);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertEquals(10.5, stack.at().getX(), 0.001, "the horse must stay where the player listener left it");
+            verify(rider, never()).teleport(any(Location.class));
+            assertTrue(stack.carries(rider));
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
+     * A passenger whose own teleport fails is fetched to its mount, not left at the source.
+     *
+     * <p>The sweep used to re-seat once, on the spot, with no retry: a passenger that had not
+     * landed beside its mount was refused its seat and stayed behind for good.
+     */
+    @Test
+    void aSweptPassengerWhoseTeleportFailsIsFetchedToItsMount()
+    {
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        StargateTestSupport.target(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(10, 64, 20);
+        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.isValid()).thenReturn(true);
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            zombie, new Location(world, 10.5, 64, 20.5), chicken);
+        final Location[] chickenAt = { new Location(world, 10.5, 65, 20.5) };
+        when(chicken.teleport(any(Location.class)))
+            .thenThrow(new IllegalStateException("not this tick"))
+            .thenAnswer(call ->
+            {
+                chickenAt[0] = call.getArgument(0);
+                return true;
+            });
+        // Where it stands decides whether the zombie will seat it: not from the far side of a gate.
+        when(chicken.getLocation()).thenAnswer(call -> chickenAt[0]);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            assertTrue(chickenAt[0].getX() > 90, "the chicken must be fetched to the far gate");
+            assertTrue(stack.carries(chicken), "and ride on there");
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    /**
      * An item dropped into an opening is falling when the sweep finds it, since the opening is
      * air. Its fall came out of the far gate as a sideways throw that put it further off the
      * slower the server, which is what failed the 1.20.4 travel boot test on a busy runner.
@@ -244,6 +357,24 @@ class GateOneWayTest
         {
             StargateManager.removeStargate(origin);
         }
+    }
+
+    /** Through a floor gate a fall is the way in, so it is kept, not dropped as it is at a wall. */
+    @Test
+    void aFallThroughAFloorGateIsKept()
+    {
+        final org.bukkit.util.Vector through = GateEntityScanner.throughGate(
+            new org.bukkit.util.Vector(0.3, -0.4, -0.2), BlockFace.UP);
+        assertEquals(new org.bukkit.util.Vector(0, -0.4, 0), through);
+    }
+
+    /** A gate with no way it faces cannot say what is through it, so the whole velocity is kept. */
+    @Test
+    void aGateWithNoFacingKeepsTheWholeVelocity()
+    {
+        final org.bukkit.util.Vector incoming = new org.bukkit.util.Vector(0.3, -0.4, -0.2);
+        assertEquals(incoming, GateEntityScanner.throughGate(incoming, null));
+        assertEquals(incoming, GateEntityScanner.throughGate(incoming, BlockFace.SELF));
     }
 
     @Test

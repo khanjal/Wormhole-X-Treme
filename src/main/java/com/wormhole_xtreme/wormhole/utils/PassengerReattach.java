@@ -68,6 +68,28 @@ public final class PassengerReattach
     }
 
     /**
+     * Re-seats a passenger stack read before the move, for a caller that unseated it to move
+     * it (see {@code RiddenTeleport}), so the vehicle's own passenger list is empty by now.
+     *
+     * @param ridden
+     *            the boat or mount that was just teleported
+     * @param parents
+     *            what each passenger rode
+     * @param children
+     *            the passengers, parallel to {@code parents}
+     * @param exitVelocity
+     *            velocity to apply once everyone is aboard, may be null
+     * @param delayTicks
+     *            ticks before the first attempt; longer when a player was teleported, whose
+     *            client withholds the seat packet until it has acknowledged the move
+     */
+    public static void schedule(final Entity ridden, final List<Entity> parents, final List<Entity> children,
+        final Vector exitVelocity, final long delayTicks)
+    {
+        new Reattacher(ridden, new ArrayList<>(parents), new ArrayList<>(children), exitVelocity).scheduleIn(delayTicks);
+    }
+
+    /**
      * Puts a vehicle's passengers back, retrying while the server keeps refusing.
      *
      * <p>Reschedules itself rather than being driven from outside, which is why it holds its
@@ -267,6 +289,8 @@ public final class PassengerReattach
                 {
                     if (ridden.isValid())
                     {
+                        // A same-spot client nudge. Paper 1.20.4 refuses it with riders aboard,
+                        // a harmless no-op there; unseating for it would flicker the seat.
                         ridden.teleport(resyncLoc);
                     }
                 }

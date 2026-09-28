@@ -92,7 +92,8 @@ MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real serv
 on it: `travel-boot.sh` sends an item and a pig through a gate. `scripts/player-boot.sh` puts a
 player on a real server. A [Mineflayer](https://github.com/PrismarineJS/mineflayer) bot joins,
 and the bot, as a player, presses a gate's DHD, runs `/dial`, walks through, and then beams and
-rides a ring pair. Each trip fails unless the bot comes out where it should. It checks what the
+rides a ring pair; it rides a boat, a minecart and a horse through gates, and takes wolves along.
+Each trip fails unless the bot comes out where it should. It checks what the
 bot sees, not the plugin's state: the opening filling and emptying, and where the server puts it.
 
 | Trip | What the bot does, and what must happen |
@@ -105,8 +106,16 @@ bot sees, not the plugin's state: the opening filling and emptying, and where th
 | `lava` | A gate whose portal is set to lava; lava fills the opening after the kawoosh, it still travels, and the far gate shows nether portal |
 | `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("Remote Iris is locked!"); opened, it travels |
 | `mirror` | Makes two banners mirrors and waits for their rooms to be captured (15 seconds or so); the first's view is drawn with no gold behind its wall; right-clicked, it shows the second's room (a gold block); punched, it puts the bot at the second |
+| `boat` | Gets into a boat on a lane of blue ice and drives it into an open gate; out at the partner still in the boat, and still in it two seconds later |
+| `minecart` | Sits in a minecart on a rail line whose end stops short of the opening; powering the first rail launches it, it rolls off the end into the gate, and it must be on the far gate's line, still in the cart, a moment later |
+| `mount` | Saddles and rides a tame horse the whole way: through a gate, then `/wormhole beam` into a ring, then that ring to its partner; still on the same horse after each. Each leg is checked on its own, and the trip names each that failed |
+| `pet` | Wolves tamed to the bot beside a gate whose partner is in the nether. A sitting wolf stays put throughout. With `pets-follow-owner` off, a following wolf must not come when the bot beams there (vanilla brings one within a world, so the trip crosses worlds); with it on, one must come by beam, there and back, and one through the gate. Every leg runs, and the trip names each that failed |
 
 `TRIPS=iris,mirror` runs only the trips named.
+
+A ridden boat or horse is moved by its rider's client, which reports each step to the server;
+Mineflayer does not simulate one, so `drive()` in `journeys.js` sends those steps itself, in a
+straight line on the level. A minecart is the server's, so that trip powers rails instead.
 
 ```bash
 bash scripts/fetch-server.sh paper 1.21.11 server.jar    # or download a Paper jar by hand
@@ -139,12 +148,16 @@ The **Player journeys** workflow (`player.yml`) runs the same thing without an o
 Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
 itself changes. It does not run on pull requests yet.
 
-What it does not cover yet: sign dialling, pets, other worlds (so a mirror's trip is within one
-world, with `mirror-per-world-limit` set to 0), a horizontal gate's iris, the other shipped shapes
-and the Universe and MilkyWay groups, and what a preview looks like, which Mineflayer can see only
-as entities; the `atlantis` trip uses a preview but checks only the gate it places. Each is another
-trip in `scripts/player-test/journeys.js`: set up from the console, act as the player, then check
-where the bot is and what it sees.
+What it does not cover yet: sign dialling, other worlds beyond the `pet` trip's gate and beam into
+the nether (so a mirror's trip is within one world, with `mirror-per-world-limit` set to 0), a
+horizontal gate's iris, the other shipped shapes and the Universe and MilkyWay groups, and what a
+preview looks like, which Mineflayer can see only as entities; the `atlantis` trip uses a preview
+but checks only the gate it places. Of vehicles and pets: a boat on water rather than ice, pigs,
+camels, llamas and striders, a mount shared with a second player (which a beam deliberately
+leaves behind, and which needs a second bot), pets by ring or mirror, and pets within one world,
+which vanilla brings along by itself. An item and a mob dropped into a gate are `travel-boot.sh`'s,
+with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
+from the console, act as the player, then check where the bot is and what it sees.
 
 ## Static analysis
 

@@ -259,6 +259,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Player rider = mock(Player.class);
         when(rider.getName()).thenReturn("rider");
         when(rider.isOp()).thenReturn(true);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
 
         final Minecart cart = mock(Minecart.class);
         when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>singletonList(rider));
@@ -371,6 +372,7 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         when(boat.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
         when(boat.getUniqueId()).thenReturn(UUID.randomUUID());
         when(boat.isValid()).thenReturn(true);
@@ -381,6 +383,7 @@ class WormholeXTremeVehicleListenerEventTest
         // 1.21.3 when boats split per wood type, and this test has no interest in which
         // kind of boat it is — only that the code asks the boat rather than assuming.
         when(boat.getType()).thenReturn(anyBoatType());
+        when(boat.teleport(any(Location.class))).thenReturn(true);
 
         // Simulate immediate successful attach when addPassenger is attempted in the reattach task
         when(boat.addPassenger(rider)).thenReturn(true);
@@ -451,6 +454,7 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Minecart cart = mock(Minecart.class);
         final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenReturn(true);
         when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.isValid()).thenReturn(true);

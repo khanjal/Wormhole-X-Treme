@@ -33,6 +33,19 @@ class RingTabCompletionTest
         assertFalse(complete("ring", "e").contains("create"));
     }
 
+    /** build and fire are offered to the console, and not to a player who may not run them. */
+    @Test
+    void buildAndFireAreOfferedOnlyToWhoeverMayRunThem()
+    {
+        assertTrue(complete("ring", "").containsAll(List.of("build", "fire")));
+
+        final org.bukkit.entity.Player player = org.mockito.Mockito.mock(org.bukkit.entity.Player.class);
+        final List<String> offered = SubCommands.find("ring").completeArgs(player, new String[] { "ring", "" });
+        assertTrue(offered.contains("create"));
+        assertFalse(offered.contains("build"));
+        assertFalse(offered.contains("fire"));
+    }
+
     @Test
     void theEditableFieldsAreOffered()
     {
