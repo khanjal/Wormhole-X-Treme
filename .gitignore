@@ -38,3 +38,6 @@ PR-*-review.md
 
 # The player-journey bot's dependencies, installed by scripts/player-boot.sh.
 /scripts/player-test/node_modules/
+
+# scripts/watch-local.ps1's server jars, plugin build and server folders.
+/.local-server/

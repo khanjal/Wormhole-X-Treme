@@ -136,6 +136,18 @@ for their answer after each trip; `OBSERVE_WAIT` sets both waits, in seconds (de
 OBSERVE=1 bash scripts/player-boot.sh server.jar target/WormholeXTreme.jar 1.21.11
 ```
 
+On Windows, `scripts\watch-local.ps1` does all of it from PowerShell. It stops anything left
+from an earlier local run, builds the plugin, downloads the Paper jar the first time, and starts
+the server in `.local-server\run-<version>` with a fresh world. `-Version 1.20.4`,
+`-Trips gate,boat`, `-Headless` and `-NoBuild` change what it does:
+
+```powershell
+.\scripts\watch-local.ps1
+```
+
+Where PowerShell will not run scripts, `powershell -ExecutionPolicy Bypass -File .\scripts\watch-local.ps1`
+does the same.
+
 Join `localhost:25599` from a Minecraft client of that version under any name. You are made a
 spectator and moved to a spot facing each trip before it starts, and the bot says in chat what to
 watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
