@@ -19,7 +19,7 @@ The values a release changes. Change them here first, then carry them into the s
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI and CoreProtect optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
+| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect and WorldGuard optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live
@@ -295,6 +295,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it
   back. Off until `coreprotect-enabled` is set.
+- **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building
+  and using gates in a region. Off until `worldguard-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.
