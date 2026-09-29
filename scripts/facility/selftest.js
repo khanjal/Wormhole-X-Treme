@@ -54,7 +54,7 @@ async function selftest(fac, { buildReport, log = console.log }) {
       check('world', `${f.fn} anchors`, missing.length === 0, missing.length ? `missing: ${missing.join('; ')}` : `${f.anchors.length} in place`);
       for (const c of f.clear) {
         const r = await fac.isClear(f.dim, c.box);
-        check('world', `${c.id} volume clear`, r.ok, `${r.air} of ${r.volume} air`);
+        check('world', `${c.id} volume clear`, r.ok, `${r.air} of ${r.volume} air${r.found ? `; not air: ${r.found.join(', ')}` : ''}`);
       }
     }
   });

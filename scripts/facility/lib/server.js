@@ -19,8 +19,9 @@ const COMMAND_ERROR = /<--\[HERE\]|Unknown or incomplete command|Incorrect argum
 const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
 
 // Lines another thread may print into any command's output: Paper's update banner arrives
-// asynchronously a few seconds after start. They are not the command's, so run() drops them.
-const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version/;
+// asynchronously a few seconds after start, and the tick loop's lag warning whenever a build
+// has just taken a few seconds. They are not the command's, so run() drops them.
+const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?/;
 
 /** Gamerule names: camelCase before 1.21.11, snake_case from it. Only one form is ever sent. */
 const GAMERULES = {

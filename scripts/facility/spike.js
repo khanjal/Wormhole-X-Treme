@@ -13,14 +13,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const mineflayer = require('mineflayer');
-const nbt = require('prismarine-nbt');
 const { Vec3 } = require('vec3');
 const server = require('./lib/server');
 const text = require('./lib/text');
 const datapack = require('./lib/datapack');
 const wxConsole = require('./lib/console');
 const { atLeast } = require('./lib/version');
+const { join, maybeEvent, shownText } = require('./lib/probe');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const LOCAL = path.join(REPO, '.local-server');
@@ -55,15 +54,8 @@ function note(mechanism, detail) {
   console.log(`  info ${mechanism} · ${detail}`);
 }
 
-/** Resolves with the first `event` whose arguments satisfy `test`, or null at the deadline. */
-function nextEvent(emitter, event, test, ms) {
-  return new Promise((resolve) => {
-    const on = (...a) => { if (test(...a)) { done(); resolve(a); } };
-    const timer = setTimeout(() => { done(); resolve(null); }, ms);
-    const done = () => { clearTimeout(timer); emitter.off(event, on); };
-    emitter.on(event, on);
-  });
-}
+// Resolves with the first matching event's arguments, or null at the deadline.
+const nextEvent = maybeEvent;
 
 /** Every object in a component tree, for finding a click event wherever the server put it. */
 function* walk(node) {
@@ -83,25 +75,8 @@ function clickCommands(component) {
   return found;
 }
 
-/** The plain text of every text component in an entity's metadata, as the client would draw it. */
-function shownText(entity) {
-  const out = [];
-  for (const v of Object.values(entity.metadata || {})) {
-    if (!v || typeof v !== 'object' || typeof v.type !== 'string' || !('value' in v)) continue;
-    if (v.type !== 'compound' && v.type !== 'string' && v.type !== 'list') continue;
-    try { out.push(text.plain(nbt.simplify(v))); } catch { /* not a component */ }
-  }
-  return out;
-}
-
 function joinBot(port, version, username) {
-  const bot = mineflayer.createBot({ host: '127.0.0.1', port, username, version, auth: 'offline' });
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${username} did not spawn within 60 s`)), 60000);
-    bot.once('spawn', () => { clearTimeout(timer); resolve(bot); });
-    bot.once('kicked', (reason) => { clearTimeout(timer); reject(new Error(`${username} was kicked: ${JSON.stringify(reason)}`)); });
-    bot.once('error', (e) => { clearTimeout(timer); reject(e); });
-  });
+  return join({ port, version, username });
 }
 
 // ---- geometry --------------------------------------------------------------------------------

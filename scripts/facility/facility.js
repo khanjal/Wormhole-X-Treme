@@ -108,7 +108,43 @@ class Facility {
       air += n;
       if (n) await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:air replace minecraft:structure_void`);
     }
-    return { ok: air === vol, air, volume: vol };
+    const out = { ok: air === vol, air, volume: vol };
+    if (!out.ok) out.found = await this.locateSolid(dim, box);
+    return out;
+  }
+
+  /** Up to `max` non-air blocks in a box, by halving it: "x y z name" for the report. */
+  async locateSolid(dim, box, max = 3) {
+    const found = [];
+    const visit = async (b) => {
+      if (found.length >= max) return;
+      const r = await this.isClearCount(dim, b);
+      if (r === blueprint.volume(b)) return;
+      if (blueprint.volume(b) === 1) {
+        const at = `${b.x0} ${b.y0} ${b.z0}`;
+        const names = ['lava', 'fire', 'soul_fire', 'water', 'netherrack', 'magma_block', 'glass', 'structure_void', 'end_stone', 'chorus_plant', 'chorus_flower', 'obsidian'];
+        let name = 'unknown';
+        for (const n of names) if (await this.isBlock(dim, [b.x0, b.y0, b.z0], `minecraft:${n}`)) { name = n; break; }
+        found.push(`${at} ${name}`);
+        return;
+      }
+      const spans = [['x', b.x1 - b.x0], ['y', b.y1 - b.y0], ['z', b.z1 - b.z0]].sort((p, q) => q[1] - p[1]);
+      const axis = spans[0][0];
+      const mid = Math.floor((b[`${axis}0`] + b[`${axis}1`]) / 2);
+      await visit({ ...b, [`${axis}1`]: mid });
+      await visit({ ...b, [`${axis}0`]: mid + 1 });
+    };
+    for (const p of blueprint.split(box)) await visit(p);
+    return found;
+  }
+
+  async isClearCount(dim, b) {
+    const coords = `${b.x0} ${b.y0} ${b.z0} ${b.x1} ${b.y1} ${b.z1}`;
+    const r = await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:structure_void replace minecraft:air`);
+    const m = r.lines.map((l) => /filled (\d+) block/i.exec(l)).find(Boolean);
+    const n = m ? Number(m[1]) : 0;
+    if (n) await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:air replace minecraft:structure_void`);
+    return n;
   }
 
   // ---- people --------------------------------------------------------------------------------
