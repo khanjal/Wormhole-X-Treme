@@ -87,11 +87,11 @@ async function run (lab, values) {
   await teleport(LAUNCH.x + 0.5, FEET, LAUNCH.z + 0.5, 180)
 
   if (values.traveller === 'horse') {
-    const horse = await kit.saddledHorse(v(LAUNCH.x + 0.5, FEET, LAUNCH.z + 0.5))
+    await kit.saddledHorse(v(LAUNCH.x + 0.5, FEET, LAUNCH.z + 0.5))
     narrate(`Beaming, on the horse, to ${values.dest}`)
     messages()
     kit.bot.chat('/wormhole beam to LabBeam')
-    const landed = () => kit.bot.vehicle === horse && kit.inTheNether() === pad.nether && kit.bot.vehicle.position.distanceTo(spot) < 1.5
+    const landed = () => kit.onAHorse() && kit.inTheNether() === pad.nether && kit.bot.vehicle.position.distanceTo(spot) < 1.5
     await waitFor(landed, 30, () => `landing on ${values.dest} on the horse (${kit.describeRide()}; heard ${JSON.stringify(kit.heard)})`)
     await sleep(2000)
     if (!landed()) throw new Error(`not on the horse on ${values.dest} a moment after landing (${kit.describeRide()})`)

@@ -212,7 +212,7 @@ async function buildAsPlayer (g, name, group, idc) {
 async function selectOnSign (g, dest) {
   const bot = kit.bot
   const read = () => {
-    const block = bot.blockAt(g.dial.offset(0, 0, 1))
+    const block = bot.blockAt(g.dial)
     if (!block || !block.getSignText) return ''
     return block.getSignText()[0] || ''
   }
@@ -220,7 +220,7 @@ async function selectOnSign (g, dest) {
     if (click > 12) throw new Error(`the dial sign never showed ${dest} selected; it reads ${JSON.stringify(read())}`)
     narrate(`Turning the dial sign (${click})`)
     await bot.lookAt(g.dial.offset(0.5, 0.5, 0.95), true)
-    await bot.activateBlock(bot.blockAt(g.dial.offset(0, 0, 1)))
+    await bot.activateBlock(bot.blockAt(g.dial))
     await sleep(700)
   }
   narrate(`The dial sign shows ${dest}`)

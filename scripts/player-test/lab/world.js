@@ -94,7 +94,15 @@ async function buildOffworld () {
   const { x, y, z } = OFFWORLD
   const n = 'nether'
   kit.inNether(`forceload add ${x - 32} ${z - 32} ${x + 32} ${z + 32}`)
-  await kit.sleep(3000)
+  // Forceloading is asynchronous on newer servers: wait until the far corners are loaded.
+  for (let tries = 0; ; tries++) {
+    const from = kit.logSize()
+    serverCommand(`execute in minecraft:the_nether if loaded ${x - 15} ${y} ${z - 15} if loaded ${x + 15} ${y} ${z + 21}`)
+    const said = await kit.waitForLog(/Test (passed|failed)/, 10, from).catch(() => null)
+    if (said && said[1] === 'passed') break
+    if (tries >= 30) throw new Error('the Offworld chunks never loaded')
+    await kit.sleep(1000)
+  }
   // One fill, under the 32768 blocks one takes: split, a hollow fill would leave floors between.
   p.fill(x - 15, y - 5, z - 15, x + 15, y + 19, z + 21, 'glass', 'hollow', n)
   p.fill(x - 14, y - 4, z - 14, x + 14, y - 2, z + 20, 'stone', '', n)

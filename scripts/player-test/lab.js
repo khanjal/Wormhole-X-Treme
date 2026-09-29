@@ -22,7 +22,7 @@ const beamBay = require('./lab/beam-bay')
 const mirrorBay = require('./lab/mirror-bay')
 
 const { v, sleep, serverCommand, say, narrate, teleport } = kit
-const { FEET } = p
+const { FLOOR, FEET } = p
 
 const version = process.argv[2]
 const selftest = process.env.LAB_SELFTEST && process.env.LAB_SELFTEST !== '0' ? process.env.LAB_SELFTEST : null
@@ -189,10 +189,12 @@ async function build () {
   }
   await world.buildOffworld()
   serverCommand('wx config pets-follow-owner true')
+  // A lodestone under spawn is the last block the build sets; seeing it means the lab is up.
+  const marker = v(world.SPAWN.x, FLOOR - 1, world.SPAWN.z)
+  p.setblock(marker.x, marker.y, marker.z, 'lodestone')
   await sleep(5000)
   await teleport(world.SPAWN.x + 0.5, FEET, world.SPAWN.z + 0.5, 180)
-  // A sign the build commands set is the last thing they do; seeing it means the lab is up.
-  await kit.waitFor(() => kit.nameAt(v(world.BOARD.mirror.x, world.BOARD_Y, world.BOARD.mirror.z)).endsWith('wall_sign'), 60, 'the mission board appearing')
+  await kit.waitFor(() => kit.nameAt(marker) === 'lodestone', 120, 'the last block of the build')
   narrate('The lab is built')
 }
 
@@ -201,6 +203,7 @@ function welcome (player) {
   if (player.username === kit.name) return
   const who = player.username
   serverCommand(`gamemode adventure ${who}`)
+  kit.watch(who)
   serverCommand(`tp ${who} ${world.SPAWN.x + 0.5} ${FEET} ${world.SPAWN.z + 0.5} 180 0`)
   setTimeout(() => {
     say(`Welcome to the lab, ${who}. The gate room is north, rings and beams through it east and west, and the mirror gallery south.`)
@@ -277,6 +280,7 @@ async function pull (key) {
   const done = lab.finished
   await press(lab.panels[key], 'reset')
   await kit.waitFor(() => lab.finished > done, 300, `the ${key} reset finishing`)
+  return lab.results[lab.results.length - 1]
 }
 
 /** Stands a Standard preview on a DHD in the gate pad and places it, as a watcher would. */
@@ -371,8 +375,8 @@ async function selfTest () {
     const keys = bays.find((b) => b.name === bay).padPanel ? [bay, `${bay}pad`] : [bay]
     for (const key of keys) {
       try {
-        await pull(key)
-        outcomes.push({ key, settings: 'reset', outcome: 'PASS', expected: 'PASS', ok: true, detail: '' })
+        const result = await pull(key)
+        outcomes.push({ ...result, expected: 'PASS', ok: result.outcome === 'PASS' })
       } catch (e) {
         outcomes.push({ key, settings: 'reset', outcome: 'FAIL', expected: 'PASS', ok: false, detail: e.message })
       }

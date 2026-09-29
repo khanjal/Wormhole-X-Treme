@@ -629,9 +629,17 @@ async function saddledHorse (start) {
   return horse
 }
 
+/**
+ * Whether the bot rides a horse. Not `bot.vehicle === horse`: a horse taken to another
+ * dimension comes back to the client as a new entity, so the old one never matches.
+ */
+function onAHorse () {
+  return !!bot.vehicle && /horse/.test(bot.vehicle.name || '')
+}
+
 /** Rides `horse` into the open gate `from`; it must come out at `to`, still on the same horse. */
 async function rideInto (horse, from, to, toLabel) {
-  const onHorse = () => bot.vehicle === horse
+  const onHorse = () => onAHorse()
   narrate('Riding the horse into the gate')
   const arrival = v(to.arrival.x, to.walkY, to.arrival.z)
   const through = () => onHorse() && bot.vehicle.position.distanceTo(arrival) < 4
@@ -865,6 +873,8 @@ function versionAtLeast (least) {
 module.exports = {
   get bot () { return bot },
   get observer () { return observer },
+  /** Sends narration to this player's action bar, without the y/n questions of a watched run. */
+  watch (player) { observer = player },
   get gone () { return gone },
   name,
   port,
@@ -923,6 +933,7 @@ module.exports = {
   minecartInto,
   saddledHorse,
   rideInto,
+  onAHorse,
   wolfNear,
   serverHasWolf,
   waitForWolf,
