@@ -164,6 +164,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 [*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
 [*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]metrics-enabled: false[/ICODE] turns it off.
+[*][B]Update check[/B]: at startup, asks Modrinth (or GitHub) for the newest release and says in the console, and to operators as they join, if there is one. Sends the plugin version in a User-Agent, and the Minecraft version to Modrinth. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
 [/LIST]
 

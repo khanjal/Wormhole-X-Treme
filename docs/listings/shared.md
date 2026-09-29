@@ -298,6 +298,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.
+- **Update check**: at startup, asks Modrinth (or GitHub) for the newest release and says in the
+  console, and to operators as they join, if there is one. Sends the plugin version in a User-Agent,
+  and the Minecraft version to Modrinth. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ## Getting started

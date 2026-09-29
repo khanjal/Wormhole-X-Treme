@@ -228,6 +228,7 @@ this world's hills.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
+- **Update check**: at startup, asks Modrinth (or GitHub) for the newest release and says in the console, and to operators as they join, if there is one. Sends the plugin version in a User-Agent, and the Minecraft version to Modrinth. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ### Getting started
