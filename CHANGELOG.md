@@ -11,7 +11,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
-  with one traced a ray each second; now only players within a chunk of a mirror's banner do.
+  with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
 
 ## 1.8.1 (2026-09-28)
 

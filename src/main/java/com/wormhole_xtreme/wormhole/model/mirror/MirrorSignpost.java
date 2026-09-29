@@ -37,7 +37,8 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  * the proximity sweep had to visit every ordinary mirror to work out who was near it -- a
  * distance check per player per mirror, and the end of the old promise that a server whose
  * mirrors are all ordinary does no work there. This asks each player one question instead,
- * regardless of how many mirrors there are, and asks nobody who is not standing within a chunk of one.
+ * regardless of how many mirrors there are, and asks nobody who is not standing within a chunk
+ * of one.
  *
  * <p>The line is re-sent every sweep rather than only when the target changes. That is the
  * point of it: the action bar fades on its own, so a steady line is a repeated one. The only thing
@@ -162,7 +163,10 @@ public final class MirrorSignpost
         return chunks;
     }
 
-    /** Whether a mirror hangs in this chunk or one of the eight around it: {@link #REACH} is under a chunk. */
+    /**
+     * Whether a mirror hangs in this chunk or one of the eight around it, which is enough because
+     * {@link #REACH} is under a chunk.
+     */
     private static boolean besideAny(final Set<Long> chunks, final Location at)
     {
         final int chunkX = at.getBlockX() >> 4;

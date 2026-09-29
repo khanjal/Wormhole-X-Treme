@@ -212,11 +212,12 @@ class MirrorSignpostTest
     @Test
     void aMirrorThatGoesNowhereSaysNothing()
     {
-        // A second, working mirror in the same world, and it is load-bearing. Without one the
-        // world never enters the set this pass walks, so the sweep stops before it looks at
-        // anybody -- and the test would pass without the unpointed case ever being reached.
-        // A mutation removing the destination check survived exactly that way.
-        MirrorManager.add(new QuantumMirror("working", new MirrorBlock("world", 99, 64, 99),
+        // A second, working mirror in the chunk beside the player's, and it is load-bearing.
+        // Without one near them the sweep never asks the player anything -- and the test would
+        // pass without the unpointed case ever being reached. A mutation removing the
+        // destination check survived exactly that way, twice: once with no working mirror in the
+        // world, and again with one six chunks off once the sweep skipped players far from any.
+        MirrorManager.add(new QuantumMirror("working", new MirrorBlock("world", 20, 64, 20),
             new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
         MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner), null));
         lookingAt(banner);
@@ -326,8 +327,9 @@ class MirrorSignpostTest
      * A mirror just over a chunk corner is still found.
      *
      * <p>The banner is in chunk 0,0 and the player diagonally across the corner in chunk -1,-1, so
-     * a check of the player's own chunk, or of only the four beside it, would miss a mirror they
-     * are close enough to read. Negative on both axes, where a chunk key is easiest to get wrong.
+     * a check of the player's own chunk, or of only the four beside it, would never trace the ray.
+     * Negative on both axes, where a chunk key is easiest to get wrong. The ray itself is mocked,
+     * so only the chunk check is under test here, not the distance.
      */
     @Test
     void aMirrorJustOverAChunkCornerIsStillNamed()
