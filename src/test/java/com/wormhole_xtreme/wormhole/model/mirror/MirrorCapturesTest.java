@@ -950,6 +950,10 @@ class MirrorCapturesTest
             assertEquals(32, MirrorCaptures.gateFillDepth(arrival, 32), "no fill: the first step");
             ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 16);
             assertEquals(32, MirrorCaptures.gateFillDepth(arrival, 32), "a fill shallower than the first step is none");
+            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 160);
+            when(far.getViewDistance()).thenReturn(1);
+            assertEquals(32, MirrorCaptures.gateFillDepth(arrival, 32),
+                "a server sending less than the first step still gets the first step, not a shallower fill");
         }
     }
 }
