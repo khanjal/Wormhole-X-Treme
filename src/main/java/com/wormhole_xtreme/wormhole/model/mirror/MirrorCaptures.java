@@ -280,6 +280,8 @@ public final class MirrorCaptures
             .map(name -> GATE_KEY + name.substring(0, name.length() - VIEW.length()))
             .collect(Collectors.toCollection(HashSet::new));
         keys.addAll(LOADED.keySet());
+        // And one still being taken, which has neither yet: a first capture removed mid-way wrote its file anyway.
+        keys.addAll(JOBS.keySet());
         keys.removeIf(key -> !key.startsWith(GATE_KEY + stem + '_') || !GATE_HOLE.matcher(key)
             .region(GATE_KEY.length() + stem.length(), key.length()).matches());
         return keys;
@@ -375,6 +377,9 @@ public final class MirrorCaptures
             }
             LOADED.remove(key);
             ABSENT.add(key);
+            // As a mirror's forget does, so a gate built again under the name is warned about afresh.
+            WARNED.remove(key);
+            FAILED.remove(key);
             final File file = fileOf(key);
             try
             {

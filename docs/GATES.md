@@ -655,10 +655,14 @@ captures; a refresh that hands a gate back keeps them. It is taken again:
 - **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
 
 The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
+The dial's ask needs somebody near the dialling gate, as the view itself does, so a gate dialled
+by redstone with nobody about waits for the first sweep with somebody there.
 
 **A gate's view has its own depth**, `gate-view-depth`, 32 by default against a mirror's 160. At
 a mirror's depth the box round a far gate nobody had loaded was some 230 chunks, read twice before
-anything showed; at 32 it is about fifteen.
+anything showed; at 32 it is about fifteen. With `mirror-fog-at-depth` on, a player drawn only a
+gate's view has their send distance pulled in to that depth, not a mirror's: at 32, two chunks and
+the edge, in every direction, for as long as they are near the gate.
 
 **What it does not do yet**, each a thing to judge in a world before it is built:
 

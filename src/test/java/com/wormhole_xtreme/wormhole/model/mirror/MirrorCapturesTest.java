@@ -900,4 +900,28 @@ class MirrorCapturesTest
             assertEquals(1, MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L), "twenty minutes old");
         });
     }
+
+    /**
+     * A gate removed while its first capture is still being taken does not have it written afterwards.
+     *
+     * <p>A capture in progress has neither a file nor a place in memory yet, so removing the gate
+     * found nothing to forget, and the capture finished and wrote its file for a gate that was gone:
+     * one built again under the name drew the old place.
+     */
+    @Test
+    void aGateRemovedMidCaptureDoesNotHaveItWritten()
+    {
+        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8));
+            MirrorCaptures.step(1);
+
+            MirrorCaptures.forgetGate(GATE);
+            MirrorCaptures.step(100);
+        });
+
+        assertFalse(file.exists(), "no file for a gate that is gone");
+        assertNull(MirrorCaptures.get(gateKey()), "and nothing in memory");
+    }
 }
