@@ -27,12 +27,12 @@ Go down the list; the first row that matches decides.
 
 | The change | Route to |
 |---|---|
-| A delegated attempt already failed review or CI twice | one model up (Sonnet → Opus → this session) |
+| A delegated attempt already took two rounds (step 5) without passing review and CI | one model up: Sonnet → Opus → this session. If this session is already the model that failed, stop and revisit the plan with the user instead of a third try |
 | Calls a Bukkit/Spigot/Paper API not already used in the codebase | `implementer-opus` |
 | Touches a catch block, reflection, or anything version-gated (1.20 floor, 26.x removals) | `implementer-opus` |
 | Changes state shared across classes (MirrorWindows, the gate registry, the scheduler) | `implementer-opus` |
 | The plan leaves any design decision open — "either X or Y", "work out how to…" | `implementer-opus` |
-| The plan names every file, method and test, and each step is mechanical: a Sonar sweep, tests for existing behaviour, a rename, config or message plumbing | `implementer-sonnet` |
+| The plan names every file, method and test, and each step is mechanical: a Sonar sweep whose plan already marks the structural false positives to leave alone (`sonar-check`), tests for existing behaviour, a rename, config or message plumbing | `implementer-sonnet` |
 | Anything else | `implementer-opus` |
 
 When unsure between Sonnet and Opus, pick Opus: the rework risk costs more than the price gap.
@@ -43,7 +43,7 @@ Run it with the Agent tool, `subagent_type` set to the implementer, in the backg
 session can draft the CHANGELOG entry meanwhile. The prompt carries everything, since the
 sub-agent sees none of this conversation:
 
-- the worktree path and branch name
+- the worktree's absolute path and branch name; the sub-agent's shell starts elsewhere
 - the plan, step by step, with file paths and method names
 - what the change is for, in two sentences, so it can recognise when the plan is wrong
 - the tests expected, and what each should fail on if the code were broken
@@ -53,24 +53,27 @@ sub-agent sees none of this conversation:
 
 - **Stopped on a plan problem:** fix the plan here, then hand the rest back to the same model,
   or up one if the problem showed the change needs more judgment than the route assumed.
-- **Finished:** read the diff yourself before anything else — a skim for scope and anything
-  surprising, not a review; the reviews come from the `pr-review` skill. Then commit with the
-  `ship-it` skill, adding a `Co-Authored-By` line for the implementer's model alongside this
-  session's own trailer.
+- **Finished:** it has committed on the branch with its own model's trailer. Read the diff
+  yourself before anything else — a skim for scope and anything surprising, not a review; the
+  reviews come from the `pr-review` skill. Then carry on with `ship-it` from the CHANGELOG step.
 
 The implementer counts as the model that **wrote** the code for `pr-review`'s table, so a
-Sonnet-implemented change is first reviewed by Opus, not Sonnet.
+Sonnet-implemented change is first reviewed by Opus, not Sonnet. That guards against the
+implementer's slips, not the planner's design blind spots; check that at least one of the two
+reviews is by a model that neither planned nor implemented the change. The table gives that for
+every usual pairing (Opus plans and Sonnet implements: Fable's final review); if it does not,
+swap that review for one that does.
 
 ## 5. Record the route on the PR
 
 Fill in the **Route** line of the PR template's Reviews section: which implementer, the table
-row that sent it there, and the number of implementation rounds — 1 if it came back finished,
+planning model, the table row that sent it there, and the number of implementation rounds — 1 if it came back finished,
 plus one for each hand-back or escalation, plus one for each round of review fixes it needed.
 
 To tune the rules, read the record back:
 
 ```bash
-gh -R khanjal/Wormhole-X-Treme pr list --state merged --limit 50 --search "Route in:body" --json number,body --jq '.[] | "\(.number) \(.body | capture("Route: (?<r>[^\r\n]*)").r)"'
+gh -R khanjal/Wormhole-X-Treme pr list --state merged --limit 50 --search "Route in:body" --json number,body --jq '.[] | "\(.number) \((.body // "") | (capture("Route: (?<r>[^\r\n]*)").r? // "no Route line"))"'
 ```
 
 A row that keeps sending Sonnet changes needing two or more rounds belongs with Opus; say so in
