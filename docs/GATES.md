@@ -635,7 +635,9 @@ watched for in a world, at speed and on a mount.
 wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
 spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
 still, the spread would get coarse enough to miss things, and nobody has measured where, so a
-gate bigger than five by five keeps its horizon.
+gate bigger than five by five (Large, Grand, Massive) shows its view through a five-by-five window
+carved at the foot of its opening's middle, on the lowest rows the ring leaves room for, and the
+rest of its opening keeps its horizon. At `open` only that window clears; an iris still covers it.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
 `data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
