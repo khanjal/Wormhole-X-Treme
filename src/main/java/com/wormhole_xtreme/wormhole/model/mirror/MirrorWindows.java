@@ -434,6 +434,13 @@ public final class MirrorWindows
         final boolean fixedForViewer = view.fixedNames.contains(name);
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.field(name, howDrawn(window, fixedForViewer)));
+        if (window.walkThrough)
+        {
+            // A gate's view comes in steps, and which step it is on is the first question when it looks short.
+            lines.add(MirrorText.field(name + " capture", "reaches " + reachAhead(window) + " ahead, drawn to "
+                + window.depth + " (full " + ConfigManager.getGateViewFullDepth() + "), "
+                + window.capture.secondsOld() + "s old"));
+        }
         if (!fixedForViewer)
         {
             final Far far = view.far.get(name);
@@ -489,6 +496,23 @@ public final class MirrorWindows
         }
         return MirrorText.good("drawn whole") + " " + toDepth(window) + ", "
             + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
+    }
+
+    /**
+     * How far past its arrival a window's capture reaches, the way a traveller faces.
+     *
+     * @return blocks, counted to the far edge of the capture's box
+     */
+    static int reachAhead(final MirrorWindowState window)
+    {
+        final int[] box = window.capture.bounds();
+        final Spot far = window.shape.far();
+        final Spot ahead = window.shape.ahead();
+        if (ahead.x() != 0)
+        {
+            return (ahead.x() > 0) ? (box[3] - far.x()) : (far.x() - box[0]);
+        }
+        return (ahead.z() > 0) ? (box[5] - far.z()) : (far.z() - box[2]);
     }
 
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */

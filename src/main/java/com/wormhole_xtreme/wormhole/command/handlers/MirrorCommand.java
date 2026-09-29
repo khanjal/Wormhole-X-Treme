@@ -1267,13 +1267,19 @@ public class MirrorCommand implements SubCommand
             blind(sender, "-off".equals(last));
             return;
         }
+        // Every window you are drawn, gates' too: a gate's window is no mirror to be named or looked at.
+        if ("-views".equals(last) && (sender instanceof Player player))
+        {
+            MirrorWindows.describe(player).forEach(line -> say(sender, line));
+            return;
+        }
         final boolean full = "-full".equals(last);
         final boolean all = "-all".equals(last);
         // How many words the command has with no name in it.
         final int bare = (full || all) ? 3 : 2;
         final String name = (args.length > bare) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [-all|-full] | debug -off|-on"));
+            () -> sayUsage(sender, "debug [<name>] [-all|-full] | debug -views | debug -off|-on"));
         if (mirror == null)
         {
             return;
