@@ -12,6 +12,9 @@ const NETHER = 'minecraft:the_nether';
 const END = 'minecraft:the_end';
 
 // The flat world's layers, bottom up; the quartz layer ends at y = -1.
+// One seed, so the nether and End round the far sites are the same terrain every run.
+const SEED = 20110609;
+
 const FLAT_LAYERS = [
   { block: 'minecraft:bedrock', height: 1 },
   { block: 'minecraft:deepslate', height: 31 },
@@ -239,6 +242,6 @@ function chamber(id) {
 }
 
 module.exports = {
-  OVERWORLD, NETHER, END, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
+  OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
   TRANSIT, OPS, FORCELOAD, wing, chamber,
 };

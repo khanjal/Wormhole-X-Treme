@@ -137,7 +137,7 @@ function vanillaVersionInfo(folder, version) {
  * Writes eula.txt and server.properties for an offline, flat, quiet test server. `layers`
  * sets the flat world's layers (bottom up); without it the server's default flat is used.
  */
-function prepareFolder(folder, { port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6 }) {
+function prepareFolder(folder, { port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6, seed = null }) {
   fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(path.join(folder, 'eula.txt'), 'eula=true\n');
   const props = {
@@ -160,6 +160,7 @@ function prepareFolder(folder, { port, levelName = 'world', layers = null, gamem
     'enable-command-block': 'true',
   };
   if (layers) props['generator-settings'] = JSON.stringify({ layers, biome: 'minecraft:plains', structure_overrides: [] });
+  if (seed !== null) props['level-seed'] = String(seed);
   const text = Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n');
   fs.writeFileSync(path.join(folder, 'server.properties'), `${text}\n`);
 }

@@ -106,10 +106,30 @@ class Facility {
       const m = r.lines.map((l) => /filled (\d+) block/i.exec(l)).find(Boolean);
       const n = m ? Number(m[1]) : 0;
       air += n;
+      // While the air is still void, name what else is there: something short-lived (fire,
+      // flowing liquid) is gone by the time a slower search looks.
+      if (n < v) (this.strays || (this.strays = [])).push(...await this.nameStrays(dim, coords));
       if (n) await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:air replace minecraft:structure_void`);
     }
     const out = { ok: air === vol, air, volume: vol };
-    if (!out.ok) out.found = await this.locateSolid(dim, box);
+    if (!out.ok) {
+      out.found = [...(this.strays || []), ...await this.locateSolid(dim, box)];
+      this.strays = [];
+    }
+    return out;
+  }
+
+  /** Counts of likely stray blocks in a box, by turning each kind into void and counting it. */
+  async nameStrays(dim, coords) {
+    const kinds = ['cave_air', 'void_air', 'fire', 'soul_fire', 'lava', 'water', 'netherrack', 'gravel', 'soul_sand',
+      'basalt', 'blackstone', 'magma_block', 'weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant',
+      'crimson_nylium', 'warped_nylium', 'glowstone', 'end_stone', 'chorus_plant', 'chorus_flower', 'glass'];
+    const out = [];
+    for (const k of kinds) {
+      const r = await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:structure_void replace minecraft:${k}`);
+      const m = r.lines.map((l) => /filled (\d+) block/i.exec(l)).find(Boolean);
+      if (m) out.push(`${k} x${m[1]}`);
+    }
     return out;
   }
 
