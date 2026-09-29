@@ -126,7 +126,7 @@ class GateViewsSweepTest
 
     private void offeredTimes(final int times)
     {
-        windows.verify(() -> MirrorWindows.offerGate(argThat(gate -> "gate:Abydos".equals(gate.name())), anyBoolean()), times(times));
+        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
     }
 
     @Test

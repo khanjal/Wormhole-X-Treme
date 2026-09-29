@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
@@ -273,12 +275,10 @@ public final class MirrorCaptures
     static Set<String> gateKeysFor(final String gate)
     {
         final String stem = gateStem(gate);
-        final Set<String> keys = new HashSet<>();
-        final File[] files = DataLayout.gateCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
-        for (final File file : (files == null) ? new File[0] : files)
-        {
-            keys.add(GATE_KEY + file.getName().substring(0, file.getName().length() - VIEW.length()));
-        }
+        final String[] files = DataLayout.gateCaptureDir().list((dir, name) -> name.endsWith(VIEW));
+        final Set<String> keys = Arrays.stream((files == null) ? new String[0] : files)
+            .map(name -> GATE_KEY + name.substring(0, name.length() - VIEW.length()))
+            .collect(Collectors.toCollection(HashSet::new));
         keys.addAll(LOADED.keySet());
         keys.removeIf(key -> !key.startsWith(GATE_KEY + stem + '_') || !GATE_HOLE.matcher(key)
             .region(GATE_KEY.length() + stem.length(), key.length()).matches());
