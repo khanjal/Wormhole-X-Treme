@@ -360,6 +360,22 @@ class MirrorWindowsGateTest
         assertTrue(MirrorWindows.throughTunnel(held(0), EYE, 35, 66, 15, 0.0), "and with no throat, the front decides");
     }
 
+    /**
+     * The throat's far end is past its last layer, so its whole length counts.
+     *
+     * <p>Six behind the gate, a block four to five across lands inside the opening where the throat
+     * ends, and one a block further out hangs past it there. Put the far end a layer short and that
+     * one would land inside, the throat a block shallower than it is drawn.
+     */
+    @Test
+    void theThroatsFarEndIsPastItsLastLayer()
+    {
+        final MirrorWindowState window = held(2);
+
+        assertTrue(MirrorWindows.throughTunnel(window, EYE, 16, 66, 14, 0.0), "inside at the far end");
+        assertFalse(MirrorWindows.throughTunnel(window, EYE, 17, 66, 14, 0.0), "hanging past it there");
+    }
+
     @Test
     void aBlockInsideTheThroatIsJudgedByTheFrontAlone()
     {
