@@ -1,0 +1,12 @@
+{
+  "name": "wx-facility",
+  "private": true,
+  "description": "Wormhole Research Facility: the hand-and-bot test facility for Wormhole-X-Treme.",
+  "scripts": {
+    "spike": "node spike.js"
+  },
+  "dependencies": {
+    "mineflayer": "4.39.0",
+    "vec3": "0.1.10"
+  }
+}
