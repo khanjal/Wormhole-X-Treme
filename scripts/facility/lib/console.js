@@ -16,14 +16,17 @@ const OBJECTIVE = 'wx';
 // A team colour no one is put on: the display slot only exists so the server tracks `wx`.
 const HIDDEN_SLOT = 'sidebar.team.dark_gray';
 
-/** Codes are chamber * 1000 + option * 100 + value; this one table maps both ways. */
+/**
+ * Codes are chamber * 10000 + option * 100 + value; this one table maps both ways. (The design
+ * had chamber * 1000, which allows nine options; G1 has sixteen.)
+ */
 function encode({ chamber, option, value }) {
-  if (option < 0 || option > 9 || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
-  return chamber * 1000 + option * 100 + value;
+  if (option < 0 || option > 99 || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
+  return chamber * 10000 + option * 100 + value;
 }
 
 function decode(code) {
-  return { chamber: Math.floor(code / 1000), option: Math.floor((code % 1000) / 100), value: code % 100 };
+  return { chamber: Math.floor(code / 10000), option: Math.floor((code % 10000) / 100), value: code % 100 };
 }
 
 /** Console commands that create the trigger objective and let everyone online use it. */
@@ -86,13 +89,13 @@ function listen(bot) {
 //   1            the console home
 //   10 + w       wing tab w (index into the wing list)
 //   30 + w       go to wing w
-//   N*1000 + o*100 + v   chamber N (1-based): option o (0..8) set to its value v,
-//   N*1000 + 900 + a     or action a on it (ACTIONS below)
+//   N*10000 + o*100 + v    chamber N (1-based): option o (0..98) set to its value v,
+//   N*10000 + 9900 + a     or action a on it (ACTIONS below)
 
 const HOME = 1;
 const TAB = 10;
 const GO = 30;
-const ACTION_OPTION = 9;
+const ACTION_OPTION = 99;
 const ACTIONS = ['show', 'run', 'stage', 'reset', 'watch', 'again'];
 const ACTION_WORDS = { run: '▶ Run', stage: '◇ Stage', reset: '↺ Reset', watch: '⌖ Watch', again: '⟳ Again' };
 const ACTION_WHY = {
@@ -175,7 +178,7 @@ class FacilityConsole {
     for (const e of list) {
       await this.tell(player, [
         { text: `  ${e.def.id.toUpperCase()} `, color: w.text, bold: true },
-        { text: e.def.title, color: 'white', click: { run: triggerCommand(e.number * 1000 + ACTION_OPTION * 100) }, hover: 'open its console' },
+        { text: e.def.title, color: 'white', click: { run: triggerCommand(e.number * 10000 + ACTION_OPTION * 100) }, hover: 'open its console' },
         { text: `  ${this.statusWords(e)}`, color: 'gray' },
       ]);
     }
@@ -194,7 +197,7 @@ class FacilityConsole {
       { text: this.statusWords(e), color: 'gray' }]);
     if (!e.chamber) {
       await this.tell(player, [{ text: `  Its cell is built; its tests arrive in stage ${e.def.stage}. `, color: 'gray' },
-        { text: '⌖ Watch', color: 'aqua', click: { run: triggerCommand(e.number * 1000 + 900 + ACTIONS.indexOf('watch')) }, hover: ACTION_WHY.watch }]);
+        { text: '⌖ Watch', color: 'aqua', click: { run: triggerCommand(e.number * 10000 + ACTION_OPTION * 100 + ACTIONS.indexOf('watch')) }, hover: ACTION_WHY.watch }]);
     } else {
       const opts = normaliseOptions(e.chamber.options);
       for (const [oi, o] of opts.entries()) {
@@ -208,7 +211,7 @@ class FacilityConsole {
       }
       const acts = [{ text: '  ' }];
       for (const a of ['run', 'stage', 'reset', 'watch', 'again']) {
-        acts.push({ text: ACTION_WORDS[a], color: a === 'run' ? 'green' : 'aqua', click: { run: triggerCommand(e.number * 1000 + 900 + ACTIONS.indexOf(a)) }, hover: ACTION_WHY[a] }, '   ');
+        acts.push({ text: ACTION_WORDS[a], color: a === 'run' ? 'green' : 'aqua', click: { run: triggerCommand(e.number * 10000 + ACTION_OPTION * 100 + ACTIONS.indexOf(a)) }, hover: ACTION_WHY[a] }, '   ');
       }
       await this.tell(player, acts);
     }

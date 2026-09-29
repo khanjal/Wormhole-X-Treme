@@ -46,7 +46,7 @@ class Facility {
   async prepare() {
     await this.srv.prepareFence();
     const problems = [];
-    for (const rule of ['daylight', 'weather', 'mobSpawning', 'commandBlockOutput', 'logAdminCommands']) {
+    for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands']) {
       const cmd = `gamerule ${server.gameruleName(this.version, rule)} false`;
       const r = await this.srv.run(cmd);
       if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
@@ -332,7 +332,7 @@ class Facility {
     const ch = e.chamber;
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
-    const refusal = ch.refuses ? ch.refuses(v) : null;
+    const refusal = ch.refuses ? ch.refuses(v, this.version) : null;
     if (refusal) {
       await this.setStatus(e, 'refused', refusal);
       return { outcome: 'REFUSED', reason: refusal, checks: [] };
@@ -346,6 +346,7 @@ class Facility {
     let result;
     try {
       await bar.advance('resetting the cell');
+      if (ch.cleanup) await ch.cleanup(ctx);
       const reset = await this.runFunction(this.resetFunction(e));
       if (!reset.ok) throw Object.assign(new Error(`reset before staging: ${reset.detail}`), { phase: 'fixture' });
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
@@ -396,6 +397,9 @@ class Facility {
     const problems = [];
     const f = this.resetFunction(e);
     if (!f) return { ok: true, problems };
+    if (e.chamber && e.chamber.cleanup) {
+      try { await e.chamber.cleanup(this.makeCtx(e)); } catch (err) { problems.push(`cleanup: ${err.message}`); }
+    }
     const r = await this.runFunction(f);
     if (!r.ok) problems.push(r.detail);
     await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);

@@ -98,7 +98,7 @@ async function main() {
   const folder = path.join(LOCAL, `facility-${version}`);
 
   if (!args.keepWorld) server.freshWorlds(folder, { pluginData: true });
-  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'adventure', viewDistance: 10 });
+  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'adventure', viewDistance: 10, mobs: true });
   server.installPlugin(folder, plugin);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();

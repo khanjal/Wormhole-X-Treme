@@ -30,6 +30,8 @@ const GAMERULES = {
   mobSpawning: ['doMobSpawning', 'spawn_mobs'],
   commandBlockOutput: ['commandBlockOutput', 'command_block_output'],
   logAdminCommands: ['logAdminCommands', 'log_admin_commands'],
+  patrols: ['doPatrolSpawning', 'spawn_patrols'],
+  traders: ['doTraderSpawning', 'spawn_wandering_traders'],
 };
 
 function gameruleName(version, rule) {
@@ -137,7 +139,9 @@ function vanillaVersionInfo(folder, version) {
  * Writes eula.txt and server.properties for an offline, flat, quiet test server. `layers`
  * sets the flat world's layers (bottom up); without it the server's default flat is used.
  */
-function prepareFolder(folder, { port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6, seed = null }) {
+function prepareFolder(folder, {
+  port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6, seed = null, mobs = false,
+}) {
   fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(path.join(folder, 'eula.txt'), 'eula=true\n');
   const props = {
@@ -148,9 +152,10 @@ function prepareFolder(folder, { port, levelName = 'world', layers = null, gamem
     'level-type': 'minecraft\\:flat',
     'generate-structures': 'false',
     'spawn-protection': '0',
-    'spawn-monsters': 'false',
-    'spawn-animals': 'false',
-    difficulty: 'peaceful',
+    // With mobs, summoned animals and monsters must live: before 1.21 spawn-animals=false and
+    // spawn-monsters=false discard them outright, and peaceful discards monsters. Natural
+    // spawning is off by gamerule instead.
+    ...(mobs ? { difficulty: 'easy' } : { 'spawn-monsters': 'false', 'spawn-animals': 'false', difficulty: 'peaceful' }),
     gamemode,
     'allow-flight': 'true',
     'view-distance': String(viewDistance),

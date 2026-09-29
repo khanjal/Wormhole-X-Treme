@@ -110,6 +110,13 @@ function resetChamber(ch) {
   out.cmd(`kill @e[tag=wx_run_${ch.id}]`);
   if (ch.kind === 'cell') {
     for (const b of bp.cellClear(ch)) out.fill(b, 'minecraft:air');
+    if (w.dim === campus.OVERWORLD && !ch.shaft) {
+      // A run may dig into the floor (a gate built flush, a lane of ice): lay it back, the
+      // flat world's stone under its quartz, four deep.
+      const b = ch.box;
+      out.fill(bp.box3(b.x0, b.y0 - 4, b.z0, b.x1, b.y0 - 2, b.z1), 'minecraft:stone');
+      out.fill(bp.box3(b.x0, b.y0 - 1, b.z0, b.x1, b.y0 - 1, b.z1), campus.PALETTE.floor);
+    }
     bp.cellShell(out, ch, w.colour);
   } else if (ch.kind === 'tunnel') {
     out.fill(bp.interior(ch.box), 'minecraft:air');

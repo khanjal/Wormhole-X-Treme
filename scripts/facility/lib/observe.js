@@ -5,12 +5,13 @@
 // three, so nothing here is done from the bot. A tick function does it instead:
 //  - anything of a tracked type that appears within 6 of a `wx_launch` marker is tagged
 //    `wx_launched` on its first tick;
-//  - the first tick a `wx_launched` thing is within 5 of a `wx_far` marker (the far gate's exit),
-//    its position and motion are stored in fake scores (#x #y #z #vx #vy #vz, x100 / x1000), it
-//    is tagged `wx_arrived`, and, if #freeze is 1, it is stopped where it is (no gravity, no
-//    motion, no pickup) so the bot can read it at leisure.
-// The plugin must carry the thing through as itself: a copy made at the far end has no tag and
-// never counts as arrived, which is the point.
+//  - the first tick something launched, or something tracked that has never been seen before
+//    (the plugin re-makes a projectile at the far gate, as a new entity without tags), is within
+//    5 of a `wx_far` marker, its position and motion go into fake scores (#x #y #z, x100, and
+//    #vx #vy #vz, x1000), #same records whether it is the launched entity itself, it is tagged
+//    `wx_arrived`, and with #freeze 1 it is held still (every tick, since the plugin sets the
+//    velocity again a tick after the crossing) so the bot can read it.
+// Anything already lying about when the watch was armed is `wx_seen` and never counts.
 
 const { atLeast } = require('./version');
 
@@ -30,20 +31,39 @@ function functions() {
   return {
     tick: [
       '# wx:tick: tags launches and catches arrivals; see scripts/facility/lib/observe.js',
+      'execute as @e[type=minecraft:marker,tag=wx_far] at @s as @e[type=#wx:tracked,tag=!wx_arrived,distance=..5] unless entity @s[tag=wx_seen,tag=!wx_launched] run function wx:observe/arrive',
       'execute as @e[type=minecraft:marker,tag=wx_launch] at @s as @e[type=#wx:tracked,tag=!wx_seen,distance=..6] run tag @s add wx_launched',
       'tag @e[type=#wx:tracked,tag=!wx_seen] add wx_seen',
-      'execute as @e[type=minecraft:marker,tag=wx_far] at @s as @e[tag=wx_launched,tag=!wx_arrived,distance=..5] run function wx:observe/arrive',
+      `execute if score #freeze ${OBJECTIVE} matches 1 as @e[tag=wx_hold] run data merge entity @s {NoGravity:1b,Motion:[0.0d,0.0d,0.0d]}`,
+      'execute as @e[tag=wx_track,limit=1] run function wx:observe/track',
+      '',
+    ].join('\n'),
+    // Per-tick tracking of one entity tagged wx_track (a cart run at an iris): the least and
+    // greatest x and z of its position, and its latest position and motion, all x10000.
+    'observe/track': [
+      `execute store result score #tx ${OBJECTIVE} run data get entity @s Pos[0] 10000`,
+      `execute store result score #tz ${OBJECTIVE} run data get entity @s Pos[2] 10000`,
+      `execute store result score #tvx ${OBJECTIVE} run data get entity @s Motion[0] 10000`,
+      `execute store result score #tvz ${OBJECTIVE} run data get entity @s Motion[2] 10000`,
+      `scoreboard players operation #txmin ${OBJECTIVE} < #tx ${OBJECTIVE}`,
+      `scoreboard players operation #txmax ${OBJECTIVE} > #tx ${OBJECTIVE}`,
+      `scoreboard players operation #tzmin ${OBJECTIVE} < #tz ${OBJECTIVE}`,
+      `scoreboard players operation #tzmax ${OBJECTIVE} > #tz ${OBJECTIVE}`,
+      `scoreboard players add #tticks ${OBJECTIVE} 1`,
       '',
     ].join('\n'),
     'observe/arrive': [
-      `tag @s add wx_arrived`,
+      'tag @s add wx_arrived',
+      'tag @s add wx_seen',
       `scoreboard players add #arrived ${OBJECTIVE} 1`,
+      `execute if entity @s[tag=wx_launched] run scoreboard players set #same ${OBJECTIVE} 1`,
       `execute store result score #x ${OBJECTIVE} run data get entity @s Pos[0] 100`,
       `execute store result score #y ${OBJECTIVE} run data get entity @s Pos[1] 100`,
       `execute store result score #z ${OBJECTIVE} run data get entity @s Pos[2] 100`,
       `execute store result score #vx ${OBJECTIVE} run data get entity @s Motion[0] 1000`,
       `execute store result score #vy ${OBJECTIVE} run data get entity @s Motion[1] 1000`,
       `execute store result score #vz ${OBJECTIVE} run data get entity @s Motion[2] 1000`,
+      `execute if score #freeze ${OBJECTIVE} matches 1 run tag @s add wx_hold`,
       `execute if score #freeze ${OBJECTIVE} matches 1 run data merge entity @s {NoGravity:1b,Motion:[0.0d,0.0d,0.0d]}`,
       `execute if score #freeze ${OBJECTIVE} matches 1 if entity @s[type=minecraft:item] run data merge entity @s {PickupDelay:32767s}`,
       '',
@@ -58,7 +78,7 @@ function tags(version) {
   };
 }
 
-const HOLDERS = ['#arrived', '#x', '#y', '#z', '#vx', '#vy', '#vz'];
+const HOLDERS = ['#arrived', '#same', '#x', '#y', '#z', '#vx', '#vy', '#vz'];
 
 /** Reads and clears the arrival scores and the markers around one launch. */
 class Watch {
@@ -75,6 +95,7 @@ class Watch {
     for (const h of HOLDERS) await this.srv.run(`scoreboard players set ${h} ${OBJECTIVE} 0`);
     await this.srv.run('kill @e[type=minecraft:marker,tag=wx_watch]');
     await this.srv.run('kill @e[tag=wx_launched]');
+    await this.srv.run('kill @e[tag=wx_arrived]');
   }
 
   /** Arms a launch: a marker where things are launched, one at the far exit, and freezing. */
@@ -96,12 +117,13 @@ class Watch {
     return m ? Number(m[1]) : null;
   }
 
-  /** The first arrival: { count, at: {x,y,z}, motion: {x,y,z} } in blocks and blocks/tick. */
+  /** The first arrival: { count, same, at: {x,y,z}, motion: {x,y,z} } in blocks and blocks/tick. */
   async arrival() {
     const count = (await this.score('#arrived')) || 0;
+    const same = (await this.score('#same')) === 1;
     const at = { x: (await this.score('#x')) / 100, y: (await this.score('#y')) / 100, z: (await this.score('#z')) / 100 };
     const motion = { x: (await this.score('#vx')) / 1000, y: (await this.score('#vy')) / 1000, z: (await this.score('#vz')) / 1000 };
-    return { count, at, motion };
+    return { count, same, at, motion };
   }
 
   /** Waits (bounded) until something has arrived. */
@@ -113,6 +135,30 @@ class Watch {
       if (Date.now() > deadline) return 0;
       await new Promise((resolve) => { setTimeout(resolve, 100); });
     }
+  }
+
+  /** Starts per-tick tracking of one entity (by selector); clears the last track. */
+  async track(selector) {
+    await this.srv.run('tag @e[tag=wx_track] remove wx_track');
+    for (const [h, v] of [['#txmin', 2147483647], ['#tzmin', 2147483647], ['#txmax', -2147483648], ['#tzmax', -2147483648], ['#tticks', 0]]) {
+      await this.srv.run(`scoreboard players set ${h} ${OBJECTIVE} ${v}`);
+    }
+    const r = await this.srv.run(`tag ${selector} add wx_track`);
+    if (!r.lines.some((l) => /Added tag/.test(l))) throw new Error(`nothing to track: ${selector} (${r.lines.join(' ')})`);
+  }
+
+  /** The track so far, in blocks and blocks per tick. */
+  async trackResult() {
+    const n = async (h) => (await this.score(h)) / 10000;
+    return {
+      ticks: await this.score('#tticks'),
+      x: await n('#tx'), z: await n('#tz'), vx: await n('#tvx'), vz: await n('#tvz'),
+      xmin: await n('#txmin'), xmax: await n('#txmax'), zmin: await n('#tzmin'), zmax: await n('#tzmax'),
+    };
+  }
+
+  async untrack() {
+    await this.srv.run('tag @e[tag=wx_track] remove wx_track');
   }
 
   /** How many launched things never arrived (left on the near side). */

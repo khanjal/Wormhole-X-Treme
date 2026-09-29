@@ -127,9 +127,9 @@ const CHAMBERS = [
     box: { x0: 11, x1: 17, z0: 7, z1: 13, y0: 0, h: 4 }, door: 'w', gallery: 's' },
   { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, at: { x: 0, y: 6, z: -19 } },
   // Gate Dynamics
-  { id: 'g1', wing: 'gates', title: 'Test Stand', kind: 'cell', stage: 2,
+  { id: 'g1', wing: 'gates', title: 'Test Stand', kind: 'cell', stage: 2, logic: 'g1-stand',
     box: { x0: -20, x1: 20, z0: -140, z1: -104, y0: 0, h: 30 }, door: 's', gallery: 'w' },
-  { id: 'relay', wing: 'gates', title: 'Relay Gate', kind: 'cell', stage: 2,
+  { id: 'relay', wing: 'gates', title: 'Relay Gate', kind: 'cell', stage: 2, logic: 'relay',
     box: { x0: 30, x1: 50, z0: -140, z1: -120, y0: 0, h: 24 }, door: 's', gallery: 'e' },
   { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2,
     box: { x0: -66, x1: 66, z0: -168, z1: -150, y0: 0, h: 30 }, door: 'w', gallery: 's' },
@@ -206,6 +206,25 @@ const TRANSIT = {
 };
 
 /** Ops boards: the Ops wall (one line per chamber), the fault counter and the welcome board. */
+/**
+ * Where gates stand: each opening's centre across it (cx), its plane along the facing
+ * (openingAt), and the floor its arrivals stand on. The Stand is G1's gate under test; the far
+ * gates are fixtures built once a session (chambers/relay.js); the gallery is G2's.
+ */
+const GATES = {
+  stand: { dim: OVERWORLD, facing: 'south', cx: 0, openingAt: -128, floorY: 0 },
+  far: {
+    Relay: { dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 40, openingAt: -131, floorY: 0 },
+    Range: { dim: NETHER, shape: 'Standard', facing: 'south', cx: 0, openingAt: -20, floorY: 64 },
+    Annex: { dim: END, shape: 'Standard', facing: 'south', cx: 1000, openingAt: 1000, floorY: 60 },
+  },
+  // G2: the six console-buildable shapes in a row along the back wall, west to east.
+  gallery: {
+    dim: OVERWORLD, facing: 'south', openingAt: -166, floorY: 0, net: 'Gallery',
+    row: [['Massive', -52], ['Grand', -22], ['Large', 2], ['Standard', 18], ['Minimal', 31], ['Horizontal', 46]],
+  },
+};
+
 const OPS = {
   mezzanine: { x0: -20, x1: 20, z0: -20, z1: -15, floorY: 5 },
   stair: { x: -19, z0: -14, z1: -9 },
@@ -243,5 +262,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, OPS, FORCELOAD, wing, chamber,
+  TRANSIT, OPS, GATES, FORCELOAD, wing, chamber,
 };

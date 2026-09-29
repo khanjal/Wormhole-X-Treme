@@ -18,6 +18,11 @@ function waitEvent(emitter, event, test, ms, what) {
   });
 }
 
+/** Waits n game ticks by the clock: Mineflayer stops its physics ticks while riding. */
+function ticks(n) {
+  return new Promise((resolve) => { setTimeout(resolve, n * 50); });
+}
+
 /** Like waitEvent but resolves null at the deadline instead of rejecting. */
 function maybeEvent(emitter, event, test, ms) {
   return waitEvent(emitter, event, test, ms, event).catch(() => null);
@@ -41,6 +46,17 @@ class Probe {
   constructor(bot, srv) {
     this.bot = bot;
     this.srv = srv;
+    // Mineflayer 4.39 notices a dismount only from a passenger packet naming the rider with no
+    // vehicle; a server empties the vehicle's passenger list instead, so bot.vehicle would stay
+    // set for ever. Watch the vehicle's own list and let go of it here.
+    bot._client.on('set_passengers', ({ entityId, passengers }) => {
+      const v = bot.vehicle;
+      if (!v || v.id !== entityId || passengers.includes(bot.entity.id)) return;
+      v.passengers = v.passengers.filter((e) => e !== bot.entity);
+      bot.vehicle = null;
+      bot.entity.vehicle = null;
+      bot.emit('dismount', v);
+    });
   }
 
   get name() { return this.bot.username; }
@@ -86,7 +102,7 @@ class Probe {
     const end = Date.now() + maxMs;
     try {
       while (quiet < quietTicks && Date.now() < end) {
-        await this.bot.waitForTicks(1);
+        await ticks(1);
         quiet++;
       }
     } finally {
@@ -151,6 +167,14 @@ class Probe {
     return now;
   }
 
+  /** Right-clicks a block without waiting for it to change (a button the plugin may consume). */
+  async press({ x, y, z }) {
+    const block = this.bot.blockAt(new Vec3(x, y, z));
+    if (!block) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+    await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+    await this.bot.activateBlock(block);
+  }
+
   /** Walks onto a plate and waits to be teleported off it; returns where it landed. */
   async standOn({ x, y, z }, ms = 10000) {
     let teleported = false;
@@ -189,28 +213,28 @@ class Probe {
     const deadline = Date.now() + ms;
     while (!this.bot.inventory.items().some((i) => i.name === name)) {
       if (Date.now() > deadline) throw new Error(`${this.name} was never given ${name}`);
-      await this.bot.waitForTicks(1);
+      await ticks(1);
     }
   }
 
   /** Right-clicks with what is in hand once: throws a snowball, egg, pearl, potion or charge. */
   async use() {
     this.bot.activateItem();
-    await this.bot.waitForTicks(1);
+    await ticks(1);
   }
 
   /**
-   * Draws and looses: a bow (or trident) held for `ticks`, then released. A crossbow is loaded
+   * Draws and looses: a bow (or trident) held for `hold` ticks, then released. A crossbow is loaded
    * the same way and then fired with a second use.
    */
-  async drawAndLoose(ticks = 25, { crossbow = false } = {}) {
+  async drawAndLoose(hold = 25, { crossbow = false } = {}) {
     this.bot.activateItem();
-    await this.bot.waitForTicks(ticks);
+    await ticks(hold);
     this.bot.deactivateItem();
     if (crossbow) {
-      await this.bot.waitForTicks(2);
+      await ticks(2);
       this.bot.activateItem();
-      await this.bot.waitForTicks(1);
+      await ticks(1);
       this.bot.deactivateItem();
     }
   }
@@ -286,7 +310,8 @@ class Probe {
         const packet = { x: pos.x, y: pos.y, z: pos.z, yaw, pitch: 0, onGround: true };
         bot._client.write('vehicle_move', packet);
         bot._client.write('look', { yaw, pitch: 0, onGround: false, flags: { onGround: false } });
-        await bot.waitForTicks(1);
+        // Physics is off while driving, so ticks are counted by the clock (one packet per 50 ms).
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
       }
       if (!moved) throw new Error(`${this.name} did not reach ${point.x} ${point.z} riding ${vehicle.name}`);
       return 'moved';
@@ -320,4 +345,4 @@ function shownText(entity) {
   return out;
 }
 
-module.exports = { Probe, join, waitEvent, maybeEvent, shownText };
+module.exports = { Probe, join, waitEvent, maybeEvent, shownText, ticks };
