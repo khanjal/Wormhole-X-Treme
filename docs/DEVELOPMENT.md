@@ -171,6 +171,44 @@ which vanilla brings along by itself. An item and a mob dropped into a gate are 
 with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
 from the console, act as the player, then check where the bot is and what it sees.
 
+### Facility (in progress)
+
+`scripts/facility/` is the start of the Wormhole Research Facility, a flat test world that a
+tester drives from clickable chat and a bot drives from the same console. It is local only, with
+no workflow. Its first stage, the spike, proves the four vanilla mechanisms the rest is built on,
+on one server version at a time: a datapack function that builds a box, a `/trigger` console
+whose menu reaches a player who is not an op and whose code reaches the bot, a text display that
+reads back as written, and a bossbar made, changed and removed. It prints PASS or FAIL for each
+and exits 1 on any failure.
+
+```bash
+npm install --prefix scripts/facility
+node scripts/facility/spike.js 1.20.4  --java "C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin/java.exe"
+node scripts/facility/spike.js 1.21.11 --java "C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin/java.exe"
+node scripts/facility/spike.js 26.1.2  --java "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe"
+```
+
+It needs Java 21 up to 1.21.x and Java 25 for 26.x (`JAVA_HOME` works in place of `--java`), and
+downloads the Paper jar into `.local-server/` the first time. Each run starts a fresh world in
+`.local-server/facility-<version>/` on port 25590 (`--port` changes it). `WX_ECHO=1` prints the
+server's log as it runs. No plugin jar is needed.
+
+What it found:
+
+- A server sends a player the scores of an objective only while the objective sits in a display
+  slot, so a bare trigger objective never reaches the bot. The console puts `wx` in the sidebar
+  of a team colour nobody is on: every client is sent the scores and none draws them.
+- Mineflayer 4.39's `scoreUpdated` never fires from 1.20.3 on, so the bot reads the score
+  packets itself.
+- The click-event key names are the only switch a tellraw needs, but getting them wrong is
+  silent from 1.21.5: the old keys are accepted and the click is dropped. A text display in the
+  other era's form is silent too: blank on 1.20.4, raw JSON on the newer two. So the spike judges
+  both by what the client receives, not by the server's reply.
+- An out-of-range `pack_format` loads with no warning in the log, so the version table is checked
+  against the `version.json` inside the server's own jar instead.
+- Paper writes its console in the Windows code page unless told otherwise, which turns a `·` in
+  a readback into a replacement character; the server is started with UTF-8 output.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
