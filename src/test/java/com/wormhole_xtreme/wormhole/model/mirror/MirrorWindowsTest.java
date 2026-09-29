@@ -1021,6 +1021,37 @@ class MirrorWindowsTest
     }
 
     /**
+     * A wall's width outlives the sweep that read it.
+     *
+     * <p>Each sweep builds a fresh window and carries the wall's reading forward from the last,
+     * which is only read again every five seconds; the width was left behind, so for four sweeps
+     * in five the far part stood for half a block behind any wall and debug said "wall 0".
+     */
+    @Test
+    void aWallsWidthSurvivesTheNextSweepBeforeTheWallIsReadAgain()
+    {
+        MirrorWindows.nearDistance = 8.0;
+        gap = new Spot(16, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(8.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final List<String> said = new ArrayList<>();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            clock[0] += 1_000L;
+            MirrorProximity.tick();
+            said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+        });
+
+        assertTrue(said.stream().anyMatch(line -> line.startsWith(
+            "museum far part: judged once per 4.0 blocks of movement, wall 5 on every side, ")),
+            "a sweep a second later, before the wall is read again, still knows it is five wide: " + said);
+    }
+
+    /**
      * Behind a wall only a block wide, the far part follows a half-block move.
      *
      * <p>"This problem is mostly because of the 1 block border mirrors." Only the inner half of a
