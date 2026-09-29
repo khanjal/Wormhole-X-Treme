@@ -136,6 +136,9 @@ public class ConfigManager
         /** How far a gate's view is filled in, behind its first step. */
         GATE_VIEW_FULL_DEPTH,
 
+        /** How many blocks deep the wormhole's throat is drawn behind a gate's opening. */
+        GATE_VIEW_FRAME_DEPTH,
+
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
@@ -1131,6 +1134,18 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
         final int depth = (s == null) ? 160 : s.getIntValue();
         return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+    }
+
+    /**
+     * How many blocks deep a gate view's throat is drawn behind the opening, in the gate's own
+     * portal material (#516): the tunnel a line of sight must pass all of to be drawn.
+     *
+     * @return blocks, 0 to 8; 0 for none
+     */
+    public static int getGateViewFrameDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FRAME_DEPTH);
+        return (s == null) ? 2 : Math.max(0, Math.min(8, s.getIntValue()));
     }
 
     /**

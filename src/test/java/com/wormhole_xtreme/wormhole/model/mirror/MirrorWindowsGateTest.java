@@ -327,4 +327,74 @@ class MirrorWindowsGateTest
                 anyInt(), anyInt()), never());
         }
     }
+
+    /** The gate's window as the drawing holds it, with a throat of a given depth. */
+    private MirrorWindowState held(final int tunnel)
+    {
+        final QuantumMirror stand = new QuantumMirror(NAME, MirrorBlock.of(anchor), ARRIVAL);
+        final MirrorWindowState window = new MirrorWindowState(stand, gate.shape(), anchor, gate.open(), capture(32), true, 16);
+        window.tunnel = tunnel;
+        return window;
+    }
+
+    /** An eye a block in front of the middle of the five-by-five opening. */
+    private static final org.bukkit.Location EYE = new org.bukkit.Location(null, 12.5, 66.5, 21.5);
+
+    /**
+     * A block seen steeply through the ring, but not down the throat behind it, is not drawn.
+     *
+     * <p>A gate is one block deep, so from in front of it a line of sight reached far blocks well off
+     * to one side, whose outlines hung past the ring. The throat is two blocks more: a block past it
+     * is drawn only if it also lands inside the opening at the throat's far end.
+     */
+    @Test
+    void aBlockSeenSteeplyThroughTheRingButNotDownTheThroatIsNotDrawn()
+    {
+        final MirrorWindowState window = held(2);
+        // Five blocks behind the gate and 23 to the side: through the front of the opening, near its edge.
+        assertTrue(gate.shape().projected(EYE.getX(), EYE.getY(), EYE.getZ(), 35, 66, 15)[1] < 15.0,
+            "seen through the front of the opening");
+
+        assertFalse(MirrorWindows.throughTunnel(window, EYE, 35, 66, 15, 0.0), "but not down the throat");
+        assertTrue(MirrorWindows.throughTunnel(window, EYE, 12, 66, 10, 0.0), "straight down it is");
+        assertTrue(MirrorWindows.throughTunnel(held(0), EYE, 35, 66, 15, 0.0), "and with no throat, the front decides");
+    }
+
+    @Test
+    void aBlockInsideTheThroatIsJudgedByTheFrontAlone()
+    {
+        // Two behind the gate is inside a throat two deep.
+        assertTrue(MirrorWindows.throughTunnel(held(2), EYE, 35, 66, 18, 0.0));
+    }
+
+    /**
+     * The throat's walls are the frame round the opening carried back behind it, in a checkerboard of the two materials.
+     *
+     * <p>Drawn to the viewer, so nothing in the world changes; without them a line stopped by the
+     * throat would show this world through the gap it left in the view.
+     */
+    @Test
+    void theThroatsWallsAreTheFrameCarriedBackBehindTheOpening()
+    {
+        final MirrorWindowState window = held(2);
+        window.frame = List.of(new Spot(9, 64, 20), new Spot(15, 65, 20));
+        window.wallMaterials = new org.bukkit.Material[] { org.bukkit.Material.BLUE_ICE, org.bukkit.Material.PACKED_ICE };
+        final BlockData blue = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.createBlockData(org.bukkit.Material.BLUE_ICE)).thenReturn(blue);
+            bukkit.when(() -> Bukkit.createBlockData(org.bukkit.Material.PACKED_ICE)).thenReturn(packed);
+
+            final java.util.Map<Long, BlockData> walls = MirrorWindows.tunnelWalls(window);
+
+            assertEquals(4, walls.size(), "two frame cells, two deep");
+            // Looked into northwards, so behind the gate is towards smaller z.
+            assertEquals(((9 + 64 + 19) % 2 == 0) ? blue : packed, walls.get(MirrorWindows.key(9, 64, 19)));
+            assertEquals(((9 + 64 + 18) % 2 == 0) ? blue : packed, walls.get(MirrorWindows.key(9, 64, 18)));
+            assertTrue(walls.containsKey(MirrorWindows.key(15, 65, 19)) && walls.containsKey(MirrorWindows.key(15, 65, 18)));
+            assertFalse(walls.containsKey(MirrorWindows.key(9, 64, 17)), "no deeper than the throat");
+        }
+        assertTrue(MirrorWindows.tunnelWalls(held(0)).isEmpty(), "no throat, no walls");
+    }
 }

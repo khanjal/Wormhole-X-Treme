@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
@@ -69,6 +70,18 @@ final class MirrorWindowState
     /** How far past the opening its view is drawn: {@code mirror-view-depth} for a mirror, {@code gate-view-depth} for a gate. */
     final int depth;
 
+    /** A gate's throat: how many blocks deep it is drawn behind the opening, 0 for none. */
+    int tunnel;
+    /** What the throat's walls are drawn in: the two squares of a checkerboard. */
+    Material[] wallMaterials;
+    /** The throat's walls as last worked out, and the wall reading they were worked out from. */
+    Map<Long, BlockData> walls;
+    long wallsAt = -1L;
+    /** The throat's far end, as a face a line of sight must also pass; null until first wanted. */
+    MirrorWindow backFace;
+    /** The opening's cells along its face, as {@link MirrorWindows#faceCell} keys. */
+    final Set<Long> openAcross = new HashSet<>();
+
     MirrorWindowState(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
         final List<Spot> open, final MirrorCapture capture)
     {
@@ -103,5 +116,7 @@ final class MirrorWindowState
                 : Mirror.LEFT_RIGHT;
         }
         open.forEach(cell -> openKeys.add(MirrorWindows.key(cell.x(), cell.y(), cell.z())));
+        final boolean alongX = shape.into().x() != 0;
+        open.forEach(cell -> openAcross.add(MirrorWindows.faceCell(alongX ? cell.z() : cell.x(), cell.y())));
     }
 }

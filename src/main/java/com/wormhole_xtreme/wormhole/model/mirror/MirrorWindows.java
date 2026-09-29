@@ -536,6 +536,98 @@ public final class MirrorWindows
         return window.walkThrough ? mostGateFixed : mostFixed;
     }
 
+    /** A block of a face as a key: where along the face it is, and its height. */
+    static long faceCell(final int across, final int y)
+    {
+        return (((long) across) << 32) | (y & 0xFFFF_FFFFL);
+    }
+
+    /**
+     * Whether a block past a gate's throat is seen down all of it: through the opening at the front,
+     * and at the throat's far end as well.
+     *
+     * <p>A gate is one block deep, so a line of sight could pass it at any angle, and from off to one
+     * side it saw far blocks well out to that side, whose outlines hung past the ring. The throat is a
+     * tunnel {@code tunnel} blocks long behind the opening: a block past it is drawn only if it lands
+     * inside the opening at the throat's far end too, and a line that does not is stopped by the
+     * throat's walls, which are drawn. A block inside the throat is judged by the front alone.
+     *
+     * @param spread
+     *            how far the outline is widened on every side, as for the front
+     * @return true if the block is seen down the throat, or there is no throat
+     */
+    static boolean throughTunnel(final MirrorWindowState window, final Location eye, final int x, final int y,
+        final int z, final double spread)
+    {
+        if (window.tunnel <= 0)
+        {
+            return true;
+        }
+        final MirrorWindow shape = window.shape;
+        final Spot into = shape.into();
+        final int depth = ((x - shape.base().x()) * into.x()) + ((z - shape.base().z()) * into.z());
+        if (depth <= window.tunnel)
+        {
+            return true;
+        }
+        if (window.backFace == null)
+        {
+            // The throat's far end: the near face of the first layer past it.
+            final int past = window.tunnel + 1;
+            window.backFace = new MirrorWindow(new Spot(shape.base().x() + (past * into.x()), shape.base().y(),
+                shape.base().z() + (past * into.z())), into, shape.far(), shape.ahead(), shape.mirrored(), shape.width(),
+                shape.height());
+        }
+        final double[] rect = window.backFace.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
+        if (rect == MirrorWindow.UNSEEN)
+        {
+            return false;
+        }
+        rect[0] -= spread;
+        rect[1] += spread;
+        rect[2] -= spread;
+        rect[3] += spread;
+        return window.backFace.covered(rect, (MirrorWindow.Face) (across, up) -> window.openAcross.contains(faceCell(across, up)),
+            MOST_BESIDE);
+    }
+
+    /**
+     * A gate's throat: the frame round its opening, carried back {@code tunnel} blocks behind it,
+     * in the gate's own portal material or a solid look-alike of it.
+     *
+     * <p>Drawn to each viewer as the rest of the view is, so nothing in the world changes, and worked
+     * out again only when the wall round the opening is read again.
+     *
+     * @return the walls' cells and what each is drawn in; empty for no throat
+     */
+    static Map<Long, BlockData> tunnelWalls(final MirrorWindowState window)
+    {
+        if ((window.tunnel <= 0) || (window.wallMaterials == null) || window.frame.isEmpty())
+        {
+            return Map.of();
+        }
+        if ((window.walls != null) && (window.wallsAt == window.solidAt))
+        {
+            return window.walls;
+        }
+        final BlockData even = Bukkit.createBlockData(window.wallMaterials[0]);
+        final BlockData odd = Bukkit.createBlockData(window.wallMaterials[1]);
+        final Spot into = window.shape.into();
+        final Map<Long, BlockData> walls = new HashMap<>();
+        for (final Spot cell : window.frame)
+        {
+            for (int deep = 1; deep <= window.tunnel; deep++)
+            {
+                final int x = cell.x() + (deep * into.x());
+                final int z = cell.z() + (deep * into.z());
+                walls.put(key(x, cell.y(), z), (((x + cell.y() + z) & 1) == 0) ? even : odd);
+            }
+        }
+        window.walls = walls;
+        window.wallsAt = window.solidAt;
+        return walls;
+    }
+
     /** Static state only. */
     private MirrorWindows()
     {
@@ -663,6 +755,18 @@ public final class MirrorWindows
      */
     public static boolean offerGate(final GateWindow gate, final boolean opened)
     {
+        return offerGate(gate, opened, null);
+    }
+
+    /**
+     * The same, with a throat drawn behind the opening in the gate's own portal material.
+     *
+     * @param walls
+     *            the throat's two checkerboard materials, or null for none
+     * @return true if it is a window now
+     */
+    public static boolean offerGate(final GateWindow gate, final boolean opened, final Material[] walls)
+    {
         final MirrorCapture capture = gateCapture(gate, opened);
         if (capture == null)
         {
@@ -673,6 +777,8 @@ public final class MirrorWindows
         final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(gate.anchor()), gate.destination());
         final MirrorWindowState window = new MirrorWindowState(stand, shape, gate.anchor(), gate.open(), capture,
             true, drawDepthOf(gate, capture));
+        window.tunnel = (walls == null) ? 0 : ConfigManager.getGateViewFrameDepth();
+        window.wallMaterials = walls;
         final MirrorWindowState previous = WINDOWS.get(name);
         if ((previous != null) && previous.shape.equals(shape))
         {
@@ -1523,9 +1629,11 @@ public final class MirrorWindows
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final MirrorWindowState window : seeing)
         {
-            // A gate's opening is walked into, and its horizon is the gate's own to draw.
+            // A gate's opening is walked into, and its horizon is the gate's own to draw. Its throat
+            // is drawn first, so no far block lands in a wall's cell.
             if (window.walkThrough)
             {
+                wanted.putAll(tunnelWalls(window));
                 continue;
             }
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
@@ -1876,7 +1984,7 @@ public final class MirrorWindows
             round.budget().projected++;
             final double[] rect = seenThrough(from, window, x, y, z, round.seeing(), spread);
             if ((rect == MirrorWindow.UNSEEN) || !coveredBy(window, rect, round.allOpen(), sight.shielded(),
-                round.before().contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
+                round.before().contains(cell) ? KEPT_BESIDE : MOST_BESIDE) || !throughTunnel(window, from, x, y, z, spread))
             {
                 return false;
             }

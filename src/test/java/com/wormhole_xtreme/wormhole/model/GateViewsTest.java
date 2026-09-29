@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -169,5 +170,23 @@ class GateViewsTest
         {
             GateViews.clear();
         }
+    }
+
+    /**
+     * A gate's throat is drawn in its portal material, or a solid look-alike of one that is see-through.
+     *
+     * <p>Real water walls would show this world through them, tinted, which is the mixing a throat is
+     * there to stop.
+     */
+    @Test
+    void aThroatIsTheGatesPortalOrASolidLookAlike()
+    {
+        final Stargate water = mock(Stargate.class);
+        when(water.getEffectivePortalMaterial()).thenReturn(Material.WATER);
+        final Stargate lava = mock(Stargate.class);
+        when(lava.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        assertArrayEquals(new Material[] { Material.BLUE_ICE, Material.PACKED_ICE }, GateViews.throatOf(water));
+        assertArrayEquals(new Material[] { Material.LAVA, Material.LAVA }, GateViews.throatOf(lava), "lava is already solid to see");
     }
 }

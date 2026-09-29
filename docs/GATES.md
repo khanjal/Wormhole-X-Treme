@@ -678,10 +678,22 @@ first step, 32, that is two chunks and the edge in every direction, until the fi
 is given back. "What the server sends" is the world's view distance; on Paper a lower
 `send-view-distance` can make the fill reach a little further than a client is ever sent.
 
+**A throat narrows the view from off to the side.** A gate is one block deep, so a line of sight
+could pass it at any angle, and from off to one side it reached far blocks well out that way, whose
+outlines hung past the ring against this world. Behind the opening, each viewer is drawn a throat
+`gate-view-frame-depth` blocks deep, 2 by default: the frame round the opening carried back, in
+the gate's own portal material -- blue and packed ice for water, purple and magenta concrete for a
+nether portal, since a see-through wall would show this world through it tinted, which is the
+mixing it is there to stop. A far block past the throat is drawn only if it lands inside the
+opening at the throat's far end as well as its front, so the view narrows as the viewer moves off
+axis, as down a short corridor, and reads as the wormhole leading through. Straight on nothing
+changes. It cannot catch an outline that hangs past the ring's outer edge, since the lines that see
+it lean away from the throat.
+
 **What it does not do yet**, each a thing to judge in a world before it is built:
 
-- **Nothing hides the view's edges.** A mirror hangs in a wall; a gate stands in the open, so the
-  view is clipped against its ring alone. This is the go/no-go.
+- **Nothing but the ring and the throat hides the view's edges.** A mirror hangs in a wall; a gate
+  stands in the open. This is the go/no-go.
 - **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
   behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
   player near enough to be drawn it walks away.
