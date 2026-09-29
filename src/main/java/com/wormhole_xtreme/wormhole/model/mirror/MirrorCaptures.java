@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -261,6 +260,15 @@ public final class MirrorCaptures
     static final String GATE_KEY = "gate:";
 
     /**
+     * The opening every gate's capture is seen through, wide and tall: the largest a gate view draws.
+     *
+     * <p>One capture per gate serves every gate that dials it. A smaller opening sits inside this one,
+     * centred on the same column and standing on the same row, so every line of sight through it
+     * passes through this too, and what it can see is already here.
+     */
+    public static final int GATE_OPENING = 5;
+
+    /**
      * The key a gate's capture is kept under: the gate whose front it shows, and the hole it is seen through.
      *
      * <p>Named for the gate rather than the place, so it is found again after a restart and can go
@@ -326,6 +334,23 @@ public final class MirrorCaptures
     }
 
     /**
+     * How far a view may be drawn from a capture, up to a depth: the depth, or shorter where a cut to
+     * fit left it.
+     *
+     * <p>A cut keeps the box, so a capture cut short still "reaches" the depth it was asked for and
+     * is not asked for again every sweep; this is what it truly holds.
+     *
+     * @param depth
+     *            how far the view would be drawn
+     * @return blocks
+     */
+    static int drawableReach(final MirrorCapture capture, final int depth)
+    {
+        final int kept = capture.keptReach();
+        return (kept > 0) ? Math.min(depth, kept) : depth;
+    }
+
+    /**
      * Whether a capture reaches as far ahead of its arrival as a view now draws.
      *
      * @param depth
@@ -359,17 +384,11 @@ public final class MirrorCaptures
     public static int refreshGate(final String gate, final MirrorPoint arrival, final int depth,
         final long olderThanSeconds)
     {
-        int started = 0;
-        for (final String key : gateKeysFor(gate))
-        {
-            final Matcher hole = GATE_HOLE.matcher(key);
-            if (hole.find() && stale(key, arrival, depth, olderThanSeconds) && !JOBS.containsKey(key)
-                && requestGate(key, gate, arrival, Integer.parseInt(hole.group(1)), Integer.parseInt(hole.group(2)), depth))
-            {
-                started++;
-            }
-        }
-        return started;
+        final String key = gateKey(gate, GATE_OPENING, GATE_OPENING);
+        // Captures seen through a smaller opening, from before one served them all, are only disk now.
+        gateKeysFor(gate).stream().filter(other -> !other.equals(key)).forEach(MirrorCaptures::forgetKey);
+        return (stale(key, arrival, depth, olderThanSeconds) && !JOBS.containsKey(key)
+            && requestGate(key, gate, arrival, GATE_OPENING, GATE_OPENING, depth)) ? 1 : 0;
     }
 
     /**
@@ -407,34 +426,45 @@ public final class MirrorCaptures
         int deleted = 0;
         for (final String key : gateKeysFor(gate))
         {
-            final Job job = JOBS.remove(key);
-            if (job != null)
+            if (forgetKey(key))
             {
-                job.done = true;
-                job.cancel();
-            }
-            LOADED.remove(key);
-            ABSENT.add(key);
-            // As a mirror's forget does, so a gate built again under the name is warned about afresh.
-            WARNED.remove(key);
-            FAILED.remove(key);
-            FAILED_AT.remove(key);
-            final File file = fileOf(key);
-            try
-            {
-                if (Files.deleteIfExists(file.toPath()))
-                {
-                    deleted++;
-                }
-            }
-            catch (final IOException refused)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Could not delete the capture " + file.getName() + " of a removed gate", refused);
+                deleted++;
             }
         }
         changed();
         return deleted;
+    }
+
+    /**
+     * Forgets one gate capture and deletes its file: its job called off, and nothing of it kept.
+     *
+     * @return true if a file was deleted
+     */
+    private static boolean forgetKey(final String key)
+    {
+        final Job job = JOBS.remove(key);
+        if (job != null)
+        {
+            job.done = true;
+            job.cancel();
+        }
+        LOADED.remove(key);
+        ABSENT.add(key);
+        // As a mirror's forget does, so a gate built again under the name is warned about afresh.
+        WARNED.remove(key);
+        FAILED.remove(key);
+        FAILED_AT.remove(key);
+        final File file = fileOf(key);
+        try
+        {
+            return Files.deleteIfExists(file.toPath());
+        }
+        catch (final IOException refused)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not delete the capture " + file.getName() + " of a removed gate", refused);
+            return false;
+        }
     }
 
     /**
@@ -1158,6 +1188,10 @@ public final class MirrorCaptures
         {
             done = true;
             cancel();
+            if (reachKept < reachAsked)
+            {
+                builder.keptReach(reachKept);
+            }
             final MirrorCapture capture = builder.build();
             JOBS.remove(key);
             LOADED.put(key, new Held(capture, System.currentTimeMillis()));

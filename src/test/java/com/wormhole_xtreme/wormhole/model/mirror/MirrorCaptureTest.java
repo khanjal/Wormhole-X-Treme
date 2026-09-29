@@ -675,4 +675,66 @@ class MirrorCaptureTest
 
         assertThrows(IOException.class, () -> MirrorCapture.load(file));
     }
+
+    /**
+     * A capture remembers how far it kept, through the disk.
+     *
+     * <p>A cut to fit keeps the box, so without this a capture cut from 160 to 90 said it reached
+     * 160: the view was drawn to 160 with this world showing past 90, and the debug line said the
+     * same, after a restart too.
+     */
+    @Test
+    void aCaptureRemembersHowFarItKeptThroughTheDisk(@TempDir final File dir) throws IOException
+    {
+        final MirrorCapture.Builder cut = box();
+        cut.keptReach(3);
+        final File file = new File(dir, "cut.view");
+        cut.build().save(file);
+        final File whole = new File(dir, "whole.view");
+        box().build().save(whole);
+
+        assertEquals(3, MirrorCapture.load(file).keptReach(), "cut short, and says where");
+        assertEquals(-1, MirrorCapture.load(whole).keptReach(), "never cut");
+    }
+
+    /**
+     * A file from before a capture recorded how far it kept still loads, as never cut.
+     *
+     * <p>Every mirror capture on a server is one; refused, each would be taken again on the next look.
+     */
+    @Test
+    void aVersionThreeFileStillLoadsAsNeverCut(@TempDir final File dir) throws IOException
+    {
+        final MirrorCapture.Builder builder = box();
+        builder.put(1, 2, 3, stone);
+        final File file = new File(dir, "three.view");
+        builder.build().save(file);
+        asVersionThree(file);
+
+        final MirrorCapture loaded = MirrorCapture.load(file);
+
+        assertEquals(-1, loaded.keptReach());
+        assertEquals("minecraft:stone", loaded.nameAt(1, 2, 3), "and reads the rest as it always did");
+    }
+
+    /** Rewrites a capture file as version 3 wrote it: the same, less the kept reach after when it was taken. */
+    private static void asVersionThree(final File file) throws IOException
+    {
+        final byte[] raw;
+        try (GZIPInputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
+        {
+            raw = in.readAllBytes();
+        }
+        final ByteBuffer buffer = ByteBuffer.wrap(raw);
+        buffer.putInt(4, 3);
+        // Magic, version, the world's name, sky and complete, the box's six ints, when it was taken.
+        final int kept = 8 + 4 + buffer.getInt(8) + 2 + 24 + 8;
+        final byte[] three = new byte[raw.length - 4];
+        System.arraycopy(raw, 0, three, 0, kept);
+        System.arraycopy(raw, kept + 4, three, kept, raw.length - kept - 4);
+        try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        {
+            out.write(three);
+        }
+    }
 }

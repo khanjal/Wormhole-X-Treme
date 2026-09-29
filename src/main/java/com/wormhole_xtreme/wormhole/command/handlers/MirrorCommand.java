@@ -1268,9 +1268,13 @@ public class MirrorCommand implements SubCommand
             return;
         }
         // Every window you are drawn, gates' too: a gate's window is no mirror to be named or looked at.
-        if ("-views".equals(last) && (sender instanceof Player player))
+        if ("-views".equals(last))
         {
-            MirrorWindows.describe(player).forEach(line -> say(sender, line));
+            final Player player = asPlayer(sender);
+            if (player != null)
+            {
+                MirrorWindows.describe(player).forEach(line -> say(sender, line));
+            }
             return;
         }
         final boolean full = "-full".equals(last);

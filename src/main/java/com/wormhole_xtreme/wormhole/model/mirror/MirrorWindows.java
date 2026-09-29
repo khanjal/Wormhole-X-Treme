@@ -437,9 +437,12 @@ public final class MirrorWindows
         if (window.walkThrough)
         {
             // A gate's view comes in steps, and which step it is on is the first question when it looks short.
-            lines.add(MirrorText.field(name + " capture", "reaches " + reachAhead(window) + " ahead, drawn to "
-                + window.depth + " (full " + ConfigManager.getGateViewFullDepth() + "), "
-                + window.capture.secondsOld() + "s old"));
+            final int box = reachAhead(window);
+            final int kept = window.capture.keptReach();
+            lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
+                + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth
+                + " (full " + MirrorCaptures.gateFillDepth(window.mirror.destination(), ConfigManager.getGateViewDepth())
+                + "), " + window.capture.secondsOld() + "s old"));
         }
         if (!fixedForViewer)
         {
@@ -712,13 +715,13 @@ public final class MirrorWindows
 
     /**
      * The capture a gate is drawn from, asking for the next step of it: the first, out to
-     * {@code gate-view-depth}, if it has none, it is shallower than that, or the gate has just opened
-     * and it is old; otherwise the fill out to {@code gate-view-full-depth}, behind the first, if it
-     * does not reach that yet.
+     * {@code gate-view-depth}, if it has none or it is shallower than that; a retake at the depth it
+     * is drawn to, if the gate has just opened and it is old; otherwise the fill out to
+     * {@code gate-view-full-depth}, behind the first, if it does not reach that yet.
      *
      * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
-     * fill several times that, most of them read off the disk. A retake starts the steps again, so
-     * the near part is current quickly and the far part follows.
+     * fill several times that, most of them read off the disk. A retake keeps the depth drawn, the
+     * old capture shown until it lands, so an opening never shrinks the view.
      *
      * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
      */
@@ -743,8 +746,8 @@ public final class MirrorWindows
         }
         if (ask > 0)
         {
-            MirrorCaptures.requestGate(gate.captureKey(), gate.target(), gate.destination(), gate.shape().width(),
-                gate.shape().height(), ask);
+            MirrorCaptures.requestGate(gate.captureKey(), gate.target(), gate.destination(), MirrorCaptures.GATE_OPENING,
+                MirrorCaptures.GATE_OPENING, ask);
         }
         return capture;
     }
@@ -759,11 +762,15 @@ public final class MirrorWindows
         return MirrorCaptures.gateFillDepth(gate.destination(), gate.depth());
     }
 
-    /** How deep a gate is drawn from its capture: the full depth once the fill is in, and the first step's until then. */
+    /**
+     * How deep a gate is drawn from its capture: the full depth once the fill is in, and the first
+     * step's until then; never past where a cut to fit left it.
+     */
     private static int drawDepthOf(final GateWindow gate, final MirrorCapture capture)
     {
         final int full = fullDepthOf(gate);
-        return MirrorCaptures.reaches(capture, gate.destination(), full) ? full : gate.depth();
+        return MirrorCaptures.reaches(capture, gate.destination(), full) ? MirrorCaptures.drawableReach(capture, full)
+            : gate.depth();
     }
 
     /**

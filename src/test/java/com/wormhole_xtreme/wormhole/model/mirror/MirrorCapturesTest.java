@@ -1004,4 +1004,47 @@ class MirrorCapturesTest
             assertTrue(MirrorCaptures.request(mirror), "a mirror's, tried again when next wanted, as before");
         });
     }
+
+    /**
+     * A gate's fill cut to fit records how far it kept, and a view is drawn no further than that.
+     *
+     * <p>The box stays at the depth asked, so the capture is not asked for again every sweep; what it
+     * truly holds ends at the cut, and past that this world would show.
+     */
+    @Test
+    void aGatesFillCutToFitIsDrawnOnlyAsFarAsItKept()
+    {
+        MirrorCaptures.siftWith((builder, from, reach, floor) -> 50);
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 100));
+            MirrorCaptures.step(4000);
+        });
+        final MirrorCapture capture = MirrorCaptures.get(gateKey());
+
+        assertEquals(50, capture.keptReach(), "cut from 100 to 50");
+        assertEquals(50, MirrorCaptures.drawableReach(capture, 160), "drawn no further than kept");
+        assertEquals(40, MirrorCaptures.drawableReach(capture, 40), "nor further than asked");
+        assertTrue(MirrorCaptures.reaches(capture, mirror.destination(), 100),
+            "and its box still reaches what was asked, so it is not asked for again");
+    }
+
+    /**
+     * A capture seen through a smaller opening, from before one served them all, is deleted as its gate is refreshed.
+     *
+     * <p>It is never drawn from again, so it is only disk; the one capture through the largest opening
+     * is kept.
+     */
+    @Test
+    void anOldSmallerCaptureGoesAsItsGateIsRefreshed() throws Exception
+    {
+        takeGateCapture(8);
+        final File small = gateFile(GATE, 1, 2);
+        final File one = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
+
+        withServer(() -> MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L));
+
+        assertFalse(small.exists(), "the smaller one, gone");
+        assertTrue(one.exists(), "the one that serves them all, kept");
+    }
 }

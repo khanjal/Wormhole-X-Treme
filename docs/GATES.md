@@ -638,9 +638,12 @@ still, the spread would get coarse enough to miss things, and nobody has measure
 gate bigger than five by five keeps its horizon.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
-`data/gates/captures/`, one file for each gate whose front it shows and each opening size it is
-seen through. The file is named for the gate made file-safe, with a hash of the name, since two
-names can come out alike. So it is there after a restart, and a remote gate shows its view at
+`data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
+opening a gate view draws, five by five: every smaller opening sits inside that one, on the same
+middle column and bottom row, so what it can see is already there, and one capture serves every
+gate that dials this one. The file is named for the gate made file-safe, with a hash of the name,
+since two names can come out alike; one seen through a smaller opening, left by an earlier build,
+is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
 once rather than after its far side has been read off the disk. Removing a gate deletes its
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
@@ -667,8 +670,9 @@ nobody is waiting on it and most of it comes off the disk. The first step is dra
 the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
 is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
 its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
-fill too big to keep is cut to fit, never shallower than the first step, and a capture that
-fails is tried again five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
+fill too big to keep is cut to fit, never shallower than the first step, and the view is drawn
+only as far as the cut left it, past which this world shows; a capture that fails is tried again
+five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
 viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
 stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times
 a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks out. `mirror debug`
@@ -685,8 +689,10 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
 - **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
   behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
   player near enough to be drawn it walks away.
-- **A gate's captures are invisible to `mirror debug`**, and a gate renamed leaves its old
-  name's captures behind.
+- **A gate's captures show only in `mirror debug -views`**, which lists every window a player is
+  drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
+  how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old
+  name's capture behind.
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.

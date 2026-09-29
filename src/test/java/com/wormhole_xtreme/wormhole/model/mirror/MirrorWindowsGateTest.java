@@ -327,4 +327,59 @@ class MirrorWindowsGateTest
                 anyInt(), anyInt()), never());
         }
     }
+
+    /**
+     * How far a gate's capture reaches is measured the way a traveller through it faces, whichever that is.
+     *
+     * <p>The debug line that says how far a gate sees reads this; a sign or an axis wrong for one
+     * facing would print a negative or a one for every gate facing that way.
+     */
+    @Test
+    void howFarACaptureReachesIsMeasuredTheWayATravellerFaces()
+    {
+        final BlockData air = mock(BlockData.class);
+        when(air.getAsString()).thenReturn("minecraft:air");
+        // Yaw 0 south, 90 west, 180 north, 270 east; each box reaches 40 past the arrival at (100, 70, 200) that way.
+        final Object[][] facings = {
+            { 0.0f, new MirrorCapture.Box(80, 60, 199, 41, 20, 42) },
+            { 90.0f, new MirrorCapture.Box(60, 60, 180, 42, 20, 41) },
+            { 180.0f, new MirrorCapture.Box(80, 60, 160, 41, 20, 42) },
+            { 270.0f, new MirrorCapture.Box(99, 60, 180, 42, 20, 41) },
+        };
+        for (final Object[] facing : facings)
+        {
+            final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, 200.5, (float) facing[0], 0.0f);
+            final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 1, 2);
+            final MirrorCapture held = new MirrorCapture.Builder("far", true, (MirrorCapture.Box) facing[1], air).build();
+            final MirrorWindowState window = new MirrorWindowState(new QuantumMirror(NAME, MirrorBlock.of(anchor), arrival),
+                shape, anchor, List.of(), held, true, 16);
+
+            assertEquals(40, MirrorWindows.reachAhead(window), "facing yaw " + facing[0]);
+        }
+    }
+
+    /**
+     * A small gate draws from, and asks for, the far gate's one capture, seen through the largest opening.
+     *
+     * <p>Captures were kept per opening size, so a gate dialled by a Minimal and a Standard gate was
+     * captured twice. Every smaller opening sees a part of what the largest does, so one serves all.
+     */
+    @Test
+    void aSmallGateAsksForTheFarGatesOneCapture()
+    {
+        final MirrorWindow small = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 1, 2);
+        final GateWindow minimal = new GateWindow(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
+            ARRIVAL, "Chulak", 16);
+        final String key = key();
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+        {
+            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt())).thenReturn(true);
+
+            assertFalse(MirrorWindows.offerGate(minimal, true));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(5), eq(5),
+                eq(16)), times(1));
+        }
+    }
 }

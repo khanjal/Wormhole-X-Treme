@@ -52,7 +52,10 @@ public final class MirrorCapture
     private static final int MAGIC = 0x4D495257;
 
     /** 3 keeps only entries, sorted; 1 and 2 wrote a dense grid, and are taken again. */
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
+
+    /** The version before a capture recorded how far it kept; still read, as never cut. */
+    private static final int UNCUT_VERSION = 3;
 
     /** Most distinct block states a capture may hold; a short index per block. */
     private static final int MOST_STATES = 65_535;
@@ -83,6 +86,13 @@ public final class MirrorCapture
     /** The air that can be seen, which has no entries. */
     private final MirrorSeenAir air;
     private BlockData standIn;
+
+    /**
+     * How far ahead of its arrival this capture kept, where a cut to fit {@code MOST_KEPT} made
+     * that short of its box; -1 for a capture never cut. The box is not shrunk with it, so a view
+     * does not ask again for a depth the cut will only take away again.
+     */
+    private int keptReach = -1;
 
     private MirrorCapture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
         final long takenAt, final Blocks blocks, final MirrorSeenAir air)
@@ -803,6 +813,20 @@ public final class MirrorCapture
             }
         }
 
+        /** How far ahead the sift kept, where it was cut short of the box; -1 if not. */
+        private int keptReach = -1;
+
+        /**
+         * Records that the sift was cut short of the box, to fit.
+         *
+         * @param reach
+         *            how far ahead of the arrival it kept
+         */
+        void keptReach(final int reach)
+        {
+            keptReach = reach;
+        }
+
         /** @return the finished capture, taken now */
         public MirrorCapture build()
         {
@@ -843,11 +867,13 @@ public final class MirrorCapture
                     out++;
                 }
             }
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                takenAt,
+            final MirrorCapture capture = new MirrorCapture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt,
                 new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
                     Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
                 MirrorSeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
+            capture.keptReach = keptReach;
+            return capture;
         }
 
         /**
@@ -1149,6 +1175,7 @@ public final class MirrorCapture
             out.writeInt(sizeY);
             out.writeInt(sizeZ);
             out.writeLong(takenAt);
+            out.writeInt(keptReach);
             out.writeInt(names.length);
             for (final String name : names)
             {
@@ -1187,7 +1214,7 @@ public final class MirrorCapture
                 throw new IOException(file + " is not a mirror capture");
             }
             final int version = in.readInt();
-            if (version != VERSION)
+            if ((version != VERSION) && (version != UNCUT_VERSION))
             {
                 throw new IOException(file + " is capture version " + version + ", not " + VERSION
                     + "; it will be taken again");
@@ -1202,6 +1229,7 @@ public final class MirrorCapture
             final int sizeY = in.readInt();
             final int sizeZ = in.readInt();
             final long takenAt = in.readLong();
+            final int kept = (version == UNCUT_VERSION) ? -1 : in.readInt();
             final int count = in.readInt();
             if ((count < 1) || (count > MOST_STATES) || (sizeX < 1) || (sizeY < 1) || (sizeZ < 1)
                 || (((long) sizeX * sizeY * sizeZ) > Integer.MAX_VALUE))
@@ -1230,8 +1258,10 @@ public final class MirrorCapture
                 }
             }
             final MirrorSeenAir air = MirrorSeenAir.read(in, file, sizeX, sizeY, sizeZ);
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            final MirrorCapture capture = new MirrorCapture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            capture.keptReach = kept;
+            return capture;
         }
     }
 
@@ -1296,6 +1326,12 @@ public final class MirrorCapture
     long secondsOld()
     {
         return (System.currentTimeMillis() - takenAt) / 1000L;
+    }
+
+    /** @return how far ahead of its arrival this capture kept, where a cut made that short of its box; -1 if never cut */
+    int keptReach()
+    {
+        return keptReach;
     }
 
     /**

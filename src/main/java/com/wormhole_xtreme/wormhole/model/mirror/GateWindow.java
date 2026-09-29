@@ -31,9 +31,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 public record GateWindow(String name, Block anchor, MirrorWindow shape, List<Spot> open, MirrorPoint destination,
     String target, int depth)
 {
-    /** @return the key its capture is kept under: the far gate, and this opening's size */
+    /** @return the key its capture is kept under: the far gate's one, seen through the largest opening */
     String captureKey()
     {
-        return MirrorCaptures.gateKey(target, shape.width(), shape.height());
+        return MirrorCaptures.gateKey(target, MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING);
     }
 }

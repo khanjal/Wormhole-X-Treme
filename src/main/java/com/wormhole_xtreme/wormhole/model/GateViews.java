@@ -37,8 +37,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
  */
 public final class GateViews
 {
-    /** The widest or tallest opening drawn; a bigger gate keeps its horizon. */
-    static final int MOST = 5;
+    /** The widest or tallest opening drawn, the one every capture is seen through; a bigger gate keeps its horizon. */
+    static final int MOST = MirrorCaptures.GATE_OPENING;
 
     /** Before a gate's name, so the sweep cannot mistake it for a mirror's. */
     private static final String PREFIX = "gate:";
