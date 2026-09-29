@@ -156,6 +156,8 @@ public class ConfigManager
         PLACEHOLDERS_ENABLED,
         /** Whether gate and ring construction is logged to CoreProtect (#238). */
         COREPROTECT_ENABLED,
+        /** Whether the WorldGuard region flags wormhole-build and wormhole-use are registered (#240). */
+        WORLDGUARD_ENABLED,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -2000,6 +2002,13 @@ public class ConfigManager
     public static boolean isCoreProtectEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.COREPROTECT_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if the WorldGuard region flags should be registered and checked. */
+    public static boolean isWorldGuardEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.WORLDGUARD_ENABLED);
         return s != null && s.getBooleanValue();
     }
 

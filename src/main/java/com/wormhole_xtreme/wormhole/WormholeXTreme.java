@@ -24,6 +24,7 @@ import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
@@ -597,6 +598,7 @@ public class WormholeXTreme extends JavaPlugin
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
             enableMetricsIfConfigured();
+            RegionFlags.listen(this);
         }
         catch (final Exception e)
         {
@@ -766,6 +768,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load mirror looks", e);
         }
+        RegionFlags.register();
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 
