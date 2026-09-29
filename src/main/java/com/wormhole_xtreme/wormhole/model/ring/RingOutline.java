@@ -1,13 +1,16 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Shows one player where a ring actually is.
@@ -59,14 +62,14 @@ public final class RingOutline
             return;
         }
         final World world = player.getWorld();
-        final List<int[]> blocks = new java.util.ArrayList<int[]>();
+        final List<int[]> blocks = new ArrayList<int[]>();
         blocks.addAll(RingAnimator.openedBlocks(ring));
         blocks.addAll(RingAnimator.lightBlocks(ring));
         try
         {
-            final org.bukkit.block.data.BlockData lit =
-                com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(ring.getLightMaterial());
-            final org.bukkit.block.data.BlockData open =
+            final BlockData lit =
+                MaterialUtils.drawnAs(ring.getLightMaterial());
+            final BlockData open =
                 RingAnimator.OPENED_MATERIAL.createBlockData();
             final int opened = RingAnimator.openedBlocks(ring).size();
             for (int i = 0; i < blocks.size(); i++)

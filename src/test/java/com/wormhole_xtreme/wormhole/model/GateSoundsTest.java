@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -100,7 +102,7 @@ class GateSoundsTest
         // this is what actually silences the one already dispatched.
         final Player player = mock(Player.class);
         final World world = mock(World.class);
-        when(world.getPlayers()).thenReturn(java.util.Collections.singletonList(player));
+        when(world.getPlayers()).thenReturn(Collections.singletonList(player));
         final Stargate gate = new Stargate();
         gate.setGateWorld(world);
 

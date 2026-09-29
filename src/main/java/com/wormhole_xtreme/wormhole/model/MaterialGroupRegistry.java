@@ -13,6 +13,8 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
@@ -192,7 +194,7 @@ public final class MaterialGroupRegistry
         {
             return null;
         }
-        final String animation = com.wormhole_xtreme.wormhole.config.ConfigManager.parseIrisAnimation(String.valueOf(raw));
+        final String animation = ConfigManager.parseIrisAnimation(String.valueOf(raw));
         if (animation == null)
         {
             warn(GROUP_PREFIX + groupName + "\" has an unknown iris-animation \"" + raw
@@ -206,15 +208,15 @@ public final class MaterialGroupRegistry
      *
      * @return the pattern, or null when absent or unreadable, to follow the server's
      */
-    private static com.wormhole_xtreme.wormhole.logic.DialSpinPattern parseDialSpin(final String groupName,
+    private static DialSpinPattern parseDialSpin(final String groupName,
         final Object raw)
     {
         if (raw == null)
         {
             return null;
         }
-        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
-            com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
+        final DialSpinPattern pattern =
+            DialSpinPattern.parse(String.valueOf(raw));
         if (pattern == null)
         {
             warn(GROUP_PREFIX + groupName + "\" has an unknown dial-spin \"" + raw

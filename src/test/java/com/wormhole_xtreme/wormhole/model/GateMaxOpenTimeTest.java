@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.Field;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -30,7 +32,7 @@ class GateMaxOpenTimeTest
      */
     private static void openedMillisAgo(final Stargate gate, final long millis) throws Exception
     {
-        final java.lang.reflect.Field f = Stargate.class.getDeclaredField("gateOpenedAtMillis");
+        final Field f = Stargate.class.getDeclaredField("gateOpenedAtMillis");
         f.setAccessible(true);
         f.setLong(gate, System.currentTimeMillis() - millis);
     }

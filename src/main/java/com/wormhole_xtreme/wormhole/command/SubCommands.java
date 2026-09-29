@@ -5,14 +5,51 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiPredicate;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.command.handlers.BeamCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.CustomCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.RingCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
+import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+import com.wormhole_xtreme.wormhole.model.ring.Ring;
+import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * The one place a {@code /wormhole} subcommand is declared.
@@ -71,7 +108,7 @@ public final class SubCommands
         private final ArgCompleter completer;
         private boolean hidden;
         private boolean checksOwnPermissions;
-        private java.util.function.BiPredicate<CommandSender, String[]> admitsWithoutConfig = (sender, args) -> false;
+        private BiPredicate<CommandSender, String[]> admitsWithoutConfig = (sender, args) -> false;
 
         Entry(final String name, final List<String> aliases, final String usage,
             final SubCommand handler, final boolean dropSubcommandArg, final ArgCompleter completer)
@@ -218,7 +255,7 @@ public final class SubCommands
                 return args.length == 3 ? prefixed(args[2], "-destroy") : none();
             });
         register(REGEN, aliases(REGENERATE), "/wormhole regen <gate> [-shape <shape>] [-fill] [-water] | [-water] | -all",
-            new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false,
+            new RegenerateCommand(), false,
             (sender, args) -> completeGateRegenerate(asGateVerb(args)));
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -235,7 +272,7 @@ public final class SubCommands
 
         // --- Per-gate settings ----------------------------------------------
         register(OWNER, aliases(), "/wormhole owner <gate> [player]",
-            new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, (sender, args) ->
+            new OwnerCommand(), false, (sender, args) ->
             {
                 if (args.length == 2)
                 {
@@ -253,9 +290,9 @@ public final class SubCommands
                 return args.length == 3 ? prefixed(args[2], CLEAR) : none();
             });
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
-            new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
+            new RedstoneCommand(), false, GATE_THEN_BOOLEAN);
         register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|-confirm]",
-            new com.wormhole_xtreme.wormhole.command.handlers.CustomCommand(), false, (sender, args) ->
+            new CustomCommand(), false, (sender, args) ->
             {
                 if (args.length == 2)
                 {
@@ -273,12 +310,12 @@ public final class SubCommands
             });
         // The three material overrides differ only in which set of materials they accept, so
         // they share one handler and the completer offers that set at the value position.
-        for (final com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind kind
-            : com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind.values())
+        for (final MaterialCommand.Kind kind
+            : MaterialCommand.Kind.values())
         {
             final String name = kind.command();
             register(name, aliases(), "/wormhole " + name + " <gate> <material>",
-                new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, (sender, args) ->
+                new MaterialCommand(kind), false, (sender, args) ->
                 {
                     if (args.length == 2)
                     {
@@ -292,7 +329,7 @@ public final class SubCommands
                 });
         }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
-            new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, (sender, args) ->
+            new WooshDepthCommand(), false, (sender, args) ->
             {
                 if (args.length == 2)
                 {
@@ -302,33 +339,33 @@ public final class SubCommands
                 {
                     return none();
                 }
-                return prefixed(args[2], com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand
+                return prefixed(args[2], WooshDepthCommand
                     .depths().toArray(new String[0]));
             });
 
         // --- Transport rings --------------------------------------------------
         register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner|build|fire>",
-            new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
+            new RingCommand(), false,
             SubCommands::completeRing);
 
         // --- Beaming ------------------------------------------------------------
         register("beam", aliases(),
             "/wormhole beam <to|list|admin|place> [...]",
-            new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
+            new BeamCommand(), false,
             SubCommands::completeBeam);
 
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
-            new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
+            new TimeoutsCommand(), false, null);
         register("activate_timeout", aliases(), "/wormhole activate_timeout <seconds>",
-            new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
+            new TimeoutsCommand(), false, null);
         register("cooldown", aliases(), "/wormhole cooldown <seconds> or <true|false>",
-            new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, (sender, args) ->
+            new CooldownCommand(), false, (sender, args) ->
                 args.length == 2 ? prefixed(args[1], TRUE, FALSE) : none());
         // Kept dispatchable, but it reports that build restriction is gone rather than
         // pretending to set it. See RestrictCommand.
         register("restrict", aliases(), "/wormhole restrict (removed)",
-            new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, null);
+            new RestrictCommand(), false, null);
 
         // --- The shape people actually type --------------------------------
         // Everything above stays registered and keeps working; it is just no longer what is
@@ -336,21 +373,21 @@ public final class SubCommands
         // the one thing that is neither.
         register("gate", aliases("gates"),
             "/wormhole gate <" + String.join("|",
-                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()) + ">",
-            new com.wormhole_xtreme.wormhole.command.handlers.GateCommand(), false,
+                GateCommand.verbs()) + ">",
+            new GateCommand(), false,
             SubCommands::completeGate);
         register("mirror", aliases("mirrors"),
             "/wormhole mirror <" + String.join("|",
-                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs()) + ">",
-            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand(), false,
+                MirrorCommand.verbs()) + ">",
+            new MirrorCommand(), false,
             SubCommands::completeMirror);
         register("config", aliases("set"), "/wormhole config <setting> [value]",
-            new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, (sender, args) ->
+            new ConfigCommand(), false, (sender, args) ->
             {
                 if (args.length == 3)
                 {
                     return prefixed(args[2],
-                        com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor(args[1]).toArray(new String[0]));
+                        ConfigManager.valuesFor(args[1]).toArray(new String[0]));
                 }
                 if (args.length != 2)
                 {
@@ -360,7 +397,7 @@ public final class SubCommands
                 // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
                 return prefixed(typed,
-                    com.wormhole_xtreme.wormhole.config.ConfigManager.settingNames()
+                    ConfigManager.settingNames()
                         .toArray(new String[0]));
             });
 
@@ -369,7 +406,7 @@ public final class SubCommands
         // dispatcher does not put it behind wormhole.config, which would make an easter egg
         // that only operators could find.
         register(FREYA, aliases(), "/wormhole freya [on|off]",
-            new com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand(), false, null);
+            new FreyaCommand(), false, null);
 
         hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
@@ -381,7 +418,7 @@ public final class SubCommands
         // gate stays admin-only, except build and preview for whoever may preview -- Build checks
         // the node itself -- and edit <gate> idc, for the same reason idc is self-permissioned.
         BY_NAME.get("gate").admitsWithoutConfig = (sender, args) -> Build.admitsWithoutConfig(sender, args)
-            || com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.admitsWithoutConfig(args);
+            || GateEditCommand.admitsWithoutConfig(args);
     }
 
     /**
@@ -396,7 +433,7 @@ public final class SubCommands
         if (args.length == 2)
         {
             return prefixed(args[1],
-                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()
+                GateCommand.verbs()
                     .toArray(new String[0]));
         }
         final String verb = args[1].toLowerCase(Locale.ROOT);
@@ -454,7 +491,7 @@ public final class SubCommands
         // Only the verbs gate actually dispatches. Without this, a word that happens to name
         // some other subcommand -- gate set, gate timeout -- would complete as that one, and
         // then be refused the moment it was run.
-        if (!com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs().contains(flatName)
+        if (!GateCommand.verbs().contains(flatName)
             && !"delete".equals(verb))
         {
             return none();
@@ -475,7 +512,7 @@ public final class SubCommands
      */
     private static String[] asFlatCommand(final String[] args)
     {
-        return java.util.Arrays.copyOfRange(args, 1, args.length);
+        return Arrays.copyOfRange(args, 1, args.length);
     }
 
     /**
@@ -515,14 +552,14 @@ public final class SubCommands
         {
             return none();
         }
-        final com.wormhole_xtreme.wormhole.model.StargateShape shape =
-            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShape(args[2]);
+        final StargateShape shape =
+            StargateShapeRegistry.getStargateShape(args[2]);
         if (shape == null)
         {
             return none();
         }
-        return prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
-            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+        return prefixed(args[3], MaterialGroupRegistry.getGroups().stream()
+            .map(MaterialGroup::getName)
             .filter(shape::acceptsMaterialGroup)
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toArray(String[]::new));
@@ -577,22 +614,22 @@ public final class SubCommands
     {
         if (args.length == 4)
         {
-            final List<String> out = new ArrayList<>(prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry
-                .getGroups().stream().map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+            final List<String> out = new ArrayList<>(prefixed(args[3], MaterialGroupRegistry
+                .getGroups().stream().map(MaterialGroup::getName)
                 .sorted(String.CASE_INSENSITIVE_ORDER).toArray(String[]::new)));
             // Roles with their dash, so an option is never offered looking like a group's name.
-            out.addAll(prefixed(args[3], java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.values())
-                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::option).toArray(String[]::new)));
+            out.addAll(prefixed(args[3], Arrays.stream(GateBlueprint.Role.values())
+                .map(GateBlueprint.Role::option).toArray(String[]::new)));
             return out;
         }
         if ((args.length != 5) || args[4].isEmpty()
-            || (com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.named(args[3]) == null))
+            || (GateBlueprint.Role.named(args[3]) == null))
         {
             return none();
         }
-        return prefixed(args[4], java.util.Arrays.stream(org.bukkit.Material.values())
+        return prefixed(args[4], Arrays.stream(Material.values())
             .filter(material -> !material.name().startsWith("LEGACY_")
-                && com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
+                && MaterialUtils.isBlockOrUnknown(material))
             .map(material -> material.name().toLowerCase(Locale.ROOT)).toArray(String[]::new));
     }
 
@@ -612,7 +649,7 @@ public final class SubCommands
         if (args.length == 4)
         {
             return prefixed(args[3],
-                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.fieldNames()
+                GateEditCommand.fieldNames()
                     .toArray(new String[0]));
         }
         if (args.length == 5)
@@ -639,8 +676,8 @@ public final class SubCommands
     {
         if ("group".equals(field))
         {
-            final List<String> groups = new java.util.ArrayList<>(
-                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames());
+            final List<String> groups = new ArrayList<>(
+                GateEditCommand.groupNames());
             groups.add(CLEAR);
             return prefixed(typed, groups.toArray(new String[0]));
         }
@@ -655,12 +692,12 @@ public final class SubCommands
         if ("iris-animation".equals(field))
         {
             return prefixed(typed,
-                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.irisAnimationNames().toArray(new String[0]));
+                GateEditCommand.irisAnimationNames().toArray(new String[0]));
         }
         if ("spin".equals(field))
         {
             return prefixed(typed,
-                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.spinNames().toArray(new String[0]));
+                GateEditCommand.spinNames().toArray(new String[0]));
         }
         if ("portal".equals(field) || "iris".equals(field) || LIGHT.equals(field))
         {
@@ -686,11 +723,11 @@ public final class SubCommands
         if (args.length == 2)
         {
             // debug is left out of the usage line, and offered here only to whoever may run it.
-            final String[] verbs = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs();
+            final String[] verbs = MirrorCommand.verbs();
             return prefixed(args[1], CommandHandlerUtils.hasConfigPermission(sender)
                 ? both(verbs, new String[] { DEBUG }) : verbs);
         }
-        final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "";
         if (DEBUG.equals(verb))
         {
             return completeMirrorDebug(sender, args);
@@ -730,7 +767,7 @@ public final class SubCommands
      */
     private static List<String> completeMirrorSet(final String[] args)
     {
-        final String[] properties = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.properties();
+        final String[] properties = MirrorCommand.properties();
         if (args.length < 3)
         {
             return none();
@@ -749,21 +786,21 @@ public final class SubCommands
         {
             return none();
         }
-        final List<String> asVerb = new java.util.ArrayList<>();
+        final List<String> asVerb = new ArrayList<>();
         asVerb.add(args[0]);
-        asVerb.add(args[at].toLowerCase(java.util.Locale.ROOT).substring(1));
+        asVerb.add(args[at].toLowerCase(Locale.ROOT).substring(1));
         if (!propertyFirst)
         {
             asVerb.add(args[2]);
         }
-        asVerb.addAll(java.util.Arrays.asList(args).subList(at + 1, args.length));
+        asVerb.addAll(Arrays.asList(args).subList(at + 1, args.length));
         return completeMirrorProperty(asVerb.toArray(new String[0]));
     }
 
     /** Whether a word is one of a list, whatever its case. */
     private static boolean isOneOf(final String word, final String[] words)
     {
-        return java.util.Arrays.stream(words).anyMatch(word::equalsIgnoreCase);
+        return Arrays.stream(words).anyMatch(word::equalsIgnoreCase);
     }
 
     /**
@@ -821,7 +858,7 @@ public final class SubCommands
             return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
         }
         final boolean afterName = (args.length == 4)
-            && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
+            && Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
         return afterName ? prefixed(args[3], "-all", "-full") : none();
     }
 
@@ -836,7 +873,7 @@ public final class SubCommands
      */
     private static String[] both(final String[] first, final String[] second)
     {
-        final String[] all = java.util.Arrays.copyOf(first, first.length + second.length);
+        final String[] all = Arrays.copyOf(first, first.length + second.length);
         System.arraycopy(second, 0, all, first.length, second.length);
         return all;
     }
@@ -844,7 +881,7 @@ public final class SubCommands
     /** @return every look stamp will apply by name */
     private static String[] presetNames()
     {
-        return com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.names();
+        return MirrorPresetRegistry.names();
     }
 
     /**
@@ -866,8 +903,8 @@ public final class SubCommands
     /** @return every registered mirror's name */
     private static String[] mirrorNames()
     {
-        return com.wormhole_xtreme.wormhole.model.mirror.MirrorManager.all().stream()
-            .map(com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror::name)
+        return MirrorManager.all().stream()
+            .map(QuantumMirror::name)
             .toArray(String[]::new);
     }
 
@@ -926,7 +963,7 @@ public final class SubCommands
         final List<String> flags = new ArrayList<>();
         for (final String flag : new String[] { "-shape", "-fill", "-water" })
         {
-            if (java.util.Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
+            if (Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
             {
                 flags.add(flag);
             }
@@ -978,7 +1015,7 @@ public final class SubCommands
     {
         final SubCommand adapted = handler instanceof SubCommand sub
             ? sub
-            : adapt((org.bukkit.command.CommandExecutor) handler);
+            : adapt((CommandExecutor) handler);
         final Entry entry = new Entry(name, aliases, usage, adapted, dropSubcommandArg, completer);
         ORDERED.add(entry);
         BY_NAME.put(name, entry);
@@ -993,7 +1030,7 @@ public final class SubCommands
      * These were written when each was its own top-level command; consolidating them under
      * {@code /wormhole} left the classes usable as-is.
      */
-    private static SubCommand adapt(final org.bukkit.command.CommandExecutor executor)
+    private static SubCommand adapt(final CommandExecutor executor)
     {
         return (sender, args) -> executor.onCommand(sender, null, "wormhole", args);
     }
@@ -1117,9 +1154,9 @@ public final class SubCommands
      */
     private static List<String> completeRing(final CommandSender sender, final String[] args)
     {
-        final boolean admin = !(sender instanceof org.bukkit.entity.Player player)
-            || com.wormhole_xtreme.wormhole.model.ring.RingPermissions.has(player,
-                com.wormhole_xtreme.wormhole.model.ring.RingPermissions.ADMIN);
+        final boolean admin = !(sender instanceof Player player)
+            || RingPermissions.has(player,
+                RingPermissions.ADMIN);
         if (args.length == 2)
         {
             // build and fire are offered only to whoever may run them.
@@ -1285,7 +1322,7 @@ public final class SubCommands
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
+        for (final Player player : Bukkit.getOnlinePlayers())
         {
             final String name = player.getName();
             if (name.toLowerCase(Locale.ROOT).startsWith(p))
@@ -1351,7 +1388,7 @@ public final class SubCommands
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final org.bukkit.World world : org.bukkit.Bukkit.getWorlds())
+        for (final World world : Bukkit.getWorlds())
         {
             final String name = world.getName();
             if (name.toLowerCase(Locale.ROOT).startsWith(p))
@@ -1380,13 +1417,13 @@ public final class SubCommands
     private static List<String> travelBeamNames(final CommandSender sender, final String typed)
     {
         final List<String> out = publicBeamNames(typed);
-        if (!(sender instanceof org.bukkit.entity.Player player))
+        if (!(sender instanceof Player player))
         {
             return out;
         }
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination place
-            : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getPlaces(player.getUniqueId()))
+        for (final BeamDestination place
+            : BeamManager.getPlaces(player.getUniqueId()))
         {
             final String name = place.name();
             if (!name.toLowerCase(Locale.ROOT).startsWith(p))
@@ -1421,8 +1458,8 @@ public final class SubCommands
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
-            : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
+        for (final BeamDestination destination
+            : BeamManager.getAllPublicDestinations())
         {
             if (destination.name().toLowerCase(Locale.ROOT).startsWith(p))
             {
@@ -1504,8 +1541,8 @@ public final class SubCommands
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final org.bukkit.Material material
-            : com.wormhole_xtreme.wormhole.model.ring.Ring.glowingMaterials())
+        for (final Material material
+            : Ring.glowingMaterials())
         {
             final String name = material.name().toLowerCase(Locale.ROOT);
             if (name.startsWith(p))
@@ -1530,7 +1567,7 @@ public final class SubCommands
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final org.bukkit.Material material : org.bukkit.Material.values())
+        for (final Material material : Material.values())
         {
             final String name = material.name().toLowerCase(Locale.ROOT);
             if (worthOffering(material, slabsOnly) && name.startsWith(p))
@@ -1554,16 +1591,16 @@ public final class SubCommands
      *            true when only what can make a ring should be offered
      * @return true if it should appear in the completions
      */
-    private static boolean worthOffering(final org.bukkit.Material material, final boolean slabsOnly)
+    private static boolean worthOffering(final Material material, final boolean slabsOnly)
     {
         // Every API from 1.19.4 to 26.3 sets isLegacy() from exactly this prefix; Spigot deprecates
         // isLegacy() and both deprecate LEGACY_PREFIX. LEGACY_ names are ones nothing accepts.
         if (material.name().startsWith("LEGACY_")
-            || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
+            || !MaterialUtils.isBlockOrUnknown(material))
         {
             return false;
         }
-        return !slabsOnly || com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(material);
+        return !slabsOnly || Ring.isUsableAsRing(material);
     }
 
     /**
@@ -1581,7 +1618,7 @@ public final class SubCommands
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
         for (final String name
-            : com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes().keySet())
+            : StargateShapeRegistry.getStargateShapes().keySet())
         {
             if (name.toLowerCase(Locale.ROOT).startsWith(p))
             {
@@ -1611,7 +1648,7 @@ public final class SubCommands
     private static List<String> networkNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final java.util.LinkedHashSet<String> nets = new java.util.LinkedHashSet<String>();
+        final LinkedHashSet<String> nets = new LinkedHashSet<String>();
         nets.add("Public");
         for (final Stargate g : StargateManager.getAllGatesUnsorted())
         {

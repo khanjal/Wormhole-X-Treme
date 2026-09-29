@@ -17,10 +17,14 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -259,8 +263,8 @@ class GateBlockProtectionTest
     @Test
     void physicsProtectionStillRunsOnAnAlreadyCancelledEvent()
     {
-        final org.bukkit.event.block.BlockPhysicsEvent event =
-            spy(new org.bukkit.event.block.BlockPhysicsEvent(
+        final BlockPhysicsEvent event =
+            spy(new BlockPhysicsEvent(
                 gateBlock, gateBlock.getBlockData()));
         event.setCancelled(true);
         clearInvocations(event);
@@ -288,11 +292,11 @@ class GateBlockProtectionTest
     @Test
     void theHandlersThatTalkToThePlayerIgnoreCancelledEvents() throws Exception
     {
-        assertTrue(ignoresCancelled("onBlockBreak", org.bukkit.event.block.BlockBreakEvent.class),
+        assertTrue(ignoresCancelled("onBlockBreak", BlockBreakEvent.class),
             "a break somebody else stopped is not this plugin's to comment on");
         assertTrue(ignoresCancelled("onBlockDamage", BlockDamageEvent.class),
             "nor is a hit somebody else stopped");
-        assertTrue(ignoresCancelled("onBlockPlace", org.bukkit.event.block.BlockPlaceEvent.class),
+        assertTrue(ignoresCancelled("onBlockPlace", BlockPlaceEvent.class),
             "nor a placement somebody else stopped");
     }
 
@@ -307,7 +311,7 @@ class GateBlockProtectionTest
     {
         assertFalse(ignoresCancelled("onBlockFromTo", BlockFromToEvent.class), "liquid flow");
         assertFalse(ignoresCancelled("onBlockPhysics",
-            org.bukkit.event.block.BlockPhysicsEvent.class), "physics");
+            BlockPhysicsEvent.class), "physics");
         assertFalse(ignoresCancelled("onBlockIgnite", BlockIgniteEvent.class), "ignition");
         assertFalse(ignoresCancelled("onBlockBurn", BlockBurnEvent.class), "burning");
     }
@@ -317,7 +321,7 @@ class GateBlockProtectionTest
         throws Exception
     {
         return WormholeXTremeBlockListener.class.getMethod(method, eventType)
-            .getAnnotation(org.bukkit.event.EventHandler.class).ignoreCancelled();
+            .getAnnotation(EventHandler.class).ignoreCancelled();
     }
 
     /**

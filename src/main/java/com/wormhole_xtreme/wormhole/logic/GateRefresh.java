@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.logic;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -96,7 +97,7 @@ public final class GateRefresh
     {
         // Only a frame material the frame is still built from. Older versions snapshotted the
         // shape's default into this field, and `regen -fill` would lay that into the new frame.
-        final org.bukkit.Material structure = existing.getGateCustomStructureMaterial();
+        final Material structure = existing.getGateCustomStructureMaterial();
         final boolean frameMatches = structure == fresh.getEffectiveStructureMaterial();
         fresh.setGateCustom(existing.isGateCustom());
         fresh.setGateCustomStructureMaterial(frameMatches ? structure : null);

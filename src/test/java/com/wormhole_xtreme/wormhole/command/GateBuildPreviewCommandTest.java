@@ -25,19 +25,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.Material;
+import org.bukkit.Server;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
+import com.wormhole_xtreme.wormhole.GateInteractionHandler;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 
 /**
@@ -196,8 +211,8 @@ class GateBuildPreviewCommandTest
     void aLimitOfZeroSaysPreviewsAreOffRatherThanToClearOne()
     {
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 0);
+        ConfigTestSupport.set(
+            ConfigManager.ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 0);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             previews.when(() -> GatePreviews.show(any(), any(), any())).thenReturn(GatePreviews.Shown.OVER_LIMIT);
@@ -206,7 +221,7 @@ class GateBuildPreviewCommandTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
         verify(player).sendMessage(saying("Previews are off on this server"));
         verify(player, never()).sendMessage(saying("Clear one"));
@@ -283,8 +298,8 @@ class GateBuildPreviewCommandTest
             previews.when(() -> GatePreviews.guide(player)).thenReturn(GatePreviews.Control.GUIDE_ON);
             previews.when(() -> GatePreviews.material(any(Player.class), any(MaterialGroup.class)))
                 .thenReturn(GatePreviews.Control.CHANGED);
-            previews.when(() -> GatePreviews.material(any(Player.class), any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class),
-                any(org.bukkit.Material.class))).thenReturn(GatePreviews.Control.NOT_LOOKING);
+            previews.when(() -> GatePreviews.material(any(Player.class), any(GateBlueprint.Role.class),
+                any(Material.class))).thenReturn(GatePreviews.Control.NOT_LOOKING);
 
             run("gate", "preview", "activate");
             run("gate", "preview", "IRIS");
@@ -296,8 +311,8 @@ class GateBuildPreviewCommandTest
 
             previews.verify(() -> GatePreviews.material(eq(player),
                 argThat((MaterialGroup group) -> "Atlantis".equals(group.getName()))));
-            previews.verify(() -> GatePreviews.material(player, com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.FRAME,
-                org.bukkit.Material.GOLD_BLOCK));
+            previews.verify(() -> GatePreviews.material(player, GateBlueprint.Role.FRAME,
+                Material.GOLD_BLOCK));
         }
         verify(player).sendMessage(saying("Dialling."));
         verify(player).sendMessage(saying("Iris closed."));
@@ -320,9 +335,9 @@ class GateBuildPreviewCommandTest
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             previews.when(() -> GatePreviews.materials(player)).thenReturn(
-                new GatePreviews.Materials("Standard", List.of(new com.wormhole_xtreme.wormhole.model.preview.BuildGuide.Need(
-                    "obsidian", 18, 4), new com.wormhole_xtreme.wormhole.model.preview.BuildGuide.Need("button or lever", 1, 0)),
-                    2, false, org.bukkit.Material.GOLD_BLOCK),
+                new GatePreviews.Materials("Standard", List.of(new BuildGuide.Need(
+                    "obsidian", 18, 4), new BuildGuide.Need("button or lever", 1, 0)),
+                    2, false, Material.GOLD_BLOCK),
                 (GatePreviews.Materials) null);
 
             run("gate", "preview", "needs");
@@ -362,7 +377,7 @@ class GateBuildPreviewCommandTest
             run("gate", "preview", "layer", "top");
 
             previews.verify(() -> GatePreviews.layers(player, GatePreviews.NEXT_LAYER), times(2));
-            previews.verify(() -> GatePreviews.layers(eq(player), org.mockito.ArgumentMatchers.intThat(n -> n < -1)),
+            previews.verify(() -> GatePreviews.layers(eq(player), ArgumentMatchers.intThat(n -> n < -1)),
                 never());
         }
         verify(player, times(2)).sendMessage(saying("Showing layer 1 of 4."));
@@ -382,8 +397,8 @@ class GateBuildPreviewCommandTest
     void lookingAtAPlacedDhdButtonStandsThePreviewOnIt()
     {
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
-        final org.bukkit.block.Block onWall = button(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
-        final org.bukkit.block.Block onFloor = button(org.bukkit.block.data.FaceAttachable.AttachedFace.FLOOR);
+        final Block onWall = button(FaceAttachable.AttachedFace.WALL);
+        final Block onFloor = button(FaceAttachable.AttachedFace.FLOOR);
         when(player.getTargetBlockExact(6)).thenReturn(onWall, onFloor);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
@@ -394,19 +409,19 @@ class GateBuildPreviewCommandTest
             run("gate", "build", "Standard");
 
             previews.verify(() -> GatePreviews.showOn(eq(player), eq(standard), any(MaterialGroup.class), eq(onWall),
-                eq(org.bukkit.block.BlockFace.EAST)));
+                eq(BlockFace.EAST)));
             previews.verify(() -> GatePreviews.show(eq(player), eq(standard), any(MaterialGroup.class)));
         }
         verify(player).sendMessage(saying("on your DHD"));
     }
 
-    private static org.bukkit.block.Block button(final org.bukkit.block.data.FaceAttachable.AttachedFace face)
+    private static Block button(final FaceAttachable.AttachedFace face)
     {
-        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
-        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
+        final Block block = mock(Block.class);
+        final Switch data = mock(Switch.class);
         when(data.getAttachedFace()).thenReturn(face);
-        when(data.getFacing()).thenReturn(org.bukkit.block.BlockFace.EAST);
-        when(block.getType()).thenReturn(org.bukkit.Material.OAK_BUTTON);
+        when(data.getFacing()).thenReturn(BlockFace.EAST);
+        when(block.getType()).thenReturn(Material.OAK_BUTTON);
         when(block.getBlockData()).thenReturn(data);
         return block;
     }
@@ -416,12 +431,12 @@ class GateBuildPreviewCommandTest
     void placeNeedsItsNodeAndHandsTheGateOnToBeNamed()
     {
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
-        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Stargate gate = mock(Stargate.class);
         when(gate.getGateShape()).thenReturn(standard);
-        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        final Block button = mock(Block.class);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
-            MockedStatic<com.wormhole_xtreme.wormhole.GateInteractionHandler> handler =
-                mockStatic(com.wormhole_xtreme.wormhole.GateInteractionHandler.class))
+            MockedStatic<GateInteractionHandler> handler =
+                mockStatic(GateInteractionHandler.class))
         {
             previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
                 new GatePreviews.Placed(GatePreviews.Outcome.IN_THE_WAY, List.of("stone at 1 2 3", "4 more"), null, null),
@@ -435,7 +450,7 @@ class GateBuildPreviewCommandTest
             run("gate", "preview", "place");
             run("gate", "preview", "PLACE");
 
-            handler.verify(() -> com.wormhole_xtreme.wormhole.GateInteractionHandler.offerNewGate(player, button, gate));
+            handler.verify(() -> GateInteractionHandler.offerNewGate(player, button, gate));
         }
         verify(player).sendMessage(saying("Nothing placed. In the way: stone at 1 2 3, 4 more. "
             + PREVIEW + "guide marks them."));
@@ -450,7 +465,7 @@ class GateBuildPreviewCommandTest
     void shareNeedsItsNodeAndSaysWhoSeesIt()
     {
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
-        final org.bukkit.Server server = mock(org.bukkit.Server.class);
+        final Server server = mock(Server.class);
         when(player.getServer()).thenReturn(server);
         final Player alex = mock(Player.class);
         when(alex.getName()).thenReturn("Alex");
@@ -499,7 +514,7 @@ class GateBuildPreviewCommandTest
             run("gate", "preview", "material", "frame", "unobtainium");
 
             previews.verify(() -> GatePreviews.material(any(Player.class),
-                any(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.class), any(org.bukkit.Material.class)), never());
+                any(GateBlueprint.Role.class), any(Material.class)), never());
         }
         verify(player).sendMessage(saying(PREVIEW + "material -<role> <block>. "
             + "Roles: -frame, -chevron, -light, -portal, -iris, -sign."));
@@ -524,8 +539,8 @@ class GateBuildPreviewCommandTest
             run("gate", "preview", "material", "iris", "gold_block");
 
             previews.verify(() -> GatePreviews.material(any(Player.class),
-                eq(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.IRIS),
-                eq(org.bukkit.Material.GOLD_BLOCK)), times(2));
+                eq(GateBlueprint.Role.IRIS),
+                eq(Material.GOLD_BLOCK)), times(2));
         }
     }
 
@@ -569,23 +584,23 @@ class GateBuildPreviewCommandTest
     {
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
         when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
-        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Stargate gate = mock(Stargate.class);
         when(gate.getGateName()).thenReturn("Lithium");
-        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        final Block button = mock(Block.class);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
-            MockedStatic<com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand> regen =
-                mockStatic(com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.class);
-            MockedStatic<com.wormhole_xtreme.wormhole.GateInteractionHandler> handler =
-                mockStatic(com.wormhole_xtreme.wormhole.GateInteractionHandler.class))
+            MockedStatic<RegenerateCommand> regen =
+                mockStatic(RegenerateCommand.class);
+            MockedStatic<GateInteractionHandler> handler =
+                mockStatic(GateInteractionHandler.class))
         {
             previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
                 new GatePreviews.Placed(GatePreviews.Outcome.REPAIRED, List.of(), gate, button));
 
             run("gate", "preview", "place");
 
-            regen.verify(() -> com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateAt(player,
+            regen.verify(() -> RegenerateCommand.regenerateAt(player,
                 gate, button, null, false));
-            handler.verify(() -> com.wormhole_xtreme.wormhole.GateInteractionHandler.offerNewGate(any(), any(), any()),
+            handler.verify(() -> GateInteractionHandler.offerNewGate(any(), any(), any()),
                 never());
         }
         verify(player).sendMessage(saying("Filled in Lithium's missing blocks."));
@@ -601,7 +616,7 @@ class GateBuildPreviewCommandTest
         when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
         when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class);
-            MockedStatic<CommandHandlerUtils> perms = mockStatic(CommandHandlerUtils.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+            MockedStatic<CommandHandlerUtils> perms = mockStatic(CommandHandlerUtils.class, Mockito.CALLS_REAL_METHODS))
         {
             previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
                 new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOOKING, List.of(), null, null));

@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -21,6 +23,9 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -138,7 +143,7 @@ class WormholeXTremeVehicleListener implements Listener
     {
         // Moved to EntityUtils once rings needed it too. Kept here as a delegate so the
         // callers in this package read the same as they always did.
-        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(root, parents, children);
+        EntityUtils.collectPassengerPairs(root, parents, children);
     }
 
 
@@ -706,7 +711,7 @@ class WormholeXTremeVehicleListener implements Listener
         for (final Entity psg : passengers)
         {
             if ((psg instanceof Player rider)
-                && !com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+                && !GateEvents.firePlayerTravel(
                 st, rider, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
@@ -821,7 +826,7 @@ class WormholeXTremeVehicleListener implements Listener
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+            st.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
         }
     }
 
@@ -944,7 +949,7 @@ class WormholeXTremeVehicleListener implements Listener
 
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            st.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+            st.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
         }
         return true;
     }
@@ -957,7 +962,7 @@ class WormholeXTremeVehicleListener implements Listener
     private static boolean sendVehicle(final Stargate st, final Vehicle veh, final Location safeTarget,
                                        final Vector newSpeed, final List<Entity> passengers)
     {
-        final java.util.Map<Player, List<Entity>> pets = new java.util.LinkedHashMap<>();
+        final Map<Player, List<Entity>> pets = new LinkedHashMap<>();
         for (final Entity passenger : passengers)
         {
             if (passenger instanceof Player rider)

@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.DyeColor;
 import org.junit.jupiter.api.Test;
@@ -92,7 +94,7 @@ class MirrorPresetTest
         assertNull(MirrorPreset.parse("x", null), "nothing to read is no preset");
 
         final MirrorPreset preset =
-            MirrorPreset.parse("x", java.util.Arrays.asList("Base=RED", null, "Layer=BLUE CROSS"));
+            MirrorPreset.parse("x", Arrays.asList("Base=RED", null, "Layer=BLUE CROSS"));
         assertEquals(DyeColor.RED, preset.base());
         assertEquals(1, preset.layers().size(), "the line after the null should still be read");
     }
@@ -103,7 +105,7 @@ class MirrorPresetTest
         final MirrorPreset preset = MirrorPreset.parse("x", List.of("Base=RED",
             "Biome=PLAINS", "Layer=BLUE BORDER"));
         final List<MirrorPreset.Layer> layers = preset.layers();
-        final java.util.Set<String> biomes = preset.biomes();
+        final Set<String> biomes = preset.biomes();
         final MirrorPreset.Layer extra = new MirrorPreset.Layer(DyeColor.RED, "BORDER");
 
         assertThrows(UnsupportedOperationException.class, () -> layers.add(extra));

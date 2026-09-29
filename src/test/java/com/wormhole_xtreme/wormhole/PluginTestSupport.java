@@ -2,6 +2,9 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.mockito.Mockito.mock;
 
+import java.util.ArrayList;
+import java.util.Map;
+
 import org.bukkit.scheduler.BukkitScheduler;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -125,14 +128,14 @@ public final class PluginTestSupport
      */
     public static void forgetAllGates()
     {
-        for (final Stargate gate : new java.util.ArrayList<>(StargateManager.getOpenGates()))
+        for (final Stargate gate : new ArrayList<>(StargateManager.getOpenGates()))
         {
             gate.setGateActive(false);
         }
         // The iris set is the same shape of state as the open set, and leaks the same way: a
         // gate left shut by one test is a gate every later test in the fork has to draw an
         // iris for, in a world its own test has finished with.
-        for (final Stargate gate : new java.util.ArrayList<>(StargateManager.getIrisGates()))
+        for (final Stargate gate : new ArrayList<>(StargateManager.getIrisGates()))
         {
             gate.setGateIrisActive(false);
         }
@@ -141,9 +144,9 @@ public final class PluginTestSupport
             for (final String name : GATE_STATICS)
             {
                 final Object value = PrivateStatics.of(StargateManager.class, name);
-                if (value instanceof java.util.Map)
+                if (value instanceof Map)
                 {
-                    ((java.util.Map<?, ?>) value).clear();
+                    ((Map<?, ?>) value).clear();
                 }
             }
         }

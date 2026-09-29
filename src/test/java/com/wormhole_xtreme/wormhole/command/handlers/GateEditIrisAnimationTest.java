@@ -11,6 +11,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +45,7 @@ class GateEditIrisAnimationTest
     @AfterEach
     void tearDown() throws Exception
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

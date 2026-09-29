@@ -1,8 +1,17 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
-import org.bukkit.Location;
-import org.bukkit.command.CommandSender;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
+import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.logic.GateRefresh;
@@ -11,6 +20,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
@@ -125,7 +135,7 @@ public class RegenerateCommand implements SubCommand
      */
     private static boolean waitForClick(final CommandSender sender, final String[] args)
     {
-        if (!(sender instanceof org.bukkit.entity.Player player))
+        if (!(sender instanceof Player player))
         {
             sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
@@ -136,7 +146,7 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.command("/wormhole gate regen <gate> -fill"));
             return true;
         }
-        com.wormhole_xtreme.wormhole.command.Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
+        Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Click the DHD of the gate to regenerate it.");
         return true;
@@ -153,8 +163,8 @@ public class RegenerateCommand implements SubCommand
      * @param clearLiquid
      *            whether {@code -water} was asked for
      */
-    public static void regenerateClicked(final org.bukkit.entity.Player player, final org.bukkit.block.Block clicked,
-        final org.bukkit.block.BlockFace direction, final boolean clearLiquid)
+    public static void regenerateClicked(final Player player, final Block clicked,
+        final BlockFace direction, final boolean clearLiquid)
     {
         final Stargate existing = StargateManager.getGateFromBlock(clicked);
         if (existing == null)
@@ -181,7 +191,7 @@ public class RegenerateCommand implements SubCommand
      *            whether {@code -water} was asked for
      */
     public static void regenerateAt(final CommandSender sender, final Stargate existing,
-        final org.bukkit.block.Block button, final org.bukkit.block.BlockFace facing, final boolean clearLiquid)
+        final Block button, final BlockFace facing, final boolean clearLiquid)
     {
         shutForRegen(sender, existing);
         takeSignOutOfFrame(sender, existing);
@@ -200,7 +210,7 @@ public class RegenerateCommand implements SubCommand
         {
             return;
         }
-        com.wormhole_xtreme.wormhole.command.CommandUtilities.closeGate(s, false);
+        CommandUtilities.closeGate(s, false);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Shut "
             + ChatText.name(s.getGateName()) + " down to regenerate it.");
     }
@@ -216,7 +226,7 @@ public class RegenerateCommand implements SubCommand
         final GateRederivation.Fill fill = GateRederivation.fillFrame(s);
         if (!fill.placed().isEmpty())
         {
-            for (final org.bukkit.block.Block placed : fill.placed())
+            for (final Block placed : fill.placed())
             {
                 sender.sendMessage(header + "Placed " + ChatText.material(placed.getType().name()) + " at "
                     + ChatText.value(placed.getX() + " " + placed.getY() + " " + placed.getZ()) + ".");
@@ -244,7 +254,7 @@ public class RegenerateCommand implements SubCommand
     /** Puts back frame blocks a sign was hung in, so the frame can be detected whole. */
     private static void takeSignOutOfFrame(final CommandSender sender, final Stargate s)
     {
-        for (final org.bukkit.block.Block restored : GateRederivation.restoreFrameUnderSigns(s))
+        for (final Block restored : GateRederivation.restoreFrameUnderSigns(s))
         {
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Took a sign out of "
                 + ChatText.name(s.getGateName()) + "'s frame at "
@@ -354,9 +364,9 @@ public class RegenerateCommand implements SubCommand
     }
 
     /** A loaded shape by name, whatever its capitals. */
-    private static com.wormhole_xtreme.wormhole.model.StargateShape namedShape(final String name)
+    private static StargateShape namedShape(final String name)
     {
-        for (final java.util.Map.Entry<String, com.wormhole_xtreme.wormhole.model.StargateShape> e
+        for (final Map.Entry<String, StargateShape> e
             : StargateShapeRegistry.getStargateShapes().entrySet())
         {
             if (e.getKey().equalsIgnoreCase(name))
@@ -368,13 +378,13 @@ public class RegenerateCommand implements SubCommand
     }
 
     /** Lists the first few missing or wrong blocks, and counts the rest. */
-    private static void reportGaps(final CommandSender sender, final java.util.List<GateRederivation.Gap> gaps)
+    private static void reportGaps(final CommandSender sender, final List<GateRederivation.Gap> gaps)
     {
         if (gaps.isEmpty())
         {
             return;
         }
-        final java.util.List<String> shown = new java.util.ArrayList<>();
+        final List<String> shown = new ArrayList<>();
         for (final GateRederivation.Gap gap : gaps.subList(0, Math.min(GAPS_LISTED, gaps.size())))
         {
             shown.add(ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " (" + ChatText.material(gap.found().name())
@@ -625,9 +635,9 @@ public class RegenerateCommand implements SubCommand
         private int checked;
         private int moved;
         private int relit;
-        private final java.util.List<String> couldNotCompute = new java.util.ArrayList<>();
-        private final java.util.List<String> busy = new java.util.ArrayList<>();
-        private final java.util.List<String> doesNotFit = new java.util.ArrayList<>();
+        private final List<String> couldNotCompute = new ArrayList<>();
+        private final List<String> busy = new ArrayList<>();
+        private final List<String> doesNotFit = new ArrayList<>();
     }
 
     /** Most gate names a report line lists before the rest are only counted. */
@@ -704,11 +714,11 @@ public class RegenerateCommand implements SubCommand
     }
 
     /** The gates, as names, the first few listed and the rest counted. */
-    private static String names(final java.util.List<String> names)
+    private static String names(final List<String> names)
     {
-        final java.util.List<String> sorted = new java.util.ArrayList<>(names);
+        final List<String> sorted = new ArrayList<>(names);
         sorted.sort(String.CASE_INSENSITIVE_ORDER);
-        final java.util.List<String> shown = new java.util.ArrayList<>();
+        final List<String> shown = new ArrayList<>();
         for (final String name : sorted.subList(0, Math.min(NAMES_LISTED, sorted.size())))
         {
             shown.add(ChatText.name(name));

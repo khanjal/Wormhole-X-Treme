@@ -1,10 +1,16 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -18,8 +24,8 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 public class CommandUtilities
 {
     /** A literal quote, stripped once per argument while splitting a command line. */
-    private static final java.util.regex.Pattern QUOTE =
-        java.util.regex.Pattern.compile("\"");
+    private static final Pattern QUOTE =
+        Pattern.compile("\"");
 
     /** Static helpers only; never instantiated. */
     private CommandUtilities()
@@ -42,7 +48,7 @@ public class CommandUtilities
         {
             if (stargate.isGateActive())
             {
-                stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
+                stargate.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
                 if (stargate.isGateActive())
                 {
                     stargate.setGateActive(false);
@@ -199,26 +205,26 @@ public class CommandUtilities
      *            the player removing it, or null if it was not a player
      */
     public static void gateRemove(final Stargate stargate, final boolean destroy, final boolean announce,
-                                  final org.bukkit.entity.Player remover)
+                                  final Player remover)
     {
         // Ensure the gate is fully deactivated and cleaned up before removal.
         try
         {
-            stargate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.REMOVAL);
+            stargate.shutdownStargate(false, StargateShutdownEvent.Reason.REMOVAL);
         }
         catch (final Exception e)
         {
             // Be conservative: log and continue with removal to avoid leaving stale DB entries.
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error shutting down gate before removal", e);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error shutting down gate before removal", e);
         }
         // Remove any activator/player mapping referencing this stargate.
         try
         {
-            com.wormhole_xtreme.wormhole.model.StargateManager.removeActivatorForStargate(stargate);
+            StargateManager.removeActivatorForStargate(stargate);
         }
         catch (final Exception e)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "No activator mapping to remove or error", e);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "No activator mapping to remove or error", e);
         }
 
         stargate.setupGateSign(false);
@@ -286,7 +292,7 @@ public class CommandUtilities
      * @param callable the command body to execute
      * @return the boolean result the callable returned, or true if an error occurred
      */
-    public static boolean runCommandSafe(final CommandSender sender, final java.util.concurrent.Callable<Boolean> callable)
+    public static boolean runCommandSafe(final CommandSender sender, final Callable<Boolean> callable)
     {
         try
         {
@@ -294,10 +300,10 @@ public class CommandUtilities
         }
         catch (final Exception t)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command", t);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing command", t);
             // Everyone is told the same thing, console included: the failure is logged
             // server-side, and neither a player nor an operator can act on more than that.
-            sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             return true;
         }
     }

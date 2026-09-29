@@ -18,6 +18,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -496,7 +499,7 @@ class FreyaCompanionTest
 
         assertFalse(FreyaCompanion.catchUp(owner), "she is beside them, so she is not re-summoned");
 
-        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(cat, owner);
+        final InOrder order = Mockito.inOrder(cat, owner);
         order.verify(cat).setVisibleByDefault(false);
         order.verify(owner).hideEntity(plugin, cat);
         order.verify(owner).showEntity(plugin, cat);
@@ -555,7 +558,7 @@ class FreyaCompanionTest
     @Test
     void withDetailLoggingTheCheckDescribesWhereSheIsAndHowSheIsShown()
     {
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
         FreyaPreferences.setEnabled(OWNER, true);
         final Cat cat = catAt(new Location(world, 1.0, 64.0, 1.0));
         final Player owner = playerWith(OWNER, cat);
@@ -565,27 +568,27 @@ class FreyaCompanionTest
         FreyaCompanion.catchUp(owner);
         FreyaCompanion.resend(owner);
 
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Companion check for owner: in "));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Re-sending companion to owner"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Companion check for owner: in "));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Re-sending companion to owner"));
     }
 
     @Test
     void withDetailLoggingACheckOnAnOwnerInBedSaysSheIsAway()
     {
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
         FreyaPreferences.setEnabled(OWNER, true);
         final Player owner = playerWith(OWNER, liveCat());
         when(owner.getName()).thenReturn("owner");
         FreyaCompanion.ownerSleeps(OWNER);
 
         assertFalse(FreyaCompanion.catchUp(owner));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("away while they sleep"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("away while they sleep"));
     }
 
     @Test
     void withDetailLoggingAReSummonSaysSheDidNotTravel()
     {
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
         FreyaPreferences.setEnabled(OWNER, true);
         final Cat before = catAt(new Location(otherWorld, 1.0, 64.0, 1.0));
         final Player owner = playerWith(OWNER, before);
@@ -595,6 +598,6 @@ class FreyaCompanionTest
         when(world.spawn(any(Location.class), eq(Cat.class))).thenReturn(after);
 
         assertTrue(FreyaCompanion.catchUp(owner));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("did not travel with them"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("did not travel with them"));
     }
 }

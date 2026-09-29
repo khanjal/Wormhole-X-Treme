@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
@@ -48,6 +50,7 @@ import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
@@ -199,13 +202,13 @@ public final class GatePreviews
      * @param button
      *            its DHD button, when placed
      */
-    public record Placed(Outcome outcome, List<String> inTheWay, com.wormhole_xtreme.wormhole.model.Stargate gate,
-        org.bukkit.block.Block button) {}
+    public record Placed(Outcome outcome, List<String> inTheWay, Stargate gate,
+        Block button) {}
 
     /** Finds the gate a DHD button belongs to; tests stand in for detection. */
     interface Detector
     {
-        com.wormhole_xtreme.wormhole.model.Stargate find(org.bukkit.block.Block button, org.bukkit.block.BlockFace facing,
+        Stargate find(Block button, BlockFace facing,
             Stargate3DShape shape);
     }
 
@@ -218,7 +221,7 @@ public final class GatePreviews
     /** The gate a block belongs to, or null; tests stand in for the gate index. */
     interface GateAt
     {
-        com.wormhole_xtreme.wormhole.model.Stargate at(World world, int x, int y, int z);
+        Stargate at(World world, int x, int y, int z);
     }
 
     /** What {@code gate preview share} did. */
@@ -306,7 +309,7 @@ public final class GatePreviews
      * @return what happened
      */
     public static Shown showOn(final Player owner, final Stargate3DShape shape, final MaterialGroup group,
-        final org.bukkit.block.Block dhd, final org.bukkit.block.BlockFace facing)
+        final Block dhd, final BlockFace facing)
     {
         final GateGrid grid = GateGrid.fromActivationHolder(shape, dhd.getX() - facing.getModX(), dhd.getY(),
             dhd.getZ() - facing.getModZ(), facing);
@@ -1061,9 +1064,9 @@ public final class GatePreviews
     }
 
     /** The group the gate built from a preview would be detected as, by its frame material. */
-    private static com.wormhole_xtreme.wormhole.model.MaterialGroup groupByFrame(final GatePreview preview)
+    private static MaterialGroup groupByFrame(final GatePreview preview)
     {
-        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure());
+        return MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure());
     }
 
     /**
@@ -1095,7 +1098,7 @@ public final class GatePreviews
         preview.spinCells(arrived ? preview.spin().rest(pattern, glyph, preview.lastWave())
             : preview.spin().frame(pattern, glyph, preview.spinTick(), interval));
         preview.spinTick(arrived ? 0 : (preview.spinTick() + 1));
-        final Set<Cell> changed = new java.util.HashSet<>(was);
+        final Set<Cell> changed = new HashSet<>(was);
         changed.addAll(preview.spinCells());
         restyle(preview, changed);
         if (arrived)
@@ -1944,7 +1947,7 @@ public final class GatePreviews
     {
         final List<Cell> cells = preview.opening();
         final List<Location> places = new ArrayList<>(cells.size());
-        final java.util.IdentityHashMap<Location, Integer> index = new java.util.IdentityHashMap<>();
+        final IdentityHashMap<Location, Integer> index = new IdentityHashMap<>();
         for (int i = 0; i < cells.size(); i++)
         {
             final Cell cell = cells.get(i);
@@ -2367,7 +2370,7 @@ public final class GatePreviews
     }
 
     /** The sweep running on each preview, so a second toggle can call the first off. */
-    private static final java.util.Map<GatePreview, BukkitTask> irisSweeps = new java.util.IdentityHashMap<>();
+    private static final Map<GatePreview, BukkitTask> irisSweeps = new IdentityHashMap<>();
 
     /** What the opening's displays show: they stand only while the iris is closed. */
     static BlockData openingData(final GatePreview preview)

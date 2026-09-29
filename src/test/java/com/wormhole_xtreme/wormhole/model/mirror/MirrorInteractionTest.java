@@ -26,16 +26,21 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wolf;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
@@ -79,7 +84,7 @@ class MirrorInteractionTest
         // Reached as soon as a click lands on a mirror: the permission check logs through the
         // plugin singleton, so without one these tests fail on an NPE from inside WXPermissions
         // rather than on anything they are actually about.
-        PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         MirrorManager.clear();
         MirrorSettle.clear();
         MirrorNetwork.clear();
@@ -326,26 +331,26 @@ class MirrorInteractionTest
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
             new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(player, new Location(world, 5.5, 64.0, 1.5));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
-        com.wormhole_xtreme.wormhole.PluginTestSupport.scheduler(scheduler);
-        final org.bukkit.entity.Wolf wolf = mock(org.bukkit.entity.Wolf.class);
+        PetTestSupport.standsWhereTeleported(player, new Location(world, 5.5, 64.0, 1.5));
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        final Wolf wolf = mock(Wolf.class);
         when(wolf.isTamed()).thenReturn(true);
         when(wolf.getOwner()).thenReturn(player);
         when(wolf.getUniqueId()).thenReturn(UUID.randomUUID());
         when(wolf.teleport(any(Location.class))).thenReturn(true);
         when(wolf.getLocation()).thenReturn(new Location(world, 7.5, 64.0, 1.5));
-        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
-            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+        when(player.getNearbyEntities(ArgumentMatchers.anyDouble(),
+            ArgumentMatchers.anyDouble(), ArgumentMatchers.anyDouble()))
             .thenReturn(List.of(wolf));
         try
         {
             travelTo(here, "museum_world");
-            com.wormhole_xtreme.wormhole.PetTestSupport.runEscorts(scheduler);
+            PetTestSupport.runEscorts(scheduler);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.PluginTestSupport.scheduler(null);
+            PluginTestSupport.scheduler(null);
         }
 
         final ArgumentCaptor<Location> owner = ArgumentCaptor.forClass(Location.class);

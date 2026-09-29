@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -140,12 +141,12 @@ class PassengerReattachTest
             task.run();
         }
         verify(WormholeXTreme.getThisPlugin(), never()).prettyLog(
-            any(java.util.logging.Level.class), contains("Failed to reattach passengers"));
+            any(Level.class), contains("Failed to reattach passengers"));
 
         // The twelfth is where it stops.
         task.run();
         verify(WormholeXTreme.getThisPlugin()).prettyLog(
-            any(java.util.logging.Level.class), contains("Failed to reattach passengers"));
+            any(Level.class), contains("Failed to reattach passengers"));
     }
 
     /** A vehicle that has gone -- broken, despawned -- stops the whole thing. */

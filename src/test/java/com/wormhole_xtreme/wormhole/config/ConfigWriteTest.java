@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -52,7 +53,7 @@ class ConfigWriteTest
 
     private void writeExisting(final String... lines) throws Exception
     {
-        Files.write(cfg.toPath(), java.util.Arrays.asList(lines));
+        Files.write(cfg.toPath(), Arrays.asList(lines));
     }
 
     private String written() throws Exception

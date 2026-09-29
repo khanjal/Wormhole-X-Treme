@@ -2,9 +2,11 @@ package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -363,7 +365,7 @@ public final class GateBlueprint
         {
             return false;
         }
-        final java.util.Set<Long> opening = new java.util.HashSet<>();
+        final Set<Long> opening = new HashSet<>();
         for (final Integer[] pos : previous.getLayerPortalPositions())
         {
             opening.add(StargateHelper.cellKey(pos));

@@ -8,7 +8,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
+import org.bukkit.block.sign.SignSide;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 
 /**
  * Tests for `WormholeXTremeRedstoneListener` adjacency activation behavior.
@@ -83,8 +88,8 @@ class WormholeXTremeRedstoneListenerTest
         // A real scheduler would run the rescheduled shutdown, and the listener swallows
         // Throwable, so a mock is the only way to tell "shutdown pushed back" apart from
         // "shutdown happened" -- which is the whole distinction under test.
-        final org.bukkit.scheduler.BukkitScheduler scheduler =
-            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler =
+            mock(BukkitScheduler.class);
         setScheduler(scheduler);
         try
         {
@@ -147,8 +152,8 @@ class WormholeXTremeRedstoneListenerTest
         // Cycling the sign is a scheduled task, and the listener swallows Throwable, so
         // asserting on a real scheduler is the only way to tell "guarded" apart from
         // "threw an NPE on the way and nobody noticed".
-        final org.bukkit.scheduler.BukkitScheduler scheduler =
-            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler =
+            mock(BukkitScheduler.class);
         setScheduler(scheduler);
         try
         {
@@ -170,7 +175,7 @@ class WormholeXTremeRedstoneListenerTest
     }
 
     /** The scheduler is a private static, and the sign cycle goes through it. */
-    private static void setScheduler(final org.bukkit.scheduler.BukkitScheduler scheduler)
+    private static void setScheduler(final BukkitScheduler scheduler)
     {
         try
         {
@@ -475,7 +480,7 @@ class WormholeXTremeRedstoneListenerTest
         doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
-        setScheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        setScheduler(mock(BukkitScheduler.class));
         try
         {
             // Exactly the state the gate is in when its own lever goes up: active, no target.
@@ -512,14 +517,14 @@ class WormholeXTremeRedstoneListenerTest
     void redstoneRaisedByThePluginsOwnWritesIsIgnored()
     {
         final Stargate gate;
-        com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite.begin();
+        GateRedstoneWrite.begin();
         try
         {
             gate = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 1, 0, 0, false);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite.end();
+            GateRedstoneWrite.end();
         }
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
 
@@ -595,11 +600,11 @@ class WormholeXTremeRedstoneListenerTest
     private static Block signBlock()
     {
         final Block block = mock(Block.class);
-        final org.bukkit.block.Sign state = mock(org.bukkit.block.Sign.class);
+        final Sign state = mock(Sign.class);
         when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(block.getState()).thenReturn(state);
-        final org.bukkit.block.sign.SignSide front = mock(org.bukkit.block.sign.SignSide.class);
-        when(state.getSide(org.bukkit.block.sign.Side.FRONT)).thenReturn(front);
+        final SignSide front = mock(SignSide.class);
+        when(state.getSide(Side.FRONT)).thenReturn(front);
         return block;
     }
 

@@ -11,12 +11,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -105,12 +108,12 @@ class LegacySqliteImportTest
     /** The gate with its facing's length prefix replaced, as a damaged blob might carry. */
     private static byte[] withFacingLength(final byte[] gate, final int length)
     {
-        final byte[] facing = "NORTH".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] facing = "NORTH".getBytes(StandardCharsets.UTF_8);
         for (int at = 4; at + facing.length <= gate.length; at++)
         {
-            if (java.util.Arrays.equals(gate, at, at + facing.length, facing, 0, facing.length))
+            if (Arrays.equals(gate, at, at + facing.length, facing, 0, facing.length))
             {
-                java.nio.ByteBuffer.wrap(gate).putInt(at - 4, length);
+                ByteBuffer.wrap(gate).putInt(at - 4, length);
                 return gate;
             }
         }
@@ -233,7 +236,7 @@ class LegacySqliteImportTest
             insert(db, sql, "Tollana", LegacySaveVersionTest.version3Gate(world), "unloaded");
             insert(db, sql, "Empty", new byte[0], "gw");
             // Cut short, as a copy interrupted mid-write leaves it: the reader runs off the end.
-            insert(db, sql, "Cut", java.util.Arrays.copyOf(LegacySaveVersionTest.version3Gate(world), 40), "gw");
+            insert(db, sql, "Cut", Arrays.copyOf(LegacySaveVersionTest.version3Gate(world), 40), "gw");
             insert(db, sql, "Garbled", withFacingLength(LegacySaveVersionTest.version3Gate(world), Integer.MAX_VALUE - 8), "gw");
         }
 

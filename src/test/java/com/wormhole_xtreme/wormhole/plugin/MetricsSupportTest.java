@@ -2,7 +2,25 @@ package com.wormhole_xtreme.wormhole.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.CustomChart;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * bStats (#239): how counts are sent.
@@ -12,8 +30,8 @@ import org.junit.jupiter.api.Test;
  */
 class MetricsSupportTest
 {
-    private static final java.util.regex.Pattern CHART_ID =
-        java.util.regex.Pattern.compile("\"chartId\":\"([a-z_]+)\"");
+    private static final Pattern CHART_ID =
+        Pattern.compile("\"chartId\":\"([a-z_]+)\"");
 
     /** Each range starts where the last ends, with none skipped and none overlapping. */
     @Test
@@ -38,33 +56,33 @@ class MetricsSupportTest
     @Test
     void startsOnceWithItsChartsAndStopsOnce() throws Exception
     {
-        com.wormhole_xtreme.wormhole.PluginTestSupport.install(org.mockito.Mockito.mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
-        final org.bukkit.plugin.java.JavaPlugin plugin = org.mockito.Mockito.mock(org.bukkit.plugin.java.JavaPlugin.class);
-        org.mockito.Mockito.when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
-        final java.util.List<org.bstats.charts.CustomChart> charts = new java.util.ArrayList<>();
-        try (org.mockito.MockedConstruction<org.bstats.bukkit.Metrics> made = org.mockito.Mockito.mockConstruction(
-            org.bstats.bukkit.Metrics.class, (m, context) -> org.mockito.Mockito.doAnswer(call -> charts.add(call.getArgument(0)))
-                .when(m).addCustomChart(org.mockito.ArgumentMatchers.any())))
+        PluginTestSupport.install(Mockito.mock(WormholeXTreme.class));
+        final JavaPlugin plugin = Mockito.mock(JavaPlugin.class);
+        Mockito.when(plugin.getLogger()).thenReturn(Logger.getAnonymousLogger());
+        final List<CustomChart> charts = new ArrayList<>();
+        try (MockedConstruction<Metrics> made = Mockito.mockConstruction(
+            Metrics.class, (m, context) -> Mockito.doAnswer(call -> charts.add(call.getArgument(0)))
+                .when(m).addCustomChart(ArgumentMatchers.any())))
         {
             MetricsSupport.enableMetrics(plugin);
             MetricsSupport.enableMetrics(plugin);
             assertEquals(1, made.constructed().size(), "a second start while running starts nothing");
 
-            final java.util.List<String> ids = new java.util.ArrayList<>();
-            for (final org.bstats.charts.CustomChart chart : charts)
+            final List<String> ids = new ArrayList<>();
+            for (final CustomChart chart : charts)
             {
                 final Object json = chart.getRequestJsonObject((message, error) -> { throw new AssertionError(message, error); }, true);
-                org.junit.jupiter.api.Assertions.assertNotNull(json, "every chart answers");
-                final java.util.regex.Matcher id = CHART_ID.matcher(json.toString());
-                org.junit.jupiter.api.Assertions.assertTrue(id.find(), json.toString());
+                Assertions.assertNotNull(json, "every chart answers");
+                final Matcher id = CHART_ID.matcher(json.toString());
+                Assertions.assertTrue(id.find(), json.toString());
                 ids.add(id.group(1));
             }
-            assertEquals(java.util.List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin"), ids,
+            assertEquals(List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin"), ids,
                 "the ids the charts on bstats.org were made with");
 
             MetricsSupport.disableMetrics();
             MetricsSupport.disableMetrics();
-            org.mockito.Mockito.verify(made.constructed().get(0), org.mockito.Mockito.times(1)).shutdown();
+            Mockito.verify(made.constructed().get(0), Mockito.times(1)).shutdown();
 
             MetricsSupport.enableMetrics(plugin);
             assertEquals(2, made.constructed().size(), "stopped, it starts afresh");
@@ -72,7 +90,7 @@ class MetricsSupportTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.PluginTestSupport.remove();
+            PluginTestSupport.remove();
         }
     }
 
@@ -80,28 +98,28 @@ class MetricsSupportTest
     @Test
     void startsOnlyWhenTheSwitchAllowsIt() throws Exception
     {
-        com.wormhole_xtreme.wormhole.PluginTestSupport.install(org.mockito.Mockito.mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
-        final org.bukkit.plugin.java.JavaPlugin plugin = org.mockito.Mockito.mock(org.bukkit.plugin.java.JavaPlugin.class);
-        org.mockito.Mockito.when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
-        try (org.mockito.MockedConstruction<org.bstats.bukkit.Metrics> made =
-            org.mockito.Mockito.mockConstruction(org.bstats.bukkit.Metrics.class))
+        PluginTestSupport.install(Mockito.mock(WormholeXTreme.class));
+        final JavaPlugin plugin = Mockito.mock(JavaPlugin.class);
+        Mockito.when(plugin.getLogger()).thenReturn(Logger.getAnonymousLogger());
+        ConfigTestSupport.loadDefaults();
+        try (MockedConstruction<Metrics> made =
+            Mockito.mockConstruction(Metrics.class))
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.METRICS_ENABLED, false);
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.METRICS_ENABLED, false);
             MetricsSupport.enableIfConfigured(plugin);
             assertEquals(0, made.constructed().size());
 
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.METRICS_ENABLED, true);
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.METRICS_ENABLED, true);
             MetricsSupport.enableIfConfigured(plugin);
             assertEquals(1, made.constructed().size());
             MetricsSupport.disableMetrics();
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
-            com.wormhole_xtreme.wormhole.PluginTestSupport.remove();
+            ConfigTestSupport.clear();
+            PluginTestSupport.remove();
         }
     }
 }

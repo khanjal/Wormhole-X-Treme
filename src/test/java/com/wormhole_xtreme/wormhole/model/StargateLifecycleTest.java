@@ -11,7 +11,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.bukkit.scheduler.BukkitScheduler;
+
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * Tests for {@link StargateLifecycle}.
@@ -48,9 +51,9 @@ class StargateLifecycleTest
     @Test
     void aGateShutWhileThePluginIsDisablingSchedulesNothingAndIsNoLongerRecentlyActive() throws Exception
     {
-        final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
-            mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final WormholeXTreme plugin =
+            mock(WormholeXTreme.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(plugin.isEnabled()).thenReturn(false);
         PluginTestSupport.install(plugin);
         PluginTestSupport.scheduler(scheduler);
@@ -77,9 +80,9 @@ class StargateLifecycleTest
     @Test
     void aGateShutWhileRunningSchedulesItsFollowUp() throws Exception
     {
-        final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
-            mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final WormholeXTreme plugin =
+            mock(WormholeXTreme.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(plugin.isEnabled()).thenReturn(true);
         when(scheduler.scheduleSyncDelayedTask(any(),
             any(Runnable.class), anyLong())).thenReturn(7);

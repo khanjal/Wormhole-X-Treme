@@ -7,6 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +49,7 @@ class BigGateShapeTest
         return new Stargate3DShape(lines.toArray(new String[0]));
     }
 
-    private static int countMarker(final Stargate3DShape shape, final java.util.function.Function<StargateShapeLayer, int[]> getter)
+    private static int countMarker(final Stargate3DShape shape, final Function<StargateShapeLayer, int[]> getter)
     {
         int count = 0;
         for (final StargateShapeLayer layer : shape.getShapeLayers())
@@ -109,11 +113,11 @@ class BigGateShapeTest
     @Test
     void allThreeLightTheirChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
     {
-        final java.util.Map<String, Integer> chevrons = java.util.Map.of("Large", 8, "Grand", 8, "Massive", 8);
+        final Map<String, Integer> chevrons = Map.of("Large", 8, "Grand", 8, "Massive", 8);
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);
-            final java.util.Set<Integer> orders = new java.util.TreeSet<Integer>();
+            final Set<Integer> orders = new TreeSet<Integer>();
             for (final StargateShapeLayer layer : shape.getShapeLayers())
             {
                 if (layer == null)
@@ -128,7 +132,7 @@ class BigGateShapeTest
                     }
                 }
             }
-            final java.util.Set<Integer> expected = new java.util.TreeSet<Integer>();
+            final Set<Integer> expected = new TreeSet<Integer>();
             for (int i = 1; i <= chevrons.get(name); i++)
             {
                 expected.add(i);
@@ -149,7 +153,7 @@ class BigGateShapeTest
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);
-            final java.util.Set<Integer> orders = new java.util.TreeSet<Integer>();
+            final Set<Integer> orders = new TreeSet<Integer>();
             for (final StargateShapeLayer layer : shape.getShapeLayers())
             {
                 if (layer == null)
@@ -164,7 +168,7 @@ class BigGateShapeTest
                     }
                 }
             }
-            final java.util.Set<Integer> expected = new java.util.TreeSet<Integer>();
+            final Set<Integer> expected = new TreeSet<Integer>();
             for (int i = 1; i <= shape.getShapeWooshDepth(); i++)
             {
                 expected.add(i);

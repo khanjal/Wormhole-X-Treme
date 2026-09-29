@@ -18,11 +18,13 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * {@code /wormhole gate <verb>}'s own job: reading the verb, choosing a handler, and handing
@@ -79,9 +81,9 @@ class GateCommandTest
     {
         assertTrue(run("gate"));
 
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("/wormhole gate <verb>")));
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Building: build, preview, complete")));
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Looking after gates: edit, remove, regen, validate")));
+        verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("/wormhole gate <verb>")));
+        verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Building: build, preview, complete")));
+        verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Looking after gates: edit, remove, regen, validate")));
     }
 
     /** A verb that is not one of the ten says so, and offers the real list. */
@@ -137,7 +139,7 @@ class GateCommandTest
         assertTrue(run("gate", "regen"), "answered here, so Bukkit's usage block does not follow");
 
         verify(sender).sendMessage(contains("No gate name specified"));
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate regen <gate|-all>")));
+        verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /wormhole gate regen <gate|-all>")));
     }
 
     /**
@@ -180,7 +182,7 @@ class GateCommandTest
         assertTrue(run("gate", "validate"));
 
         verify(sender).sendMessage(contains("No gate name specified"));
-        verify(sender).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate validate <gate|-all>")));
+        verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /wormhole gate validate <gate|-all>")));
     }
 
     /** {@code remove} and its {@code delete} alias both reach {@link WXRemove}. */
@@ -189,7 +191,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "remove"));
         assertTrue(run("gate", "delete"));
-        verify(sender, times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /wormhole gate remove <gate> [-destroy]")));
+        verify(sender, times(2)).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /wormhole gate remove <gate> [-destroy]")));
     }
 
     /** A named gate that does not exist is reported the same way through either name. */

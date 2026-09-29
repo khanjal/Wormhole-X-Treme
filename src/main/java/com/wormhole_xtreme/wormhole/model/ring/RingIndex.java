@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.BlockKey;
+
 /**
  * Answers "is this block inside a ring, and which one" in one map lookup.
  *
@@ -94,7 +97,7 @@ public final class RingIndex
      */
     static long pack(final int x, final int y, final int z)
     {
-        return com.wormhole_xtreme.wormhole.utils.BlockKey.pack(x, y, z);
+        return BlockKey.pack(x, y, z);
     }
 
     /**
@@ -109,7 +112,7 @@ public final class RingIndex
      */
     static int unpackX(final long packed)
     {
-        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackX(packed);
+        return BlockKey.unpackX(packed);
     }
 
     /**
@@ -130,7 +133,7 @@ public final class RingIndex
      */
     static int unpackY(final long packed)
     {
-        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackY(packed);
+        return BlockKey.unpackY(packed);
     }
 
     /**
@@ -142,7 +145,7 @@ public final class RingIndex
      */
     static int unpackZ(final long packed)
     {
-        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackZ(packed);
+        return BlockKey.unpackZ(packed);
     }
 
     /**
@@ -272,7 +275,7 @@ public final class RingIndex
         int maxDrop = Ring.MIN_CEILING_DROP;
         try
         {
-            maxDrop = com.wormhole_xtreme.wormhole.config.ConfigManager.getRingMaxCeilingDrop();
+            maxDrop = ConfigManager.getRingMaxCeilingDrop();
         }
         // No config loaded, which happens in tests. The minimum still indexes a working ring.
         catch (final RuntimeException ignored)

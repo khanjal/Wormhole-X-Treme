@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -90,10 +92,10 @@ class InteractLoggingCostTest
     }
 
     /** Every FINE line the plugin produced, in order. */
-    private java.util.List<String> linesLogged()
+    private List<String> linesLogged()
     {
         final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
-        verify(plugin, org.mockito.Mockito.atLeast(0)).prettyLog(eq(Level.FINE), said.capture());
+        verify(plugin, Mockito.atLeast(0)).prettyLog(eq(Level.FINE), said.capture());
         return said.getAllValues();
     }
 
@@ -235,7 +237,7 @@ class InteractLoggingCostTest
         new WormholeXTremePlayerListener().onPlayerInteract(new PlayerInteractEvent(
             clicker, Action.RIGHT_CLICK_BLOCK, null, aGateSignSomebodyElseOwns(), BlockFace.NORTH));
 
-        final java.util.List<String> lines = linesLogged();
+        final List<String> lines = linesLogged();
         assertTrue(lines.stream().anyMatch(l -> l.startsWith("Caught Player:")),
             "the click is reported when it arrives: " + lines);
         assertTrue(lines.stream().anyMatch(l -> l.startsWith("Cancelled Player:")),
@@ -251,7 +253,7 @@ class InteractLoggingCostTest
         new WormholeXTremePlayerListener().onPlayerInteract(new PlayerInteractEvent(
             clicker, Action.LEFT_CLICK_AIR, null, null, BlockFace.SELF));
 
-        final java.util.List<String> lines = linesLogged();
+        final List<String> lines = linesLogged();
         assertEquals(1, lines.size(),
             "one line, because there is no block for the gate handler to look at");
         // The opening, not just the count: a click that fell through to the block path would

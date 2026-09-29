@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ class NoSelfReflectionTest
 
     private static List<Path> sources() throws IOException
     {
-        try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
+        try (Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
             final List<Path> found = new ArrayList<>();
             for (final Path p : walk.toList())

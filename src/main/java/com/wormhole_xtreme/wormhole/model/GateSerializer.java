@@ -4,6 +4,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -12,6 +13,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -67,7 +69,7 @@ public final class GateSerializer
         }
         final byte[] raw = sized(byteBuff, length);
         byteBuff.get(raw);
-        final String materialName = new String(raw, java.nio.charset.StandardCharsets.UTF_8);
+        final String materialName = new String(raw, StandardCharsets.UTF_8);
         final Material material = Material.matchMaterial(materialName);
         if (material == null)
         {
@@ -94,7 +96,7 @@ public final class GateSerializer
             dataArr.putInt(0);
             return;
         }
-        final byte[] raw = material.name().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] raw = material.name().getBytes(StandardCharsets.UTF_8);
         dataArr.putInt(raw.length);
         dataArr.put(raw);
     }
@@ -108,7 +110,7 @@ public final class GateSerializer
      */
     private static int customMaterialSize(final Material material)
     {
-        return 4 + (material == null ? 0 : material.name().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+        return 4 + (material == null ? 0 : material.name().getBytes(StandardCharsets.UTF_8).length);
     }
 
     public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
@@ -330,8 +332,8 @@ public final class GateSerializer
         final int facingSize = byteBuff.getInt();
         final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
-        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
+        final String faceName = new String(strBytes, StandardCharsets.UTF_8);
+        s.setGateFacing(BlockFace.valueOf(faceName));
 
         orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
     }
@@ -513,8 +515,8 @@ public final class GateSerializer
         final int facingSize = byteBuff.getInt();
         final byte[] strBytes = sized(byteBuff, facingSize);
         byteBuff.get(strBytes);
-        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
+        final String faceName = new String(strBytes, StandardCharsets.UTF_8);
+        s.setGateFacing(BlockFace.valueOf(faceName));
 
         orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
         orientArrival(s.getGateMinecartTeleportLocation(), s.getGateFacing());
@@ -528,7 +530,7 @@ public final class GateSerializer
      * @param facing
      *            the way the gate faces
      */
-    private static void orientArrival(final Location arrival, final org.bukkit.block.BlockFace facing)
+    private static void orientArrival(final Location arrival, final BlockFace facing)
     {
         arrival.setY(arrival.getY() + 1.0);
         arrival.setYaw(WorldUtils.getDegreesFromBlockFace(facing));
@@ -562,7 +564,7 @@ public final class GateSerializer
         final int idcLen = byteBuff.getInt();
         final byte[] idcBytes = sized(byteBuff, idcLen);
         byteBuff.get(idcBytes);
-        s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
+        s.setGateIrisDeactivationCode(new String(idcBytes, StandardCharsets.UTF_8));
 
         s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -727,8 +729,8 @@ public final class GateSerializer
         byte[] utfIdcBytes;
         try
         {
-            utfFaceBytes = s.getGateFacing().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            utfIdcBytes = s.getGateIrisDeactivationCode().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            utfFaceBytes = s.getGateFacing().toString().getBytes(StandardCharsets.UTF_8);
+            utfIdcBytes = s.getGateIrisDeactivationCode().getBytes(StandardCharsets.UTF_8);
         }
         catch (final Exception e)
         {

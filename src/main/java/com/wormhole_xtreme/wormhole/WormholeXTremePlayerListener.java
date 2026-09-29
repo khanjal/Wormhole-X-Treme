@@ -2,15 +2,26 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Minecart;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -26,9 +37,23 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.model.ring.Ring;
+import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
+import com.wormhole_xtreme.wormhole.model.ring.RingMessages;
+import com.wormhole_xtreme.wormhole.model.ring.RingOutline;
+import com.wormhole_xtreme.wormhole.model.ring.RingPair;
+import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
+import com.wormhole_xtreme.wormhole.model.ring.RingSounds;
+import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -113,7 +138,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             return null;
         }
-        final org.bukkit.World world = ml.getWorld();
+        final World world = ml.getWorld();
 
         // Default to the mount's own block and the one above it, covering the common
         // case when no bounding box is available.
@@ -123,7 +148,7 @@ class WormholeXTremePlayerListener implements Listener
         int maxY = minY + 1;
         int minZ = ml.getBlockZ();
         int maxZ = minZ;
-        final org.bukkit.util.BoundingBox box = mount.getBoundingBox();
+        final BoundingBox box = mount.getBoundingBox();
         if (box != null)
         {
             minX = (int) Math.floor(box.getMinX());
@@ -220,7 +245,7 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean refuseWithReminder(final Player player, final Stargate stargate,
         final String message)
     {
-        final java.util.UUID id = player.getUniqueId();
+        final UUID id = player.getUniqueId();
         final String gateName = stargate.getGateName();
         final long now = System.currentTimeMillis();
         final RecentGateRefusal last = recentGateRefusals.get(id);
@@ -520,7 +545,7 @@ class WormholeXTremePlayerListener implements Listener
         }
         // Its own answer, because being turned away at the door is a cancelled move rather
         // than a permitted one that went nowhere.
-        if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
+        if (StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
         {
             return refuseGateEntry(player, stargate);
         }
@@ -552,7 +577,7 @@ class WormholeXTremePlayerListener implements Listener
 
         // Every check this plugin makes has passed and nothing has moved yet, which is
         // the only honest point to let another plugin object.
-        if (!com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+        if (!GateEvents.firePlayerTravel(
                 stargate, player, stargate.getGateTarget(), safeTarget))
         {
             return holdBackCancelledTraveller(event, stargate);
@@ -654,7 +679,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             return false;
         }
-        final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
+        final World targetWorld = (target != null) ? target.getWorld() : null;
         if ((targetWorld != null) && !gateBlockFinal.getWorld().equals(targetWorld))
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
@@ -746,7 +771,7 @@ class WormholeXTremePlayerListener implements Listener
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
-            stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+            stargate.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
         }
         return true;
     }
@@ -982,8 +1007,8 @@ class WormholeXTremePlayerListener implements Listener
     private static final long IRIS_REDRAW_THROTTLE_MILLIS = 500L;
 
     /** When each player last had a drawn iris put back after swinging at one. */
-    private static final java.util.Map<java.util.UUID, Long> recentIrisRedraws =
-        new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Long> recentIrisRedraws =
+        new ConcurrentHashMap<>();
 
     /**
      * Puts a drawn iris back after somebody takes a swing at it.
@@ -1000,7 +1025,7 @@ class WormholeXTremePlayerListener implements Listener
      *            the swing
      */
     @EventHandler(ignoreCancelled = true)
-    public void onPlayerAnimation(final org.bukkit.event.player.PlayerAnimationEvent event)
+    public void onPlayerAnimation(final PlayerAnimationEvent event)
     {
         final Player player = event.getPlayer();
         if (!StargateManager.nearDrawnIris(player.getLocation()))
@@ -1038,7 +1063,7 @@ class WormholeXTremePlayerListener implements Listener
         // Mirrors after gates, and only if the gate handler did not claim the click. The two
         // never want the same block -- a dial sign is not a banner -- but asking in a fixed
         // order means that if one ever did, the older mechanic keeps the behaviour it has.
-        if (com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction.handle(event))
+        if (MirrorInteraction.handle(event))
         {
             event.setCancelled(true);
             logClick(event, "Cancelled Player: \"");
@@ -1099,7 +1124,7 @@ class WormholeXTremePlayerListener implements Listener
         // touching gate blocks, so in practice they never contend for the same block at all.
         handleRingMoveEvent(event);
         // A window mirror's view depends on where the eye is, so it follows the step.
-        com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.moved(event.getPlayer(),
+        MirrorWindows.moved(event.getPlayer(),
             event.getTo());
         // A shut iris over an open wormhole looks different from each side, so crossing a
         // gate's plane restacks it. Only on a change of block: a plane is crossed at one.
@@ -1108,7 +1133,7 @@ class WormholeXTremePlayerListener implements Listener
             StargateManager.relayerFor(event.getPlayer(), event.getTo());
             // A preview redraws itself every five seconds, which cannot follow somebody walking
             // round one, so its stacking follows the step as a gate's does.
-            com.wormhole_xtreme.wormhole.model.preview.GatePreviews.moved(event.getPlayer(), event.getTo());
+            GatePreviews.moved(event.getPlayer(), event.getTo());
         }
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {
@@ -1137,17 +1162,17 @@ class WormholeXTremePlayerListener implements Listener
      *            whether this step took them in, rather than around inside
      * @return true if they were refused
      */
-    private static boolean ringRefuses(final Player player, final com.wormhole_xtreme.wormhole.model.ring.RingPair pair,
-        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end, final boolean justEntered)
+    private static boolean ringRefuses(final Player player, final RingPair pair,
+        final RingIndex.RingEnd end, final boolean justEntered)
     {
         // Arming is a use of the ring, so the same permission governs it as governs being
         // carried. Somebody who cannot travel by a pair should not be able to set it off for
         // everybody else either.
-        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        if (!RingPermissions.mayUse(player, pair))
         {
             if (justEntered)
             {
-                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
+                RingMessages.notYours(player);
             }
             return true;
         }
@@ -1162,17 +1187,17 @@ class WormholeXTremePlayerListener implements Listener
             // to know which: one of them ends by itself and the other does not.
             if (pair.getCooldownUntil() > now)
             {
-                com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(player, pair.getCooldownUntil() - now);
+                RingMessages.recharging(player, pair.getCooldownUntil() - now);
                 // A recharging ring is invisible, so being told it is not ready leaves
                 // somebody standing on ground that looks like any other. Show them where it
                 // is. Not done for a ring that is mid-cycle: that pad is already lit, so
                 // there is nothing to point out and the outline would put those lights out
                 // when it expired.
-                com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+                RingOutline.flash(player, pair, end.getRing());
             }
             else
             {
-                com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
+                RingMessages.busy(player);
             }
         }
         return true;
@@ -1209,18 +1234,18 @@ class WormholeXTremePlayerListener implements Listener
         // ring has to re-arm for somebody who stayed inside it after a trip, and that player
         // is crossing no block boundaries. The cost of asking is one hash lookup, and on a
         // server with no rings at all it is not even that.
-        if (!com.wormhole_xtreme.wormhole.model.ring.RingIndex.hasAny())
+        if (!RingIndex.hasAny())
         {
             return;
         }
-        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end =
-            com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+        final RingIndex.RingEnd end =
+            RingIndex.volumeAt(
                 to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
         if (end == null)
         {
             return;
         }
-        final com.wormhole_xtreme.wormhole.model.ring.RingPair pair = end.getPair();
+        final RingPair pair = end.getPair();
         final Player player = event.getPlayer();
 
         // Whether this step took them into the ring or merely around inside it. Messages are
@@ -1230,7 +1255,7 @@ class WormholeXTremePlayerListener implements Listener
         // somebody who stays put after a trip be carried back once the cooldown passes.
         final Location from = event.getFrom();
         final boolean justEntered = (from.getWorld() == null)
-            || (com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+            || (RingIndex.volumeAt(
                 from.getWorld().getName(), from.getBlockX(), from.getBlockY(), from.getBlockZ()) != end);
 
         if (ringRefuses(player, pair, end, justEntered))
@@ -1240,10 +1265,10 @@ class WormholeXTremePlayerListener implements Listener
         // justEntered is passed on rather than gating the call: arming still has to happen on
         // any move inside, which is what carries somebody back who stayed put after a trip.
         // Only what the ring says about refusing is limited to walking in.
-        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair, player, justEntered))
+        if (RingTransit.start(pair, player, justEntered))
         {
-            final com.wormhole_xtreme.wormhole.model.ring.Ring far = pair.opposite(end.getRing());
-            com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(
+            final Ring far = pair.opposite(end.getRing());
+            RingMessages.engaged(
                 player, far == null ? "" : far.getName());
         }
         else if (justEntered)
@@ -1252,8 +1277,8 @@ class WormholeXTremePlayerListener implements Listener
             // something is wrong while standing on ground that looks like any other is no
             // help at all — least of all when the thing to fix is inside the ring and they
             // cannot see where it is.
-            com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
-            com.wormhole_xtreme.wormhole.model.ring.RingSounds.refused(player);
+            RingOutline.flash(player, pair, end.getRing());
+            RingSounds.refused(player);
         }
     }
 
@@ -1275,7 +1300,7 @@ class WormholeXTremePlayerListener implements Listener
         // Bit-shifting rather than getChunk(), which loads the chunk if it is not resident.
         return ((from.getBlockX() >> 4) != (to.getBlockX() >> 4))
             || ((from.getBlockZ() >> 4) != (to.getBlockZ() >> 4))
-            || !java.util.Objects.equals(from.getWorld(), to.getWorld());
+            || !Objects.equals(from.getWorld(), to.getWorld());
     }
 
     /**
@@ -1301,8 +1326,8 @@ class WormholeXTremePlayerListener implements Listener
      * <p>Only ones this class granted it to, so a creative player or someone another plugin
      * has given flight is never stripped of it on the way out of a gate.
      */
-    private static final java.util.Set<java.util.UUID> portalFlightGranted =
-        java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> portalFlightGranted =
+        ConcurrentHashMap.newKeySet();
 
     /**
      * The one-way-gate refusal a player was most recently told about, and when.
@@ -1314,8 +1339,8 @@ class WormholeXTremePlayerListener implements Listener
      * Remembered per player rather than gated on movement, since a cancelled move by
      * definition never goes anywhere different to notice.
      */
-    private static final java.util.Map<java.util.UUID, RecentGateRefusal> recentGateRefusals =
-        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, RecentGateRefusal>();
+    private static final Map<UUID, RecentGateRefusal> recentGateRefusals =
+        new ConcurrentHashMap<UUID, RecentGateRefusal>();
 
     /** How long a refusal stays remembered before the same gate is worth mentioning again. */
     private static final long GATE_REFUSAL_REMINDER_MILLIS = 2000L;
@@ -1371,7 +1396,7 @@ class WormholeXTremePlayerListener implements Listener
             {
                 return;
             }
-            final java.util.UUID id = player.getUniqueId();
+            final UUID id = player.getUniqueId();
 
             if (inPortal)
             {
@@ -1402,8 +1427,8 @@ class WormholeXTremePlayerListener implements Listener
     {
         try
         {
-            if ((player.getGameMode() == org.bukkit.GameMode.CREATIVE)
-                || (player.getGameMode() == org.bukkit.GameMode.SPECTATOR))
+            if ((player.getGameMode() == GameMode.CREATIVE)
+                || (player.getGameMode() == GameMode.SPECTATOR))
             {
                 return;
             }
@@ -1497,15 +1522,15 @@ class WormholeXTremePlayerListener implements Listener
         recentIrisRedraws.remove(event.getPlayer().getUniqueId());
         // A client that has gone takes its drawings with it, and the next one to log in on
         // that account gets fresh chunks anyway.
-        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
+        StargateManager.forgetPortalVisuals(
             event.getPlayer().getUniqueId());
         // The Player-keyed state, which the id-keyed lines above are not. Nothing was
         // clearing it, so every person who had ever half-built or activated a gate stayed
         // in memory — with their entity, inventory and world — until the server stopped.
-        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPlayer(event.getPlayer());
-        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.forgetPlayer(event.getPlayer());
-        com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(event.getPlayer());
-        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.forget(event.getPlayer().getUniqueId());
+        StargateManager.forgetPlayer(event.getPlayer());
+        StargateRestrictions.forgetPlayer(event.getPlayer());
+        Refresh.removePendingRefresh(event.getPlayer());
+        GatePreviews.forget(event.getPlayer().getUniqueId());
     }
 
     /**
@@ -1515,11 +1540,11 @@ class WormholeXTremePlayerListener implements Listener
      *            the click
      */
     @EventHandler(ignoreCancelled = true)
-    public void onPlayerInteractEntity(final org.bukkit.event.player.PlayerInteractEntityEvent event)
+    public void onPlayerInteractEntity(final PlayerInteractEntityEvent event)
     {
         // The off hand repeats the click; only the main hand's counts.
-        if ((event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND)
-            && com.wormhole_xtreme.wormhole.model.preview.GatePreviews.pressed(event.getPlayer(), event.getRightClicked()))
+        if ((event.getHand() == EquipmentSlot.HAND)
+            && GatePreviews.pressed(event.getPlayer(), event.getRightClicked()))
         {
             event.setCancelled(true);
         }
@@ -1545,7 +1570,7 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerChangedWorld(final PlayerChangedWorldEvent event)
     {
         refreshPortalVisualsFor(event.getPlayer());
-        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.forget(event.getPlayer().getUniqueId());
+        GatePreviews.forget(event.getPlayer().getUniqueId());
     }
 
     /**

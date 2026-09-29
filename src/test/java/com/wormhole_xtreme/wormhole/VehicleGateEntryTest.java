@@ -36,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -45,6 +46,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
 /**
  * What a rolling minecart entering a gate is allowed to do.
@@ -459,26 +461,26 @@ class VehicleGateEntryTest
         Paper1204Riding.refusesWhileRidden(cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
         try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
              MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
-                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+             MockedStatic<EconomySupport> economy =
+                 mockStatic(EconomySupport.class))
         {
             cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
             cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
-            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
-            economy.when(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()))
+            economy.when(EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(() -> EconomySupport.canAfford(any(), ArgumentMatchers.anyDouble()))
                 .thenReturn(Boolean.TRUE);
             when(cart.teleport(any(Location.class))).thenReturn(false);
 
             rollIn();
 
-            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+            economy.verify(() -> EconomySupport.charge(any(), ArgumentMatchers.anyDouble()), never());
 
             clearRecentMarksQuietly();
             when(cart.teleport(any(Location.class))).thenReturn(true);
             rollIn();
 
-            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(rider, 5.0));
+            economy.verify(() -> EconomySupport.charge(rider, 5.0));
         }
     }
 
@@ -500,22 +502,22 @@ class VehicleGateEntryTest
             cart, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
         try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
              MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
-                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+             MockedStatic<EconomySupport> economy =
+                 mockStatic(EconomySupport.class))
         {
             cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
             cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
-            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
-            economy.when(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()))
+            economy.when(EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(() -> EconomySupport.canAfford(any(), ArgumentMatchers.anyDouble()))
                 .thenReturn(Boolean.TRUE);
 
             rollIn();
 
             assertEquals(BX + 0.5, stack.at().getX(), 0.001, "the cart must stay with its rider");
             assertTrue(stack.carries(rider), "the rider must still be in it");
-            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+            economy.verify(() -> EconomySupport.charge(any(), ArgumentMatchers.anyDouble()), never());
             rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider), never());
         }
     }
@@ -530,19 +532,19 @@ class VehicleGateEntryTest
         final Player rider = putARiderAboard();
         try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
              MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
-                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+             MockedStatic<EconomySupport> economy =
+                 mockStatic(EconomySupport.class))
         {
             cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
             cfg.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
             rules.when(() -> StargateRestrictions.isPlayerUseCooldown(rider)).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
-            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
 
             rollIn();
 
-            economy.verify(() -> com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(any(), org.mockito.ArgumentMatchers.anyDouble()), never());
+            economy.verify(() -> EconomySupport.canAfford(any(), ArgumentMatchers.anyDouble()), never());
             verify(cart, never()).teleport(any(Location.class));
         }
     }
@@ -553,18 +555,18 @@ class VehicleGateEntryTest
     {
         final Player rider = putARiderAboard();
         try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.plugin.EconomySupport> economy =
-                 mockStatic(com.wormhole_xtreme.wormhole.plugin.EconomySupport.class))
+             MockedStatic<EconomySupport> economy =
+                 mockStatic(EconomySupport.class))
         {
             cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
             cfg.when(ConfigManager::isEconomyEnabled).thenReturn(Boolean.TRUE);
             cfg.when(ConfigManager::getEconomyUseCost).thenReturn(Double.valueOf(5.0));
-            economy.when(com.wormhole_xtreme.wormhole.plugin.EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
+            economy.when(EconomySupport::isAvailable).thenReturn(Boolean.TRUE);
 
             rollIn();
 
             verify(cart, never()).teleport(any(Location.class));
-            verify(rider).sendMessage(org.mockito.ArgumentMatchers.anyString());
+            verify(rider).sendMessage(ArgumentMatchers.anyString());
         }
     }
 

@@ -1,14 +1,19 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.LongSupplier;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
  * Walks a ring pair through its phases on the server clock.
@@ -34,7 +39,7 @@ public final class RingTransit
      * a player takes inside it asks again — and asking means reading every block of both
      * interiors. Once a second is plenty for something a player has to go and physically fix.
      */
-    private static final java.util.concurrent.ConcurrentMap<String, Long> surveyed =
+    private static final ConcurrentMap<String, Long> surveyed =
         new ConcurrentHashMap<>();
 
     /** How long a blockage answer is trusted before the world is read again. */
@@ -45,7 +50,7 @@ public final class RingTransit
      */
     // A function reference, not a container: volatile is the whole synchronisation it needs.
     @SuppressWarnings("java:S3077")
-    static volatile java.util.function.LongSupplier clock = System::currentTimeMillis;
+    static volatile LongSupplier clock = System::currentTimeMillis;
 
     private RingTransit() {}
 
@@ -61,7 +66,7 @@ public final class RingTransit
      *            false while they are merely moving about inside it
      * @return true if a cycle started
      */
-    public static boolean start(final RingPair pair, final org.bukkit.entity.Player armedBy,
+    public static boolean start(final RingPair pair, final Player armedBy,
         final boolean tellThem)
     {
         final long now = clock.getAsLong();
@@ -143,7 +148,7 @@ public final class RingTransit
      *            ticks left before the rings commit
      */
     private static void countDown(final RingCycle cycle, final World world,
-        final org.bukkit.entity.Player armedBy, final int remaining)
+        final Player armedBy, final int remaining)
     {
         if (remaining <= 0)
         {
@@ -202,7 +207,7 @@ public final class RingTransit
      *            the world it is in
      */
     private static void commitOrAbort(final RingCycle cycle, final World world,
-        final org.bukkit.entity.Player armedBy)
+        final Player armedBy)
     {
         try
         {
@@ -551,7 +556,7 @@ public final class RingTransit
     {
         for (final Chunk chunk : chunksOf(world, pair))
         {
-            com.wormhole_xtreme.wormhole.utils.ChunkTickets.hold(chunk);
+            ChunkTickets.hold(chunk);
         }
     }
 
@@ -567,7 +572,7 @@ public final class RingTransit
     {
         for (final Chunk chunk : chunksOf(world, pair))
         {
-            com.wormhole_xtreme.wormhole.utils.ChunkTickets.release(chunk);
+            ChunkTickets.release(chunk);
         }
     }
 
@@ -583,7 +588,7 @@ public final class RingTransit
      */
     private static Set<Chunk> chunksOf(final World world, final RingPair pair)
     {
-        final Set<Chunk> chunks = new java.util.HashSet<Chunk>();
+        final Set<Chunk> chunks = new HashSet<Chunk>();
         for (final Ring ring : new Ring[] { pair.getEndA(), pair.getEndB() })
         {
             for (final int[] block : ring.perimeterBlocks())

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -88,7 +89,7 @@ class GateShapeRestoredOnLoadTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

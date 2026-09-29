@@ -2,12 +2,18 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+import org.yaml.snakeyaml.Yaml;
+
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Tests for {@link MaterialGroupRegistry} loading and lookup.
@@ -311,7 +317,7 @@ class MaterialGroupRegistryTest
 
         MaterialGroupRegistry.load(section);
 
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+        assertEquals(DialSpinPattern.PEGASUS,
             MaterialGroupRegistry.getGroup("Atlantis").getDialSpin());
         assertNull(MaterialGroupRegistry.getGroup("Odd").getDialSpin(), "unknown: the group still loads");
         assertNull(MaterialGroupRegistry.getGroup("Plain").getDialSpin());
@@ -324,14 +330,14 @@ class MaterialGroupRegistryTest
     @Test
     void theShippedThemedGroupsDialAsTheirShowsDo() throws Exception
     {
-        final Map<String, Object> config = com.wormhole_xtreme.wormhole.utils.YamlMaps.asMap(new org.yaml.snakeyaml.Yaml()
-            .load(java.nio.file.Files.readString(java.nio.file.Paths.get("src/main/resources/config.yml"))));
+        final Map<String, Object> config = YamlMaps.asMap(new Yaml()
+            .load(Files.readString(Paths.get("src/main/resources/config.yml"))));
 
-        MaterialGroupRegistry.load(com.wormhole_xtreme.wormhole.utils.YamlMaps.asMap(config.get("gate-material-groups")));
+        MaterialGroupRegistry.load(YamlMaps.asMap(config.get("gate-material-groups")));
 
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+        assertEquals(DialSpinPattern.PEGASUS,
             MaterialGroupRegistry.getGroup("Atlantis").getDialSpin());
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.UNIVERSE,
+        assertEquals(DialSpinPattern.UNIVERSE,
             MaterialGroupRegistry.getGroup("Universe").getDialSpin());
         assertNull(MaterialGroupRegistry.getGroup("Standard").getDialSpin(), "Standard follows gate-dial-spin");
     }
@@ -360,11 +366,11 @@ class MaterialGroupRegistryTest
     {
         final MaterialGroup both = new MaterialGroup("Both", Material.LAPIS_BLOCK, Material.WATER, Material.STONE,
             Material.GLOWSTONE, Material.OAK_WALL_SIGN)
-            .withDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS).withIrisAnimation("rows");
+            .withDialSpin(DialSpinPattern.PEGASUS).withIrisAnimation("rows");
 
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS, both.getDialSpin());
+        assertEquals(DialSpinPattern.PEGASUS, both.getDialSpin());
         assertEquals("rows", both.getIrisAnimation());
         assertEquals("rows", both.withDialSpin(null).getIrisAnimation());
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS, both.withIrisAnimation(null).getDialSpin());
+        assertEquals(DialSpinPattern.PEGASUS, both.withIrisAnimation(null).getDialSpin());
     }
 }

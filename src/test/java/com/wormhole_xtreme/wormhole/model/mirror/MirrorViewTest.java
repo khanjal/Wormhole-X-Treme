@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntPredicate;
 
@@ -17,6 +18,7 @@ import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -122,7 +124,7 @@ class MirrorViewTest
     {
         final MirrorPoint bottom = new MirrorPoint("far", 100, -63, 200, 0f, 0f);
         final World world = mock(World.class);
-        final List<Integer> read = new java.util.ArrayList<>();
+        final List<Integer> read = new ArrayList<>();
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
@@ -151,7 +153,7 @@ class MirrorViewTest
     {
         final MirrorPoint top = new MirrorPoint("far", 100, 318, 200, 0f, 0f);
         final World world = mock(World.class);
-        final List<Integer> read = new java.util.ArrayList<>();
+        final List<Integer> read = new ArrayList<>();
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
@@ -175,10 +177,10 @@ class MirrorViewTest
     @Test
     void returnsAColourListThatCannotBeChangedUnderneathTheStamp()
     {
-        final MirrorView view = new MirrorView("PLAINS", new java.util.ArrayList<>(), false);
+        final MirrorView view = new MirrorView("PLAINS", new ArrayList<>(), false);
         final List<DyeColor> colours = view.colours();
 
-        org.junit.jupiter.api.Assertions.assertThrows(UnsupportedOperationException.class,
+        Assertions.assertThrows(UnsupportedOperationException.class,
             () -> colours.add(DyeColor.RED));
     }
 

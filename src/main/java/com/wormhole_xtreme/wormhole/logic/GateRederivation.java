@@ -1,18 +1,25 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Works a gate's furniture out from its shape again, for a gate whose shape file has changed
@@ -149,7 +156,7 @@ public final class GateRederivation
      * @param found
      *            what stands there instead
      */
-    public record Gap(int x, int y, int z, org.bukkit.Material found)
+    public record Gap(int x, int y, int z, Material found)
     {
     }
 
@@ -230,7 +237,7 @@ public final class GateRederivation
         final int[] bestScore = { -1 };
         for (final boolean reversed : new boolean[] { false, true })
         {
-            final BlockFace face = reversed ? com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(facing) : facing;
+            final BlockFace face = reversed ? WorldUtils.getInverseDirection(facing) : facing;
             final GateGrid base = GateGrid.fromActivationHolder(shape, button.getX() - face.getModX(),
                 button.getY() - face.getModY(), button.getZ() - face.getModZ(), face);
             if ((base != null) && searchAround(shape, base, reversed, own, best, bestScore))
@@ -248,7 +255,7 @@ public final class GateRederivation
      *            cells laid from its shape
      * @return true if none of them falls outside the gate
      */
-    public static boolean liesOnGate(final Stargate gate, final java.util.Collection<GateBlueprint.Cell> cells)
+    public static boolean liesOnGate(final Stargate gate, final Collection<GateBlueprint.Cell> cells)
     {
         final Set<Long> own = ownBlocks(gate);
         for (final GateBlueprint.Cell c : cells)
@@ -332,7 +339,7 @@ public final class GateRederivation
                 }
             }
         }
-        offsets.sort(java.util.Comparator.comparingInt(o -> Math.abs(o[0]) + Math.abs(o[1]) + Math.abs(o[2])));
+        offsets.sort(Comparator.comparingInt(o -> Math.abs(o[0]) + Math.abs(o[1]) + Math.abs(o[2])));
         return offsets;
     }
 
@@ -404,18 +411,18 @@ public final class GateRederivation
             return new ShapeFit(false, 0, 0, List.of(), null);
         }
         final GateGrid grid = layout.grid();
-        final com.wormhole_xtreme.wormhole.model.StargateShape previous = gate.getGateShape();
+        final StargateShape previous = gate.getGateShape();
         final String previousName = gate.getGateShapeName();
         // Taken first so the palette resolves as it would for this shape.
         gate.setGateShape(shape);
-        final org.bukkit.Material frame = gate.getEffectiveStructureMaterial();
-        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final Material frame = gate.getEffectiveStructureMaterial();
+        final Material chevron = gate.getEffectiveChevronMaterial();
         final List<Gap> gaps = new ArrayList<>();
         int expected = 0;
         for (final GateBlueprint.Cell cell : frameCells(shape, grid))
         {
             expected++;
-            final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
+            final Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
             if ((found != frame) && ((chevron == null) || (found != chevron)))
             {
                 gaps.add(new Gap(cell.x(), cell.y(), cell.z(), found));
@@ -646,9 +653,9 @@ public final class GateRederivation
         for (final GateBlueprint.Cell cell : frameCells(shape, layout.grid()))
         {
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
-            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(block.getType()))
+            if (MaterialUtils.isWallSign(block.getType()))
             {
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
+                CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
                 block.setType(builtMaterial(gate, cell), false);
                 restored.add(block);
             }
@@ -657,9 +664,9 @@ public final class GateRederivation
     }
 
     /** What a frame or chevron cell of this gate is built from. */
-    private static org.bukkit.Material builtMaterial(final Stargate gate, final GateBlueprint.Cell cell)
+    private static Material builtMaterial(final Stargate gate, final GateBlueprint.Cell cell)
     {
-        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final Material chevron = gate.getEffectiveChevronMaterial();
         return ((cell.part() == GateBlueprint.Part.CHEVRON) && (chevron != null))
             ? chevron : gate.getEffectiveStructureMaterial();
     }
@@ -669,7 +676,7 @@ public final class GateRederivation
      *
      * @return the material, or null if the block is not a frame or chevron cell of the gate's shape
      */
-    public static org.bukkit.Material frameMaterialAt(final Stargate gate, final Block block)
+    public static Material frameMaterialAt(final Stargate gate, final Block block)
     {
         if ((block == null) || !(gate.getGateShape() instanceof Stargate3DShape shape))
         {
@@ -750,14 +757,14 @@ public final class GateRederivation
             return new Fill(List.of(), List.of(), List.of(), 0);
         }
         final List<GateBlueprint.Cell> cells = frameCells(shape, layout.grid());
-        final org.bukkit.Material frame = gate.getEffectiveStructureMaterial();
-        final org.bukkit.Material chevron = gate.getEffectiveChevronMaterial();
+        final Material frame = gate.getEffectiveStructureMaterial();
+        final Material chevron = gate.getEffectiveChevronMaterial();
         final List<Gap> gaps = new ArrayList<>();
         final List<Gap> blocked = new ArrayList<>();
         final List<GateBlueprint.Cell> missing = new ArrayList<>();
         for (final GateBlueprint.Cell cell : cells)
         {
-            final org.bukkit.Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
+            final Material found = world.getBlockAt(cell.x(), cell.y(), cell.z()).getType();
             if (detectionTakes(cell, found, frame, chevron))
             {
                 continue;
@@ -780,7 +787,7 @@ public final class GateRederivation
         {
             final Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
             // Into air, water or lava; CoreProtect logs a liquid replaced, so a rollback puts it back.
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
+            CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, block, builtMaterial(gate, cell), null);
             block.setType(builtMaterial(gate, cell), false);
             placed.add(block);
         }
@@ -792,8 +799,8 @@ public final class GateRederivation
      * frame cell takes the frame material, or the chevron material where it lights; a {@code [C]} cell
      * takes only the chevron material, or the frame material when the gate has none.
      */
-    private static boolean detectionTakes(final GateBlueprint.Cell cell, final org.bukkit.Material found,
-        final org.bukkit.Material frame, final org.bukkit.Material chevron)
+    private static boolean detectionTakes(final GateBlueprint.Cell cell, final Material found,
+        final Material frame, final Material chevron)
     {
         if (cell.part() == GateBlueprint.Part.CHEVRON)
         {
@@ -803,10 +810,10 @@ public final class GateRederivation
     }
 
     /** Air or a liquid: what a frame block can be put into without taking anything away. */
-    private static boolean fillable(final org.bukkit.Material found)
+    private static boolean fillable(final Material found)
     {
-        return (found == null) || com.wormhole_xtreme.wormhole.utils.MaterialUtils.isAirMaterial(found)
-            || (found == org.bukkit.Material.WATER) || (found == org.bukkit.Material.LAVA);
+        return (found == null) || MaterialUtils.isAirMaterial(found)
+            || (found == Material.WATER) || (found == Material.LAVA);
     }
 
     /**

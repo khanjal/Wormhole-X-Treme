@@ -7,7 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,7 @@ class ShippedShapeIrisTest
     {
         final List<String> names = new ArrayList<>();
         // try-with-resources: Files.list holds an open directory handle until closed.
-        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
             for (final Path p : listing.toList())
             {
@@ -62,7 +64,7 @@ class ShippedShapeIrisTest
                 }
             }
         }
-        java.util.Collections.sort(names);
+        Collections.sort(names);
         return names;
     }
 

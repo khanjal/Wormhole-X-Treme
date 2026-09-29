@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -81,9 +82,9 @@ public final class GateStateGuard implements AfterAllCallback
      */
     private static void describe(final String what, final Object value, final List<String> into)
     {
-        if (value instanceof java.util.Map)
+        if (value instanceof Map)
         {
-            for (final Object key : ((java.util.Map<?, ?>) value).keySet())
+            for (final Object key : ((Map<?, ?>) value).keySet())
             {
                 into.add(what + " " + key);
             }

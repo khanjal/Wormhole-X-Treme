@@ -12,6 +12,11 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 
+import java.util.logging.Level;
+
+import org.junit.jupiter.api.Assertions;
+import org.mockito.ArgumentCaptor;
+
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,7 +94,7 @@ class StargateSignTest
     void thePlacementLogNamesEveryNeighbourEvenUnreadableOnes() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
         PluginTestSupport.install(plugin);
         try
         {
@@ -103,20 +108,20 @@ class StargateSignTest
 
             gate.setupGateSign(true);
 
-            final org.mockito.ArgumentCaptor<String> logged =
-                org.mockito.ArgumentCaptor.forClass(String.class);
+            final ArgumentCaptor<String> logged =
+                ArgumentCaptor.forClass(String.class);
             verify(plugin).prettyLog(any(), logged.capture());
             final String line = logged.getValue();
 
-            org.junit.jupiter.api.Assertions.assertTrue(line.startsWith("Sign placement: Gate=Alpha"), line);
+            Assertions.assertTrue(line.startsWith("Sign placement: Gate=Alpha"), line);
             for (final String key : new String[] { "NameHolderLoc=", "GateFacing=NORTH",
                 "PlaceBlock=", "PlaceBlockType=OAK_WALL_SIGN",
                 "NORTH=[", "EAST=[", "SOUTH=[", "WEST=[", "UP=[", "DOWN=[" })
             {
-                org.junit.jupiter.api.Assertions.assertTrue(line.contains(key),
+                Assertions.assertTrue(line.contains(key),
                     "missing " + key + " in: " + line);
             }
-            org.junit.jupiter.api.Assertions.assertTrue(line.contains("EAST=[null@null]"),
+            Assertions.assertTrue(line.contains("EAST=[null@null]"),
                 "a neighbour that cannot be read is reported as null, not thrown: " + line);
         }
         finally
@@ -135,7 +140,7 @@ class StargateSignTest
     void withFineOffThePlacementLogIsNotBuiltAtAll() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(false);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(false);
         PluginTestSupport.install(plugin);
         try
         {

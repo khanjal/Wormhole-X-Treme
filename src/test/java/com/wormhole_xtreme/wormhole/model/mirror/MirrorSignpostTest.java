@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -112,7 +113,7 @@ class MirrorSignpostTest
     {
         boundMirror();
         lookingAt(banner);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         MirrorSignpost.hold(player);
 
         sweep();

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -167,7 +169,7 @@ class BuiltIrisUpgradeTest
         broken.getGatePortalBlocks().add(new Location(brokenWorld, 0, 64, 0));
         final Block left = cellHolding(64, Material.STONE);
 
-        final int cleared = BuiltIrisUpgrade.clearAll(java.util.List.of(broken, gate));
+        final int cleared = BuiltIrisUpgrade.clearAll(List.of(broken, gate));
 
         assertEquals(1, cleared, "the gate after the broken one is still cleared, and counted");
         verify(left).setType(Material.AIR);

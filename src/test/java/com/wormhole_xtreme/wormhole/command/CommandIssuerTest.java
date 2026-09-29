@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.ProxiedCommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 class CommandIssuerTest
 {
-    private static ProxiedCommandSender proxy(final org.bukkit.command.CommandSender caller,
-        final org.bukkit.command.CommandSender callee)
+    private static ProxiedCommandSender proxy(final CommandSender caller,
+        final CommandSender callee)
     {
         final ProxiedCommandSender proxied = mock(ProxiedCommandSender.class);
         when(proxied.getCaller()).thenReturn(caller);

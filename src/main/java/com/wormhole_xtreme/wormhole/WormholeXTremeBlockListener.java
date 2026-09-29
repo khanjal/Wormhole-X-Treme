@@ -26,6 +26,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -311,7 +312,7 @@ class WormholeXTremeBlockListener implements Listener
         {
             event.setCancelled(true);
             // Above the hotbar: a player holding the button down would otherwise fill their chat.
-            com.wormhole_xtreme.wormhole.utils.ActionBar.send(player,
+            ActionBar.send(player,
                 "§3:: That is part of a mirror. /wormhole mirror remove takes one down.");
             return;
         }
@@ -522,7 +523,7 @@ class WormholeXTremeBlockListener implements Listener
             }
         }
 
-        if (StargateManager.isBlockInGate(block) && (block.getType() != org.bukkit.Material.REDSTONE_WIRE))
+        if (StargateManager.isBlockInGate(block) && (block.getType() != Material.REDSTONE_WIRE))
         {
             event.setCancelled(true);
         }

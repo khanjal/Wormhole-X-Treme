@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -174,7 +175,7 @@ public final class StargateIrisAnimator
      *            run after the last ring, or null
      */
     private static void step(final Stargate gate, final List<List<Location>> rings, final int index,
-        final Material draw, final Runnable afterwards, final java.util.function.Consumer<List<Location>> alongside)
+        final Material draw, final Runnable afterwards, final Consumer<List<Location>> alongside)
     {
         if (index >= rings.size())
         {

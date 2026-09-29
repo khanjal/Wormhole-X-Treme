@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
@@ -57,7 +58,7 @@ class RingPetEscortTest
         final Player owner = mock(Player.class);
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());
         when(owner.getName()).thenReturn("traveller");
-        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(owner, new Location(world, 0.5, 64.0, 0.5));
+        PetTestSupport.standsWhereTeleported(owner, new Location(world, 0.5, 64.0, 0.5));
         final Wolf wolf = mock(Wolf.class);
         when(wolf.isTamed()).thenReturn(true);
         when(wolf.getOwner()).thenReturn(owner);
@@ -72,7 +73,7 @@ class RingPetEscortTest
         when(far.getName()).thenReturn("far");
 
         new BukkitRingWorld(world, null).deliver(new BukkitRingPassenger(owner), far);
-        com.wormhole_xtreme.wormhole.PetTestSupport.runEscorts(scheduler);
+        PetTestSupport.runEscorts(scheduler);
 
         final ArgumentCaptor<Location> landed = ArgumentCaptor.forClass(Location.class);
         verify(wolf).teleport(landed.capture());

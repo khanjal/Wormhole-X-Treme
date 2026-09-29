@@ -6,6 +6,7 @@ import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.commands;
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.good;
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.name;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.GateInteractionHandler;
+import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -328,7 +330,7 @@ public class Build implements CommandExecutor
             {
                 return GatePreviews.Control.NOT_LOOKING;
             }
-            final List<String> who = new java.util.ArrayList<>(audience.names().stream().map(PreviewText::name).toList());
+            final List<String> who = new ArrayList<>(audience.names().stream().map(PreviewText::name).toList());
             if (audience.everyone())
             {
                 who.add(0, "everyone in this world");
@@ -401,7 +403,7 @@ public class Build implements CommandExecutor
             case REPAIRED -> {
                 player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                     + good("Filled in " + placed.gate().getGateName() + "'s missing blocks.") + " Regenerating it.");
-                com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateAt(player, placed.gate(),
+                RegenerateCommand.regenerateAt(player, placed.gate(),
                     placed.button(), null, false);
             }
         }

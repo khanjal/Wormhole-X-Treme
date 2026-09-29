@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -89,7 +90,7 @@ class MirrorSettingsCommandTest
         run("mirror", "set", "museum", "-start", "hub");
 
         MirrorManager.clear();
-        com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
+        MirrorYamlManager.loadAll();
 
         assertEquals("hub", MirrorManager.byName("museum").start());
     }

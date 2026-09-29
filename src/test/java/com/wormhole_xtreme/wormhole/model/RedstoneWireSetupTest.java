@@ -8,12 +8,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -145,7 +145,7 @@ class RedstoneWireSetupTest
         StargateBlockSetup.setupRedstoneDialWire(gate, true);
         // And on the way out, where there is no try/catch to absorb a null dereference --
         // taking up a wire a shape never asked for must not throw on a live teardown.
-        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+        Assertions.assertDoesNotThrow(
             () -> StargateBlockSetup.setupRedstoneDialWire(gate, false));
 
         assertFalse(gate.getGateStructureBlocks().iterator().hasNext(),

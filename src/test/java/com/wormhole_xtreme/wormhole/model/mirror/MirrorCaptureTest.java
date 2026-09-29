@@ -11,8 +11,13 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -492,7 +497,7 @@ class MirrorCaptureTest
         assertEquals(kept, visits(after));
         assertTrue(kept.contains("1,1,4 air") && kept.contains("1,2,4 air") && kept.contains("1,4,4 air"),
             "the column's air either side of the block, the cleared block as an entry: " + kept);
-        assertEquals(kept.size(), new java.util.HashSet<>(kept.stream().map(k -> k.replace(" air", "")).toList()).size(),
+        assertEquals(kept.size(), new HashSet<>(kept.stream().map(k -> k.replace(" air", "")).toList()).size(),
             "each block visited once: " + kept);
         assertTrue(kept.stream().noneMatch(k -> k.startsWith("1,7,")), "and none above the box: " + kept);
         for (int x = 0; x < 3; x++)
@@ -510,7 +515,7 @@ class MirrorCaptureTest
     /** Every block {@code forEachKept} visits, in order, seen air marked. */
     private static List<String> visits(final MirrorCapture capture)
     {
-        final List<String> visited = new java.util.ArrayList<>();
+        final List<String> visited = new ArrayList<>();
         capture.forEachKept((x, y, z, isAir) -> visited.add(x + "," + y + "," + z + (isAir ? " air" : "")));
         return visited;
     }
@@ -519,12 +524,12 @@ class MirrorCaptureTest
     static void rewriteVersion(final File file, final int version) throws IOException
     {
         final byte[] raw;
-        try (java.util.zip.GZIPInputStream in = new java.util.zip.GZIPInputStream(Files.newInputStream(file.toPath())))
+        try (GZIPInputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
         {
             raw = in.readAllBytes();
         }
-        java.nio.ByteBuffer.wrap(raw).putInt(4, version);
-        try (java.util.zip.GZIPOutputStream out = new java.util.zip.GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        ByteBuffer.wrap(raw).putInt(4, version);
+        try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
         {
             out.write(raw);
         }

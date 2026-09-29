@@ -18,6 +18,42 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import org.bukkit.event.Listener;
+
+import com.wormhole_xtreme.wormhole.command.DialTabCompleter;
+import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
+import com.wormhole_xtreme.wormhole.config.Configuration;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
+import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
+import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
+import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
+import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener;
+import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
+import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
+import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
+import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.model.ring.RingManager;
+import com.wormhole_xtreme.wormhole.model.ring.RingPair;
+import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
+import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
+
 /**
  * WormholeXtreme for Bukkit.
  * 
@@ -38,8 +74,8 @@ public class WormholeXTreme extends JavaPlugin
     /** The redstone listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
 
-    private static final com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener beamFreezeListener =
-        new com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener();
+    private static final BeamFreezeListener beamFreezeListener =
+        new BeamFreezeListener();
 
     /** Follows projectiles in flight so they cross a gate at the moment they reach it. */
     private static final ProjectileGateTracker projectileTracker = new ProjectileGateTracker();
@@ -92,9 +128,9 @@ public class WormholeXTreme extends JavaPlugin
         final WormholeXTreme tp = getThisPlugin();
         // Consolidated: register only canonical commands. legacy wx* names are aliases under `wormhole` in plugin.yml
         tp.getCommand("dial").setExecutor(new Dial());
-        tp.getCommand("dial").setTabCompleter(new com.wormhole_xtreme.wormhole.command.DialTabCompleter());
+        tp.getCommand("dial").setTabCompleter(new DialTabCompleter());
         tp.getCommand("wormhole").setExecutor(new Wormhole());
-        tp.getCommand("wormhole").setTabCompleter(new com.wormhole_xtreme.wormhole.command.WormholeTabCompleter());
+        tp.getCommand("wormhole").setTabCompleter(new WormholeTabCompleter());
     }
 
     /**
@@ -111,7 +147,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(entityListener, tp);
         pm.registerEvents(projectileTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
-        pm.registerEvents(new com.wormhole_xtreme.wormhole.model.freya.FreyaListener(), tp);
+        pm.registerEvents(new FreyaListener(), tp);
         registerDismountListener(pm, tp);
     }
 
@@ -130,7 +166,7 @@ public class WormholeXTreme extends JavaPlugin
      * @param pm
      *            the plugin manager to register with
      */
-    static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
+    static void registerDismountListener(final PluginManager pm,
                                                  final WormholeXTreme plugin)
     {
         for (final String candidate : dismountListenersFor(WormholeXTreme::serverHasClass))
@@ -138,7 +174,7 @@ public class WormholeXTreme extends JavaPlugin
             try
             {
                 final Class<?> type = Class.forName(candidate);
-                pm.registerEvents((org.bukkit.event.Listener) type.getDeclaredConstructor().newInstance(), plugin);
+                pm.registerEvents((Listener) type.getDeclaredConstructor().newInstance(), plugin);
                 plugin.prettyLog(Level.FINE, "Dismount handling registered via " + candidate);
                 return;
             }
@@ -160,9 +196,9 @@ public class WormholeXTreme extends JavaPlugin
      *            whether a class of the given name is on the server
      * @return listener class names to try in order; empty if neither event exists
      */
-    static List<String> dismountListenersFor(final java.util.function.Predicate<String> serverHasClass)
+    static List<String> dismountListenersFor(final Predicate<String> serverHasClass)
     {
-        final List<String> listeners = new java.util.ArrayList<>(2);
+        final List<String> listeners = new ArrayList<>(2);
         if (serverHasClass.test("org.bukkit.event.entity.EntityDismountEvent"))
         {
             listeners.add("com.wormhole_xtreme.wormhole.GateDismountListener");
@@ -261,7 +297,7 @@ public class WormholeXTreme extends JavaPlugin
             // Cosmetic work must never cost the save.
             try
             {
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.restoreAll();
+                MirrorProximity.restoreAll();
             }
             catch (final Exception | LinkageError e)
             {
@@ -269,7 +305,7 @@ public class WormholeXTreme extends JavaPlugin
             }
             try
             {
-                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.disableMetrics();
+                MetricsSupport.disableMetrics();
             }
             catch (final Exception | LinkageError e)
             {
@@ -278,7 +314,7 @@ public class WormholeXTreme extends JavaPlugin
             // Otherwise a /reload leaves old companions beside the new ones.
             try
             {
-                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.removeAll();
+                FreyaCompanion.removeAll();
             }
             catch (final Exception | LinkageError e)
             {
@@ -286,7 +322,7 @@ public class WormholeXTreme extends JavaPlugin
             }
             try
             {
-                com.wormhole_xtreme.wormhole.model.preview.GatePreviews.restoreAll();
+                GatePreviews.restoreAll();
             }
             catch (final Exception | LinkageError e)
             {
@@ -296,18 +332,18 @@ public class WormholeXTreme extends JavaPlugin
             // showing on clients until something else refreshed those blocks.
             try
             {
-                com.wormhole_xtreme.wormhole.model.StargateIrisAnimator.cancelAll();
+                StargateIrisAnimator.cancelAll();
             }
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.FINE, "Failed to stop iris sweeps", e);
             }
             // Bukkit drops the tickets themselves; a reload must not start with stale counts.
-            com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
+            ChunkTickets.clear();
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
-                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
+                Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final List<Stargate> gates = StargateManager.getAllGates();
                 // Every gate is rewritten unconditionally, changed or not -- a clean
                 // shutdown is the one moment it costs nothing to guarantee disk matches
@@ -353,7 +389,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         try
         {
-            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.PLUGIN_DISABLE);
+            gate.shutdownStargate(false, StargateShutdownEvent.Reason.PLUGIN_DISABLE);
         }
         catch (final Exception | LinkageError e)
         {
@@ -403,10 +439,10 @@ public class WormholeXTreme extends JavaPlugin
     {
         try
         {
-            com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
+            RingTransit.clear();
             for (final String world : ringWorlds())
             {
-                com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
+                RingYamlManager.saveWorld(world);
             }
         }
         catch (final Exception | LinkageError e)
@@ -422,7 +458,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         try
         {
-            com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
+            BeamYamlManager.saveAll();
         }
         catch (final Exception | LinkageError e)
         {
@@ -441,7 +477,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         try
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.saveAll();
+            MirrorYamlManager.saveAll();
         }
         catch (final Exception | LinkageError e)
         {
@@ -476,11 +512,11 @@ public class WormholeXTreme extends JavaPlugin
      *
      * @return the world names to save
      */
-    private static java.util.Set<String> ringWorlds()
+    private static Set<String> ringWorlds()
     {
-        final java.util.Set<String> worlds = new java.util.HashSet<String>();
-        for (final com.wormhole_xtreme.wormhole.model.ring.RingPair pair
-            : com.wormhole_xtreme.wormhole.model.ring.RingManager.getAllPairs())
+        final Set<String> worlds = new HashSet<String>();
+        for (final RingPair pair
+            : RingManager.getAllPairs())
         {
             worlds.add(pair.getWorldName());
         }
@@ -525,7 +561,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         try
         {
-            com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport.enablePlaceholders();
+            PlaceholderSupport.enablePlaceholders();
         }
         catch (final Exception | LinkageError t)
         {
@@ -541,7 +577,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         try
         {
-            com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableIfConfigured(this);
+            MetricsSupport.enableIfConfigured(this);
         }
         catch (final Exception | LinkageError t)
         {
@@ -574,7 +610,7 @@ public class WormholeXTreme extends JavaPlugin
         // reading them first would find nothing and load an empty server.
         try
         {
-            com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration.migrate();
+            LegacyDataFolderMigration.migrate();
         }
         // A migration that throws must not stop the plugin: nothing is deleted, so the files
         // are still in the old folder and the operator has something to recover from.
@@ -594,17 +630,17 @@ public class WormholeXTreme extends JavaPlugin
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         // A shape whose light order changed would otherwise leave standing gates on the old one.
-        com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade.rebuildAll(StargateManager.getAllGatesUnsorted());
+        LightOrderUpgrade.rebuildAll(StargateManager.getAllGatesUnsorted());
         // A vertical gate's iris is drawn now, so a world saved by an older version has real
         // blocks standing in every opening that was shut when it saved.
-        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearAll(StargateManager.getAllGatesUnsorted());
+        BuiltIrisUpgrade.clearAll(StargateManager.getAllGatesUnsorted());
         // Rings load after gates so that a ring overlapping gate blocks is refused against
         // an index that is already populated.
         try
         {
-            final int rings = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadAll(
+            final int rings = RingYamlManager.loadAll(
                 ConfigManager.getRingReach());
-            final int waiting = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadPending();
+            final int waiting = RingYamlManager.loadPending();
             prettyLog(Level.INFO, true, LOADED + rings + " transport ring pairs"
                 + ((waiting > 0) ? (" and " + waiting + " half-built ones.") : "."));
         }
@@ -616,7 +652,7 @@ public class WormholeXTreme extends JavaPlugin
         // A beam subsystem that cannot load must not stop gates or rings from working.
         try
         {
-            final int destinations = com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.loadAll();
+            final int destinations = BeamYamlManager.loadAll();
             prettyLog(Level.INFO, true, LOADED + destinations + " beam destination"
                 + (destinations == 1 ? "" : "s") + ".");
         }
@@ -627,11 +663,11 @@ public class WormholeXTreme extends JavaPlugin
         // Likewise a mirror subsystem that cannot load must not stop the other three.
         try
         {
-            final int mirrors = com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
+            final int mirrors = MirrorYamlManager.loadAll();
             prettyLog(Level.INFO, true, LOADED + mirrors + " quantum mirror"
                 + (mirrors == 1 ? "" : "s") + ".");
             // Here and not before: until mirrors have loaded, every capture reads as abandoned.
-            final int swept = com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures.sweepAbandoned();
+            final int swept = MirrorCaptures.sweepAbandoned();
             if (swept > 0)
             {
                 prettyLog(Level.INFO, true, "Deleted " + swept + " mirror capture"
@@ -645,10 +681,10 @@ public class WormholeXTreme extends JavaPlugin
         // Deliberately no startup log line, which would announce the easter egg.
         try
         {
-            final int companions = com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences.loadAll();
+            final int companions = FreyaPreferences.loadAll();
             if (companions > 0)
             {
-                com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.spawnForOnline();
+                FreyaCompanion.spawnForOnline();
             }
         }
         catch (final Exception e)
@@ -671,12 +707,12 @@ public class WormholeXTreme extends JavaPlugin
         // An open wormhole hums. One sweep over the open gates rather than a task per gate:
         // the work is the same and there is nothing per-gate to cancel or leak.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            com.wormhole_xtreme.wormhole.model.GateSounds::tickAmbient,
+            GateSounds::tickAmbient,
             20L, ConfigManager.getGateSoundAmbientTicks());
         // A mirror hung on a wall is drawn as a view of its room. One sweep over the registered
         // mirrors, which skips any whose world or chunk is not loaded.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.createTicker(),
+            MirrorProximity.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());
         // A mirror names itself above the hotbar to whoever is looking at it. Its own task
         // rather than a second job inside the sweep above: that one walks the mirrors, this
@@ -684,7 +720,7 @@ public class WormholeXTreme extends JavaPlugin
         // of the two loops for the sake of the cheaper. Shares the period because both are
         // about what a player sees when they approach a banner.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost.createTicker(),
+            MirrorSignpost.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());
         // Behind a see-through iris the wormhole is drawn in ice, which does not move the way
         // water does, so it is moved for it. Registered only when it is wanted: a server that
@@ -693,14 +729,14 @@ public class WormholeXTreme extends JavaPlugin
         if (irisHorizonTicks > 0)
         {
             WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-                com.wormhole_xtreme.wormhole.model.StargateManager::tickIrisHorizon,
+                StargateManager::tickIrisHorizon,
                 20L, irisHorizonTicks);
         }
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            com.wormhole_xtreme.wormhole.model.preview.GatePreviews::tick, 100L, 100L);
+            GatePreviews::tick, 100L, 100L);
         // Said after gates have loaded, so it can tell an empty server from a full one.
-        com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
+        LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 
@@ -725,7 +761,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             final int presets =
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load();
+                MirrorPresetRegistry.load();
             prettyLog(Level.INFO, true, LOADED + presets + " mirror look"
                 + (presets == 1 ? "" : "s") + ".");
         }

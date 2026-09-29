@@ -21,10 +21,15 @@ import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,14 +39,18 @@ import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -109,9 +118,9 @@ class GateRederivationTest
         when(b.getWorld()).thenReturn(world);
         when(b.getLocation()).thenReturn(new Location(world, x, y, z));
         when(b.getType()).thenAnswer(inv -> placed.getOrDefault(key(x, y, z), Material.AIR));
-        org.mockito.Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
-            .when(b).setType(any(Material.class), org.mockito.ArgumentMatchers.anyBoolean());
-        org.mockito.Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
+        Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
+            .when(b).setType(any(Material.class), ArgumentMatchers.anyBoolean());
+        Mockito.doAnswer(inv -> placed.put(key(x, y, z), inv.getArgument(0, Material.class)))
             .when(b).setType(any(Material.class));
         when(b.getRelative(any(BlockFace.class))).thenAnswer(inv -> {
             final BlockFace face = inv.getArgument(0, BlockFace.class);
@@ -425,12 +434,12 @@ class GateRederivationTest
     }
 
     /** Each light wave as its blocks' coordinates, in wave order, so two gates' orders compare. */
-    private static List<java.util.Set<String>> order(final Stargate gate)
+    private static List<Set<String>> order(final Stargate gate)
     {
-        final List<java.util.Set<String>> waves = new java.util.ArrayList<>();
+        final List<Set<String>> waves = new ArrayList<>();
         for (final List<Location> wave : gate.getGateLightBlocks())
         {
-            final java.util.Set<String> keys = new java.util.HashSet<>();
+            final Set<String> keys = new HashSet<>();
             if (wave != null)
             {
                 for (final Location l : wave)
@@ -463,7 +472,7 @@ class GateRederivationTest
     void aGateBuiltWithAnOlderLightOrderTakesTheShapesOrder() throws Exception
     {
         final Stargate gate = detected("Standard");
-        final List<java.util.Set<String>> shapeOrder = order(gate);
+        final List<Set<String>> shapeOrder = order(gate);
         swapFirstAndLast(gate);
         assertNotEquals(shapeOrder, order(gate), "the swap should have changed the order");
 
@@ -501,7 +510,7 @@ class GateRederivationTest
     {
         final Stargate gate = detected("Standard");
         swapFirstAndLast(gate);
-        final List<java.util.Set<String>> before = order(gate);
+        final List<Set<String>> before = order(gate);
         gate.setGateLightsActive(true);
 
         assertEquals(GateRederivation.LightResult.BUSY, GateRederivation.rebuildLightOrder(gate));
@@ -520,7 +529,7 @@ class GateRederivationTest
         swapFirstAndLast(old);
         final Stargate current = detected("Standard");
         current.setGateName("Current");
-        final List<java.util.Set<String>> shapeOrder = order(current);
+        final List<Set<String>> shapeOrder = order(current);
 
         try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
         {
@@ -563,11 +572,11 @@ class GateRederivationTest
     /** Runs with every shipped gate shape loaded, the way a server has them, and puts the registry back. */
     private static void withShippedShapes(final ThrowingRunnable body) throws Exception
     {
-        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
-            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
-        final Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new HashMap<>(shapes);
+        final Map<String, StargateShape> shapes =
+            StargateShapeRegistry.getStargateShapes();
+        final Map<String, StargateShape> saved = new HashMap<>(shapes);
         shapes.clear();
-        try (java.util.stream.Stream<Path> files = Files.list(SHAPE_DIR))
+        try (Stream<Path> files = Files.list(SHAPE_DIR))
         {
             for (final Path file : files.filter(f -> f.toString().endsWith(".shape")).toList())
             {
@@ -612,7 +621,7 @@ class GateRederivationTest
             assertEquals("Massive", gate.getGateShapeName());
             assertTrue(outcome.changes().contains("shape (was Standard)"), "changes were: " + outcome.changes());
         });
-        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        Collections.swap(gate.getGateLightBlocks(), 1, 2);
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate),
             "with its own shape back, the light order rebuilds");
     }
@@ -651,7 +660,7 @@ class GateRederivationTest
         assertTrue(fit.accepted());
         assertEquals(fit.expected() - 1, fit.present());
         assertEquals(1, fit.gaps().size(), "gaps were: " + fit.gaps());
-        assertEquals(org.bukkit.Material.AIR, fit.gaps().get(0).found(), String.valueOf(fit.gaps().get(0)));
+        assertEquals(Material.AIR, fit.gaps().get(0).found(), String.valueOf(fit.gaps().get(0)));
         assertEquals("Massive", gate.getGateShapeName());
     }
 
@@ -660,7 +669,7 @@ class GateRederivationTest
     void aNamedShapeTheFrameIsNotIsRefused() throws Exception
     {
         final Stargate gate = detected("Massive");
-        final com.wormhole_xtreme.wormhole.model.StargateShape before = gate.getGateShape();
+        final StargateShape before = gate.getGateShape();
 
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
 
@@ -688,7 +697,7 @@ class GateRederivationTest
     void aGateWithItsDhdOffIsLaidWhereItsFrameIs() throws Exception
     {
         final Stargate gate = detected("Large");
-        final List<java.util.Set<String>> order = order(gate);
+        final List<Set<String>> order = order(gate);
         final Block button = gate.getGateDialLeverBlock();
         final BlockFace out = gate.getGateFacing();
         gate.setGateDialLeverBlock(blockAt(button.getX() + (2 * out.getModX()), button.getY(),
@@ -700,7 +709,7 @@ class GateRederivationTest
         assertTrue(fit.accepted(), "found " + fit.present() + " of " + fit.expected());
         assertEquals(fit.expected(), fit.present());
         assertEquals(-2, fit.layout().along(), fit.layout().describe());
-        java.util.Collections.swap(gate.getGateLightBlocks(), 1, 2);
+        Collections.swap(gate.getGateLightBlocks(), 1, 2);
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
         assertEquals(order, order(gate), "the light order is laid from the frame too");
     }
@@ -901,7 +910,7 @@ class GateRederivationTest
     @Test
     void aChevronBlockWhereNoChevronLightsStopsTheFill() throws Exception
     {
-        final List<String> lines = new java.util.ArrayList<>(Files.readAllLines(SHAPE_DIR.resolve("Massive.shape")));
+        final List<String> lines = new ArrayList<>(Files.readAllLines(SHAPE_DIR.resolve("Massive.shape")));
         lines.add("CHEVRON_MATERIAL=REDSTONE_LAMP");
         final Stargate3DShape lamps = new Stargate3DShape(lines.toArray(new String[0]));
         final Stargate gate = StargateHelper.checkStargate(build(lamps, BlockFace.SOUTH, 0, 64, 0), BlockFace.SOUTH, lamps);

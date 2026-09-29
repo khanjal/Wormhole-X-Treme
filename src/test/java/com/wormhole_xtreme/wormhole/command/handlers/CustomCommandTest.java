@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
 
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.AfterEach;
@@ -59,7 +60,7 @@ class CustomCommandTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
@@ -246,7 +247,7 @@ class DialSignTargetRestoreTest
     {
         final Block broken = mock(Block.class);
         when(broken.getType()).thenReturn(Material.AIR);
-        final org.bukkit.block.BlockState brokenState = mock(org.bukkit.block.BlockState.class);
+        final BlockState brokenState = mock(BlockState.class);
         when(broken.getState()).thenReturn(brokenState);
         gate.setGateDialSignBlock(broken);
         gate.setGateDialSignIndex(1);

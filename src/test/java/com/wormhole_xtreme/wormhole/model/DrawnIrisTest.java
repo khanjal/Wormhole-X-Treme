@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -114,8 +116,8 @@ class DrawnIrisTest
         verify(cells[1]).setType(Material.AIR);
         verify(cells[0], never()).setType(Material.STONE);
         // Both cells, so a drawing that covered half the opening would not pass for one.
-        verify(watcher).sendBlockChange(org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 64), eq(iris));
-        verify(watcher).sendBlockChange(org.mockito.ArgumentMatchers.argThat(at -> at.getBlockY() == 65), eq(iris));
+        verify(watcher).sendBlockChange(ArgumentMatchers.argThat(at -> at.getBlockY() == 64), eq(iris));
+        verify(watcher).sendBlockChange(ArgumentMatchers.argThat(at -> at.getBlockY() == 65), eq(iris));
     }
 
     /**
@@ -298,7 +300,7 @@ class DrawnIrisTest
 
         final Player walker = mock(Player.class);
         when(walker.isOnline()).thenReturn(true);
-        when(walker.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(walker.getUniqueId()).thenReturn(UUID.randomUUID());
         when(walker.getLocation()).thenReturn(new Location(world, 10, 64, 26));
 
         final BlockData iris = mock(BlockData.class);
@@ -330,7 +332,7 @@ class DrawnIrisTest
 
         final Player walker = mock(Player.class);
         when(walker.isOnline()).thenReturn(true);
-        when(walker.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(walker.getUniqueId()).thenReturn(UUID.randomUUID());
         when(walker.getLocation()).thenReturn(new Location(world, 10, 64, 26));
 
         final BlockData iris = mock(BlockData.class);

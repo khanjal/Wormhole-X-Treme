@@ -21,6 +21,14 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+
 /**
  * Loads and writes plugin configuration via YAML (`config.yml`).
  */
@@ -300,8 +308,8 @@ public class ConfigurationYAML
     }
 
     /** Runs once per paragraph when a description is wrapped, so it is compiled once. */
-    private static final java.util.regex.Pattern WHITESPACE =
-        java.util.regex.Pattern.compile("\\s+");
+    private static final Pattern WHITESPACE =
+        Pattern.compile("\\s+");
 
     /** The section every Setting is filed under; the same name for all of them. */
     private static final String SETTING_SECTION = "WormholeXTreme";
@@ -327,7 +335,7 @@ public class ConfigurationYAML
      *            the groups to write
      * @return true if the file was modified
      */
-    static boolean appendMaterialGroups(final File cfg, final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    static boolean appendMaterialGroups(final File cfg, final List<MaterialGroup> groups)
     {
         if ((groups == null) || groups.isEmpty())
         {
@@ -336,7 +344,7 @@ public class ConfigurationYAML
         try
         {
             final String block = renderGroups(groups);
-            final List<String> lines = new ArrayList<>(java.nio.file.Files.readAllLines(cfg.toPath()));
+            final List<String> lines = new ArrayList<>(Files.readAllLines(cfg.toPath()));
             final int sectionStart = indexOfSection(lines);
 
             if (sectionStart < 0)
@@ -346,8 +354,8 @@ public class ConfigurationYAML
             else
             {
                 lines.addAll(insertionPoint(lines, sectionStart),
-                    java.util.Arrays.asList(block.split("\\R")));
-                java.nio.file.Files.write(cfg.toPath(), lines);
+                    Arrays.asList(block.split("\\R")));
+                Files.write(cfg.toPath(), lines);
             }
             logAdded(groups);
             return true;
@@ -367,10 +375,10 @@ public class ConfigurationYAML
      *            the groups to write
      * @return the block of lines, indented to sit under the section key
      */
-    private static String renderGroups(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    private static String renderGroups(final List<MaterialGroup> groups)
     {
         final StringBuilder block = new StringBuilder();
-        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        for (final MaterialGroup g : groups)
         {
             block.append("  # Added automatically from a gate shape using this frame material.")
                  .append(System.lineSeparator());
@@ -459,7 +467,7 @@ public class ConfigurationYAML
      */
     private static void appendNewSection(final File cfg, final String block) throws IOException
     {
-        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
+        try (final FileWriter writer = new FileWriter(cfg, StandardCharsets.UTF_8, true))
         {
             writer.write(System.lineSeparator());
             writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
@@ -473,10 +481,10 @@ public class ConfigurationYAML
      * @param groups
      *            the groups just written
      */
-    private static void logAdded(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    private static void logAdded(final List<MaterialGroup> groups)
     {
         final List<String> names = new ArrayList<>();
-        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        for (final MaterialGroup g : groups)
         {
             names.add(g.getName() + "=" + g.getStructureMaterial());
         }
@@ -499,8 +507,8 @@ public class ConfigurationYAML
     /** Rewrites the file with every renamed setting's line under its new name. */
     private static void renameOldKeys(final File cfg) throws IOException
     {
-        final List<String> renamed = renameSettingLines(java.nio.file.Files.readAllLines(cfg.toPath()));
-        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8))
+        final List<String> renamed = renameSettingLines(Files.readAllLines(cfg.toPath()));
+        try (final FileWriter writer = new FileWriter(cfg, StandardCharsets.UTF_8))
         {
             for (final String line : renamed)
             {
@@ -533,7 +541,7 @@ public class ConfigurationYAML
 
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
     {
-        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true /* append */))
+        try (final FileWriter writer = new FileWriter(cfg, StandardCharsets.UTF_8, true /* append */))
         {
             writer.write(System.lineSeparator());
             writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
@@ -550,7 +558,7 @@ public class ConfigurationYAML
                 writer.write(keyName + ": " + formatValueForYaml(s.getValue()) + System.lineSeparator());
                 writer.write(System.lineSeparator());
             }
-            final List<String> names = new java.util.ArrayList<>();
+            final List<String> names = new ArrayList<>();
             for (final Setting s : missing) { names.add(s.getName().name()); }
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "config.yml was missing " + missing.size() + " key(s); added defaults: " + names.toString());
@@ -649,10 +657,10 @@ public class ConfigurationYAML
      * @return the file as it should be written back
      */
     static List<String> updateSettingLines(final List<String> lines,
-                                           final java.util.Map<String, String> values,
-                                           final java.util.Set<String> updated)
+                                           final Map<String, String> values,
+                                           final Set<String> updated)
     {
-        final List<String> out = new java.util.ArrayList<String>(lines.size());
+        final List<String> out = new ArrayList<String>(lines.size());
         for (final String line : lines)
         {
             final int colon = line.indexOf(':');
@@ -720,9 +728,9 @@ public class ConfigurationYAML
                 return;
             }
 
-            final java.util.Set<String> updated = new java.util.HashSet<String>();
+            final Set<String> updated = new HashSet<String>();
             final List<String> rewritten =
-                updateSettingLines(java.nio.file.Files.readAllLines(file.toPath()), values, updated);
+                updateSettingLines(Files.readAllLines(file.toPath()), values, updated);
 
             rewriteFile(file, rewritten, missingFrom(byKey, updated), values);
         }
@@ -776,7 +784,7 @@ public class ConfigurationYAML
      * @return the ones left over
      */
     private static List<Setting> missingFrom(final Map<String, Setting> byKey,
-                                             final java.util.Set<String> updated)
+                                             final Set<String> updated)
     {
         final List<Setting> missing = new ArrayList<>();
         for (final Map.Entry<String, Setting> e : byKey.entrySet())
@@ -892,9 +900,9 @@ public class ConfigurationYAML
         return '"' + s.replace("\"", "\\\"") + '"';
     }
 
-    private static java.util.List<String> wrapComment(final String text, final int width)
+    private static List<String> wrapComment(final String text, final int width)
     {
-        final java.util.List<String> out = new java.util.ArrayList<>();
+        final List<String> out = new ArrayList<>();
         if (text == null)
         {
             return out;

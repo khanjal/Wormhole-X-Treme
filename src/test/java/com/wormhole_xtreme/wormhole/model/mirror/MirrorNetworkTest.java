@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
@@ -39,7 +40,7 @@ class MirrorNetworkTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         ConfigTestSupport.clear();
         MirrorManager.clear();
         MirrorNetwork.clear();

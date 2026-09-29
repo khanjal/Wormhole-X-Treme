@@ -4,11 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import java.util.UUID;
+
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -52,8 +55,8 @@ class OperatorPermissionTest
     @Test
     void anOperatorHasEveryPermissionTypeAgainstAGateTheyDoNotOwn()
     {
-        final com.wormhole_xtreme.wormhole.model.Stargate gate =
-            new com.wormhole_xtreme.wormhole.model.Stargate();
+        final Stargate gate =
+            new Stargate();
         gate.setGateName("someoneElses");
         gate.setGateOwner("00000000-0000-0000-0000-000000000001");
 
@@ -74,10 +77,10 @@ class OperatorPermissionTest
         when(plain.isOp()).thenReturn(false);
         when(plain.hasPermission(anyString())).thenReturn(false);
         // Ownership is compared by UUID, so the visitor needs one that is not the owner.
-        when(plain.getUniqueId()).thenReturn(java.util.UUID.fromString("00000000-0000-0000-0000-0000000000ff"));
+        when(plain.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-0000000000ff"));
 
-        final com.wormhole_xtreme.wormhole.model.Stargate gate =
-            new com.wormhole_xtreme.wormhole.model.Stargate();
+        final Stargate gate =
+            new Stargate();
         gate.setGateName("someoneElses");
         gate.setGateOwner("00000000-0000-0000-0000-000000000001");
 

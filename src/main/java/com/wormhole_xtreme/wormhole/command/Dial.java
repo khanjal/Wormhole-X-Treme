@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 import org.bukkit.command.Command;
@@ -13,6 +14,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class Dial.
@@ -184,7 +186,7 @@ public class Dial implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
+        return CommandUtilities.runCommandSafe(sender, new Callable<Boolean>()
         {
             // Always answered here, with a usage line where the arguments do not fit.
             @SuppressWarnings("java:S3516")
@@ -201,8 +203,8 @@ public class Dial implements CommandExecutor
                     return true;
                 }
                 // One short line, not plugin.yml's usage block (#325).
-                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + com.wormhole_xtreme.wormhole.utils.ChatText.usage(USAGE));
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + ChatText.usage(USAGE));
                 return true;
             }
         });

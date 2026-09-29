@@ -15,7 +15,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,12 +27,16 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
@@ -38,6 +45,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 
 /**
  * Removing a ring pair, and getting the slabs back.
@@ -105,7 +113,7 @@ class RingRemovalTest
     @AfterEach
     void tearDown()
     {
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(null);
+        CoreProtectLog.setSinkForTest(null);
         bukkit.close();
         config.close();
         yaml.close();
@@ -156,7 +164,7 @@ class RingRemovalTest
         for (final int[] b : ring.perimeterBlocks())
         {
             final Block at = blockAt(b[0], b[1], b[2]);
-            if (org.mockito.Mockito.mockingDetails(at).getInvocations().stream()
+            if (Mockito.mockingDetails(at).getInvocations().stream()
                 .anyMatch(i -> "setBlockData".equals(i.getMethod().getName())))
             {
                 laid++;
@@ -211,7 +219,7 @@ class RingRemovalTest
 
         remove(PAIR_ID);
 
-        verify(built, never()).setBlockData(org.mockito.ArgumentMatchers.any(), anyBoolean());
+        verify(built, never()).setBlockData(ArgumentMatchers.any(), anyBoolean());
         assertEquals(pair.getEndA().perimeterBlocks().size() - 1, slabsLaidOn(pair.getEndA()),
             "every other block of that end still got its slab");
     }
@@ -224,15 +232,15 @@ class RingRemovalTest
     void theSlabsLaidBackAreLoggedUnderThePlayer()
     {
         config.when(ConfigManager::isCoreProtectEnabled).thenReturn(Boolean.TRUE);
-        final java.util.List<String> logged = new java.util.ArrayList<>();
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(
+        final List<String> logged = new ArrayList<>();
+        CoreProtectLog.setSinkForTest(
             (placed, user, at, type, data) -> logged.add((placed ? "placed " : "removed ") + user + " " + type));
 
         remove(PAIR_ID);
 
         final int expected = pair.getEndA().perimeterBlocks().size()
             + pair.getEndB().perimeterBlocks().size();
-        assertEquals(java.util.Collections.nCopies(expected, "placed Justin STONE_SLAB"), logged,
+        assertEquals(Collections.nCopies(expected, "placed Justin STONE_SLAB"), logged,
             "one placement per slab, under Justin rather than #wormhole");
     }
 
@@ -267,8 +275,8 @@ class RingRemovalTest
 
         final int[] first = pair.getEndA().perimeterBlocks().get(0);
         final Block at = blockAt(first[0], first[1], first[2]);
-        final org.mockito.ArgumentCaptor<org.bukkit.block.data.BlockData> laid =
-            org.mockito.ArgumentCaptor.forClass(org.bukkit.block.data.BlockData.class);
+        final ArgumentCaptor<BlockData> laid =
+            ArgumentCaptor.forClass(BlockData.class);
         verify(at).setBlockData(laid.capture(), eq(false));
         verify((Slab) laid.getValue()).setType(Slab.Type.TOP);
     }
@@ -281,8 +289,8 @@ class RingRemovalTest
 
         final int[] first = pair.getEndA().perimeterBlocks().get(0);
         final Block at = blockAt(first[0], first[1], first[2]);
-        final org.mockito.ArgumentCaptor<org.bukkit.block.data.BlockData> laid =
-            org.mockito.ArgumentCaptor.forClass(org.bukkit.block.data.BlockData.class);
+        final ArgumentCaptor<BlockData> laid =
+            ArgumentCaptor.forClass(BlockData.class);
         verify(at).setBlockData(laid.capture(), eq(false));
         verify((Slab) laid.getValue()).setType(Slab.Type.BOTTOM);
     }

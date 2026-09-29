@@ -1,11 +1,18 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Complete;
@@ -86,7 +93,7 @@ public final class GateConsoleCommands
         }
         // A player needs build rights on the network as well, as completing a gate asks; the console
         // and command blocks are not held to per-network rights.
-        if ((CommandHandlerUtils.issuer(sender) instanceof org.bukkit.entity.Player player)
+        if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
@@ -140,7 +147,7 @@ public final class GateConsoleCommands
     /** The middle of a gate's opening, block centres averaged, as "x y z" to one decimal. */
     static String openingCentre(final Stargate gate)
     {
-        final java.util.List<org.bukkit.Location> blocks = gate.getGatePortalBlocks();
+        final List<Location> blocks = gate.getGatePortalBlocks();
         if (blocks.isEmpty())
         {
             return "nothing";
@@ -148,7 +155,7 @@ public final class GateConsoleCommands
         double x = 0;
         double y = 0;
         double z = 0;
-        for (final org.bukkit.Location block : blocks)
+        for (final Location block : blocks)
         {
             x += block.getBlockX() + 0.5;
             y += block.getBlockY() + 0.5;
@@ -158,7 +165,7 @@ public final class GateConsoleCommands
     }
 
     /** A location as "x y z" to one decimal, or "nowhere". */
-    static String where(final org.bukkit.Location at)
+    static String where(final Location at)
     {
         return (at == null) ? "nowhere"
             : String.format(Locale.ROOT, "%.1f %.1f %.1f", at.getX(), at.getY(), at.getZ());
@@ -205,13 +212,13 @@ public final class GateConsoleCommands
             return;
         }
         // A player needs the right to dial from that gate, as /dial asks.
-        if ((CommandHandlerUtils.issuer(sender) instanceof org.bukkit.entity.Player player)
+        if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
-        Dial.dialFrom(sender, start, java.util.Arrays.copyOfRange(rest, 1, rest.length));
+        Dial.dialFrom(sender, start, Arrays.copyOfRange(rest, 1, rest.length));
     }
 
     /**
@@ -220,7 +227,7 @@ public final class GateConsoleCommands
      */
     private static void loadChunksUnder(final World world, final Stargate3DShape shape, final GateGrid grid)
     {
-        final java.util.Set<Long> done = new java.util.HashSet<>();
+        final Set<Long> done = new HashSet<>();
         for (final GateBlueprint.Cell cell : cellsOf(shape, grid))
         {
             final int cx = cell.x() >> 4;
@@ -233,9 +240,9 @@ public final class GateConsoleCommands
     }
 
     /** Every block the gate will take: its frame, DHD and opening. */
-    private static java.util.List<GateBlueprint.Cell> cellsOf(final Stargate3DShape shape, final GateGrid grid)
+    private static List<GateBlueprint.Cell> cellsOf(final Stargate3DShape shape, final GateGrid grid)
     {
-        final java.util.List<GateBlueprint.Cell> cells = new java.util.ArrayList<>(GateBlueprint.of(shape, grid));
+        final List<GateBlueprint.Cell> cells = new ArrayList<>(GateBlueprint.of(shape, grid));
         cells.addAll(GateBlueprint.openingOf(shape, grid));
         return cells;
     }
@@ -244,7 +251,7 @@ public final class GateConsoleCommands
      * Why part of the gate would fall outside the world's build height, or null if none does. A block
      * set there is silently dropped, which left a part-built frame reported as a gate not found.
      */
-    static String outsideHeight(final World world, final java.util.List<GateBlueprint.Cell> cells)
+    static String outsideHeight(final World world, final List<GateBlueprint.Cell> cells)
     {
         for (final GateBlueprint.Cell cell : cells)
         {

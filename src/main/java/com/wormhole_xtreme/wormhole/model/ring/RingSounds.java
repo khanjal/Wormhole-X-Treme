@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
  * What a ring sounds like.
@@ -205,7 +206,7 @@ public final class RingSounds
         {
             return;
         }
-        com.wormhole_xtreme.wormhole.utils.Sounds.playTo(player, sound,
+        Sounds.playTo(player, sound,
             ConfigManager.getRingSoundVolume(), 0.7f);
     }
 
@@ -258,7 +259,7 @@ public final class RingSounds
         {
             return;
         }
-        com.wormhole_xtreme.wormhole.utils.Sounds.play(world, where, sound,
+        Sounds.play(world, where, sound,
             ConfigManager.getRingSoundVolume(), pitch);
     }
 }

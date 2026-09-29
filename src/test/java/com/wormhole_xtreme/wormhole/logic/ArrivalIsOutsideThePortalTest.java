@@ -9,7 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +43,7 @@ class ArrivalIsOutsideThePortalTest
         final Path dir = Paths.get("src/main/resources/shapes/gate");
         if (Files.isDirectory(dir))
         {
-            try (java.util.stream.Stream<Path> listing = Files.list(dir))
+            try (Stream<Path> listing = Files.list(dir))
             {
                 for (final Path p : listing.toList())
                 {
@@ -62,7 +65,7 @@ class ArrivalIsOutsideThePortalTest
      * lying flat rather than an oversight.
      */
     private static final List<String> LANDS_INSIDE =
-        java.util.Arrays.asList("Horizontal.shape", "HorizontalSignDial.shape");
+        Arrays.asList("Horizontal.shape", "HorizontalSignDial.shape");
 
     @Test
     void onlyTheHorizontalShapesLandArrivalsInsideTheirPortal() throws IOException
@@ -107,9 +110,9 @@ class ArrivalIsOutsideThePortalTest
         }
 
         assertTrue(exitsChecked > 0, "no exit markers were found, so this proved nothing");
-        java.util.Collections.sort(inside);
+        Collections.sort(inside);
         final List<String> expected = new ArrayList<>(LANDS_INSIDE);
-        java.util.Collections.sort(expected);
+        Collections.sort(expected);
         assertEquals(expected, inside,
             "a shape changed which side of its portal it lands arrivals on. Anything listed "
                 + "here can only ever have air in its portal blocks; anything not listed can "

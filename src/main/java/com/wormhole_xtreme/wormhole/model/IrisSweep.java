@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,7 @@ public final class IrisSweep
         final int maxSteps)
     {
         final List<List<Location>> steps = openingOrder(cells, style, maxSteps);
-        java.util.Collections.reverse(steps);
+        Collections.reverse(steps);
         return steps;
     }
 

@@ -10,17 +10,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -177,7 +180,7 @@ class ShippedShapesTest
 
         ShippedShapes.updateUntouched(dir);
 
-        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(java.util.logging.Level.INFO),
+        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(Level.INFO),
             contains("Large.shape has been edited"));
     }
 
@@ -188,7 +191,7 @@ class ShippedShapesTest
         final String old = oldLarge();
         Files.writeString(new File(dir, "Large.shape").toPath(), old, StandardCharsets.UTF_8);
 
-        ShippedShapes.updateUntouched(dir, java.util.Set.of());
+        ShippedShapes.updateUntouched(dir, Set.of());
 
         assertEquals(old, read("Large.shape"));
         assertFalse(new File(dir, "Large.shape" + ShippedShapes.BACKUP_SUFFIX).exists());
@@ -205,26 +208,26 @@ class ShippedShapesTest
     @Test
     void anUnreadableShippedListIsLoggedAndKeepsWhatItRead()
     {
-        final java.io.InputStream failing = new java.io.InputStream()
+        final InputStream failing = new InputStream()
         {
             private final byte[] first = "Large.shape abc\n".getBytes(StandardCharsets.UTF_8);
             private int at;
 
             @Override
-            public int read() throws java.io.IOException
+            public int read() throws IOException
             {
                 if (at < first.length)
                 {
                     return first[at++];
                 }
-                throw new java.io.IOException("disk gone");
+                throw new IOException("disk gone");
             }
         };
 
         final Set<String> read = ShippedShapes.shippedVersions(failing);
 
         assertTrue(read.contains("Large.shape abc"), "the line before the failure is kept: " + read);
-        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(java.util.logging.Level.WARNING),
-            contains("shipped shape list"), org.mockito.ArgumentMatchers.any(java.io.IOException.class));
+        verify(WormholeXTreme.getThisPlugin()).prettyLog(eq(Level.WARNING),
+            contains("shipped shape list"), ArgumentMatchers.any(IOException.class));
     }
 }

@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -55,19 +56,32 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.logging.Level;
 
+import org.bukkit.Axis;
+import org.bukkit.WorldBorder;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.Switch;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import org.mockito.invocation.Invocation;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.logic.DialSpin;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
 
 /**
@@ -181,7 +195,7 @@ class GatePreviewsTest
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv ->
         {
-            final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
+            final Block block = mock(Block.class);
             when(block.getBlockData()).thenAnswer(read -> GatePreviews.blockData.apply(
                 (standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2))) == null) ? Material.AIR
                     : standing.get(List.of(inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)))));
@@ -203,7 +217,7 @@ class GatePreviewsTest
             }).when(block).setBlockData(any(BlockData.class), Mockito.anyBoolean());
             return block;
         });
-        final org.bukkit.WorldBorder border = mock(org.bukkit.WorldBorder.class);
+        final WorldBorder border = mock(WorldBorder.class);
         when(border.isInside(any(Location.class))).thenReturn(true);
         when(world.getWorldBorder()).thenReturn(border);
         GatePreviews.occupied = (w, x, y, z) -> false;
@@ -233,7 +247,7 @@ class GatePreviewsTest
     void tearDown() throws Exception
     {
         GatePreviews.clear();
-        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(null);
+        MaterialGroupRegistry.load(null);
         HiddenEntities.creationWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
@@ -241,7 +255,7 @@ class GatePreviewsTest
 
     private static Directional buttonData()
     {
-        final org.bukkit.block.data.type.Switch data = mock(org.bukkit.block.data.type.Switch.class);
+        final Switch data = mock(Switch.class);
         when(data.getFaces()).thenReturn(Set.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST));
         return data;
     }
@@ -539,7 +553,7 @@ class GatePreviewsTest
         verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
         final long light = standard.getShapeLightTicks();
         final long woosh = standard.getShapeWooshTicks();
-        final long hold = com.wormhole_xtreme.wormhole.model.Stargate.LAST_CHEVRON_PAUSE_TICKS;
+        final long hold = Stargate.LAST_CHEVRON_PAUSE_TICKS;
         assertEquals(List.of(light, light, light, light, light, light, light, hold, woosh, woosh, woosh, woosh, woosh),
             dialDelays, "chevrons the shape's light ticks apart, the last held before the woosh, and the woosh its"
                 + " ticks apart, as a real gate times them, then nothing more");
@@ -558,8 +572,8 @@ class GatePreviewsTest
     @Test
     void aPreviewsWormholeIsLaidInThePreviewsPlane()
     {
-        final org.bukkit.block.data.Orientable portal = mock(org.bukkit.block.data.Orientable.class);
-        when(portal.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        final Orientable portal = mock(Orientable.class);
+        when(portal.getAxes()).thenReturn(EnumSet.of(Axis.X, Axis.Z));
         data.put(Material.WATER, portal);
 
         GatePreviews.show(owner, standard, null);
@@ -570,8 +584,8 @@ class GatePreviewsTest
         }
 
         // The builder looks north, so the preview faces south and its opening runs across X.
-        verify(portal, atLeastOnce()).setAxis(org.bukkit.Axis.X);
-        verify(portal, never()).setAxis(org.bukkit.Axis.Z);
+        verify(portal, atLeastOnce()).setAxis(Axis.X);
+        verify(portal, never()).setAxis(Axis.Z);
     }
 
     /**
@@ -584,16 +598,16 @@ class GatePreviewsTest
     @Test
     void aPreviewsShutIrisIsLaidInThePreviewsPlane()
     {
-        final org.bukkit.block.data.Orientable iris = mock(org.bukkit.block.data.Orientable.class);
-        when(iris.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        final Orientable iris = mock(Orientable.class);
+        when(iris.getAxes()).thenReturn(EnumSet.of(Axis.X, Axis.Z));
         data.put(Material.STONE, iris);
 
         GatePreviews.show(owner, standard, null);
         GatePreviews.iris(owner);
         finishIrisSweep();
 
-        verify(iris, atLeastOnce()).setAxis(org.bukkit.Axis.X);
-        verify(iris, never()).setAxis(org.bukkit.Axis.Z);
+        verify(iris, atLeastOnce()).setAxis(Axis.X);
+        verify(iris, never()).setAxis(Axis.Z);
     }
 
     /** -activate on a gate that is open shuts it down: the chevrons go out and the opening is taken back. */
@@ -610,7 +624,7 @@ class GatePreviewsTest
         assertEquals(GatePreviews.Control.SHUT_DOWN, GatePreviews.activate(owner));
 
         verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
-        ringDisplaysOfWave(1).forEach(d -> verify(d, org.mockito.Mockito.atLeast(2)).setBlock(data.get(Material.OBSIDIAN)));
+        ringDisplaysOfWave(1).forEach(d -> verify(d, Mockito.atLeast(2)).setBlock(data.get(Material.OBSIDIAN)));
     }
 
     /** A gate found where an open preview stood takes back the wormhole it sent its owner. */
@@ -922,7 +936,7 @@ class GatePreviewsTest
         };
 
         assertEquals(GatePreviews.Control.CHANGED, GatePreviews.material(owner,
-            new com.wormhole_xtreme.wormhole.model.MaterialGroup("Atlantis", Material.LAPIS_BLOCK, Material.WATER,
+            new MaterialGroup("Atlantis", Material.LAPIS_BLOCK, Material.WATER,
                 Material.STONE, Material.SEA_LANTERN, Material.OAK_WALL_SIGN)));
         verify(frame).setBlock(data.get(Material.LAPIS_BLOCK));
 
@@ -1005,7 +1019,7 @@ class GatePreviewsTest
     {
         final List<Cell> expected = GateBlueprint.of(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.WEST));
         final Cell buttonCell = expected.stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
-        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        final Block button = mock(Block.class);
         when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(buttonCell.x() + 30);
         when(button.getY()).thenReturn(buttonCell.y());
@@ -1076,7 +1090,7 @@ class GatePreviewsTest
     @Test
     void aStandardGateStartsWithPlainChevronsAndChevronsShowsThem()
     {
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup lamps = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
+        final MaterialGroup lamps = new MaterialGroup(
             "Standard", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
             Material.REDSTONE_LAMP);
         GatePreviews.show(owner, standard, lamps);
@@ -1097,7 +1111,7 @@ class GatePreviewsTest
     @Test
     void anotherGroupShowsItsChevronsFromTheStart()
     {
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup atlantis = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
+        final MaterialGroup atlantis = new MaterialGroup(
             "Atlantis", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
             Material.REDSTONE_LAMP);
         GatePreviews.show(owner, standard, atlantis);
@@ -1607,8 +1621,8 @@ class GatePreviewsTest
     @Test
     void theWormholeMovedBehindAGlassIrisIsLaidInThePreviewsPlane()
     {
-        final org.bukkit.block.data.Orientable ice = mock(org.bukkit.block.data.Orientable.class);
-        when(ice.getAxes()).thenReturn(java.util.EnumSet.of(org.bukkit.Axis.X, org.bukkit.Axis.Z));
+        final Orientable ice = mock(Orientable.class);
+        when(ice.getAxes()).thenReturn(EnumSet.of(Axis.X, Axis.Z));
         data.put(Material.BLUE_ICE, ice);
         data.put(Material.PACKED_ICE, ice);
         openThePreview();
@@ -1617,8 +1631,8 @@ class GatePreviewsTest
 
         GatePreviews.iris(owner);
 
-        verify(ice, atLeastOnce()).setAxis(org.bukkit.Axis.X);
-        verify(ice, never()).setAxis(org.bukkit.Axis.Z);
+        verify(ice, atLeastOnce()).setAxis(Axis.X);
+        verify(ice, never()).setAxis(Axis.Z);
     }
 
     /**
@@ -1941,14 +1955,14 @@ class GatePreviewsTest
     /** Obsidian frames are one a gate can be found by, as a server's Standard group makes them. */
     private static void obsidianFramesAreFindable()
     {
-        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Standard", Map.of("structure", "OBSIDIAN")));
+        MaterialGroupRegistry.load(Map.of("Standard", Map.of("structure", "OBSIDIAN")));
     }
 
     private final List<Object[]> detected = new ArrayList<>();
 
-    private com.wormhole_xtreme.wormhole.model.Stargate detectsAGate()
+    private Stargate detectsAGate()
     {
-        final com.wormhole_xtreme.wormhole.model.Stargate gate = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Stargate gate = mock(Stargate.class);
         GatePreviews.detector = (button, facing, shape) ->
         {
             detected.add(new Object[] { button, facing, shape });
@@ -1965,7 +1979,7 @@ class GatePreviewsTest
     void placingBuildsTheFrameThenTheButtonAndFindsTheGateFromIt()
     {
         obsidianFramesAreFindable();
-        final com.wormhole_xtreme.wormhole.model.Stargate gate = detectsAGate();
+        final Stargate gate = detectsAGate();
         final List<Cell> cells = standardLookingNorth();
         GatePreviews.show(owner, standard, null);
 
@@ -1979,11 +1993,11 @@ class GatePreviewsTest
             assertEquals((cell.part() == Part.BUTTON) ? Material.STONE_BUTTON : Material.OBSIDIAN,
                 standing.get(List.of(cell.x(), cell.y(), cell.z())), cell.toString());
         }
-        final org.bukkit.block.data.type.Switch button = (org.bukkit.block.data.type.Switch) data.get(Material.STONE_BUTTON);
-        verify(button).setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        final Switch button = (Switch) data.get(Material.STONE_BUTTON);
+        verify(button).setAttachedFace(FaceAttachable.AttachedFace.WALL);
         verify(button, Mockito.atLeastOnce()).setFacing(BlockFace.SOUTH);
         assertEquals(1, detected.size());
-        final org.bukkit.block.Block pressed = (org.bukkit.block.Block) detected.get(0)[0];
+        final Block pressed = (Block) detected.get(0)[0];
         assertEquals(placed.button(), pressed);
         assertEquals(BlockFace.SOUTH, detected.get(0)[1]);
         assertEquals(standard, detected.get(0)[2]);
@@ -2016,7 +2030,7 @@ class GatePreviewsTest
     void placingAtAGridBuildsTheGateWithoutShowingOrKeepingAPreview()
     {
         obsidianFramesAreFindable();
-        final com.wormhole_xtreme.wormhole.model.Stargate gate = detectsAGate();
+        final Stargate gate = detectsAGate();
         final List<Cell> cells = standardLookingNorth();
 
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, standard, null,
@@ -2044,8 +2058,8 @@ class GatePreviewsTest
         final Cell buttonCell = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
             .orElseThrow();
         final List<Integer> at = List.of(buttonCell.x(), buttonCell.y(), buttonCell.z());
-        final org.bukkit.block.data.type.Switch hung = (org.bukkit.block.data.type.Switch) buttonData();
-        when(hung.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        final Switch hung = (Switch) buttonData();
+        when(hung.getAttachedFace()).thenReturn(FaceAttachable.AttachedFace.WALL);
         when(hung.getFacing()).thenReturn(BlockFace.SOUTH);
         data.put(Material.OAK_BUTTON, hung);
         place(buttonCell, Material.OAK_BUTTON);
@@ -2063,9 +2077,9 @@ class GatePreviewsTest
         assertTrue(written.contains(at), "one facing away is replaced");
 
         written.clear();
-        final org.bukkit.block.data.type.Switch lever = (org.bukkit.block.data.type.Switch) GatePreviews.blockData
+        final Switch lever = (Switch) GatePreviews.blockData
             .apply(Material.LEVER);
-        when(lever.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        when(lever.getAttachedFace()).thenReturn(FaceAttachable.AttachedFace.WALL);
         when(lever.getFacing()).thenReturn(BlockFace.SOUTH);
         GatePreviews.clearAll(owner);
         place(buttonCell, Material.LEVER);
@@ -2073,7 +2087,7 @@ class GatePreviewsTest
         GatePreviews.place(owner);
         assertFalse(written.contains(at), "a lever on the wall facing the builder stays too");
 
-        when(lever.getAttachedFace()).thenReturn(org.bukkit.block.data.FaceAttachable.AttachedFace.FLOOR);
+        when(lever.getAttachedFace()).thenReturn(FaceAttachable.AttachedFace.FLOOR);
         GatePreviews.clearAll(owner);
         place(buttonCell, Material.LEVER);
         GatePreviews.show(owner, standard, null);
@@ -2163,7 +2177,7 @@ class GatePreviewsTest
         assertEquals(GatePreviews.Outcome.NOT_FINDABLE, GatePreviews.place(owner).outcome());
         GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.OBSIDIAN);
 
-        final org.bukkit.WorldBorder border = world.getWorldBorder();
+        final WorldBorder border = world.getWorldBorder();
         when(border.isInside(any(Location.class))).thenReturn(false);
         assertEquals(GatePreviews.Outcome.OUTSIDE_BORDER, GatePreviews.place(owner).outcome());
         when(border.isInside(any(Location.class))).thenReturn(true);
@@ -2277,7 +2291,7 @@ class GatePreviewsTest
     private long countStanding()
     {
         return spawned.subList(STANDARD_BLOCKS, spawned.size()).stream()
-            .filter(display -> org.mockito.Mockito.mockingDetails(display).getInvocations().stream()
+            .filter(display -> Mockito.mockingDetails(display).getInvocations().stream()
                 .noneMatch(invocation -> "remove".equals(invocation.getMethod().getName())))
             .count();
     }
@@ -2424,7 +2438,7 @@ class GatePreviewsTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
         final List<Cell> cells = standardLookingNorth();
-        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+        final DialSpin spin = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
         final Cell start = spin.path(1).get(0);
         GatePreviews.show(owner, standard, null);
@@ -2443,13 +2457,13 @@ class GatePreviewsTest
         }
         // Each check sees only its own tick: the light's last, then the lock.
         final List<BlockDisplay> chevron = ringDisplaysOfWave(1);
-        chevron.forEach(org.mockito.Mockito::clearInvocations);
+        chevron.forEach(Mockito::clearInvocations);
         dialStep.run();
         assertTrue(chevron.stream().anyMatch(d -> mockingDetails(d).getInvocations()
             .stream().anyMatch(i -> i.getMethod().getName().equals("setBlock")
                 && data.get(Material.GLOWSTONE).equals(i.getArgument(0)))), "the light's last tick lands on chevron 1");
 
-        chevron.forEach(org.mockito.Mockito::clearInvocations);
+        chevron.forEach(Mockito::clearInvocations);
         dialStep.run();
 
         chevron.forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
@@ -2465,9 +2479,9 @@ class GatePreviewsTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "TOP");
         final List<Cell> cells = standardLookingNorth();
-        final com.wormhole_xtreme.wormhole.logic.DialSpin spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+        final DialSpin spin = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
-        final List<Cell> path = spin.path(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP, 1);
+        final List<Cell> path = spin.path(DialSpinPattern.TOP, 1);
         GatePreviews.show(owner, standard, null);
         final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
         final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
@@ -2477,7 +2491,7 @@ class GatePreviewsTest
         {
             dialStep.run();
         }
-        org.mockito.Mockito.clearInvocations(top);
+        Mockito.clearInvocations(top);
 
         dialStep.run();
 
@@ -2485,7 +2499,7 @@ class GatePreviewsTest
         final List<BlockData> shown = mockingDetails(top).getInvocations().stream()
             .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
         assertEquals(data.get(Material.GLOWSTONE), shown.get(shown.size() - 1), "the top still lit as it locks");
-        for (int step = 0; step < (com.wormhole_xtreme.wormhole.logic.DialSpin.TOP_HOLD_TICKS + ticks); step++)
+        for (int step = 0; step < (DialSpin.TOP_HOLD_TICKS + ticks); step++)
         {
             dialStep.run();
             assertEquals(1, preview.litWaves(), "resting, then turning, at step " + step);
@@ -2578,8 +2592,8 @@ class GatePreviewsTest
             }
             GatePreviews.activate(owner);
 
-            final java.util.Map<List<Integer>, Object> last = new java.util.HashMap<>();
-            for (final org.mockito.invocation.Invocation i : mockingDetails(owner).getInvocations())
+            final Map<List<Integer>, Object> last = new HashMap<>();
+            for (final Invocation i : mockingDetails(owner).getInvocations())
             {
                 if (i.getMethod().getName().equals("sendBlockChange"))
                 {
@@ -2589,13 +2603,13 @@ class GatePreviewsTest
             }
             assertFalse(last.isEmpty(), "the woosh was sent");
             final List<List<Integer>> left = last.entrySet().stream()
-                .filter(e -> !data.get(Material.AIR).equals(e.getValue())).map(java.util.Map.Entry::getKey).toList();
+                .filter(e -> !data.get(Material.AIR).equals(e.getValue())).map(Map.Entry::getKey).toList();
             assertEquals(List.of(), left, "woosh blocks still showing after a shut down at stage " + stop);
         }
     }
 
     /** Stands a Standard frame north of the owner with one frame block missing, belonging to the gate given. */
-    private Cell standAGateShortOfOneBlock(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    private Cell standAGateShortOfOneBlock(final Stargate gate)
     {
         final List<Cell> cells = standardLookingNorth();
         final Cell hole = cells.get(0);
@@ -2623,7 +2637,7 @@ class GatePreviewsTest
     {
         obsidianFramesAreFindable();
         detectsAGate();
-        final com.wormhole_xtreme.wormhole.model.Stargate existing = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Stargate existing = mock(Stargate.class);
         final Cell hole = standAGateShortOfOneBlock(existing);
         final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst().orElseThrow();
         GatePreviews.show(owner, standard, null);
@@ -2644,7 +2658,7 @@ class GatePreviewsTest
     {
         obsidianFramesAreFindable();
         detectsAGate();
-        standAGateShortOfOneBlock(mock(com.wormhole_xtreme.wormhole.model.Stargate.class));
+        standAGateShortOfOneBlock(mock(Stargate.class));
         GatePreviews.show(owner, standard, null);
 
         final GatePreviews.Placed placed = GatePreviews.place(owner, false);
@@ -2660,8 +2674,8 @@ class GatePreviewsTest
     {
         obsidianFramesAreFindable();
         detectsAGate();
-        final com.wormhole_xtreme.wormhole.model.Stargate one = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
-        final com.wormhole_xtreme.wormhole.model.Stargate two = mock(com.wormhole_xtreme.wormhole.model.Stargate.class);
+        final Stargate one = mock(Stargate.class);
+        final Stargate two = mock(Stargate.class);
         final Cell hole = standAGateShortOfOneBlock(one);
         final Cell other = standardLookingNorth().get(1);
         GatePreviews.gateAt = (w, x, y, z) -> !standing.containsKey(List.of(x, y, z)) ? null
@@ -2684,7 +2698,7 @@ class GatePreviewsTest
     {
         obsidianFramesAreFindable();
         detectsAGate();
-        final Cell hole = standAGateShortOfOneBlock(mock(com.wormhole_xtreme.wormhole.model.Stargate.class));
+        final Cell hole = standAGateShortOfOneBlock(mock(Stargate.class));
         final Cell stone = standardLookingNorth().get(1);
         place(stone, Material.STONE);
         GatePreviews.show(owner, standard, null);
@@ -2698,11 +2712,11 @@ class GatePreviewsTest
     }
 
     /** Loads a group framed in obsidian whose gates turn CHEVRON, while the server turns none. */
-    private com.wormhole_xtreme.wormhole.model.MaterialGroup turningGroup()
+    private MaterialGroup turningGroup()
     {
-        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Turning",
+        MaterialGroupRegistry.load(Map.of("Turning",
             Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "chevron")));
-        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroup("Turning");
+        return MaterialGroupRegistry.getGroup("Turning");
     }
 
     /**
@@ -2713,7 +2727,7 @@ class GatePreviewsTest
     void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
     {
         final List<Cell> cells = standardLookingNorth();
-        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+        final Cell start = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
         GatePreviews.show(owner, standard, turningGroup());
         final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
@@ -2734,12 +2748,12 @@ class GatePreviewsTest
     void aPreviewRecolouredOutOfItsGroupStopsTurningItsPattern()
     {
         final List<Cell> cells = standardLookingNorth();
-        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+        final Cell start = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
         GatePreviews.show(owner, standard, turningGroup());
         final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
         GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK);
-        org.mockito.Mockito.clearInvocations(startDisplay);
+        Mockito.clearInvocations(startDisplay);
         GatePreviews.activate(owner);
 
         dialStep.run();
@@ -2759,7 +2773,7 @@ class GatePreviewsTest
     void aPreviewRecolouredToNoTurnMidTurnTakesTheLightBack()
     {
         final List<Cell> cells = standardLookingNorth();
-        final Cell start = com.wormhole_xtreme.wormhole.logic.DialSpin.of(cells,
+        final Cell start = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).path(1).get(0);
         GatePreviews.show(owner, standard, turningGroup());
         final BlockDisplay startDisplay = spawned.get(cells.indexOf(start));
@@ -2771,7 +2785,7 @@ class GatePreviewsTest
         dialStep.run();
 
         assertTrue(GatePreviews.of(owner.getUniqueId()).get(0).spinCells().isEmpty(), "the turn's light is taken back");
-        verify(startDisplay, org.mockito.Mockito.atLeastOnce()).setBlock(data.get(Material.GOLD_BLOCK));
+        verify(startDisplay, Mockito.atLeastOnce()).setBlock(data.get(Material.GOLD_BLOCK));
     }
 
     /** The last block a viewer was sent in each cell offset from the ring, cell by cell. */
@@ -2787,7 +2801,7 @@ class GatePreviewsTest
         final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
         final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
         verify(viewer, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
-        final Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        final Map<List<Integer>, BlockData> last = new HashMap<>();
         for (int i = 0; i < where.getAllValues().size(); i++)
         {
             final Location at = where.getAllValues().get(i);
@@ -2881,7 +2895,7 @@ class GatePreviewsTest
     /** What the fixture draws a wormhole in the ring as. */
     private BlockData portalData()
     {
-        return com.wormhole_xtreme.wormhole.utils.MaterialUtils.laidAcross(GatePreviews.blockData.apply(Material.WATER), previewFacing());
+        return MaterialUtils.laidAcross(GatePreviews.blockData.apply(Material.WATER), previewFacing());
     }
 
     /**
@@ -3028,7 +3042,7 @@ class GatePreviewsTest
     @Test
     void aPreviewsIrisFollowsItsGroupsAnimation()
     {
-        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(Map.of("Snap",
+        MaterialGroupRegistry.load(Map.of("Snap",
             Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
         openThePreview();
 

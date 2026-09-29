@@ -1,8 +1,10 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ProxiedCommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -105,7 +107,7 @@ public final class CommandHandlerUtils
     public static CommandSender issuer(final CommandSender sender)
     {
         CommandSender who = sender;
-        while (who instanceof org.bukkit.command.ProxiedCommandSender proxied)
+        while (who instanceof ProxiedCommandSender proxied)
         {
             who = proxied.getCaller();
         }
@@ -132,7 +134,7 @@ public final class CommandHandlerUtils
         }
         else
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, stargate.getGateName() + " has no valid shape file. Unable to enable custom.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, stargate.getGateName() + " has no valid shape file. Unable to enable custom.");
         }
     }
 

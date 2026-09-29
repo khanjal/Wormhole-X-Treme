@@ -19,6 +19,11 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
+import java.nio.file.Files;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+
 /**
  * Simple per-gate YAML manager.
  * Stores a small YAML file per gate containing metadata and GateData as base64 bytes.
@@ -215,7 +220,7 @@ public class StargateYamlManager
         {
             return null;
         }
-        final String animation = com.wormhole_xtreme.wormhole.config.ConfigManager.parseIrisAnimation(String.valueOf(raw));
+        final String animation = ConfigManager.parseIrisAnimation(String.valueOf(raw));
         if (animation == null)
         {
             PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + IRIS_ANIMATION_KEY + " \"" + raw
@@ -228,15 +233,15 @@ public class StargateYamlManager
      * A gate file's ring pattern, or null to follow the group and the server; a name no pattern
      * answers to is said out loud, as a group's is.
      */
-    private static com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpinFrom(final Object raw,
+    private static DialSpinPattern dialSpinFrom(final Object raw,
         final String gateName)
     {
         if (raw == null)
         {
             return null;
         }
-        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
-            com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(raw));
+        final DialSpinPattern pattern =
+            DialSpinPattern.parse(String.valueOf(raw));
         if (pattern == null)
         {
             PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
@@ -444,7 +449,7 @@ public class StargateYamlManager
         }
         if (s.getGateDialSpin() != null)
         {
-            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(java.util.Locale.ROOT));
+            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(Locale.ROOT));
         }
         if (s.getGateIrisAnimation() != null)
         {
@@ -493,9 +498,9 @@ public class StargateYamlManager
         final File outFile = new File(getGatesDir(), fileName);
         try
         {
-            java.nio.file.Files.deleteIfExists(outFile.toPath());
+            Files.deleteIfExists(outFile.toPath());
         }
-        catch (final java.io.IOException e)
+        catch (final IOException e)
         {
             // Files rather than File.delete: the boolean says only that it did not happen,
             // where the exception says why. This one matters -- a gate whose file survives

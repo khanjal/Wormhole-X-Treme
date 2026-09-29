@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -91,7 +92,7 @@ final class ShippedShapes
         {
             return;
         }
-        final java.nio.file.Path incoming = new File(directory, name + INCOMING_SUFFIX).toPath();
+        final Path incoming = new File(directory, name + INCOMING_SUFFIX).toPath();
         final File backup = new File(directory, name + BACKUP_SUFFIX);
         try
         {

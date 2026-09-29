@@ -7,15 +7,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -72,7 +73,7 @@ class ButtonLeverHitTest
 
     private static PlayerInteractEvent clickOn(final Player p, final Block b)
     {
-        return new PlayerInteractEvent(p, Action.RIGHT_CLICK_BLOCK, null, b, org.bukkit.block.BlockFace.NORTH);
+        return new PlayerInteractEvent(p, Action.RIGHT_CLICK_BLOCK, null, b, BlockFace.NORTH);
     }
 
     /**
@@ -100,7 +101,7 @@ class ButtonLeverHitTest
     void aPendingCompletionOnSomethingThatIsNotAGateSaysSoAndClears()
     {
         Complete.addPendingCompletion(player, "newgate", "", "");
-        org.junit.jupiter.api.Assertions.assertNotNull(Complete.getPendingCompletion(player));
+        Assertions.assertNotNull(Complete.getPendingCompletion(player));
 
         final boolean handled = GateInteractionHandler.handlePlayerInteractEvent(clickOn(player, buttonBlock()));
 

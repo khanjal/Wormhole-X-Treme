@@ -7,6 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -61,10 +66,10 @@ class LegacyImportTest
     }
 
     /** A result set that answers only what it is told about. */
-    private static java.sql.ResultSet row(final byte[] gateData, final String worldName)
-        throws java.sql.SQLException
+    private static ResultSet row(final byte[] gateData, final String worldName)
+        throws SQLException
     {
-        final java.sql.ResultSet rows = mock(java.sql.ResultSet.class);
+        final ResultSet rows = mock(ResultSet.class);
         when(rows.getBytes("GateData")).thenReturn(gateData);
         when(rows.getString("WorldName")).thenReturn(worldName);
         return rows;
@@ -139,7 +144,7 @@ class LegacyImportTest
         // SQLite database holds. The importer has to make the same call, or a gate that
         // predates that fix keeps landing travellers in the water forever, even though every
         // other gate in the plugin is now guaranteed clear of it.
-        final java.lang.reflect.Method normalize = java.util.Arrays
+        final Method normalize = Arrays
             .stream(Stargate.class.getMethods())
             .filter(m -> "normalizeGatePlayerTeleportLocation".equals(m.getName()))
             .findFirst().orElse(null);

@@ -1,6 +1,11 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import org.bukkit.Axis;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Lightable;
+import org.bukkit.block.data.Orientable;
 
 public final class MaterialUtils {
     private MaterialUtils() {}
@@ -22,7 +27,7 @@ public final class MaterialUtils {
      *            the material being drawn
      * @return its block data, lit where that means something
      */
-    public static org.bukkit.block.data.BlockData drawnAs(final Material material) {
+    public static BlockData drawnAs(final Material material) {
         return drawnAs(material.createBlockData());
     }
 
@@ -33,8 +38,8 @@ public final class MaterialUtils {
      *            the block data, switched on in place where it can be
      * @return the same block data
      */
-    public static org.bukkit.block.data.BlockData drawnAs(final org.bukkit.block.data.BlockData data) {
-        if (data instanceof org.bukkit.block.data.Lightable lightable) {
+    public static BlockData drawnAs(final BlockData data) {
+        if (data instanceof Lightable lightable) {
             lightable.setLit(true);
         }
         return data;
@@ -52,8 +57,8 @@ public final class MaterialUtils {
      *            the way the gate faces, may be null
      * @return its block data, lit and turned where either means something
      */
-    public static org.bukkit.block.data.BlockData drawnAcross(final Material material,
-        final org.bukkit.block.BlockFace gateFacing) {
+    public static BlockData drawnAcross(final Material material,
+        final BlockFace gateFacing) {
         return laidAcross(drawnAs(material), gateFacing);
     }
 
@@ -85,10 +90,10 @@ public final class MaterialUtils {
      *            the way the gate faces, may be null
      * @return the same block data
      */
-    public static org.bukkit.block.data.BlockData laidAcross(final org.bukkit.block.data.BlockData data,
-        final org.bukkit.block.BlockFace gateFacing) {
-        final org.bukkit.Axis axis = openingAxis(gateFacing);
-        if ((axis != null) && (data instanceof org.bukkit.block.data.Orientable orientable)
+    public static BlockData laidAcross(final BlockData data,
+        final BlockFace gateFacing) {
+        final Axis axis = openingAxis(gateFacing);
+        if ((axis != null) && (data instanceof Orientable orientable)
             && orientable.getAxes().contains(axis)) {
             orientable.setAxis(axis);
         }
@@ -102,15 +107,15 @@ public final class MaterialUtils {
      *            the way the gate faces, may be null
      * @return the axis, or null for a horizontal gate and for anything not a cardinal direction
      */
-    private static org.bukkit.Axis openingAxis(final org.bukkit.block.BlockFace gateFacing) {
+    private static Axis openingAxis(final BlockFace gateFacing) {
         if (gateFacing == null) {
             return null;
         }
         switch (gateFacing) {
             case NORTH, SOUTH:
-                return org.bukkit.Axis.X;
+                return Axis.X;
             case EAST, WEST:
-                return org.bukkit.Axis.Z;
+                return Axis.Z;
             default:
                 return null;
         }
@@ -132,7 +137,7 @@ public final class MaterialUtils {
      *            the material standing there, may be null
      * @return its lit block data, or null if this material has no lit state
      */
-    public static org.bukkit.block.data.BlockData litFormOf(final Material material) {
+    public static BlockData litFormOf(final Material material) {
         return (material == null) ? null : litFormOf(material.createBlockData());
     }
 
@@ -143,8 +148,8 @@ public final class MaterialUtils {
      *            the block data, switched on in place where it can be; may be null
      * @return it switched on, or null if it has no lit state
      */
-    public static org.bukkit.block.data.BlockData litFormOf(final org.bukkit.block.data.BlockData data) {
-        if (data instanceof org.bukkit.block.data.Lightable lightable) {
+    public static BlockData litFormOf(final BlockData data) {
+        if (data instanceof Lightable lightable) {
             lightable.setLit(true);
             return data;
         }
@@ -166,8 +171,8 @@ public final class MaterialUtils {
      *            the gate's light material, used for everything else
      * @return what to draw there
      */
-    public static org.bukkit.block.data.BlockData litChevron(final Material standing, final Material chevronMaterial,
-        final org.bukkit.block.data.BlockData fixtureOn, final org.bukkit.block.data.BlockData lightData) {
+    public static BlockData litChevron(final Material standing, final Material chevronMaterial,
+        final BlockData fixtureOn, final BlockData lightData) {
         return ((fixtureOn != null) && (standing == chevronMaterial)) ? fixtureOn : lightData;
     }
 

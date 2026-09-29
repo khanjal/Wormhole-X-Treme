@@ -14,6 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.bukkit.Material;
+
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -61,7 +63,7 @@ class WormholeXTremeBlockListenerTest
         when(block.getX()).thenReturn(Integer.valueOf(x));
         when(block.getY()).thenReturn(Integer.valueOf(y));
         when(block.getZ()).thenReturn(Integer.valueOf(z));
-        when(block.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(block.getType()).thenReturn(Material.AIR);
 
         final Player player = mock(Player.class);
         final BlockBreakEvent ev = new BlockBreakEvent(block, player);
@@ -92,7 +94,7 @@ class WormholeXTremeBlockListenerTest
         when(adj.getX()).thenReturn(Integer.valueOf(x + 1));
         when(adj.getY()).thenReturn(Integer.valueOf(y));
         when(adj.getZ()).thenReturn(Integer.valueOf(z));
-        when(adj.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(adj.getType()).thenReturn(Material.AIR);
 
         final Player player = mock(Player.class);
         final BlockBreakEvent ev = new BlockBreakEvent(adj, player);
@@ -145,7 +147,7 @@ class WormholeXTremeBlockListenerTest
         when(irisCandidate.getX()).thenReturn(dx - 1);
         when(irisCandidate.getY()).thenReturn(dy - 1);
         when(irisCandidate.getZ()).thenReturn(dz + 1);
-        when(irisCandidate.getType()).thenReturn(org.bukkit.Material.DIRT);
+        when(irisCandidate.getType()).thenReturn(Material.DIRT);
 
         // Stub relative navigation off the dial
         when(dial.getRelative(WorldUtils.getInverseDirection(BlockFace.NORTH))).thenReturn(backing);
@@ -202,7 +204,7 @@ class WormholeXTremeBlockListenerTest
         when(belowDial.getX()).thenReturn(dx);
         when(belowDial.getY()).thenReturn(dy - 1);
         when(belowDial.getZ()).thenReturn(dz);
-        when(belowDial.getType()).thenReturn(org.bukkit.Material.LEVER);
+        when(belowDial.getType()).thenReturn(Material.LEVER);
         when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
 
         gate.setGateDialLeverBlock(dial);
@@ -258,7 +260,7 @@ class WormholeXTremeBlockListenerTest
         when(belowDial.getX()).thenReturn(dx);
         when(belowDial.getY()).thenReturn(dy - 1);
         when(belowDial.getZ()).thenReturn(dz);
-        when(belowDial.getType()).thenReturn(org.bukkit.Material.LEVER);
+        when(belowDial.getType()).thenReturn(Material.LEVER);
         when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
 
         gate.setGateDialLeverBlock(dial);
@@ -313,7 +315,7 @@ class WormholeXTremeBlockListenerTest
         when(belowDial.getY()).thenReturn(dy - 1);
         when(belowDial.getZ()).thenReturn(dz);
         // Recorded as the iris position, but nobody ever placed a lever on it.
-        when(belowDial.getType()).thenReturn(org.bukkit.Material.DIRT);
+        when(belowDial.getType()).thenReturn(Material.DIRT);
         when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
 
         gate.setGateDialLeverBlock(dial);

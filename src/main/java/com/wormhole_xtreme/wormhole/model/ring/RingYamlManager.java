@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -328,9 +330,9 @@ public final class RingYamlManager
             // world with no rings is better represented by there being nothing there.
             try
             {
-                java.nio.file.Files.deleteIfExists(target.toPath());
+                Files.deleteIfExists(target.toPath());
             }
-            catch (final java.io.IOException e)
+            catch (final IOException e)
             {
                 // Files rather than File.delete: the boolean says only that it did not happen,
                 // where the exception says whether the file was locked, missing a parent, or
@@ -386,7 +388,7 @@ public final class RingYamlManager
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
         out.put("Created", Long.valueOf(pair.getCreated()));
         out.put("Access", pair.getAccess().name());
-        out.put("Allowed", new java.util.ArrayList<String>(pair.getAllowed()));
+        out.put("Allowed", new ArrayList<String>(pair.getAllowed()));
         out.put("A", writeRing(pair.getEndA()));
         out.put("B", writeRing(pair.getEndB()));
         return out;
@@ -465,9 +467,9 @@ public final class RingYamlManager
         {
             try
             {
-                java.nio.file.Files.deleteIfExists(target.toPath());
+                Files.deleteIfExists(target.toPath());
             }
-            catch (final java.io.IOException e)
+            catch (final IOException e)
             {
                 log(Level.WARNING, "Could not delete the now-empty pending ring file: " + e.getMessage());
             }

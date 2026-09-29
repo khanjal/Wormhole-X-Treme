@@ -1,7 +1,13 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -43,7 +49,7 @@ public class CustomCommand implements SubCommand
             cleanSnapshottedOverrides(sender, (args.length == 3) && "-confirm".equalsIgnoreCase(args[2]));
             return true;
         }
-        if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
+        if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && CommandUtilities.isBoolean(args[2]))
         {
             setEveryGateCustom(sender, args[2]);
             return true;
@@ -87,7 +93,7 @@ public class CustomCommand implements SubCommand
     private static void setOneGateCustom(final CommandSender sender, final Stargate stargate,
         final String value)
     {
-        if (!com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(value))
+        if (!CommandUtilities.isBoolean(value))
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + value);
             sendUsage(sender);
@@ -133,7 +139,7 @@ public class CustomCommand implements SubCommand
      */
     private static void cleanSnapshottedOverrides(final CommandSender sender, final boolean confirmed)
     {
-        final java.util.List<Stargate> affected = new java.util.ArrayList<Stargate>();
+        final List<Stargate> affected = new ArrayList<Stargate>();
         for (final Stargate gate : StargateManager.getAllGatesUnsorted())
         {
             if (hasDefaultSnapshotOverrides(gate))
@@ -169,7 +175,7 @@ public class CustomCommand implements SubCommand
             gate.setGateCustomIrisMaterial(null);
             StargateDBManager.saveStargate(gate);
         }
-        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
             "Cleared snapshotted material overrides from " + affected.size() + " gate(s): " + gateNames(affected));
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Cleared material overrides on " + affected.size() + " gate(s); they now follow their material group.");
@@ -185,13 +191,13 @@ public class CustomCommand implements SubCommand
      */
     private static boolean hasDefaultSnapshotOverrides(final Stargate gate)
     {
-        return gate.getGateCustomStructureMaterial() == org.bukkit.Material.OBSIDIAN
-            && gate.getGateCustomPortalMaterial() == org.bukkit.Material.WATER
-            && gate.getGateCustomIrisMaterial() == org.bukkit.Material.STONE
-            && gate.getGateCustomLightMaterial() == org.bukkit.Material.GLOWSTONE;
+        return gate.getGateCustomStructureMaterial() == Material.OBSIDIAN
+            && gate.getGateCustomPortalMaterial() == Material.WATER
+            && gate.getGateCustomIrisMaterial() == Material.STONE
+            && gate.getGateCustomLightMaterial() == Material.GLOWSTONE;
     }
 
-    private static String gateNames(final java.util.List<Stargate> gates)
+    private static String gateNames(final List<Stargate> gates)
     {
         final StringBuilder sb = new StringBuilder();
         for (final Stargate g : gates)

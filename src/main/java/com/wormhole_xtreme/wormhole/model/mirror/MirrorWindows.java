@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -24,12 +25,16 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 
 /**
@@ -191,7 +196,7 @@ public final class MirrorWindows
     private static int workSpent;
 
     /** What the time is; settable so a test can let a minute pass. */
-    static java.util.function.LongSupplier clock = System::currentTimeMillis;
+    static LongSupplier clock = System::currentTimeMillis;
 
     /** Every window the last sweep found, by mirror name. */
     private static final Map<String, MirrorWindowState> WINDOWS = new HashMap<>();
@@ -2029,7 +2034,7 @@ public final class MirrorWindows
     private static BlockData turned(final MirrorWindowState window, final BlockData data)
     {
         if ((data == null) || ((window.rotation == StructureRotation.NONE)
-            && (window.flip == org.bukkit.block.structure.Mirror.NONE)))
+            && (window.flip == Mirror.NONE)))
         {
             return data;
         }
@@ -2044,7 +2049,7 @@ public final class MirrorWindows
             {
                 copy.rotate(window.rotation);
             }
-            if (window.flip != org.bukkit.block.structure.Mirror.NONE)
+            if (window.flip != Mirror.NONE)
             {
                 copy.mirror(window.flip);
             }
@@ -2107,9 +2112,9 @@ public final class MirrorWindows
     static boolean veilable(final Entity entity)
     {
         return !(entity instanceof Player)
-            && !(entity instanceof org.bukkit.entity.Display)
-            && !(entity instanceof org.bukkit.entity.Interaction)
-            && !com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.isCompanion(entity);
+            && !(entity instanceof Display)
+            && !(entity instanceof Interaction)
+            && !FreyaCompanion.isCompanion(entity);
     }
 
     /** Whether a place is inside the view through any of these windows, as {@link #creaturesInside} judges it. */

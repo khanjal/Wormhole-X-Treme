@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.jupiter.api.Test;
@@ -77,7 +79,7 @@ class GateStateResetTest
     /**
      * The manager's world-keyed block index, which has no reader that can see it is empty.
      */
-    private static java.util.Map<?, ?> blockIndex() throws ReflectiveOperationException
+    private static Map<?, ?> blockIndex() throws ReflectiveOperationException
     {
         return PrivateStatics.of(StargateManager.class, "gateBlocksByWorld");
     }

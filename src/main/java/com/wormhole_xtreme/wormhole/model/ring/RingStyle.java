@@ -1,5 +1,8 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -40,7 +43,7 @@ public enum RingStyle
     SEQUENTIAL("slow", "stepped", "staged");
 
     /** Friendlier words a player may type instead of the enum name. */
-    private final java.util.List<String> aliases;
+    private final List<String> aliases;
 
     /**
      * Instantiates a style.
@@ -50,11 +53,11 @@ public enum RingStyle
      */
     RingStyle(final String... aliases)
     {
-        this.aliases = java.util.Collections.unmodifiableList(java.util.Arrays.asList(aliases));
+        this.aliases = Collections.unmodifiableList(Arrays.asList(aliases));
     }
 
     /** @return other words that mean this style */
-    public java.util.List<String> getAliases()
+    public List<String> getAliases()
     {
         return aliases;
     }

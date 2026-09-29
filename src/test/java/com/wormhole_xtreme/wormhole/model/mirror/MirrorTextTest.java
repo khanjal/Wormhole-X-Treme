@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Locale;
+
 import org.bukkit.DyeColor;
 import org.junit.jupiter.api.Test;
 
@@ -179,7 +181,7 @@ class MirrorTextTest
 
             assertTrue(painted.endsWith(MirrorText.BODY_COLOUR),
                 colour + " should hand the sentence back");
-            assertTrue(painted.contains(colour.name().toLowerCase(java.util.Locale.ROOT)
+            assertTrue(painted.contains(colour.name().toLowerCase(Locale.ROOT)
                 .replace('_', ' ')), colour + " should still say its own name");
         }
     }

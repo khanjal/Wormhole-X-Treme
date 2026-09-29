@@ -26,6 +26,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.Refresh;
@@ -224,7 +225,7 @@ class PendingRefreshTest
         {
             // Only WEST works, and it is the last of the four tried.
             helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(null);
-            helper.when(() -> StargateHelper.checkStargate(any(), org.mockito.ArgumentMatchers.eq(BlockFace.WEST)))
+            helper.when(() -> StargateHelper.checkStargate(any(), ArgumentMatchers.eq(BlockFace.WEST)))
                 .thenReturn(fresh);
 
             assertTrue(clickWithRefreshPending());

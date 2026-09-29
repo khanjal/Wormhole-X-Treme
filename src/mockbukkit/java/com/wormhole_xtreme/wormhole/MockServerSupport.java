@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,9 +9,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Material;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -20,9 +23,25 @@ import org.mockbukkit.mockbukkit.block.BlockMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.scheduler.BukkitSchedulerMock;
 import org.mockbukkit.mockbukkit.scheduler.RepeatingTask;
+import org.mockbukkit.mockbukkit.scheduler.ScheduledTask;
 import org.mockbukkit.mockbukkit.world.ChunkMock;
 import org.mockbukkit.mockbukkit.world.Coordinate;
 import org.mockbukkit.mockbukkit.world.WorldMock;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigSnapshot;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorSettle;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam;
+import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 
 /**
  * A MockBukkit server with the plugin on it, and stand-ins for the methods MockBukkit leaves
@@ -38,7 +57,7 @@ final class MockServerSupport
     }
 
     /** The settings as they were before the plugin loaded, put back by {@link #stop()}. */
-    private static com.wormhole_xtreme.wormhole.config.ConfigSnapshot configBefore;
+    private static ConfigSnapshot configBefore;
 
     /**
      * Starts a server and loads the plugin onto it, with a mirror's view drawn 4 blocks deep: a
@@ -46,12 +65,12 @@ final class MockServerSupport
      */
     static ServerMock start()
     {
-        configBefore = com.wormhole_xtreme.wormhole.config.ConfigSnapshot.take();
+        configBefore = ConfigSnapshot.take();
         final ServerMock server = MockBukkit.mock(new Server());
         MockBukkit.load(WormholeXTreme.class);
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 4);
-        com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam.readFromWorldBlocks();
+        ConfigTestSupport.set(
+            ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 4);
+        MirrorCaptureSeam.readFromWorldBlocks();
         return server;
     }
 
@@ -68,21 +87,21 @@ final class MockServerSupport
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam.readFromServer();
+            MirrorCaptureSeam.readFromServer();
             configBefore.restore();
             PluginTestSupport.forgetAllGates();
             ProjectileGateTracker.clear();
             // A gate name's last redstone trigger, timed by the clock, would silence the next class's.
             WormholeXTremeRedstoneListener.clearTriggerHistory();
-            com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam.clear();
-            com.wormhole_xtreme.wormhole.model.ring.RingManager.clear();
-            com.wormhole_xtreme.wormhole.model.beam.BeamManager.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorManager.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorSettle.clear();
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam.forgetViewers();
+            GatePreviewSeam.clear();
+            RingManager.clear();
+            BeamManager.clear();
+            MirrorManager.clear();
+            MirrorNetwork.clear();
+            MirrorProximity.clear();
+            MirrorCaptures.clear();
+            MirrorSettle.clear();
+            MirrorCaptureSeam.forgetViewers();
         }
     }
 
@@ -118,14 +137,14 @@ final class MockServerSupport
     static List<String> describeOneOffTasks(final ServerMock server)
     {
         return server.getScheduler().getPendingTasks().stream().filter(t -> !(t instanceof RepeatingTask))
-            .map(t -> String.valueOf(((org.mockbukkit.mockbukkit.scheduler.ScheduledTask) t).getRunnable()))
+            .map(t -> String.valueOf(((ScheduledTask) t).getRunnable()))
             .toList();
     }
 
     /** The ids of the pending tasks that repeat until cancelled. */
     static Set<Integer> repeatingTasks(final ServerMock server)
     {
-        final Set<Integer> ids = new java.util.TreeSet<>();
+        final Set<Integer> ids = new TreeSet<>();
         server.getScheduler().getPendingTasks().stream().filter(t -> t instanceof RepeatingTask)
             .forEach(t -> ids.add(Integer.valueOf(t.getTaskId())));
         return ids;
@@ -262,16 +281,16 @@ final class MockServerSupport
         {
             final BlockData stored = super.getBlockData();
             // Data set back from an earlier call is already one of these.
-            if (org.mockito.Mockito.mockingDetails(stored).isSpy())
+            if (Mockito.mockingDetails(stored).isSpy())
             {
                 return stored;
             }
-            final BlockData data = org.mockito.Mockito.spy(stored);
-            org.mockito.Mockito.doReturn(Boolean.valueOf(getType().isOccluding())).when(data).isOccluding();
+            final BlockData data = Mockito.spy(stored);
+            Mockito.doReturn(Boolean.valueOf(getType().isOccluding())).when(data).isOccluding();
             // A mirror's view clones, turns and flips what it copies; nothing asserts how it looks.
-            org.mockito.Mockito.doReturn(data).when(data).clone();
-            org.mockito.Mockito.doNothing().when(data).mirror(org.mockito.ArgumentMatchers.any());
-            org.mockito.Mockito.doNothing().when(data).rotate(org.mockito.ArgumentMatchers.any());
+            Mockito.doReturn(data).when(data).clone();
+            Mockito.doNothing().when(data).mirror(ArgumentMatchers.any());
+            Mockito.doNothing().when(data).rotate(ArgumentMatchers.any());
             return data;
         }
     }
@@ -336,13 +355,13 @@ final class MockServerSupport
 
         // A mirror's view is drawn on the client only; nothing here reads it back.
         @Override
-        public void sendBlockChanges(final java.util.Collection<org.bukkit.block.BlockState> blocks)
+        public void sendBlockChanges(final Collection<BlockState> blocks)
         {
             // Nothing to draw on.
         }
 
         @Override
-        public void sendBlockChanges(final java.util.Collection<org.bukkit.block.BlockState> blocks,
+        public void sendBlockChanges(final Collection<BlockState> blocks,
             final boolean suppressLightUpdates)
         {
             // Nothing to draw on.
@@ -364,7 +383,7 @@ final class MockServerSupport
         /** Every chat line sent so far, colour codes stripped. */
         List<String> messages()
         {
-            final List<String> out = new java.util.ArrayList<>();
+            final List<String> out = new ArrayList<>();
             String m;
             while ((m = nextMessage()) != null)
             {

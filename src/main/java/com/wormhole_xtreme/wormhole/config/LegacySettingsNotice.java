@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -28,8 +29,8 @@ final class LegacySettingsNotice
      * permissions support meant not attaching to the old Permissions plugin; now it means ignoring
      * LuckPerms and Vault. Nothing reads the Help plugin setting any more.
      */
-    private static final java.util.Set<String> NOT_THE_SAME_SETTING =
-        java.util.Set.of("PERMISSIONS_SUPPORT_DISABLE", "HELP_SUPPORT_DISABLE");
+    private static final Set<String> NOT_THE_SAME_SETTING =
+        Set.of("PERMISSIONS_SUPPORT_DISABLE", "HELP_SUPPORT_DISABLE");
 
     private LegacySettingsNotice()
     {

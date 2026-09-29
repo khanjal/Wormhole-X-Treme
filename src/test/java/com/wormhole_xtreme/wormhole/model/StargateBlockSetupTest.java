@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Collections;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -61,7 +63,7 @@ class StargateBlockSetupTest
         gate.getGatePortalBlocks().add(new Location(null, 4, 5, 6));
         when(world.getBlockAt(1, 2, 3)).thenReturn(b1);
         when(world.getBlockAt(4, 5, 6)).thenReturn(b2);
-        when(world.getPlayers()).thenReturn(java.util.Collections.emptyList());
+        when(world.getPlayers()).thenReturn(Collections.emptyList());
 
         StargateBlockSetup.fillGateInterior(gate, Material.WATER);
 

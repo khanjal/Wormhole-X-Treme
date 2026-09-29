@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Set;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
@@ -120,7 +121,7 @@ class RingAccessTest
     @Test
     void theAllowListCannotBeEditedThroughItsGetter()
     {
-        final java.util.Set<String> allowed = pair().getAllowed();
+        final Set<String> allowed = pair().getAllowed();
         assertThrows(UnsupportedOperationException.class, () -> allowed.add(STRANGER));
     }
 

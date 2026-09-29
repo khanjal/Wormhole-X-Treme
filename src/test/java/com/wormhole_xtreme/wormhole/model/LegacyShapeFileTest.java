@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +37,7 @@ class LegacyShapeFileTest
 
     private static String[] shape(final String... settings)
     {
-        final java.util.List<String> lines = new java.util.ArrayList<String>();
+        final List<String> lines = new ArrayList<String>();
         lines.add("Name=Legacy");
         for (final String s : settings)
         {

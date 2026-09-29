@@ -10,8 +10,13 @@ import static org.mockito.Mockito.mock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
@@ -20,6 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 
@@ -237,7 +244,7 @@ class DialSpinPatternTest
     {
         final Set<Integer> wanted = Set.of(waves);
         return spin.ring().stream().filter(c -> wanted.contains(c.wave()))
-            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -258,7 +265,7 @@ class DialSpinPatternTest
             for (int glyph = 1; glyph <= 7; glyph++)
             {
                 final Set<Cell> locked = spin.rest(DialSpinPattern.UNIVERSE, glyph, 7);
-                final Set<Integer> waves = new java.util.HashSet<>(Set.of(7));
+                final Set<Integer> waves = new HashSet<>(Set.of(7));
                 for (int k = 1; k <= glyph; k++)
                 {
                     waves.add(k);
@@ -309,7 +316,7 @@ class DialSpinPatternTest
                 assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
                 assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
                 final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
-                final int reached = java.util.stream.IntStream.range(0, path.size())
+                final int reached = IntStream.range(0, path.size())
                     .filter(i -> chevron.contains(path.get(i))).findFirst().orElse(path.size());
                 for (int tick = 0; tick < TICKS; tick++)
                 {
@@ -335,7 +342,7 @@ class DialSpinPatternTest
     {
         final DialSpin spin = spin("Massive");
         final int ticks = 15;
-        final Set<Set<Cell>> seen = new java.util.LinkedHashSet<>();
+        final Set<Set<Cell>> seen = new LinkedHashSet<>();
         for (int tick = 0; tick < (ticks - 1); tick++)
         {
             seen.add(spin.lit(DialSpinPattern.PEGASUS, 2, tick, ticks));
@@ -349,7 +356,7 @@ class DialSpinPatternTest
         {
             final List<Integer> at = spin.lit(DialSpinPattern.PEGASUS, 1, tick, ticks).stream()
                 .map(c -> spin.ring().indexOf(c)).toList();
-            final long gaps = java.util.stream.IntStream.range(1, at.size())
+            final long gaps = IntStream.range(1, at.size())
                 .filter(i -> Math.min(Math.floorMod(at.get(i) - at.get(i - 1), n), Math.floorMod(at.get(i - 1) - at.get(i), n)) != 1)
                 .count();
             assertEquals(0, gaps, "tick " + tick + ": one piece of frame, " + at);
@@ -360,15 +367,15 @@ class DialSpinPatternTest
     @Test
     void theConfigCommandOffersThePatterns()
     {
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
-        final List<String> patterns = com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("gate-dial-spin");
+        ConfigTestSupport.loadDefaults();
+        final List<String> patterns = ConfigManager.valuesFor("gate-dial-spin");
         for (final DialSpinPattern pattern : DialSpinPattern.values())
         {
-            assertTrue(patterns.contains(pattern.name().toLowerCase(java.util.Locale.ROOT)), pattern.name());
+            assertTrue(patterns.contains(pattern.name().toLowerCase(Locale.ROOT)), pattern.name());
         }
-        assertEquals(List.of("true", "false"), com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("PETS_FOLLOW_OWNER"));
-        assertTrue(com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("not-a-setting").isEmpty());
-        assertEquals(DialSpinPattern.TOP, com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern(),
+        assertEquals(List.of("true", "false"), ConfigManager.valuesFor("PETS_FOLLOW_OWNER"));
+        assertTrue(ConfigManager.valuesFor("not-a-setting").isEmpty());
+        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(),
             "the default, not the CHEVRON it was");
     }
 
@@ -376,9 +383,9 @@ class DialSpinPatternTest
     @Test
     void aMissingSettingTurnsTheDefault()
     {
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        ConfigTestSupport.clear();
 
-        assertEquals(DialSpinPattern.TOP, com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern());
+        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern());
     }
 
     /** FILL leaves the light behind it lit, so it only ever grows. */

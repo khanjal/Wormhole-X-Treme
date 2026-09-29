@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -136,7 +137,7 @@ class LegacySettingsNoticeTest
     @Test
     void aSettingsTxtFarTooBigToBeOneIsLeftUnread() throws IOException
     {
-        final List<String> padded = new java.util.ArrayList<>(SETTINGS_TXT);
+        final List<String> padded = new ArrayList<>(SETTINGS_TXT);
         final String filler = "#".repeat(1023);
         for (long written = 0; written <= LegacySettingsNotice.MAX_BYTES; written += filler.length() + 1)
         {

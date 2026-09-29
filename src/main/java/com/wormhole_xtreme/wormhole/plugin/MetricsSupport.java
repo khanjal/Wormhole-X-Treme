@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.bstats.bukkit.Metrics;
@@ -79,7 +80,7 @@ public final class MetricsSupport
     private static int beamDestinations()
     {
         return BeamManager.getAllPublicDestinations().size()
-            + BeamManager.getAllPlaces().values().stream().mapToInt(java.util.Map::size).sum();
+            + BeamManager.getAllPlaces().values().stream().mapToInt(Map::size).sum();
     }
 
     /**

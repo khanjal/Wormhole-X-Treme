@@ -15,8 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,6 +31,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
@@ -221,9 +226,9 @@ class GateDetectionTest
     private static Stargate3DShape rewritten(final String name, final String from, final String to)
         throws Exception
     {
-        final java.util.List<String> lines = java.nio.file.Files.readAllLines(
-            java.nio.file.Paths.get("src/main/resources/shapes/gate").resolve(name + ".shape"));
-        final java.util.List<String> out = new java.util.ArrayList<>();
+        final List<String> lines = Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate").resolve(name + ".shape"));
+        final List<String> out = new ArrayList<>();
         for (final String line : lines)
         {
             out.add(line.trim().startsWith("#") ? line : line.replace(from, to));
@@ -238,9 +243,9 @@ class GateDetectionTest
      * @throws Exception
      *             if the field was renamed
      */
-    private static java.util.concurrent.atomic.AtomicReference<Object> registryState() throws Exception
+    private static AtomicReference<Object> registryState() throws Exception
     {
-        return com.wormhole_xtreme.wormhole.PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
+        return PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
     }
 
     /**
@@ -252,13 +257,13 @@ class GateDetectionTest
     private static Object swapInLampChevronPalette() throws Exception
     {
         final Object previous = registryState().get();
-        final java.util.Map<String, Object> group = new java.util.LinkedHashMap<>();
+        final Map<String, Object> group = new LinkedHashMap<>();
         group.put("structure", "OBSIDIAN");
         group.put("chevron", "REDSTONE_LAMP");
         group.put("portal", "WATER");
         group.put("light", "GLOWSTONE");
         group.put("iris", "STONE");
-        final java.util.Map<String, Object> section = new java.util.LinkedHashMap<>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", group);
         MaterialGroupRegistry.load(section);
         return previous;
@@ -469,7 +474,7 @@ class GateDetectionTest
 
         assertFalse(found.getGateLightBlocks().isEmpty(), "a Standard gate lights up, so it has waves");
         int lit = 0;
-        for (final java.util.List<Location> wave : found.getGateLightBlocks())
+        for (final List<Location> wave : found.getGateLightBlocks())
         {
             if (wave != null)
             {
@@ -782,7 +787,7 @@ class GateDetectionTest
             {
                 continue;
             }
-            final java.util.Set<String> lit = new java.util.HashSet<String>();
+            final Set<String> lit = new HashSet<String>();
             final List<List<Integer[]>> waves = layer.getLayerLightPositions();
             if (waves != null)
             {

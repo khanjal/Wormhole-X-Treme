@@ -32,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
@@ -67,7 +68,7 @@ class ConfigLoadTest
     void tearDown() throws Exception
     {
         // A loaded config seeds the example groups, whose Standard has chevrons; this class's other tests expect none.
-        com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.load(null);
+        MaterialGroupRegistry.load(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -334,8 +335,8 @@ class ConfigLoadTest
 
     private static List<String> groupNames()
     {
-        return com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups().stream()
-            .map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName).toList();
+        return MaterialGroupRegistry.getGroups().stream()
+            .map(MaterialGroup::getName).toList();
     }
 
     /**

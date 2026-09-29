@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.command.CommandSender;
 
@@ -17,6 +19,7 @@ import com.wormhole_xtreme.wormhole.command.WXList;
 import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -85,7 +88,7 @@ public class GateCommand implements SubCommand
     }
 
     /** Each verb's usage, aliases included, as the guide's command table gives them. */
-    private static final java.util.Map<String, String> USAGES = new java.util.HashMap<>();
+    private static final Map<String, String> USAGES = new HashMap<>();
 
     static
     {
@@ -262,8 +265,8 @@ public class GateCommand implements SubCommand
         {
             return;
         }
-        final com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.Result result =
-            com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.importGates();
+        final LegacyDatabaseImporter.Result result =
+            LegacyDatabaseImporter.importGates();
         if (result.getProblem() != null)
         {
             sender.sendMessage(result.getProblem());

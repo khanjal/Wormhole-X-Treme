@@ -15,25 +15,32 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 
 /**
  * What survives a dial sign being restyled.
@@ -135,7 +142,7 @@ class DialSignConversionTest
     {
         final ArgumentCaptor<Integer> index = ArgumentCaptor.forClass(Integer.class);
         final ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-        verify(side, org.mockito.Mockito.atLeast(0)).setLine(index.capture(), text.capture());
+        verify(side, Mockito.atLeast(0)).setLine(index.capture(), text.capture());
         final String[] written = { null, null, null, null };
         for (int i = 0; i < index.getAllValues().size(); i++)
         {
@@ -292,7 +299,7 @@ class DialSignConversionTest
     @Test
     void aBlockThatIsNoLongerASignIsLeftAloneWithoutComplaint()
     {
-        final org.bukkit.block.BlockState notASign = mock(org.bukkit.block.BlockState.class);
+        final BlockState notASign = mock(BlockState.class);
         when(block.getState()).thenReturn(notASign);
 
         StargateBlockSetup.matchDialSignMaterial(gate);
@@ -330,10 +337,10 @@ class DialSignConversionTest
     @Test
     void theRestyleIsLoggedToCoreProtect()
     {
-        final java.util.List<String> logged = new java.util.ArrayList<>();
+        final List<String> logged = new ArrayList<>();
         config.when(ConfigManager::isCoreProtectEnabled).thenReturn(Boolean.TRUE);
-        when(block.getLocation()).thenReturn(new org.bukkit.Location(null, 1, 64, 1));
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest((placed, user, at, type, data) ->
+        when(block.getLocation()).thenReturn(new Location(null, 1, 64, 1));
+        CoreProtectLog.setSinkForTest((placed, user, at, type, data) ->
             logged.add(placed ? "placed" : "removed"));
         try
         {
@@ -341,9 +348,9 @@ class DialSignConversionTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.setSinkForTest(null);
+            CoreProtectLog.setSinkForTest(null);
         }
 
-        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("placed"), logged);
+        Assertions.assertEquals(List.of("placed"), logged);
     }
 }

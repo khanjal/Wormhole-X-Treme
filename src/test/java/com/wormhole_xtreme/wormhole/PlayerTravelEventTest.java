@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -15,12 +16,18 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wolf;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
 import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -31,6 +38,9 @@ import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
 /**
  * Letting another plugin watch, and stop, a player travelling through a gate.
@@ -52,7 +62,7 @@ class PlayerTravelEventTest
     private Player player;
     private Stargate origin;
     private Stargate destination;
-    private org.bukkit.scheduler.BukkitScheduler scheduler;
+    private BukkitScheduler scheduler;
 
     private static final int BX = 10, BY = 64, BZ = 20;
 
@@ -63,7 +73,7 @@ class PlayerTravelEventTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
-        scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
 
@@ -181,7 +191,7 @@ class PlayerTravelEventTest
         walkIn();
 
         assertNull(theTravelEvent(), "there is nowhere to announce a trip to");
-        verify(player, never()).teleport(org.mockito.ArgumentMatchers.<Location>any());
+        verify(player, never()).teleport(ArgumentMatchers.<Location>any());
     }
 
     /**
@@ -198,7 +208,7 @@ class PlayerTravelEventTest
 
         final PlayerMoveEvent event = walkIn();
 
-        verify(player, never()).teleport(org.mockito.ArgumentMatchers.<Location>any());
+        verify(player, never()).teleport(ArgumentMatchers.<Location>any());
         assertNull(theTravelEvent(), "there is no wormhole yet to announce a trip through");
         assertFalse(event.isCancelled(), "they walk on through the frame rather than being held");
     }
@@ -214,18 +224,18 @@ class PlayerTravelEventTest
     @Test
     void aFollowingPetGoesThroughTheGateWithItsOwner()
     {
-        final org.bukkit.entity.Wolf wolf = PetEscortTest.wolfOf(player);
+        final Wolf wolf = PetEscortTest.wolfOf(player);
         when(wolf.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ - 3.5));
         PetTestSupport.standsWhereTeleported(player, new Location(world, BX + 0.5, BY, BZ - 1.5));
-        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
-            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+        when(player.getNearbyEntities(ArgumentMatchers.anyDouble(),
+            ArgumentMatchers.anyDouble(), ArgumentMatchers.anyDouble()))
             .thenReturn(List.of(wolf));
 
         walkIn();
         verify(wolf, never()).teleport(any(Location.class));
         PetTestSupport.runEscorts(scheduler);
 
-        final org.mockito.ArgumentCaptor<Location> landed = org.mockito.ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<Location> landed = ArgumentCaptor.forClass(Location.class);
         verify(wolf).teleport(landed.capture());
         assertEquals(500.0, landed.getValue().getX(), 1.0, "at the far gate, not left at the near one");
     }
@@ -233,13 +243,13 @@ class PlayerTravelEventTest
     @Test
     void aCancelledTripLeavesThePetsWhereTheyAre()
     {
-        final org.bukkit.entity.Wolf wolf = PetEscortTest.wolfOf(player);
-        when(player.getNearbyEntities(org.mockito.ArgumentMatchers.anyDouble(),
-            org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+        final Wolf wolf = PetEscortTest.wolfOf(player);
+        when(player.getNearbyEntities(ArgumentMatchers.anyDouble(),
+            ArgumentMatchers.anyDouble(), ArgumentMatchers.anyDouble()))
             .thenReturn(List.of(wolf));
         GateEvents.setDispatcherForTest(event ->
         {
-            if (event instanceof org.bukkit.event.Cancellable cancellable)
+            if (event instanceof Cancellable cancellable)
             {
                 cancellable.setCancelled(true);
             }
@@ -318,9 +328,9 @@ class PlayerTravelEventTest
         //
         // The cooldown is the observable half here, since it is this plugin's own state
         // rather than an economy provider that is not installed in a test.
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.loadDefaults();
         com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
-        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        StargateRestrictions.removePlayerUseCooldown(player);
         GateEvents.setDispatcherForTest(e ->
         {
             raised.add(e);
@@ -334,14 +344,14 @@ class PlayerTravelEventTest
             walkIn();
 
             assertFalse(
-                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+                StargateRestrictions.isPlayerUseCooldown(player),
                 "a refused trip must not spend the cooldown for a trip that never happened");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+            StargateRestrictions.removePlayerUseCooldown(player);
             com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
     }
 
@@ -349,22 +359,22 @@ class PlayerTravelEventTest
     void anAllowedTripStillSpendsTheCooldown()
     {
         // The control: deferring the cooldown past the event must not have lost it.
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.loadDefaults();
         com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
-        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        StargateRestrictions.removePlayerUseCooldown(player);
         try
         {
             walkIn();
 
             assertTrue(
-                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+                StargateRestrictions.isPlayerUseCooldown(player),
                 "a trip that actually happened should still put the player on cooldown");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+            StargateRestrictions.removePlayerUseCooldown(player);
             com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
     }
 
@@ -405,7 +415,7 @@ class PlayerTravelEventTest
             GateEvents.setDispatcherForTest(event ->
             {
                 raised.add(event);
-                if (event instanceof org.bukkit.event.Cancellable cancellable)
+                if (event instanceof Cancellable cancellable)
                 {
                     cancellable.setCancelled(true);
                 }
@@ -444,7 +454,7 @@ class PlayerTravelEventTest
     @Test
     void aMinecartRiderIsLeftToTheCartsListenerToCharge()
     {
-        final org.bukkit.entity.Minecart cart = mock(org.bukkit.entity.Minecart.class);
+        final Minecart cart = mock(Minecart.class);
         when(player.getVehicle()).thenReturn(cart);
         try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
              MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
@@ -471,7 +481,7 @@ class PlayerTravelEventTest
     void aTripTheServerRefusesTakesNoFareAndNoCooldown()
     {
         when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
-        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        StargateRestrictions.removePlayerUseCooldown(player);
         try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
              MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
         {
@@ -484,12 +494,12 @@ class PlayerTravelEventTest
             walkIn();
 
             economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
-            assertFalse(com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+            assertFalse(StargateRestrictions.isPlayerUseCooldown(player),
                 "no cooldown for a trip that did not happen");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+            StargateRestrictions.removePlayerUseCooldown(player);
         }
     }
 
@@ -523,7 +533,7 @@ class PlayerTravelEventTest
     {
         // Set directly rather than through markPlayerRecentlyTeleportedByVehicle, which
         // schedules its own expiry ten ticks out and so needs a live scheduler.
-        final java.util.Set<java.util.UUID> marked =
+        final Set<UUID> marked =
             PrivateStatics.of(WormholeXTremeVehicleListener.class, "recentlyTeleportedPlayersByVehicle");
         marked.add(player.getUniqueId());
         try

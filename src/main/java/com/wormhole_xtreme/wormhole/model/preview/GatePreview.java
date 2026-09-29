@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,11 +18,13 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.GateIris;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -33,7 +36,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
  * can be put back when the chunk returns, and so a change of material or state can be drawn
  * again from what each cell should now show.
  */
-final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
+final class GatePreview implements GateIris
 {
     private final World world;
     private final Stargate3DShape shape;
@@ -75,7 +78,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     private Interaction button;
     private BukkitTask dialling;
     private int litWaves;
-    private final com.wormhole_xtreme.wormhole.logic.DialSpin spin;
+    private final DialSpin spin;
     private int spinTick;
     private Set<Cell> spinCells = Set.of();
     private int wooshStage;
@@ -92,7 +95,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
      *
      * <p>With no sweep running the two agree: every index when closed, none when open.
      */
-    private final java.util.Set<Integer> irisShown = new java.util.HashSet<>();
+    private final Set<Integer> irisShown = new HashSet<>();
     private boolean dhdHidden;
     private boolean plainChevrons;
     private boolean guide;
@@ -122,7 +125,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
         lastWave = Math.min(cells.stream().mapToInt(Cell::wave).max().orElse(0), Stargate.LOCAL_CHEVRONS);
         builtLayers = cells.stream().map(Cell::layer).distinct().sorted().toList();
         lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
-        spin = com.wormhole_xtreme.wormhole.logic.DialSpin.of(this.cells, grid);
+        spin = DialSpin.of(this.cells, grid);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
         minY = cells.stream().mapToInt(Cell::y).min().orElse(0);
         minZ = cells.stream().mapToInt(Cell::z).min().orElse(0);
@@ -184,7 +187,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     }
 
     /** @return the ring's turn while dialling, or null for a gate with no top chevron */
-    com.wormhole_xtreme.wormhole.logic.DialSpin spin()
+    DialSpin spin()
     {
         return spin;
     }
@@ -309,7 +312,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
         final List<BlockDisplay> all = new ArrayList<>();
         for (final List<BlockDisplay> shown : List.of(displays, openingDisplays, blockedDisplays, beyondDisplays))
         {
-            shown.stream().filter(java.util.Objects::nonNull).forEach(all::add);
+            shown.stream().filter(Objects::nonNull).forEach(all::add);
         }
         return all;
     }
@@ -494,7 +497,7 @@ final class GatePreview implements com.wormhole_xtreme.wormhole.model.GateIris
     }
 
     /** @return the set of opening cells showing iris, for a sweep to move */
-    java.util.Set<Integer> irisShown()
+    Set<Integer> irisShown()
     {
         return irisShown;
     }

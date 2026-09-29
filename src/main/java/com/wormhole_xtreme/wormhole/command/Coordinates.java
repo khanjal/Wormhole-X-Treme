@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ProxiedCommandSender;
@@ -101,7 +102,7 @@ public final class Coordinates
      *            the three words, each already accepted by {@link #isCoordinate}
      * @return the reason, or null
      */
-    public static String whyNotReadable(final CommandSender sender, final org.bukkit.World world,
+    public static String whyNotReadable(final CommandSender sender, final World world,
         final String... xyz)
     {
         if (!(isRelative(xyz[0]) || isRelative(xyz[1]) || isRelative(xyz[2])))

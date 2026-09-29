@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.concurrent.Callable;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -26,7 +28,7 @@ public class WXIDC implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
+        return CommandUtilities.runCommandSafe(sender, new Callable<Boolean>()
         {
             @Override
             public Boolean call() throws Exception

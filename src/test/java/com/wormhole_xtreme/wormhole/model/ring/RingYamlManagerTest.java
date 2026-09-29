@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
@@ -133,16 +134,16 @@ class RingYamlManagerTest
         RingYamlManager.saveWorld(directory, WORLD);
         RingManager.clear();
 
-        final java.io.File file = new java.io.File(directory, WORLD + ".yml");
+        final File file = new File(directory, WORLD + ".yml");
         final StringBuilder stripped = new StringBuilder();
-        for (final String line : java.nio.file.Files.readAllLines(file.toPath()))
+        for (final String line : Files.readAllLines(file.toPath()))
         {
             if (!line.contains("Built:"))
             {
                 stripped.append(line).append(System.lineSeparator());
             }
         }
-        java.nio.file.Files.writeString(file.toPath(), stripped.toString());
+        Files.writeString(file.toPath(), stripped.toString());
 
         assertEquals(1, RingYamlManager.loadAll(directory, REACH));
         final Ring loaded = RingManager.getPair("beef0002").getEndA();
@@ -350,7 +351,7 @@ class RingYamlManagerTest
     {
         // The first end costs the player their slabs the moment it registers, so losing it to
         // a restart would take the slabs with it and leave nothing to show for them.
-        final java.util.UUID builder = java.util.UUID.randomUUID();
+        final UUID builder = UUID.randomUUID();
         final Ring first = new Ring(40, 64, 40, RingPattern.EVEN, RingOrientation.CEILING,
             Material.DEEPSLATE_TILE_SLAB, Material.SEA_LANTERN);
         first.setName("Cellar");
@@ -374,7 +375,7 @@ class RingYamlManagerTest
     @Test
     void finishingOrCancellingLeavesNoPendingFile()
     {
-        final java.util.UUID builder = java.util.UUID.randomUUID();
+        final UUID builder = UUID.randomUUID();
         RingManager.setPending(builder, new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
             Material.STONE_SLAB, Material.GLOWSTONE), WORLD);
         RingYamlManager.savePending(directory);
@@ -391,7 +392,7 @@ class RingYamlManagerTest
     {
         // It lives in the same folder and ends in .yml, so the world scan has to know better
         // than to try loading it as a world's worth of pairs.
-        RingManager.setPending(java.util.UUID.randomUUID(),
+        RingManager.setPending(UUID.randomUUID(),
             new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
                 Material.STONE_SLAB, Material.GLOWSTONE), WORLD);
         RingYamlManager.savePending(directory);

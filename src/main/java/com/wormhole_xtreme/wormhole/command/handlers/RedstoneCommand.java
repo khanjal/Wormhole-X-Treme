@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import org.bukkit.command.CommandSender;
 
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -96,7 +97,7 @@ public class RedstoneCommand implements SubCommand
     private static void setWiring(final CommandSender sender, final String name,
         final Stargate stargate, final String value)
     {
-        if (!com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(value))
+        if (!CommandUtilities.isBoolean(value))
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + value);
             sendUsage(sender);

@@ -14,25 +14,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
+import com.wormhole_xtreme.wormhole.logic.GateRefresh;
+import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Running {@code /wormhole regenerate}, as opposed to the {@code exitMoved} helper that
@@ -445,11 +457,11 @@ class RegenerateExecuteTest
     /** Runs with one named shape loaded, and puts the registry back. */
     private static void withShape(final String name, final Runnable body)
     {
-        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> shapes =
-            com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes();
-        final java.util.Map<String, com.wormhole_xtreme.wormhole.model.StargateShape> saved = new java.util.HashMap<>(shapes);
+        final Map<String, StargateShape> shapes =
+            StargateShapeRegistry.getStargateShapes();
+        final Map<String, StargateShape> saved = new HashMap<>(shapes);
         shapes.clear();
-        final com.wormhole_xtreme.wormhole.model.Stargate3DShape shape = mock(com.wormhole_xtreme.wormhole.model.Stargate3DShape.class);
+        final Stargate3DShape shape = mock(Stargate3DShape.class);
         when(shape.getShapeName()).thenReturn(name);
         shapes.put(name, shape);
         try
@@ -499,7 +511,7 @@ class RegenerateExecuteTest
                  MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
             {
                 rederive.when(() -> GateRederivation.adoptShape(any(), any()))
-                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of(new GateRederivation.Gap(1, 2, 3, org.bukkit.Material.AIR)), null));
+                    .thenReturn(new GateRederivation.ShapeFit(true, 99, 100, List.of(new GateRederivation.Gap(1, 2, 3, Material.AIR)), null));
                 rederive.when(() -> GateRederivation.rederive(gate))
                     .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of()));
                 rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
@@ -513,9 +525,9 @@ class RegenerateExecuteTest
         verify(sender).sendMessage(said("99 of 100 frame blocks"));
         verify(sender).sendMessage(said("1 2 3 (AIR)"));
         // The parts a player looks for stand out: the gate and shape as names, the block as a block.
-        verify(sender).sendMessage(contains(com.wormhole_xtreme.wormhole.utils.ChatText.name("alpha") + " is now "
-            + com.wormhole_xtreme.wormhole.utils.ChatText.name("Massive")));
-        verify(sender).sendMessage(contains(com.wormhole_xtreme.wormhole.utils.ChatText.material("AIR")));
+        verify(sender).sendMessage(contains(ChatText.name("alpha") + " is now "
+            + ChatText.name("Massive")));
+        verify(sender).sendMessage(contains(ChatText.material("AIR")));
         verify(gate).toggleDialLeverState(true);
     }
 
@@ -546,30 +558,30 @@ class RegenerateExecuteTest
     /** A message whose words, colours aside, contain the text: what a player reads. */
     private static String said(final String text)
     {
-        return org.mockito.ArgumentMatchers.argThat(
-            m -> (m != null) && com.wormhole_xtreme.wormhole.utils.ChatText.plain(m).contains(text));
+        return ArgumentMatchers.argThat(
+            m -> (m != null) && ChatText.plain(m).contains(text));
     }
 
     /** With no gate named, a player's next DHD click is waited for, as /wormhole refresh did. */
     @Test
     void noGateNamedWaitsForAPlayersDhdClick()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         when(player.hasPermission(anyString())).thenReturn(true);
         when(player.isOp()).thenReturn(true);
         try
         {
             assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate" }));
-            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player));
-            assertFalse(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player));
+            assertTrue(Refresh.isPendingRefresh(player));
+            assertFalse(Refresh.isPendingClearLiquid(player));
             verify(player).sendMessage(said("Click the DHD of the gate to regenerate it."));
 
             assertTrue(new RegenerateCommand().execute(player, new String[] { "regenerate", "-water" }));
-            assertTrue(com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player), "-water carries to the click");
+            assertTrue(Refresh.isPendingClearLiquid(player), "-water carries to the click");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
+            Refresh.removePendingRefresh(player);
         }
     }
 
@@ -582,11 +594,11 @@ class RegenerateExecuteTest
         when(fresh.getGateName()).thenReturn("alpha");
         when(fresh.getGateShapeName()).thenReturn("Grand");
 
-        try (MockedStatic<com.wormhole_xtreme.wormhole.logic.GateRefresh> refresh =
-                 mockStatic(com.wormhole_xtreme.wormhole.logic.GateRefresh.class);
+        try (MockedStatic<GateRefresh> refresh =
+                 mockStatic(GateRefresh.class);
              MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
         {
-            refresh.when(() -> com.wormhole_xtreme.wormhole.logic.GateRefresh.refresh(any(), any(), any())).thenReturn(fresh);
+            refresh.when(() -> GateRefresh.refresh(any(), any(), any())).thenReturn(fresh);
 
             assertTrue(run("regenerate", "alpha"));
         }
@@ -601,7 +613,7 @@ class RegenerateExecuteTest
     void waterIsClearedOnlyWhenAskedAndPointedOutOtherwise()
     {
         final Stargate gate = registeredGate("alpha");
-        final org.bukkit.block.Block puddle = mock(org.bukkit.block.Block.class);
+        final Block puddle = mock(Block.class);
         when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle));
         when(gate.clearStrandedLiquid()).thenReturn(2);
 
@@ -672,7 +684,7 @@ class RegenerateExecuteTest
     void aNameSignTakenOutOfTheFrameIsReported()
     {
         final Stargate gate = registeredGate("alpha");
-        final org.bukkit.block.Block restored = mock(org.bukkit.block.Block.class);
+        final Block restored = mock(Block.class);
         when(restored.getX()).thenReturn(1);
         when(restored.getY()).thenReturn(64);
         when(restored.getZ()).thenReturn(-3);
@@ -710,10 +722,10 @@ class RegenerateExecuteTest
     }
 
     /** A block placed by -fill, at a place a message can name. */
-    private static org.bukkit.block.Block placedBlock()
+    private static Block placedBlock()
     {
-        final org.bukkit.block.Block block = mock(org.bukkit.block.Block.class);
-        when(block.getType()).thenReturn(org.bukkit.Material.OBSIDIAN);
+        final Block block = mock(Block.class);
+        when(block.getType()).thenReturn(Material.OBSIDIAN);
         when(block.getX()).thenReturn(5998);
         when(block.getY()).thenReturn(141);
         when(block.getZ()).thenReturn(3);
@@ -733,7 +745,7 @@ class RegenerateExecuteTest
 
             assertTrue(run(args));
             rederive.verify(() -> GateRederivation.fillFrame(gate), times(
-                java.util.Arrays.asList(args).contains("-fill") ? 1 : 0));
+                Arrays.asList(args).contains("-fill") ? 1 : 0));
         }
     }
 
@@ -742,7 +754,7 @@ class RegenerateExecuteTest
     void fillNamesTheBlocksItPlaced()
     {
         final Stargate gate = registeredGate("Lithium");
-        final GateRederivation.Gap gap = new GateRederivation.Gap(5998, 141, 3, org.bukkit.Material.AIR);
+        final GateRederivation.Gap gap = new GateRederivation.Gap(5998, 141, 3, Material.AIR);
 
         runWithFill(gate, new GateRederivation.Fill(List.of(placedBlock()), List.of(gap), List.of(), 4),
             "regen", "Lithium", "-fill");
@@ -768,7 +780,7 @@ class RegenerateExecuteTest
     void fillRefusesMoreThanItsCap()
     {
         final Stargate gate = registeredGate("Lithium");
-        final GateRederivation.Gap gap = new GateRederivation.Gap(0, 64, 0, org.bukkit.Material.AIR);
+        final GateRederivation.Gap gap = new GateRederivation.Gap(0, 64, 0, Material.AIR);
 
         runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(gap, gap, gap, gap, gap), List.of(), 4),
             "regen", "Lithium", "-fill");
@@ -781,7 +793,7 @@ class RegenerateExecuteTest
     void fillNamesASolidBlockItWillNotReplace()
     {
         final Stargate gate = registeredGate("Lithium");
-        final GateRederivation.Gap stone = new GateRederivation.Gap(5998, 141, 3, org.bukkit.Material.STONE);
+        final GateRederivation.Gap stone = new GateRederivation.Gap(5998, 141, 3, Material.STONE);
 
         runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(stone), List.of(stone), 4),
             "regen", "Lithium", "-fill");
@@ -793,7 +805,7 @@ class RegenerateExecuteTest
     @Test
     void fillWithNoGateNamedIsRefusedRatherThanIgnored()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         when(player.hasPermission(anyString())).thenReturn(true);
         when(player.isOp()).thenReturn(true);
 

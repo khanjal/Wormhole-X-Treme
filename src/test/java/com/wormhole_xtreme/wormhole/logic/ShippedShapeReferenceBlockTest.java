@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -67,7 +68,7 @@ class ShippedShapeReferenceBlockTest
      * would say nothing if a marker went missing from all nine at once -- and it is a
      * reference block, so an edit that touches every copy is exactly the kind that happens.
      */
-    private static final Set<String> REQUIRED_MARKERS = new TreeSet<>(java.util.Arrays.asList(
+    private static final Set<String> REQUIRED_MARKERS = new TreeSet<>(Arrays.asList(
         "[I]", "[S]", "[P]", "[C]", "[RD]", "[RS]", "[RA]",
         ":N", ":EP", ":EM", ":A", ":D", ":IA", ":L", ":W"));
 
