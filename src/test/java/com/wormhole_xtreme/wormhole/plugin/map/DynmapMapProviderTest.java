@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.plugin.map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -68,12 +69,18 @@ class DynmapMapProviderTest
         final Map<String, Marker> points = new HashMap<>();
         final Map<String, AreaMarker> areas = new HashMap<>();
         final Map<String, PolyLineMarker> lines = new HashMap<>();
+        /** A marker id whose creation throws, as Dynmap might part-way through a draw; null for none. */
+        String failOn = null;
 
         FakeSet()
         {
             when(set.createMarker(anyString(), anyString(), anyBoolean(), anyString(), anyDouble(), anyDouble(),
                 anyDouble(), any(), anyBoolean())).thenAnswer(call ->
                 {
+                    if (call.getArgument(0).equals(failOn))
+                    {
+                        throw new IllegalStateException("Dynmap failed part-way");
+                    }
                     final Marker m = mock(Marker.class);
                     points.put(call.getArgument(0), m);
                     return m;
@@ -197,6 +204,89 @@ class DynmapMapProviderTest
             anyDouble(), anyDouble(), anyDouble(), any(), eq(false));
         verify(set(DynmapMapProvider.MIRRORS)).createMarker(eq("hall"), eq("Hall"), eq(false), eq("world"),
             eq(3.5), eq(65.5), eq(-6.5), any(), eq(false));
+    }
+
+    @Test
+    void anApplyThatRacesDynmapComingBackIsSetUpAgainOnTheNewApi()
+    {
+        // Dynmap restarting mid-apply: the apply carries on against the API it started with,
+        // and must not record itself as set up for the new one, or the redraw the new one
+        // asks for would find nothing to set up and draw into sets that no longer exist.
+        final MarkerAPI second = mock(MarkerAPI.class);
+        when(second.createMarkerSet(anyString(), anyString(), isNull(), anyBoolean())).thenReturn(mock(MarkerSet.class));
+        final AtomicInteger calls = new AtomicInteger();
+        when(api.getMarkerSet(DynmapMapProvider.GATES)).thenAnswer(call ->
+        {
+            if (calls.getAndIncrement() == 0)
+            {
+                provider.attach(second);
+            }
+            return null;
+        });
+        provider.attach(api);
+        provider.apply(everything());
+        verifyNoInteractions(second);
+
+        provider.apply(everything());
+
+        verify(second).createMarkerSet(DynmapMapProvider.GATES, "Stargates", null, false);
+    }
+
+    @Test
+    void aDrawThatFailsPartWayIsRedrawnFromScratchWithNothingLeftBehind()
+    {
+        // A marker made before the failure was never recorded as drawn; left alone it would
+        // sit on the map for good. Starting over deletes the set, and it with it.
+        provider.attach(api);
+        final FakeSet gates = sets.get(DynmapMapProvider.GATES);
+        gates.failOn = "chulak";
+        assertThrows(IllegalStateException.class, () -> provider.apply(everything()));
+        gates.failOn = null;
+        for (final Map.Entry<String, FakeSet> made : sets.entrySet())
+        {
+            when(api.getMarkerSet(made.getKey())).thenReturn(made.getValue().set);
+        }
+        clearInvocations(api, gates.set);
+
+        provider.apply(everything());
+
+        verify(gates.set).deleteMarkerSet();
+        verify(api).createMarkerSet(DynmapMapProvider.GATES, "Stargates", null, false);
+        verify(gates.set).createMarker(eq("abydos"), anyString(), anyBoolean(), anyString(), anyDouble(),
+            anyDouble(), anyDouble(), any(), anyBoolean());
+        verify(gates.set).createMarker(eq("chulak"), anyString(), anyBoolean(), anyString(), anyDouble(),
+            anyDouble(), anyDouble(), any(), anyBoolean());
+    }
+
+    @Test
+    void anIconDynmapKeptFromBeforeIsGivenTheCurrentImage()
+    {
+        // Dynmap stores an icon between restarts, so without this a redrawn PNG in a new
+        // release would never reach the map.
+        final MarkerIcon kept = mock(MarkerIcon.class);
+        when(api.getMarkerIcon("wormhole_gate_open")).thenReturn(kept);
+        provider.attach(api);
+
+        provider.apply(picture(gate("Abydos").withOpen(true)));
+
+        verify(kept).setMarkerIconImage(any(InputStream.class));
+        verify(api, never()).createMarkerIcon(eq("wormhole_gate_open"), anyString(), any(InputStream.class));
+        verify(sets.get(DynmapMapProvider.GATES).set, atLeastOnce()).createMarker(anyString(), anyString(),
+            anyBoolean(), anyString(), anyDouble(), anyDouble(), anyDouble(), eq(kept), anyBoolean());
+    }
+
+    @Test
+    void aBuiltInIconIsNeverOverwritten()
+    {
+        final MarkerIcon builtIn = mock(MarkerIcon.class);
+        when(builtIn.isBuiltIn()).thenReturn(true);
+        when(api.getMarkerIcon("wormhole_rings")).thenReturn(builtIn);
+        provider.attach(api);
+
+        provider.apply(everything());
+
+        verify(builtIn).isBuiltIn();
+        verify(builtIn, never()).setMarkerIconImage(any(InputStream.class));
     }
 
     @Test

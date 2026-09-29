@@ -204,6 +204,24 @@ class MapScannerTest
     }
 
     @Test
+    void aHiddenIrisGateDoesNotLightTheGateItIsDialledTo()
+    {
+        // The far end reads as open from the gate that dialled it. If that gate is hidden
+        // behind its iris, lighting the far end would say somebody hidden is dialling in.
+        final Stargate earth = gate("Earth", overworld);
+        final Stargate abydos = gate("Abydos", overworld);
+        when(earth.getGateIrisDeactivationCode()).thenReturn("GDO");
+        formed(earth);
+        when(earth.getGateTarget()).thenReturn(abydos);
+
+        final MapSnapshot hidden = scan(List.of(earth, abydos), new MapLayers(true, false, true, true, true));
+        final MapSnapshot shown = scan(List.of(earth, abydos), MapLayers.ALL);
+
+        assertFalse(hidden.gates().get("abydos").open(), "not lit by a gate the map is not showing");
+        assertTrue(shown.gates().get("abydos").open(), "but lit when that gate is shown");
+    }
+
+    @Test
     void anIdleGateHasNoLineWhateverTargetItRemembers()
     {
         final Stargate abydos = gate("Abydos", overworld);

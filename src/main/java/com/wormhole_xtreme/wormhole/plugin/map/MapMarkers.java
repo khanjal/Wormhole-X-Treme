@@ -86,6 +86,12 @@ public final class MapMarkers
     /** Whether a failed draw has been reported, so a map that keeps failing does not flood the log. */
     private static volatile boolean warned = false;
 
+    /** Whether a failed look has been reported. Main thread only. */
+    private static boolean scanWarned = false;
+
+    /** Set when a draw failed, so the next look draws again even though nothing changed. */
+    private static final AtomicBoolean redraw = new AtomicBoolean();
+
     /** Test seam: a provider to use instead of looking for Dynmap. */
     private static MapProvider providerForTest = null;
 
@@ -119,6 +125,7 @@ public final class MapMarkers
         }
         layers = MapLayers.fromConfig();
         MapProvider chosen = providerForTest;
+        Runnable hook = null;
         Runnable undo = () ->
         {
         };
@@ -136,8 +143,8 @@ public final class MapMarkers
             }
             // Only reached with Dynmap on the classpath, which is what makes naming its provider safe.
             final DynmapMapProvider dynmap = new DynmapMapProvider(layers, MapMarkers::requestDraw);
-            dynmap.register();
             chosen = dynmap;
+            hook = dynmap::register;
             undo = dynmap::unregister;
         }
         owner = plugin;
@@ -145,9 +152,25 @@ public final class MapMarkers
         detach = undo;
         running = true;
         warned = false;
-        listener = new MapRefreshListener();
-        plugin.getServer().getPluginManager().registerEvents(listener, plugin);
-        ticker = WormholeXTreme.getScheduler().runTaskTimer(plugin, MapMarkers::tick, 20L, PERIOD_TICKS);
+        scanWarned = false;
+        redraw.set(false);
+        try
+        {
+            listener = new MapRefreshListener();
+            plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+            ticker = WormholeXTreme.getScheduler().runTaskTimer(plugin, MapMarkers::tick, 20L, PERIOD_TICKS);
+            // Last, and undone on failure: Dynmap's listener list is static, and a hook left in it
+            // would outlive this plugin's classloader.
+            if (hook != null)
+            {
+                hook.run();
+            }
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            disable();
+            throw e;
+        }
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
             "Showing gates, rings, beam destinations and mirrors on " + chosen.name() + ".");
     }
@@ -156,7 +179,8 @@ public final class MapMarkers
      * Stops keeping the map up to date and takes this plugin's marks off it.
      *
      * <p>Called from {@code WormholeXTreme.onDisable}. Clears on the main thread, because no
-     * task can be scheduled while the plugin disables; it is a handful of deletions.
+     * task can be scheduled while the plugin disables; it is a handful of deletions, after
+     * waiting for at most the one draw that may be in flight.
      */
     public static void disable()
     {
@@ -194,6 +218,7 @@ public final class MapMarkers
         }
         latest.set(null);
         lastSeen = null;
+        redraw.set(false);
         drawQueued.set(false);
         lookQueued.set(false);
         owner = null;
@@ -288,9 +313,26 @@ public final class MapMarkers
         {
             return;
         }
-        final Supplier<MapSnapshot> source = sourceForTest;
-        final MapSnapshot now = (source != null) ? source.get() : scan();
-        if (now.equals(lastSeen))
+        final MapSnapshot now;
+        try
+        {
+            final Supplier<MapSnapshot> source = sourceForTest;
+            now = (source != null) ? source.get() : scan();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            // Once, not every five seconds: a look that fails will usually fail the same way next time.
+            if (!scanWarned)
+            {
+                scanWarned = true;
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Failed to work out what the web map should show", e);
+            }
+            return;
+        }
+        scanWarned = false;
+        final boolean retry = redraw.getAndSet(false);
+        if (!retry && now.equals(lastSeen))
         {
             return;
         }
@@ -348,11 +390,14 @@ public final class MapMarkers
             try
             {
                 map.apply(picture);
+                warned = false;
             }
             catch (final Exception | LinkageError e)
             {
                 // LinkageError as well as Exception: a map plugin updated under a running
                 // server can fail to link here, and a map that cannot draw is not worth a gate.
+                // The next look draws again, since the picture it sees will not have changed.
+                redraw.set(true);
                 if (!warned)
                 {
                     warned = true;

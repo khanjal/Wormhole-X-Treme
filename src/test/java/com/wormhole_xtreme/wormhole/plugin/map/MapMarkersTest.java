@@ -5,13 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -28,6 +32,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
+import org.dynmap.DynmapCommonAPI;
+import org.dynmap.DynmapCommonAPIListener;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -321,7 +327,7 @@ class MapMarkersTest
 
         MapMarkers.watchForming(gate);
         assertEquals(1, checks.size());
-        verify(scheduler).runTaskLater(eq(plugin), any(Runnable.class), eq(MapMarkers.FORMING_CHECK_TICKS));
+        verify(scheduler).runTaskLater(eq(plugin), any(Runnable.class), eq(20L));
         runNext(checks);
         assertEquals(1, checks.size(), "still dialling, so it is checked again");
         verify(scheduler, never()).runTask(any(Plugin.class), any(Runnable.class));
@@ -366,6 +372,144 @@ class MapMarkersTest
         }
 
         assertEquals(MapMarkers.FORMING_CHECKS, ran, "a bounded number of checks, not one a second forever");
+    }
+
+    /** A map whose draws fail while {@code failing} is set. */
+    private static final class Flaky extends Recorder
+    {
+        boolean failing = true;
+
+        @Override
+        public void apply(final MapSnapshot snapshot)
+        {
+            super.apply(snapshot);
+            if (failing)
+            {
+                throw new IllegalStateException("map plugin broke");
+            }
+        }
+    }
+
+    @Test
+    void aFailedDrawIsRetriedOnTheNextLookThoughNothingChanged()
+    {
+        // The picture is the same, so without a retry the map would stay half-drawn until
+        // something on the server moved.
+        final Flaky flaky = new Flaky();
+        MapMarkers.setProviderForTest(flaky);
+        enable();
+        MapMarkers.tick();
+        runBackground();
+        flaky.failing = false;
+
+        MapMarkers.tick();
+
+        assertEquals(1, background.size(), "the same picture should be drawn again");
+        runBackground();
+        assertEquals(List.of(showing, showing), flaky.applied);
+        MapMarkers.tick();
+        assertTrue(background.isEmpty(), "and once it has drawn, not again");
+    }
+
+    @Test
+    void aNewFailureAfterARecoveryIsReportedAgain()
+    {
+        final Flaky flaky = new Flaky();
+        MapMarkers.setProviderForTest(flaky);
+        enable();
+        MapMarkers.tick();
+        runBackground();
+        MapMarkers.tick();
+        runBackground();
+        verify(logger, times(1)).prettyLog(eq(Level.WARNING), contains("Test map"), any(Throwable.class));
+
+        flaky.failing = false;
+        MapMarkers.tick();
+        runBackground();
+        flaky.failing = true;
+        showing = picture("later");
+        MapMarkers.tick();
+        runBackground();
+
+        verify(logger, times(2)).prettyLog(eq(Level.WARNING), contains("Test map"), any(Throwable.class));
+    }
+
+    @Test
+    void aLookThatThrowsIsReportedOnceAndNeverEscapesTheTask()
+    {
+        final IllegalStateException broken = new IllegalStateException("a ring with no name");
+        MapMarkers.setSourceForTest(() ->
+        {
+            throw broken;
+        });
+        enable();
+
+        MapMarkers.tick();
+        MapMarkers.tick();
+
+        verify(logger, times(1)).prettyLog(eq(Level.WARNING), contains("web map"), eq(broken));
+        assertTrue(background.isEmpty());
+
+        MapMarkers.setSourceForTest(() -> showing);
+        MapMarkers.tick();
+        assertEquals(1, background.size(), "a good look afterwards draws as usual");
+        MapMarkers.setSourceForTest(() ->
+        {
+            throw broken;
+        });
+        MapMarkers.tick();
+        verify(logger, times(2)).prettyLog(eq(Level.WARNING), contains("web map"), eq(broken));
+    }
+
+    @Test
+    void anEnableThatFailsPartWayLeavesNoHookInDynmap()
+    {
+        // Dynmap keeps its listeners in a static list. A hook left there by an enable that
+        // failed would be called by Dynmap for the rest of the server's life, holding this
+        // plugin's old classloader, and disable could not reach it.
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
+        final IllegalStateException refused = new IllegalStateException("listener refused");
+        doThrow(refused).when(pluginManager).registerEvents(any(Listener.class), eq(plugin));
+
+        assertThrows(IllegalStateException.class, () -> MapMarkers.enable(plugin));
+
+        assertFalse(MapMarkers.isRunning());
+        final DynmapCommonAPI dynmap = mock(DynmapCommonAPI.class);
+        try
+        {
+            DynmapCommonAPIListener.apiInitialized(dynmap);
+            verifyNoInteractions(dynmap);
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
+    }
+
+    @Test
+    void aSuccessfulEnableHooksIntoDynmapAndDisableUnhooks()
+    {
+        // The other half of the test above, so its "no interactions" means something: a hook
+        // that is registered is called.
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
+        final DynmapCommonAPI dynmap = mock(DynmapCommonAPI.class);
+        try
+        {
+            MapMarkers.enable(plugin);
+            DynmapCommonAPIListener.apiInitialized(dynmap);
+            verify(dynmap).markerAPIInitialized();
+
+            MapMarkers.disable();
+            clearInvocations(dynmap);
+            DynmapCommonAPIListener.apiInitialized(dynmap);
+            verifyNoInteractions(dynmap);
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
     }
 
     @Test

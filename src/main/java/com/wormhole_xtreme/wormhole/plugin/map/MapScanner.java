@@ -2,10 +2,8 @@ package com.wormhole_xtreme.wormhole.plugin.map;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -118,23 +116,25 @@ public final class MapScanner
     private static void addGates(final Collection<Stargate> gates, final boolean showIrisGates,
         final Map<String, GateMark> marks, final Map<String, LineMark> links)
     {
-        // Only the gate that dialled holds a target, so the far end's openness is read from it too.
-        // Open means formed: a gate still locking chevrons has nothing to travel through yet.
-        final Set<String> dialled = new HashSet<>();
         for (final Stargate gate : gates)
         {
-            final Stargate target = gate.getGateTarget();
-            if (gate.isGatePortalOpen() && (target != null) && (target.getGateName() != null))
-            {
-                dialled.add(gateId(target.getGateName()));
-            }
-        }
-        for (final Stargate gate : gates)
-        {
-            final GateMark mark = gateMark(gate, showIrisGates, dialled);
+            final GateMark mark = gateMark(gate, showIrisGates);
             if (mark != null)
             {
                 marks.put(mark.id(), mark);
+            }
+        }
+        // Only the gate that dialled holds a target, so the far end's openness is read from it
+        // too; but only from a gate that is shown, or a hidden gate would give itself away.
+        for (final Stargate gate : gates)
+        {
+            final Stargate target = gate.getGateTarget();
+            final GateMark far = ((target == null) || (target.getGateName() == null)) ? null
+                : marks.get(gateId(target.getGateName()));
+            if (gate.isGatePortalOpen() && (far != null) && (gate.getGateName() != null)
+                && marks.containsKey(gateId(gate.getGateName())))
+            {
+                marks.put(far.id(), far.withOpen(true));
             }
         }
         for (final Stargate gate : gates)
@@ -166,11 +166,9 @@ public final class MapScanner
      *            the gate
      * @param showIrisGates
      *            false to leave it out if it has an iris code
-     * @param dialled
-     *            ids of the gates an open gate is dialled to
      * @return its mark, or null if it is not to be shown
      */
-    private static GateMark gateMark(final Stargate gate, final boolean showIrisGates, final Set<String> dialled)
+    private static GateMark gateMark(final Stargate gate, final boolean showIrisGates)
     {
         final World world = gate.getGateWorld();
         final String name = gate.getGateName();
@@ -208,10 +206,10 @@ public final class MapScanner
             z = at.getZ();
         }
         final StargateNetwork network = gate.getGateNetwork();
-        final String id = gateId(name);
-        return new GateMark(id, world.getName(), name,
+        // Open means formed: a gate still locking chevrons has nothing to travel through yet.
+        return new GateMark(gateId(name), world.getName(), name,
             (network == null) ? null : network.getNetworkName(), gate.getGateOwnerName(),
-            gate.isGatePortalOpen() || dialled.contains(id), x, y, z, footprint);
+            gate.isGatePortalOpen(), x, y, z, footprint);
     }
 
     /**

@@ -75,13 +75,26 @@ public final class DynmapMapProvider implements MapProvider
     /** Which layers to make; one switched off is not made at all. */
     private final MapLayers layers;
 
-    /** Dynmap's marker API while it is up, null otherwise. */
-    // An interface reference swapped whole: volatile is all the synchronisation it needs.
-    @SuppressWarnings("java:S3077")
-    private volatile MarkerAPI api = null;
+    /**
+     * Dynmap's marker API and which time it came up, swapped as one so an apply can never set
+     * up against one API while recording another's generation.
+     *
+     * @param api
+     *            the marker API, or null while Dynmap is down
+     * @param generation
+     *            bumped each time Dynmap comes or goes
+     */
+    private record Session(MarkerAPI api, int generation)
+    {
+    }
 
-    /** Bumped each time Dynmap comes up, so the next apply knows to set up its layers again. */
-    private final AtomicInteger generation = new AtomicInteger();
+    /** The current session. */
+    // An immutable record swapped whole: volatile is all the synchronisation it needs.
+    @SuppressWarnings("java:S3077")
+    private volatile Session session = new Session(null, 0);
+
+    /** Counts sessions. */
+    private final AtomicInteger generations = new AtomicInteger();
 
     /** The generation the layers below were set up for, or -1 for none. */
     private int setUpFor = -1;
@@ -154,8 +167,7 @@ public final class DynmapMapProvider implements MapProvider
      */
     void attach(final MarkerAPI markers)
     {
-        api = markers;
-        generation.incrementAndGet();
+        session = new Session(markers, generations.incrementAndGet());
         if (markers != null)
         {
             onReady.run();
@@ -165,24 +177,52 @@ public final class DynmapMapProvider implements MapProvider
     /** Dynmap has gone, and taken our layers with it. */
     void detach()
     {
-        api = null;
-        generation.incrementAndGet();
+        session = new Session(null, generations.incrementAndGet());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>If Dynmap throws part-way, what it did draw is not recorded, so the next apply starts
+     * over: it deletes and remakes the layers, which takes any half-drawn marks with them.
+     */
     @Override
     public void apply(final MapSnapshot snapshot)
     {
-        final MarkerAPI markers = api;
-        if (markers == null)
+        final Session now = session;
+        if (now.api() == null)
         {
             return;
         }
-        final int current = generation.get();
-        if (setUpFor != current)
+        boolean done = false;
+        try
         {
-            setUp(markers);
-            setUpFor = current;
+            if (setUpFor != now.generation())
+            {
+                setUp(now.api());
+                setUpFor = now.generation();
+            }
+            draw(snapshot);
+            done = true;
         }
+        finally
+        {
+            if (!done)
+            {
+                setUpFor = -1;
+                forgetDrawn();
+            }
+        }
+    }
+
+    /**
+     * Brings every layer up to date with the picture.
+     *
+     * @param snapshot
+     *            what to show
+     */
+    private void draw(final MapSnapshot snapshot)
+    {
         if (gateSet != null)
         {
             reiconOpenedOrShut(snapshot.gates());
@@ -209,7 +249,7 @@ public final class DynmapMapProvider implements MapProvider
     @Override
     public void clear()
     {
-        final MarkerAPI markers = api;
+        final MarkerAPI markers = session.api();
         if (markers != null)
         {
             deleteSet(markers, GATES);
@@ -324,19 +364,25 @@ public final class DynmapMapProvider implements MapProvider
         final String file, final String fallback)
     {
         MarkerIcon icon = markers.getMarkerIcon(id);
-        if (icon == null)
+        try (InputStream in = DynmapMapProvider.class.getResourceAsStream("/dynmap/" + file))
         {
-            try (InputStream in = DynmapMapProvider.class.getResourceAsStream("/dynmap/" + file))
+            if (in == null)
             {
-                if (in != null)
-                {
-                    icon = markers.createMarkerIcon(id, title, in);
-                }
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Dynmap icon " + file + " is missing from the jar");
             }
-            catch (final IOException e)
+            else if (icon == null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to read Dynmap icon " + file, e);
+                icon = markers.createMarkerIcon(id, title, in);
             }
+            else if (!icon.isBuiltIn())
+            {
+                // Dynmap keeps an icon between restarts, so ours is refreshed or a new image never shows.
+                icon.setMarkerIconImage(in);
+            }
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to read Dynmap icon " + file, e);
         }
         return (icon != null) ? icon : markers.getMarkerIcon(fallback);
     }
