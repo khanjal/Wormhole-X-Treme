@@ -61,9 +61,37 @@ class Probe {
   async teleport(p, dim = 'minecraft:overworld') {
     const moved = maybeEvent(this.bot, 'forcedMove', () => this.distanceTo(p) < 1.5, 10000);
     const r = await this.srv.run(`execute in ${dim} run tp ${this.name} ${p.x} ${p.y} ${p.z} ${p.yaw || 0} ${p.pitch || 0}`);
-    if (r.errors.length) throw new Error(`tp ${this.name}: ${r.errors.join(' ')}`);
+    const errors = r.errors.filter((l) => !this.isMoveCheck(l));
+    if (errors.length) throw new Error(`tp ${this.name}: ${errors.join(' ')}`);
     await moved;
+    await this.settle();
     if (this.distanceTo(p) >= 1.5) throw new Error(`${this.name} was not moved to ${p.x} ${p.y} ${p.z} (at ${this.position})`);
+  }
+
+  /**
+   * The server's movement check on this bot. On 1.20.4, Paper judges the move Mineflayer sends
+   * straight after confirming a teleport against where the bot stood when the tick began, so a
+   * bot on localhost (answering inside the same tick) "moved too quickly" and is teleported
+   * again, to where it already is. Harmless; settle() waits out that second teleport.
+   */
+  isMoveCheck(line) {
+    return new RegExp(`^${this.name} moved (too quickly|wrongly)!`).test(line);
+  }
+
+  /** Waits until no teleport has arrived for five ticks (at most three seconds). */
+  async settle(quietTicks = 5, maxMs = 3000) {
+    let quiet = 0;
+    const reset = () => { quiet = 0; };
+    this.bot.on('forcedMove', reset);
+    const end = Date.now() + maxMs;
+    try {
+      while (quiet < quietTicks && Date.now() < end) {
+        await this.bot.waitForTicks(1);
+        quiet++;
+      }
+    } finally {
+      this.bot.off('forcedMove', reset);
+    }
   }
 
   /** Walks straight to each waypoint in turn; fails if it stops closing in for two seconds. */
@@ -132,6 +160,7 @@ class Probe {
     await this.walkTo({ x: x + 0.5, y, z: z + 0.5 }, { within: 0.3, ms, until: () => teleported }).catch(() => {});
     const failed = await moved;
     if (failed) throw failed;
+    await this.settle();
     return { position: this.position.clone(), dimension: this.dimension };
   }
 
