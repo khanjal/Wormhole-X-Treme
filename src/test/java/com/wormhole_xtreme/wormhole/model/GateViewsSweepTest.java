@@ -121,12 +121,12 @@ class GateViewsSweepTest
     /** What the mirror sweep answers when the gate is offered: whether its view is drawn. */
     private void drawn(final boolean drawn)
     {
-        windows.when(() -> MirrorWindows.offerGate(any(GateWindow.class), anyBoolean(), any())).thenReturn(drawn);
+        windows.when(() -> MirrorWindows.offerGate(any(GateWindow.class), anyBoolean())).thenReturn(drawn);
     }
 
     private void offeredTimes(final int times)
     {
-        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean(), any()), times(times));
+        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
     }
 
     @Test
@@ -205,8 +205,8 @@ class GateViewsSweepTest
         GateViews.offerAll();
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true), any()), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false), any()), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**
@@ -296,8 +296,8 @@ class GateViewsSweepTest
         near(true);
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true), any()), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false), any()), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**

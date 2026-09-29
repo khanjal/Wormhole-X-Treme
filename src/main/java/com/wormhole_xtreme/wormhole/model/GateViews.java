@@ -14,7 +14,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
@@ -218,20 +217,6 @@ public final class GateViews
         }
     }
 
-    /**
-     * What a gate's throat is drawn in: its portal material, or a solid look-alike of one that is
-     * see-through, in a checkerboard.
-     *
-     * <p>Real water walls would show this world through them, tinted, which is the very mixing a
-     * throat is there to stop; the ices and concretes are the iris's own stand-ins for the same
-     * reason (docs/GATES.md, "Behind a translucent iris").
-     */
-    static Material[] throatOf(final Stargate gate)
-    {
-        final Material portal = gate.getEffectivePortalMaterial();
-        return new Material[] { MaterialUtils.shownBehindGlassAs(portal, false), MaterialUtils.shownBehindGlassAs(portal, true) };
-    }
-
     /** An open gate as the window drawing sees it. */
     private static GateWindow windowOf(final Stargate gate, final MirrorWindow shape)
     {
@@ -271,7 +256,7 @@ public final class GateViews
         {
             return;
         }
-        final boolean drawn = MirrorWindows.offerGate(windowOf(gate, shape), !OPEN.contains(name), throatOf(gate));
+        final boolean drawn = MirrorWindows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
         if (drawn && clears && !crossing)
         {
             clear.add(name);
