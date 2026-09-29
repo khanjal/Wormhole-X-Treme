@@ -378,8 +378,8 @@ public final class MirrorCapture
          */
         private static boolean isLeaves(final BlockData data)
         {
-            final Material material = data.getMaterial();
-            return (material != null) && material.name().endsWith("_LEAVES");
+            // valueOf: a stand-in block with no material reads as "null", not as leaves.
+            return String.valueOf(data.getMaterial()).endsWith("_LEAVES");
         }
 
         /**
