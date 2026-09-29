@@ -28,6 +28,7 @@ const GAMERULES = {
   weather: ['doWeatherCycle', 'advance_weather'],
   mobSpawning: ['doMobSpawning', 'spawn_mobs'],
   commandBlockOutput: ['commandBlockOutput', 'command_block_output'],
+  logAdminCommands: ['logAdminCommands', 'log_admin_commands'],
 };
 
 function gameruleName(version, rule) {
@@ -131,8 +132,11 @@ function vanillaVersionInfo(folder, version) {
   return entry ? JSON.parse(entry.toString('utf8')) : null;
 }
 
-/** Writes eula.txt and server.properties for an offline, flat, quiet test server. */
-function prepareFolder(folder, { port, levelName = 'world' }) {
+/**
+ * Writes eula.txt and server.properties for an offline, flat, quiet test server. `layers`
+ * sets the flat world's layers (bottom up); without it the server's default flat is used.
+ */
+function prepareFolder(folder, { port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6 }) {
   fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(path.join(folder, 'eula.txt'), 'eula=true\n');
   const props = {
@@ -144,16 +148,100 @@ function prepareFolder(folder, { port, levelName = 'world' }) {
     'generate-structures': 'false',
     'spawn-protection': '0',
     'spawn-monsters': 'false',
+    'spawn-animals': 'false',
     difficulty: 'peaceful',
-    gamemode: 'creative',
-    'view-distance': '6',
+    gamemode,
+    'allow-flight': 'true',
+    'view-distance': String(viewDistance),
     'simulation-distance': '6',
     'max-players': '8',
     motd: 'Wormhole Research Facility',
     'enable-command-block': 'true',
   };
+  if (layers) props['generator-settings'] = JSON.stringify({ layers, biome: 'minecraft:plains', structure_overrides: [] });
   const text = Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n');
   fs.writeFileSync(path.join(folder, 'server.properties'), `${text}\n`);
+}
+
+/** Deletes the worlds (and, with `pluginData`, the plugin's folder) so a run starts clean. */
+function freshWorlds(folder, { pluginData = false } = {}) {
+  if (!fs.existsSync(folder)) return;
+  for (const d of fs.readdirSync(folder)) {
+    if (/^world/.test(d)) fs.rmSync(path.join(folder, d), { recursive: true, force: true });
+  }
+  if (pluginData) fs.rmSync(path.join(folder, 'plugins', 'WormholeXTreme'), { recursive: true, force: true });
+}
+
+/** Copies the plugin jar into plugins/ under its stable name. */
+function installPlugin(folder, jar) {
+  const dir = path.join(folder, 'plugins');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync(jar, path.join(dir, 'WormholeXTreme.jar'));
+}
+
+/**
+ * A JDK's java for a major version: JAVA<major>_HOME if set, else the usual install folders
+ * (Adoptium, Oracle and Microsoft on Windows, /usr/lib/jvm on Linux). Null if none is found.
+ */
+function findJava(major) {
+  const exe = process.platform === 'win32' ? 'java.exe' : 'java';
+  const env = process.env[`JAVA${major}_HOME`];
+  if (env && fs.existsSync(path.join(env, 'bin', exe))) return path.join(env, 'bin', exe);
+  const roots = process.platform === 'win32'
+    ? ['C:/Program Files/Eclipse Adoptium', 'C:/Program Files/Java', 'C:/Program Files/Microsoft']
+    : ['/usr/lib/jvm', '/Library/Java/JavaVirtualMachines'];
+  const named = new RegExp(`(^|[^0-9])${major}([.-]|$)`);
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue;
+    const hit = fs.readdirSync(root).filter((d) => named.test(d)).sort().pop();
+    if (!hit) continue;
+    for (const bin of [path.join(root, hit, 'bin', exe), path.join(root, hit, 'Contents', 'Home', 'bin', exe)]) {
+      if (fs.existsSync(bin)) return bin;
+    }
+  }
+  return null;
+}
+
+/** Builds the plugin jar from the repository with Maven, offline, tests skipped; returns its path. */
+function buildPlugin(repo, javaExe) {
+  const env = { ...process.env };
+  if (javaExe) env.JAVA_HOME = path.dirname(path.dirname(javaExe));
+  const r = spawnSync('mvn', ['-o', '-q', '-DskipTests', 'package'], {
+    cwd: repo, env, encoding: 'utf8', shell: process.platform === 'win32',
+  });
+  if (r.status !== 0) throw new Error(`mvn package failed (${r.status}):\n${`${r.stdout}${r.stderr}`.slice(-2000)}`);
+  const jar = path.join(repo, 'target', 'WormholeXTreme.jar');
+  if (!fs.existsSync(jar)) throw new Error(`mvn package made no ${jar}`);
+  return jar;
+}
+
+/**
+ * Plugin log lines that are expected on a test server and are not faults, matched exactly
+ * against the message after "[WormholeXTreme] ". The one list, used by the fault counter and
+ * the self-test alike; add a line here only with the reason it is benign.
+ */
+const KNOWN_BENIGN = [
+  // No Vault or LuckPerms on the test server, by design: the plugin says so once at enable.
+  'No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; '
+    + 'advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set '
+    + 'PERMISSIONS_AUTO_FALLBACK=false.',
+];
+
+/**
+ * A log line's fault message if it is a plugin fault, else null: a WARN or ERROR from
+ * WormholeXTreme, a stack frame in its package, or a failure to load, enable or pass an event
+ * to it. Messages on KNOWN_BENIGN are not faults.
+ */
+function pluginFault(line) {
+  const m = LOG_LINE.exec(line);
+  if (m && (m[2] === 'WARN' || m[2] === 'ERROR')) {
+    const own = /^\[WormholeXTreme\] ?(.*)$/.exec(m[3]);
+    if (own) return KNOWN_BENIGN.includes(own[1].trim()) ? null : m[3];
+    return /WormholeXTreme|wormhole_xtreme/.test(m[3]) ? m[3] : null;
+  }
+  if (/^\s+at com\.wormhole_xtreme\./.test(line)) return line.trim();
+  const failure = /Error occurred while (enabling|disabling) WormholeXTreme|Could not load 'plugins[\\/]WormholeXTreme|Could not pass event \S+ to WormholeXTreme/;
+  return failure.test(line) ? line.trim() : null;
 }
 
 /**
@@ -245,6 +333,29 @@ class Server extends EventEmitter {
     await this.waitFor(/Created new objective \[?wxfence\]?|An objective already exists by that name/, 15000, 'the fence objective');
   }
 
+  /**
+   * Runs `command` until its output matches `re`, every `interval` ms, for at most `ms`.
+   * A wait for something observable, never a bare sleep: it names `what` when it gives up.
+   */
+  async until(command, re, ms, what, interval = 250) {
+    const deadline = Date.now() + ms;
+    let last = [];
+    for (;;) {
+      const r = await this.run(command);
+      if (r.lines.some((l) => re.test(l))) return r;
+      last = r.lines;
+      if (Date.now() > deadline) throw new Error(`timed out after ${ms} ms waiting for ${what}; last: ${last.join(' | ')}`);
+      await new Promise((resolve) => { setTimeout(resolve, interval); });
+    }
+  }
+
+  /** Waits until every point is in a loaded chunk of `dim` (forceload is asynchronous). */
+  async waitLoaded(dim, points, ms = 60000) {
+    for (const [x, y, z] of points) {
+      await this.until(`execute in ${dim} if loaded ${x} ${y} ${z}`, /Test passed/, ms, `${dim} ${x} ${z} to load`);
+    }
+  }
+
   async stop(ms = 60000) {
     if (this.exited !== null) return this.exited;
     const exit = new Promise((resolve) => this.once('exit', resolve));
@@ -257,5 +368,6 @@ class Server extends EventEmitter {
 }
 
 module.exports = {
-  Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, vanillaVersionInfo, COMMAND_ERROR,
+  Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };
