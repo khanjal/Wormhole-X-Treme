@@ -108,7 +108,8 @@ counts.
 ## 3. The final model review of the finished PR
 
 When everything else is done -- findings fixed, CI green, Sonar at zero (step 2), any in-game
-check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code) as
+check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code;
+when the Route line names a planner, `route-implementation` step 5's table instead) as
 a sub-agent on the whole PR as it now stands (`origin/main...` the branch head, fetched),
 with the same brief as step 1. Tell it what the earlier review found and what became of each,
 so it spends its time on what it missed rather than confirming what is already fixed.

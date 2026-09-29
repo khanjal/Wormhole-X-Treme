@@ -18,9 +18,10 @@ rather than rewriting them unasked.
 Use this repository's skills where they apply: `wormhole-test-style` for any test,
 `cross-version-compat` when calling a Bukkit API or touching a catch block, `verify-bukkit-api`
 for any API not already used in the codebase, `mutation-check` before claiming a test guards
-anything, `sonar-check` before you finish. For Maven, set
-`JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.17.10-hotspot"` (`java` on PATH is
-Java 8) and run it offline with `-o`, as the `ship-it` skill does.
+anything, `sonar-check` before you finish. Run Maven offline with `-o`, as the `ship-it` skill
+does, on JDK 17: check `mvn -v` first, and only if it reports another version set `JAVA_HOME` —
+on the owner's Windows machine that is
+`/c/Program Files/Eclipse Adoptium/jdk-17.0.17.10-hotspot`; in a cloud session leave it alone.
 
 Commit your work on that branch as you go, by pathspec, ending each message with the
 `Co-Authored-By` trailer for your own model from your session context: the `mutation-check`

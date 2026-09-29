@@ -59,8 +59,9 @@ The prompt carries everything, since the sub-agent sees none of this conversatio
 
 ## 4. When it comes back
 
-- **Stopped on a plan problem:** fix the plan here, then hand the rest back to the same model,
-  or up one if the problem showed the change needs more judgment than the route assumed.
+- **Stopped on a plan problem:** fix the plan here, then hand the rest back to the same
+  sub-agent with `SendMessage`, or to a fresh one a model up if the problem showed the change
+  needs more judgment than the route assumed.
 - **Finished:** it has committed on the branch with its own model's trailer. Read the diff
   yourself — a skim for scope and anything surprising, not a review. Then carry on with
   `ship-it` from the CHANGELOG step; the implementer has already run ship-it's test and
@@ -81,15 +82,22 @@ reviewer, swap the two: the planner does the first review and the other model th
 | Planned by | Implemented by | First review | Final review |
 |---|---|---|---|
 | Opus | Sonnet | Opus | Fable |
+| Opus | Opus | Sonnet | Fable |
 | Fable | Sonnet | Fable | Opus |
 | Fable | Opus | Fable | Sonnet |
 | Opus or Fable | this session (no hand-off) | as `pr-review`'s table | as `pr-review`'s table |
 
-**Review fixes go back to the implementer**, with the findings to fix and the tests each needs,
-so every line of the change still has one author and the final reviewer is still independent
-of it. The planner fixes a finding itself only when the finding is in the plan's design; say so
-in the PR description, and then the final review must be by a model that is neither the planner
-nor the implementer — there are three, so one always is.
+Fable planning and Opus implementing leaves Sonnet as the only model that did neither, so it
+takes the final review — the quicker pass, now also the one that reviews the fixes. That is the
+accepted price of an independent final review; on a risky change of that kind, keep the
+implementing in this session instead, and `pr-review`'s own table applies.
+
+**Every review fix goes back to the implementer** — the model reviews' and Copilot's alike, small
+ones included — so every line of the change still has one author and the final reviewer is still
+independent of it. Send them to the same sub-agent with `SendMessage`, which resumes it with its
+context intact, so a fix round skips the cold start that step 1 counts as delegation's main
+cost; spawn a fresh one only for an escalation. The planner fixes a finding itself only when the
+finding is in the plan's design; say so in the PR description.
 
 ## 6. Record the route on the PR
 
@@ -100,8 +108,9 @@ Fill in the **Route** line of the PR template's Reviews section:
 - **attempts**: implementer runs until it built and passed its tests — 1 is first time; an
   escalation counts on the model it escalated to, so write e.g. "Sonnet 2, Opus 1"
 - **hand-backs**: stops on a plan problem — the planner's cost, not the implementer's
-- **review-fix rounds**: rounds of fixes after the reviews — mostly the reviewers' and planner's
-  signal, so do not read it as the implementer's
+- **review fixes**: rounds of fixes after the reviews, split by where each finding lay — e.g.
+  "impl 1, plan 1". An implementation that passed its own tests but was wrong counts here, under
+  impl, so this is where a redo shows up; plan findings are the planner's cost
 
 To tune the rules, read the record back:
 
@@ -109,6 +118,6 @@ To tune the rules, read the record back:
 gh -R khanjal/Wormhole-X-Treme pr list --state merged --limit 50 --search "Route in:body" --json number,body --jq '.[] | "\(.number) \((.body // "") | (capture("Route: (?<r>[^\r\n]*)").r? // "no Route line"))"'
 ```
 
-Tune on **attempts** per row. A row whose Sonnet changes keep needing a second attempt belongs
-with Opus; a row where Opus always gets it first time may be ready for Sonnet. Change the table
+Tune on **attempts plus impl review fixes** per row. A row whose Sonnet changes keep needing a
+second attempt or an impl fix round belongs with Opus; a row where Opus always gets it first time may be ready for Sonnet. Change the table
 here, with the PR numbers that justify it.
