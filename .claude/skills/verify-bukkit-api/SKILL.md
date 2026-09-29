@@ -5,7 +5,7 @@ description: Verify a Bukkit/Spigot/Paper API's existence, behavior, or version 
 
 # Verifying a Bukkit/Spigot/Paper API claim
 
-This project's supported range is wide (1.20 through 26.2 — ten versions proven in CI,
+This project's supported range is wide (1.20 through 26.3 — twelve versions proven in CI,
 three server flavours, one jar) and its history has concrete, expensive examples of an API
 that looked safe from memory but genuinely differed by version:
 
@@ -94,8 +94,8 @@ answer, not something to paper over.
 ## Why this matters more here than in a typical plugin
 
 Most Bukkit plugins target one Minecraft version and get away with assumptions that happen to
-be true for that version. This one deliberately spans 1.20 through 26.2 in a single jar and
-proves ten versions across that range in CI on every push — which means an assumption that's
+be true for that version. This one deliberately spans 1.20 through 26.3 in a single jar and
+proves twelve versions across that range in CI on every push — which means an assumption that's
 wrong for even one of those versions is a real, immediate, checkable bug, not a hypothetical
 edge case. The version matrix exists to catch exactly this; using this skill *before* writing
 code catches it earlier and cheaper than waiting for CI to catch it after.

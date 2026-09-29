@@ -8,6 +8,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.9.0 (unreleased)
 
+### Server
+
+- **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
+  Paper 1.21.8 server, as for the other eleven versions.
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
