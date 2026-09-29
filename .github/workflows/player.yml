@@ -4,7 +4,7 @@ name: Player journeys
 # scripts/player-boot.sh. Run by hand from the Actions tab, and whenever the harness itself changes.
 # Not on every pull request yet: it is new, and a flaky bot there would cost more than it catches.
 #
-# The lab (scripts/lab.sh) is for a person, not a check, but it shares the bot's code; its
+# The lab (scripts/run-lab.js) is for a person, not a check, but it shares the bot's code; its
 # self-test, which has the bot work every panel as a watcher would, runs here when either changes,
 # so neither can break the other unseen.
 on:
@@ -14,7 +14,7 @@ on:
       - scripts/player-boot.sh
       - scripts/player-test/**
       - scripts/boot-test.sh
-      - scripts/lab.sh
+      - scripts/run-lab.js
       - .github/workflows/player.yml
 
 permissions:
@@ -94,17 +94,19 @@ jobs:
       - name: Fetch paper ${{ matrix.version }}
         run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
 
+      # run-lab.js asks for Node 22, the oldest the bot is known to run on.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
       - name: Work every panel in the lab
-        env:
-          BOOT_DIR: boot
-          LAB_SELFTEST: "1"
-        run: bash scripts/lab.sh server.jar target/WormholeXTreme.jar ${{ matrix.version }}
+        run: node scripts/run-lab.js ${{ matrix.version }} --server server.jar --plugin target/WormholeXTreme.jar --selftest
 
       - name: Upload the server log
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: lab-log-${{ matrix.version }}
-          path: boot/console.log
+          path: .local-server/lab-${{ matrix.version }}/console.log
           if-no-files-found: ignore
           retention-days: 7

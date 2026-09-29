@@ -2,7 +2,7 @@
 // The lab: a test world laid out as a laboratory, with a bay for gates, rings, beams and mirrors,
 // where you pick what to test on a panel of signs, press Run, and watch the bot make the trip.
 //   node lab.js <minecraft-version>
-// Started by lab.sh through boot-test.sh. It builds the lab from console commands on the fresh
+// Started by scripts/run-lab.js once the server is up. It builds the lab from console commands on the fresh
 // world, then waits: for presses on the panels, which it hears in chat, and for "stop" in chat.
 //
 // LAB_SELFTEST=1 has the bot press the panels itself, as a watcher would, through a run of every

@@ -174,18 +174,25 @@ from the console, act as the player, then check where the bot is and what it see
 ### The lab
 
 The trips above are the right shape for CI and the wrong shape for trying something by hand. To
-see a Grand gate in Atlantis materials with a lava portal, or a slow ring stack, `scripts/lab.sh`
-starts a server with a test world laid out as a laboratory, and you join it and pick from signs:
+see a Grand gate in Atlantis materials with a lava portal, or a slow ring stack, `scripts/run-lab.js`
+starts a server with a test world laid out as a laboratory, and you join it and pick from signs.
+It is a Node script, so it runs the same from PowerShell, a Mac or Linux:
 
 ```bash
-bash scripts/fetch-server.sh paper 26.1.2 server.jar
-mvn -DskipTests package
-bash scripts/lab.sh server.jar target/WormholeXTreme.jar          # 26.1.2 unless a version is given
+node scripts/run-lab.js                  # Minecraft 26.1.2
+node scripts/run-lab.js 1.21.11          # another version
+node scripts/run-lab.js --no-build       # the jar already in target/
 ```
+
+It builds the plugin with Maven, downloads Paper the first time into `.local-server/`, and runs the
+server in `.local-server/lab-<version>`, wiped each time. It needs Node 22 or newer, Maven, and a
+Java new enough for the version: 21 up to 1.21.x, 25 for 26.x. `--java <path>` names one, as does
+`JAVA_HOME`; otherwise `java` on the path is used. `--server` and `--plugin` take jars you already
+have, and `--port` moves it off 25599.
 
 Join `localhost:25599` from a client of that version, under any name. You arrive in the hub, an
 SGC-style base, in adventure mode, and the lectern there explains the rest. Say `stop` in chat to
-shut the lab down; the server stops with it.
+shut the lab down, or press Ctrl+C where you started it; the server stops with it.
 
 Each bay has a control panel: a sign for each choice with a **next** button under it, a **Run**
 button, a **Reset** lever, and a lamp that is green when idle, amber while a run goes and red when
@@ -207,7 +214,7 @@ circle of slabs round each of the two gold blocks and press Run for the bot to p
 The mirror gallery has a bare wall marked for a banner of your own, which joins as `yours`.
 
 **How it is built.** The world is a template, not a save file: `player-test/lab.js` builds it with
-console commands on the fresh world `boot-test.sh` makes, from the small pieces in
+console commands on the fresh world `run-lab.js` makes, from the small pieces in
 `player-test/lab/pieces.js`, so it survives version changes and diffs in review. Each bay is a file
 in `player-test/lab/`. Every button and lever sits on a command block that says what was pressed
 (`/say lab:next gate shape`); look at the block to read it. The bot hears that in chat and owns
@@ -220,15 +227,14 @@ through to riding a boat or taking a wolf along, are in `player-test/kit.js`, wh
 uses too; the lab only lays out the world and says which gate, ring, beam or mirror to take. Nothing
 in the lab ships in the plugin, and there is no lab code in `src/main`.
 
-**Its self-test.** `LAB_SELFTEST=1` has the bot work every panel as a watcher would, pressing the
+**Its self-test.** `--selftest` has the bot work every panel as a watcher would, pressing the
 buttons and reading back the signs, through a spread of settings in each bay, both build pads, and
-every Reset, and then checks each bay is empty again; it exits failing if anything did.
-`LAB_SELFTEST=gate,mirror` tests only those bays. The Player journeys workflow runs it on Paper
+every Reset, and then checks each bay is empty again; it exits failing if anything did, or if the plugin logged a warning.
+`--selftest=gate,mirror` tests only those bays. The Player journeys workflow runs it on Paper
 1.20.4, 1.21.11 and 26.1.2 whenever the bot's code changes, so the lab cannot drift from the trips.
 
 The version must be one Mineflayer speaks, as for the journeys; 26.1.2 is the newest it does, and
-`lab.sh`'s default should move up when Mineflayer does. `BOOT_DIR` keeps the server folder, but
-use a new one each time, since the lab is built on a fresh world.
+`run-lab.js`'s default should move up when Mineflayer does.
 
 ## Static analysis
 

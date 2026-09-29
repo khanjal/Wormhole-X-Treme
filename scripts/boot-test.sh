@@ -7,8 +7,7 @@
 # ("sleep N" in BOOT_COMMANDS waits N seconds); BOOT_CLIENT, a shell command run once those are sent,
 # with BOOT_CONSOLE (append a line to send it to the console) and BOOT_LOG set, which fails the test
 # by exiting non-zero. BOOT_PORT (default 25599) and BOOT_FLOOR, the flat world's one layer (default
-# minecraft:bedrock), shape the server; BOOT_PROPERTIES, lines appended to server.properties, override
-# any of it, and BOOT_MEMORY (default 1G) is the server's heap.
+# minecraft:bedrock), shape the server.
 set -uo pipefail
 
 if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
@@ -50,10 +49,6 @@ spawn-protection=0
 view-distance=3
 simulation-distance=3
 EOF
-# A key given twice in server.properties takes its last value.
-if [[ -n "${BOOT_PROPERTIES:-}" ]]; then
-  printf '%s\n' "$BOOT_PROPERTIES" >> "$dir/server.properties"
-fi
 : > "$dir/commands.txt"
 log="$dir/console.log"
 
@@ -61,7 +56,7 @@ send() { echo "$1" >> "$dir/commands.txt"; }
 
 cd "$dir" || exit 2
 rm -f tail.pid
-{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" "-Xmx${BOOT_MEMORY:-1G}" -DIReallyKnowWhatIAmDoingISwear=true \
+{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" -Xmx1G -DIReallyKnowWhatIAmDoingISwear=true \
   -Dterminal.jline=false -Dterminal.ansi=false -jar "$server_jar" nogui > "$log" 2>&1 &
 server_pid=$!
 cleanup() { [[ -f tail.pid ]] && kill "$(cat tail.pid)" 2>/dev/null; kill "$server_pid" 2>/dev/null; }
