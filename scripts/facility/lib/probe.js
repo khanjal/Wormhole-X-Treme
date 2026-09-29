@@ -126,9 +126,12 @@ class Probe {
   /** Walks onto a plate and waits to be teleported off it; returns where it landed. */
   async standOn({ x, y, z }, ms = 10000) {
     let teleported = false;
-    const moved = waitEvent(this.bot, 'forcedMove', () => { teleported = true; return true; }, ms, `a teleport from the plate at ${x} ${y} ${z}`);
+    // Observed from the start, so a timeout during the walk is reported rather than unhandled.
+    const moved = waitEvent(this.bot, 'forcedMove', () => { teleported = true; return true; }, ms, `teleport from the plate at ${x} ${y} ${z}`)
+      .then(() => null, (e) => e);
     await this.walkTo({ x: x + 0.5, y, z: z + 0.5 }, { within: 0.3, ms, until: () => teleported }).catch(() => {});
-    await moved;
+    const failed = await moved;
+    if (failed) throw failed;
     return { position: this.position.clone(), dimension: this.dimension };
   }
 

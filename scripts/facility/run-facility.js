@@ -108,6 +108,9 @@ async function main() {
   if (process.env.WX_ECHO) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port });
   let exit = 0;
+  // A stray rejection is a bug in the facility: log it, fail the run, and still stop the server.
+  const stray = [];
+  process.on('unhandledRejection', (e) => { stray.push(e); console.error(`facility: unhandled ${e && e.stack ? e.stack : e}`); });
   try {
     const t0 = Date.now();
     await srv.start();
@@ -137,7 +140,7 @@ async function main() {
       }
       const bad = results.filter((r) => !r.ok).length;
       console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks; generation ${buildMs} ms, ${total} chunks forceloaded`);
-      exit = bad ? 1 : 0;
+      exit = bad || stray.length ? 1 : 0;
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');

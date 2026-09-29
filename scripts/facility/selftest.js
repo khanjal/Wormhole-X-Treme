@@ -68,7 +68,9 @@ async function selftest(fac, { buildReport, log = console.log }) {
     const close = (dest, dim) => probe.dimension === dim && probe.distanceTo(dest) < 1.6;
     for (const p of campus.TRANSIT.plates) {
       const w = campus.wing(p.to);
-      await probe.teleport({ x: home.x, y: 0, z: home.z - 8, yaw: 180 });
+      // From the ring's centre, the straight line to any plate crosses no other plate.
+      const c = campus.TRANSIT.centre;
+      await probe.teleport({ x: c.x + 0.5, y: 0, z: c.z + 0.5, yaw: 180 });
       let landed = null;
       try { landed = await probe.standOn({ x: campus.TRANSIT.centre.x + p.dx, y: 0, z: campus.TRANSIT.centre.z + p.dz }); } catch (e) { landed = { error: e.message }; }
       check('plates', `${p.dir} plate to ${w.title}`, !landed.error && close(w.entrance, w.dim),
