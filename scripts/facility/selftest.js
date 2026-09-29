@@ -9,12 +9,15 @@
 //   matrix    each chamber's cells with an expected outcome (PASS, REFUSED:<reason>), each run
 //             followed by its reset, which must leave the cell as built
 //   resets    every chamber's reset function, then its cell must be clear
+//   console   a non-op Tester clicks through the menus, chooses an option, runs and resets
 //   empty     the plugin holds nothing the facility did not make: no gates, no mirrors
 //   settings  every setting a chamber needed is back to what it was
 //   faults    the plugin log has no fault in it (server.js KNOWN_BENIGN aside)
 
 const campus = require('./lib/campus');
 const { chamber } = require('./lib/campus');
+const text = require('./lib/text');
+const { join, waitEvent } = require('./lib/probe');
 
 /**
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
@@ -108,6 +111,51 @@ async function selftest(fac, { buildReport, log = console.log }) {
           check('matrix', `${label} reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
         }
       }
+    }
+  });
+
+  // A person's path through the console, played by Tester (never opped): every step clicks the
+  // word the previous menu sent, by running the command in its click event, as a client does.
+  await guard('console', async () => {
+    // Kept from the moment the bot exists: the welcome can arrive before spawn resolves.
+    const inbox = [];
+    const tester = await join({ port: fac.port, version: fac.version, username: 'Tester', onCreate: (b) => b.on('message', (m) => inbox.push(m)) });
+    try {
+      const said = (test, ms, what) => {
+        const early = inbox.splice(0).find((m) => test(m));
+        return early ? Promise.resolve(early) : waitEvent(tester, 'message', (m) => test(m), ms, what).then(([m]) => m);
+      };
+      const clickOn = (msg, words) => text.clickCommands(msg.json).find((c) => String(c.text || '').includes(words));
+      const click = async (msg, words, expect, what) => {
+        const c = clickOn(msg, words);
+        if (!c) throw new Error(`no "${words}" to click in "${msg.toString()}"`);
+        const next = said(expect, 10000, what);
+        tester.chat(c.command);
+        return next;
+      };
+      const welcome = await said((m) => clickOn(m, '[Console]'), 20000, 'the welcome line');
+      check('console', 'Tester is greeted with a Console link', true, welcome.toString());
+      check('console', 'Tester arrives in adventure mode', tester.game.gameMode === 'adventure', tester.game.gameMode);
+      const tabs = await click(welcome, '[Console]', (m) => clickOn(m, 'Operations'), 'the wing tabs');
+      check('console', 'Console shows the wing tabs', true, tabs.toString().trim());
+      const listing = await click(tabs, 'Operations', (m) => clickOn(m, 'Calibration Cell'), 'the Ops chambers');
+      check('console', 'the Ops tab lists the calibration cell', true, listing.toString().trim());
+      const opts = await click(listing, 'Calibration Cell', (m) => clickOn(m, 'button'), 'the calibration menu');
+      check('console', 'the chamber menu offers its options', true, opts.toString().trim());
+      const chosen = await click(opts, 'button', (m) => /\[button\]/.test(m.toString()), 'the menu with button chosen');
+      check('console', 'choosing an option marks it current', true, chosen.toString().trim());
+      const ran = said((m) => /C0 Calibration Cell: (PASS|FAIL)/.test(m.toString()), 60000, 'the run result');
+      tester.chat('!run c0');
+      const result = await ran;
+      check('console', 'typed !run c0 passes', /: PASS/.test(result.toString()), result.toString());
+      const board = text.plain(await fac.boards.read('c0'));
+      check('console', 'the board shows the option chosen from the menu', board.includes('control button'), board.split('\n').join(' / '));
+      const reset = said((m) => /C0 reset:/.test(m.toString()), 30000, 'the reset result');
+      tester.chat('!reset c0');
+      const r = await reset;
+      check('console', 'typed !reset c0 puts the cell back', /as built/.test(r.toString()), r.toString());
+    } finally {
+      tester.quit();
     }
   });
 

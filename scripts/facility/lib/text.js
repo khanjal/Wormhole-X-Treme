@@ -203,7 +203,29 @@ function sameComponent(a, b) {
   return JSON.stringify(canon(normalise(a))) === JSON.stringify(canon(normalise(b)));
 }
 
+/** Every object in a component tree, for finding a click event wherever the server put it. */
+function* walk(node) {
+  if (Array.isArray(node)) for (const n of node) yield* walk(n);
+  else if (node && typeof node === 'object') {
+    yield node;
+    for (const v of Object.values(node)) yield* walk(v);
+  }
+}
+
+/**
+ * The click events in a received component (either era's keys), with the text they sit on:
+ * [{ key, command, text }]. What a client would run if the player clicked that word.
+ */
+function clickCommands(component) {
+  const found = [];
+  for (const o of walk(component)) {
+    if (o.clickEvent) found.push({ key: 'clickEvent', command: o.clickEvent.value, text: o.text });
+    if (o.click_event) found.push({ key: 'click_event', command: o.click_event.command, text: o.text });
+  }
+  return found;
+}
+
 module.exports = {
   SNAKE_CASE_EVENTS, toComponent, command, displayNbt, summonDisplay,
-  toSnbt, parseSnbt, readDisplayText, plain, sameComponent,
+  toSnbt, parseSnbt, readDisplayText, plain, sameComponent, clickCommands,
 };

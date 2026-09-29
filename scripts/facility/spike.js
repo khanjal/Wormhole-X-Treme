@@ -57,23 +57,7 @@ function note(mechanism, detail) {
 // Resolves with the first matching event's arguments, or null at the deadline.
 const nextEvent = maybeEvent;
 
-/** Every object in a component tree, for finding a click event wherever the server put it. */
-function* walk(node) {
-  if (Array.isArray(node)) for (const n of node) yield* walk(n);
-  else if (node && typeof node === 'object') {
-    yield node;
-    for (const v of Object.values(node)) yield* walk(v);
-  }
-}
-
-function clickCommands(component) {
-  const found = [];
-  for (const o of walk(component)) {
-    if (o.clickEvent) found.push({ key: 'clickEvent', command: o.clickEvent.value });
-    if (o.click_event) found.push({ key: 'click_event', command: o.click_event.command });
-  }
-  return found;
-}
+const { clickCommands } = text;
 
 function joinBot(port, version, username) {
   return join({ port, version, username });
