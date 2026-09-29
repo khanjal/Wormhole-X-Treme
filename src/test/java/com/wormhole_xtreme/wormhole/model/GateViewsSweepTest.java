@@ -211,14 +211,17 @@ class GateViewsSweepTest
     }
 
     /**
-     * A gate whose iris is crossing is left exactly as it is.
+     * A gate whose iris is crossing keeps its view, and its horizon is left as the crossing paints it.
      *
      * <p>The crossing paints the opening a ring at a time and fills it at the end. Putting the
      * horizon back under it, or clearing it, was painted over by the crossing's next step, and the
-     * gate ended with the horizon standing over its view.
+     * gate ended with the horizon standing over its view. And the view has to stay: a closing
+     * crossing at {@code open} paints the rings it has not reached yet as air, and with the view
+     * dropped those showed this world through the ring until the iris was shut. The iris flag is
+     * already up while it closes, so that is the case built here.
      */
     @Test
-    void aGateMidIrisCrossingIsLeftAsItIs() throws ReflectiveOperationException
+    void aClosingIrisKeepsTheViewBehindItAndLeavesTheHorizonAlone() throws ReflectiveOperationException
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
         drawn(true);
@@ -227,12 +230,12 @@ class GateViewsSweepTest
 
         final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
         running.put("Abydos", 1);
+        when(gate.isGateIrisActive()).thenReturn(true);
         try
         {
-            drawn(false);
             GateViews.offerAll();
 
-            offeredTimes(1);
+            offeredTimes(2);
             verify(gate, never()).fillGateInterior(Material.WATER);
             assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "still cleared, until the crossing is over");
         }
@@ -240,5 +243,63 @@ class GateViewsSweepTest
         {
             running.remove("Abydos");
         }
+        GateViews.offerAll();
+
+        offeredTimes(2);
+    }
+
+    /**
+     * Switching to {@code horizon} in the middle of a crossing waits for the crossing too.
+     *
+     * <p>At {@code horizon} no gate is offered, so no gate was known to be crossing either, and
+     * every cleared horizon was put back at once, under the crossing that then painted over it.
+     */
+    @Test
+    void switchingToHorizonMidCrossingWaitsForTheCrossing() throws ReflectiveOperationException
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+        GateViews.offerAll();
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        try
+        {
+            GateViews.offerAll();
+
+            verify(gate, never()).fillGateInterior(Material.WATER);
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
+        GateViews.offerAll();
+
+        verify(gate).fillGateInterior(Material.WATER);
+    }
+
+    /**
+     * Walking out of range and back is not the gate opening again.
+     *
+     * <p>Only the gates somebody was near were remembered as open, so each return said the gate had
+     * just opened, and a capture over five minutes old was retaken every time somebody did.
+     */
+    @Test
+    void walkingBackIntoRangeIsNotTheGateOpeningAgain()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        drawn(true);
+
+        GateViews.offerAll();
+        near(false);
+        GateViews.offerAll();
+        near(true);
+        GateViews.offerAll();
+
+        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
+            any(MirrorPoint.class), eq(true)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
+            any(MirrorPoint.class), eq(false)), times(1));
     }
 }

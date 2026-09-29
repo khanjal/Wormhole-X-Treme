@@ -635,15 +635,16 @@ watched for in a world, at speed and on a mount.
 wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
 spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
 still, the spread would get coarse enough to miss things, and nobody has measured where, so a
-gate bigger than five by five keeps its horizon. It is taken when the gate first opens with none, and again when it opens with one over
-five minutes old.
+gate bigger than five by five keeps its horizon. It is taken when the gate first opens with none, and again when the gate or its iris
+opens with one over five minutes old. Walking out of range and back is not an opening.
 
 **What it does not do yet**, each a thing to judge in a world before it is built:
 
 - **Nothing hides the view's edges.** A mirror hangs in a wall; a gate stands in the open, so the
   view is clipped against its ring alone. This is the go/no-go.
 - **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
-  behind the gate, sees an empty ring.
+  behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
+  player near enough to be drawn it walks away.
 - **Captures are not kept.** They are written where mirrors' are and cleared at startup; a
   gate's would be `data/gates/captures/<gate>.view`, named for the gate it shows.
 - **No setting per gate**, no depth of its own, no horizontal gates, and no creatures on the far side.

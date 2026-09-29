@@ -92,17 +92,25 @@ public final class GateViews
     public static void offerAll()
     {
         final String level = ConfigManager.getGateView();
+        final boolean draws = !"horizon".equals(level);
         final Set<String> open = new HashSet<>();
         final Set<String> clear = new HashSet<>();
         final Set<String> busy = new HashSet<>();
-        if (!"horizon".equals(level))
+        for (final Stargate gate : StargateManager.getOpenGates())
         {
-            for (final Stargate gate : StargateManager.getOpenGates())
+            // An iris crossing paints the opening a ring at a time and fills it at the end, at any
+            // level: a horizon cleared or put back under it is painted over by its next step.
+            final boolean crossing = StargateIrisAnimator.isSweeping(gate);
+            if (crossing)
             {
-                offer(gate, "open".equals(level), open, clear, busy);
+                busy.add(gate.getGateName());
+            }
+            if (draws)
+            {
+                offer(gate, crossing, "open".equals(level), open, clear);
             }
         }
-        OPEN.retainAll(busy);
+        OPEN.clear();
         OPEN.addAll(open);
         settleHorizons(clear, busy);
     }
@@ -110,38 +118,37 @@ public final class GateViews
     /**
      * Offers one open gate, if it can show a view now, and notes what became of it.
      *
+     * @param crossing
+     *            true while its iris is crossing: still drawn, so the view stays behind a closing
+     *            iris, but its horizon is left as the crossing paints it
      * @param clears
      *            true at {@code open}, where a drawn view clears the horizon
      * @param open
-     *            added to if it was offered
+     *            added to if it could show a view, whether or not anybody is near to be drawn it
      * @param clear
      *            added to if its horizon should be cleared
-     * @param busy
-     *            added to if its iris is crossing, so it is left as it is
      */
-    private static void offer(final Stargate gate, final boolean clears, final Set<String> open,
-        final Set<String> clear, final Set<String> busy)
+    private static void offer(final Stargate gate, final boolean crossing, final boolean clears,
+        final Set<String> open, final Set<String> clear)
     {
-        final String name = gate.getGateName();
-        // An iris crossing paints the opening a ring at a time and fills it at the end; clearing
-        // the horizon under it left the sweep's picture standing over the view.
-        if (StargateIrisAnimator.isSweeping(gate))
-        {
-            busy.add(name);
-            return;
-        }
-        final MirrorWindow shape = watched(gate) ? shapeOf(gate) : null;
+        final MirrorWindow shape = shapeOf(gate, crossing);
         if (shape == null)
         {
             return;
         }
+        final String name = gate.getGateName();
+        // Open whether or not anybody is near, so walking back into range is not the gate opening again.
         open.add(name);
+        if (!watched(gate))
+        {
+            return;
+        }
         final Location first = gate.getGatePortalBlocks().get(0);
         final boolean drawn = MirrorWindows.offerGate(PREFIX + name,
             gate.getGateWorld().getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()), shape,
             cellsOf(gate), MirrorPoint.of(gate.getGateTarget().getGatePlayerTeleportLocation()),
             !OPEN.contains(name));
-        if (drawn && clears)
+        if (drawn && clears && !crossing)
         {
             clear.add(name);
         }
@@ -210,11 +217,13 @@ public final class GateViews
     /**
      * The window an open gate makes, if it can show one now.
      *
+     * @param crossing
+     *            true while its iris is crossing, when a shut iris still shows the view it is closing over
      * @return the window, or null for a gate that keeps its horizon
      */
-    static MirrorWindow shapeOf(final Stargate gate)
+    static MirrorWindow shapeOf(final Stargate gate, final boolean crossing)
     {
-        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || gate.isGateIrisActive()
+        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.isGateIrisActive() && !crossing)
             || (gate.getGateWorld() == null) || (gate.getGateTarget() == null))
         {
             return null;
