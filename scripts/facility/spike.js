@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const mineflayer = require('mineflayer');
+const nbt = require('prismarine-nbt');
 const { Vec3 } = require('vec3');
 const server = require('./lib/server');
 const text = require('./lib/text');
@@ -76,6 +77,17 @@ function clickCommands(component) {
     if (o.click_event) found.push({ key: 'click_event', command: o.click_event.command });
   }
   return found;
+}
+
+/** The plain text of every text component in an entity's metadata, as the client would draw it. */
+function shownText(entity) {
+  const out = [];
+  for (const v of Object.values(entity.metadata || {})) {
+    if (!v || typeof v !== 'object' || typeof v.type !== 'string' || !('value' in v)) continue;
+    if (v.type !== 'compound' && v.type !== 'string' && v.type !== 'list') continue;
+    try { out.push(text.plain(nbt.simplify(v))); } catch { /* not a component */ }
+  }
+  return out;
 }
 
 function joinBot(port, version, username) {
@@ -235,21 +247,25 @@ async function checkDisplay(srv, version, probe) {
   const got = await readBack();
   check(M, 'text reads back as written', agree(got, spec), `read ${got.printed || got.error}`);
 
+  // What a player would see: the plain text of the component the client was sent. This does
+  // not go through text.js, so a wrong format (JSON left as a literal string) shows up here.
+  const want = text.plain(expect(spec));
   const seen = await spawned;
-  let clientText = null;
-  if (seen) {
-    // The metadata packet can land after the spawn; wait for one that carries the text.
-    const has = () => JSON.stringify(seen[0].metadata).includes('WX spike board');
-    if (!has()) await nextEvent(probe, 'entityUpdate', (e) => e === seen[0] && has(), 5000);
-    clientText = has();
+  const board = seen && seen[0];
+  if (board && !shownText(board).includes(want)) {
+    await nextEvent(probe, 'entityUpdate', (e) => e === board && shownText(board).includes(want), 5000);
   }
-  check(M, 'Probe was sent the text', clientText === true,
-    seen ? (clientText ? 'text found in the entity metadata' : `metadata ${JSON.stringify(seen[0].metadata).slice(0, 300)}`) : 'no text_display spawned within 10 s');
+  check(M, 'Probe was shown the text', board && shownText(board).includes(want),
+    board ? `shown ${JSON.stringify(shownText(board))}` : 'no text_display spawned within 10 s');
 
   const spec2 = [{ text: 'WX spike board', color: 'green', bold: true }, { text: ' · PASS 14:02', color: 'white' }];
   const merged = await srv.run(`data merge entity ${selector} {text:${text.displayNbt(version, spec2)}}`);
+  const want2 = text.plain(expect(spec2));
+  const shown2 = board && (shownText(board).includes(want2)
+    || await nextEvent(probe, 'entityUpdate', (e) => e === board && shownText(board).includes(want2), 5000));
   const got2 = await readBack();
-  check(M, 'data merge rewrites it', merged.errors.length === 0 && agree(got2, spec2), `read ${got2.printed || got2.error}`);
+  check(M, 'data merge rewrites it', merged.errors.length === 0 && agree(got2, spec2) && Boolean(shown2),
+    `read ${got2.printed || got2.error}; shown ${board ? JSON.stringify(shownText(board)) : 'nothing'}`);
 
   // Control: the other side of 1.21.5's format, to show the switch is load-bearing.
   const other = atLeast(version, text.SNAKE_CASE_EVENTS) ? '1.21.4' : '1.21.5';
