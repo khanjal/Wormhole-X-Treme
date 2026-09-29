@@ -39,9 +39,9 @@ is deliberate. The tested list carries the range. Putting 26.3 there would read 
 and is defensible, but it is the less literal reading of the field.
 
 **Tested versions.** CI actually builds and tests 1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4,
-1.21.8, 1.21.10, 1.21.11, 26.1.2, 26.2 and 26.3 — the boundaries where the API moved, and 1.21.8,
-which many servers run. Select the
-in-between versions too; that is what the field means on Spigot.
+1.21.8, 1.21.10, 1.21.11, 26.1.2, 26.2 and 26.3: the boundaries where the API moved, plus 1.21.8
+for the many servers on it. Select the in-between versions too; that is what the field means on
+Spigot.
 
 **Upload the jar rather than linking it.** The rules require an external download URL to be a
 direct link, and the jar's filename carries the version, so any link needs re-pointing every

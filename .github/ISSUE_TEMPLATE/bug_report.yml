@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         The three version numbers below are the ones that matter most. This plugin runs on
-        eleven Minecraft versions, and bugs have turned out to affect exactly one of them
+        twelve Minecraft versions, and bugs have turned out to affect exactly one of them
         more than once — so knowing which server you are on is usually the fastest route to
         the cause.
 
