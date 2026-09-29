@@ -72,33 +72,52 @@ public final class MapScanner
                 addRingPair(pair, ringMarks, ringLinks);
             }
         }
+        return new MapSnapshot(gateMarks, links, ringMarks, ringLinks,
+            layers.beams() ? beamMarks(beams) : Map.of(), layers.mirrors() ? mirrorMarks(mirrors) : Map.of());
+    }
+
+    /**
+     * Marks the public beam destinations.
+     *
+     * @param beams
+     *            the public beam destinations
+     * @return their marks, by id
+     */
+    private static Map<String, BeamMark> beamMarks(final Collection<BeamDestination> beams)
+    {
         // Players' private places are deliberately never read: Dynmap shows every marker to every viewer.
-        final Map<String, BeamMark> beamMarks = new HashMap<>();
-        if (layers.beams())
+        final Map<String, BeamMark> marks = new HashMap<>();
+        for (final BeamDestination beam : beams)
         {
-            for (final BeamDestination beam : beams)
+            final BeamMark mark = beamMark(beam);
+            if (mark != null)
             {
-                final BeamMark mark = beamMark(beam);
-                if (mark != null)
-                {
-                    beamMarks.put(mark.id(), mark);
-                }
+                marks.put(mark.id(), mark);
             }
         }
+        return marks;
+    }
+
+    /**
+     * Marks the quantum mirrors.
+     *
+     * @param mirrors
+     *            every quantum mirror
+     * @return their marks, by id
+     */
+    private static Map<String, MirrorMark> mirrorMarks(final Collection<QuantumMirror> mirrors)
+    {
         // Mirrors have no owner and nothing private about them, so every one is shown.
-        final Map<String, MirrorMark> mirrorMarks = new HashMap<>();
-        if (layers.mirrors())
+        final Map<String, MirrorMark> marks = new HashMap<>();
+        for (final QuantumMirror mirror : mirrors)
         {
-            for (final QuantumMirror mirror : mirrors)
+            final MirrorMark mark = mirrorMark(mirror);
+            if (mark != null)
             {
-                final MirrorMark mark = mirrorMark(mirror);
-                if (mark != null)
-                {
-                    mirrorMarks.put(mark.id(), mark);
-                }
+                marks.put(mark.id(), mark);
             }
         }
-        return new MapSnapshot(gateMarks, links, ringMarks, ringLinks, beamMarks, mirrorMarks);
+        return marks;
     }
 
     /**
