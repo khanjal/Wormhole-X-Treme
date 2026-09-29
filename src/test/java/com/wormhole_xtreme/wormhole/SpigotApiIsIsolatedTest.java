@@ -309,9 +309,13 @@ class SpigotApiIsIsolatedTest
     @Test
     void commentsAndLiteralsAreBlankedButCodeIsKept()
     {
-        final String stripped = stripCommentsAndLiterals(
-            "a.spigot(); // b.spigot()\n/* \"x */ c(\"org.spigotmc.X\", '\"', \"\\\"\");\n"
-                + "d(\"\"\"\n  net.md_5 \" \n\"\"\"); e.spigot();\nf(Player :: spigot);");
+        final String stripped = stripCommentsAndLiterals("""
+            a.spigot(); // b.spigot()
+            /* "x */ c("org.spigotmc.X", '"', "\\"");
+            d(\"""
+              net.md_5 "
+            \"""); e.spigot();
+            f(Player :: spigot);""");
 
         final Matcher m = SPIGOT_ONLY.matcher(stripped);
         final List<Integer> lines = new ArrayList<>();
@@ -335,10 +339,18 @@ class SpigotApiIsIsolatedTest
     void anImportedSpigotTypeUsedOutsideTheIsolatingClassIsCaught()
     {
         final String actionBar = "com/wormhole_xtreme/wormhole/utils/ActionBar.java";
-        final String header = "package p;\nimport net.md_5.bungee.api.chat.TextComponent;\n"
-            + "public final class ActionBar\n{\n";
-        final String spigotBar = "    private static final class SpigotBar\n    {\n"
-            + "        static Object wrap(String m) { return new TextComponent(m); }\n    }\n";
+        final String header = """
+            package p;
+            import net.md_5.bungee.api.chat.TextComponent;
+            public final class ActionBar
+            {
+            """;
+        final String spigotBar = """
+                private static final class SpigotBar
+                {
+                    static Object wrap(String m) { return new TextComponent(m); }
+                }
+            """;
 
         final List<String> held = new ArrayList<>();
         assertTrue(scan(actionBar, header + spigotBar + "}\n", held),
