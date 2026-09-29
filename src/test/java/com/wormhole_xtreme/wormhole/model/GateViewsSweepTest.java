@@ -302,4 +302,34 @@ class GateViewsSweepTest
         windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
             any(MirrorPoint.class), eq(false)), times(1));
     }
+
+    /**
+     * An opening iris is not cleared under, even with the view ready behind it.
+     *
+     * <p>The crossing reveals the horizon a ring at a time and fills it in at the end. Clearing the
+     * horizon while it ran was painted over by its next step, and the gate ended with the horizon
+     * standing over its view; the clearing waits for the crossing to finish.
+     */
+    @Test
+    void anOpeningIrisIsNotClearedUnderUntilItIsOpen() throws ReflectiveOperationException
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        try
+        {
+            GateViews.offerAll();
+
+            offeredTimes(1);
+            verify(gate, never()).fillGateInterior(Material.AIR);
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
+        GateViews.offerAll();
+
+        verify(gate).fillGateInterior(Material.AIR);
+    }
 }
