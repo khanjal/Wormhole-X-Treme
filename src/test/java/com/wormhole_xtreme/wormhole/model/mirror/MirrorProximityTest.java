@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -186,5 +187,32 @@ class MirrorProximityTest
         when(player.getLocation()).thenReturn(new Location(world, x, 64.0, 10.0));
         when(player.getWorld()).thenReturn(world);
         return player;
+    }
+
+    /**
+     * A gate hook that throws does not take the mirror sweep down with it (#516).
+     *
+     * <p>The hook runs after every mirror has been offered and before {@code finish()}, which is
+     * what moves every mirror's view on. A throw there escaped the sweep, so every mirror on the
+     * server stopped following its viewers, every second, until the plugin was reloaded.
+     */
+    @Test
+    void aGateHookThatThrowsDoesNotStopTheSweep()
+    {
+        final int[] ran = { 0 };
+        MirrorProximity.alsoOffer(() ->
+        {
+            ran[0]++;
+            throw new IllegalStateException("a gate that could not be offered");
+        });
+        try
+        {
+            assertDoesNotThrow(MirrorProximity::tick, "the sweep goes on to finish");
+            assertEquals(1, ran[0], "the hook did run, and threw");
+        }
+        finally
+        {
+            MirrorProximity.alsoOffer(null);
+        }
     }
 }

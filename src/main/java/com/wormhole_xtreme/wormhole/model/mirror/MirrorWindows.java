@@ -615,7 +615,7 @@ public final class MirrorWindows
         final List<Spot> open, final MirrorPoint destination, final boolean opened)
     {
         final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(anchor), destination);
-        final MirrorCapture capture = MirrorCaptures.get(stand);
+        final MirrorCapture capture = MirrorCaptures.get(stand, shape.width(), shape.height());
         if (capture == null)
         {
             MirrorCaptures.request(stand, shape.width(), shape.height());
@@ -634,6 +634,16 @@ public final class MirrorWindows
             window.frame = previous.frame;
             window.border = previous.border;
             window.solidAt = previous.solidAt;
+            // A gate set in a wall is drawn whole, and walking that room again every sweep is what the cache is for.
+            if ((previous.fixed != null) && (previous.capture == capture) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
+            {
+                window.fixed = previous.fixed;
+                window.fixedFrom = previous.fixedFrom;
+                window.fixedAt = previous.fixedAt;
+                window.fixedFor = previous.fixedFor;
+                window.fixedDepth = previous.fixedDepth;
+                window.fixedUsedAt = previous.fixedUsedAt;
+            }
         }
         OFFERED.put(name, window);
         return true;
@@ -741,15 +751,27 @@ public final class MirrorWindows
      */
     public static void release(final QuantumMirror mirror)
     {
-        OFFERED.remove(mirror.name());
-        if (WINDOWS.remove(mirror.name()) == null)
+        release(mirror.name());
+    }
+
+    /**
+     * Takes one window out of every view it is in, by the name it was offered under: a mirror's,
+     * or a gate's that has just closed.
+     *
+     * @param name
+     *            the window no longer being drawn
+     */
+    public static void release(final String name)
+    {
+        OFFERED.remove(name);
+        if (WINDOWS.remove(name) == null)
         {
             return;
         }
         final long now = now();
         for (final Map.Entry<UUID, MirrorDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
-            if (entry.getValue().mirrors.contains(mirror.name()))
+            if (entry.getValue().mirrors.contains(name))
             {
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)

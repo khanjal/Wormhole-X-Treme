@@ -300,6 +300,7 @@ public class WormholeXTreme extends JavaPlugin
             try
             {
                 MirrorProximity.restoreAll();
+                GateViews.clear();
             }
             catch (final Exception | LinkageError e)
             {

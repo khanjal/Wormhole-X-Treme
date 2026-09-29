@@ -96,6 +96,8 @@ class StargateLifecycle
         // shut by default never reaches: an opening sweep left running went on painting the
         // wormhole it started with into the idle gate, and its last step filled it in (#434).
         StargateIrisAnimator.cancel(gate);
+        // Before the interior is filled below, so a cleared horizon is not what a redial settles into.
+        GateViews.closed(gate);
         if (gate.isGateIrisDefaultActive())
         {
             setIrisState(gate, gate.isGateIrisDefaultActive());

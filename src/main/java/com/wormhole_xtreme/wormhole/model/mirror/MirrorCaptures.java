@@ -212,6 +212,30 @@ public final class MirrorCaptures
             + (int) Math.floor(destination.y()) + '_' + (int) Math.floor(destination.z());
     }
 
+    /** The hole a mirror's capture is seen through: three wide, so either width of mirror is served, and two tall. */
+    static final int MIRROR_HOLE_WIDTH = 3;
+    static final int MIRROR_HOLE_HEIGHT = 2;
+
+    /**
+     * The key a capture of a place seen through a hole of a given size is kept under.
+     *
+     * <p>A mirror's is the place alone, as it always was. Any other hole has its size added: a
+     * capture holds only what its own hole lets through, so a small gate's served to a big one
+     * left the big one's view with holes round its edges, and a mirror's retake replaced a gate's.
+     *
+     * @param holeWidth
+     *            the opening's width
+     * @param holeHeight
+     *            its height
+     * @return a file-safe name for that place and hole
+     */
+    static String keyOf(final MirrorPoint destination, final int holeWidth, final int holeHeight)
+    {
+        final String place = keyOf(destination);
+        return ((holeWidth == MIRROR_HOLE_WIDTH) && (holeHeight == MIRROR_HOLE_HEIGHT)) ? place
+            : (place + '_' + holeWidth + 'x' + holeHeight);
+    }
+
     /**
      * The key a mirror's room is captured under, which is its capture file's name.
      *
@@ -280,7 +304,21 @@ public final class MirrorCaptures
      */
     static MirrorCapture get(final QuantumMirror mirror)
     {
-        final String key = keyOf(mirror.destination());
+        return get(mirror, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT);
+    }
+
+    /**
+     * The capture of a far side seen through a hole of a given size, if there is one.
+     *
+     * @param holeWidth
+     *            the opening's width
+     * @param holeHeight
+     *            its height
+     * @return its capture, or null if none has been taken yet
+     */
+    static MirrorCapture get(final QuantumMirror mirror, final int holeWidth, final int holeHeight)
+    {
+        final String key = keyOf(mirror.destination(), holeWidth, holeHeight);
         final long now = System.currentTimeMillis();
         final Held held = LOADED.get(key);
         if (held != null)
@@ -354,7 +392,7 @@ public final class MirrorCaptures
      */
     public static boolean request(final QuantumMirror mirror)
     {
-        return request(mirror, 3, 2);
+        return request(mirror, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT);
     }
 
     /**
@@ -375,7 +413,7 @@ public final class MirrorCaptures
         {
             return false;
         }
-        final String key = keyOf(mirror.destination());
+        final String key = keyOf(mirror.destination(), holeWidth, holeHeight);
         if (JOBS.containsKey(key))
         {
             return true;

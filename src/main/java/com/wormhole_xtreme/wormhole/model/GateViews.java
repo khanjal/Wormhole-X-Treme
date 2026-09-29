@@ -8,7 +8,9 @@ import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
@@ -66,22 +68,51 @@ public final class GateViews
             : portal;
     }
 
+    /**
+     * Forgets a gate that has just closed, and takes its view back from whoever has it.
+     *
+     * <p>Rather than waiting for the next sweep: until then the far side stood behind an empty
+     * ring, and a gate dialled again inside that second settled with its horizon already cleared,
+     * for a destination that might have no capture at all.
+     *
+     * @param gate
+     *            the gate that closed
+     */
+    public static void closed(final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateName() == null))
+        {
+            return;
+        }
+        CLEARED.remove(gate.getGateName());
+        OPEN.remove(gate.getGateName());
+        MirrorWindows.release(PREFIX + gate.getGateName());
+    }
+
     /** Offers every open gate that can show a view to the mirror sweep, and clears or restores horizons to match. */
     public static void offerAll()
     {
         final String level = ConfigManager.getGateView();
         final Set<String> open = new HashSet<>();
         final Set<String> clear = new HashSet<>();
+        final Set<String> busy = new HashSet<>();
         if (!"horizon".equals(level))
         {
             for (final Stargate gate : StargateManager.getOpenGates())
             {
-                final MirrorWindow shape = shapeOf(gate);
+                final String name = gate.getGateName();
+                // An iris crossing paints the opening a ring at a time and fills it at the end; clearing
+                // the horizon under it left the sweep's picture standing over the view.
+                if (StargateIrisAnimator.isSweeping(gate))
+                {
+                    busy.add(name);
+                    continue;
+                }
+                final MirrorWindow shape = watched(gate) ? shapeOf(gate) : null;
                 if (shape == null)
                 {
                     continue;
                 }
-                final String name = gate.getGateName();
                 open.add(name);
                 final Location first = gate.getGatePortalBlocks().get(0);
                 final boolean drawn = MirrorWindows.offerGate(PREFIX + name,
@@ -94,18 +125,55 @@ public final class GateViews
                 }
             }
         }
-        OPEN.clear();
+        OPEN.retainAll(busy);
         OPEN.addAll(open);
-        settleHorizons(clear);
+        settleHorizons(clear, busy);
     }
 
-    /** Clears the horizon of every gate newly showing an open view, and puts it back on every gate no longer showing one. */
-    private static void settleHorizons(final Set<String> clear)
+    /**
+     * Whether anybody could be drawn a gate's view: its chunk is loaded and somebody in its world is
+     * within the mirror proximity distance.
+     *
+     * <p>A capture is a few seconds of work in the far world, and a gate dialled by redstone in a
+     * corner of the map nobody is in should not pay for one.
+     */
+    private static boolean watched(final Stargate gate)
+    {
+        final World world = gate.getGateWorld();
+        if ((world == null) || gate.getGatePortalBlocks().isEmpty())
+        {
+            return false;
+        }
+        final Location first = gate.getGatePortalBlocks().get(0);
+        if (!world.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4))
+        {
+            return false;
+        }
+        final double reach = ConfigManager.getMirrorProximityDistance();
+        for (final Player player : world.getPlayers())
+        {
+            final Location at = player.getLocation();
+            final double dx = at.getX() - first.getX();
+            final double dy = at.getY() - first.getY();
+            final double dz = at.getZ() - first.getZ();
+            if (((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Clears the horizon of every gate newly showing an open view, and puts it back on every gate no
+     * longer showing one; a gate mid iris crossing is left as it is until the crossing is over.
+     */
+    private static void settleHorizons(final Set<String> clear, final Set<String> busy)
     {
         for (final Iterator<String> it = CLEARED.iterator(); it.hasNext();)
         {
             final String name = it.next();
-            if (clear.contains(name))
+            if (clear.contains(name) || busy.contains(name))
             {
                 continue;
             }

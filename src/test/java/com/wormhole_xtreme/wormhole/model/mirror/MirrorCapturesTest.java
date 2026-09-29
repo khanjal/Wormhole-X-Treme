@@ -741,4 +741,25 @@ class MirrorCapturesTest
             body.run();
         }
     }
+
+    /**
+     * A capture seen through a gate's hole is kept apart from a mirror's of the same place (#516).
+     *
+     * <p>The key was the place alone, so a Minimal gate dialling a far gate first left a capture a
+     * Standard gate dialling it later drew from, with holes round the edges of its view, and a
+     * mirror onto the same arrival block retook it as a mirror's. A mirror's key must stay the
+     * place alone, or every capture already on disk is orphaned.
+     */
+    @Test
+    void aCaptureThroughAnotherHoleIsKeptUnderItsOwnName()
+    {
+        final MirrorPoint place = mirror.destination();
+
+        assertEquals(MirrorCaptures.keyOf(place), MirrorCaptures.keyOf(place, 3, 2),
+            "a mirror's hole keeps the name every capture on disk already has");
+        assertEquals(MirrorCaptures.keyOf(place) + "_5x5", MirrorCaptures.keyOf(place, 5, 5),
+            "a gate's is the place and its hole");
+        assertFalse(MirrorCaptures.keyOf(place, 1, 2).equals(MirrorCaptures.keyOf(place, 5, 5)),
+            "two gates of different sizes onto one gate do not share a capture");
+    }
 }

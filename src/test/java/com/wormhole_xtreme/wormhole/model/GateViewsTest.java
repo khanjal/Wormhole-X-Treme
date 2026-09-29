@@ -5,13 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
@@ -135,5 +140,34 @@ class GateViewsTest
 
         assertEquals(2, mirror.width(), "three banners is still drawn as two");
         assertEquals(2, mirror.height(), "a banner's cloth");
+    }
+
+    /**
+     * A gate that closes has its horizon back at once, not a sweep later.
+     *
+     * <p>The sweep was the only thing that forgot a cleared horizon, so a gate closed and dialled
+     * again inside that second settled with its opening empty, whether or not its new destination
+     * had a capture to show there.
+     */
+    @Test
+    void aGateThatClosesHasItsHorizonBackAtOnce() throws ReflectiveOperationException
+    {
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("Abydos");
+        final Set<String> cleared = PrivateStatics.of(GateViews.class, "CLEARED");
+        cleared.add("Abydos");
+        try
+        {
+            assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "cleared for its view");
+
+            GateViews.closed(gate);
+
+            assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER),
+                "closed, so the next dial settles into its horizon");
+        }
+        finally
+        {
+            GateViews.clear();
+        }
     }
 }

@@ -1,8 +1,12 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import java.util.logging.Level;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * The sweep that offers every mirror to {@link MirrorWindows}, which draws the ones hung on a wall.
@@ -100,7 +104,15 @@ public final class MirrorProximity
             }
             offerWindow(mirror);
         }
-        alsoOffer.run();
+        try
+        {
+            alsoOffer.run();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            // An experiment's failure must not freeze every mirror's view, which finish() is what moves on.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not offer gate views to the mirror sweep", e);
+        }
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.
         MirrorWindows.finish();
