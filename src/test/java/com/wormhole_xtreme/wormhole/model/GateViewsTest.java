@@ -104,15 +104,72 @@ class GateViewsTest
         assertEquals(new Spot(100, 70, 200), shape.farOf(19, 64, 6), "the arrival shows through the middle");
     }
 
+    /** A Standard gate's opening is five by five less its corners, and is drawn whole all the same. */
     @Test
-    void aStandardSizedOpeningIsAWindowAndAWiderOneKeepsItsHorizon()
+    void aStandardOpeningIsDrawnWholeCornersAndAll()
     {
-        assertNotNull(GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, GateViews.MOST, GateViews.MOST), ARRIVAL),
-            "five by five, a Standard gate's opening, is drawn");
-        assertNull(GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, GateViews.MOST + 1, 3), ARRIVAL),
-            "a wider one is not: the capture's rays grow with the opening");
-        assertNull(GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, GateViews.MOST + 1), ARRIVAL),
-            "nor a taller one");
+        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, GateViews.MOST, GateViews.MOST));
+        cells.removeIf(cell -> ((cell.x() == 10) || (cell.x() == 14)) && ((cell.y() == 64) || (cell.y() == 68)));
+        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
+
+        assertNotNull(shape, "a ring with its corners filled is still the one opening every capture is seen through");
+        assertEquals(GateViews.MOST, shape.width());
+        assertEquals(new Spot(100, 70, 200), shape.farOf(12, 64, 19),
+            "from its bottom row, not lifted a row to clear the missing corners");
+    }
+
+    /**
+     * A gate bigger than the capture's opening is drawn through a window carved at the foot of its
+     * middle, rather than not at all: a capture's rays grow with its opening.
+     */
+    @Test
+    void aWiderAndTallerOpeningHasAStandardWindowCarvedAtTheFootOfItsMiddle()
+    {
+        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 9, 8), ARRIVAL);
+
+        assertNotNull(shape);
+        assertEquals(GateViews.MOST, shape.width(), "no wider than a Standard gate's");
+        assertEquals(GateViews.MOST, shape.height(), "nor taller");
+        assertTrue(shape.isOpening(12, 64, 20) && shape.isOpening(16, 68, 20), "the middle five columns, bottom five rows");
+        assertFalse(shape.isOpening(11, 64, 20), "the column left of them keeps its horizon");
+        assertFalse(shape.isOpening(17, 64, 20), "and the one right of them");
+        assertFalse(shape.isOpening(14, 69, 20), "and the rows above");
+        assertEquals(new Spot(100, 70, 200), shape.farOf(14, 64, 19),
+            "and the arrival shows through the middle of its bottom row, as through a small gate's");
+    }
+
+    /** A round gate's bottom row can be narrower than the window, which then sits on the first row it fits. */
+    @Test
+    void aRoundOpeningsWindowSitsOnTheLowestRowsItFitsIn()
+    {
+        // Large's opening: rows 4, 6, 8, 8, 8, 8, 6 and 4 wide, centred on eight columns.
+        final int[] widths = {4, 6, 8, 8, 8, 8, 6, 4};
+        final List<Spot> cells = new ArrayList<>();
+        for (int row = 0; row < widths.length; row++)
+        {
+            final int left = 10 + ((8 - widths[row]) / 2);
+            for (int x = left; x < (left + widths[row]); x++)
+            {
+                cells.add(new Spot(x, 64 + row, 20));
+            }
+        }
+        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
+
+        assertNotNull(shape);
+        assertFalse(shape.isOpening(11, 64, 20), "not the bottom row, only four wide");
+        assertTrue(shape.isOpening(11, 65, 20) && shape.isOpening(15, 69, 20), "but the five rows above it");
+        assertTrue(cells.containsAll(List.of(new Spot(11, 65, 20), new Spot(15, 69, 20))),
+            "every one of them part of the opening");
+    }
+
+    @Test
+    void anOpeningWithNoRoomForTheWindowHasNone()
+    {
+        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 9, 8));
+        cells.removeIf(cell -> cell.x() == 14);
+
+        assertNull(GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL),
+            "split down its middle, nowhere has five columns side by side");
     }
 
     @Test
