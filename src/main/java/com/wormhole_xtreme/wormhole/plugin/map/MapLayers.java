@@ -32,8 +32,8 @@ public record MapLayers(boolean gates, boolean irisGates, boolean rings, boolean
      */
     public static MapLayers fromConfig()
     {
-        return new MapLayers(ConfigManager.isDynmapShowGates(), ConfigManager.isDynmapShowIrisGates(),
-            ConfigManager.isDynmapShowRings(), ConfigManager.isDynmapShowBeams(),
-            ConfigManager.isDynmapShowMirrors());
+        return new MapLayers(ConfigManager.isMapShowGates(), ConfigManager.isMapShowIrisGates(),
+            ConfigManager.isMapShowRings(), ConfigManager.isMapShowBeams(),
+            ConfigManager.isMapShowMirrors());
     }
 }

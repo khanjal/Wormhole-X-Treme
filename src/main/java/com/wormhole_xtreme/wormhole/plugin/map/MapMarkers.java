@@ -280,7 +280,7 @@ public final class MapMarkers
         {
             final MapProvider map = provider;
             final MapSnapshot picture = latest.get();
-            if (!running || (map == null) || (picture == null))
+            if ((map == null) || (picture == null))
             {
                 return;
             }

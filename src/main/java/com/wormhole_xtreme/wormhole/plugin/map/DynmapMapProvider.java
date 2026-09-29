@@ -76,6 +76,8 @@ public final class DynmapMapProvider implements MapProvider
     private final MapLayers layers;
 
     /** Dynmap's marker API while it is up, null otherwise. */
+    // An interface reference swapped whole: volatile is all the synchronisation it needs.
+    @SuppressWarnings("java:S3077")
     private volatile MarkerAPI api = null;
 
     /** Bumped each time Dynmap comes up, so the next apply knows to set up its layers again. */

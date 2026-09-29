@@ -408,12 +408,17 @@ viewer can switch on and off.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `dynmap-enabled` | `false` | Nothing is shown while this is off. |
-| `dynmap-show-gates` | `true` | Gates, and the lines between dialled gates. |
-| `dynmap-show-rings` | `true` | Transport rings. |
-| `dynmap-show-beams` | `true` | Public beam destinations. |
-| `dynmap-show-mirrors` | `true` | Quantum mirrors. |
-| `dynmap-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
+| `dynmap-enabled` | `false` | The Dynmap switch. Nothing is shown while this is off. |
+
+Which layers are drawn is set separately, and is shared by any web map this plugin draws on:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `map-show-gates` | `true` | Gates, and the lines between dialled gates. |
+| `map-show-rings` | `true` | Transport rings. |
+| `map-show-beams` | `true` | Public beam destinations. |
+| `map-show-mirrors` | `true` | Quantum mirrors. |
+| `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
 
 - **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
   in its popup; a line between two dialled gates while the wormhole is open, when both are in the
