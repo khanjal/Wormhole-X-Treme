@@ -54,6 +54,9 @@ permissions:
   wormhole.config:
     description: Allow changing plugin configuration via command.
     default: op
+  wormhole.update.notify:
+    description: Be told when a newer Wormhole X-Treme release is available, on joining.
+    default: op
   wormhole.ring.build:
     description: Allow building and pairing transport rings.
     default: op
