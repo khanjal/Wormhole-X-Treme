@@ -492,16 +492,6 @@ public final class MirrorWindows
     }
 
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
-    /**
-     * The most blocks a window's view may hold before its depth is cut to fit.
-     *
-     * @return a gate's cap for a gate's window, a mirror's for a mirror's
-     */
-    static int mostFixedFor(final MirrorWindowState window)
-    {
-        return window.walkThrough ? mostGateFixed : mostFixed;
-    }
-
     private static String toDepth(final MirrorWindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
@@ -510,6 +500,16 @@ public final class MirrorWindows
                 + BLOCKS);
         }
         return "to depth " + window.fixedDepth;
+    }
+
+    /**
+     * The most blocks a window's view may hold before its depth is cut to fit.
+     *
+     * @return a gate's cap for a gate's window, a mirror's for a mirror's
+     */
+    static int mostFixedFor(final MirrorWindowState window)
+    {
+        return window.walkThrough ? mostGateFixed : mostFixed;
     }
 
     /** Static state only. */
