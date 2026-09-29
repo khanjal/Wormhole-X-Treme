@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -84,6 +85,8 @@ class MirrorSignpostTest
 
         player = mock(Player.class);
         when(player.getWorld()).thenReturn(world);
+        // A few blocks in front of the banner, in the same chunk.
+        standingAt(10);
         // Where the line actually goes. An unstubbed mock answers null here, which the sending
         // code catches and swallows -- so without this a test would read silence off the mock
         // and call it silence from the code.
@@ -284,14 +287,12 @@ class MirrorSignpostTest
     /**
      * The pass never walks the mirrors looking for who is near them.
      *
-     * <p>This is the shape that stops a corridor flickering, and the reason the change made the
-     * plugin cheaper rather than dearer. The old version asked every mirror who was within
-     * range of it, which is a distance check per player per mirror; this asks each player one
-     * question whatever the mirror count. If it ever starts measuring distances again, the
-     * corridor problem comes back with it.
+     * <p>This is the shape that stops a corridor flickering: the old version asked every mirror
+     * who was within range of it, and each would win the action bar in turn. Each player is asked
+     * one question, what they are looking at, whatever the mirror count.
      */
     @Test
-    void itAsksThePlayerRatherThanMeasuringFromEveryMirror()
+    void itAsksThePlayerRatherThanAskingEveryMirrorWhoIsNear()
     {
         boundMirror();
         lookingAt(banner);
@@ -299,7 +300,44 @@ class MirrorSignpostTest
         sweep();
 
         verify(world, never()).getPlayers();
-        verify(player, never()).getLocation();
+    }
+
+    /**
+     * A player nowhere near a mirror is never asked what they are looking at.
+     *
+     * <p>The guard that keeps the ray count following the players at mirrors rather than everyone
+     * online in a world that has one. The absence of the call is the only way to tell "answered no
+     * cheaply" from "answered no after a ray trace per player per second".
+     */
+    @Test
+    void aPlayerFarFromEveryMirrorIsNotEvenAsked()
+    {
+        boundMirror();
+        lookingAt(banner);
+        standingAt(100);
+
+        sweep();
+
+        verify(player, never()).getTargetBlockExact(anyInt());
+        assertTrue(shown().isEmpty(), "too far to be looking at it");
+    }
+
+    /**
+     * A mirror just over a chunk border is still found.
+     *
+     * <p>The banner is in chunk 0 and the player two blocks away in chunk -1, so a check of the
+     * player's own chunk alone would miss a mirror they are close enough to read.
+     */
+    @Test
+    void aMirrorJustOverAChunkBorderIsStillNamed()
+    {
+        boundMirror();
+        lookingAt(banner);
+        standingAt(-2);
+
+        sweep();
+
+        assertEquals(1, shown().size(), "a neighbouring chunk's mirror is in reach");
     }
 
     /** A mirror on the banner block, pointing at another world. */
@@ -307,6 +345,12 @@ class MirrorSignpostTest
     {
         MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner),
             new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
+    }
+
+    /** Puts the player at this x, level with the banner and four blocks out from it. */
+    private void standingAt(final int x)
+    {
+        when(player.getLocation()).thenReturn(new Location(world, x + 0.5, 64.0, 14.5));
     }
 
     /** What the player's crosshair is on, or null for thin air. */
