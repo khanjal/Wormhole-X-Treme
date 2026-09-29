@@ -167,7 +167,7 @@ function listen (text) {
 
 /** Builds the whole lab from the console, in chunks the forceload keeps loaded. */
 async function build () {
-  narrate('Building the lab')
+  narrate('Generating the lab')
   serverCommand(`forceload add ${AREA.x0} ${AREA.z0} ${AREA.x1} ${AREA.z1}`)
   // Command blocks say what was pressed; their own feedback would only echo it to the bot.
   for (const rule of ['commandBlockOutput false', 'command_block_output false', 'doDaylightCycle false', 'advance_time false', 'doWeatherCycle false', 'advance_weather false']) {
@@ -396,7 +396,8 @@ async function selfTest () {
 // ---------------------------------------------------------------------------------------------
 
 async function main () {
-  const gone = await kit.connect()
+  await kit.connect()
+  const gone = kit.gone
   await Promise.race([build(), gone])
   kit.bot.on('messagestr', listen)
   kit.bot.on('playerJoined', welcome)

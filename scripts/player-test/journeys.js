@@ -969,7 +969,8 @@ const pet = {
 // ---------------------------------------------------------------------------------------------
 
 async function main () {
-  const gone = await kit.connect()
+  await kit.connect()
+  const gone = kit.gone
   bot = kit.bot
 
   if (observe) await waitForObserver()

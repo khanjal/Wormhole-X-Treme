@@ -207,7 +207,7 @@ async function main () {
   }
 
   if (!o.selftest) {
-    console.log(`\nThe server is up. The bot is building the lab; join localhost:${o.port} with Minecraft ${o.version} once it says the lab is built.`)
+    console.log(`\nThe server is up. Generating the lab; join localhost:${o.port} with Minecraft ${o.version} once it says the lab is built.`)
     console.log('Say "stop" in chat, or press Ctrl+C here, to shut it down.\n')
   }
   const bot = spawn(process.execPath, [path.join(client, 'lab.js'), o.version], {

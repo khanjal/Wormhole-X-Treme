@@ -812,7 +812,8 @@ let gone = null
 
 /**
  * Joins the server as the bot, ops it, and readies the world: creative, peaceful, day, no mobs.
- * Returns a promise that rejects if the bot is kicked or disconnected, to race against.
+ * Race against `gone`, which rejects if the bot is kicked or disconnected; returning it from here
+ * would make the caller's await wait for the bot to leave.
  */
 async function connect () {
   bot = mineflayer.createBot({ host: '127.0.0.1', port, username: name, auth: 'offline', version: settings.version })
@@ -854,7 +855,6 @@ async function connect () {
   serverCommand('gamerule log_admin_commands false')
   clearMobs()
   await sleep(2000)
-  return gone
 }
 
 /** Whether the server's version is `at least` major.minor.patch, as 1.21.5 or 26.1. */
