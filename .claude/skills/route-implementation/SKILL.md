@@ -66,8 +66,9 @@ swap that review for one that does.
 
 ## 5. Record the route on the PR
 
-Fill in the **Route** line of the PR template's Reviews section: which implementer, the table
-planning model, the table row that sent it there, and the number of implementation rounds — 1 if it came back finished,
+Fill in the **Route** line of the PR template's Reviews section: which implementer, the
+planning model, the table row that sent it there, and the number of implementation rounds — 1 if
+it came back finished,
 plus one for each hand-back or escalation, plus one for each round of review fixes it needed.
 
 To tune the rules, read the record back:
