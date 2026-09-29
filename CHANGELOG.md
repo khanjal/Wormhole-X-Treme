@@ -8,6 +8,17 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.9.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Gates, rings, public beam destinations and quantum mirrors show on a
+  [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) web map**, each as its own layer. A
+  gate lights up while its wormhole is open, with a line to the gate it joins. Off until
+  `dynmap-enabled` is set; `map-show-gates`, `-rings`, `-beams` and `-mirrors` leave a layer
+  out, and `map-show-iris-gates: false` hides gates with an iris code. Players' private beam
+  places are never shown. See [the guide](docs/guide/SERVER.md#dynmap).
+
 ### Server
 
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
