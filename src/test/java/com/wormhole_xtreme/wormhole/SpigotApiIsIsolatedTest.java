@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -43,8 +45,8 @@ class SpigotApiIsIsolatedTest
      * hold every use of it other than an import.
      *
      * <p>{@code ActionBar} keeps its calls in the nested {@code SpigotBar} and catches
-     * {@code LinkageError} around it, so a call in {@code ActionBar.send} itself would not be
-     * covered. {@code LegacyGateDismountListener} is loaded by name, behind a catch of
+     * {@code LinkageError} around it, so a use in {@code ActionBar} itself would not be covered.
+     * {@code LegacyGateDismountListener} is loaded by name, behind a catch of
      * {@code NoClassDefFoundError}.
      */
     private static final Map<String, String> ISOLATED = Map.of(
@@ -54,12 +56,23 @@ class SpigotApiIsIsolatedTest
     /** Isolated only while nothing names it in code: a direct reference links it eagerly. */
     private static final String LOADED_BY_NAME = "LegacyGateDismountListener";
 
+    private static final Pattern NAMES_LOADED_BY_NAME = Pattern.compile("\\b" + LOADED_BY_NAME + "\\b");
+
     private static final Path ROOT = Paths.get("src/main/java");
 
     /** Well under the sources there are today, so it trips only on a scan that read almost nothing. */
     private static final int SOURCE_FLOOR = 150;
 
     private static final Pattern IMPORT = Pattern.compile("^\\s*import\\s", Pattern.MULTILINE);
+
+    /** The braces around a class body; an offset between them is inside it. */
+    private record Span(int open, int close)
+    {
+        boolean holds(final int offset)
+        {
+            return offset > open && offset < close;
+        }
+    }
 
     @Test
     void spigotOnlyApiAppearsOnlyInTheClassesThatIsolateIt() throws IOException
@@ -75,25 +88,9 @@ class SpigotApiIsIsolatedTest
                 final String relative = ROOT.relativize(source).toString().replace('\\', '/');
                 final String code = stripCommentsAndLiterals(
                     Files.readString(source, StandardCharsets.UTF_8));
-                final String holder = ISOLATED.get(relative);
-                final int[] body = holder == null ? null : classBody(code, holder);
-                final Matcher m = SPIGOT_ONLY.matcher(code);
-                while (m.find())
+                if (scan(relative, code, offenders))
                 {
-                    if ((holder != null && isImport(code, m.start()))
-                        || (body != null && m.start() > body[0] && m.start() < body[1]))
-                    {
-                        isolatedUsers.add(relative);
-                    }
-                    else
-                    {
-                        offenders.add(relative + ":" + lineOf(code, m.start()) + " " + m.group());
-                    }
-                }
-                if (!source.getFileName().toString().equals(LOADED_BY_NAME + ".java")
-                    && Pattern.compile("\\b" + LOADED_BY_NAME + "\\b").matcher(code).find())
-                {
-                    offenders.add(relative + " names " + LOADED_BY_NAME + " outside a string");
+                    isolatedUsers.add(relative);
                 }
             }
         }
@@ -107,28 +104,105 @@ class SpigotApiIsIsolatedTest
                 + "nested class whose caller catches LinkageError, as ActionBar does -- and add "
                 + "that class to ISOLATED.");
         assertEquals(new TreeSet<>(ISOLATED.keySet()), isolatedUsers,
-            "an ISOLATED entry was not found or no longer uses Spigot API; a stale entry would "
-                + "wave through whatever takes its name next, so remove or rename it");
+            "an ISOLATED entry was not found or no longer uses Spigot API inside its class; a "
+                + "stale entry would wave through whatever takes its name next, so remove or "
+                + "rename it");
+    }
+
+    /**
+     * Adds one stripped file's offending uses, and says whether it used Spigot API inside the
+     * class that isolates it.
+     *
+     * <p>In an allowlisted file an import is let through, so the simple names it imports are
+     * then held to the class as well: {@code new TextComponent(m)} matches none of the patterns.
+     */
+    static boolean scan(final String relative, final String code, final List<String> offenders)
+    {
+        final String holder = ISOLATED.get(relative);
+        final Optional<Span> body = holder == null ? Optional.empty() : classBody(code, holder);
+        final List<String> imported = new ArrayList<>();
+        boolean used = false;
+        final Matcher m = SPIGOT_ONLY.matcher(code);
+        while (m.find())
+        {
+            if (holder != null && isImport(code, m.start()))
+            {
+                imported.add(importedName(code, m.start()));
+            }
+            else if (body.isPresent() && body.get().holds(m.start()))
+            {
+                used = true;
+            }
+            else
+            {
+                offenders.add(relative + ":" + lineOf(code, m.start()) + " " + m.group());
+            }
+        }
+        for (final String name : imported)
+        {
+            used |= holdSimpleName(relative, code, name, body, offenders);
+        }
+        if (!relative.endsWith("/" + LOADED_BY_NAME + ".java") && NAMES_LOADED_BY_NAME.matcher(code).find())
+        {
+            offenders.add(relative + " names " + LOADED_BY_NAME + " outside a string");
+        }
+        return used;
+    }
+
+    /** The last segment of the import on the line holding {@code offset}. */
+    private static String importedName(final String code, final int offset)
+    {
+        final int end = code.indexOf(';', offset);
+        final String path = code.substring(offset, end < 0 ? code.length() : end).trim();
+        return path.substring(path.lastIndexOf('.') + 1).trim();
+    }
+
+    /** Reports each use of an imported simple name outside the holder; true if one is inside. */
+    private static boolean holdSimpleName(final String relative, final String code, final String name,
+        final Optional<Span> body, final List<String> offenders)
+    {
+        if ("*".equals(name))
+        {
+            offenders.add(relative + " imports Spigot API by wildcard, which cannot be held to a class");
+            return false;
+        }
+        boolean used = false;
+        final Matcher use = Pattern.compile("\\b" + Pattern.quote(name) + "\\b").matcher(code);
+        while (use.find())
+        {
+            if (isImport(code, use.start()))
+            {
+                continue;
+            }
+            if (body.isPresent() && body.get().holds(use.start()))
+            {
+                used = true;
+            }
+            else
+            {
+                offenders.add(relative + ":" + lineOf(code, use.start()) + " " + name);
+            }
+        }
+        return used;
     }
 
     private static boolean isImport(final String code, final int offset)
     {
         final int lineStart = code.lastIndexOf('\n', offset - 1) + 1;
-        final Matcher m = IMPORT.matcher(code).region(lineStart, offset);
-        return m.lookingAt();
+        return IMPORT.matcher(code).region(lineStart, offset).lookingAt();
     }
 
     /**
-     * The offsets of the braces around the named class's body, or null if it is not declared.
+     * The braces around the named class's body, if it is declared.
      *
      * <p>Counted on stripped code, where every brace left is a real one.
      */
-    static int[] classBody(final String code, final String name)
+    private static Optional<Span> classBody(final String code, final String name)
     {
         final Matcher decl = Pattern.compile("\\bclass\\s+" + name + "\\b").matcher(code);
         if (!decl.find())
         {
-            return null;
+            return Optional.empty();
         }
         final int open = code.indexOf('{', decl.end());
         int depth = 0;
@@ -140,10 +214,10 @@ class SpigotApiIsIsolatedTest
             }
             else if (code.charAt(i) == '}' && --depth == 0)
             {
-                return new int[] {open, i};
+                return Optional.of(new Span(open, i));
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /** Line numbers survive stripping because newlines are kept. */
@@ -231,6 +305,7 @@ class SpigotApiIsIsolatedTest
         return src.length();
     }
 
+    /** A use of the API written in prose, a string or a char literal is not a use. */
     @Test
     void commentsAndLiteralsAreBlankedButCodeIsKept()
     {
@@ -247,5 +322,43 @@ class SpigotApiIsIsolatedTest
         assertEquals(List.of(1, 5, 6), lines,
             "only the three real uses should survive stripping, on their original lines: "
                 + stripped);
+    }
+
+    /**
+     * A BungeeCord type named by its import outside the isolating class is caught.
+     *
+     * <p>The patterns see only the import, which an allowlisted file is allowed, so without
+     * following the imported name {@code ActionBar} could build a {@code TextComponent} in its
+     * own body, outside the {@code LinkageError} catch, and pass.
+     */
+    @Test
+    void anImportedSpigotTypeUsedOutsideTheIsolatingClassIsCaught()
+    {
+        final String actionBar = "com/wormhole_xtreme/wormhole/utils/ActionBar.java";
+        final String header = "package p;\nimport net.md_5.bungee.api.chat.TextComponent;\n"
+            + "public final class ActionBar\n{\n";
+        final String spigotBar = "    private static final class SpigotBar\n    {\n"
+            + "        static Object wrap(String m) { return new TextComponent(m); }\n    }\n";
+
+        final List<String> held = new ArrayList<>();
+        assertTrue(scan(actionBar, header + spigotBar + "}\n", held),
+            "a TextComponent built inside SpigotBar is the isolated use this entry relies on");
+        assertTrue(held.isEmpty(), "nothing escapes SpigotBar here: " + held);
+
+        final List<String> escaped = new ArrayList<>();
+        scan(actionBar, header + "    static Object wrap(String m) { return new TextComponent(m); }\n"
+            + spigotBar + "}\n", escaped);
+        assertEquals(List.of(actionBar + ":5 TextComponent"), escaped,
+            "a TextComponent built in ActionBar itself links outside the catch");
+    }
+
+    /** An import alone does not keep an allowlist entry alive once its class is gone. */
+    @Test
+    void anImportAloneIsNotAnIsolatedUse()
+    {
+        final List<String> offenders = new ArrayList<>();
+        assertFalse(scan("com/wormhole_xtreme/wormhole/utils/ActionBar.java",
+            "package p;\nimport net.md_5.bungee.api.chat.TextComponent;\npublic final class ActionBar\n{\n}\n",
+            offenders), "an unused import is not a use inside SpigotBar, which does not exist");
     }
 }
