@@ -96,7 +96,8 @@ implementing in this session instead, and `pr-review`'s own table applies.
 ones included — so every line of the change still has one author and the final reviewer is still
 independent of it. Send them to the same sub-agent with `SendMessage`, which resumes it with its
 context intact, so a fix round skips the cold start that step 1 counts as delegation's main
-cost; spawn a fresh one only for an escalation. The planner fixes a finding itself only when the
+cost; spawn a fresh one only for an escalation, or when the session that spawned it is gone (a later
+or cloud session picking up the PR), telling it what is committed as in step 3. The planner fixes a finding itself only when the
 finding is in the plan's design; say so in the PR description.
 
 ## 6. Record the route on the PR
