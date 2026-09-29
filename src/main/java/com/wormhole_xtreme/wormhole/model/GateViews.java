@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.model;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -276,11 +275,7 @@ public final class GateViews
     /** A gate's portal cells as spots. */
     private static List<Spot> cellsOf(final Stargate gate)
     {
-        final List<Spot> cells = new ArrayList<>();
-        for (final Location cell : gate.getGatePortalBlocks())
-        {
-            cells.add(new Spot(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ()));
-        }
-        return cells;
+        return gate.getGatePortalBlocks().stream()
+            .map(cell -> new Spot(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ())).toList();
     }
 }

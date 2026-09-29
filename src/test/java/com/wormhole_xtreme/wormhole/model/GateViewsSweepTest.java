@@ -64,7 +64,8 @@ class GateViewsSweepTest
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(mock(Block.class));
+        final Block anyBlock = mock(Block.class);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(anyBlock);
         player = mock(Player.class);
         when(world.getPlayers()).thenReturn(List.of(player));
         near(true);
