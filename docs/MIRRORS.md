@@ -186,6 +186,12 @@ It also made the plugin cheaper. Asking every mirror who is near it is a distanc
 player per mirror; asking each player what they are looking at is one question regardless of how
 many mirrors there are, and no question at all in a world that has none.
 
+That question is a ray trace against the live world, on the main thread, so it is asked only of
+somebody standing in the chunk of a working mirror's banner or one of the eight around it. Six
+blocks is less than a chunk, so nobody close enough to read a banner is missed. Before that, every
+player anywhere in a world with one mirror traced a ray each sweep, and the count grew with
+everyone online rather than with the few standing at a mirror.
+
 **What a click will do, not just what it is.** A mirror showing its own room says to right-click
 it; one that has been turned on says where a punch goes. A mirror with no room — one saved before
 the network — says nothing, since clicking it already says what to do, to the one person who asked.

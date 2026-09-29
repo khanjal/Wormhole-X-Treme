@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -84,6 +85,8 @@ class MirrorSignpostTest
 
         player = mock(Player.class);
         when(player.getWorld()).thenReturn(world);
+        // A few blocks in front of the banner, in the same chunk.
+        standingAt(10);
         // Where the line actually goes. An unstubbed mock answers null here, which the sending
         // code catches and swallows -- so without this a test would read silence off the mock
         // and call it silence from the code.
@@ -209,11 +212,12 @@ class MirrorSignpostTest
     @Test
     void aMirrorThatGoesNowhereSaysNothing()
     {
-        // A second, working mirror in the same world, and it is load-bearing. Without one the
-        // world never enters the set this pass walks, so the sweep stops before it looks at
-        // anybody -- and the test would pass without the unpointed case ever being reached.
-        // A mutation removing the destination check survived exactly that way.
-        MirrorManager.add(new QuantumMirror("working", new MirrorBlock("world", 99, 64, 99),
+        // A second, working mirror in the chunk beside the player's, and it is load-bearing.
+        // Without one near them the sweep never asks the player anything -- and the test would
+        // pass without the unpointed case ever being reached. A mutation removing the
+        // destination check survived exactly that way, twice: once with no working mirror in the
+        // world, and again with one six chunks off once the sweep skipped players far from any.
+        MirrorManager.add(new QuantumMirror("working", new MirrorBlock("world", 20, 64, 20),
             new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
         MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner), null));
         lookingAt(banner);
@@ -284,14 +288,12 @@ class MirrorSignpostTest
     /**
      * The pass never walks the mirrors looking for who is near them.
      *
-     * <p>This is the shape that stops a corridor flickering, and the reason the change made the
-     * plugin cheaper rather than dearer. The old version asked every mirror who was within
-     * range of it, which is a distance check per player per mirror; this asks each player one
-     * question whatever the mirror count. If it ever starts measuring distances again, the
-     * corridor problem comes back with it.
+     * <p>This is the shape that stops a corridor flickering: the old version asked every mirror
+     * who was within range of it, and each would win the action bar in turn. Each player is asked
+     * one question, what they are looking at, whatever the mirror count.
      */
     @Test
-    void itAsksThePlayerRatherThanMeasuringFromEveryMirror()
+    void itAsksThePlayerRatherThanAskingEveryMirrorWhoIsNear()
     {
         boundMirror();
         lookingAt(banner);
@@ -299,7 +301,71 @@ class MirrorSignpostTest
         sweep();
 
         verify(world, never()).getPlayers();
-        verify(player, never()).getLocation();
+    }
+
+    /**
+     * A player nowhere near a mirror is never asked what they are looking at.
+     *
+     * <p>The guard that keeps the ray count following the players at mirrors rather than everyone
+     * online in a world that has one. The absence of the call is the only way to tell "answered no
+     * cheaply" from "answered no after a ray trace per player per second".
+     */
+    @Test
+    void aPlayerFarFromEveryMirrorIsNotEvenAsked()
+    {
+        boundMirror();
+        lookingAt(banner);
+        standingAt(100);
+
+        sweep();
+
+        verify(player, never()).getTargetBlockExact(anyInt());
+        assertTrue(shown().isEmpty(), "too far to be looking at it");
+    }
+
+    /**
+     * A mirror just over a chunk corner is still found.
+     *
+     * <p>The banner is in chunk 0,0 and the player diagonally across the corner in chunk -1,-1, so
+     * a check of the player's own chunk, or of only the four beside it, would never trace the ray.
+     * Negative on both axes, where a chunk key is easiest to get wrong. The ray itself is mocked,
+     * so only the chunk check is under test here, not the distance.
+     */
+    @Test
+    void aMirrorJustOverAChunkCornerIsStillNamed()
+    {
+        boundMirror();
+        lookingAt(banner);
+        standingAt(-2, -2);
+
+        sweep();
+
+        assertEquals(1, shown().size(), "a diagonal chunk's mirror is in reach");
+    }
+
+    /**
+     * The second banner of a pair counts, not just the first.
+     *
+     * <p>The pair spans a chunk border: its left banner is in chunk -1 and its right in chunk 0.
+     * The player is in chunk 1, beside the right banner's chunk but not the left's.
+     */
+    @Test
+    void theSecondBannerOfAPairInAnotherChunkIsStillNamed()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", -1, 64, 10),
+            new MirrorPoint("nether", 0, 64, 0, 0f, 0f)).withWidth(2));
+        final Block right = mock(Block.class);
+        when(right.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(right.getWorld()).thenReturn(world);
+        when(right.getX()).thenReturn(0);
+        when(right.getY()).thenReturn(64);
+        when(right.getZ()).thenReturn(10);
+        lookingAt(right);
+        standingAt(20, 10);
+
+        sweep();
+
+        assertEquals(1, shown().size(), "the right banner is in reach");
     }
 
     /** A mirror on the banner block, pointing at another world. */
@@ -307,6 +373,18 @@ class MirrorSignpostTest
     {
         MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner),
             new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
+    }
+
+    /** Puts the player at this x, level with the banner and four blocks out from it. */
+    private void standingAt(final int x)
+    {
+        standingAt(x, 14);
+    }
+
+    /** Puts the player at this block, level with the banner. */
+    private void standingAt(final int x, final int z)
+    {
+        when(player.getLocation()).thenReturn(new Location(world, x + 0.5, 64.0, z + 0.5));
     }
 
     /** What the player's crosshair is on, or null for thin air. */
