@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -38,20 +39,27 @@ class SpigotApiIsIsolatedTest
         "\\.\\s*spigot\\s*\\(|\\bnet\\s*\\.\\s*md_5\\b|\\borg\\s*\\.\\s*spigotmc\\b");
 
     /**
-     * Classes whose Spigot use cannot fail outside a guard, relative to {@code src/main/java}.
+     * Files allowed Spigot API, relative to {@code src/main/java}, each with the class that must
+     * hold every use of it other than an import.
      *
-     * <p>{@code ActionBar} keeps its calls in a nested class and catches {@code LinkageError};
-     * {@code LegacyGateDismountListener} is loaded by name, behind a catch of
+     * <p>{@code ActionBar} keeps its calls in the nested {@code SpigotBar} and catches
+     * {@code LinkageError} around it, so a call in {@code ActionBar.send} itself would not be
+     * covered. {@code LegacyGateDismountListener} is loaded by name, behind a catch of
      * {@code NoClassDefFoundError}.
      */
-    private static final Set<String> ISOLATED = Set.of(
-        "com/wormhole_xtreme/wormhole/utils/ActionBar.java",
-        "com/wormhole_xtreme/wormhole/LegacyGateDismountListener.java");
+    private static final Map<String, String> ISOLATED = Map.of(
+        "com/wormhole_xtreme/wormhole/utils/ActionBar.java", "SpigotBar",
+        "com/wormhole_xtreme/wormhole/LegacyGateDismountListener.java", "LegacyGateDismountListener");
+
+    /** Isolated only while nothing names it in code: a direct reference links it eagerly. */
+    private static final String LOADED_BY_NAME = "LegacyGateDismountListener";
 
     private static final Path ROOT = Paths.get("src/main/java");
 
-    /** Well under the 218 sources today, so it only trips on a scan that read almost nothing. */
+    /** Well under the sources there are today, so it trips only on a scan that read almost nothing. */
     private static final int SOURCE_FLOOR = 150;
+
+    private static final Pattern IMPORT = Pattern.compile("^\\s*import\\s", Pattern.MULTILINE);
 
     @Test
     void spigotOnlyApiAppearsOnlyInTheClassesThatIsolateIt() throws IOException
@@ -67,10 +75,13 @@ class SpigotApiIsIsolatedTest
                 final String relative = ROOT.relativize(source).toString().replace('\\', '/');
                 final String code = stripCommentsAndLiterals(
                     Files.readString(source, StandardCharsets.UTF_8));
+                final String holder = ISOLATED.get(relative);
+                final int[] body = holder == null ? null : classBody(code, holder);
                 final Matcher m = SPIGOT_ONLY.matcher(code);
                 while (m.find())
                 {
-                    if (ISOLATED.contains(relative))
+                    if ((holder != null && isImport(code, m.start()))
+                        || (body != null && m.start() > body[0] && m.start() < body[1]))
                     {
                         isolatedUsers.add(relative);
                     }
@@ -78,6 +89,11 @@ class SpigotApiIsIsolatedTest
                     {
                         offenders.add(relative + ":" + lineOf(code, m.start()) + " " + m.group());
                     }
+                }
+                if (!source.getFileName().toString().equals(LOADED_BY_NAME + ".java")
+                    && Pattern.compile("\\b" + LOADED_BY_NAME + "\\b").matcher(code).find())
+                {
+                    offenders.add(relative + " names " + LOADED_BY_NAME + " outside a string");
                 }
             }
         }
@@ -90,9 +106,44 @@ class SpigotApiIsIsolatedTest
                 + offenders + ". Move the call into an isolated class that fails safely -- a "
                 + "nested class whose caller catches LinkageError, as ActionBar does -- and add "
                 + "that class to ISOLATED.");
-        assertEquals(ISOLATED, isolatedUsers,
+        assertEquals(new TreeSet<>(ISOLATED.keySet()), isolatedUsers,
             "an ISOLATED entry was not found or no longer uses Spigot API; a stale entry would "
                 + "wave through whatever takes its name next, so remove or rename it");
+    }
+
+    private static boolean isImport(final String code, final int offset)
+    {
+        final int lineStart = code.lastIndexOf('\n', offset - 1) + 1;
+        final Matcher m = IMPORT.matcher(code).region(lineStart, offset);
+        return m.lookingAt();
+    }
+
+    /**
+     * The offsets of the braces around the named class's body, or null if it is not declared.
+     *
+     * <p>Counted on stripped code, where every brace left is a real one.
+     */
+    static int[] classBody(final String code, final String name)
+    {
+        final Matcher decl = Pattern.compile("\\bclass\\s+" + name + "\\b").matcher(code);
+        if (!decl.find())
+        {
+            return null;
+        }
+        final int open = code.indexOf('{', decl.end());
+        int depth = 0;
+        for (int i = open; i >= 0 && i < code.length(); i++)
+        {
+            if (code.charAt(i) == '{')
+            {
+                depth++;
+            }
+            else if (code.charAt(i) == '}' && --depth == 0)
+            {
+                return new int[] {open, i};
+            }
+        }
+        return null;
     }
 
     /** Line numbers survive stripping because newlines are kept. */
