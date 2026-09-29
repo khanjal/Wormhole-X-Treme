@@ -35,6 +35,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A mirror in a wall more than a block wide keeps its wide far part between wall readings.**
   For four seconds in five it fell back to a half-block one, and `mirror debug` said "wall 0".
+- **A view sees six layers into leaves, not through a whole forest.** A capture kept every crown
+  in its way; a mirror onto woodland now holds far fewer blocks. Retake one with `mirror set -capture`.
 
 ## 1.8.1 (2026-09-28)
 

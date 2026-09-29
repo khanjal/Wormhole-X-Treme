@@ -297,6 +297,40 @@ class MirrorCaptureTest
     }
 
     /**
+     * Leaves can be seen through a few layers deep, and no more.
+     *
+     * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+     * crown in its way and a view onto one kept the whole canopy, though in a world nobody sees
+     * more than a few trees in. A ray ends after {@code LEAF_SIGHT} blocks of leaves; the block it
+     * ends on and the one behind it are kept, as behind any block, and the rest is buried.
+     */
+    @Test
+    void leavesAreSeenThroughOnlyAFewLayersDeep()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(leaves, capture.at(1, 2, 3), "the first few layers are seen");
+        assertSame(leaves, capture.at(1, 2, MirrorCapture.Builder.LEAF_SIGHT), "as far as the leaves' sight");
+        assertTrue(capture.isBuried(1, 2, MirrorCapture.Builder.LEAF_SIGHT + 4), "a few past it is hidden by the leaves in front");
+        assertTrue(capture.isBuried(1, 2, 40), "and so is the rest of the forest");
+    }
+
+    /**
      * Water can be seen through only so far; glass has no such limit.
      *
      * <p>A ray through an ocean went on to the bed however deep, and a mirror onto a beach kept

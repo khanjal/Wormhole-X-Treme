@@ -222,6 +222,7 @@ public final class MirrorCapture
         private short lastIndex;
         private boolean lastOccludes;
         private boolean lastMurky;
+        private boolean lastLeafy;
         /** Every block that is not air. */
         private final BitSet filled;
         /** Every block that hides what is behind it. */
@@ -230,6 +231,8 @@ public final class MirrorCapture
         private final BitSet cleared;
         /** Every block of water, which a ray sees through for {@link #WATER_SIGHT} blocks and no further. */
         private final BitSet murky;
+        /** Every block of leaves, which a ray sees through for {@link #LEAF_SIGHT} blocks and no further. */
+        private final BitSet leafy;
         /** After {@link #keepOnlySeen}, the blocks it kept; before it, null: everything. */
         private BitSet kept;
         /** After {@link #keepOnlySeen}, the air it saw; before it, null: none. */
@@ -265,6 +268,7 @@ public final class MirrorCapture
             this.solid = new BitSet(volume);
             this.cleared = new BitSet(volume);
             this.murky = new BitSet(volume);
+            this.leafy = new BitSet(volume);
             names.add((air == null) ? "minecraft:air" : air.getAsString());
             states.add(air);
             byName.put(names.get(0), (short) 0);
@@ -305,10 +309,12 @@ public final class MirrorCapture
                     lastIndex = -1;
                     lastOccludes = hides(data);
                     lastMurky = isWater(data);
+                    lastLeafy = isLeaves(data);
                 }
                 filled.set(at);
                 solid.set(at, lastOccludes);
                 murky.set(at, lastMurky);
+                leafy.set(at, lastLeafy);
             }
         }
 
@@ -337,10 +343,12 @@ public final class MirrorCapture
                 lastIndex = index(data);
                 lastOccludes = (lastIndex != 0) && hides(data);
                 lastMurky = (lastIndex != 0) && isWater(data);
+                lastLeafy = (lastIndex != 0) && isLeaves(data);
             }
             filled.set(at, lastIndex != 0);
             solid.set(at, lastOccludes);
             murky.set(at, lastMurky);
+            leafy.set(at, lastLeafy);
             add(x, y, z, lastIndex);
         }
 
@@ -360,6 +368,18 @@ public final class MirrorCapture
         private static boolean isWater(final BlockData data)
         {
             return data.getMaterial() == Material.WATER;
+        }
+
+        /**
+         * Whether a block is leaves, which can be seen through a few layers deep, but no more.
+         *
+         * <p>By name rather than {@code Tag.LEAVES}, which needs a live registry, so every kind of
+         * leaves any version adds is counted without being listed.
+         */
+        private static boolean isLeaves(final BlockData data)
+        {
+            final Material material = data.getMaterial();
+            return (material != null) && material.name().endsWith("_LEAVES");
         }
 
         /**
@@ -388,6 +408,7 @@ public final class MirrorCapture
                 filled.clear(at);
                 solid.clear(at);
                 murky.clear(at);
+                leafy.clear(at);
                 cleared.set(at);
                 add(x, y, z, (short) 0);
             }
@@ -524,6 +545,16 @@ public final class MirrorCapture
          * water sees a few dozen blocks; past that the client draws fog.
          */
         static final int WATER_SIGHT = 32;
+
+        /**
+         * How many blocks of leaves a ray sees through before they hide the rest.
+         *
+         * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+         * crown in its way and a view onto one kept the whole canopy, though nobody can see more
+         * than a few trees in. Past the last leaf a ray reaches, the real world shows through the
+         * gaps in it, which is why this is not smaller.
+         */
+        static final int LEAF_SIGHT = 6;
 
         /** @return how many blocks that are not air this would keep, as it stands */
         public int keptCount()
@@ -705,6 +736,19 @@ public final class MirrorCapture
             }
         }
 
+        /**
+         * Whether a ray ends at a block: one that hides what is behind it, or the last of as much
+         * water or leaves as can be seen through.
+         *
+         * @param through
+         *            {@code {water, leaves}} seen through so far along this ray, counted on
+         */
+        private boolean ends(final int at, final int[] through)
+        {
+            return solid.get(at) || (murky.get(at) && (++through[0] > WATER_SIGHT))
+                || (leafy.get(at) && (++through[1] > LEAF_SIGHT));
+        }
+
         /** Which axis a ray crosses a block boundary on next: whichever crossing comes soonest. */
         private static int soonest(final double[] tMax)
         {
@@ -737,7 +781,8 @@ public final class MirrorCapture
                 final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
                 tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
             }
-            int water = 0;
+            // Blocks of water and of leaves seen through so far, for when either ends the ray.
+            final int[] through = new int[2];
             double t = 0.0;
             while (t < reach)
             {
@@ -747,7 +792,7 @@ public final class MirrorCapture
                 }
                 final int at = offset(c[0], c[1], c[2], sizeY, sizeZ);
                 seen.set(at);
-                if (solid.get(at) || (murky.get(at) && (++water > WATER_SIGHT)))
+                if (ends(at, through))
                 {
                     return;
                 }
