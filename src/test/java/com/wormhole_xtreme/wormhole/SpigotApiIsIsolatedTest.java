@@ -34,9 +34,9 @@ import org.junit.jupiter.api.Test;
  */
 class SpigotApiIsIsolatedTest
 {
-    /** Forms that exist on Spigot and its forks but not on CraftBukkit. */
+    /** Forms that exist on Spigot and its forks but not on CraftBukkit; a method reference too. */
     private static final Pattern SPIGOT_ONLY = Pattern.compile(
-        "\\.\\s*spigot\\s*\\(|\\bnet\\s*\\.\\s*md_5\\b|\\borg\\s*\\.\\s*spigotmc\\b");
+        "\\.\\s*spigot\\s*\\(|::\\s*spigot\\b|\\bnet\\s*\\.\\s*md_5\\b|\\borg\\s*\\.\\s*spigotmc\\b");
 
     /**
      * Files allowed Spigot API, relative to {@code src/main/java}, each with the class that must
@@ -236,7 +236,7 @@ class SpigotApiIsIsolatedTest
     {
         final String stripped = stripCommentsAndLiterals(
             "a.spigot(); // b.spigot()\n/* \"x */ c(\"org.spigotmc.X\", '\"', \"\\\"\");\n"
-                + "d(\"\"\"\n  net.md_5 \" \n\"\"\"); e.spigot();");
+                + "d(\"\"\"\n  net.md_5 \" \n\"\"\"); e.spigot();\nf(Player :: spigot);");
 
         final Matcher m = SPIGOT_ONLY.matcher(stripped);
         final List<Integer> lines = new ArrayList<>();
@@ -244,8 +244,8 @@ class SpigotApiIsIsolatedTest
         {
             lines.add(lineOf(stripped, m.start()));
         }
-        assertEquals(List.of(1, 5), lines,
-            "only the two real calls should survive stripping, on their original lines: "
+        assertEquals(List.of(1, 5, 6), lines,
+            "only the three real uses should survive stripping, on their original lines: "
                 + stripped);
     }
 }
