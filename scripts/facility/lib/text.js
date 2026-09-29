@@ -179,9 +179,13 @@ function normalise(c) {
     return rest.length ? { ...first, extra: [...(first.extra || []), ...rest] } : first;
   }
   const out = { ...c };
+  // SNBT prints a boolean style as a byte (bold: 1b) from 1.21.5.
+  for (const key of BOOLEAN_STYLES) if (typeof out[key] === 'number') out[key] = out[key] !== 0;
   if (out.extra) out.extra = out.extra.map(normalise);
   return out;
 }
+
+const BOOLEAN_STYLES = ['bold', 'italic', 'underlined', 'strikethrough', 'obfuscated'];
 
 /** The concatenated plain text of a component. */
 function plain(c) {

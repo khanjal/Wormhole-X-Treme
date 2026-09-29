@@ -109,9 +109,8 @@ async function checkDatapack(srv, version, folder, probe) {
       `table ${JSON.stringify(table)}, vanilla jar ${JSON.stringify(actual)}`);
   } else note(M, 'no cache/mojang jar to cross-check the format table against');
 
-  const packLog = srv.log.filter((l) => /\bwx\b|file\/wx|pack\.mcmeta/.test(l) && /WARN|ERROR/.test(l));
-  check(M, 'loaded without a warning', packLog.length === 0, packLog.join(' | ') || 'no pack warnings at start');
-
+  // No log check for the pack itself: a pack whose format is out of range loads silently on
+  // 1.21.11 (tried with pack_format 15 alone), so the table cross-check above is the guard.
   const list = await srv.run('datapack list enabled');
   check(M, 'wx is enabled', list.lines.some((l) => l.includes('[file/wx')), list.lines.join(' '));
 
