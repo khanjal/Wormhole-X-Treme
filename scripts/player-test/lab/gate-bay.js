@@ -86,6 +86,9 @@ function build (lab) {
   p.sign(LAB.x - 12, FEET + 1, LANES.z1 + 2, 'south', [['TEST CHAMBER', 'gold'], 'Keep clear', 'while a run', 'is going'])
 
   // Midway, the arrival gate across the room, and a line of rails out of it for the minecart.
+  // Its bottom row is in the floor, and a build is refused over anything but air or its own blocks.
+  const { min, max } = arrivalGate('Midway').frame
+  p.fill(min.x, min.y, min.z, max.x, max.y, max.z, 'air')
   serverCommand(`wx gate build Standard Midway world ${MIDWAY.x} ${FEET} ${MIDWAY.z} south`)
   p.sign(MIDWAY.x - 1, FEET + 6, MIDWAY.z + 2, 'south', [['MIDWAY', 'aqua'], 'arrival gate'])
 

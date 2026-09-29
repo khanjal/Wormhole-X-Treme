@@ -115,6 +115,9 @@ async function buildOffworld () {
   }
   p.setblock(x + 8, y, z + 14, 'campfire[lit=true]', n)
   p.setblock(x + 9, y, z + 14, 'oak_log[axis=x]', n)
+  // Its bottom row is in the grass, and a build is refused over anything but air or its own blocks.
+  const { min, max } = kit.gateAt('Standard', x, y, z).frame
+  p.fill(min.x, min.y, min.z, max.x, max.y, max.z, 'air', '', n)
   serverCommand(`wx gate build Standard Offworld world_nether ${x} ${y} ${z} south`)
   p.sign(x + 3, y + 1, z + 2, 'south', [['OFFWORLD', 'aqua'], 'P3X-888'], { where: n })
   // Offworld's beam pad.

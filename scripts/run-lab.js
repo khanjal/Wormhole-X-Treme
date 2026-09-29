@@ -228,6 +228,9 @@ async function main () {
   const flagged = text.split('\n').filter((line) => FLAGGED.test(line) && !ALLOW.test(line))
   if (flagged.length) failures.push(`warnings or stack frames from the plugin:\n${flagged.join('\n')}`)
   if (failures.length) {
+    // The plugin's own lines from the server log, since a CI run's log is otherwise only a download.
+    const plugin = text.split('\n').filter((line) => /WormholeXTreme|wormhole_xtreme|Gate |gate |Ring |Mirror |Exception/.test(line))
+    console.error(`\nThe plugin's last lines in ${logFile}:\n${plugin.slice(-150).join('\n')}\n`)
     console.error(`lab self-test FAILED\n- ${failures.join('\n- ')}`)
     process.exit(1)
   }
