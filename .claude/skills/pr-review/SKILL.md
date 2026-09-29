@@ -18,7 +18,9 @@ who wrote the code, the first review, the final review, Copilot, findings handle
 zero, no new compiler warnings. "Written by" is what step 1's table is read off, so a session picking up somebody else's
 PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
-is still owed. A PR is not ready to merge with a box unticked.
+is still owed. A PR is not ready to merge with a box unticked. When the `route-implementation`
+skill handed the code to a sub-agent, "Written by" is that sub-agent's model, not the planner's,
+and that skill's step 5 decides the reviewers: the final review is never by the planner.
 
 `gh pr create --body` does **not** apply the template -- GitHub only uses it for PRs opened in
 the web UI -- so paste the checklist into the body yourself, and add it to any open PR that
@@ -106,7 +108,8 @@ counts.
 ## 3. The final model review of the finished PR
 
 When everything else is done -- findings fixed, CI green, Sonar at zero (step 2), any in-game
-check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code) as
+check passed -- run the final reviewer from step 1's table (`fable` when Opus wrote the code;
+when the Route line names a planner, `route-implementation` step 5's table instead) as
 a sub-agent on the whole PR as it now stands (`origin/main...` the branch head, fetched),
 with the same brief as step 1. Tell it what the earlier review found and what became of each,
 so it spends its time on what it missed rather than confirming what is already fixed.

@@ -6,7 +6,8 @@
 Neither model review may be by the model that wrote the code; see `.claude/skills/pr-review`.
 Tick each box when it is done, and fill in the model and the commit it reviewed.
 
-Written by: ___ (the model that wrote the code; it decides which models review it)
+Written by: ___ (the model that wrote the code; with the planner below, it decides which models review it)
+Route: row ___ · implementer: ___ · planned by: ___ · attempts: ___ · hand-backs: ___ · review fixes: impl ___, plan ___ (see `.claude/skills/route-implementation`; row "none" if not handed off)
 
 - [ ] **First review**, before the PR opened. Model: ___ · commit: ___ (and again at ___ if the code changed a lot after it)
 - [ ] **Final review** of the finished PR, before merge. Model: ___ · commit: ___
