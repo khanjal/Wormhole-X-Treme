@@ -357,7 +357,10 @@ class MirrorCaptureTest
         final MirrorCapture capture = builder.build();
 
         assertSame(water, capture.at(1, 2, 20), "the water, within its own sight");
-        assertSame(leaves, capture.at(1, 2, 23), "and the first leaves past it, with their own sight left");
+        // Leaves 21 to 26 seen through, and the ray ends on the seventh, at 27. Counted together with
+        // the water it would end on the first, at 21, and keep no further than the two layers behind it.
+        assertSame(leaves, capture.at(1, 2, 20 + MirrorCapture.Builder.LEAF_SIGHT + 1),
+            "the leaves past it, with their own sight to spend");
     }
 
     /**
