@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -34,6 +35,12 @@ public final class MapMarkers
 {
     /** How often the map is brought up to date without an event asking, in ticks. */
     static final long PERIOD_TICKS = 100L;
+
+    /** How often a dialling gate is checked for its wormhole having formed, in ticks. */
+    static final long FORMING_CHECK_TICKS = 20L;
+
+    /** How many times a dialling gate is checked before the periodic look is left to it. */
+    static final int FORMING_CHECKS = 20;
 
     /** A class only Dynmap provides. */
     private static final String DYNMAP_CLASS = "org.dynmap.DynmapCommonAPIListener";
@@ -203,6 +210,60 @@ public final class MapMarkers
         if (running && (plugin != null) && lookQueued.compareAndSet(false, true))
         {
             WormholeXTreme.getScheduler().runTask(plugin, MapMarkers::tick);
+        }
+    }
+
+    /**
+     * Brings the map up to date once a dialling gate's wormhole has formed.
+     *
+     * <p>Nothing fires when the kawoosh settles, and how long the chevrons take depends on the
+     * gate's shape and ring, so the gate is checked every second until it has formed or shut.
+     * Each check reads two flags; the look it asks for is the ordinary coalesced one.
+     *
+     * @param gate
+     *            the gate that has just been dialled
+     */
+    static void watchForming(final Stargate gate)
+    {
+        scheduleFormingCheck(gate, FORMING_CHECKS);
+    }
+
+    /**
+     * Books the next check on a dialling gate.
+     *
+     * @param gate
+     *            the gate
+     * @param left
+     *            how many more checks it may have
+     */
+    private static void scheduleFormingCheck(final Stargate gate, final int left)
+    {
+        final Plugin plugin = owner;
+        if (running && (plugin != null) && (left > 0))
+        {
+            WormholeXTreme.getScheduler().runTaskLater(plugin, () -> checkForming(gate, left - 1),
+                FORMING_CHECK_TICKS);
+        }
+    }
+
+    /**
+     * Asks for a look if the gate's wormhole has formed, or checks again later if it is still
+     * dialling.
+     *
+     * @param gate
+     *            the gate
+     * @param left
+     *            how many more checks it may have
+     */
+    static void checkForming(final Stargate gate, final int left)
+    {
+        if (gate.isGatePortalOpen())
+        {
+            requestRefresh();
+        }
+        else if (gate.isGateActive())
+        {
+            scheduleFormingCheck(gate, left);
         }
     }
 

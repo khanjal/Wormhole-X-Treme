@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
@@ -288,6 +290,82 @@ class MapMarkersTest
 
         assertEquals(2, tried.size(), "one failed draw must not stop the map being kept up to date");
         verify(logger).prettyLog(eq(Level.WARNING), contains("Test map"), eq(broken));
+    }
+
+    /** Holds each check a dialling gate books, so a test runs them one at a time. */
+    private List<Runnable> holdFormingChecks()
+    {
+        final List<Runnable> checks = new ArrayList<>();
+        when(scheduler.runTaskLater(any(Plugin.class), any(Runnable.class), anyLong())).thenAnswer(call ->
+        {
+            checks.add(call.getArgument(1));
+            return null;
+        });
+        return checks;
+    }
+
+    private static void runNext(final List<Runnable> checks)
+    {
+        checks.remove(0).run();
+    }
+
+    @Test
+    void aDiallingGateIsCheckedUntilItsWormholeFormsAndThenLookedAt()
+    {
+        // Nothing fires when the kawoosh settles, so without this the lit icon would wait for
+        // the next periodic look, up to five seconds after the wormhole formed.
+        enable();
+        final List<Runnable> checks = holdFormingChecks();
+        final Stargate gate = mock(Stargate.class);
+        when(gate.isGateActive()).thenReturn(true);
+
+        MapMarkers.watchForming(gate);
+        assertEquals(1, checks.size());
+        verify(scheduler).runTaskLater(eq(plugin), any(Runnable.class), eq(MapMarkers.FORMING_CHECK_TICKS));
+        runNext(checks);
+        assertEquals(1, checks.size(), "still dialling, so it is checked again");
+        verify(scheduler, never()).runTask(any(Plugin.class), any(Runnable.class));
+
+        when(gate.isGatePortalOpen()).thenReturn(true);
+        runNext(checks);
+
+        verify(scheduler).runTask(eq(plugin), any(Runnable.class));
+        assertTrue(checks.isEmpty(), "formed, so the checks stop");
+    }
+
+    @Test
+    void aGateThatShutsWhileDiallingIsNoLongerChecked()
+    {
+        enable();
+        final List<Runnable> checks = holdFormingChecks();
+        final Stargate gate = mock(Stargate.class);
+        when(gate.isGateActive()).thenReturn(true);
+        MapMarkers.watchForming(gate);
+        when(gate.isGateActive()).thenReturn(false);
+
+        runNext(checks);
+
+        assertTrue(checks.isEmpty());
+        verify(scheduler, never()).runTask(any(Plugin.class), any(Runnable.class));
+    }
+
+    @Test
+    void aGateThatNeverFormsIsLeftToThePeriodicLookInTheEnd()
+    {
+        enable();
+        final List<Runnable> checks = holdFormingChecks();
+        final Stargate gate = mock(Stargate.class);
+        when(gate.isGateActive()).thenReturn(true);
+        MapMarkers.watchForming(gate);
+
+        int ran = 0;
+        while (!checks.isEmpty() && (ran < 1000))
+        {
+            runNext(checks);
+            ran++;
+        }
+
+        assertEquals(MapMarkers.FORMING_CHECKS, ran, "a bounded number of checks, not one a second forever");
     }
 
     @Test

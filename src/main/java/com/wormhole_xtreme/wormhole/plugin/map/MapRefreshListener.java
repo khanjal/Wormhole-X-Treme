@@ -10,8 +10,8 @@ import com.wormhole_xtreme.wormhole.events.StargateRemovedEvent;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 
 /**
- * Brings the map up to date on the next tick after a gate is built, removed, opened or shut,
- * rather than waiting for the periodic look.
+ * Brings the map up to date on the next tick after a gate is built, removed or shut, and once
+ * a dialled gate's wormhole has formed, rather than waiting for the periodic look.
  *
  * <p>Only asks: the gate is often still changing when its event fires, so the look happens a
  * tick later, once it has settled.
@@ -43,7 +43,8 @@ public final class MapRefreshListener implements Listener
     }
 
     /**
-     * A gate opened.
+     * A gate was dialled. It shows as open once its wormhole forms, which fires no event of its
+     * own, so it is watched for that.
      *
      * @param event
      *            the event
@@ -51,7 +52,7 @@ public final class MapRefreshListener implements Listener
     @EventHandler(priority = EventPriority.MONITOR)
     public void onActivated(final StargateActivatedEvent event)
     {
-        MapMarkers.requestRefresh();
+        MapMarkers.watchForming(event.getStargate());
     }
 
     /**

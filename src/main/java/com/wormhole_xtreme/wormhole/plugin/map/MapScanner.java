@@ -119,11 +119,12 @@ public final class MapScanner
         final Map<String, GateMark> marks, final Map<String, LineMark> links)
     {
         // Only the gate that dialled holds a target, so the far end's openness is read from it too.
+        // Open means formed: a gate still locking chevrons has nothing to travel through yet.
         final Set<String> dialled = new HashSet<>();
         for (final Stargate gate : gates)
         {
             final Stargate target = gate.getGateTarget();
-            if (gate.isGateActive() && (target != null) && (target.getGateName() != null))
+            if (gate.isGatePortalOpen() && (target != null) && (target.getGateName() != null))
             {
                 dialled.add(gateId(target.getGateName()));
             }
@@ -210,7 +211,7 @@ public final class MapScanner
         final String id = gateId(name);
         return new GateMark(id, world.getName(), name,
             (network == null) ? null : network.getNetworkName(), gate.getGateOwnerName(),
-            gate.isGateActive() || dialled.contains(id), x, y, z, footprint);
+            gate.isGatePortalOpen() || dialled.contains(id), x, y, z, footprint);
     }
 
     /**
@@ -227,7 +228,7 @@ public final class MapScanner
     }
 
     /**
-     * The line from a dialled gate to its target.
+     * The line from a gate to its target, once the wormhole between them has formed.
      *
      * <p>Keyed on the two names in order, so the pair's two ends make one line, not two.
      *
@@ -240,7 +241,7 @@ public final class MapScanner
     private static LineMark link(final Stargate gate, final Map<String, GateMark> marks)
     {
         final Stargate target = gate.getGateTarget();
-        if (!gate.isGateActive() || (target == null) || (gate.getGateName() == null)
+        if (!gate.isGatePortalOpen() || (target == null) || (gate.getGateName() == null)
             || (target.getGateName() == null))
         {
             return null;

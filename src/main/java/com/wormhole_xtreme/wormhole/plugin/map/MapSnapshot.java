@@ -91,7 +91,7 @@ public record MapSnapshot(Map<String, GateMark> gates, Map<String, LineMark> gat
      * @param owner
      *            its owner's name, or null for none
      * @param open
-     *            whether a wormhole is open through it
+     *            whether a wormhole has formed through it
      * @param x
      *            point to mark, east-west
      * @param y

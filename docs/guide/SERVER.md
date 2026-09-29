@@ -421,15 +421,15 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 | `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
 
 - **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
-  in its popup, and its icon lit while a wormhole is open through it; a line between two dialled gates while the wormhole is open, when both are in the
+  in its popup, and its icon lit once a wormhole has formed through it; a line between two dialled gates once their wormhole has formed, when both are in the
   same world; both ends of each ring pair, with a line between them; each public beam
   destination; each quantum mirror at its banner. A mirror has no line, because which room it
   opens onto is chosen at it.
 - **Never shown:** players' private beam places. Dynmap shows every marker to every viewer, so a
   private place on the map would be anybody's to find.
 - **A layer switched off** is left off the map entirely, not shown as an empty checkbox.
-- **Kept up to date** every five seconds, and straight away when a gate is built, removed, opened
-  or shut. The map is drawn off the main thread, and only what changed is redrawn.
+- **Kept up to date** every five seconds, and straight away when a gate is built, removed or
+  shut, or its wormhole forms. The map is drawn off the main thread, and only what changed is redrawn.
 - **No Dynmap** means nothing happens; the log says so once. Dynmap is looked for once, at
   startup, and these settings take effect at the next restart.
 - Nothing is saved into Dynmap's own marker file: the layers are rebuilt from the plugin's state

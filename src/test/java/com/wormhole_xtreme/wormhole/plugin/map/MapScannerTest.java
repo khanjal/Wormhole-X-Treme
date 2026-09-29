@@ -60,12 +60,19 @@ class MapScannerTest
         return gate;
     }
 
+    /** Both ends of a formed wormhole, each holding the other as its target. */
     private static void dial(final Stargate from, final Stargate to)
     {
-        when(from.isGateActive()).thenReturn(true);
+        formed(from);
         when(from.getGateTarget()).thenReturn(to);
-        when(to.isGateActive()).thenReturn(true);
+        formed(to);
         when(to.getGateTarget()).thenReturn(from);
+    }
+
+    private static void formed(final Stargate gate)
+    {
+        when(gate.isGateActive()).thenReturn(true);
+        when(gate.isGatePortalOpen()).thenReturn(true);
     }
 
     private static MapSnapshot scan(final List<Stargate> gates, final MapLayers layers)
@@ -148,16 +155,35 @@ class MapScannerTest
     }
 
     @Test
-    void anIdleGateIsMarkedShutAndAnActiveOneOpen()
+    void anIdleGateIsMarkedShutAndAFormedOneOpen()
     {
         final Stargate abydos = gate("Abydos", overworld);
         final Stargate chulak = gate("Chulak", overworld);
-        when(chulak.isGateActive()).thenReturn(true);
+        formed(chulak);
 
         final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
 
         assertFalse(snapshot.gates().get("abydos").open());
         assertTrue(snapshot.gates().get("chulak").open());
+    }
+
+    @Test
+    void aGateStillDiallingIsShownShutWithNoLine()
+    {
+        // Active from the first chevron, but nothing to travel through until the kawoosh
+        // settles; the lit icon and the line wait for that, and appear together.
+        final Stargate abydos = gate("Abydos", overworld);
+        final Stargate chulak = gate("Chulak", overworld);
+        when(abydos.isGateActive()).thenReturn(true);
+        when(abydos.getGateTarget()).thenReturn(chulak);
+        when(chulak.isGateActive()).thenReturn(true);
+
+        final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
+
+        assertFalse(snapshot.gates().get("abydos").open(), "dialling is not open");
+        assertFalse(snapshot.gates().get("chulak").open(), "nor is the gate being dialled");
+        assertTrue(snapshot.gateLinks().isEmpty());
+        assertEquals(2, snapshot.gates().size(), "both are still on the map");
     }
 
     @Test
@@ -167,7 +193,7 @@ class MapScannerTest
         // the far end's state is read from the dialler as well as from itself.
         final Stargate abydos = gate("Abydos", overworld);
         final Stargate chulak = gate("Chulak", overworld);
-        when(abydos.isGateActive()).thenReturn(true);
+        formed(abydos);
         when(abydos.getGateTarget()).thenReturn(chulak);
 
         final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
