@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  * {@value #NOTIFY_PERMISSION} as they join. It only ever says so; it never downloads anything.
  *
  * <p>Modrinth is asked first, for the newest release built for this server's Minecraft version;
- * GitHub's latest release is asked only when Modrinth gives no usable answer.
+ * GitHub's latest release is asked only when Modrinth fails or names none.
  */
 public final class UpdateCheck implements Listener
 {
@@ -51,6 +51,10 @@ public final class UpdateCheck implements Listener
     private static final int MAX_BODY_BYTES = 1 << 20;
 
     private static final int[] NONE = {};
+
+    private static final int MAX_REASON_CHARS = 120;
+
+    private static final Pattern CONTROL_OR_COLOUR = Pattern.compile("[\\p{Cntrl}§]");
 
     /** No whitespace, control characters or colour codes reach the log or chat from a remote answer. */
     private static final Pattern SAFE_VERSION = Pattern.compile("[vV]?[0-9A-Za-z.+-]{1,40}");
@@ -163,20 +167,26 @@ public final class UpdateCheck implements Listener
     static Optional<Release> findNewer(final Fetcher fetcher, final String running, final String minecraft,
         final Consumer<String> note)
     {
-        Release latest;
+        Release latest = null;
         try
         {
             final String version = latestFromModrinth(fetcher.get(modrinthUrl(minecraft)), minecraft);
             if (version == null)
             {
-                note.accept("Modrinth lists no release for Minecraft " + minecraft + ".");
+                note.accept("Modrinth lists no release for Minecraft " + minecraft + "; trying GitHub.");
             }
-            latest = (version == null) ? null : new Release(version, MODRINTH_PAGE);
+            else
+            {
+                latest = new Release(version, MODRINTH_PAGE);
+            }
         }
-        // Modrinth's answer, even one with nothing newer, is final; only its failing falls back.
         catch (final IOException | RuntimeException modrinthFailed)
         {
-            note.accept("Modrinth did not answer the update check (" + modrinthFailed + "); trying GitHub.");
+            note.accept("Modrinth did not answer the update check (" + describe(modrinthFailed) + "); trying GitHub.");
+        }
+        // A release Modrinth names, newer or not, is final; none may only mean it has not tagged this Minecraft version yet.
+        if (latest == null)
+        {
             latest = fromGitHub(fetcher, note);
         }
         if ((latest != null) && isNewer(latest.version(), running))
@@ -194,9 +204,22 @@ public final class UpdateCheck implements Listener
         }
         catch (final IOException | RuntimeException gitHubFailed)
         {
-            note.accept("GitHub did not answer the update check either (" + gitHubFailed + ").");
+            note.accept("GitHub did not answer the update check (" + describe(gitHubFailed) + ").");
             return null;
         }
+    }
+
+    /** A failure for the log, short and plain: a parser's message can carry the whole remote body. */
+    static String describe(final Exception failure)
+    {
+        final String message = failure.getMessage();
+        if (message == null)
+        {
+            return failure.getClass().getSimpleName();
+        }
+        final String plain = CONTROL_OR_COLOUR.matcher(message).replaceAll("");
+        return failure.getClass().getSimpleName() + ": "
+            + ((plain.length() > MAX_REASON_CHARS) ? (plain.substring(0, MAX_REASON_CHARS) + "...") : plain);
     }
 
     /** Modrinth's versions for this Minecraft version alone, so a long history stays well under the body cap. */

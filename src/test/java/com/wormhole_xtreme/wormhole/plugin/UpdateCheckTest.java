@@ -238,19 +238,35 @@ class UpdateCheckTest
     }
 
     /**
-     * Modrinth saying there is nothing newer for this Minecraft version is the answer: GitHub's
-     * latest may be built for another one, so it is not asked.
+     * A release Modrinth names for this Minecraft version is the answer, even when it is not newer:
+     * GitHub's latest may be built for another one, so it is not asked.
      */
     @Test
-    void aModrinthAnswerWithNothingNewerIsFinal()
+    void aModrinthReleaseThatIsNotNewerIsFinal()
     {
         final Canned current = new Canned(modrinth(entry("1.8.1", "release", MINECRAFT)), gitHub("v9.9.9"));
-        final Canned noneForThisVersion = new Canned(modrinth(entry("9.9.9", "release", "26.2")), gitHub("v9.9.9"));
+        final Canned older = new Canned(modrinth(entry("1.7.0", "release", MINECRAFT)), gitHub("v9.9.9"));
 
         assertEquals(Optional.empty(), findNewer(current, "1.8.1", MINECRAFT));
-        assertEquals(List.of(MODRINTH), current.asked, "GitHub was asked after Modrinth answered");
-        assertEquals(Optional.empty(), findNewer(noneForThisVersion, "1.8.1", MINECRAFT));
-        assertEquals(List.of(MODRINTH), noneForThisVersion.asked);
+        assertEquals(List.of(MODRINTH), current.asked, "GitHub was asked after Modrinth named a release");
+        assertEquals(Optional.empty(), findNewer(older, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH), older.asked);
+    }
+
+    /**
+     * One jar runs on every Minecraft version, and Modrinth's tags lag a new one; a server just
+     * upgraded to a version Modrinth lists nothing for still hears of a newer release from GitHub.
+     */
+    @Test
+    void aModrinthListWithNothingForThisVersionFallsBackToGitHub()
+    {
+        final Canned empty = new Canned(modrinth(), gitHub("v1.9.0"));
+        final Canned betaOnly = new Canned(modrinth(entry("9.9.9", "beta", MINECRAFT)), gitHub("v1.9.0"));
+
+        assertEquals(Optional.of(new UpdateCheck.Release("v1.9.0", GITHUB_PAGE)), findNewer(empty, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH, UpdateCheck.GITHUB_API), empty.asked);
+        assertEquals(Optional.of(new UpdateCheck.Release("v1.9.0", GITHUB_PAGE)), findNewer(betaOnly, "1.8.1", MINECRAFT),
+            "a list with no usable release counts as none");
     }
 
     /** Neither source answering, or answering nonsense, is quiet: no notification and nothing thrown. */
@@ -296,7 +312,26 @@ class UpdateCheckTest
             "Modrinth's failure, with its reason: " + bothDown.notes.get(0));
         assertTrue(bothDown.notes.get(1).startsWith("GitHub did not answer") && bothDown.notes.get(1).contains("HTTP 404"),
             bothDown.notes.get(1));
-        assertEquals(List.of("Modrinth lists no release for Minecraft " + MINECRAFT + "."), noneForThisVersion.notes);
+        assertEquals("Modrinth lists no release for Minecraft " + MINECRAFT + "; trying GitHub.", noneForThisVersion.notes.get(0));
+        assertEquals(2, noneForThisVersion.notes.size(), "and GitHub's failure after it: " + noneForThisVersion.notes);
+    }
+
+    /** A parser's message quotes the remote body; the log gets its first 120 characters, without colour codes or line breaks. */
+    @Test
+    void aFailureReasonIsShortAndPlain()
+    {
+        final String body = "{\"error\":\"§cnot found\\nFAKE LINE\",\"padding\":\"" + "x".repeat(500) + "\"}";
+        final Canned fetcher = new Canned(body, null);
+
+        findNewer(fetcher, "1.8.1", MINECRAFT);
+
+        final String line = fetcher.notes.get(0);
+        assertTrue(line.startsWith("Modrinth did not answer the update check (IllegalStateException: Not a JSON Array: "),
+            "named by the exception's simple name, then its message: " + line);
+        assertTrue(line.contains("cnot found"), "the message itself is kept: " + line);
+        assertFalse(line.contains("§") || line.contains("\n"), "no colour code or line break reaches the log: " + line);
+        assertTrue(line.contains("x".repeat(40)) && !line.contains("x".repeat(200)), "cut short, not the whole body: " + line);
+        assertTrue(line.length() < 250, line.length() + " characters");
     }
 
     /**
