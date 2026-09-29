@@ -1129,7 +1129,7 @@ public class ConfigManager
     public static int getGateViewFullDepth()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
-        final int depth = (s == null) ? 96 : s.getIntValue();
+        final int depth = (s == null) ? 160 : s.getIntValue();
         return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
     }
 

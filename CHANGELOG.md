@@ -21,7 +21,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
   side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate
   with an opening up to five by five, and only with its iris open. `gate-view-depth` (32) is how
-  far past the gate it reaches at once, and `gate-view-full-depth` (96) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
+  far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.
 
 ### Performance

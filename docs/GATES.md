@@ -661,7 +661,8 @@ by redstone with nobody about waits for the first sweep with somebody there.
 **A gate's view comes in two steps.** The first reaches `gate-view-depth`, 32 by default against a
 mirror's 160: at a mirror's depth the box round a far gate nobody had loaded was some 230 chunks,
 read twice before anything showed, and at 32 it is about fifteen. Once that is in, the fill out to
-`gate-view-full-depth`, 96 by default, is taken behind it, a chunk a tick rather than two since
+`gate-view-full-depth` is taken behind it: 160 by default, and never past what the far world's
+server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
 nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
 the view deepens when the fill arrives. A retake as the gate opens starts the steps again, so the
 near part is current quickly and the far part follows; a refresh while somebody is at the gate

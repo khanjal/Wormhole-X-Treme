@@ -373,6 +373,7 @@ class GateViewsSweepTest
         manager.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(gate));
         try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
         {
+            captures.when(() -> MirrorCaptures.gateFillDepth(any(MirrorPoint.class), anyInt())).thenReturn(160);
             GateViews.refreshWatched(1_000_000L);
             // Within the minute: not looked at again.
             GateViews.refreshWatched(1_030_000L);
@@ -385,8 +386,8 @@ class GateViewsSweepTest
             GateViews.refreshWatched(1_150_000L);
             GateViews.refreshWatched(1_210_000L);
 
-            // To the full depth, 96 by default: somebody there means most of the fill's chunks are loaded.
-            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(96),
+            // To the full depth, which gateFillDepth decides: somebody there means most of the fill's chunks are loaded.
+            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(160),
                 eq(GateViews.REFRESH_SECONDS)), times(2));
         }
     }

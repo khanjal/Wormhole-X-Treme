@@ -38,6 +38,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
@@ -923,5 +924,32 @@ class MirrorCapturesTest
 
         assertFalse(file.exists(), "no file for a gate that is gone");
         assertNull(MirrorCaptures.get(gateKey()), "and nothing in memory");
+    }
+
+    /**
+     * A gate's fill reaches as far as the far world's server sends, and no further.
+     *
+     * <p>Past the send distance a drawn block lands in a chunk the client does not hold and is
+     * never seen, so a capture deeper than that is disk and memory spent on nothing. With the fill
+     * off, or set shallower than the first step, the view stays at the first step.
+     */
+    @Test
+    void aGatesFillReachesAsFarAsTheFarWorldSends()
+    {
+        final MirrorPoint arrival = mirror.destination();
+        when(far.getViewDistance()).thenReturn(6);
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(Bukkit::getServer).thenReturn(mock(Server.class));
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
+
+            assertEquals(96, MirrorCaptures.gateFillDepth(arrival, 32), "six chunks sent: 96 blocks, not the 160 asked");
+            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 64);
+            assertEquals(64, MirrorCaptures.gateFillDepth(arrival, 32), "asked for less than is sent");
+            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 0);
+            assertEquals(32, MirrorCaptures.gateFillDepth(arrival, 32), "no fill: the first step");
+            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 16);
+            assertEquals(32, MirrorCaptures.gateFillDepth(arrival, 32), "a fill shallower than the first step is none");
+        }
     }
 }

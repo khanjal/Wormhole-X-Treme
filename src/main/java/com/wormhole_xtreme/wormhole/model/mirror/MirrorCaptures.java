@@ -127,6 +127,32 @@ public final class MirrorCaptures
      *            capture taken by this rule holds
      * @return the reach, in blocks
      */
+    /**
+     * How far a gate's view is filled in behind its first step (#516): {@code gate-view-full-depth},
+     * never past what the far world's server sends, and never short of the first step.
+     *
+     * <p>Past the server's send distance a drawn block lands in a chunk the client does not hold,
+     * and is never seen, so a capture deeper than that is disk and memory for nothing. The same rule
+     * a mirror's capture follows ({@link #reach}).
+     *
+     * @param arrival
+     *            where travellers through the gate land, in the far world
+     * @param first
+     *            the first step's depth, {@code gate-view-depth}
+     * @return blocks
+     */
+    public static int gateFillDepth(final MirrorPoint arrival, final int first)
+    {
+        final int full = ConfigManager.getGateViewFullDepth();
+        if (full <= first)
+        {
+            return first;
+        }
+        final World far = (Bukkit.getServer() == null) ? null : Bukkit.getWorld(arrival.worldName());
+        final int sends = (far == null) ? full : (far.getViewDistance() * 16);
+        return Math.max(first, Math.min(full, sends));
+    }
+
     static int reach(final World far)
     {
         final int depth = ConfigManager.getMirrorViewDepth();

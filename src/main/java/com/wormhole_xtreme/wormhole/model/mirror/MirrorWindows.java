@@ -700,11 +700,11 @@ public final class MirrorWindows
     /**
      * How far a gate's view is filled in behind its first step.
      *
-     * @return {@code gate-view-full-depth}, or the first step's depth where that is off or no deeper
+     * @return {@link MirrorCaptures#gateFillDepth}
      */
     static int fullDepthOf(final GateWindow gate)
     {
-        return Math.max(gate.depth(), ConfigManager.getGateViewFullDepth());
+        return MirrorCaptures.gateFillDepth(gate.destination(), gate.depth());
     }
 
     /** How deep a gate is drawn from its capture: the full depth once the fill is in, and the first step's until then. */

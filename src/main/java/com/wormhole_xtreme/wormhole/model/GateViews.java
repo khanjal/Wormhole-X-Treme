@@ -166,8 +166,9 @@ public final class GateViews
         if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
         {
             // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
-            MirrorCaptures.refreshGate(gate.getGateName(), MirrorPoint.of(arrival),
-                Math.max(ConfigManager.getGateViewDepth(), ConfigManager.getGateViewFullDepth()), REFRESH_SECONDS);
+            final MirrorPoint at = MirrorPoint.of(arrival);
+            MirrorCaptures.refreshGate(gate.getGateName(), at,
+                MirrorCaptures.gateFillDepth(at, ConfigManager.getGateViewDepth()), REFRESH_SECONDS);
         }
     }
 
