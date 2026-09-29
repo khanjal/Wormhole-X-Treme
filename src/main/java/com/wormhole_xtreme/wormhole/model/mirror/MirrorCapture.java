@@ -160,9 +160,18 @@ public final class MirrorCapture
      *            one step the way a traveller faces on arrival, x
      * @param aheadZ
      *            the same, z
+     * @param width
+     *            how wide a hole the capture is seen through
+     * @param height
+     *            how tall
      */
-    public record Arrival(int x, int y, int z, int aheadX, int aheadZ)
+    public record Arrival(int x, int y, int z, int aheadX, int aheadZ, int width, int height)
     {
+        /** Seen through a mirror's hole: three wide, so either width of mirror is served, and two tall. */
+        public Arrival(final int x, final int y, final int z, final int aheadX, final int aheadZ)
+        {
+            this(x, y, z, aheadX, aheadZ, 3, 2);
+        }
     }
 
     /** The palette and the entries that index into it, as a capture is made from them. */
@@ -632,22 +641,29 @@ public final class MirrorCapture
             final double exitZ = (from.z() + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            final double step = Math.tan(Math.toRadians(1.0));
+            // A bigger hole lets through more directions from each point; the rays are spread wider
+            // so a gate's capture costs about what a mirror's does.
+            final double step = Math.tan(Math.toRadians(Math.max(1.0, Math.sqrt((from.width() * from.height()) / 6.0))));
             // Filled afresh for each ray, which only reads them.
             final double[] origin = new double[3];
             final double[] direction = new double[3];
-            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
-            // than its room's, on whichever side its view turns that column to, so a room captured
-            // once serves a mirror of either width looking in either way.
+            // A mirror's is three blocks wide, centred on the arrival: a mirror two banners wide sees
+            // one column more than its room's, on whichever side its view turns that column to, so a
+            // room captured once serves a mirror of either width looking in either way. An even-width
+            // gate's arrival is left of its middle, so its hole sits half a block right.
+            final double half = from.width() / 2.0;
+            final double centre = ((from.width() - 1) % 2) / 2.0;
+            final double spacing = (from.width() == 3) ? 0.35 : ((half - 0.1) / 4);
+            final double rise = (from.height() == 2) ? 0.2 : (from.height() / 10.0);
             for (int column = -4; column <= 4; column++)
             {
-                final double across = column * 0.35;
-                for (double up = 0.1; up < 2.0; up += 0.2)
+                final double across = centre + (column * spacing);
+                for (double up = rise / 2; up < from.height(); up += rise)
                 {
                     // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
+                    for (double sideways = ((centre - half) - across) + (step / 2); sideways < ((centre + half) - across); sideways += step)
                     {
-                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
+                        for (double upward = -up + (step / 2); upward < (from.height() - up); upward += step)
                         {
                             final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
                             origin[0] = (exitX + ((across + sideways) * rightX)) - minX;

@@ -149,6 +149,13 @@ final class ParsedSetting
                 ? refused(key + " is " + String.join(", ", ConfigManager.irisAnimations()) + ", not \"" + raw + "\".")
                 : accepted(animation);
         }
+        if (key == ConfigKeys.GATE_VIEW)
+        {
+            final String level = ConfigManager.parseGateView(raw);
+            return (level == null)
+                ? refused(key + " is " + String.join(", ", ConfigManager.GATE_VIEWS) + ", not \"" + raw + "\".")
+                : accepted(level);
+        }
         return null;
     }
 

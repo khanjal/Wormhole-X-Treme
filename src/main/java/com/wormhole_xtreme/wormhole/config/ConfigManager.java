@@ -127,6 +127,9 @@ public class ConfigManager
         /** Whether an iris sweeps shut a ring at a time, or arrives all at once. */
         GATE_IRIS_ANIMATION,
 
+        /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
+        GATE_VIEW,
+
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
@@ -866,6 +869,8 @@ public class ConfigManager
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
                 return irisAnimations();
+            case GATE_VIEW:
+                return GATE_VIEWS;
             case RING_DEFAULT_ACCESS:
                 return List.of("public", "private");
             case RING_DEFAULT_STYLE:
@@ -1078,6 +1083,34 @@ public class ConfigManager
         }
         final String name = raw.trim().toLowerCase(Locale.ROOT);
         return irisAnimations().contains(name) ? name : null;
+    }
+
+    /** Every level {@code gate-view} takes, the default first. */
+    public static final List<String> GATE_VIEWS = List.of("horizon", "behind", "open");
+
+    /**
+     * What an open gate shows once its kawoosh settles (#516).
+     *
+     * @return horizon, behind or open; horizon for anything else
+     */
+    public static String getGateView()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
+        final String level = (s == null) ? null : parseGateView(String.valueOf(s.getStringValue()));
+        return (level == null) ? GATE_VIEWS.get(0) : level;
+    }
+
+    /**
+     * Reads a level of {@code gate-view} as typed.
+     *
+     * @param raw
+     *            the value as typed
+     * @return it in lower case, or null if it names none
+     */
+    public static String parseGateView(final String raw)
+    {
+        final String level = (raw == null) ? null : raw.trim().toLowerCase(Locale.ROOT);
+        return GATE_VIEWS.contains(level) ? level : null;
     }
 
     /**

@@ -617,6 +617,37 @@ The arrival splash â€” a moment of water shown to a traveller as they come out â
 mechanism, and deliberately brief. It is the one drawing that makes the client's world *less*
 solid than the real one, so it is only sent where the eye is in open air.
 
+## Seeing through a gate (experimental)
+
+`gate-view` ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)) draws an open gate
+the way a mirror draws its room: the ground in front of the dialled gate, in real blocks sent to
+each viewer, behind the gate's plane. `behind` keeps the horizon in front of it; `open` clears the
+horizon once the far side is ready. It is the mirror drawing, not a copy of it: `GateViews` offers
+each open gate to the mirror sweep as a window, and nothing in the world changes.
+
+**A gate is a window that is walked through.** It is never barred, since travellers have to get
+into it, and a punch at its view goes nowhere: the gate's own rules decide who crosses. The
+opening is the gate's to draw, so the view leaves it alone. A traveller is sent on as they
+enter the opening, so they should never reach the drawn room behind; that is still to be
+watched for in a world, at speed and on a mount.
+
+**A capture is seen through the gate's own opening.** A mirror's is taken through a hole three
+wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
+spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
+still, the spread would get coarse enough to miss things, and nobody has measured where, so a
+gate bigger than five by five keeps its horizon. It is taken when the gate first opens with none, and again when it opens with one over
+five minutes old.
+
+**What it does not do yet**, each a thing to judge in a world before it is built:
+
+- **Nothing hides the view's edges.** A mirror hangs in a wall; a gate stands in the open, so the
+  view is clipped against its ring alone. This is the go/no-go.
+- **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
+  behind the gate, sees an empty ring.
+- **Captures are not kept.** They are written where mirrors' are and cleared at startup; a
+  gate's would be `data/gates/captures/<gate>.view`, named for the gate it shows.
+- **No setting per gate**, no depth of its own, no horizontal gates, and no creatures on the far side.
+
 ## Animation
 
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](images/gates/gate-dial.webp)

@@ -18,6 +18,24 @@ public final class MirrorProximity
     {
     }
 
+    /** Offers whatever else is drawn as a window, before the sweep settles them: open gates (#516). */
+    private static Runnable alsoOffer = () ->
+    {
+    };
+
+    /**
+     * Sets what else each sweep offers as a window, alongside the mirrors.
+     *
+     * @param offer
+     *            run once a sweep, after the mirrors and before the windows are settled; null for nothing
+     */
+    public static void alsoOffer(final Runnable offer)
+    {
+        alsoOffer = (offer == null) ? () ->
+        {
+        } : offer;
+    }
+
     /** @return the sweep, for the scheduler */
     public static Runnable createTicker()
     {
@@ -82,6 +100,7 @@ public final class MirrorProximity
             }
             offerWindow(mirror);
         }
+        alsoOffer.run();
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.
         MirrorWindows.finish();

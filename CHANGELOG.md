@@ -8,6 +8,15 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.9.0 (unreleased)
 
+### Stargates
+
+**Added**
+
+- **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
+  `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
+  side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate
+  with an opening up to five by five, and only with its iris open.
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world

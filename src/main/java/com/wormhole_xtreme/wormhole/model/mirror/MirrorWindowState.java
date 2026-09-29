@@ -58,9 +58,22 @@ final class MirrorWindowState
     MirrorWindows.Whole full;
     MirrorCapture fullFrom;
 
+    /**
+     * A gate's opening rather than a banner's: walked through, so never barred, and with no banner
+     * to take down while it is drawn.
+     */
+    final boolean walkThrough;
+
     MirrorWindowState(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
         final List<Spot> open, final MirrorCapture capture)
     {
+        this(mirror, shape, banner, open, capture, false);
+    }
+
+    MirrorWindowState(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
+        final List<Spot> open, final MirrorCapture capture, final boolean walkThrough)
+    {
+        this.walkThrough = walkThrough;
         this.mirror = mirror;
         this.shape = shape;
         this.banner = banner;

@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -707,7 +708,9 @@ public class WormholeXTreme extends JavaPlugin
             GateSounds::tickAmbient,
             20L, ConfigManager.getGateSoundAmbientTicks());
         // A mirror hung on a wall is drawn as a view of its room. One sweep over the registered
-        // mirrors, which skips any whose world or chunk is not loaded.
+        // mirrors, which skips any whose world or chunk is not loaded; open gates join it when
+        // gate-view asks them to (#516).
+        MirrorProximity.alsoOffer(GateViews::offerAll);
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             MirrorProximity.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());

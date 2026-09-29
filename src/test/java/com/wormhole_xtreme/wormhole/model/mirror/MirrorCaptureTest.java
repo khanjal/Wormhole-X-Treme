@@ -76,6 +76,46 @@ class MirrorCaptureTest
         assertEquals(2, capture.states(), "air and stone");
     }
 
+    /**
+     * A capture taken through a gate's opening sees what that opening lets through (#516).
+     *
+     * <p>A mirror's hole is three wide and two tall, and every capture used to be taken through
+     * it. A gate five by five taken that way lost everything seen past the mirror's fan: the
+     * ground either side of the arrival and the top of the view came out as holes onto this world.
+     * The blocks here stand in the arrival's own layer just far enough out that no face of them
+     * shows through a mirror's hole -- a block is kept for any see-through neighbour a ray
+     * reaches, so the air behind each is out of a mirror's fan too -- to both sides, so a flipped
+     * sideways axis cannot pass, and above.
+     */
+    @Test
+    void aCaptureThroughAWiderHoleSeesWhatAMirrorsCannot()
+    {
+        for (final boolean gate : new boolean[] { false, true })
+        {
+            // A box 21 wide, 12 tall and 9 deep, arrival at (10, 2, 0) facing +z.
+            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 12, 9), air);
+            builder.put(1, 2, 0, stone);
+            builder.put(19, 2, 0, stone);
+            builder.put(10, 8, 0, stone);
+            builder.keepOnlySeen(gate ? new MirrorCapture.Arrival(10, 2, 0, 0, 1, 5, 5) : new MirrorCapture.Arrival(10, 2, 0, 0, 1), 8);
+
+            final MirrorCapture capture = builder.build();
+
+            if (gate)
+            {
+                assertSame(stone, capture.at(1, 2, 0), "nine blocks to one side of a gate's arrival");
+                assertSame(stone, capture.at(19, 2, 0), "and to the other");
+                assertSame(stone, capture.at(10, 8, 0), "six up, over the top of a gate's opening");
+            }
+            else
+            {
+                assertTrue(capture.isBuried(1, 2, 0), "past a mirror's fan, left to the real world");
+                assertTrue(capture.isBuried(19, 2, 0), "on either side");
+                assertTrue(capture.isBuried(10, 8, 0), "and above its two-tall hole");
+            }
+        }
+    }
+
     @Test
     void theTopOfAColumnIsItsHighestBlockThatIsNotAir()
     {

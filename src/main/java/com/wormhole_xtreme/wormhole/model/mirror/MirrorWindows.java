@@ -587,6 +587,70 @@ public final class MirrorWindows
         return true;
     }
 
+    /** A gate's capture older than this is retaken when the gate next opens, keeping the old until the new is ready. */
+    private static final long GATE_CAPTURE_SECONDS = 300L;
+
+    /**
+     * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
+     *
+     * <p>Drawn as a mirror's is, but walked through: never barred, never punched through, and its
+     * opening left to the gate's own horizon. Its capture is taken through the gate's own opening,
+     * and retaken when the gate opens if it is old.
+     *
+     * @param name
+     *            a name no mirror has, for the sweep to know it by
+     * @param anchor
+     *            a block of the opening, which distances to it are measured from
+     * @param shape
+     *            the opening, onto where travellers land
+     * @param open
+     *            the opening's cells a view is seen through: the gate's portal cells
+     * @param destination
+     *            where travellers land, facing the way they leave
+     * @param opened
+     *            true on the first sweep since the gate opened
+     * @return true if it is a window now, false while its capture is being taken
+     */
+    public static boolean offerGate(final String name, final Block anchor, final MirrorWindow shape,
+        final List<Spot> open, final MirrorPoint destination, final boolean opened)
+    {
+        final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(anchor), destination);
+        final MirrorCapture capture = MirrorCaptures.get(stand);
+        if (capture == null)
+        {
+            MirrorCaptures.request(stand, shape.width(), shape.height());
+            return false;
+        }
+        if (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS))
+        {
+            MirrorCaptures.request(stand, shape.width(), shape.height());
+        }
+        final MirrorWindowState window = new MirrorWindowState(stand, shape, anchor, open, capture, true);
+        final MirrorWindowState previous = WINDOWS.get(name);
+        if ((previous != null) && previous.shape.equals(shape))
+        {
+            window.solid = previous.solid;
+            window.margin = previous.margin;
+            window.frame = previous.frame;
+            window.border = previous.border;
+            window.solidAt = previous.solidAt;
+        }
+        OFFERED.put(name, window);
+        return true;
+    }
+
+    /**
+     * Whether a gate's window is being drawn for anybody: its capture is in and it was offered.
+     *
+     * @param name
+     *            the name it was offered under
+     * @return true if the sweep holds it as a window
+     */
+    public static boolean holdsWindow(final String name)
+    {
+        return WINDOWS.containsKey(name) || OFFERED.containsKey(name);
+    }
+
     /** Ends a sweep: the windows offered become the windows there are, and every view follows. */
     static void finish()
     {
@@ -933,7 +997,8 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final MirrorWindowState window = WINDOWS.get(name);
-            if ((window != null) && window.open.contains(at)
+            // A gate is walked through under its own rules; a punch at its view goes nowhere.
+            if ((window != null) && !window.walkThrough && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
                 return window.mirror;
@@ -972,7 +1037,7 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final MirrorWindowState window = WINDOWS.get(name);
-            if ((window == null) || !window.banner.getWorld().equals(block.getWorld()))
+            if ((window == null) || window.walkThrough || !window.banner.getWorld().equals(block.getWorld()))
             {
                 continue;
             }
@@ -1319,6 +1384,11 @@ public final class MirrorWindows
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final MirrorWindowState window : seeing)
         {
+            // A gate's opening is walked into, and its horizon is the gate's own to draw.
+            if (window.walkThrough)
+            {
+                continue;
+            }
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
             // stays hanging in front of the view.
             if (MirrorPackets.available())
@@ -1774,7 +1844,7 @@ public final class MirrorWindows
         final int[] span = MirrorFace.acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
         {
-            for (int y = shape.base().y() - reach; y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
+            for (int y = shape.base().y() - reach; y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = MirrorFace.faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
@@ -2020,7 +2090,7 @@ public final class MirrorWindows
         final int rightStep = alongX ? shape.into().x() : -shape.into().z();
         final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5
             + ((shape.width() - 1) * 0.5 * rightStep);
-        final double y = shape.base().y() + (MirrorWindow.HEIGHT / 2.0);
+        final double y = shape.base().y() + (shape.height() / 2.0);
         final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
         return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
     }
@@ -2332,7 +2402,7 @@ public final class MirrorWindows
         final boolean alongX = shape.into().x() != 0;
         final int[] span = MirrorFace.acrossSpan(shape, SURROUND);
         final int lowY = shape.base().y() - SURROUND;
-        final int highY = shape.base().y() + MirrorWindow.HEIGHT + SURROUND;
+        final int highY = shape.base().y() + shape.height() + SURROUND;
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = lowY; y <= highY; y++)
@@ -2396,7 +2466,7 @@ public final class MirrorWindows
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - reach;
-                y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
+                y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = MirrorFace.faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())

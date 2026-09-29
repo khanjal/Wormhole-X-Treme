@@ -354,6 +354,23 @@ public final class MirrorCaptures
      */
     public static boolean request(final QuantumMirror mirror)
     {
+        return request(mirror, 3, 2);
+    }
+
+    /**
+     * Starts taking a capture seen through a hole of a given size: a gate's opening rather than
+     * a mirror's.
+     *
+     * @param mirror
+     *            what the capture is for, with somewhere to go
+     * @param holeWidth
+     *            the opening's width
+     * @param holeHeight
+     *            its height
+     * @return true if a capture is now being taken, or already was
+     */
+    static boolean request(final QuantumMirror mirror, final int holeWidth, final int holeHeight)
+    {
         if (mirror.destination() == null)
         {
             return false;
@@ -376,7 +393,7 @@ public final class MirrorCaptures
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of mirror '"
             + mirror.name() + "' in " + far.getName() + " around " + key);
-        final Job job = new Job(key, far, mirror.destination());
+        final Job job = new Job(key, far, mirror.destination(), holeWidth, holeHeight);
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -623,12 +640,18 @@ public final class MirrorCaptures
         /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
         private int reachAsked;
         private volatile int reachKept;
+        /** The hole the capture is seen through. */
+        private final int holeWidth;
+        private final int holeHeight;
 
-        Job(final String key, final World far, final MirrorPoint destination)
+        Job(final String key, final World far, final MirrorPoint destination, final int holeWidth,
+            final int holeHeight)
         {
             this.key = key;
             this.far = far;
             this.destination = destination;
+            this.holeWidth = holeWidth;
+            this.holeHeight = holeHeight;
             final int[] box = needed(destination, reach(far), far.getMinHeight(), far.getMaxHeight());
             minX = box[0];
             minY = box[1];
@@ -761,7 +784,8 @@ public final class MirrorCaptures
             }
             final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
             final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),
-                (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z());
+                (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z(),
+                holeWidth, holeHeight);
             final int depth = reach(far);
             final int floor = ConfigManager.getMirrorViewDepth();
             reachAsked = depth;

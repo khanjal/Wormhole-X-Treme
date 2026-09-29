@@ -233,4 +233,15 @@ class ParsedSettingTest
         assertTrue(parsed.getRefusal().contains("columns") && parsed.getRefusal().contains("instant"),
             parsed.getRefusal());
     }
+
+    /** A gate view level is one of the three, in any case; anything else is refused by name (#516). */
+    @Test
+    void aGateViewThatIsNotOneIsRefused()
+    {
+        storesAs(ConfigKeys.GATE_VIEW, "Open", "open");
+        storesAs(ConfigKeys.GATE_VIEW, " behind ", "behind");
+        final ParsedSetting parsed = refuses(ConfigKeys.GATE_VIEW, "window");
+        assertTrue(parsed.getRefusal().contains("horizon") && parsed.getRefusal().contains("open"),
+            parsed.getRefusal());
+    }
 }
