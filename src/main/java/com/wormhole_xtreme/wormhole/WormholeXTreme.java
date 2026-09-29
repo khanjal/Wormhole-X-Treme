@@ -1,32 +1,26 @@
 package com.wormhole_xtreme.wormhole;
+
 import java.io.Console;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+
 import com.wormhole_xtreme.wormhole.command.Dial;
-import com.wormhole_xtreme.wormhole.command.Wormhole;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.StargateDBManager;
-import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
-import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Predicate;
-
-import org.bukkit.event.Listener;
-
 import com.wormhole_xtreme.wormhole.command.DialTabCompleter;
+import com.wormhole_xtreme.wormhole.command.Wormhole;
 import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
@@ -34,7 +28,11 @@ import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
@@ -50,7 +48,9 @@ import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 

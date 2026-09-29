@@ -1,23 +1,23 @@
 package com.wormhole_xtreme.wormhole.config;
 
-import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
-import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
-import org.bukkit.Material;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.stream.Stream;
+
+import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
+import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 
 
