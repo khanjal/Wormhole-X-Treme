@@ -130,6 +130,9 @@ public class ConfigManager
         /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
         GATE_VIEW,
 
+        /** How far past a gate's opening its view is captured and drawn. */
+        GATE_VIEW_DEPTH,
+
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
@@ -1098,6 +1101,21 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
         final String level = (s == null) ? null : parseGateView(String.valueOf(s.getStringValue()));
         return (level == null) ? GATE_VIEWS.get(0) : level;
+    }
+
+    /**
+     * How far past a gate's opening its view reaches, captured and drawn (#516).
+     *
+     * <p>Its own rather than {@code mirror-view-depth}: a gate's capture is taken when it is dialled,
+     * often of somewhere nobody has loaded, and at a mirror's 160 that was a box of some 230 chunks
+     * read from disk before anything showed.
+     *
+     * @return blocks, 4 to 160
+     */
+    public static int getGateViewDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_DEPTH);
+        return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
     }
 
     /**

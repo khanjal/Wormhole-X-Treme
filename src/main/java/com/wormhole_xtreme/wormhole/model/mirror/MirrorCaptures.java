@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
@@ -206,8 +209,7 @@ public final class MirrorCaptures
      */
     static String keyOf(final MirrorPoint destination)
     {
-        final String world = destination.worldName().toLowerCase(Locale.ROOT)
-            .replaceAll("[^a-z0-9._-]", "_");
+        final String world = fileSafe(destination.worldName());
         return world + '_' + (int) Math.floor(destination.x()) + '_'
             + (int) Math.floor(destination.y()) + '_' + (int) Math.floor(destination.z());
     }
@@ -216,24 +218,149 @@ public final class MirrorCaptures
     static final int MIRROR_HOLE_WIDTH = 3;
     static final int MIRROR_HOLE_HEIGHT = 2;
 
+    /** Before the key of a capture kept for a gate, whose file lives with the gates (#516). */
+    static final String GATE_KEY = "gate:";
+
     /**
-     * The key a capture of a place seen through a hole of a given size is kept under.
+     * The key a gate's capture is kept under: the gate whose front it shows, and the hole it is seen through.
      *
-     * <p>A mirror's is the place alone, as it always was. Any other hole has its size added: a
-     * capture holds only what its own hole lets through, so a small gate's served to a big one
-     * left the big one's view with holes round its edges, and a mirror's retake replaced a gate's.
+     * <p>Named for the gate rather than the place, so it is found again after a restart and can go
+     * when the gate does. The hole is part of it because a capture holds only what its own hole
+     * lets through: a small gate's served to a big one left the big one's view with holes round
+     * its edges, and keyed by place alone a mirror's retake replaced a gate's.
      *
+     * @param gate
+     *            the gate whose front it shows
      * @param holeWidth
-     *            the opening's width
+     *            the opening it is seen through, wide
      * @param holeHeight
-     *            its height
-     * @return a file-safe name for that place and hole
+     *            and tall
+     * @return a key whose file is in {@link DataLayout#gateCaptureDir()}
      */
-    static String keyOf(final MirrorPoint destination, final int holeWidth, final int holeHeight)
+    public static String gateKey(final String gate, final int holeWidth, final int holeHeight)
     {
-        final String place = keyOf(destination);
-        return ((holeWidth == MIRROR_HOLE_WIDTH) && (holeHeight == MIRROR_HOLE_HEIGHT)) ? place
-            : (place + '_' + holeWidth + 'x' + holeHeight);
+        return GATE_KEY + fileSafe(gate) + '_' + holeWidth + 'x' + holeHeight;
+    }
+
+    /** A name as a file may be called. */
+    static String fileSafe(final String name)
+    {
+        return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "_");
+    }
+
+    /** What follows a gate's name in its capture's key: the hole, as {@code _<width>x<height>}. */
+    private static final Pattern GATE_HOLE = Pattern.compile("_(\\d+)x(\\d+)$");
+
+    /**
+     * Every capture kept for a gate, whatever opening it was seen through: on disk, and in memory.
+     *
+     * @param gate
+     *            the gate whose front they show
+     * @return their keys
+     */
+    static Set<String> gateKeysFor(final String gate)
+    {
+        final String stem = fileSafe(gate);
+        final Set<String> keys = new HashSet<>();
+        final File[] files = DataLayout.gateCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
+        for (final File file : (files == null) ? new File[0] : files)
+        {
+            keys.add(GATE_KEY + file.getName().substring(0, file.getName().length() - VIEW.length()));
+        }
+        keys.addAll(LOADED.keySet());
+        keys.removeIf(key -> !key.startsWith(GATE_KEY + stem + '_') || !GATE_HOLE.matcher(key)
+            .region(GATE_KEY.length() + stem.length(), key.length()).matches());
+        return keys;
+    }
+
+    /**
+     * Whether a capture reaches as far ahead of its arrival as a view now draws.
+     *
+     * @param depth
+     *            how far ahead the view draws
+     * @return true if the block that far ahead is inside it
+     */
+    static boolean reaches(final MirrorCapture capture, final MirrorPoint arrival, final int depth)
+    {
+        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(arrival.yaw());
+        return capture.contains((int) Math.floor(arrival.x()) + (ahead.x() * depth), (int) Math.floor(arrival.y()),
+            (int) Math.floor(arrival.z()) + (ahead.z() * depth));
+    }
+
+    /**
+     * Retakes a gate's captures that are older than a limit or too shallow for the depth, whichever
+     * opening each was seen through, while somebody is at the gate and its chunks are loaded anyway.
+     *
+     * <p>A capture is the base a gate is drawn from until it is taken again; this is the "when
+     * able". The old one is drawn meanwhile.
+     *
+     * @param gate
+     *            the gate whose front they show
+     * @param arrival
+     *            where a traveller through it lands
+     * @param depth
+     *            how far ahead a gate's view draws
+     * @param olderThanSeconds
+     *            how old a capture may be before it is retaken
+     * @return how many were started
+     */
+    public static int refreshGate(final String gate, final MirrorPoint arrival, final int depth,
+        final long olderThanSeconds)
+    {
+        int started = 0;
+        for (final String key : gateKeysFor(gate))
+        {
+            final MirrorCapture capture = get(key);
+            final Matcher hole = GATE_HOLE.matcher(key);
+            if ((capture != null) && hole.find() && ((capture.secondsOld() > olderThanSeconds) || !reaches(capture, arrival, depth))
+                && !JOBS.containsKey(key) && requestGate(key, gate, arrival, Integer.parseInt(hole.group(1)),
+                    Integer.parseInt(hole.group(2)), depth))
+            {
+                started++;
+            }
+        }
+        return started;
+    }
+
+    /**
+     * Deletes every gate capture whose gate is gone.
+     *
+     * <p>Named for the gate they show, so a gate removed or renamed left them behind; run only once
+     * gates have loaded, when every one would otherwise read as gone.
+     *
+     * @param gates
+     *            the names of every gate there is
+     * @return how many were deleted
+     */
+    public static int sweepAbandonedGates(final Collection<String> gates)
+    {
+        final File[] files = DataLayout.gateCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
+        if (files == null)
+        {
+            return 0;
+        }
+        final Set<String> stems = new HashSet<>();
+        gates.forEach(gate -> stems.add(fileSafe(gate)));
+        int deleted = 0;
+        for (final File file : files)
+        {
+            final Matcher hole = GATE_HOLE.matcher(file.getName().substring(0, file.getName().length() - VIEW.length()));
+            if (hole.find() && stems.contains(file.getName().substring(0, hole.start())))
+            {
+                continue;
+            }
+            try
+            {
+                Files.delete(file.toPath());
+                deleted++;
+            }
+            catch (final IOException refused)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Could not delete abandoned gate capture " + file.getName(), refused);
+            }
+        }
+        return deleted;
     }
 
     /**
@@ -304,21 +431,16 @@ public final class MirrorCaptures
      */
     static MirrorCapture get(final QuantumMirror mirror)
     {
-        return get(mirror, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT);
+        return get(keyOf(mirror.destination()));
     }
 
     /**
-     * The capture of a far side seen through a hole of a given size, if there is one.
+     * The capture kept under a key, if there is one: a mirror's place, or a {@link #gateKey}.
      *
-     * @param holeWidth
-     *            the opening's width
-     * @param holeHeight
-     *            its height
-     * @return its capture, or null if none has been taken yet
+     * @return the capture, or null if none has been taken yet
      */
-    static MirrorCapture get(final QuantumMirror mirror, final int holeWidth, final int holeHeight)
+    static MirrorCapture get(final String key)
     {
-        final String key = keyOf(mirror.destination(), holeWidth, holeHeight);
         final long now = System.currentTimeMillis();
         final Held held = LOADED.get(key);
         if (held != null)
@@ -392,46 +514,67 @@ public final class MirrorCaptures
      */
     public static boolean request(final QuantumMirror mirror)
     {
-        return request(mirror, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT);
+        return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
+            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0);
     }
 
     /**
-     * Starts taking a capture seen through a hole of a given size: a gate's opening rather than
-     * a mirror's.
+     * Starts taking a gate's capture, if the gate's world is loaded and none is being taken (#516).
      *
-     * @param mirror
-     *            what the capture is for, with somewhere to go
+     * @param key
+     *            its {@link #gateKey}
+     * @param gate
+     *            the gate whose front it shows, for the log
+     * @param arrival
+     *            where a traveller through it lands, facing the way they leave
      * @param holeWidth
-     *            the opening's width
+     *            the opening it is seen through, wide
      * @param holeHeight
-     *            its height
+     *            and tall
+     * @param depth
+     *            how far past the opening it reaches: {@code gate-view-depth}, not a mirror's reach
      * @return true if a capture is now being taken, or already was
      */
-    static boolean request(final QuantumMirror mirror, final int holeWidth, final int holeHeight)
+    public static boolean requestGate(final String key, final String gate, final MirrorPoint arrival,
+        final int holeWidth, final int holeHeight, final int depth)
     {
-        if (mirror.destination() == null)
-        {
-            return false;
-        }
-        final String key = keyOf(mirror.destination(), holeWidth, holeHeight);
+        return request(key, "gate '" + gate + "'", arrival, new int[] { holeWidth, holeHeight }, Math.max(4, depth));
+    }
+
+    /**
+     * Starts taking a capture, if the far world is loaded and none is being taken under its key.
+     *
+     * @param what
+     *            what it is for, for the log
+     * @param hole
+     *            {@code {width, height}} of the opening it is seen through
+     * @param depth
+     *            how far ahead it reaches, or 0 for a mirror's: as far as the far world sends
+     */
+    private static boolean request(final String key, final String what, final MirrorPoint destination,
+        final int[] hole, final int depth)
+    {
         if (JOBS.containsKey(key))
         {
             return true;
         }
-        final World far = Bukkit.getWorld(mirror.destination().worldName());
+        final World far = Bukkit.getWorld(destination.worldName());
         if (far == null)
         {
             if (WARNED.add(key))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Cannot capture the far side"
-                    + " of mirror '" + mirror.name() + "': " + mirror.destination().worldName()
-                    + " is not loaded. It stays a banner until that world is loaded once.");
+                    + " of " + what + ": " + destination.worldName() + " is not loaded. It "
+                    + (key.startsWith(GATE_KEY) ? "keeps its horizon" : "stays a banner")
+                    + " until that world is loaded once.");
             }
             return false;
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of mirror '"
-            + mirror.name() + "' in " + far.getName() + " around " + key);
-        final Job job = new Job(key, far, mirror.destination(), holeWidth, holeHeight);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of " + what + " in "
+            + far.getName() + " around " + key);
+        final int reach = (depth > 0) ? depth : reach(far);
+        final int floor = (depth > 0) ? depth : ConfigManager.getMirrorViewDepth();
+        final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -638,23 +781,17 @@ public final class MirrorCaptures
      */
     static void install(final MirrorPoint destination, final MirrorCapture capture)
     {
-        install(destination, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT, capture);
+        install(keyOf(destination), capture);
     }
 
     /**
-     * Puts a capture seen through a hole of a given size in memory as though it had been taken, for a test.
+     * Puts a capture in memory under a key as though it had been taken, for a test.
      *
-     * @param destination
-     *            the place it is of
-     * @param holeWidth
-     *            the hole's width
-     * @param holeHeight
-     *            its height
+     * @param key
+     *            a mirror's place or a {@link #gateKey}
      */
-    static void install(final MirrorPoint destination, final int holeWidth, final int holeHeight,
-        final MirrorCapture capture)
+    static void install(final String key, final MirrorCapture capture)
     {
-        final String key = keyOf(destination, holeWidth, holeHeight);
         LOADED.put(key, new Held(capture, System.currentTimeMillis()));
         ABSENT.remove(key);
         changed();
@@ -662,7 +799,8 @@ public final class MirrorCaptures
 
     private static File fileOf(final String key)
     {
-        return new File(DataLayout.mirrorCaptureDir(), key + VIEW);
+        return key.startsWith(GATE_KEY) ? new File(DataLayout.gateCaptureDir(), key.substring(GATE_KEY.length()) + VIEW)
+            : new File(DataLayout.mirrorCaptureDir(), key + VIEW);
     }
 
     /**
@@ -698,16 +836,26 @@ public final class MirrorCaptures
         /** The hole the capture is seen through. */
         private final int holeWidth;
         private final int holeHeight;
+        /** How far ahead it is taken, and the least a cut to fit may leave. */
+        private final int reach;
+        private final int floor;
 
-        Job(final String key, final World far, final MirrorPoint destination, final int holeWidth,
-            final int holeHeight)
+        /**
+         * @param hole
+         *            {@code {width, height}} of the opening it is seen through
+         * @param depths
+         *            {@code {reach, floor}}: how far ahead it is taken, and the least a cut to fit may leave
+         */
+        Job(final String key, final World far, final MirrorPoint destination, final int[] hole, final int[] depths)
         {
             this.key = key;
             this.far = far;
             this.destination = destination;
-            this.holeWidth = holeWidth;
-            this.holeHeight = holeHeight;
-            final int[] box = needed(destination, reach(far), far.getMinHeight(), far.getMaxHeight());
+            this.holeWidth = hole[0];
+            this.holeHeight = hole[1];
+            this.reach = depths[0];
+            this.floor = depths[1];
+            final int[] box = needed(destination, reach, far.getMinHeight(), far.getMaxHeight());
             minX = box[0];
             minY = box[1];
             minZ = box[2];
@@ -841,8 +989,7 @@ public final class MirrorCaptures
             final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),
                 (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z(),
                 holeWidth, holeHeight);
-            final int depth = reach(far);
-            final int floor = ConfigManager.getMirrorViewDepth();
+            final int depth = reach;
             reachAsked = depth;
             reachKept = depth;
             // A third of a million rays: off the main thread, since the box is noted and

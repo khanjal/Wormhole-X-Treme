@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -29,10 +30,10 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 /**
  * An open gate offered to the mirror sweep as a window (#516): when it is one, and where its capture comes from.
  *
- * <p>A gate is drawn from a capture seen through its own opening. Served a mirror's capture of the
- * same place, a five-by-five gate drew a view cut to a three-by-two hole, with the real world
- * showing round its edges; and a gate that was a window one sweep had to stay one, and go when
- * released, or a closed gate went on showing where it used to go.
+ * <p>A gate is drawn from a capture kept for the gate it shows and seen through its own opening.
+ * Served a mirror's capture of the same place, a five-by-five gate drew a view cut to a three-by-two
+ * hole, with the real world showing round its edges; a gate that was a window one sweep had to stay
+ * one, and go when released, or a closed gate went on showing where it used to go.
  *
  * <p>Its own class rather than more of {@code MirrorWindowsTest}, which already needs gigabytes.
  */
@@ -40,7 +41,7 @@ class MirrorWindowsGateTest
 {
     private static final String NAME = "gate:Abydos";
 
-    /** Where travellers through the gate land: facing south. */
+    /** Where travellers through the gate land, in front of Chulak: facing south. */
     private static final MirrorPoint ARRIVAL = new MirrorPoint("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
 
     @TempDir
@@ -48,8 +49,7 @@ class MirrorWindowsGateTest
 
     private World world;
     private Block anchor;
-    private MirrorWindow shape;
-    private final List<Spot> open = new ArrayList<>();
+    private GateWindow gate;
 
     @BeforeEach
     void setUp() throws Exception
@@ -70,8 +70,10 @@ class MirrorWindowsGateTest
         when(anchor.getY()).thenReturn(64);
         when(anchor.getZ()).thenReturn(20);
         // A Standard gate's five by five, facing south: looked into northwards.
-        shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 5, 5);
+        final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 5, 5);
+        final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        gate = new GateWindow(NAME, anchor, shape, open, ARRIVAL, "Chulak", 16);
     }
 
     @AfterEach
@@ -82,12 +84,17 @@ class MirrorWindowsGateTest
         PluginTestSupport.remove();
     }
 
-    /** An empty capture of the far side, as though it had been taken. */
-    private static MirrorCapture capture()
+    /** A capture of the far side as though it had been taken, reaching {@code ahead} blocks past the arrival. */
+    private static MirrorCapture capture(final int ahead)
     {
         final BlockData air = mock(BlockData.class);
         when(air.getAsString()).thenReturn("minecraft:air");
-        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(90, 60, 190, 20, 20, 20), air).build();
+        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(80, 60, 199, 41, 20, ahead + 2), air).build();
+    }
+
+    private static String key()
+    {
+        return MirrorCaptures.gateKey("Chulak", 5, 5);
     }
 
     @Test
@@ -98,43 +105,91 @@ class MirrorWindowsGateTest
             // The far world is not loaded, so the capture cannot even be started.
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(MirrorWindows.offerGate(NAME, anchor, shape, open, ARRIVAL, true),
-                "nothing to draw from, so it keeps its horizon");
+            assertFalse(MirrorWindows.offerGate(gate, true), "nothing to draw from, so it keeps its horizon");
             assertFalse(MirrorWindows.holdsWindow(NAME));
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
     }
 
     @Test
-    void aGateIsAWindowOnceItsOwnCaptureIsIn()
+    void aGateIsAWindowOnceTheCaptureOfItsFarGateIsIn()
     {
-        MirrorCaptures.install(ARRIVAL, 5, 5, capture());
+        MirrorCaptures.install(key(), capture(32));
 
-        assertTrue(MirrorWindows.offerGate(NAME, anchor, shape, open, ARRIVAL, true), "its capture is in");
+        assertTrue(MirrorWindows.offerGate(gate, true), "its capture is in");
         assertTrue(MirrorWindows.holdsWindow(NAME), "and the sweep holds it");
     }
 
     @Test
     void aMirrorsCaptureOfTheSamePlaceIsNotAGates()
     {
-        MirrorCaptures.install(ARRIVAL, capture());
+        MirrorCaptures.install(ARRIVAL, capture(32));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(MirrorWindows.offerGate(NAME, anchor, shape, open, ARRIVAL, true),
+            assertFalse(MirrorWindows.offerGate(gate, true),
                 "a capture seen through a mirror's three by two is not drawn through a five by five");
+        }
+    }
+
+    /**
+     * A capture shallower than the gate's depth is still drawn, and a deeper one is asked for.
+     *
+     * <p>A capture kept from before {@code gate-view-depth} was raised is the best base there is;
+     * showing nothing until the deeper one arrived would be worse than showing it short.
+     */
+    @Test
+    void aShallowCaptureIsDrawnWhileADeeperOneIsTaken()
+    {
+        MirrorCaptures.install(key(), capture(4));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
+
+            assertTrue(MirrorWindows.offerGate(gate, false), "drawn from what there is");
+            bukkit.verify(() -> Bukkit.getWorld("far"));
+        }
+    }
+
+    @Test
+    void aFreshCaptureDeepEnoughIsNotTakenAgain()
+    {
+        MirrorCaptures.install(key(), capture(32));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            assertTrue(MirrorWindows.offerGate(gate, true));
+            bukkit.verify(() -> Bukkit.getWorld(anyString()), never());
+        }
+    }
+
+    /**
+     * A gate being dialled has its capture asked for then, not after its kawoosh.
+     *
+     * <p>A capture of somewhere nobody had loaded starts by reading it off the disk, and waiting for
+     * the sweep after the kawoosh to ask left a remote gate on its horizon long enough to close.
+     */
+    @Test
+    void aGateBeingDialledHasItsCaptureAskedForThen()
+    {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
+
+            MirrorWindows.prepareGate(gate);
+
+            bukkit.verify(() -> Bukkit.getWorld("far"));
         }
     }
 
     @Test
     void aGateStaysAWindowAcrossSweepsUntilItIsReleased()
     {
-        MirrorCaptures.install(ARRIVAL, 5, 5, capture());
-        assertTrue(MirrorWindows.offerGate(NAME, anchor, shape, open, ARRIVAL, true));
+        MirrorCaptures.install(key(), capture(32));
+        assertTrue(MirrorWindows.offerGate(gate, true));
         MirrorWindows.finish();
 
-        assertTrue(MirrorWindows.offerGate(NAME, anchor, shape, open, ARRIVAL, false), "offered again the next sweep");
+        assertTrue(MirrorWindows.offerGate(gate, false), "offered again the next sweep");
         MirrorWindows.finish();
         assertTrue(MirrorWindows.holdsWindow(NAME), "a window between sweeps");
 

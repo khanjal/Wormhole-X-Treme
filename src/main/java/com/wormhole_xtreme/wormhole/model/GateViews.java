@@ -1,8 +1,10 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Location;
@@ -12,6 +14,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
@@ -25,6 +29,11 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
  * horizon clears once the far side is ready -- for everybody, not per viewer, which is the first
  * thing a real build would change. Only the dialling end of an upright gate with its iris open,
  * and only an opening up to {@link #MOST} each way, since a capture's rays grow with its hole.
+ *
+ * <p>A gate's capture is kept on disk, named for the gate it shows, and is the base it is drawn
+ * from after a restart. It is taken again when able: as a gate dialling it is dialled or opens,
+ * once it is a minute old, and while somebody is at the gate it shows, once it is ten minutes old,
+ * since that gate's chunks are loaded anyway.
  */
 public final class GateViews
 {
@@ -40,6 +49,15 @@ public final class GateViews
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
 
+    /** How old a gate's capture may be before somebody standing at that gate has it taken again. */
+    static final long REFRESH_SECONDS = 600L;
+
+    /** How often each gate is looked at for somebody standing at it, in milliseconds. */
+    private static final long LOOK_MILLIS = 60_000L;
+
+    /** When each gate was last looked at for somebody standing at it, by name. */
+    private static final Map<String, Long> LOOKED = new HashMap<>();
+
     private GateViews()
     {
     }
@@ -49,6 +67,7 @@ public final class GateViews
     {
         CLEARED.clear();
         OPEN.clear();
+        LOOKED.clear();
     }
 
     /**
@@ -113,6 +132,73 @@ public final class GateViews
         OPEN.clear();
         OPEN.addAll(open);
         settleHorizons(clear, busy);
+        if (draws)
+        {
+            refreshWatched(System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Has the captures of every gate somebody is standing at taken again once they are old: that
+     * gate's chunks are loaded anyway, so it costs a moment's reading and nothing off the disk.
+     *
+     * @param now
+     *            the time, so each gate is looked at once a minute rather than every sweep
+     */
+    static void refreshWatched(final long now)
+    {
+        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        {
+            final String name = gate.getGateName();
+            final Long looked = LOOKED.get(name);
+            if (((looked != null) && ((now - looked) < LOOK_MILLIS)) || !watched(gate))
+            {
+                continue;
+            }
+            LOOKED.put(name, now);
+            final Location arrival = gate.getGatePlayerTeleportLocation();
+            if ((arrival != null) && (arrival.getWorld() != null))
+            {
+                MirrorCaptures.refreshGate(name, MirrorPoint.of(arrival), ConfigManager.getGateViewDepth(), REFRESH_SECONDS);
+            }
+        }
+    }
+
+    /**
+     * Starts a gate's capture as it is dialled, before its kawoosh (#516).
+     *
+     * <p>The first sweep after the kawoosh was the first ask, and a capture of somewhere nobody had
+     * loaded then started by reading it off the disk: half a minute or more of plain horizon, long
+     * enough for the gate to close first. Only a gate somebody is near, as for the sweep.
+     *
+     * @param gate
+     *            the gate just dialled, with its target set
+     */
+    public static void dialled(final Stargate gate)
+    {
+        if ((gate == null) || "horizon".equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
+            || (gate.getGateTarget().getGateName() == null) || !watched(gate))
+        {
+            return;
+        }
+        final Location arrival = gate.getGateTarget().getGatePlayerTeleportLocation();
+        final MirrorWindow shape = ((arrival == null) || (arrival.getWorld() == null)) ? null
+            : shapeOf(gate.getGateFacing(), cellsOf(gate), MirrorPoint.of(arrival));
+        if (shape != null)
+        {
+            MirrorWindows.prepareGate(windowOf(gate, shape));
+        }
+    }
+
+    /** An open gate as the window drawing sees it. */
+    private static GateWindow windowOf(final Stargate gate, final MirrorWindow shape)
+    {
+        final Location first = gate.getGatePortalBlocks().get(0);
+        final Stargate target = gate.getGateTarget();
+        return new GateWindow(PREFIX + gate.getGateName(),
+            gate.getGateWorld().getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()), shape,
+            cellsOf(gate), MirrorPoint.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
+            ConfigManager.getGateViewDepth());
     }
 
     /**
@@ -143,11 +229,7 @@ public final class GateViews
         {
             return;
         }
-        final Location first = gate.getGatePortalBlocks().get(0);
-        final boolean drawn = MirrorWindows.offerGate(PREFIX + name,
-            gate.getGateWorld().getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()), shape,
-            cellsOf(gate), MirrorPoint.of(gate.getGateTarget().getGatePlayerTeleportLocation()),
-            !OPEN.contains(name));
+        final boolean drawn = MirrorWindows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
         if (drawn && clears && !crossing)
         {
             clear.add(name);
@@ -224,7 +306,7 @@ public final class GateViews
     static MirrorWindow shapeOf(final Stargate gate, final boolean crossing)
     {
         if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.isGateIrisActive() && !crossing)
-            || (gate.getGateWorld() == null) || (gate.getGateTarget() == null))
+            || (gate.getGateWorld() == null) || (gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
         {
             return null;
         }

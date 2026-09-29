@@ -743,24 +743,117 @@ class MirrorCapturesTest
         }
     }
 
+    /** The gate whose front the gate captures below show, and where travellers through it land. */
+    private static final String GATE = "Abydos";
+
+    private String gateKey()
+    {
+        return MirrorCaptures.gateKey(GATE, 5, 5);
+    }
+
+    /** Takes a gate's capture of the beach, five by five, to a depth. */
+    private void takeGateCapture(final int depth)
+    {
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, depth));
+            MirrorCaptures.step(100);
+        });
+    }
+
     /**
-     * A capture seen through a gate's hole is kept apart from a mirror's of the same place (#516).
+     * A gate's capture is kept with the gates, under the gate's name, and outlives a restart (#516).
      *
-     * <p>The key was the place alone, so a Minimal gate dialling a far gate first left a capture a
-     * Standard gate dialling it later drew from, with holes round the edges of its view, and a
-     * mirror onto the same arrival block retook it as a mirror's. A mirror's key must stay the
-     * place alone, or every capture already on disk is orphaned.
+     * <p>Kept where a mirror's are, it was keyed by place and deleted at every startup by the sweep
+     * for captures no mirror uses, so every gate started from nothing after a restart: half a
+     * minute of plain horizon while the far side was read off the disk again.
      */
     @Test
-    void aCaptureThroughAnotherHoleIsKeptUnderItsOwnName()
+    void aGatesCaptureIsKeptWithTheGatesAndOutlivesARestart()
     {
-        final MirrorPoint place = mirror.destination();
+        takeGateCapture(8);
 
-        assertEquals(MirrorCaptures.keyOf(place), MirrorCaptures.keyOf(place, 3, 2),
-            "a mirror's hole keeps the name every capture on disk already has");
-        assertEquals(MirrorCaptures.keyOf(place) + "_5x5", MirrorCaptures.keyOf(place, 5, 5),
-            "a gate's is the place and its hole");
-        assertNotEquals(MirrorCaptures.keyOf(place, 1, 2), MirrorCaptures.keyOf(place, 5, 5),
-            "two gates of different sizes onto one gate do not share a capture");
+        final File file = new File(DataLayout.gateCaptureDir(), "abydos_5x5.view");
+        assertTrue(file.isFile(), "under the gates, named for the gate and its opening: " + file);
+        assertEquals(0, MirrorCaptures.sweepAbandoned(), "the mirrors' sweep does not see it");
+        assertTrue(file.isFile());
+
+        MirrorCaptures.clear();
+
+        assertNotNull(MirrorCaptures.get(gateKey()), "read back as the base after a restart");
+    }
+
+    @Test
+    void aGateKeyIsTheGateAndItsOpening()
+    {
+        assertEquals("gate:abydos_5x5", MirrorCaptures.gateKey("Abydos", 5, 5));
+        assertNotEquals(MirrorCaptures.gateKey("Abydos", 1, 2), MirrorCaptures.gateKey("Abydos", 5, 5),
+            "a small gate's capture is not a big one's: each holds only what its own opening lets through");
+        assertEquals(MirrorCaptures.keyOf(mirror.destination()), MirrorCaptures.keyFor(mirror),
+            "a mirror's is still its place, the name every capture on disk already has");
+    }
+
+    /**
+     * A gate's capture reaches its own depth, not a mirror's.
+     *
+     * <p>Taken to a mirror's reach -- as far as the world sends, 160 blocks -- a capture of somewhere
+     * nobody had loaded was some 230 chunks off the disk before a gate could show anything.
+     */
+    @Test
+    void aGatesCaptureReachesItsOwnDepth()
+    {
+        takeGateCapture(8);
+        final MirrorCapture capture = MirrorCaptures.get(gateKey());
+
+        assertTrue(MirrorCaptures.reaches(capture, mirror.destination(), 8), "as deep as it was asked");
+        assertFalse(MirrorCaptures.reaches(capture, mirror.destination(), 40), "and no deeper");
+    }
+
+    /**
+     * A gate's captures are taken again while somebody is at the gate, when old or too shallow, and not otherwise.
+     *
+     * <p>The capture is the base; this is how it keeps up with what is built there, without loading
+     * a chunk nobody is in.
+     */
+    @Test
+    void aGatesCapturesAreRefreshedOnlyWhenOldOrTooShallow()
+    {
+        takeGateCapture(8);
+
+        withServer(() ->
+        {
+            assertEquals(0, MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L), "fresh and deep enough");
+            assertEquals(1, MirrorCaptures.refreshGate(GATE, mirror.destination(), 40, 600L), "too shallow for the depth now");
+            MirrorCaptures.step(1000);
+            assertEquals(1, MirrorCaptures.refreshGate(GATE, mirror.destination(), 40, -1L), "older than the limit");
+        });
+    }
+
+    /**
+     * A capture of a gate that is gone is swept at startup; a gate's own are kept.
+     *
+     * <p>Named for the gate they show, a gate removed or renamed left its captures for good. A gate
+     * whose name only starts like another's must not keep the other's.
+     */
+    @Test
+    void aCaptureOfAGateThatIsGoneIsSwept() throws Exception
+    {
+        final File dir = DataLayout.gateCaptureDir();
+        assertTrue(dir.isDirectory() || dir.mkdirs(), "the gate captures folder");
+        final File kept = new File(dir, "abydos_5x5.view");
+        final File keptSmall = new File(dir, "abydos_1x2.view");
+        final File gone = new File(dir, "chulak_5x5.view");
+        final File lookalike = new File(dir, "abydos_2_5x5.view");
+        for (final File file : new File[] { kept, keptSmall, gone, lookalike })
+        {
+            assertTrue(file.createNewFile(), file.getName());
+        }
+
+        assertEquals(2, MirrorCaptures.sweepAbandonedGates(List.of("Abydos")));
+
+        assertTrue(kept.exists(), "Abydos's own");
+        assertTrue(keptSmall.exists(), "seen through another opening, still Abydos's");
+        assertFalse(gone.exists(), "a gate that is gone");
+        assertFalse(lookalike.exists(), "a gate called Abydos_2, which is gone too");
     }
 }

@@ -3,9 +3,8 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -34,8 +33,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 
 /**
@@ -75,6 +75,7 @@ class GateViewsSweepTest
         far = mock(World.class);
         when(far.getName()).thenReturn("far");
         final Stargate target = mock(Stargate.class);
+        when(target.getGateName()).thenReturn("Chulak");
         when(target.getGatePlayerTeleportLocation()).thenReturn(new Location(far, 100.5, 70.0, 200.5, 0.0f, 0.0f));
 
         gate = mock(Stargate.class);
@@ -120,14 +121,12 @@ class GateViewsSweepTest
     /** What the mirror sweep answers when the gate is offered: whether its view is drawn. */
     private void drawn(final boolean drawn)
     {
-        windows.when(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
-            any(MirrorPoint.class), anyBoolean())).thenReturn(drawn);
+        windows.when(() -> MirrorWindows.offerGate(any(GateWindow.class), anyBoolean())).thenReturn(drawn);
     }
 
     private void offeredTimes(final int times)
     {
-        windows.verify(() -> MirrorWindows.offerGate(eq("gate:Abydos"), any(Block.class), any(MirrorWindow.class),
-            anyList(), any(MirrorPoint.class), anyBoolean()), times(times));
+        windows.verify(() -> MirrorWindows.offerGate(argThat(gate -> "gate:Abydos".equals(gate.name())), anyBoolean()), times(times));
     }
 
     @Test
@@ -206,10 +205,8 @@ class GateViewsSweepTest
         GateViews.offerAll();
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
-            any(MirrorPoint.class), eq(true)), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
-            any(MirrorPoint.class), eq(false)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**
@@ -299,10 +296,8 @@ class GateViewsSweepTest
         near(true);
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
-            any(MirrorPoint.class), eq(true)), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(anyString(), any(Block.class), any(MirrorWindow.class), anyList(),
-            any(MirrorPoint.class), eq(false)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**
@@ -333,5 +328,59 @@ class GateViewsSweepTest
         GateViews.offerAll();
 
         verify(gate).fillGateInterior(Material.AIR);
+    }
+
+    /**
+     * A gate somebody dials has its capture started then, before its kawoosh.
+     *
+     * <p>The first sweep after the kawoosh used to be the first ask, which left a remote gate on
+     * its horizon for as long as reading the far side off the disk took.
+     */
+    @Test
+    void aDialledGateHasItsCaptureStartedAtOnce()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+
+        GateViews.dialled(gate);
+
+        windows.verify(() -> MirrorWindows.prepareGate(argThat(window -> "gate:Abydos".equals(window.name())
+            && "Chulak".equals(window.target()) && (window.depth() == 32))), times(1));
+    }
+
+    @Test
+    void aDialledGateIsLeftAloneAtHorizonOrWithNobodyNear()
+    {
+        GateViews.dialled(gate);
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        near(false);
+        GateViews.dialled(gate);
+
+        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+    }
+
+    /**
+     * A gate somebody is standing at has its captures refreshed, once a minute at most.
+     *
+     * <p>Its chunks are loaded anyway, so this is the cheap time to keep the base current; looking
+     * every sweep would list its captures on disk every second.
+     */
+    @Test
+    void aGateSomebodyIsAtHasItsCapturesRefreshedOnceAMinute()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 21.5, 0.0f, 0.0f));
+        manager.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(gate));
+        try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
+        {
+            GateViews.refreshWatched(1_000_000L);
+            GateViews.refreshWatched(1_030_000L);
+            near(false);
+            GateViews.refreshWatched(1_070_000L);
+            near(true);
+            GateViews.refreshWatched(1_090_000L);
+
+            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(32),
+                eq(GateViews.REFRESH_SECONDS)), times(2));
+        }
     }
 }

@@ -635,8 +635,25 @@ watched for in a world, at speed and on a mount.
 wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
 spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
 still, the spread would get coarse enough to miss things, and nobody has measured where, so a
-gate bigger than five by five keeps its horizon. It is taken when the gate first opens with none, and again when the gate or its iris
-opens with one over five minutes old. Walking out of range and back is not an opening.
+gate bigger than five by five keeps its horizon.
+
+**A capture is the base, kept, and taken again when that is cheap.** It is written to
+`data/gates/captures/<gate>_<width>x<height>.view`, named for the gate whose front it shows and
+the opening it is seen through, so it is there after a restart and a remote gate shows its view
+at once rather than after its far side has been read off the disk. A capture of a gate that is
+gone is deleted at startup. It is taken again:
+
+- **as a gate is dialled or opens**, or its iris opens, once it is a minute old. The dial is the
+  first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in;
+- **while somebody stands at the gate it shows**, once it is ten minutes old, since that gate's
+  chunks are loaded anyway and the reading costs a moment. Each gate is looked at once a minute;
+- **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
+
+The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
+
+**A gate's view has its own depth**, `gate-view-depth`, 32 by default against a mirror's 160. At
+a mirror's depth the box round a far gate nobody had loaded was some 230 chunks, read twice before
+anything showed; at 32 it is about fifteen.
 
 **What it does not do yet**, each a thing to judge in a world before it is built:
 
@@ -645,9 +662,9 @@ opens with one over five minutes old. Walking out of range and back is not an op
 - **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
   behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
   player near enough to be drawn it walks away.
-- **Captures are not kept.** They are written where mirrors' are and cleared at startup; a
-  gate's would be `data/gates/captures/<gate>.view`, named for the gate it shows.
-- **No setting per gate**, no depth of its own, no horizontal gates, and no creatures on the far side.
+- **A gate's captures are invisible to `mirror debug`**, and removing a gate leaves its captures
+  until the next startup.
+- **No setting per gate**, no horizontal gates, and no creatures on the far side.
 
 ## Animation
 

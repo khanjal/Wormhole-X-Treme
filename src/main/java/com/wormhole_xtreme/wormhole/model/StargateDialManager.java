@@ -674,6 +674,16 @@ class StargateDialManager
         gate.setGateTarget(target);
         try
         {
+            // Before the kawoosh, so a gate view's capture is on its way (#516); a picture never costs the dial.
+            GateViews.dialled(gate);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not start the view of gate '" + gate.getGateName() + "'", e);
+        }
+        try
+        {
             dialStargate(target, atOnce);
         }
         catch (final RuntimeException ignore)

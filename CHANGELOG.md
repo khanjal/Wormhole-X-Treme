@@ -20,7 +20,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
   `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
   side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate
-  with an opening up to five by five, and only with its iris open.
+  with an opening up to five by five, and only with its iris open. `gate-view-depth` (32) is how
+  far past the gate it reaches. What each gate shows is kept in `data/gates/captures/`, so it is
+  there after a restart, and is taken again as gates are dialled and while somebody is at them.
 
 ### Performance
 

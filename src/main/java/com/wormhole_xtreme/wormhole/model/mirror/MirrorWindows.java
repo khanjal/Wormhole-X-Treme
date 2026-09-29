@@ -588,45 +588,34 @@ public final class MirrorWindows
         return true;
     }
 
-    /** A gate's capture older than this is retaken when the gate next opens, keeping the old until the new is ready. */
-    private static final long GATE_CAPTURE_SECONDS = 300L;
+    /** A gate's capture older than this is retaken as the gate is dialled or opens, the old one drawn until the new is ready. */
+    static final long GATE_CAPTURE_SECONDS = 60L;
 
     /**
      * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
      *
      * <p>Drawn as a mirror's is, but walked through: never barred, never punched through, and its
-     * opening left to the gate's own horizon. Its capture is taken through the gate's own opening,
-     * and retaken when the gate opens if it is old.
+     * opening left to the gate's own horizon. Drawn from the capture kept for it, which survives a
+     * restart, and asked for again when it is missing, shallower than the depth, or old as the gate opens.
      *
-     * @param name
-     *            a name no mirror has, for the sweep to know it by
-     * @param anchor
-     *            a block of the opening, which distances to it are measured from
-     * @param shape
-     *            the opening, onto where travellers land
-     * @param open
-     *            the opening's cells a view is seen through: the gate's portal cells
-     * @param destination
-     *            where travellers land, facing the way they leave
+     * @param gate
+     *            the gate, as the drawing sees it
      * @param opened
-     *            true on the first sweep since the gate opened
-     * @return true if it is a window now, false while its capture is being taken
+     *            true on the first sweep since the gate or its iris opened
+     * @return true if it is a window now, false while its first capture is being taken
      */
-    public static boolean offerGate(final String name, final Block anchor, final MirrorWindow shape,
-        final List<Spot> open, final MirrorPoint destination, final boolean opened)
+    public static boolean offerGate(final GateWindow gate, final boolean opened)
     {
-        final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(anchor), destination);
-        final MirrorCapture capture = MirrorCaptures.get(stand, shape.width(), shape.height());
+        final MirrorCapture capture = gateCapture(gate, opened);
         if (capture == null)
         {
-            MirrorCaptures.request(stand, shape.width(), shape.height());
             return false;
         }
-        if (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS))
-        {
-            MirrorCaptures.request(stand, shape.width(), shape.height());
-        }
-        final MirrorWindowState window = new MirrorWindowState(stand, shape, anchor, open, capture, true);
+        final String name = gate.name();
+        final MirrorWindow shape = gate.shape();
+        final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(gate.anchor()), gate.destination());
+        final MirrorWindowState window = new MirrorWindowState(stand, shape, gate.anchor(), gate.open(), capture,
+            true, gate.depth());
         final MirrorWindowState previous = WINDOWS.get(name);
         if ((previous != null) && previous.shape.equals(shape))
         {
@@ -648,6 +637,39 @@ public final class MirrorWindows
         }
         OFFERED.put(name, window);
         return true;
+    }
+
+    /**
+     * Makes sure a gate's capture is on its way as the gate is dialled, before its kawoosh.
+     *
+     * <p>Waiting for the first sweep after the kawoosh cost that long again before anything showed,
+     * and a capture of somewhere nobody had loaded starts with reading it off the disk.
+     *
+     * @param gate
+     *            the gate, as the drawing sees it
+     */
+    public static void prepareGate(final GateWindow gate)
+    {
+        gateCapture(gate, true);
+    }
+
+    /**
+     * The capture a gate is drawn from, asking for a fresh one if it has none, it is shallower than
+     * the view now draws, or the gate has just opened and it is old.
+     *
+     * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
+     */
+    private static MirrorCapture gateCapture(final GateWindow gate, final boolean opened)
+    {
+        final String key = gate.captureKey();
+        final MirrorCapture capture = MirrorCaptures.get(key);
+        if ((capture == null) || !MirrorCaptures.reaches(capture, gate.destination(), gate.depth())
+            || (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS)))
+        {
+            MirrorCaptures.requestGate(key, gate.target(), gate.destination(), gate.shape().width(),
+                gate.shape().height(), gate.depth());
+        }
+        return capture;
     }
 
     /**
@@ -1816,7 +1838,7 @@ public final class MirrorWindows
     private static boolean fixedIsFresh(final MirrorWindowState window, final long now)
     {
         return (window.fixed != null) && (window.fixedFrom == window.capture)
-            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
+            && (window.fixedFor == window.depth) && ((now - window.fixedAt) < FIXED_MILLIS);
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -1908,7 +1930,7 @@ public final class MirrorWindows
      */
     private static void fixedView(final MirrorWindowState window, final long now)
     {
-        final int configured = ConfigManager.getMirrorViewDepth();
+        final int configured = window.depth;
         if (fixedIsFresh(window, now))
         {
             return;
