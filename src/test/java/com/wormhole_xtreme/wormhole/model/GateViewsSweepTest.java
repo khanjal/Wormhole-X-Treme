@@ -49,6 +49,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 class GateViewsSweepTest
 {
     private World world;
+    /** A field, not a local: a Location holds its world weakly, and a far world only it held was collected mid-test. */
+    private World far;
     private Player player;
     private Stargate gate;
     private MockedStatic<StargateManager> manager;
@@ -70,7 +72,7 @@ class GateViewsSweepTest
         when(world.getPlayers()).thenReturn(List.of(player));
         near(true);
 
-        final World far = mock(World.class);
+        far = mock(World.class);
         when(far.getName()).thenReturn("far");
         final Stargate target = mock(Stargate.class);
         when(target.getGatePlayerTeleportLocation()).thenReturn(new Location(far, 100.5, 70.0, 200.5, 0.0f, 0.0f));
