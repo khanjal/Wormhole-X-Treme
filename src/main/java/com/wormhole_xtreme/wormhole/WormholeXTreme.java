@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
@@ -514,13 +515,9 @@ public class WormholeXTreme extends JavaPlugin
      */
     private static Set<String> ringWorlds()
     {
-        final Set<String> worlds = new HashSet<String>();
-        for (final RingPair pair
-            : RingManager.getAllPairs())
-        {
-            worlds.add(pair.getWorldName());
-        }
-        return worlds;
+        return RingManager.getAllPairs().stream()
+            .map(RingPair::getWorldName)
+            .collect(Collectors.toCollection(HashSet::new));
     }
 
     /**

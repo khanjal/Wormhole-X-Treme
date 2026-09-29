@@ -2,11 +2,11 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 
@@ -319,14 +319,10 @@ public class GateEditCommand implements SubCommand
      */
     public static List<String> groupNames()
     {
-        final List<String> names = new ArrayList<>();
-        for (final MaterialGroup g
-            : MaterialGroupRegistry.getGroups())
-        {
-            names.add(g.getName());
-        }
-        Collections.sort(names);
-        return names;
+        return MaterialGroupRegistry.getGroups().stream()
+            .map(MaterialGroup::getName)
+            .sorted()
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

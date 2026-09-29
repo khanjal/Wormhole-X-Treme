@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -1457,16 +1458,10 @@ public final class SubCommands
     private static List<String> publicBeamNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<>();
-        for (final BeamDestination destination
-            : BeamManager.getAllPublicDestinations())
-        {
-            if (destination.name().toLowerCase(Locale.ROOT).startsWith(p))
-            {
-                out.add(destination.name());
-            }
-        }
-        return out;
+        return BeamManager.getAllPublicDestinations().stream()
+            .map(BeamDestination::name)
+            .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(p))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

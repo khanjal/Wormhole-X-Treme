@@ -483,11 +483,9 @@ public class ConfigurationYAML
      */
     private static void logAdded(final List<MaterialGroup> groups)
     {
-        final List<String> names = new ArrayList<>();
-        for (final MaterialGroup g : groups)
-        {
-            names.add(g.getName() + "=" + g.getStructureMaterial());
-        }
+        final List<String> names = groups.stream()
+            .map(g -> g.getName() + "=" + g.getStructureMaterial())
+            .toList();
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
             "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
     }
