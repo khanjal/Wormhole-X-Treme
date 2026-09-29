@@ -18,6 +18,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
   with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
 
+### Stargates
+
+**Fixed**
+
+- **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
+  to roll half into the iris before it was put back, still with its front inside.
+
 ### Quantum mirrors
 
 **Fixed**
