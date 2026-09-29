@@ -386,15 +386,20 @@ public final class UpdateCheck implements Listener
                 {
                     throw new IOException("HTTP " + status + " from " + url);
                 }
-                try (InputStream body = connection.getInputStream())
-                {
-                    return new String(body.readNBytes(MAX_BODY_BYTES), StandardCharsets.UTF_8);
-                }
+                return readBody(connection);
             }
             finally
             {
                 connection.disconnect();
             }
         };
+    }
+
+    private static String readBody(final HttpURLConnection connection) throws IOException
+    {
+        try (InputStream body = connection.getInputStream())
+        {
+            return new String(body.readNBytes(MAX_BODY_BYTES), StandardCharsets.UTF_8);
+        }
     }
 }

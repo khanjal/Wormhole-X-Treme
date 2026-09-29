@@ -414,7 +414,7 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 | Setting | Default | What it does |
 |---|---|---|
 | `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
-| `update-check` | `true` | At startup, asks Modrinth (or GitHub's latest release, if Modrinth does not answer) whether a newer release exists for this Minecraft version, and says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
+| `update-check` | `true` | At startup, asks Modrinth for the newest release listed for this Minecraft version, or GitHub's latest release if Modrinth does not answer; if that release is newer than the one running, it says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
 
 What is sent, twice an hour:
 
