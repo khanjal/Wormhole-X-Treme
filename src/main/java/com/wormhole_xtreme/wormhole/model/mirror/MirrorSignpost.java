@@ -162,7 +162,7 @@ public final class MirrorSignpost
         return chunks;
     }
 
-    /** Whether a mirror hangs in this chunk or one of the eight around it; {@link #REACH} is under a chunk wide. */
+    /** Whether a mirror hangs in this chunk or one of the eight around it: {@link #REACH} is under a chunk. */
     private static boolean besideAny(final Set<Long> chunks, final Location at)
     {
         final int chunkX = at.getBlockX() >> 4;

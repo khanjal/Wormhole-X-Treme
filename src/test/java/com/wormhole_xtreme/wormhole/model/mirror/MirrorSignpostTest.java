@@ -323,21 +323,47 @@ class MirrorSignpostTest
     }
 
     /**
-     * A mirror just over a chunk border is still found.
+     * A mirror just over a chunk corner is still found.
      *
-     * <p>The banner is in chunk 0 and the player two blocks away in chunk -1, so a check of the
-     * player's own chunk alone would miss a mirror they are close enough to read.
+     * <p>The banner is in chunk 0,0 and the player diagonally across the corner in chunk -1,-1, so
+     * a check of the player's own chunk, or of only the four beside it, would miss a mirror they
+     * are close enough to read. Negative on both axes, where a chunk key is easiest to get wrong.
      */
     @Test
-    void aMirrorJustOverAChunkBorderIsStillNamed()
+    void aMirrorJustOverAChunkCornerIsStillNamed()
     {
         boundMirror();
         lookingAt(banner);
-        standingAt(-2);
+        standingAt(-2, -2);
 
         sweep();
 
-        assertEquals(1, shown().size(), "a neighbouring chunk's mirror is in reach");
+        assertEquals(1, shown().size(), "a diagonal chunk's mirror is in reach");
+    }
+
+    /**
+     * The second banner of a pair counts, not just the first.
+     *
+     * <p>The pair spans a chunk border: its left banner is in chunk -1 and its right in chunk 0.
+     * The player is in chunk 1, beside the right banner's chunk but not the left's.
+     */
+    @Test
+    void theSecondBannerOfAPairInAnotherChunkIsStillNamed()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", -1, 64, 10),
+            new MirrorPoint("nether", 0, 64, 0, 0f, 0f)).withWidth(2));
+        final Block right = mock(Block.class);
+        when(right.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(right.getWorld()).thenReturn(world);
+        when(right.getX()).thenReturn(0);
+        when(right.getY()).thenReturn(64);
+        when(right.getZ()).thenReturn(10);
+        lookingAt(right);
+        standingAt(20, 10);
+
+        sweep();
+
+        assertEquals(1, shown().size(), "the right banner is in reach");
     }
 
     /** A mirror on the banner block, pointing at another world. */
@@ -350,7 +376,13 @@ class MirrorSignpostTest
     /** Puts the player at this x, level with the banner and four blocks out from it. */
     private void standingAt(final int x)
     {
-        when(player.getLocation()).thenReturn(new Location(world, x + 0.5, 64.0, 14.5));
+        standingAt(x, 14);
+    }
+
+    /** Puts the player at this block, level with the banner. */
+    private void standingAt(final int x, final int z)
+    {
+        when(player.getLocation()).thenReturn(new Location(world, x + 0.5, 64.0, z + 0.5));
     }
 
     /** What the player's crosshair is on, or null for thin air. */
