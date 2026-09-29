@@ -259,4 +259,22 @@ class MirrorWindowsGateTest
             assertEquals(48, MirrorWindows.fullDepthOf(gate));
         }
     }
+
+    /**
+     * A gate's view may hold four times what a mirror's may before its depth is cut.
+     *
+     * <p>Filled to 160 blocks, a gate's view of open ground passed a mirror's cap a hundred or so
+     * blocks out and was cut there, leaving this world showing behind the far side.
+     */
+    @Test
+    void aGatesViewMayHoldMoreThanAMirrorsBeforeItIsCut()
+    {
+        final MirrorCapture held = capture(32);
+        final QuantumMirror stand = new QuantumMirror(NAME, MirrorBlock.of(anchor), ARRIVAL);
+        final MirrorWindowState gateWindow = new MirrorWindowState(stand, gate.shape(), anchor, gate.open(), held, true, 16);
+        final MirrorWindowState mirrorWindow = new MirrorWindowState(stand, gate.shape(), anchor, gate.open(), held, false, 16);
+
+        assertEquals(1_000_000, MirrorWindows.mostFixedFor(gateWindow), "a gate's");
+        assertEquals(250_000, MirrorWindows.mostFixedFor(mirrorWindow), "a mirror's, as it was");
+    }
 }

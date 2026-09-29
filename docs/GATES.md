@@ -668,7 +668,9 @@ the view deepens when the fill arrives. A retake as the gate opens starts the st
 near part is current quickly and the far part follows; a refresh while somebody is at the gate
 goes straight to the full depth. `0` turns the fill off. A deeper view costs more to draw as a
 viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
-stutters. With `mirror-fog-at-depth` on, a player drawn only a
+stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times
+a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks out. `mirror debug`
+says when a view was cut, and to what. With `mirror-fog-at-depth` on, a player drawn only a
 gate's view has their send distance pulled in to that depth, not a mirror's: at 32, two chunks and
 the edge, in every direction, for as long as they are near the gate.
 

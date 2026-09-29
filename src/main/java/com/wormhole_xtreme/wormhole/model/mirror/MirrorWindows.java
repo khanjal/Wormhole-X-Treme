@@ -132,6 +132,18 @@ public final class MirrorWindows
     /** The same, settable so a test can make a room not fit. */
     static int mostFixed = MOST_FIXED;
 
+    /**
+     * Most blocks one gate's view may hold (#516): four times a mirror's, some 50 MB while it is drawn.
+     *
+     * <p>A gate view is filled to 160 blocks through an opening up to five by five, and at a
+     * mirror's cap open ground past a hundred or so was cut away, leaving this world showing
+     * behind the far side. One view serves everybody looking into the gate.
+     */
+    private static final int MOST_GATE_FIXED = 1_000_000;
+
+    /** The same, settable so a test can make a gate's view not fit. */
+    static int mostGateFixed = MOST_GATE_FIXED;
+
     /** What {@link #fixedTo} gives for a view past its limit, told apart by identity from any real view. */
     private static final Map<Long, BlockData> TOO_MANY = Collections.unmodifiableMap(new HashMap<>());
 
@@ -480,11 +492,21 @@ public final class MirrorWindows
     }
 
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
+    /**
+     * The most blocks a window's view may hold before its depth is cut to fit.
+     *
+     * @return a gate's cap for a gate's window, a mirror's for a mirror's
+     */
+    static int mostFixedFor(final MirrorWindowState window)
+    {
+        return window.walkThrough ? mostGateFixed : mostFixed;
+    }
+
     private static String toDepth(final MirrorWindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
-            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
+            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixedFor(window)
                 + BLOCKS);
         }
         return "to depth " + window.fixedDepth;
@@ -510,6 +532,7 @@ public final class MirrorWindows
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
+        mostGateFixed = MOST_GATE_FIXED;
         streamPerTick = STREAM_PER_TICK;
         nearDistance = NEAR_DISTANCE;
         restFactor = REST_FACTOR;
@@ -1978,13 +2001,14 @@ public final class MirrorWindows
             return;
         }
         int depth = configured;
-        Map<Long, BlockData> view = fixedTo(window, depth, now, mostFixed);
+        final int most = mostFixedFor(window);
+        Map<Long, BlockData> view = fixedTo(window, depth, now, most);
         // Half a sphere of the depth is what was looked at, found in the capture or not.
         workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
         while ((view == TOO_MANY) && (depth > 4))
         {
             depth = Math.max(4, (depth * 3) / 4);
-            view = fixedTo(window, depth, now, mostFixed);
+            view = fixedTo(window, depth, now, most);
             workSpent += (int) (2.1 * depth * depth * depth);
         }
         window.fixed = (view == TOO_MANY) ? new HashMap<>() : view;
