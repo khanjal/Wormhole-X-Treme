@@ -194,6 +194,32 @@ class GateViewsSweepTest
             "the view went, so the window is the wormhole again");
     }
 
+    /**
+     * A tall gate is watched from near any of its opening, not only near its first cell, which is a
+     * top-row one: somebody at the foot of a Grand gate, before its window, was never offered it.
+     */
+    @Test
+    void aTallGateIsWatchedFromBesideItsFoot()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        final List<Location> portal = new ArrayList<>();
+        for (int y = 83; y >= 64; y--)
+        {
+            for (int x = 10; x < 13; x++)
+            {
+                portal.add(new Location(world, x, y, 20));
+            }
+        }
+        when(gate.getGatePortalBlocks()).thenReturn(portal);
+        // Fourteen from the foot, but over twenty from the first cell, up at y 83.
+        when(player.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 34.0));
+        drawn(false);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
     @Test
     void atOpenTheHorizonStaysUntilTheViewIsReady()
     {
