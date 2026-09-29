@@ -83,7 +83,7 @@ in another world; right-click a mirror to choose where it opens onto, and punch 
 
 | | |
 |---|---|
-| Minecraft | 1.20 – 26.3, built and tested against eleven versions across that range |
+| Minecraft | 1.20 – 26.3, built and tested against twelve versions across that range |
 | Servers | Spigot, Paper and CraftBukkit. Purpur best effort. Not Folia. |
 | Java | 17 or later. Minecraft 1.20.5+ itself needs Java 21, and 26.1+ needs Java 25. |
 

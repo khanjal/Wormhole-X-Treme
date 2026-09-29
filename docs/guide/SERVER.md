@@ -42,6 +42,7 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 | 1.20.6 | yes | |
 | 1.21.1 | yes | |
 | 1.21.4 | yes | Boats split into one entity type per wood here |
+| 1.21.8 | yes | Not an API boundary; tested because many servers run it |
 | 1.21.10 | yes | |
 | 1.21.11 | yes | The last 1.x |
 | 26.1.2 | yes | Year-based version numbers start at 26.1 |
