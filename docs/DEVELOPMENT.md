@@ -254,7 +254,8 @@ symbol, and one was fixable in a line.
 - Java 17, Allman-style braces, 4-space indentation, `final` on every local and parameter that
   is not reassigned.
 - Import a type rather than writing its package inline (`World`, not `org.bukkit.World`). A
-  qualified name in code is only for a clash with another type of the same simple name.
+  package-qualified name in code is only for a clash with another type of the same simple name;
+  `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
 - Anonymous `Runnable` classes for scheduled tasks, not lambdas: they reschedule themselves and
   mutate retry state through the array-holder idiom. Lambdas and method references are used
   freely everywhere else.

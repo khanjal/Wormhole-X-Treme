@@ -1177,7 +1177,7 @@ public final class StargateHelper
         {
             return true;
         }
-        for (final org.bukkit.Location loc : gate.getGateStructureBlocks())
+        for (final Location loc : gate.getGateStructureBlocks())
         {
             if ((loc != null) && (loc.getBlockX() == c.getX())
                 && (loc.getBlockY() == c.getY()) && (loc.getBlockZ() == c.getZ()))

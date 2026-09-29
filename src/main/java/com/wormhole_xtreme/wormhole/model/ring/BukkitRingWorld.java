@@ -276,7 +276,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             return true;
         }
-        final org.bukkit.entity.Entity entity = ((BukkitRingPassenger) passenger).getEntity();
+        final Entity entity = ((BukkitRingPassenger) passenger).getEntity();
         if (!(entity instanceof Player))
         {
             // Cargo raises nothing, so cancelling stops a person and not the world around

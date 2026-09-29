@@ -184,7 +184,7 @@ class StargateBlockSetup
         dbg.append("Sign removal: Gate=").append(gate.getGateName());
         try
         {
-            final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
+            final Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
             dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
         }
         catch (final Exception e)

@@ -136,15 +136,15 @@ class RingTest
         // Suggestions, not a rule -- any block can be set. The bar is "reads as a light
         // fixture", which is a different question from "emits light" and a much more useful
         // one when somebody is picking what a ring pad should look like.
-        final List<org.bukkit.Material> suggested = Ring.glowingMaterials();
+        final List<Material> suggested = Ring.glowingMaterials();
         assertFalse(suggested.isEmpty(), "nothing suggested, so this proved nothing");
-        assertTrue(suggested.contains(org.bukkit.Material.GLOWSTONE), "the archetype");
-        assertTrue(suggested.contains(org.bukkit.Material.SEA_LANTERN));
+        assertTrue(suggested.contains(Material.GLOWSTONE), "the archetype");
+        assertTrue(suggested.contains(Material.SEA_LANTERN));
 
-        for (final org.bukkit.Material notALight : new org.bukkit.Material[] {
-            org.bukkit.Material.JACK_O_LANTERN, org.bukkit.Material.MAGMA_BLOCK,
-            org.bukkit.Material.CRYING_OBSIDIAN, org.bukkit.Material.BEACON,
-            org.bukkit.Material.SCULK_CATALYST, org.bukkit.Material.AMETHYST_BLOCK })
+        for (final Material notALight : new Material[] {
+            Material.JACK_O_LANTERN, Material.MAGMA_BLOCK,
+            Material.CRYING_OBSIDIAN, Material.BEACON,
+            Material.SCULK_CATALYST, Material.AMETHYST_BLOCK })
         {
             assertFalse(suggested.contains(notALight),
                 notALight + " glows or decorates, but nobody picks it to build a lamp out of");

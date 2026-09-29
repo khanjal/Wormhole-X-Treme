@@ -273,16 +273,16 @@ class GateConsoleCommandsTest
         final World world = mock(World.class);
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
-        final com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part frame =
-            com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part.FRAME;
+        final GateBlueprint.Part frame =
+            GateBlueprint.Part.FRAME;
 
         assertEquals("part of it would be below the world's floor at -64.", GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -65, 0, frame, 0))));
+            List.of(new GateBlueprint.Cell(0, -65, 0, frame, 0))));
         assertEquals("part of it would be above the world's build height of 320.", GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 320, 0, frame, 0))));
+            List.of(new GateBlueprint.Cell(0, 320, 0, frame, 0))));
         assertNull(GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -64, 0, frame, 0),
-                new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 319, 0, frame, 0))),
+            List.of(new GateBlueprint.Cell(0, -64, 0, frame, 0),
+                new GateBlueprint.Cell(0, 319, 0, frame, 0))),
             "the floor and the top block are both inside");
     }
 

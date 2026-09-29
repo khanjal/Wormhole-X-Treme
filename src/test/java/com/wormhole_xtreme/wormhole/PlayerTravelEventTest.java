@@ -329,7 +329,7 @@ class PlayerTravelEventTest
         // The cooldown is the observable half here, since it is this plugin's own state
         // rather than an economy provider that is not installed in a test.
         ConfigTestSupport.loadDefaults();
-        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        ConfigManager.setUseCooldownEnabled(true);
         StargateRestrictions.removePlayerUseCooldown(player);
         GateEvents.setDispatcherForTest(e ->
         {
@@ -350,7 +350,7 @@ class PlayerTravelEventTest
         finally
         {
             StargateRestrictions.removePlayerUseCooldown(player);
-            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            ConfigManager.setUseCooldownEnabled(false);
             ConfigTestSupport.clear();
         }
     }
@@ -360,7 +360,7 @@ class PlayerTravelEventTest
     {
         // The control: deferring the cooldown past the event must not have lost it.
         ConfigTestSupport.loadDefaults();
-        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        ConfigManager.setUseCooldownEnabled(true);
         StargateRestrictions.removePlayerUseCooldown(player);
         try
         {
@@ -373,7 +373,7 @@ class PlayerTravelEventTest
         finally
         {
             StargateRestrictions.removePlayerUseCooldown(player);
-            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            ConfigManager.setUseCooldownEnabled(false);
             ConfigTestSupport.clear();
         }
     }
@@ -480,7 +480,7 @@ class PlayerTravelEventTest
     @Test
     void aTripTheServerRefusesTakesNoFareAndNoCooldown()
     {
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
+        when(player.teleport(any(Location.class))).thenReturn(false);
         StargateRestrictions.removePlayerUseCooldown(player);
         try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
              MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))

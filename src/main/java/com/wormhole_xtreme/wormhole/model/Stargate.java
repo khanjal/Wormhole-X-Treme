@@ -1670,7 +1670,7 @@ public class Stargate implements GateIris
     }
 
     /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
-    public List<org.bukkit.block.Block> strandedLiquid()
+    public List<Block> strandedLiquid()
     {
         return StargateBlockSetup.strandedLiquid(this);
     }
