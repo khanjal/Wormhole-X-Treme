@@ -18,6 +18,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Economy](#economy)
 - [Placeholders](#placeholders)
 - [CoreProtect](#coreprotect)
+- [Dynmap](#dynmap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -398,6 +399,38 @@ to it, so an admin can look them up and roll them back like anything else.
   happens; the log says so once. A CoreProtect that fails never stops a gate being built.
 - **CoreProtect is looked for once**, the first time something is logged. One installed while the
   server is running is picked up at the next restart.
+
+## Dynmap
+
+Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installed, gates, transport
+rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
+viewer can switch on and off.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `dynmap-enabled` | `false` | Nothing is shown while this is off. |
+| `dynmap-show-gates` | `true` | Gates, and the lines between dialled gates. |
+| `dynmap-show-rings` | `true` | Transport rings. |
+| `dynmap-show-beams` | `true` | Public beam destinations. |
+| `dynmap-show-mirrors` | `true` | Quantum mirrors. |
+| `dynmap-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
+
+- **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
+  in its popup; a line between two dialled gates while the wormhole is open, when both are in the
+  same world; both ends of each ring pair, with a line between them; each public beam
+  destination; each quantum mirror at its banner. A mirror has no line, because which room it
+  opens onto is chosen at it.
+- **Never shown:** players' private beam places. Dynmap shows every marker to every viewer, so a
+  private place on the map would be anybody's to find.
+- **A layer switched off** is left off the map entirely, not shown as an empty checkbox.
+- **Kept up to date** every five seconds, and straight away when a gate is built, removed, opened
+  or shut. The map is drawn off the main thread, and only what changed is redrawn.
+- **No Dynmap** means nothing happens; the log says so once. Dynmap is looked for once, at
+  startup, and these settings take effect at the next restart.
+- Nothing is saved into Dynmap's own marker file: the layers are rebuilt from the plugin's state
+  each time, so a gate removed while Dynmap was down does not linger.
+- Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or
+  squaremap can be added later without changing what is shown.
 
 ## Metrics
 

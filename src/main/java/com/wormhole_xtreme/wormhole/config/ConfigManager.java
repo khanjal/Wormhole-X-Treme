@@ -156,6 +156,18 @@ public class ConfigManager
         PLACEHOLDERS_ENABLED,
         /** Whether gate and ring construction is logged to CoreProtect (#238). */
         COREPROTECT_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on Dynmap (#236). */
+        DYNMAP_ENABLED,
+        /** Whether gates and the lines between dialled pairs are a Dynmap layer. */
+        DYNMAP_SHOW_GATES,
+        /** Whether transport rings are a Dynmap layer. */
+        DYNMAP_SHOW_RINGS,
+        /** Whether public beam destinations are a Dynmap layer. */
+        DYNMAP_SHOW_BEAMS,
+        /** Whether quantum mirrors are a Dynmap layer. */
+        DYNMAP_SHOW_MIRRORS,
+        /** Whether gates with an iris code are drawn on Dynmap. */
+        DYNMAP_SHOW_IRIS_GATES,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -2001,6 +2013,48 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.COREPROTECT_ENABLED);
         return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on Dynmap. */
+    public static boolean isDynmapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates and the lines between dialled pairs are shown on Dynmap; on when the setting is missing, as it ships. */
+    public static boolean isDynmapShowGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_SHOW_GATES);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if transport rings are shown on Dynmap; on when the setting is missing, as it ships. */
+    public static boolean isDynmapShowRings()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_SHOW_RINGS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if public beam destinations are shown on Dynmap; on when the setting is missing, as it ships. */
+    public static boolean isDynmapShowBeams()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_SHOW_BEAMS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if quantum mirrors are shown on Dynmap; on when the setting is missing, as it ships. */
+    public static boolean isDynmapShowMirrors()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_SHOW_MIRRORS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if gates with an iris code appear on Dynmap; on when the setting is missing, as it ships. */
+    public static boolean isDynmapShowIrisGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_SHOW_IRIS_GATES);
+        return (s == null) || s.getBooleanValue();
     }
 
     /** Returns true if the PlaceholderAPI expansion should be registered. */
