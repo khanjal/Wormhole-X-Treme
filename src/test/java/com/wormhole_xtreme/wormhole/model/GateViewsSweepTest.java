@@ -359,10 +359,11 @@ class GateViewsSweepTest
     }
 
     /**
-     * A gate somebody is standing at has its captures refreshed, once a minute at most.
+     * A gate somebody is standing at has its captures refreshed, and each gate is looked at once a minute at most.
      *
-     * <p>Its chunks are loaded anyway, so this is the cheap time to keep the base current; looking
-     * every sweep would list its captures on disk every second.
+     * <p>Its chunks are mostly loaded anyway, so this is the cheap time to keep the base current;
+     * looking every sweep would list its captures on disk every second, and asking every gate who
+     * was near it every sweep walked the players once a gate.
      */
     @Test
     void aGateSomebodyIsAtHasItsCapturesRefreshedOnceAMinute()
@@ -376,14 +377,34 @@ class GateViewsSweepTest
             // Within the minute: not looked at again.
             GateViews.refreshWatched(1_030_000L);
             near(false);
-            // Nobody there, twice over a minute apart: the gate's chunks may not be loaded, so nothing.
+            // Nobody there, twice a minute apart: the gate's chunks may not be loaded, so nothing.
             GateViews.refreshWatched(1_070_000L);
             GateViews.refreshWatched(1_140_000L);
             near(true);
+            // Within a minute of the last look, somebody there or not.
             GateViews.refreshWatched(1_150_000L);
+            GateViews.refreshWatched(1_210_000L);
 
             captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(32),
                 eq(GateViews.REFRESH_SECONDS)), times(2));
+        }
+    }
+
+    /**
+     * Removing a gate forgets its view and deletes what it shows.
+     *
+     * <p>Named for the gate they show, a removed gate's captures otherwise stayed for good, and a gate
+     * built again under the name drew the old place until its first retake.
+     */
+    @Test
+    void removingAGateDeletesWhatItShows()
+    {
+        try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
+        {
+            GateViews.removed(gate);
+
+            captures.verify(() -> MirrorCaptures.forgetGate("Abydos"), times(1));
+            windows.verify(() -> MirrorWindows.release("gate:Abydos"), times(1));
         }
     }
 }

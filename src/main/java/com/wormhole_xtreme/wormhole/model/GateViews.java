@@ -31,9 +31,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
  * and only an opening up to {@link #MOST} each way, since a capture's rays grow with its hole.
  *
  * <p>A gate's capture is kept on disk, named for the gate it shows, and is the base it is drawn
- * from after a restart. It is taken again when able: as a gate dialling it is dialled or opens,
- * once it is a minute old, and while somebody is at the gate it shows, once it is ten minutes old,
- * since that gate's chunks are loaded anyway.
+ * from after a restart; removing the gate deletes it. It is taken again when able: as a gate
+ * dialling it is dialled or opens, once it is a minute old, and while somebody is at the gate it
+ * shows, once it is ten minutes old, since most of that gate's chunks are loaded anyway.
  */
 public final class GateViews
 {
@@ -149,19 +149,44 @@ public final class GateViews
     {
         for (final Stargate gate : StargateManager.getAllGatesUnsorted())
         {
-            final String name = gate.getGateName();
-            final Long looked = LOOKED.get(name);
-            if (((looked != null) && ((now - looked) < LOOK_MILLIS)) || !watched(gate))
+            // The minute first, so a gate nobody is at costs a map lookup a sweep, not a walk of the players.
+            final Long looked = LOOKED.get(gate.getGateName());
+            if ((looked == null) || ((now - looked) >= LOOK_MILLIS))
             {
-                continue;
-            }
-            LOOKED.put(name, now);
-            final Location arrival = gate.getGatePlayerTeleportLocation();
-            if ((arrival != null) && (arrival.getWorld() != null))
-            {
-                MirrorCaptures.refreshGate(name, MirrorPoint.of(arrival), ConfigManager.getGateViewDepth(), REFRESH_SECONDS);
+                LOOKED.put(gate.getGateName(), now);
+                refreshIfWatched(gate);
             }
         }
+    }
+
+    /** Has a gate's captures taken again, if somebody is at it. */
+    private static void refreshIfWatched(final Stargate gate)
+    {
+        final Location arrival = gate.getGatePlayerTeleportLocation();
+        if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
+        {
+            MirrorCaptures.refreshGate(gate.getGateName(), MirrorPoint.of(arrival), ConfigManager.getGateViewDepth(),
+                REFRESH_SECONDS);
+        }
+    }
+
+    /**
+     * Forgets a gate that is being removed, and deletes what it shows.
+     *
+     * <p>Only a removal: a refresh hands a gate back under the same name, and keeps its captures.
+     *
+     * @param gate
+     *            the gate being removed
+     */
+    public static void removed(final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateName() == null))
+        {
+            return;
+        }
+        closed(gate);
+        LOOKED.remove(gate.getGateName());
+        MirrorCaptures.forgetGate(gate.getGateName());
     }
 
     /**

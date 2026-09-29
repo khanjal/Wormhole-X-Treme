@@ -633,21 +633,6 @@ public class WormholeXTreme extends JavaPlugin
         // A vertical gate's iris is drawn now, so a world saved by an older version has real
         // blocks standing in every opening that was shut when it saved.
         BuiltIrisUpgrade.clearAll(StargateManager.getAllGatesUnsorted());
-        // Here and not before: until gates have loaded, every gate capture reads as abandoned.
-        try
-        {
-            final int swept = MirrorCaptures.sweepAbandonedGates(
-                StargateManager.getAllGatesUnsorted().stream().map(Stargate::getGateName).toList());
-            if (swept > 0)
-            {
-                prettyLog(Level.INFO, true, "Deleted " + swept + " gate capture" + (swept == 1 ? "" : "s")
-                    + " of gates that are gone.");
-            }
-        }
-        catch (final Exception e)
-        {
-            prettyLog(Level.WARNING, "Failed to sweep gate captures", e);
-        }
         // Rings load after gates so that a ring overlapping gate blocks is refused against
         // an index that is already populated.
         try

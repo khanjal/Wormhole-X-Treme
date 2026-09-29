@@ -588,6 +588,16 @@ public final class MirrorWindows
         return true;
     }
 
+    /**
+     * The deepest of the views a viewer is being drawn: a gate's is its own, not a mirror's.
+     *
+     * @return blocks; {@code mirror-view-depth} for none
+     */
+    private static int deepest(final List<MirrorWindowState> seeing)
+    {
+        return seeing.stream().mapToInt(window -> window.depth).max().orElse(ConfigManager.getMirrorViewDepth());
+    }
+
     /** A gate's capture older than this is retaken as the gate is dialled or opens, the old one drawn until the new is ready. */
     static final long GATE_CAPTURE_SECONDS = 60L;
 
@@ -1116,7 +1126,7 @@ public final class MirrorWindows
             VIEWS.put(id, view);
         }
         // Before any early return, so a fog setting changed mid-view still reaches the viewer.
-        MirrorFog.apply(player, ConfigManager.getMirrorViewDepth());
+        MirrorFog.apply(player, deepest(seeing));
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
@@ -1465,7 +1475,7 @@ public final class MirrorWindows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).banner.getWorld(), eye, ConfigManager.getMirrorViewDepth(), seeing, fixed,
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, deepest(seeing), seeing, fixed,
                 allOpen, inside);
         }
         return wanted;

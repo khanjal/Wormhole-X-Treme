@@ -773,7 +773,7 @@ class MirrorCapturesTest
     {
         takeGateCapture(8);
 
-        final File file = new File(DataLayout.gateCaptureDir(), "abydos_5x5.view");
+        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
         assertTrue(file.isFile(), "under the gates, named for the gate and its opening: " + file);
         assertEquals(0, MirrorCaptures.sweepAbandoned(), "the mirrors' sweep does not see it");
         assertTrue(file.isFile());
@@ -786,7 +786,10 @@ class MirrorCapturesTest
     @Test
     void aGateKeyIsTheGateAndItsOpening()
     {
-        assertEquals("gate:abydos_5x5", MirrorCaptures.gateKey("Abydos", 5, 5));
+        assertTrue(MirrorCaptures.gateKey("Abydos", 5, 5).startsWith("gate:abydos-"), MirrorCaptures.gateKey("Abydos", 5, 5));
+        assertTrue(MirrorCaptures.gateKey("Abydos", 5, 5).endsWith("_5x5"));
+        assertEquals(MirrorCaptures.gateKey("Abydos", 5, 5), MirrorCaptures.gateKey("ABYDOS", 5, 5),
+            "gate names are told apart without case");
         assertNotEquals(MirrorCaptures.gateKey("Abydos", 1, 2), MirrorCaptures.gateKey("Abydos", 5, 5),
             "a small gate's capture is not a big one's: each holds only what its own opening lets through");
         assertEquals(MirrorCaptures.keyOf(mirror.destination()), MirrorCaptures.keyFor(mirror),
@@ -831,30 +834,70 @@ class MirrorCapturesTest
     }
 
     /**
-     * A capture of a gate that is gone is swept at startup; a gate's own are kept.
+     * Two gates whose names are made file-safe alike keep captures of their own.
      *
-     * <p>Named for the gate they show, a gate removed or renamed left its captures for good. A gate
-     * whose name only starts like another's must not keep the other's.
+     * <p>Every character that is not a plain letter or digit became an underscore, so "a b" and
+     * "a_b", or any two names in another alphabet, shared one file: dialling either retook it at
+     * its own arrival, and the other gate drew the wrong place.
      */
     @Test
-    void aCaptureOfAGateThatIsGoneIsSwept() throws Exception
+    void gatesWhoseNamesSanitiseAlikeKeepCapturesOfTheirOwn()
+    {
+        assertNotEquals(MirrorCaptures.gateKey("a b", 5, 5), MirrorCaptures.gateKey("a_b", 5, 5));
+        assertNotEquals(MirrorCaptures.gateKey("地球", 5, 5), MirrorCaptures.gateKey("月球", 5, 5));
+    }
+
+    /** An empty capture file on disk, named as a gate's own for that opening would be. */
+    private static File gateFile(final String gate, final int width, final int height) throws Exception
     {
         final File dir = DataLayout.gateCaptureDir();
         assertTrue(dir.isDirectory() || dir.mkdirs(), "the gate captures folder");
-        final File kept = new File(dir, "abydos_5x5.view");
-        final File keptSmall = new File(dir, "abydos_1x2.view");
-        final File gone = new File(dir, "chulak_5x5.view");
-        final File lookalike = new File(dir, "abydos_2_5x5.view");
-        for (final File file : new File[] { kept, keptSmall, gone, lookalike })
+        final File file = new File(dir, MirrorCaptures.gateKey(gate, width, height).substring("gate:".length()) + ".view");
+        assertTrue(file.createNewFile(), file.getName());
+        return file;
+    }
+
+    /**
+     * Removing a gate deletes what it shows, through every opening, and nobody else's.
+     *
+     * <p>A sweep at startup did this before, and counted a gate gone whenever it had not loaded -- a
+     * gate in a world another plugin loads later -- deleting what it showed. At removal there is no
+     * guessing. A gate whose name only starts like another's keeps its own.
+     */
+    @Test
+    void removingAGateDeletesWhatItShowsAndNothingElse() throws Exception
+    {
+        final File own = gateFile("Abydos", 5, 5);
+        final File ownSmall = gateFile("Abydos", 1, 2);
+        final File other = gateFile("Chulak", 5, 5);
+        final File lookalike = gateFile("Abydos_2", 5, 5);
+
+        assertEquals(2, MirrorCaptures.forgetGate("Abydos"));
+
+        assertFalse(own.exists(), "Abydos's own");
+        assertFalse(ownSmall.exists(), "seen through another opening, still Abydos's");
+        assertTrue(other.exists(), "another gate's");
+        assertTrue(lookalike.exists(), "Abydos_2's, whose name only starts like it");
+    }
+
+    /**
+     * A gate's capture on disk and not in memory is refreshed by the age of its file, and not read to find out.
+     *
+     * <p>A watched gate's captures were each read off the disk every minute to learn how old they
+     * were, and being asked for kept them from ever being let go.
+     */
+    @Test
+    void aGatesCaptureOnDiskIsRefreshedByItsFileAge()
+    {
+        takeGateCapture(8);
+        MirrorCaptures.clear();
+        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
+
+        withServer(() ->
         {
-            assertTrue(file.createNewFile(), file.getName());
-        }
-
-        assertEquals(2, MirrorCaptures.sweepAbandonedGates(List.of("Abydos")));
-
-        assertTrue(kept.exists(), "Abydos's own");
-        assertTrue(keptSmall.exists(), "seen through another opening, still Abydos's");
-        assertFalse(gone.exists(), "a gate that is gone");
-        assertFalse(lookalike.exists(), "a gate called Abydos_2, which is gone too");
+            assertEquals(0, MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L), "a new file");
+            assertTrue(file.setLastModified(System.currentTimeMillis() - 1_200_000L));
+            assertEquals(1, MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L), "twenty minutes old");
+        });
     }
 }

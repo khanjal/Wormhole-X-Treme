@@ -638,15 +638,20 @@ still, the spread would get coarse enough to miss things, and nobody has measure
 gate bigger than five by five keeps its horizon.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
-`data/gates/captures/<gate>_<width>x<height>.view`, named for the gate whose front it shows and
-the opening it is seen through, so it is there after a restart and a remote gate shows its view
-at once rather than after its far side has been read off the disk. A capture of a gate that is
-gone is deleted at startup. It is taken again:
+`data/gates/captures/`, one file for each gate whose front it shows and each opening size it is
+seen through. The file is named for the gate made file-safe, with a hash of the name, since two
+names can come out alike. So it is there after a restart, and a remote gate shows its view at
+once rather than after its far side has been read off the disk. Removing a gate deletes its
+captures; a refresh that hands a gate back keeps them. It is taken again:
 
 - **as a gate is dialled or opens**, or its iris opens, once it is a minute old. The dial is the
-  first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in;
-- **while somebody stands at the gate it shows**, once it is ten minutes old, since that gate's
-  chunks are loaded anyway and the reading costs a moment. Each gate is looked at once a minute;
+  first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in. A sign
+  dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
+  still shows the horizon until it is read;
+- **while somebody stands at the gate it shows**, once it is ten minutes old. Most of that gate's
+  chunks are loaded then, though a capture reaches `gate-view-depth` past the gate and to either
+  side, which can be further than a player with a short view distance has loaded. Each gate is
+  looked at once a minute, and a capture on disk is judged by its file's age, not read to find out;
 - **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
 
 The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
@@ -662,8 +667,10 @@ anything showed; at 32 it is about fifteen.
 - **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
   behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
   player near enough to be drawn it walks away.
-- **A gate's captures are invisible to `mirror debug`**, and removing a gate leaves its captures
-  until the next startup.
+- **A gate's captures are invisible to `mirror debug`**, and a gate renamed leaves its old
+  name's captures behind.
+- **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
+  point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.
 
 ## Animation

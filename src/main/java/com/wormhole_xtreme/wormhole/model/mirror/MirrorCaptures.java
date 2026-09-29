@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -239,7 +238,20 @@ public final class MirrorCaptures
      */
     public static String gateKey(final String gate, final int holeWidth, final int holeHeight)
     {
-        return GATE_KEY + fileSafe(gate) + '_' + holeWidth + 'x' + holeHeight;
+        return GATE_KEY + gateStem(gate) + '_' + holeWidth + 'x' + holeHeight;
+    }
+
+    /**
+     * A gate's name as its capture files begin: made file-safe, with a hash of the name as typed.
+     *
+     * <p>File-safe alone, every character that is not a plain letter or digit became an underscore,
+     * so "a b" and "a_b", or any two names in another alphabet, shared one file and each drew the
+     * other's far side. Gate names are told apart without case, so the hash is of the lower case.
+     */
+    static String gateStem(final String gate)
+    {
+        final String lower = gate.toLowerCase(Locale.ROOT);
+        return fileSafe(lower) + '-' + Integer.toHexString(lower.hashCode());
     }
 
     /** A name as a file may be called. */
@@ -260,7 +272,7 @@ public final class MirrorCaptures
      */
     static Set<String> gateKeysFor(final String gate)
     {
-        final String stem = fileSafe(gate);
+        final String stem = gateStem(gate);
         final Set<String> keys = new HashSet<>();
         final File[] files = DataLayout.gateCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
         for (final File file : (files == null) ? new File[0] : files)
@@ -310,11 +322,9 @@ public final class MirrorCaptures
         int started = 0;
         for (final String key : gateKeysFor(gate))
         {
-            final MirrorCapture capture = get(key);
             final Matcher hole = GATE_HOLE.matcher(key);
-            if ((capture != null) && hole.find() && ((capture.secondsOld() > olderThanSeconds) || !reaches(capture, arrival, depth))
-                && !JOBS.containsKey(key) && requestGate(key, gate, arrival, Integer.parseInt(hole.group(1)),
-                    Integer.parseInt(hole.group(2)), depth))
+            if (hole.find() && stale(key, arrival, depth, olderThanSeconds) && !JOBS.containsKey(key)
+                && requestGate(key, gate, arrival, Integer.parseInt(hole.group(1)), Integer.parseInt(hole.group(2)), depth))
             {
                 started++;
             }
@@ -323,43 +333,63 @@ public final class MirrorCaptures
     }
 
     /**
-     * Deletes every gate capture whose gate is gone.
+     * Whether a gate's capture should be taken again: older than the limit, or, if it is in memory,
+     * shallower than the depth.
      *
-     * <p>Named for the gate they show, so a gate removed or renamed left them behind; run only once
-     * gates have loaded, when every one would otherwise read as gone.
-     *
-     * @param gates
-     *            the names of every gate there is
-     * @return how many were deleted
+     * <p>One not in memory is judged by its file's age, not loaded to be judged: a watched gate's
+     * captures were read off the disk every minute to learn how old they were, and being asked for
+     * kept them from ever being let go. Its depth is judged when a gate is next drawn from it.
      */
-    public static int sweepAbandonedGates(final Collection<String> gates)
+    private static boolean stale(final String key, final MirrorPoint arrival, final int depth, final long olderThanSeconds)
     {
-        final File[] files = DataLayout.gateCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
-        if (files == null)
+        final Held held = LOADED.get(key);
+        if (held != null)
         {
-            return 0;
+            return (held.capture.secondsOld() > olderThanSeconds) || !reaches(held.capture, arrival, depth);
         }
-        final Set<String> stems = new HashSet<>();
-        gates.forEach(gate -> stems.add(fileSafe(gate)));
+        final File file = fileOf(key);
+        return file.isFile() && (((System.currentTimeMillis() - file.lastModified()) / 1000L) > olderThanSeconds);
+    }
+
+    /**
+     * Forgets and deletes every capture of a gate being removed, whatever opening each was seen through.
+     *
+     * <p>At removal rather than in a sweep at startup, which counted a gate missing whenever it had
+     * not loaded -- a gate in a world another plugin loads later -- and deleted what it showed. A
+     * refresh that hands a gate back is not a removal, and keeps them.
+     *
+     * @param gate
+     *            the gate whose front they show
+     * @return how many files were deleted
+     */
+    public static int forgetGate(final String gate)
+    {
         int deleted = 0;
-        for (final File file : files)
+        for (final String key : gateKeysFor(gate))
         {
-            final Matcher hole = GATE_HOLE.matcher(file.getName().substring(0, file.getName().length() - VIEW.length()));
-            if (hole.find() && stems.contains(file.getName().substring(0, hole.start())))
+            final Job job = JOBS.remove(key);
+            if (job != null)
             {
-                continue;
+                job.done = true;
+                job.cancel();
             }
+            LOADED.remove(key);
+            ABSENT.add(key);
+            final File file = fileOf(key);
             try
             {
-                Files.delete(file.toPath());
-                deleted++;
+                if (Files.deleteIfExists(file.toPath()))
+                {
+                    deleted++;
+                }
             }
             catch (final IOException refused)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Could not delete abandoned gate capture " + file.getName(), refused);
+                    "Could not delete the capture " + file.getName() + " of a removed gate", refused);
             }
         }
+        changed();
         return deleted;
     }
 
