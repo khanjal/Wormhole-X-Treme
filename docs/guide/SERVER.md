@@ -421,7 +421,7 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 | `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
 
 - **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
-  in its popup; a line between two dialled gates while the wormhole is open, when both are in the
+  in its popup, and its icon lit while a wormhole is open through it; a line between two dialled gates while the wormhole is open, when both are in the
   same world; both ends of each ring pair, with a line between them; each public beam
   destination; each quantum mirror at its banner. A mirror has no line, because which room it
   opens onto is chosen at it.

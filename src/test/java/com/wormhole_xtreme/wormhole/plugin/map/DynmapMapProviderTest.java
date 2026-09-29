@@ -128,7 +128,7 @@ class DynmapMapProviderTest
 
     private static GateMark gate(final String name)
     {
-        return new GateMark(name.toLowerCase(), "world", name, "Milky Way", "Daniel", 11, 65.5, 20.5,
+        return new GateMark(name.toLowerCase(), "world", name, "Milky Way", "Daniel", false, 11, 65.5, 20.5,
             new Footprint(10, 20, 12, 21, 64, 67));
     }
 
@@ -259,13 +259,60 @@ class DynmapMapProviderTest
         final FakeSet gates = sets.get(DynmapMapProvider.GATES);
         final Marker chulak = gates.points.get("chulak");
         final Marker abydos = gates.points.get("abydos");
-        final GateMark moved = new GateMark("abydos", "world", "Abydos", "Milky Way", "Jack", 11, 65.5, 20.5,
+        final GateMark moved = new GateMark("abydos", "world", "Abydos", "Milky Way", "Jack", false, 11, 65.5, 20.5,
             new Footprint(10, 20, 12, 21, 64, 67));
 
         provider.apply(picture(moved, gate("Chulak")));
 
         verify(abydos).deleteMarker();
         verify(chulak, never()).deleteMarker();
+    }
+
+    @Test
+    void aGateOpeningSwapsItsIconAndTouchesNothingElse()
+    {
+        final MarkerIcon open = mock(MarkerIcon.class);
+        final MarkerIcon idle = mock(MarkerIcon.class);
+        when(api.createMarkerIcon(eq("wormhole_gate_open"), anyString(), any(InputStream.class))).thenReturn(open);
+        when(api.createMarkerIcon(eq("wormhole_gate_idle"), anyString(), any(InputStream.class))).thenReturn(idle);
+        provider.attach(api);
+        provider.apply(picture(gate("Abydos"), gate("Chulak")));
+        final FakeSet gates = sets.get(DynmapMapProvider.GATES);
+        verify(gates.set).createMarker(eq("abydos"), anyString(), anyBoolean(), anyString(), anyDouble(),
+            anyDouble(), anyDouble(), eq(idle), anyBoolean());
+        final Marker abydos = gates.points.get("abydos");
+        final Marker chulak = gates.points.get("chulak");
+        when(abydos.setMarkerIcon(open)).thenReturn(true);
+        clearInvocations(gates.set, abydos, chulak);
+
+        provider.apply(picture(gate("Abydos").withOpen(true), gate("Chulak")));
+
+        verify(abydos).setMarkerIcon(open);
+        verify(abydos, never()).deleteMarker();
+        verify(gates.set, never()).createMarker(anyString(), anyString(), anyBoolean(), anyString(), anyDouble(),
+            anyDouble(), anyDouble(), any(), anyBoolean());
+        verifyNoInteractions(chulak);
+        clearInvocations(abydos);
+
+        provider.apply(picture(gate("Abydos").withOpen(true), gate("Chulak")));
+
+        verifyNoInteractions(abydos);
+    }
+
+    @Test
+    void aGateWhoseIconWillNotSwapIsRedrawnOpen()
+    {
+        final MarkerIcon open = mock(MarkerIcon.class);
+        when(api.createMarkerIcon(eq("wormhole_gate_open"), anyString(), any(InputStream.class))).thenReturn(open);
+        provider.attach(api);
+        provider.apply(picture(gate("Abydos")));
+        final Marker abydos = sets.get(DynmapMapProvider.GATES).points.get("abydos");
+
+        provider.apply(picture(gate("Abydos").withOpen(true)));
+
+        verify(abydos).deleteMarker();
+        verify(sets.get(DynmapMapProvider.GATES).set).createMarker(eq("abydos"), anyString(), anyBoolean(),
+            anyString(), anyDouble(), anyDouble(), anyDouble(), eq(open), anyBoolean());
     }
 
     @Test
@@ -301,7 +348,7 @@ class DynmapMapProviderTest
     {
         provider.attach(api);
         final GateMark sneaky = new GateMark("<b>x</b>", "world", "<b>x</b>", null, "<script>alert(1)</script>",
-            0, 64, 0, null);
+            false, 0, 64, 0, null);
 
         provider.apply(picture(sneaky));
 
@@ -320,7 +367,8 @@ class DynmapMapProviderTest
 
         provider.apply(everything());
 
-        verify(api).createMarkerIcon(eq("wormhole_gate"), anyString(), any(InputStream.class));
+        verify(api).createMarkerIcon(eq("wormhole_gate_open"), anyString(), any(InputStream.class));
+        verify(api).createMarkerIcon(eq("wormhole_gate_idle"), anyString(), any(InputStream.class));
         verify(api).createMarkerIcon(eq("wormhole_mirror"), anyString(), any(InputStream.class));
         verify(api, never()).getMarkerIcon("portal");
     }

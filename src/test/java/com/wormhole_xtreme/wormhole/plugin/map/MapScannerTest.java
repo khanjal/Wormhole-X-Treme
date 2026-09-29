@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.plugin.map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -144,6 +145,36 @@ class MapScannerTest
         assertNotNull(line, "the line is keyed on the two names in order, whichever end was seen first");
         assertEquals(11.0, line.x1(), 1e-9);
         assertEquals(101.0, line.x2(), 1e-9);
+    }
+
+    @Test
+    void anIdleGateIsMarkedShutAndAnActiveOneOpen()
+    {
+        final Stargate abydos = gate("Abydos", overworld);
+        final Stargate chulak = gate("Chulak", overworld);
+        when(chulak.isGateActive()).thenReturn(true);
+
+        final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
+
+        assertFalse(snapshot.gates().get("abydos").open());
+        assertTrue(snapshot.gates().get("chulak").open());
+    }
+
+    @Test
+    void theFarEndOfAWormholeIsOpenThoughOnlyTheDiallerHoldsATarget()
+    {
+        // Dialling sets a target on the gate that dialled and not on the one it reached, so
+        // the far end's state is read from the dialler as well as from itself.
+        final Stargate abydos = gate("Abydos", overworld);
+        final Stargate chulak = gate("Chulak", overworld);
+        when(abydos.isGateActive()).thenReturn(true);
+        when(abydos.getGateTarget()).thenReturn(chulak);
+
+        final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
+
+        assertTrue(snapshot.gates().get("abydos").open());
+        assertTrue(snapshot.gates().get("chulak").open(), "a wormhole is open at both ends");
+        assertEquals(1, snapshot.gateLinks().size(), "and the pair still has its line");
     }
 
     @Test

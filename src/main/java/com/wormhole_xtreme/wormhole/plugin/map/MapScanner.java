@@ -2,8 +2,10 @@ package com.wormhole_xtreme.wormhole.plugin.map;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -116,9 +118,19 @@ public final class MapScanner
     private static void addGates(final Collection<Stargate> gates, final boolean showIrisGates,
         final Map<String, GateMark> marks, final Map<String, LineMark> links)
     {
+        // Only the gate that dialled holds a target, so the far end's openness is read from it too.
+        final Set<String> dialled = new HashSet<>();
         for (final Stargate gate : gates)
         {
-            final GateMark mark = gateMark(gate, showIrisGates);
+            final Stargate target = gate.getGateTarget();
+            if (gate.isGateActive() && (target != null) && (target.getGateName() != null))
+            {
+                dialled.add(gateId(target.getGateName()));
+            }
+        }
+        for (final Stargate gate : gates)
+        {
+            final GateMark mark = gateMark(gate, showIrisGates, dialled);
             if (mark != null)
             {
                 marks.put(mark.id(), mark);
@@ -153,9 +165,11 @@ public final class MapScanner
      *            the gate
      * @param showIrisGates
      *            false to leave it out if it has an iris code
+     * @param dialled
+     *            ids of the gates an open gate is dialled to
      * @return its mark, or null if it is not to be shown
      */
-    private static GateMark gateMark(final Stargate gate, final boolean showIrisGates)
+    private static GateMark gateMark(final Stargate gate, final boolean showIrisGates, final Set<String> dialled)
     {
         final World world = gate.getGateWorld();
         final String name = gate.getGateName();
@@ -193,9 +207,10 @@ public final class MapScanner
             z = at.getZ();
         }
         final StargateNetwork network = gate.getGateNetwork();
-        return new GateMark(gateId(name), world.getName(), name,
+        final String id = gateId(name);
+        return new GateMark(id, world.getName(), name,
             (network == null) ? null : network.getNetworkName(), gate.getGateOwnerName(),
-            x, y, z, footprint);
+            gate.isGateActive() || dialled.contains(id), x, y, z, footprint);
     }
 
     /**

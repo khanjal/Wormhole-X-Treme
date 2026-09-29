@@ -90,6 +90,8 @@ public record MapSnapshot(Map<String, GateMark> gates, Map<String, LineMark> gat
      *            its network, or null for none
      * @param owner
      *            its owner's name, or null for none
+     * @param open
+     *            whether a wormhole is open through it
      * @param x
      *            point to mark, east-west
      * @param y
@@ -100,8 +102,19 @@ public record MapSnapshot(Map<String, GateMark> gates, Map<String, LineMark> gat
      *            its opening, or null when it has no portal blocks to measure
      */
     public record GateMark(String id, String world, String name, String network, String owner,
-        double x, double y, double z, Footprint footprint)
+        boolean open, double x, double y, double z, Footprint footprint)
     {
+        /**
+         * This mark with the wormhole open or shut, and nothing else changed.
+         *
+         * @param isOpen
+         *            whether a wormhole is open through it
+         * @return the mark
+         */
+        public GateMark withOpen(final boolean isOpen)
+        {
+            return new GateMark(id, world, name, network, owner, isOpen, x, y, z, footprint);
+        }
     }
 
     /**

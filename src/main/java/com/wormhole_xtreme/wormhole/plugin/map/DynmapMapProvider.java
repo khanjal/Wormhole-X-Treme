@@ -93,7 +93,8 @@ public final class DynmapMapProvider implements MapProvider
     private MarkerSet ringSet = null;
     private MarkerSet beamSet = null;
     private MarkerSet mirrorSet = null;
-    private MarkerIcon gateIcon = null;
+    private MarkerIcon gateOpenIcon = null;
+    private MarkerIcon gateIdleIcon = null;
     private MarkerIcon ringIcon = null;
     private MarkerIcon beamIcon = null;
     private MarkerIcon mirrorIcon = null;
@@ -184,6 +185,7 @@ public final class DynmapMapProvider implements MapProvider
         }
         if (gateSet != null)
         {
+            reiconOpenedOrShut(snapshot.gates());
             sync(snapshot.gates(), drawnGates, this::removeGate, this::drawGate);
             sync(snapshot.gateLinks(), drawnGateLinks, id -> removeLine(gateSet, id),
                 (id, line) -> drawLine(gateSet, line, GATE_COLOUR));
@@ -233,7 +235,8 @@ public final class DynmapMapProvider implements MapProvider
         ringSet = layer(markers, layers.rings(), RINGS, "Transport rings", 11);
         beamSet = layer(markers, layers.beams(), BEAMS, "Beam destinations", 12);
         mirrorSet = layer(markers, layers.mirrors(), MIRRORS, "Quantum mirrors", 13);
-        gateIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate", "Stargate", "gate.png", "portal");
+        gateOpenIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_open", "Open stargate", "gate.png", "portal");
+        gateIdleIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_idle", "Stargate", "gate-idle.png", "portal");
         ringIcon = (ringSet == null) ? null : icon(markers, "wormhole_rings", "Transport rings", "rings.png", "star");
         beamIcon = (beamSet == null) ? null : icon(markers, "wormhole_beam", "Beam destination", "beam.png", "pin");
         mirrorIcon = (mirrorSet == null) ? null : icon(markers, "wormhole_mirror", "Quantum mirror", "mirror.png", "sign");
@@ -389,6 +392,26 @@ public final class DynmapMapProvider implements MapProvider
     }
 
     /**
+     * Swaps the icon of a gate that only opened or shut, rather than deleting and remaking it.
+     *
+     * @param want
+     *            the gates that should be drawn, by id; any swapped here is recorded as drawn
+     */
+    private void reiconOpenedOrShut(final Map<String, GateMark> want)
+    {
+        for (final Map.Entry<String, GateMark> was : drawnGates.entrySet())
+        {
+            final GateMark now = want.get(was.getKey());
+            final GateMark flipped = was.getValue().withOpen(!was.getValue().open());
+            final Marker point = flipped.equals(now) ? gateSet.findMarker(was.getKey()) : null;
+            if ((point != null) && point.setMarkerIcon(flipped.open() ? gateOpenIcon : gateIdleIcon))
+            {
+                was.setValue(flipped);
+            }
+        }
+    }
+
+    /**
      * Removes a gate's point and its opening.
      *
      * @param id
@@ -434,7 +457,7 @@ public final class DynmapMapProvider implements MapProvider
         }
         final String description = html.toString();
         final Marker point = gateSet.createMarker(id, gate.name(), false, gate.world(),
-            gate.x(), gate.y(), gate.z(), gateIcon, false);
+            gate.x(), gate.y(), gate.z(), gate.open() ? gateOpenIcon : gateIdleIcon, false);
         if (point != null)
         {
             point.setDescription(description);
