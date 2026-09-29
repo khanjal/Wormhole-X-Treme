@@ -980,8 +980,8 @@ class WormholeXTremeVehicleListener implements Listener
         veh.setVelocity(nospeed);
         final Heading across = Heading.across(st, veh, event.getFrom(), event.getTo());
         // Not moving towards either face, such as dropped in from above: back where it was.
-        final Location at = (across.nose() == 0) ? event.getFrom()
-            : across.shortOf(event.getTo(), across.alongX() ? iris.getX() : iris.getZ());
+        final int irisAt = across.alongX() ? iris.getX() : iris.getZ();
+        final Location at = (across.nose() == 0) ? event.getFrom() : across.shortOf(event.getTo(), irisAt);
         putBack(veh, at);
     }
 
