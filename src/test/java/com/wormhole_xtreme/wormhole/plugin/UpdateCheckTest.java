@@ -299,17 +299,22 @@ class UpdateCheckTest
         assertEquals(List.of("Modrinth lists no release for Minecraft " + MINECRAFT + "."), noneForThisVersion.notes);
     }
 
-    /** A tag carrying a newline or a colour code would forge a log line or restyle chat; it is not announced. */
+    /**
+     * A tag carrying a newline or a colour code would forge a log line or restyle chat; it is not
+     * announced. Each hides in the qualifier, after numbers that would otherwise read as newer.
+     */
     @Test
     void aTagThatIsNotPlainTextIsNotAnnounced()
     {
-        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9\\nFAKE LINE")), "1.8.1", MINECRAFT));
-        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9\u00a7c")), "1.8.1", MINECRAFT));
-        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9 now")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9-x\\nFAKE LINE")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9-\u00a7cred")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9-rc now")), "1.8.1", MINECRAFT));
         assertEquals(Optional.empty(),
-            findNewer(new Canned(modrinth(entry("9.9.9\u00a7c", "release", MINECRAFT)), null), "1.8.1", MINECRAFT));
-        assertEquals(Optional.of(new UpdateCheck.Release("v9.9.9", GITHUB_PAGE)),
-            findNewer(new Canned(null, gitHub("v9.9.9")), "1.8.1", MINECRAFT), "the same tag, plain, is announced");
+            findNewer(new Canned(modrinth(entry("9.9.9-\u00a7cred", "release", MINECRAFT)), null), "1.8.1", MINECRAFT));
+        assertEquals(Optional.of(new UpdateCheck.Release("v9.9.9-rc", GITHUB_PAGE)),
+            findNewer(new Canned(null, gitHub("v9.9.9-rc")), "1.8.1", MINECRAFT), "the same tag, plain, is announced");
+        assertEquals("9.9.9-rc", UpdateCheck.latestFromModrinth(modrinth(entry("9.9.9-rc", "release", MINECRAFT)), MINECRAFT),
+            "a plain qualifier from Modrinth is kept");
     }
 
     /** Only a github.com page is passed on as where to get a release. */
