@@ -135,7 +135,7 @@ public final class MirrorWindows
     /**
      * Most blocks one gate's view may hold (#516): four times a mirror's, some 50 MB while it is drawn.
      *
-     * <p>A gate view is filled to 160 blocks through an opening up to five by five, and at a
+     * <p>A gate view is filled to 160 blocks through an opening up to eight by eight, and at a
      * mirror's cap open ground past a hundred or so was cut away, leaving this world showing
      * behind the far side. One view serves everybody looking into the gate.
      */

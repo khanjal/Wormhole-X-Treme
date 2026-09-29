@@ -634,14 +634,15 @@ watched for in a world, at speed and on a mount.
 **A capture is seen through the gate's own opening.** A mirror's is taken through a hole three
 wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
 spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
-still, the spread would get coarse enough to miss things, and nobody has measured where, so a
-gate bigger than five by five (Large, Grand, Massive) shows its view through a five-by-five window
-carved at the foot of its opening's middle, on the lowest rows the ring leaves room for, and the
-rest of its opening keeps its horizon. At `open` only that window clears; an iris still covers it.
+still, the spread would get coarse enough to miss things, and nobody has measured where, so the
+largest opening drawn whole is a Large gate's, eight by eight. A bigger gate (Grand, Massive)
+shows its view through an eight-by-eight window carved at the foot of its opening's middle, on the
+lowest rows the ring leaves room for, and the rest of its opening keeps its horizon. At `open`
+only that window clears; an iris still covers it.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
 `data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
-opening a gate view draws, five by five: every smaller opening sits inside that one, on the same
+opening a gate view draws, eight by eight: every smaller opening sits inside that one, on the same
 middle column and bottom row, so what it can see is already there, and one capture serves every
 gate that dials this one. The file is named for the gate made file-safe, with a hash of the name,
 since two names can come out alike; one seen through a smaller opening, left by an earlier build,

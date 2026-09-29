@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -108,12 +109,12 @@ class GateViewsTest
     @Test
     void aStandardOpeningIsDrawnWholeCornersAndAll()
     {
-        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, GateViews.MOST, GateViews.MOST));
+        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 5, 5));
         cells.removeIf(cell -> ((cell.x() == 10) || (cell.x() == 14)) && ((cell.y() == 64) || (cell.y() == 68)));
         final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
 
-        assertNotNull(shape, "a ring with its corners filled is still the one opening every capture is seen through");
-        assertEquals(GateViews.MOST, shape.width());
+        assertNotNull(shape, "a ring with its corners filled is still an opening");
+        assertEquals(5, shape.width(), "its own width, not the capture's");
         assertEquals(new Spot(100, 70, 200), shape.farOf(12, 64, 19),
             "from its bottom row, not lifted a row to clear the missing corners");
     }
@@ -123,53 +124,72 @@ class GateViewsTest
      * middle, rather than not at all: a capture's rays grow with its opening.
      */
     @Test
-    void aWiderAndTallerOpeningHasAStandardWindowCarvedAtTheFootOfItsMiddle()
+    void aWiderAndTallerOpeningHasALargeWindowCarvedAtTheFootOfItsMiddle()
     {
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 9, 8), ARRIVAL);
+        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 12, 10), ARRIVAL);
 
         assertNotNull(shape);
-        assertEquals(GateViews.MOST, shape.width(), "no wider than a Standard gate's");
+        assertEquals(GateViews.MOST, shape.width(), "no wider than a Large gate's");
         assertEquals(GateViews.MOST, shape.height(), "nor taller");
-        assertTrue(shape.isOpening(12, 64, 20) && shape.isOpening(16, 68, 20), "the middle five columns, bottom five rows");
+        assertTrue(shape.isOpening(12, 64, 20) && shape.isOpening(19, 71, 20), "the middle eight columns, bottom eight rows");
         assertFalse(shape.isOpening(11, 64, 20), "the column left of them keeps its horizon");
-        assertFalse(shape.isOpening(17, 64, 20), "and the one right of them");
-        assertFalse(shape.isOpening(14, 69, 20), "and the rows above");
-        assertEquals(new Spot(100, 70, 200), shape.farOf(14, 64, 19),
+        assertFalse(shape.isOpening(20, 64, 20), "and the one right of them");
+        assertFalse(shape.isOpening(15, 72, 20), "and the rows above");
+        assertEquals(new Spot(100, 70, 200), shape.farOf(15, 64, 19),
             "and the arrival shows through the middle of its bottom row, as through a small gate's");
+    }
+
+    /** An opening of rows of the given widths, each centred on the widest, from y 64 up. */
+    private static List<Spot> round(final int... widths)
+    {
+        final int most = Arrays.stream(widths).max().orElse(0);
+        final List<Spot> cells = new ArrayList<>();
+        for (int row = 0; row < widths.length; row++)
+        {
+            final int left = 10 + ((most - widths[row]) / 2);
+            for (int x = left; x < (left + widths[row]); x++)
+            {
+                cells.add(new Spot(x, 64 + row, 20));
+            }
+        }
+        return cells;
+    }
+
+    /** A Large gate is the even one, eight across, and is drawn whole, round corners and all. */
+    @Test
+    void aLargeOpeningIsDrawnWholeFromItsBottomRow()
+    {
+        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, round(4, 6, 8, 8, 8, 8, 6, 4), ARRIVAL);
+
+        assertNotNull(shape);
+        assertEquals(8, shape.width(), "the whole of its width, not a Standard window carved in it");
+        assertEquals(8, shape.height());
+        assertTrue(shape.isOpening(10, 64, 20) && shape.isOpening(17, 71, 20), "corner to corner");
     }
 
     /** A round gate's bottom row can be narrower than the window, which then sits on the first row it fits. */
     @Test
     void aRoundOpeningsWindowSitsOnTheLowestRowsItFitsIn()
     {
-        // Large's opening: rows 4, 6, 8, 8, 8, 8, 6 and 4 wide, centred on eight columns.
-        final int[] widths = {4, 6, 8, 8, 8, 8, 6, 4};
-        final List<Spot> cells = new ArrayList<>();
-        for (int row = 0; row < widths.length; row++)
-        {
-            final int left = 10 + ((8 - widths[row]) / 2);
-            for (int x = left; x < (left + widths[row]); x++)
-            {
-                cells.add(new Spot(x, 64 + row, 20));
-            }
-        }
+        // Massive's lower half: five wide at the foot, then nine, eleven, and so on.
+        final List<Spot> cells = round(5, 9, 11, 13, 15, 17, 17, 17, 17, 17);
         final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
 
         assertNotNull(shape);
-        assertFalse(shape.isOpening(11, 64, 20), "not the bottom row, only four wide");
-        assertTrue(shape.isOpening(11, 65, 20) && shape.isOpening(15, 69, 20), "but the five rows above it");
-        assertTrue(cells.containsAll(List.of(new Spot(11, 65, 20), new Spot(15, 69, 20))),
+        assertFalse(shape.isOpening(14, 64, 20), "not the bottom row, only five wide");
+        assertTrue(shape.isOpening(14, 65, 20) && shape.isOpening(21, 72, 20), "but the eight rows above it");
+        assertTrue(cells.containsAll(List.of(new Spot(14, 65, 20), new Spot(21, 65, 20), new Spot(14, 72, 20))),
             "every one of them part of the opening");
     }
 
     @Test
     void anOpeningWithNoRoomForTheWindowHasNone()
     {
-        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 9, 8));
-        cells.removeIf(cell -> cell.x() == 14);
+        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 12, 10));
+        cells.removeIf(cell -> cell.x() == 15);
 
         assertNull(GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL),
-            "split down its middle, nowhere has five columns side by side");
+            "split down its middle, nowhere has eight columns side by side");
     }
 
     @Test

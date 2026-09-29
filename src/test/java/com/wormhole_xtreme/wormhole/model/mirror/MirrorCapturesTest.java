@@ -748,15 +748,15 @@ class MirrorCapturesTest
 
     private String gateKey()
     {
-        return MirrorCaptures.gateKey(GATE, 5, 5);
+        return MirrorCaptures.gateKey(GATE, MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING);
     }
 
-    /** Takes a gate's capture of the beach, five by five, to a depth. */
+    /** Takes a gate's capture of the beach, through the gate opening, to a depth. */
     private void takeGateCapture(final int depth)
     {
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, depth));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, depth));
             MirrorCaptures.step(100);
         });
     }
@@ -914,7 +914,7 @@ class MirrorCapturesTest
         final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, 8));
             MirrorCaptures.step(1);
 
             MirrorCaptures.forgetGate(GATE);
@@ -973,7 +973,7 @@ class MirrorCapturesTest
         });
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 40));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, 40));
             MirrorCaptures.step(1000);
         });
 
@@ -996,10 +996,10 @@ class MirrorCapturesTest
         });
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, 8));
             MirrorCaptures.step(1000);
 
-            assertFalse(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8),
+            assertFalse(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, 8),
                 "not started again at once");
             assertTrue(MirrorCaptures.request(mirror), "a mirror's, tried again when next wanted, as before");
         });
@@ -1019,7 +1019,7 @@ class MirrorCapturesTest
         MirrorCaptures.siftWith((builder, from, reach, floor) -> 20);
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 40));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING, 40));
             MirrorCaptures.step(4000);
         });
         final MirrorCapture capture = MirrorCaptures.get(gateKey());
@@ -1041,7 +1041,8 @@ class MirrorCapturesTest
     void anOldSmallerCaptureGoesAsItsGateIsRefreshed() throws Exception
     {
         takeGateCapture(8);
-        final File small = gateFile(GATE, 1, 2);
+        // Five by five: what every gate was seen through before a Large gate's opening served them all.
+        final File small = gateFile(GATE, 5, 5);
         final File one = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
 
         withServer(() -> MirrorCaptures.refreshGate(GATE, mirror.destination(), 8, 600L));

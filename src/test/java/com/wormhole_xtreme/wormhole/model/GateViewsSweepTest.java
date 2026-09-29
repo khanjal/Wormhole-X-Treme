@@ -147,13 +147,13 @@ class GateViewsSweepTest
         assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "the view went, so the horizon is back");
     }
 
-    /** Makes the gate's opening nine wide and five tall, too big for one capture. */
+    /** Makes the gate's opening twelve wide and ten tall, too big for one capture. */
     private void wide()
     {
         final List<Location> portal = new ArrayList<>();
-        for (int x = 10; x < 19; x++)
+        for (int x = 10; x < 22; x++)
         {
-            for (int y = 64; y < 69; y++)
+            for (int y = 64; y < 74; y++)
             {
                 portal.add(new Location(world, x, y, 20));
             }
@@ -174,23 +174,23 @@ class GateViewsSweepTest
 
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> window.open().size() == 25), anyBoolean()));
+        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> window.open().size() == 64), anyBoolean()));
         verify(gate, never()).fillGateInterior(Material.AIR);
         verify(gate).fillGateInterior(Material.WATER);
         assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "the gate as a whole keeps its horizon");
-        assertEquals(Material.AIR, GateViews.horizonAt(gate, Material.WATER, new Location(world, 14, 66, 20)),
+        assertEquals(Material.AIR, GateViews.horizonAt(gate, Material.WATER, new Location(world, 15, 67, 20)),
             "cleared in the window");
         assertEquals(Material.AIR, GateViews.horizonAt(gate, Material.WATER, new Location(world, 12, 64, 20)),
             "to its corner");
         assertEquals(Material.WATER, GateViews.horizonAt(gate, Material.WATER, new Location(world, 11, 64, 20)),
             "but not beside it");
-        assertEquals(Material.GLASS, GateViews.horizonAt(gate, Material.GLASS, new Location(world, 14, 66, 20)),
+        assertEquals(Material.GLASS, GateViews.horizonAt(gate, Material.GLASS, new Location(world, 15, 67, 20)),
             "and an iris is drawn over it as ever");
 
         drawn(false);
         GateViews.offerAll();
 
-        assertEquals(Material.WATER, GateViews.horizonAt(gate, Material.WATER, new Location(world, 14, 66, 20)),
+        assertEquals(Material.WATER, GateViews.horizonAt(gate, Material.WATER, new Location(world, 15, 67, 20)),
             "the view went, so the window is the wormhole again");
     }
 

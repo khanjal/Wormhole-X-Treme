@@ -103,7 +103,7 @@ class MirrorWindowsGateTest
 
     private static String key()
     {
-        return MirrorCaptures.gateKey("Chulak", 5, 5);
+        return MirrorCaptures.gateKey("Chulak", MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING);
     }
 
     @Test
@@ -227,8 +227,8 @@ class MirrorWindowsGateTest
                 anyInt(), anyInt())).thenReturn(true);
 
             assertTrue(MirrorWindows.offerGate(gate, false), "the first step is drawn meanwhile");
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(5),
-                eq(5), eq(48)), times(1));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(8),
+                eq(8), eq(48)), times(1));
         }
     }
 
@@ -378,7 +378,7 @@ class MirrorWindowsGateTest
                 anyInt(), anyInt())).thenReturn(true);
 
             assertFalse(MirrorWindows.offerGate(minimal, true));
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(5), eq(5),
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(8), eq(8),
                 eq(16)), times(1));
         }
     }
