@@ -64,6 +64,21 @@ class WorldGuardRegionsTest
         assertSame(theirs, WorldGuardRegions.claim(registry, Action.USE));
     }
 
+    /**
+     * A state flag under the name that denies by default is refused rather than reused.
+     *
+     * <p>Another plugin's flag of the same name, denying unless set, would close every gate in
+     * every region that never mentioned it.
+     */
+    @Test
+    void aStateFlagDenyingByDefaultIsRefused()
+    {
+        doReturn(new StateFlag("wormhole-build", false)).when(registry).get("wormhole-build");
+
+        assertThrows(IllegalStateException.class, () -> WorldGuardRegions.claim(registry, Action.BUILD));
+        verify(registry, never()).register(any());
+    }
+
     /** A flag of another kind under the name cannot be asked allow-or-deny, so the hook is refused. */
     @Test
     void aFlagOfAnotherKindUnderTheNameIsRefused()

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -150,9 +151,9 @@ class RegionFlagsTest
         assertFalse(RegionFlags.mayBuild(player, gate));
     }
 
-    /** Use is asked where travellers arrive, and at the lever only when a gate has no arrival point. */
+    /** Use is asked at the DHD and where travellers arrive, and a missing arrival point is skipped. */
     @Test
-    void useIsAskedWhereTravellersArriveOrElseAtTheLever()
+    void useIsAskedAtTheDhdAndWhereTravellersArrive()
     {
         final List<Location> asked = new ArrayList<>();
         RegionFlags.setCheckForTest((who, where, action) -> asked.add(where));
@@ -160,7 +161,61 @@ class RegionFlagsTest
         RegionFlags.mayUse(player, gateArrivingAt(at(1)));
         RegionFlags.mayUse(player, gateArrivingAt(null));
 
-        assertEquals(List.of(at(1), at(2)), asked);
+        assertEquals(List.of(at(2), at(1), at(2)), asked);
+    }
+
+    /**
+     * A region drawn tightly round the DHD, or round the arrival point alone, refuses use either way.
+     *
+     * <p>Asking only where travellers arrive let a region round the ring and DHD, with the arrival
+     * point a block outside it, be dialled and travelled through.
+     */
+    @Test
+    void aRegionRoundEitherTheDhdOrTheArrivalRefusesUseWithOneMessage()
+    {
+        final Stargate gate = gateArrivingAt(at(1));
+
+        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(2)));
+        assertFalse(RegionFlags.mayUse(player, gate), "a denied DHD refuses though the arrival allows");
+
+        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(1)));
+        assertFalse(RegionFlags.mayUse(player, gate), "a denied arrival refuses though the DHD allows");
+
+        RegionFlags.setCheckForTest((who, where, action) -> false);
+        assertTrue(RegionFlags.refusesUse(player, gate));
+        verify(player, times(1)).sendMessage(RegionFlags.USE_REFUSED);
+    }
+
+    /** The opening counts as part of the gate, as it does for a preview or a coordinate build. */
+    @Test
+    void aGateWhoseOpeningIsInADenyingRegionMayNotBeBuilt()
+    {
+        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(9)));
+        final Stargate gate = gateArrivingAt(at(1));
+        when(gate.getGateDialLeverBlock()).thenReturn(null);
+        when(gate.getGateStructureBlocks()).thenReturn(List.of(at(5)));
+        when(gate.getGatePortalBlocks()).thenReturn(List.of(at(9)));
+
+        assertFalse(RegionFlags.mayBuild(player, gate));
+    }
+
+    /**
+     * The first failing region check is logged as a warning, and later ones quietly.
+     *
+     * <p>Failing open with only a FINE line meant a WorldGuard that always threw looked exactly like
+     * a server with no denying regions.
+     */
+    @Test
+    void theFirstFailingCheckIsAWarningAndLaterOnesAreNot()
+    {
+        RegionFlags.setCheckForTest((who, where, action) -> {
+            throw new IllegalStateException("region manager not loaded");
+        });
+
+        assertTrue(RegionFlags.mayBuild(player, List.of(at(1), at(2), at(3))));
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("region check failed"), any(Throwable.class));
+        verify(plugin, times(2)).prettyLog(eq(Level.FINE), contains("region check failed"), any(Throwable.class));
     }
 
     /** With worldguard-enabled off, nothing is registered and the server is not even asked. */

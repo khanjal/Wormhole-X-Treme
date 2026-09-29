@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.integration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -85,6 +86,9 @@ public final class RegionFlags
     @SuppressWarnings("java:S3077")
     private static volatile Check check = null;
 
+    /** Whether a failing region check has been logged at WARNING yet this run. */
+    private static volatile boolean warnedOfFailure = false;
+
     /** Static helpers only. */
     private RegionFlags()
     {
@@ -148,13 +152,15 @@ public final class RegionFlags
     }
 
     /**
-     * Whether regions let this player use this gate: asked where travellers arrive, or at its DHD.
+     * Whether regions let this player use this gate, asked at its DHD and where travellers arrive.
+     *
+     * <p>Both, because a region drawn tightly round the gate can leave either one just outside it.
      *
      * @param player
      *            who is dialling or travelling
      * @param stargate
      *            the gate
-     * @return true if allowed, and when there is nothing to ask about
+     * @return true if allowed at both, and when there is nothing to ask about
      */
     public static boolean mayUse(final Player player, final Stargate stargate)
     {
@@ -162,13 +168,9 @@ public final class RegionFlags
         {
             return true;
         }
-        Location at = stargate.getGatePlayerTeleportLocation();
-        if (at == null)
-        {
-            final Block lever = stargate.getGateDialLeverBlock();
-            at = (lever == null) ? null : lever.getLocation();
-        }
-        return allows(player, at, Action.USE);
+        final Block lever = stargate.getGateDialLeverBlock();
+        return allows(player, (lever == null) ? null : lever.getLocation(), Action.USE)
+            && allows(player, stargate.getGatePlayerTeleportLocation(), Action.USE);
     }
 
     /**
@@ -187,10 +189,13 @@ public final class RegionFlags
             return true;
         }
         final List<Location> at = new ArrayList<>();
-        final List<Location> structure = stargate.getGateStructureBlocks();
-        if (structure != null)
+        for (final List<Location> part : Arrays.asList(stargate.getGateStructureBlocks(),
+            stargate.getGatePortalBlocks()))
         {
-            at.addAll(structure);
+            if (part != null)
+            {
+                at.addAll(part);
+            }
         }
         final Block lever = stargate.getGateDialLeverBlock();
         if (lever != null)
@@ -277,10 +282,13 @@ public final class RegionFlags
         }
         catch (final Exception | LinkageError e)
         {
+            // The first failure is loud: a check that always fails means regions restrict nothing.
+            final Level level = warnedOfFailure ? Level.FINE : Level.WARNING;
+            warnedOfFailure = true;
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
             if (plugin != null)
             {
-                plugin.prettyLog(Level.FINE, "WorldGuard region check failed; allowing " + action.flagName(), e);
+                plugin.prettyLog(level, "WorldGuard region check failed; allowing " + action.flagName(), e);
             }
             return true;
         }
@@ -297,5 +305,6 @@ public final class RegionFlags
     public static void setCheckForTest(final Check replacement)
     {
         check = replacement;
+        warnedOfFailure = false;
     }
 }

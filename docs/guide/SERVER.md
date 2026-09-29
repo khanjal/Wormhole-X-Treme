@@ -419,6 +419,8 @@ where gates may be built and where they may be used, with two region flags.
 /rg flag spawn wormhole-use -g nonmembers deny
 ```
 
+- **A plain `deny` holds the region's own members and owners too.** Add `-g nonmembers`, as in the
+  second line, to leave them free to build or use gates there.
 - **A flag only takes away.** Permission nodes decide who may build or use a gate, the region
   decides where, and both have to allow it. A player without the node is told that, not about
   the region. Both flags default to allow, so turning this on changes nothing until a region

@@ -62,7 +62,7 @@ final class WorldGuardRegions
      *            which flag
      * @return the flag to query
      * @throws IllegalStateException
-     *             if the name is taken by a flag that is not a state flag
+     *             if the name is taken by a flag that is not a state flag allowing by default
      */
     static StateFlag claim(final FlagRegistry registry, final Action action)
     {
@@ -88,7 +88,7 @@ final class WorldGuardRegions
         }
     }
 
-    /** The state flag already under this action's name, or null if there is none. */
+    /** The allow-by-default state flag already under this action's name, or null if there is none. */
     private static StateFlag existing(final FlagRegistry registry, final Action action)
     {
         final Flag<?> found = registry.get(action.flagName());
@@ -96,11 +96,17 @@ final class WorldGuardRegions
         {
             return null;
         }
-        if (found instanceof StateFlag state)
+        if (!(found instanceof StateFlag state))
         {
-            return state;
+            throw new IllegalStateException("Another plugin registered " + action.flagName() + " as "
+                + found.getClass().getSimpleName() + ", not a state flag");
         }
-        throw new IllegalStateException("Another plugin registered " + action.flagName() + " as "
-            + found.getClass().getSimpleName() + ", not a state flag");
+        // One that denies by default would close every gate in every region that never set it.
+        if (state.getDefault() != StateFlag.State.ALLOW)
+        {
+            throw new IllegalStateException("Another plugin registered " + action.flagName()
+                + " denying by default");
+        }
+        return state;
     }
 }

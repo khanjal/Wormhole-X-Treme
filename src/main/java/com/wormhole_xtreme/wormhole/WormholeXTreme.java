@@ -598,12 +598,12 @@ public class WormholeXTreme extends JavaPlugin
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
             enableMetricsIfConfigured();
-            RegionFlags.listen(this);
         }
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
+        RegionFlags.listen(this);
         // Before anything reads a stored file. Gates, rings and beam destinations used to
         // live in the same folder as another fork's database; this moves ours out of it, and
         // reading them first would find nothing and load an empty server.
