@@ -211,13 +211,9 @@ async function buildAsPlayer (g, name, group, idc) {
 /** Right-clicks a dial sign until it shows `dest` selected, and returns once it does. */
 async function selectOnSign (g, dest) {
   const bot = kit.bot
-  const read = () => {
-    const block = bot.blockAt(g.dial)
-    if (!block || !block.getSignText) return ''
-    return block.getSignText()[0] || ''
-  }
-  for (let click = 1; !read().includes(`»${dest}«`); click++) {
-    if (click > 12) throw new Error(`the dial sign never showed ${dest} selected; it reads ${JSON.stringify(read())}`)
+  const read = () => kit.signText(g.dial).catch(() => '')
+  for (let click = 1; !(await read()).includes(`»${dest}«`); click++) {
+    if (click > 12) throw new Error(`the dial sign never showed ${dest} selected; it reads ${await read()}`)
     narrate(`Turning the dial sign (${click})`)
     await bot.lookAt(g.dial.offset(0.5, 0.5, 0.95), true)
     await bot.activateBlock(bot.blockAt(g.dial))

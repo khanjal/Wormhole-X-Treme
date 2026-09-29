@@ -239,6 +239,9 @@ async function press (panel, what) {
   const before = lab.pressed
   const block = kit.bot.blockAt(v(at.x, at.y, at.z))
   if (!block || !/_button$|^lever$/.test(block.name)) throw new Error(`no switch for ${what} at ${at.x} ${at.y} ${at.z}, but ${block ? block.name : 'nothing loaded'}`)
+  // A button stays in for a second after a press, and pressing it then does nothing.
+  const up = () => kit.bot.blockAt(v(at.x, at.y, at.z)).getProperties().powered !== true
+  await kit.waitFor(up, 5, `the ${what} button coming back out`)
   await kit.bot.lookAt(v(at.x + 0.5, at.y + 0.5, at.z + 0.5), true)
   await kit.bot.activateBlock(block)
   await kit.waitFor(() => lab.pressed > before, 10, `the lab hearing ${what} pressed on the ${panel.key} panel`)
@@ -256,10 +259,8 @@ async function setOption (panel, key, value) {
   }
   const at = panel.signFor(key)
   const shows = option.show ? option.show(value) : value
-  await kit.waitFor(() => {
-    const block = kit.bot.blockAt(v(at.x, at.y, at.z))
-    return block && block.getSignText && (block.getSignText()[0] || '').includes(shows)
-  }, 5, () => `the ${key} sign showing ${shows} (it reads ${JSON.stringify(kit.bot.blockAt(v(at.x, at.y, at.z)).getSignText())})`)
+  const reads = await kit.signText(at)
+  if (!reads.includes(shows)) throw new Error(`the ${key} sign should show ${shows}, but reads ${reads}`)
 }
 
 /** Sets a panel's options, each to the scenario's value or its first, presses Run, and waits. */

@@ -535,6 +535,27 @@ class MirrorCaptureTest
         }
     }
 
+    /**
+     * A write does not use a temporary file some other write might be using.
+     *
+     * <p>The lab's self-test caught "Could not write mirror capture": two captures of one room
+     * finished close together, each written off the main thread through the same
+     * {@code <name>.tmp}, and the first to finish moved the second's file away from under it.
+     * Something already at that name stands in for the other write here.
+     */
+    @Test
+    void aWriteHasATemporaryFileOfItsOwn(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "a.view");
+        assertTrue(new File(dir, "a.view.tmp").mkdir());
+
+        box().build().save(file);
+
+        assertEquals(box().build().size(), MirrorCapture.load(file).size());
+        assertEquals(2, dir.list().length, "the file and the other write's, and no leftover: "
+            + String.join(", ", dir.list()));
+    }
+
     @Test
     void survivesTheDiskWithItsShapeNamesAndBlocks(@TempDir final File dir) throws IOException
     {

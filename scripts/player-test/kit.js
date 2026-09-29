@@ -48,6 +48,17 @@ async function waitForLog (pattern, seconds, from) {
   throw new Error(`the server never logged ${pattern} within ${seconds}s`)
 }
 
+/**
+ * A sign's front text as the server holds it, read with `data get`. Not Mineflayer's
+ * getSignText: from 1.21.5 a line is a text component, which it prints as "[object Object]".
+ */
+async function signText (pos, seconds = 5) {
+  const from = logSize()
+  serverCommand(`data get block ${pos.x} ${pos.y} ${pos.z} front_text.messages`)
+  const found = await waitForLog(new RegExp(`${pos.x}, ${pos.y}, ${pos.z} has the following block data: (.*)`), seconds, from)
+  return found[1]
+}
+
 async function waitFor (test, seconds, what) {
   const deadline = Date.now() + seconds * 1000
   while (Date.now() < deadline) {
@@ -888,6 +899,7 @@ module.exports = {
   logSize,
   logSince,
   waitForLog,
+  signText,
   waitFor,
   heard,
   messages,

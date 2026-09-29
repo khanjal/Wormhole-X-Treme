@@ -1048,6 +1048,10 @@ public final class MirrorCapture
     /**
      * Writes the capture to a file, whole or not at all.
      *
+     * <p>Each write has a temporary file of its own. Two captures of one room can finish close
+     * together, each written off the main thread; with one shared name, the first to finish moved
+     * the other's half-written file into place and the second found nothing left to move.
+     *
      * @param file
      *            where
      * @throws IOException
@@ -1060,7 +1064,21 @@ public final class MirrorCapture
         {
             throw new IOException("could not create " + parent);
         }
-        final File temp = new File(parent, file.getName() + ".tmp");
+        final File temp = Files.createTempFile(file.getAbsoluteFile().getParentFile().toPath(),
+            file.getName() + ".", ".tmp").toFile();
+        try
+        {
+            write(temp);
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        finally
+        {
+            Files.deleteIfExists(temp.toPath());
+        }
+    }
+
+    private void write(final File temp) throws IOException
+    {
         try (FileOutputStream raw = new FileOutputStream(temp);
             DataOutputStream out = new DataOutputStream(new GZIPOutputStream(raw, 65_536)))
         {
@@ -1089,7 +1107,6 @@ public final class MirrorCapture
             }
             air.write(out);
         }
-        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**

@@ -24,6 +24,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A mirror in a wall more than a block wide keeps its wide far part between wall readings.**
   For four seconds in five it fell back to a half-block one, and `mirror debug` said "wall 0".
+- **Two captures of one room finishing together no longer log "Could not write mirror capture".**
+  They shared a temporary file, so the one left on disk after a restart could be cut short.
 
 ## 1.8.1 (2026-09-28)
 
