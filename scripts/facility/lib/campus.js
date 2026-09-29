@@ -46,7 +46,7 @@ const WINGS = [
   {
     id: 'ops', title: 'Operations', colour: 'white', text: 'white', dim: OVERWORLD,
     room: { x0: -20, x1: 20, z0: -20, z1: 20, y0: 0, h: 16 },
-    entrance: { x: 0.5, y: 0, z: 10.5, yaw: 180 },
+    entrance: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
   },
   {
     id: 'gates', title: 'Gate Dynamics', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
@@ -198,7 +198,8 @@ const TRANSIT = {
     { dir: 'NW', dx: -4, dz: -4, to: 'annex' },
   ],
   // A plate at each far site, and one in each wing by its entrance, that brings you back to Ops.
-  home: { x: 0.5, y: 0, z: 10.5, yaw: 180 },
+  // Off every plate's line: walking straight on from here, north, crosses no plate.
+  home: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
 };
 
 /** Ops boards: the Ops wall (one line per chamber), the fault counter and the welcome board. */

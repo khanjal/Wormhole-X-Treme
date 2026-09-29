@@ -173,28 +173,46 @@ from the console, act as the player, then check where the bot is and what it see
 
 ### Facility (in progress)
 
-`scripts/facility/` is the start of the Wormhole Research Facility, a flat test world that a
-tester drives from clickable chat and a bot drives from the same console. It is local only, with
-no workflow. Its first stage, the spike, proves the four vanilla mechanisms the rest is built on,
-on one server version at a time: a datapack function that builds a box, a `/trigger` console
-whose menu reaches a player who is not an op and whose code reaches the bot, a text display that
-reads back as written, and a bossbar made, changed and removed. It prints PASS or FAIL for each
-and exits 1 on any failure.
+`scripts/facility/` is the Wormhole Research Facility: a flat test campus that a tester walks
+and drives from clickable chat, and that a bot drives from the same console. It is local only:
+no workflow runs it, and none should until it has earned a place as a release check.
 
 ```bash
 npm install --prefix scripts/facility
-node scripts/facility/spike.js 1.20.4  --java "C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin/java.exe"
-node scripts/facility/spike.js 1.21.11 --java "C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot/bin/java.exe"
-node scripts/facility/spike.js 26.1.2  --java "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe"
+node scripts/facility/run-facility.js 26.1.2               # build the campus, hold for a tester
+node scripts/facility/run-facility.js 1.21.11 --selftest   # prove it, exit 1 on any FAIL
+node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.2
 ```
 
-It needs Java 21 up to 1.21.x and Java 25 for 26.x (`JAVA_HOME` works in place of `--java`), and
-downloads the Paper jar into `.local-server/` the first time. Each run starts a fresh world in
-`.local-server/facility-<version>/` on port 25590 (`--port` changes it). `WX_ECHO=1` prints the
-server's log as it runs. No plugin jar is needed.
+The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
+`--no-build` skip that), downloads the Paper jar into `.local-server/` the first time, and
+starts the server in `.local-server/facility-<version>/` on port 25590 (`--port`) with a fresh
+world (`--keep-world` keeps it). It finds Java 21 or 25 by version on its own; `--java` names
+one. `WX_ECHO=1` prints the server's log as it runs.
 
-A bot cannot click chat, so `--hold` keeps the server up after the checks: join it, click a word
-in the menu it sends you, and the bot prints the code it read. Say "stop" in chat to end it.
+Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
+link; `!` does the same. Eight plates round the atrium's centre go to each wing and to the two
+far sites, and each wing has a plate home by its door. Say "stop" in chat, or press Ctrl+C, to
+end it.
+
+Every coordinate is in `lib/campus.js`: wings, corridors, lanes, chambers, plates, forceload
+rectangles. Move a wing or resize a room there and run it again; `wings/` compiles the campus
+into a datapack function per wing and a reset per chamber, and refuses to build a layout whose
+parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
+its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
+adding a file to `chambers/` against the contract written at the top of `chambers/index.js`;
+only `c0`, the calibration cell in Ops, has them so far.
+
+The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
+every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
+after each run, a non-op tester's path through the console, every reset, that the plugin holds
+no gates or mirrors, that each setting a chamber changed is back, and that the plugin logged no
+fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
+
+The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
+datapack function that builds a box, a `/trigger` console whose menu reaches a player who is not
+an op and whose code reaches the bot, a text display that reads back as written, and a bossbar.
+It takes one version and `--java`; `--hold` keeps the server up so a person can click the menu.
 
 What it found:
 
