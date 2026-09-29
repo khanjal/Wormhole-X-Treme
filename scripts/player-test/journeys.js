@@ -9,230 +9,33 @@
 //
 // OBSERVE=1 waits for someone to join and watch, flies them to each trip, and asks them in chat
 // whether they saw it happen. Their answers go in the summary, and a "no" fails the run.
+//
+// The steps each trip is made of are kit.js's, which the lab (lab.js) shares.
 
-const fs = require('fs')
-const mineflayer = require('mineflayer')
-const { Vec3 } = require('vec3')
+const kit = require('./kit')
+const {
+  name, sleep, v, serverCommand, logSize, waitForLog, waitFor, heard, messages, where, near, teleport,
+  walk, say, narrate, waitForObserver, showObserver, askObserver, askObserverChoice, compass,
+  startClock, stamp, traceGate, ringPerimeter, nameAt, standardGate, visit, dialAndOpen, walkThrough,
+  waitForShut, describeRide, getOff, drive, clearAround,
+  inNether, inTheNether, clearMobs, layBoatLane, boatInto, layRails, minecartInto, saddledHorse,
+  rideInto, wolfNear, waitForWolf, tamedWolf, walkInWithWolf
+} = kit
 
 const version = process.argv[2]
-const consoleFile = process.env.BOOT_CONSOLE
-const logFile = process.env.BOOT_LOG
 const observe = process.env.OBSERVE === '1'
-const observeWait = Number(process.env.OBSERVE_WAIT || 600)
-const name = 'WxBot'
-const port = Number(process.env.BOOT_PORT || 25599)
 // TRIPS, a comma-separated list of trip names, runs only those, in that order; a name given twice
 // runs that trip again, as a watcher's rerun does.
 const only = process.env.TRIPS ? process.env.TRIPS.split(',') : null
 
-if (!version || !consoleFile || !logFile) {
+if (!version || !process.env.BOOT_CONSOLE || !process.env.BOOT_LOG) {
   console.error('usage: BOOT_CONSOLE=<file> BOOT_LOG=<file> node journeys.js <minecraft-version>')
   process.exit(2)
 }
+kit.configure({ observe, observeWait: Number(process.env.OBSERVE_WAIT || 600), version })
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const v = (x, y, z) => new Vec3(x, y, z)
-
-function serverCommand (command) {
-  fs.appendFileSync(consoleFile, command + '\n')
-}
-
-function logSize () {
-  return fs.statSync(logFile).size
-}
-
-/** Waits for the log, from byte `from` on, to match; returns the match. */
-async function waitForLog (pattern, seconds, from) {
-  const deadline = Date.now() + seconds * 1000
-  while (Date.now() < deadline) {
-    const found = fs.readFileSync(logFile).subarray(from).toString('utf8').match(pattern)
-    if (found) return found
-    await sleep(250)
-  }
-  throw new Error(`the server never logged ${pattern} within ${seconds}s`)
-}
-
-async function waitFor (test, seconds, what) {
-  const deadline = Date.now() + seconds * 1000
-  while (Date.now() < deadline) {
-    if (test()) return
-    await sleep(100)
-  }
-  // A function, for a description read when it fails, such as what the bot has heard by then.
-  throw new Error(`${typeof what === 'function' ? what() : what} did not happen within ${seconds}s; ${where()}`)
-}
-
-/** What the server has said to the bot, oldest first, since the last call. */
-const heard = []
-function messages () {
-  return heard.splice(0, heard.length)
-}
-
+// Set once the bot has joined; every trip runs after that.
 let bot
-
-function where () {
-  const p = bot.entity.position
-  return `the bot is at ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}`
-}
-
-/** Within `across` blocks of `target` on the ground plane, and `up` blocks of its height. */
-function near (target, across, up = 1.5) {
-  const p = bot.entity.position
-  return Math.hypot(p.x - target.x, p.z - target.z) <= across && Math.abs(p.y - target.y) <= up
-}
-
-async function teleport (x, y, z, yaw) {
-  serverCommand(`tp ${name} ${x} ${y} ${z} ${yaw} 0`)
-  await waitFor(() => near(v(x, y, z), 0.5), 10, `a teleport to ${x} ${y} ${z}`)
-  // Let the chunks round it arrive before anything looks at blocks there.
-  await sleep(1000)
-}
-
-/**
- * Walks on the level towards `target` until `done`, or until the bot stands on the target, and
- * stops. Whatever happens next (a ring's countdown, say) is the caller's to wait for.
- */
-async function walk (target, done, seconds) {
-  const deadline = Date.now() + seconds * 1000
-  try {
-    while (Date.now() < deadline) {
-      if (done()) return
-      const p = bot.entity.position
-      if (Math.hypot(p.x - target.x, p.z - target.z) < 0.3) break
-      await bot.lookAt(v(target.x, p.y + bot.entity.height * 0.9, target.z), true)
-      bot.setControlState('forward', true)
-      await sleep(50)
-    }
-  } finally {
-    bot.clearControlStates()
-  }
-}
-
-async function say (text) {
-  console.log(text)
-  if (observe) bot.chat(text)
-}
-
-// Someone watching: their name once they join, and where to put them for each trip.
-let observer = null
-
-/**
- * Says what the bot is doing now on the watcher's action bar, not in chat, and in the terminal.
- * The action bar fades in about two seconds, so the line is sent again until the next one.
- */
-let doing = null
-function narrate (text) {
-  console.log(`  ${text}`)
-  doing = text
-  showDoing()
-}
-function showDoing () {
-  if (observer && doing) serverCommand(`title ${observer} actionbar ${JSON.stringify({ text: doing, color: 'yellow' })}`)
-}
-setInterval(showDoing, 1500).unref()
-
-async function waitForObserver () {
-  console.log(`Waiting for someone to watch: join localhost:${port} with Minecraft ${version}, any name.`)
-  await waitFor(() => Object.keys(bot.players).some((player) => player !== name), observeWait,
-    'someone joining to watch')
-  observer = Object.keys(bot.players).find((player) => player !== name)
-  serverCommand(`gamemode spectator ${observer}`)
-  await say(`${observer} is watching. After each trip, say y if you saw it happen as described, n if not.`)
-}
-
-async function showObserver (x, y, z, yaw, pitch) {
-  if (observer) {
-    serverCommand(`tp ${observer} ${x} ${y} ${z} ${yaw} ${pitch}`)
-    await sleep(3000)
-  }
-}
-
-async function askObserver (what) {
-  if (!observer) return 'not watched'
-  if (!bot.players[observer]) return 'left'
-  let answer = null
-  // Chat arrives as "<name> text" on every version Mineflayer speaks. Only a whole y, yes, n or no
-  // counts, so a remark that happens to start with one is not taken as the answer.
-  const listen = (text) => {
-    const said = text.match(/^<([^>]+)> *(y|yes|n|no)[.!]? *$/i)
-    if (said && said[1] === observer) answer = said[2][0].toLowerCase()
-  }
-  bot.on('messagestr', listen)
-  bot.chat(`Did you see ${what}? y or n`)
-  try {
-    await waitFor(() => answer !== null || !bot.players[observer], observeWait, `${observer} answering`)
-  } catch {
-    return 'no answer'
-  } finally {
-    bot.removeListener('messagestr', listen)
-  }
-  if (answer === null) return 'left'
-  return answer === 'y' ? 'saw it' : 'did NOT see it'
-}
-
-/** Asks the watcher to pick one of `choices`; null if they leave or do not answer in time. */
-async function askObserverChoice (question, choices) {
-  let answer = null
-  const listen = (text) => {
-    const said = text.match(/^<([^>]+)> *(\S+?)[.!]? *$/)
-    if (said && said[1] === observer && choices.test(said[2].toLowerCase())) answer = said[2].toLowerCase()
-  }
-  bot.on('messagestr', listen)
-  bot.chat(question)
-  try {
-    await waitFor(() => answer !== null || !bot.players[observer], observeWait, `${observer} choosing`)
-  } catch {
-    return null
-  } finally {
-    bot.removeListener('messagestr', listen)
-  }
-  return answer
-}
-
-/**
- * Lays an arrow pointing north into the ground, its tip at (x, tipZ), with an N beyond the tip,
- * so someone watching knows which way they face. Flush with the floor, so nothing walks into it.
- */
-function compass (x, tipZ) {
-  const y = -64
-  const set = (dx, z, block) => serverCommand(`setblock ${x + dx} ${y} ${z} ${block}`)
-  set(0, tipZ, 'red_concrete')
-  for (let dx = -1; dx <= 1; dx++) set(dx, tipZ + 1, 'red_concrete')
-  for (let dx = -2; dx <= 2; dx++) set(dx, tipZ + 2, 'red_concrete')
-  for (let dz = 3; dz <= 6; dz++) set(0, tipZ + dz, 'red_concrete')
-  // Read facing north: its left leg west, its right leg east, the diagonal from top left down.
-  const top = tipZ - 7
-  for (let i = 0; i < 5; i++) {
-    set(-2, top + i, 'white_concrete')
-    set(2, top + i, 'white_concrete')
-    set(-2 + i, top + i, 'white_concrete')
-  }
-}
-
-/**
- * Logs every change to the gate's blocks the bot is sent while tracing, with the time since the
- * dial, so a run shows whether the bot stepped in before the dialling was over.
- */
-let traceStart = 0
-function stamp () {
-  return `+${((Date.now() - traceStart) / 1000).toFixed(1)}s`
-}
-function traceGate (box) {
-  const describe = (block) => {
-    if (!block) return 'nothing'
-    const lit = block.getProperties ? block.getProperties().lit : undefined
-    return lit === undefined ? block.name : `${block.name}${lit ? ' (lit)' : ' (off)'}`
-  }
-  const listener = (before, after) => {
-    const p = after.position
-    if (p.x < box.min.x || p.x > box.max.x || p.y < box.min.y || p.y > box.max.y || p.z < box.min.z || p.z > box.max.z) return
-    const was = describe(before)
-    const now = describe(after)
-    if (was !== now) console.log(`    ${stamp()} ${p.x} ${p.y} ${p.z}: ${was} -> ${now}`)
-  }
-  bot.on('blockUpdate', listener)
-  return () => bot.removeListener('blockUpdate', listener)
-}
 
 // ---------------------------------------------------------------------------------------------
 // The trips. Each throws on the first thing that is not as it should be. `setup` runs once, the
@@ -277,13 +80,13 @@ const gate = {
     const kawoosh = v(-2, -60, -2)
     if (nameAt(opening) !== 'air') throw new Error(`Abydos's opening is ${nameAt(opening)} before dialling`)
     messages()
-    traceStart = Date.now()
+    startClock()
     const untrace = traceGate({ min: v(-6, -61, -6), max: v(3, -51, 2) })
     try {
       narrate("Pressing Abydos's DHD")
       await bot.activateBlock(button)
       await sleep(1000)
-      traceStart = Date.now()
+      startClock()
       bot.chat('/dial Chulak')
       narrate('Dialled Chulak; waiting for the chevrons to lock and the kawoosh')
 
@@ -360,26 +163,6 @@ const beam = {
   }
 }
 
-/** The perimeter of the odd ring pattern, as RingPattern.ODD works it out, as [dx, dz]. */
-function ringPerimeter () {
-  const profile = [3, 5, 7, 7, 7, 5, 3]
-  const size = profile.length
-  const filled = profile.map((width) => {
-    const start = (size - width) / 2
-    return Array.from({ length: size }, (_, column) => column >= start && column < start + width)
-  })
-  const at = (row, column) => row >= 0 && row < size && column >= 0 && column < size && filled[row][column]
-  const edge = []
-  for (let row = 0; row < size; row++) {
-    for (let column = 0; column < size; column++) {
-      if (at(row, column) && !(at(row - 1, column) && at(row + 1, column) && at(row, column - 1) && at(row, column + 1))) {
-        edge.push([column - 3, row - 3])
-      }
-    }
-  }
-  return edge
-}
-
 /**
  * Two circles of slabs laid from the console and made into a ring pair by the bot standing in
  * each; then the bot walks into the first from outside and must come out in the second.
@@ -439,107 +222,6 @@ const ring = {
 // ---------------------------------------------------------------------------------------------
 // More gates. Each pair is dialled and walked through as the gate trip does, by dialAndOpen and
 // walkThrough, and each trip ends by waiting for the gate to shut, so it can be run again.
-
-/** What the bot sees at a block: its name, or "unloaded". */
-function nameAt (pos) {
-  const block = bot.blockAt(pos)
-  return block ? block.name : 'unloaded'
-}
-
-function inside (box, p) {
-  return p.x >= box.min.x && p.x <= box.max.x && p.y >= box.min.y && p.y <= box.max.y && p.z >= box.min.z && p.z <= box.max.z
-}
-
-/**
- * The places that matter on a Standard gate facing south with its DHD button hung on the block at
- * (bx, by, bz), as `wx gate build Standard <name> world bx by bz south` builds it: the gate trip's
- * numbers, moved.
- */
-function standardGate (bx, bz, by = -60) {
-  return {
-    button: v(bx, by, bz + 1),
-    lever: v(bx, by - 1, bz + 1),
-    stand: [bx - 1.5, by, bz + 1.5],
-    opening: v(bx - 2, by + 2, bz - 3),
-    kawoosh: v(bx - 2, by, bz - 2),
-    arrival: v(bx - 1.5, by, bz - 1.5),
-    into: v(bx - 1.5, by, bz - 3.5),
-    box: { min: v(bx - 6, by - 1, bz - 6), max: v(bx + 3, by + 9, bz + 2) },
-    // The three rows in front at the opening's foot; "keep" leaves the iris switch block alone.
-    floor: `fill ${bx - 4} ${by - 1} ${bz - 2} ${bx} ${by - 1} ${bz + 2} stone keep`
-  }
-}
-
-/** Stands the bot on the ground under a trip's vantage, so its chunks are loaded to set blocks in. */
-async function visit (vantage) {
-  await teleport(vantage[0], -63, vantage[2], 180)
-}
-
-/**
- * Presses a gate's DHD, dials, and waits for the kawoosh to come and fall back and the opening to
- * fill; the opening must be empty before, and must not fill before the kawoosh. Returns what
- * filled it and every block the gate's area turned into on the way.
- */
-async function dialAndOpen (gate, label, dial) {
-  await teleport(...gate.stand, 180)
-  const button = bot.blockAt(gate.button)
-  if (!button || !button.name.endsWith('_button')) {
-    throw new Error(`no DHD button at ${gate.button}, but ${button ? button.name : 'an unloaded block'}`)
-  }
-  if (nameAt(gate.opening) !== 'air') throw new Error(`${label}'s opening is ${nameAt(gate.opening)} before dialling`)
-  // Air, unless a rail runs through where the kawoosh splashes; it falls back to what was there.
-  const rest = nameAt(gate.kawoosh)
-  messages()
-  let kawooshAt = null
-  let filledAt = null
-  const seen = new Set()
-  const watch = (before, after) => {
-    if (!after || after.name === 'air') return
-    if (inside(gate.box, after.position)) seen.add(after.name)
-    if (kawooshAt === null && after.position.equals(gate.kawoosh)) kawooshAt = stamp()
-    if (filledAt === null && after.position.equals(gate.opening)) filledAt = stamp()
-  }
-  traceStart = Date.now()
-  const untrace = traceGate(gate.box)
-  bot.on('blockUpdate', watch)
-  try {
-    narrate(`Pressing ${label}'s DHD`)
-    await bot.activateBlock(button)
-    await sleep(1000)
-    traceStart = Date.now()
-    bot.chat(`/dial ${dial}`)
-    narrate(`Dialled ${dial.split(' ')[0]}; waiting for the chevrons to lock and the kawoosh`)
-    await waitFor(() => kawooshAt !== null, 60, () => `the kawoosh (heard: ${JSON.stringify(heard)})`)
-    narrate(`${kawooshAt} kawoosh; waiting for it to fall back`)
-    await waitFor(() => nameAt(gate.kawoosh) === rest, 15, 'the kawoosh falling back')
-    await waitFor(() => filledAt !== null || nameAt(gate.opening) !== 'air', 15, `${label}'s opening filling`)
-  } finally {
-    bot.removeListener('blockUpdate', watch)
-    untrace()
-  }
-  if (filledAt !== null && Number(filledAt.slice(1, -1)) < Number(kawooshAt.slice(1, -1))) {
-    throw new Error(`${label}'s opening filled at ${filledAt}, before the kawoosh at ${kawooshAt}`)
-  }
-  const portal = nameAt(gate.opening)
-  narrate(`${stamp()} ${label}'s opening is ${portal}`)
-  return { portal, seen }
-}
-
-/** Walks into a gate's opening, and must come out within 1.5 blocks of `arrival`. */
-async function walkThrough (gate, arrival, label) {
-  narrate(`Walking in; should come out at ${label}`)
-  await walk(gate.into, () => near(arrival, 1.5), 15)
-  await waitFor(() => near(arrival, 1.5), 5, `arriving at ${label}`)
-  narrate(`${stamp()} arrived at ${label}`)
-  console.log(`  ${where()}`)
-}
-
-/** Waits, standing where it can see it, for an opening to empty once the gate shuts on its own. */
-async function waitForShut (opening, label) {
-  narrate(`Waiting for ${label} to shut`)
-  await waitFor(() => nameAt(opening) === 'air', 90, `${label} shutting`)
-  narrate(`${label} shut`)
-}
 
 /**
  * A gate pair in the Atlantis group, built as a player builds one: a DHD button hung on a block of
@@ -916,84 +598,6 @@ const mirror = {
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Riding through, and pets. A ridden boat or horse is moved by its rider's client, which tells
-// the server where it is each tick; Mineflayer does not simulate one, so drive() does that part.
-
-/** The nearest entity called `kind` (a regex on Mineflayer's name) within `within` of `at`. */
-function entityNear (kind, at, within) {
-  let best = null
-  for (const entity of Object.values(bot.entities)) {
-    if (entity === bot.entity || !kind.test(entity.name || '')) continue
-    const d = entity.position.distanceTo(at)
-    if (d <= within && (!best || d < best.position.distanceTo(at))) best = entity
-  }
-  return best
-}
-
-/** What the bot is riding, if its name matches `kind`, else null. */
-function riding (kind) {
-  return bot.vehicle && kind.test(bot.vehicle.name || '') ? bot.vehicle : null
-}
-
-function describeRide () {
-  if (!bot.vehicle) return 'riding nothing'
-  const p = bot.vehicle.position
-  return `riding a ${bot.vehicle.name} at ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}`
-}
-
-/** Waits for a summoned entity to show up near where it was put, and returns it. */
-async function findSummoned (kind, at, label) {
-  let found = null
-  await waitFor(() => (found = entityNear(kind, at, 3)) !== null, 10, `the ${label} appearing at ${at}`)
-  return found
-}
-
-/** Right-clicks an entity to get on it, and waits to be riding it. */
-async function mountOn (entity, label) {
-  narrate(`Getting on the ${label}`)
-  await bot.lookAt(entity.position.offset(0, 0.5, 0), true)
-  bot.mount(entity)
-  await waitFor(() => bot.vehicle === entity, 5, `getting on the ${label}`)
-}
-
-/** Gets off, by the console: Mineflayer's own dismount sends a jump on 1.21.2 and later. */
-async function getOff () {
-  if (!bot.vehicle) return
-  serverCommand(`ride ${name} dismount`)
-  await waitFor(() => !bot.vehicle, 5, 'getting off')
-}
-
-/**
- * Drives what the bot is riding in a straight line on the level towards `target`, `speed` blocks
- * a tick, reporting each step as a client does (vehicle_move). Stops on `done`, on arriving, or
- * once the bot is no longer riding what it set off on, as when a gate takes the vehicle.
- */
-async function drive (target, speed, done, seconds) {
-  const vehicle = bot.vehicle
-  const at = vehicle.position.clone()
-  const deadline = Date.now() + seconds * 1000
-  while (Date.now() < deadline && !done() && bot.vehicle === vehicle) {
-    const dx = target.x - at.x
-    const dz = target.z - at.z
-    const d = Math.hypot(dx, dz)
-    if (d < 0.05) return
-    const step = Math.min(speed, d)
-    at.x += dx / d * step
-    at.z += dz / d * step
-    bot._client.write('vehicle_move', { x: at.x, y: at.y, z: at.z, yaw: Math.atan2(-dx, dz) * 180 / Math.PI, pitch: 0, onGround: true })
-    await sleep(50)
-  }
-}
-
-/**
- * Kills the entities of each type within `radius` of (x, y, z) that a run left. A type this server
- * does not know, such as boat after 1.21.2 split boats by wood, is only an error in its log.
- */
-function clearAround (types, x, y, z, radius) {
-  for (const type of [].concat(types)) serverCommand(`kill @e[type=${type},x=${x},y=${y},z=${z},distance=..${radius}]`)
-}
-
 /**
  * Two Standard gates with a lane of blue ice leading into the first. The bot gets into a boat on
  * the ice, dials, and drives it into the opening; it must come out at the far gate still in the
@@ -1012,8 +616,7 @@ const boat = {
       serverCommand(`wx gate build Standard ${label} world ${bx} -60 ${bz} south`)
       await waitForLog(new RegExp(`Built ${label} at ${bx} -60 ${bz}`), 20, from)
       serverCommand(standardGate(bx, bz).floor)
-      // Ice three wide from the opening back twelve rows, clear of the iris switch under the DHD.
-      serverCommand(`fill ${bx - 3} -61 ${bz - 2} ${bx - 1} -61 ${bz + 12} blue_ice`)
+      layBoatLane(standardGate(bx, bz))
     }
     await sleep(1000)
   },
@@ -1030,24 +633,7 @@ const boat = {
     const { portal } = await dialAndOpen(from, fromLabel, toLabel)
     if (portal !== 'water') throw new Error(`${fromLabel}'s opening filled with ${portal}, not water`)
 
-    const start = v(fx - 1.5, -60, fz + 10.5)
-    narrate('Putting a boat on the ice, facing the gate')
-    // Boats were split by wood in 1.21.2; whichever name this server does not know is only an
-    // error in its log.
-    for (const type of ['oak_boat', 'boat']) serverCommand(`summon ${type} ${start.x} ${start.y} ${start.z} {Rotation:[180f,0f]}`)
-    await teleport(fx - 1.5, -60, fz + 12.5, 180)
-    const ride = await findSummoned(/boat$/, start, 'boat')
-    await mountOn(ride, 'boat')
-    narrate(`Driving the boat into ${fromLabel}`)
-    const arrival = v(to.arrival.x, -60, to.arrival.z)
-    const arrived = () => riding(/boat$/) && bot.vehicle.position.distanceTo(arrival) < 4
-    await drive(from.into, 0.5, arrived, 15)
-    await waitFor(arrived, 10, () => `coming out at ${toLabel} in the boat (${describeRide()})`)
-    narrate(`${stamp()} came out at ${toLabel} in the boat`)
-    await sleep(2000)
-    if (!riding(/boat$/)) throw new Error(`thrown out of the boat after arriving at ${toLabel}; ${where()}`)
-    console.log(`  ${describeRide()}`)
-    await getOff()
+    await boatInto(from, to, toLabel)
     clearAround(['boat', 'oak_boat'], fx + 10, -60, fz, 30)
     await waitForShut(to.opening, toLabel)
   }
@@ -1073,18 +659,9 @@ const minecart = {
       await waitForLog(new RegExp(`Built ${label} at ${bx} -60 ${bz}`), 20, from)
       serverCommand(standardGate(bx, bz).floor)
       serverCommand(`fill ${bx - 4} -61 ${bz + 3} ${bx} -61 ${bz + 15} stone`)
-      // The rail stops short of the opening: a portal block is air on the server while the gate is
-      // open, so a rail in it would go. A cart rolls off the end into the opening.
-      serverCommand(`fill ${bx - 2} -60 ${bz - 2} ${bx - 2} -60 ${bz + 14} rail[shape=north_south]`)
-      serverCommand(`setblock ${bx - 2} -60 ${bz + 15} stone`)
+      // Powered all the time, on redstone blocks, except the first, which the run powers to launch.
+      layRails(standardGate(bx, bz), label === this.gates[0][0])
     }
-    const [, bx, bz] = this.gates[0]
-    // Powered all the time, on redstone blocks, except the first, which the run powers to launch.
-    for (const dz of [10, 6, 2]) {
-      serverCommand(`setblock ${bx - 2} -61 ${bz + dz} redstone_block`)
-      serverCommand(`setblock ${bx - 2} -60 ${bz + dz} powered_rail[shape=north_south]`)
-    }
-    serverCommand(`setblock ${bx - 2} -60 ${bz + 14} powered_rail[shape=north_south]`)
     await sleep(1000)
   },
   cleanup () {
@@ -1096,28 +673,11 @@ const minecart = {
     const from = standardGate(fx, fz)
     const to = standardGate(tx, tz)
     clearAround('minecart', fx + 10, -60, fz, 30)
-    serverCommand(`setblock ${fx - 2} -61 ${fz + 14} stone`)
     await sleep(500)
     const { portal } = await dialAndOpen(from, fromLabel, toLabel)
     if (portal !== 'water') throw new Error(`${fromLabel}'s opening filled with ${portal}, not water`)
 
-    const start = v(fx - 1.5, -60, fz + 14.5)
-    narrate('Putting a minecart at the start of the line')
-    serverCommand(`summon minecart ${start.x} ${start.y} ${start.z}`)
-    await teleport(fx - 0.5, -60, fz + 13.5, 180)
-    const cart = await findSummoned(/minecart$/, start, 'minecart')
-    await mountOn(cart, 'minecart')
-    narrate('Powering the first rail; the cart pushes off the bumper towards the gate')
-    serverCommand(`setblock ${fx - 2} -61 ${fz + 14} redstone_block`)
-    // Anywhere on the far line: it arrives heading out of the gate and runs on to the bumper.
-    const onFarLine = () => riding(/minecart$/) && Math.abs(bot.vehicle.position.x - to.arrival.x) < 1 &&
-      bot.vehicle.position.z > tz - 3 && bot.vehicle.position.z < tz + 16
-    await waitFor(onFarLine, 20, () => `coming out at ${toLabel} in the minecart (${describeRide()})`)
-    narrate(`${stamp()} came out at ${toLabel} in the minecart`)
-    await sleep(3000)
-    if (!onFarLine()) throw new Error(`not in the minecart on ${toLabel}'s line a moment after arriving (${describeRide()})`)
-    console.log(`  ${describeRide()}`)
-    await getOff()
+    await minecartInto(from, to, toLabel)
     clearAround('minecart', fx + 10, -60, fz, 30)
     await waitForShut(to.opening, toLabel)
   }
@@ -1176,27 +736,11 @@ const mount = {
     const from = standardGate(fx, fz)
     const to = standardGate(tx, tz)
     clearAround('horse', 135, -60, 175, 40)
-    serverCommand(`clear ${name}`)
-    serverCommand(`give ${name} saddle`)
     await sleep(500)
     const { portal } = await dialAndOpen(from, fromLabel, toLabel)
     if (portal !== 'water') throw new Error(`${fromLabel}'s opening filled with ${portal}, not water`)
 
-    const start = v(fx - 1.5, -60, fz + 5.5)
-    narrate('Leading out a tame horse and saddling it')
-    serverCommand(`summon horse ${start.x} ${start.y} ${start.z} {Tame:1b,Rotation:[180f,0f]}`)
-    await teleport(fx - 1.5, -60, fz + 7.5, 180)
-    const horse = await findSummoned(/^horse$/, start, 'horse')
-    const saddle = bot.inventory.items().find((item) => item.name === 'saddle')
-    if (!saddle) throw new Error('the bot was given no saddle')
-    await bot.equip(saddle, 'hand')
-    await bot.lookAt(horse.position.offset(0, 1, 0), true)
-    await bot.activateEntity(horse)
-    await sleep(500)
-    // An empty hand, so right-clicking gets on rather than using what it holds.
-    bot.setQuickBarSlot((bot.quickBarSlot + 1) % 9)
-    await sleep(300)
-    await mountOn(horse, 'horse')
+    const horse = await saddledHorse(v(fx - 1.5, -60, fz + 5.5))
 
     const onHorse = () => bot.vehicle === horse
     // Each leg is checked on its own, so one that fails does not hide the next; one that leaves
@@ -1215,17 +759,7 @@ const mount = {
       }
     }
 
-    await leg('gate', async () => {
-      narrate(`Riding the horse into ${fromLabel}`)
-      const arrival = v(to.arrival.x, -60, to.arrival.z)
-      const through = () => onHorse() && bot.vehicle.position.distanceTo(arrival) < 4
-      await drive(from.into, 0.4, through, 15)
-      await waitFor(through, 10, () => `coming out at ${toLabel} on the horse (${describeRide()})`)
-      await sleep(2000)
-      if (!through()) throw new Error(`not on the horse at ${toLabel} a moment after arriving (${describeRide()})`)
-      narrate(`${stamp()} came out at ${toLabel} on the horse`)
-      console.log(`  ${describeRide()}`)
-    })
+    await leg('gate', () => rideInto(horse, from, to, toLabel))
 
     const corral = v(this.rings[0] + 0.5, -63, this.ringZ + 0.5)
     await leg('beam', async () => {
@@ -1275,21 +809,6 @@ const mount = {
     await waitForShut(to.opening, toLabel)
     if (failed.length > 0) throw new Error(failed.join('; '))
   }
-}
-
-/** A Minecraft UUID as the four signed ints NBT stores it as. */
-function uuidInts (uuid) {
-  const hex = uuid.replace(/-/g, '')
-  return [0, 8, 16, 24].map((i) => parseInt(hex.slice(i, i + 8), 16) | 0)
-}
-
-/** Runs a console command in the nether, where the console's own commands would not reach. */
-function inNether (command) {
-  serverCommand(`execute in minecraft:the_nether run ${command}`)
-}
-
-function inTheNether () {
-  return /nether/.test(bot.game.dimension)
 }
 
 /**
@@ -1370,31 +889,11 @@ const pet = {
       await sleep(2000)
     }
   },
-  /** The wolf with this UUID, if the bot can see it within `within` of where it is. */
-  wolf (uuid, within) {
-    const wolf = Object.values(bot.entities).find((e) => e.uuid === uuid)
-    return wolf && wolf.position.distanceTo(bot.entity.position) <= within ? wolf : null
-  },
   async setPets (on) {
     const from = logSize()
     serverCommand(`wx config pets-follow-owner ${on}`)
     await waitForLog(new RegExp(`PETS_FOLLOW_OWNER is now ${on}`), 20, from)
   },
-  /** Where the server has the wolf tagged `tag`, for a failure to say. */
-  async serverHas (tag) {
-    const from = logSize()
-    serverCommand(`data get entity @e[type=wolf,tag=${tag},limit=1] Pos`)
-    return waitForLog(/following entity data: \[[^\]]*\]|No entity was found/, 5, from).then((m) => m[0], () => 'nothing said')
-  },
-  /** Waits to see a wolf within `within` of the bot, saying where the server has it if not. */
-  async waitForWolf (wolf, tag, within, seconds, what) {
-    try {
-      await waitFor(() => this.wolf(wolf.uuid, within), seconds, what)
-    } catch (e) {
-      throw new Error(`${e.message}; the server says of it: ${await this.serverHas(tag)}`)
-    }
-  },
-  /** With the plugin's FINE log on, which says which pets it takes and why it leaves any. */
   /** Its wolves, and the nether room setup force-loads, which only a run in progress needs. */
   cleanup () {
     const [, hx, hz] = this.home
@@ -1403,6 +902,7 @@ const pet = {
     inNether(`kill @e[type=wolf,x=${ax},y=${ay},z=${az},distance=..30]`)
     inNether(`forceload remove ${ax - 16} ${az - 16} ${ax + 16} ${az + 16}`)
   },
+  /** With the plugin's FINE log on, which says which pets it takes and why it leaves any. */
   async run () {
     const from = logSize()
     serverCommand('wx config log-level FINE')
@@ -1412,15 +912,6 @@ const pet = {
     } finally {
       serverCommand('wx config log-level INFO')
     }
-  },
-  /** A wolf tamed to the bot, summoned where it is put, as the bot sees it. */
-  async tamedWolf (at, tag) {
-    const from = logSize()
-    serverCommand(`summon wolf ${at.x} ${at.y} ${at.z} {Owner:[I;${uuidInts(bot.player.uuid).join(',')}],Tags:["${tag}"]}`)
-    serverCommand(`data get entity @e[type=wolf,tag=${tag},limit=1] Owner`)
-    await waitForLog(/has the following entity data: \[I;/, 10, from)
-      .catch(() => { throw new Error(`the wolf ${tag} was not tamed to the bot: data get showed no Owner`) })
-    return findSummoned(/^wolf$/, at, 'wolf')
   },
   async legs () {
     const [homeLabel, hx, hz] = this.home
@@ -1443,7 +934,7 @@ const pet = {
 
     narrate('A wolf tamed to WxBot, told to sit; it must stay put through all of this')
     const sitAt = v(hx - 6.5, -60, hz + 7.5)
-    const sitter = await this.tamedWolf(sitAt, `wxsitter${run}`)
+    const sitter = await tamedWolf(sitAt, `wxsitter${run}`)
     await teleport(sitAt.x + 1.5, -60, sitAt.z, 90)
     await bot.lookAt(sitter.position.offset(0, 0.4, 0), true)
     await bot.activateEntity(sitter)
@@ -1470,8 +961,8 @@ const pet = {
           await teleport(...home.stand, 180)
         }
       }
-      if (this.wolf(sitter.uuid, 60) && this.wolf(sitter.uuid, 60).position.distanceTo(sat) > 1) {
-        failed.push(`the sitting wolf moved from ${sat} to ${this.wolf(sitter.uuid, 60).position} during ${label}`)
+      if (wolfNear(sitter.uuid, 60) && wolfNear(sitter.uuid, 60).position.distanceTo(sat) > 1) {
+        failed.push(`the sitting wolf moved from ${sat} to ${wolfNear(sitter.uuid, 60).position} during ${label}`)
       }
     }
 
@@ -1480,13 +971,13 @@ const pet = {
       narrate('Control: with pets-follow-owner off, a following wolf must not come to the nether')
       const tag = `wxcontrol${run}`
       await teleport(...home.stand, 180)
-      const wolf = await this.tamedWolf(followAt, tag)
+      const wolf = await tamedWolf(followAt, tag)
       controlTag = tag
       await this.setPets(false)
       try {
         await this.beam(`${awayLabel}Pad`, awayPad, true)
         await sleep(4000)
-        if (this.wolf(wolf.uuid, 60)) throw new Error('the wolf came to the nether with pets-follow-owner off, so something other than the plugin brings it, and the legs below prove nothing')
+        if (wolfNear(wolf.uuid, 60)) throw new Error('the wolf came to the nether with pets-follow-owner off, so something other than the plugin brings it, and the legs below prove nothing')
       } finally {
         await this.setPets(true)
       }
@@ -1505,34 +996,27 @@ const pet = {
       narrate('Beaming to the nether with a following wolf; it must come too')
       const tag = `wxbeamed${run}`
       await teleport(...home.stand, 180)
-      const wolf = await this.tamedWolf(followAt, tag)
-      await this.waitForWolf(wolf, tag, 10, 10, 'the wolf coming near before beaming')
+      const wolf = await tamedWolf(followAt, tag)
+      await waitForWolf(wolf, tag, 10, 10, 'the wolf coming near before beaming')
       await this.beam(`${awayLabel}Pad`, awayPad, true)
-      await this.waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot at ${awayLabel}Pad`)
+      await waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot at ${awayLabel}Pad`)
       narrate('The wolf beamed to the nether too; beaming back, and it must come back')
       await this.beam(`${homeLabel}Pad`, homePad, false)
-      await this.waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot back at ${homeLabel}Pad`)
+      await waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot back at ${homeLabel}Pad`)
     })
 
     await leg('gate', async () => {
       const tag = `wxgated${run}`
       await teleport(...home.stand, 180)
-      const wolf = await this.tamedWolf(followAt, tag)
+      const wolf = await tamedWolf(followAt, tag)
       await dialAndOpen(home, homeLabel, awayLabel)
-      // It has wandered while the gate opened; within twelve blocks is what counts as following.
-      await this.waitForWolf(wolf, tag, 12, 10, 'the wolf coming near before going in')
-      narrate(`Walking in with the wolf ${this.wolf(wolf.uuid, 30).position.distanceTo(bot.entity.position).toFixed(1)} blocks off; should come out at ${awayLabel}, in the nether`)
-      await walk(home.into, () => inTheNether(), 15)
-      await waitFor(() => inTheNether() && near(away.arrival, 1.5), 10, `arriving at ${awayLabel} in the nether`)
-      narrate(`${stamp()} arrived at ${awayLabel}; waiting for the wolf to follow`)
-      await this.waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot at ${awayLabel}`)
-      narrate(`${stamp()} the wolf came through`)
+      await walkInWithWolf(wolf, tag, home, away, `${awayLabel}, in the nether`, true)
       await sleep(2000)
-      if (this.wolf(sitter.uuid, 60)) throw new Error(`the sitting wolf came through to ${awayLabel} too`)
+      if (wolfNear(sitter.uuid, 60)) throw new Error(`the sitting wolf came through to ${awayLabel} too`)
     })
 
     await teleport(...home.stand, 180)
-    const still = this.wolf(sitter.uuid, 30)
+    const still = wolfNear(sitter.uuid, 30)
     if (!still) failed.push(`the sitting wolf is gone from beside ${homeLabel}`)
     else if (still.position.distanceTo(sat) > 1) failed.push(`the sitting wolf moved from ${sat} to ${still.position}`)
     else narrate('The sitting wolf is still where it sat')
@@ -1544,51 +1028,11 @@ const pet = {
 
 // ---------------------------------------------------------------------------------------------
 
-/** Clears creatures a grass world spawns, sparing the plugin's own display entities. */
-function clearMobs () {
-  serverCommand('kill @e[type=!player,type=!block_display,type=!item_display,type=!text_display,type=!interaction]')
-}
+// ---------------------------------------------------------------------------------------------
 
 async function main () {
-  bot = mineflayer.createBot({ host: '127.0.0.1', port, username: name, auth: 'offline', version })
-  bot.on('messagestr', (text) => heard.push(text))
-  // Mineflayer 4.39 notes a seat taken from a vehicle's passenger list, but not one given up: the
-  // list without the bot, as when it is thrown off or gets off, left bot.vehicle set.
-  bot._client.on('set_passengers', ({ entityId, passengers }) => {
-    if (bot.vehicle && bot.vehicle.id === entityId && !passengers.includes(bot.entity.id)) {
-      bot.vehicle = null
-      bot.emit('dismount', bot.entities[entityId])
-    }
-  })
-  // So a run shows the plugin re-seating the bot after a vehicle or a mount crosses.
-  bot.on('mount', () => console.log(`    ${stamp()} seated on a ${bot.vehicle ? bot.vehicle.name : 'vehicle'}`))
-  bot.on('dismount', (from) => console.log(`    ${stamp()} off the ${from ? from.name : 'vehicle'}`))
-  const gone = new Promise((resolve, reject) => {
-    bot.once('kicked', (reason) => reject(new Error(`kicked: ${JSON.stringify(reason)}`)))
-    bot.once('end', (reason) => reject(new Error(`disconnected: ${reason}`)))
-    // on, not once: a second error with no listener would end the process before the summary.
-    bot.on('error', reject)
-  })
-  gone.catch(() => {})
-  await Promise.race([new Promise((resolve) => bot.once('spawn', resolve)), gone,
-    sleep(60000).then(() => { throw new Error('never spawned within 60s') })])
-
-  const from = logSize()
-  serverCommand(`op ${name}`)
-  await waitForLog(new RegExp(`Made ${name} a server operator`), 20, from)
-  // Creative, so a kawoosh or a fall cannot kill it partway; peaceful and day for anyone watching.
-  serverCommand(`gamemode creative ${name}`)
-  serverCommand('difficulty peaceful')
-  serverCommand('time set day')
-  // A grass floor spawns animals, which would wander into a gate or a ring. The rule was renamed
-  // in 1.21.11; whichever name this server does not know is only an error in its log.
-  serverCommand('gamerule doMobSpawning false')
-  serverCommand('gamerule spawn_mobs false')
-  // Otherwise every console command, the watcher's action bar included, is echoed to the opped bot.
-  serverCommand('gamerule logAdminCommands false')
-  serverCommand('gamerule log_admin_commands false')
-  clearMobs()
-  await sleep(2000)
+  const gone = await kit.connect()
+  bot = kit.bot
 
   if (observe) await waitForObserver()
 
@@ -1627,7 +1071,7 @@ async function main () {
   for (const trip of trips) await take(trip, setUp.has(trip))
 
   // Someone watching can see any trip again before the server stops.
-  while (observe && bot.players[observer]) {
+  while (observe && bot.players[kit.observer]) {
     const choice = await askObserverChoice(
       `Say ${every.map((t) => t.name).join(', ')} to see that trip again, all for every one, or done to stop.`,
       new RegExp(`^(${every.map((t) => t.name).join('|')}|all|again|done|stop)$`))
