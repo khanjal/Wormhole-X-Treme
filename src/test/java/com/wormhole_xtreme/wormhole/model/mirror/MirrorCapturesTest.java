@@ -954,4 +954,54 @@ class MirrorCapturesTest
                 "a server sending less than the first step still gets the first step, not a shallower fill");
         }
     }
+
+    /**
+     * A gate's fill may be cut to fit as far back as its first step, as a mirror's may to its view depth.
+     *
+     * <p>With the floor at the reach, the cut to keep a capture under its cap never ran for a gate,
+     * and a fill onto a jungle or an ocean bed kept millions of blocks the drawing then threw away.
+     */
+    @Test
+    void aGatesFillMayBeCutAsFarBackAsItsFirstStep()
+    {
+        final int[] asked = new int[2];
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            asked[0] = reach;
+            asked[1] = floor;
+            return reach;
+        });
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 40));
+            MirrorCaptures.step(1000);
+        });
+
+        assertEquals(40, asked[0], "taken as far as the fill");
+        assertEquals(32, asked[1], "and cut no shallower than the first step, gate-view-depth");
+    }
+
+    /**
+     * A gate's capture that failed waits before it is tried again; a mirror's is tried again when next wanted.
+     *
+     * <p>A gate asks every sweep while it is open, so a fill that failed -- most likely for want of
+     * memory -- was started again at once, every second, for as long as anybody stood there.
+     */
+    @Test
+    void aGatesFailedCaptureWaitsBeforeItIsTriedAgain()
+    {
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8));
+            MirrorCaptures.step(1000);
+
+            assertFalse(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 8),
+                "not started again at once");
+            assertTrue(MirrorCaptures.request(mirror), "a mirror's, tried again when next wanted, as before");
+        });
+    }
 }

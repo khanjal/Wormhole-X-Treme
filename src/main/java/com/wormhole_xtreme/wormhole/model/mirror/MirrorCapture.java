@@ -806,6 +806,18 @@ public final class MirrorCapture
         /** @return the finished capture, taken now */
         public MirrorCapture build()
         {
+            return build(System.currentTimeMillis());
+        }
+
+        /**
+         * The finished capture, as though taken at a given time: for a test of what an old one does.
+         *
+         * @param takenAt
+         *            when it counts as taken, in milliseconds
+         * @return the capture
+         */
+        MirrorCapture build(final long takenAt)
+        {
             // Sorted by position, the last word on each block winning: a block put and then
             // cleared is air, and a block put twice is what it was put as last.
             final int[] byCell = byCell();
@@ -832,7 +844,7 @@ public final class MirrorCapture
                 }
             }
             return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                System.currentTimeMillis(),
+                takenAt,
                 new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
                     Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
                 MirrorSeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));

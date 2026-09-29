@@ -664,15 +664,19 @@ read twice before anything showed, and at 32 it is about fifteen. Once that is i
 `gate-view-full-depth` is taken behind it: 160 by default, and never past what the far world's
 server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
 nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
-the view deepens when the fill arrives. A retake as the gate opens starts the steps again, so the
-near part is current quickly and the far part follows; a refresh while somebody is at the gate
-goes straight to the full depth. `0` turns the fill off. A deeper view costs more to draw as a
+the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
+is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
+its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
+fill too big to keep is cut to fit, never shallower than the first step, and a capture that
+fails is tried again five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
 viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
 stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times
 a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks out. `mirror debug`
 says when a view was cut, and to what. With `mirror-fog-at-depth` on, a player drawn only a
-gate's view has their send distance pulled in to that depth, not a mirror's: at 32, two chunks and
-the edge, in every direction, for as long as they are near the gate.
+gate's view has their send distance pulled in to the depth it is drawn to, not a mirror's: at the
+first step, 32, that is two chunks and the edge in every direction, until the fill arrives and it
+is given back. "What the server sends" is the world's view distance; on Paper a lower
+`send-view-distance` can make the fill reach a little further than a client is ever sent.
 
 **What it does not do yet**, each a thing to judge in a world before it is built:
 

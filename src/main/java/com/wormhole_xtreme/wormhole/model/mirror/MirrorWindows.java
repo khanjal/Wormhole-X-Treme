@@ -703,10 +703,15 @@ public final class MirrorWindows
         final MirrorCapture capture = MirrorCaptures.get(gate.captureKey());
         final int full = fullDepthOf(gate);
         final int ask;
-        if ((capture == null) || !MirrorCaptures.reaches(capture, gate.destination(), gate.depth())
-            || (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS)))
+        if ((capture == null) || !MirrorCaptures.reaches(capture, gate.destination(), gate.depth()))
         {
             ask = gate.depth();
+        }
+        else if (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS))
+        {
+            // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
+            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
+            ask = drawDepthOf(gate, capture);
         }
         else
         {
@@ -1991,7 +1996,7 @@ public final class MirrorWindows
      * the whole far side is drawn once, and kept for a minute before the real world is read again.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
+     * A view past {@link #mostFixedFor} blocks is cut shallower until it fits.
      */
     private static void fixedView(final MirrorWindowState window, final long now)
     {

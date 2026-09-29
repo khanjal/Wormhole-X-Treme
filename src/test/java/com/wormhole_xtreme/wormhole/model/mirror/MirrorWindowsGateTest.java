@@ -277,4 +277,54 @@ class MirrorWindowsGateTest
         assertEquals(1_000_000, MirrorWindows.mostFixedFor(gateWindow), "a gate's");
         assertEquals(250_000, MirrorWindows.mostFixedFor(mirrorWindow), "a mirror's, as it was");
     }
+
+    /** A capture of the far side as though taken two minutes ago, reaching {@code ahead} blocks past the arrival. */
+    private static MirrorCapture oldCapture(final int ahead)
+    {
+        final BlockData air = mock(BlockData.class);
+        when(air.getAsString()).thenReturn("minecraft:air");
+        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(80, 60, 199, 41, 20, ahead + 2), air)
+            .build(System.currentTimeMillis() - 120_000L);
+    }
+
+    /**
+     * An old capture is retaken as the gate opens at the depth it is drawn to, not the first step's.
+     *
+     * <p>Retaken at the first step, a view drawn to its full depth shrank back to it for as long as
+     * the fill took -- the far part gone, this world showing past the near part -- and pulled a
+     * fogged viewer's chunks in and out with it, every time the gate opened.
+     */
+    @Test
+    void anOldCaptureIsRetakenAtTheDepthItIsDrawnTo()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        final String key = key();
+        MirrorCaptures.install(key, oldCapture(60));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+        {
+            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt())).thenReturn(true);
+
+            assertTrue(MirrorWindows.offerGate(gate, true), "drawn from the old one meanwhile");
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), eq(48)), times(1));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), eq(16)), never());
+        }
+    }
+
+    @Test
+    void anOldCaptureIsNotRetakenUnlessTheGateHasJustOpened()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        MirrorCaptures.install(key(), oldCapture(60));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+        {
+            assertTrue(MirrorWindows.offerGate(gate, false));
+            captures.verify(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt()), never());
+        }
+    }
 }

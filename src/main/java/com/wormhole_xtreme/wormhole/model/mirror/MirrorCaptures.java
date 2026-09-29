@@ -207,6 +207,12 @@ public final class MirrorCaptures
     /** Keys whose capture failed and was said so, so one failing every time is said once. */
     private static final Set<String> FAILED = new HashSet<>();
 
+    /** When each gate capture last failed, so a failed one is not tried again every sweep. */
+    private static final Map<String, Long> FAILED_AT = new HashMap<>();
+
+    /** How long a gate capture that failed waits before it is tried again. */
+    static final long GATE_RETRY_MILLIS = 300_000L;
+
     /** Bumped whenever a capture arrives or changes, so every view knows to look again. */
     private static int generation;
 
@@ -412,6 +418,7 @@ public final class MirrorCaptures
             // As a mirror's forget does, so a gate built again under the name is warned about afresh.
             WARNED.remove(key);
             FAILED.remove(key);
+            FAILED_AT.remove(key);
             final File file = fileOf(key);
             try
             {
@@ -630,6 +637,13 @@ public final class MirrorCaptures
         {
             return true;
         }
+        // A gate asks every sweep while it is open; a capture that failed, most likely for want of
+        // memory, was started again at once, every second, for as long as anybody stood there.
+        final Long failedAt = FAILED_AT.get(key);
+        if ((failedAt != null) && ((System.currentTimeMillis() - failedAt) < GATE_RETRY_MILLIS))
+        {
+            return false;
+        }
         final World far = Bukkit.getWorld(destination.worldName());
         if (far == null)
         {
@@ -645,7 +659,9 @@ public final class MirrorCaptures
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of " + what + " in "
             + far.getName() + " around " + key);
         final int reach = (depth > 0) ? depth : reach(far);
-        final int floor = (depth > 0) ? depth : ConfigManager.getMirrorViewDepth();
+        // A gate's may be cut to fit as far back as its first step, as a mirror's may be to its view depth:
+        // with the floor at the reach, the cut to MOST_KEPT never ran, and a fill onto a jungle kept millions.
+        final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewDepth()) : ConfigManager.getMirrorViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
         JOBS.put(key, job);
@@ -766,6 +782,7 @@ public final class MirrorCaptures
         ABSENT.clear();
         WARNED.clear();
         FAILED.clear();
+        FAILED_AT.clear();
         changed();
     }
 
@@ -1121,7 +1138,15 @@ public final class MirrorCaptures
             done = true;
             cancel();
             // A job forgotten while it sifted says nothing, or it would hide its successor's failure.
-            if (JOBS.remove(key, this) && FAILED.add(key))
+            if (!JOBS.remove(key, this))
+            {
+                return;
+            }
+            if (key.startsWith(GATE_KEY))
+            {
+                FAILED_AT.put(key, System.currentTimeMillis());
+            }
+            if (FAILED.add(key))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not work out what the mirror"
                     + " capture of " + far.getName() + " around " + key + " can see; it is tried again when"
@@ -1139,6 +1164,7 @@ public final class MirrorCaptures
             ABSENT.remove(key);
             WARNED.remove(key);
             FAILED.remove(key);
+            FAILED_AT.remove(key);
             changed();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
