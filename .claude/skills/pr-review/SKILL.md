@@ -19,7 +19,8 @@ zero, no new compiler warnings. "Written by" is what step 1's table is read off,
 PR does not have to guess -- if it is blank, read the commits' Co-Authored-By trailers. Tick each box
 as it is done, with the model and the commit it reviewed, so anyone reading the PR can see what
 is still owed. A PR is not ready to merge with a box unticked. When the `route-implementation`
-skill handed the code to a sub-agent, "Written by" is that sub-agent's model, not the planner's.
+skill handed the code to a sub-agent, "Written by" is that sub-agent's model, not the planner's,
+and that skill's step 5 decides the reviewers: the final review is never by the planner.
 
 `gh pr create --body` does **not** apply the template -- GitHub only uses it for PRs opened in
 the web UI -- so paste the checklist into the body yourself, and add it to any open PR that
