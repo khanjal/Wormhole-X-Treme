@@ -2,7 +2,10 @@
 // Stage 0 of the Wormhole Research Facility: proves on one server version that the four
 // vanilla mechanisms the facility rests on work there, and says exactly what failed if not.
 //
-//   node scripts/facility/spike.js <version> --java <path to java> [--port 25590]
+//   node scripts/facility/spike.js <version> --java <path to java> [--port 25590] [--hold]
+//
+// --hold keeps the server up after the checks so a person can join and click the menu: the one
+// thing a bot cannot do. Say "stop" in chat, or press Ctrl+C, to end it.
 //
 // Mechanisms: a datapack function that builds a box; a /trigger console whose menu reaches a
 // non-op player and whose code reaches the bot; a text display that reads back as written;
@@ -28,6 +31,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--java') args.java = argv[++i];
     else if (a === '--port') args.port = Number(argv[++i]);
+    else if (a === '--hold') args.hold = true;
     else if (!a.startsWith('--') && !args.version) args.version = a;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -313,6 +317,38 @@ async function checkBossbar(srv, version, probe) {
   check(M, 'removed', removed.errors.length === 0 && d !== null, removed.lines.join(' ') + (d ? '' : '; Probe saw no removal'));
 }
 
+/** Keeps the server up for a person to click the menu; prints every code Probe reads. */
+async function hold(srv, version, probe, port) {
+  const events = wxConsole.listen(probe);
+  const choices = [
+    { label: 'Standard', code: 1200, current: true, why: 'the default 5x5 ring' },
+    { label: 'Grand', code: 1203, why: 'a 7x7 ring' },
+    { label: 'Massive', code: 1204, why: 'a 9x9 ring' },
+  ];
+  const sendMenu = async (player) => {
+    await srv.run(`scoreboard players enable ${player} ${wxConsole.OBJECTIVE}`);
+    await srv.run(wxConsole.menu(version, 'G1 shape', choices).replace('tellraw @a', `tellraw ${player}`));
+  };
+  events.on('code', async ({ player, code }) => {
+    if (player === 'Tester' || player === 'Probe' || !code) return;
+    const d = wxConsole.decode(code);
+    console.log(`  CLICK  ${player} set ${code} (chamber ${d.chamber} option ${d.option} value ${d.value})`);
+    for (const c of wxConsole.rearmCommands(player)) await srv.run(c);
+    await srv.run(`tellraw ${player} ${text.command(version, [{ text: `Probe read ${code}. `, color: 'green' }, { text: 'Click another, or say stop.', color: 'gray' }])}`);
+  });
+  probe.on('playerJoined', (p) => {
+    if (p.username === 'Probe' || p.username === 'Tester') return;
+    console.log(`  ${p.username} joined; sending the menu`);
+    setTimeout(() => sendMenu(p.username).catch((e) => console.log(`  menu: ${e.message}`)), 2000);
+  });
+  console.log(`\nholding: join localhost:${port} with Minecraft ${version} (not opped) and click a word in the menu.`);
+  console.log('Say "stop" in chat, or press Ctrl+C, to end it.');
+  await new Promise((resolve) => {
+    probe.on('chat', (username, message) => { if (username !== 'Probe' && /^stop[.!]?$/i.test(message.trim())) resolve(); });
+    process.once('SIGINT', resolve);
+  });
+}
+
 // ---- the run ------------------------------------------------------------------------------
 
 async function main() {
@@ -367,6 +403,7 @@ async function main() {
     for (const [name, fn] of stages) {
       try { await fn(); } catch (e) { check(name, 'threw', false, e.stack || String(e)); }
     }
+    if (args.hold) await hold(srv, version, probe, args.port);
   } catch (e) {
     check('setup', 'launch', false, e.message);
   } finally {

@@ -193,6 +193,9 @@ downloads the Paper jar into `.local-server/` the first time. Each run starts a 
 `.local-server/facility-<version>/` on port 25590 (`--port` changes it). `WX_ECHO=1` prints the
 server's log as it runs. No plugin jar is needed.
 
+A bot cannot click chat, so `--hold` keeps the server up after the checks: join it, click a word
+in the menu it sends you, and the bot prints the code it read. Say "stop" in chat to end it.
+
 What it found:
 
 - A server sends a player the scores of an objective only while the objective sits in a display
@@ -200,6 +203,8 @@ What it found:
   of a team colour nobody is on: every client is sent the scores and none draws them.
 - Mineflayer 4.39's `scoreUpdated` never fires from 1.20.3 on, so the bot reads the score
   packets itself.
+- A real 26.1.2 client that is not an op runs `/trigger` from a menu click, and the bot reads
+  each code; clicked by hand three times with `--hold`, re-armed between clicks.
 - The click-event key names are the only switch a tellraw needs, but getting them wrong is
   silent from 1.21.5: the old keys are accepted and the click is dropped. A text display in the
   other era's form is silent too: blank on 1.20.4, raw JSON on the newer two. So the spike judges
