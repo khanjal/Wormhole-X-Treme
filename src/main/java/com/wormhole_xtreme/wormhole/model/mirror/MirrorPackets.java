@@ -16,8 +16,8 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * banner patterns, or sign text, that a block change cannot carry.
  *
  * <p>Reached reflectively because it <strong>does not exist on plain 1.20</strong>, which this
- * plugin still supports -- present from 1.20.1 on, checked against the jars for all ten
- * versions the matrix builds. Calling it directly would compile here and throw
+ * plugin still supports -- present from 1.20.1 on, checked against the jars for every
+ * version the matrix builds. Calling it directly would compile here and throw
  * {@code NoSuchMethodError} on that one version, and it is not the kind of method whose absence
  * should be discovered at the moment a player walks down a corridor.
  *

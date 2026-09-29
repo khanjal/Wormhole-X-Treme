@@ -5,9 +5,9 @@ description: Review a change to this repository (khanjal/Wormhole-X-Treme) for t
 
 # Cross-version review
 
-One jar supports Minecraft 1.20 through 26.2, on Spigot and Paper. A local `mvn test`
-compiles against one version (1.20.4) and runs its tests once. The CI matrix builds ten Spigot
-versions and three Paper versions, and every bug in this skill passed locally before one of
+One jar supports Minecraft 1.20 through 26.3, on Spigot and Paper. A local `mvn test`
+compiles against one version (1.20.4) and runs its tests once. The CI matrix builds twelve Spigot
+and twelve Paper API versions, and every bug in this skill passed locally before one of
 those legs failed. This review catches them before the push.
 
 It complements `verify-bukkit-api`, which answers "does this API exist on version X?" This
