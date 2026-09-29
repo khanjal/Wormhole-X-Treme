@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -36,7 +37,8 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  * the proximity sweep had to visit every ordinary mirror to work out who was near it -- a
  * distance check per player per mirror, and the end of the old promise that a server whose
  * mirrors are all ordinary does no work there. This asks each player one question instead,
- * regardless of how many mirrors there are, and asks nobody at all in a world that has none.
+ * regardless of how many mirrors there are, and asks nobody who is not standing within a chunk
+ * of one.
  *
  * <p>The line is re-sent every sweep rather than only when the target changes. That is the
  * point of it: the action bar fades on its own, so a steady line is a repeated one. The only thing
@@ -111,9 +113,8 @@ public final class MirrorSignpost
     /**
      * One pass over everybody who might be looking at a mirror.
      *
-     * <p>Two guards before any ray is traced, both cheap and both worth having. A server that
-     * has turned this off does nothing, and a server with no mirrors in a player's world does
-     * nothing for that player -- which on a big server is most of them.
+     * <p>No ray is traced for a player unless a mirror hangs in their chunk or one beside it, so
+     * the ray count follows the players standing near mirrors, not everyone online.
      */
     static void tick()
     {
@@ -121,14 +122,15 @@ public final class MirrorSignpost
         {
             return;
         }
-        final Set<String> worlds = worldsWithMirrors();
-        if (worlds.isEmpty())
+        final Map<String, Set<Long>> chunks = chunksWithMirrors();
+        if (chunks.isEmpty())
         {
             return;
         }
         for (final Player player : Bukkit.getOnlinePlayers())
         {
-            if (worlds.contains(player.getWorld().getName()))
+            final Set<Long> near = chunks.get(player.getWorld().getName());
+            if ((near != null) && besideAny(near, player.getLocation()))
             {
                 tell(player);
             }
@@ -136,26 +138,55 @@ public final class MirrorSignpost
     }
 
     /**
-     * The worlds any mirror stands in.
+     * The chunks any working mirror's banners hang in, by world name.
      *
-     * <p>By name, because that is how a mirror records where it is and the world object may not
-     * be loaded. Rebuilt each sweep rather than cached: mirrors are added and removed by
-     * command, and a cache would need invalidating from four places to save a walk over a list
-     * that is usually shorter than the player list.
+     * <p>Rebuilt each sweep rather than cached: mirrors are added and removed by command, and a
+     * cache would need invalidating from four places to save a walk over the mirror list.
      *
-     * @return the world names, possibly empty
+     * @return chunk keys by world name, possibly empty
      */
-    private static Set<String> worldsWithMirrors()
+    private static Map<String, Set<Long>> chunksWithMirrors()
     {
-        final Set<String> worlds = new HashSet<>();
+        final Map<String, Set<Long>> chunks = new HashMap<>();
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            if (mirror.destination() != null)
+            if (mirror.destination() == null)
             {
-                worlds.add(mirror.banner().worldName());
+                continue;
+            }
+            for (final MirrorBlock banner : mirror.banners())
+            {
+                chunks.computeIfAbsent(banner.worldName(), name -> new HashSet<>())
+                    .add(chunkKey(banner.x() >> 4, banner.z() >> 4));
             }
         }
-        return worlds;
+        return chunks;
+    }
+
+    /**
+     * Whether a mirror hangs in this chunk or one of the eight around it, which is enough because
+     * {@link #REACH} is under a chunk.
+     */
+    private static boolean besideAny(final Set<Long> chunks, final Location at)
+    {
+        final int chunkX = at.getBlockX() >> 4;
+        final int chunkZ = at.getBlockZ() >> 4;
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                if (chunks.contains(chunkKey(chunkX + dx, chunkZ + dz)))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static long chunkKey(final int chunkX, final int chunkZ)
+    {
+        return (((long) chunkX) << 32) | (chunkZ & 0xFFFFFFFFL);
     }
 
     /**
