@@ -563,6 +563,7 @@ public final class MirrorWindows
         if ((previous != null) && previous.shape.equals(shape))
         {
             window.solid = previous.solid;
+            window.border = previous.border;
             window.margin = previous.margin;
             window.frame = previous.frame;
             window.solidAt = previous.solidAt;

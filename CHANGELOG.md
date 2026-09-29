@@ -13,6 +13,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
   with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
 
+### Quantum mirrors
+
+**Fixed**
+
+- **A mirror in a wall more than a block wide keeps its wide far part between wall readings.**
+  For four seconds in five it fell back to a half-block one, and `mirror debug` said "wall 0".
+
 ## 1.8.1 (2026-09-28)
 
 ### For server admins
