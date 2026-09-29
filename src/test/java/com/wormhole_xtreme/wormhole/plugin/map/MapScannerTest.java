@@ -184,8 +184,11 @@ class MapScannerTest
         final Stargate chulak = gate("Chulak", overworld);
         when(abydos.getGateTarget()).thenReturn(chulak);
 
-        assertTrue(scan(List.of(abydos, chulak), MapLayers.ALL).gateLinks().isEmpty(),
-            "a line means the wormhole is open now");
+        final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
+
+        assertTrue(snapshot.gateLinks().isEmpty(), "a line means the wormhole is open now");
+        assertFalse(snapshot.gates().get("chulak").open(),
+            "nor is the gate it last dialled open because of it");
     }
 
     @Test
