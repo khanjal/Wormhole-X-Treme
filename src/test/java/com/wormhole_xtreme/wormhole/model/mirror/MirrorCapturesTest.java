@@ -1014,18 +1014,20 @@ class MirrorCapturesTest
     @Test
     void aGatesFillCutToFitIsDrawnOnlyAsFarAsItKept()
     {
-        MirrorCaptures.siftWith((builder, from, reach, floor) -> 50);
+        // Shallow on purpose: every block this box's chunks are read for is a recorded mock call, and
+        // at a hundred deep the suite ran out of heap.
+        MirrorCaptures.siftWith((builder, from, reach, floor) -> 20);
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 100));
+            assertTrue(MirrorCaptures.requestGate(gateKey(), GATE, mirror.destination(), 5, 5, 40));
             MirrorCaptures.step(4000);
         });
         final MirrorCapture capture = MirrorCaptures.get(gateKey());
 
-        assertEquals(50, capture.keptReach(), "cut from 100 to 50");
-        assertEquals(50, MirrorCaptures.drawableReach(capture, 160), "drawn no further than kept");
-        assertEquals(40, MirrorCaptures.drawableReach(capture, 40), "nor further than asked");
-        assertTrue(MirrorCaptures.reaches(capture, mirror.destination(), 100),
+        assertEquals(20, capture.keptReach(), "cut from 40 to 20");
+        assertEquals(20, MirrorCaptures.drawableReach(capture, 160), "drawn no further than kept");
+        assertEquals(10, MirrorCaptures.drawableReach(capture, 10), "nor further than asked");
+        assertTrue(MirrorCaptures.reaches(capture, mirror.destination(), 40),
             "and its box still reaches what was asked, so it is not asked for again");
     }
 
