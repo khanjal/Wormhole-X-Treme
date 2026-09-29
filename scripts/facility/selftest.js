@@ -32,7 +32,7 @@ const MATRIX = {
   ],
 };
 
-async function selftest(fac, { buildReport, log = console.log }) {
+async function selftest(fac, { buildReport, fixtures = [], log = console.log }) {
   const results = [];
   const check = (section, name, ok, detail) => {
     results.push({ section, name, ok: Boolean(ok), detail });
@@ -56,10 +56,16 @@ async function selftest(fac, { buildReport, log = console.log }) {
       }
       check('world', `${f.fn} anchors`, missing.length === 0, missing.length ? `missing: ${missing.join('; ')}` : `${f.anchors.length} in place`);
       for (const c of f.clear) {
+        // A cell that holds a session fixture (the Relay, the gallery) is judged by its fixture.
+        if (fac.holdsFixture(c.id)) continue;
         const r = await fac.isClear(f.dim, c.box);
         check('world', `${c.id} volume clear`, r.ok, `${r.air} of ${r.volume} air${r.found ? `; not air: ${r.found.join(', ')}` : ''}`);
       }
     }
+  });
+
+  await guard('fixtures', async () => {
+    for (const f of fixtures) check('fixtures', f.id, f.ok, f.detail);
   });
 
   await guard('plates', async () => {

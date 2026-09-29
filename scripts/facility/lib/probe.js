@@ -173,6 +173,130 @@ class Probe {
     return { x: pos[0], y: pos[1], z: pos[2] };
   }
 
+  // ---- hands --------------------------------------------------------------------------------
+
+  /** Puts the first stack of an item id in the hand (or the off hand); throws if none is held. */
+  async hold(id, hand = 'hand') {
+    const name = id.replace(/^minecraft:/, '');
+    const item = this.bot.inventory.items().find((i) => i.name === name);
+    if (!item) throw new Error(`${this.name} has no ${name} to hold`);
+    await this.bot.equip(item, hand);
+  }
+
+  /** Waits (bounded) until the inventory holds an item, e.g. after a console `give`. */
+  async waitForItem(id, ms = 5000) {
+    const name = id.replace(/^minecraft:/, '');
+    const deadline = Date.now() + ms;
+    while (!this.bot.inventory.items().some((i) => i.name === name)) {
+      if (Date.now() > deadline) throw new Error(`${this.name} was never given ${name}`);
+      await this.bot.waitForTicks(1);
+    }
+  }
+
+  /** Right-clicks with what is in hand once: throws a snowball, egg, pearl, potion or charge. */
+  async use() {
+    this.bot.activateItem();
+    await this.bot.waitForTicks(1);
+  }
+
+  /**
+   * Draws and looses: a bow (or trident) held for `ticks`, then released. A crossbow is loaded
+   * the same way and then fired with a second use.
+   */
+  async drawAndLoose(ticks = 25, { crossbow = false } = {}) {
+    this.bot.activateItem();
+    await this.bot.waitForTicks(ticks);
+    this.bot.deactivateItem();
+    if (crossbow) {
+      await this.bot.waitForTicks(2);
+      this.bot.activateItem();
+      await this.bot.waitForTicks(1);
+      this.bot.deactivateItem();
+    }
+  }
+
+  /** Drops one of the held stack (Q), as a player drops an item into a gate. */
+  async dropOne() {
+    await this.bot.toss(this.bot.heldItem.type, null, 1);
+  }
+
+  // ---- saddles --------------------------------------------------------------------------------
+
+  /** The client's copy of the entity nearest a server-tagged entity (tags stay server-side). */
+  async clientEntity(tag, within = 2) {
+    const p = await this.entityByTag(tag);
+    if (!p) return null;
+    let best = null;
+    for (const e of Object.values(this.bot.entities)) {
+      if (e === this.bot.entity) continue;
+      const d = e.position.distanceTo(new Vec3(p.x, p.y, p.z));
+      if (d <= within && (!best || d < best.d)) best = { e, d };
+    }
+    return best ? best.e : null;
+  }
+
+  /** Right-clicks an entity to get on it, as a player mounts; resolves once seated. */
+  async mount(tag, ms = 5000) {
+    const target = await this.clientEntity(tag);
+    if (!target) throw new Error(`${this.name} cannot see ${tag} to mount`);
+    const seated = waitEvent(this.bot, 'mount', () => true, ms, `a seat on ${target.name}`);
+    await this.look({ x: target.position.x, y: target.position.y + 1, z: target.position.z });
+    this.bot.mount(target);
+    await seated;
+    return target;
+  }
+
+  /** Gets off by console (`ride ... dismount`, 1.19.4+): Mineflayer's own dismount jumps from 1.21.2. */
+  async dismount() {
+    if (!this.bot.vehicle) return;
+    const off = maybeEvent(this.bot, 'dismount', () => true, 5000);
+    const r = await this.srv.run(`ride ${this.name} dismount`);
+    if (r.errors.length) throw new Error(`ride ${this.name} dismount: ${r.errors.join(' ')}`);
+    await off;
+  }
+
+  /**
+   * Steers the ridden entity or boat in a straight line, as a client does: a vehicle_move each
+   * tick, `speed` blocks per tick, until within 0.3 of the point, or until the server moves the
+   * vehicle itself (a gate), which ends the drive. Returns 'arrived' or 'moved'.
+   */
+  async drive(point, { speed = 0.25, ms = 20000 } = {}) {
+    const bot = this.bot;
+    const vehicle = bot.vehicle;
+    if (!vehicle) throw new Error(`${this.name} is not riding anything`);
+    const pos = vehicle.position.clone();
+    const target = new Vec3(point.x, pos.y, point.z);
+    const yaw = Math.atan2(-(target.x - pos.x), target.z - pos.z) * (180 / Math.PI);
+    let moved = false;
+    const onServerMove = () => { moved = true; };
+    bot._client.on('vehicle_move', onServerMove);
+    const onEntityMove = (e) => { if (e === vehicle && e.position.distanceTo(pos) > 2) moved = true; };
+    bot.on('entityMoved', onEntityMove);
+    const wasPhysics = bot.physicsEnabled;
+    bot.physicsEnabled = false;
+    const end = Date.now() + ms;
+    try {
+      while (!moved && Date.now() < end) {
+        const d = target.minus(pos);
+        const flat = Math.hypot(d.x, d.z);
+        if (flat <= 0.3) return 'arrived';
+        const step = Math.min(speed, flat);
+        pos.x += (d.x / flat) * step;
+        pos.z += (d.z / flat) * step;
+        const packet = { x: pos.x, y: pos.y, z: pos.z, yaw, pitch: 0, onGround: true };
+        bot._client.write('vehicle_move', packet);
+        bot._client.write('look', { yaw, pitch: 0, onGround: false, flags: { onGround: false } });
+        await bot.waitForTicks(1);
+      }
+      if (!moved) throw new Error(`${this.name} did not reach ${point.x} ${point.z} riding ${vehicle.name}`);
+      return 'moved';
+    } finally {
+      bot._client.off('vehicle_move', onServerMove);
+      bot.off('entityMoved', onEntityMove);
+      bot.physicsEnabled = wasPhysics;
+    }
+  }
+
   /** The plain text of every text display the client knows of within `range` of a point. */
   displaysNear(p, range = 3) {
     const out = [];

@@ -7,6 +7,7 @@ const path = require('path');
 const campus = require('./campus');
 const datapack = require('./datapack');
 const wings = require('../wings');
+const observe = require('./observe');
 
 // Sentinels sit out of sight, one per function: under the Ops floor in the overworld, under the
 // Range floor in the nether, under the Annex platform in the End.
@@ -34,7 +35,8 @@ function writeFacilityPack(worldFolder, version) {
       commands: compiled.commands, blocks: compiled.blocks, anchors: f.bp.anchors, clear: f.bp.clear,
     });
   }
-  const root = datapack.writePack(worldFolder, version, functions);
+  Object.assign(functions, observe.functions());
+  const root = datapack.writePack(worldFolder, version, functions, observe.tags(version));
   return { root: path.resolve(root), functions: manifest };
 }
 

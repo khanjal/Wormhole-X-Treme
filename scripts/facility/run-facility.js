@@ -126,10 +126,14 @@ async function main() {
       + `forceloaded ${total} chunks (${Object.entries(chunks).map(([d, n]) => `${d.replace('minecraft:', '')} ${n}`).join(', ')})`);
     await fac.connectProbe();
     await fac.openConsole();
+    const tf = Date.now();
+    const fixtures = await fac.fixtures();
+    for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
+    console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
 
     if (args.selftest) {
-      const results = await selftest(fac, { buildReport: report });
+      const results = await selftest(fac, { buildReport: report, fixtures });
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
       const sections = [...new Set(results.map((r) => r.section))];
       console.log(`\nfacility self-test on ${version}:`);

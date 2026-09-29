@@ -13,6 +13,8 @@ const { Probe, join } = require('./lib/probe');
 const { FacilityConsole, normaliseOptions } = require('./lib/console');
 const chambers = require('./chambers');
 const wings = require('./wings');
+const { Menagerie } = require('./lib/menagerie');
+const { Watch } = require('./lib/observe');
 
 const BOT = 'Probe';
 
@@ -34,6 +36,8 @@ class Facility {
     this.held = new Set(); // chambers whose Stage left settings applied until their Reset
     this.queue = Promise.resolve();
     this.bars = [];
+    this.menagerie = new Menagerie(srv, version);
+    this.watch = new Watch(srv);
   }
 
   // ---- world -------------------------------------------------------------------------------
@@ -61,6 +65,7 @@ class Facility {
       await this.srv.waitLoaded(f.dim, [[f.from[0], y, f.from[1]], [f.to[0], y, f.to[1]], [f.from[0], y, f.to[1]], [f.to[0], y, f.from[1]]], 120000);
     }
     this.loadMs = Date.now() - t0;
+    await this.watch.prepare();
     return problems;
   }
 
@@ -165,6 +170,31 @@ class Facility {
     const n = m ? Number(m[1]) : 0;
     if (n) await this.srv.run(`execute in ${dim} run fill ${coords} minecraft:air replace minecraft:structure_void`);
     return n;
+  }
+
+  /**
+   * After the build: stock the Menagerie, then let each chamber with a `fixture` set up what it
+   * keeps for the whole session (the Relay gate, the shape gallery). Returns [{ id, ok, detail }].
+   */
+  async fixtures() {
+    const out = [];
+    try {
+      await this.menagerie.stock();
+      out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
+    } catch (e) { out.push({ id: 'menagerie', ok: false, detail: e.message }); }
+    for (const e of this.entries.filter((x) => x.chamber && x.chamber.fixture)) {
+      try {
+        const detail = await e.chamber.fixture(this.makeCtx(e));
+        out.push({ id: e.def.id, ok: true, detail: detail || 'set up' });
+      } catch (err) { out.push({ id: e.def.id, ok: false, detail: err.message }); }
+    }
+    return out;
+  }
+
+  /** Whether a chamber's cell holds a fixture that lives for the whole session. */
+  holdsFixture(id) {
+    const e = this.entries.find((x) => x.def.id === id);
+    return Boolean(e && e.chamber && e.chamber.fixture);
   }
 
   // ---- people --------------------------------------------------------------------------------
@@ -289,6 +319,7 @@ class Facility {
     return {
       server: this.srv, probe: this.probe, config: this.config, board: this.boards, version: this.version,
       tag: `wx_run_${def.id}`, observed: {}, layout: blueprint.layoutOf(def), step: () => {},
+      menagerie: this.menagerie, watch: this.watch, facility: this,
     };
   }
 
@@ -369,6 +400,11 @@ class Facility {
     if (!r.ok) problems.push(r.detail);
     await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
     if (this.held.delete(e.def.id)) await this.config.restore();
+    if (e.chamber && e.chamber.fixture) {
+      // A fixture's cell is not left empty: put the fixture back and let it say it is whole.
+      try { await e.chamber.fixture(this.makeCtx(e)); } catch (err) { problems.push(`fixture: ${err.message}`); }
+      return { ok: problems.length === 0, problems };
+    }
     const build = this.manifest.functions.find((x) => x.clear.some((c) => c.id === e.def.id));
     for (const c of build ? build.clear.filter((x) => x.id === e.def.id) : []) {
       const clear = await this.isClear(f.dim, c.box);

@@ -67,8 +67,19 @@ function boxFunction({ from, to, block, sentinel }) {
   ].join('\n');
 }
 
-/** Writes the pack, replacing any earlier one; returns the pack folder. */
-function writePack(worldFolder, version, functions) {
+/**
+ * A tag folder's name: plural before 1.21 (tags/functions, tags/entity_types), singular from
+ * it (tags/function, tags/entity_type), like the function folder itself.
+ */
+function tagFolder(version, kind) {
+  return atLeast(version, '1.21') ? kind : `${kind}s`;
+}
+
+/**
+ * Writes the pack, replacing any earlier one; returns the pack folder. `tags` maps
+ * "<kind>/<namespace>:<name>" (kind: function or entity_type) to a list of values.
+ */
+function writePack(worldFolder, version, functions, tags = {}) {
   const root = path.join(worldFolder, 'datapacks', 'wx');
   fs.rmSync(root, { recursive: true, force: true });
   const fnRoot = path.join(root, 'data', 'wx', functionFolder(version));
@@ -77,8 +88,15 @@ function writePack(worldFolder, version, functions) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, body);
   }
+  for (const [key, values] of Object.entries(tags)) {
+    const [kind, id] = key.split('/');
+    const [ns, name] = id.split(':');
+    const file = path.join(root, 'data', ns, 'tags', tagFolder(version, kind), `${name}.json`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify({ replace: false, values }, null, 2)}\n`);
+  }
   fs.writeFileSync(path.join(root, 'pack.mcmeta'), `${JSON.stringify(packMeta(version), null, 2)}\n`);
   return root;
 }
 
-module.exports = { PACK_FORMATS, packFormat, packMeta, functionFolder, boxFunction, writePack };
+module.exports = { PACK_FORMATS, packFormat, packMeta, functionFolder, tagFolder, boxFunction, writePack };
