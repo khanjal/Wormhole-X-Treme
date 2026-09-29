@@ -331,6 +331,36 @@ class MirrorCaptureTest
     }
 
     /**
+     * Water and leaves are counted apart: a ray through a pond is not short of leaves to see through after it.
+     *
+     * <p>A corridor of water twenty long, then leaves. Counted together, the water spent the leaves'
+     * sight before the ray reached them, and a forest past a lake was left to the real world.
+     */
+    @Test
+    void waterAndLeavesAreCountedApart()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, (z <= 20) ? water : leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(water, capture.at(1, 2, 20), "the water, within its own sight");
+        assertSame(leaves, capture.at(1, 2, 23), "and the first leaves past it, with their own sight left");
+    }
+
+    /**
      * Water can be seen through only so far; glass has no such limit.
      *
      * <p>A ray through an ocean went on to the bed however deep, and a mirror onto a beach kept

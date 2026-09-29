@@ -38,7 +38,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
@@ -940,7 +939,6 @@ class MirrorCapturesTest
         when(far.getViewDistance()).thenReturn(6);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
-            bukkit.when(Bukkit::getServer).thenReturn(mock(Server.class));
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
 
             assertEquals(96, MirrorCaptures.gateFillDepth(arrival, 32), "six chunks sent: 96 blocks, not the 160 asked");

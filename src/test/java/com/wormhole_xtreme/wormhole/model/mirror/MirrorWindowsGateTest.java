@@ -3,10 +3,15 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -212,13 +217,18 @@ class MirrorWindowsGateTest
     void theFirstStepIsFollowedByTheFill()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
-        MirrorCaptures.install(key(), capture(20));
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        // Outside the verify: a call to MirrorCaptures inside it would be what is verified.
+        final String key = key();
+        MirrorCaptures.install(key, capture(20));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
         {
-            bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
+            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt())).thenReturn(true);
 
             assertTrue(MirrorWindows.offerGate(gate, false), "the first step is drawn meanwhile");
-            bukkit.verify(() -> Bukkit.getWorld("far"));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(5),
+                eq(5), eq(48)), times(1));
         }
     }
 
@@ -227,10 +237,12 @@ class MirrorWindowsGateTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
         MirrorCaptures.install(key(), capture(60));
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
         {
             assertTrue(MirrorWindows.offerGate(gate, false));
-            bukkit.verify(() -> Bukkit.getWorld(anyString()), never());
+            captures.verify(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt()), never());
         }
     }
 
@@ -241,6 +253,10 @@ class MirrorWindowsGateTest
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 8);
         assertEquals(16, MirrorWindows.fullDepthOf(gate), "shallower than the first step");
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
-        assertEquals(48, MirrorWindows.fullDepthOf(gate));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            // The far world not loaded to ask: as far as it is set.
+            assertEquals(48, MirrorWindows.fullDepthOf(gate));
+        }
     }
 }

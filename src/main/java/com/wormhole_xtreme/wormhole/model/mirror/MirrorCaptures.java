@@ -127,6 +127,16 @@ public final class MirrorCaptures
      *            capture taken by this rule holds
      * @return the reach, in blocks
      */
+    static int reach(final World far)
+    {
+        final int depth = ConfigManager.getMirrorViewDepth();
+        if (far == null)
+        {
+            return depth;
+        }
+        return Math.max(depth, Math.min(MOST_REACH, far.getViewDistance() * 16));
+    }
+
     /**
      * How far a gate's view is filled in behind its first step (#516): {@code gate-view-full-depth},
      * never past what the far world's server sends, and never short of the first step.
@@ -148,19 +158,9 @@ public final class MirrorCaptures
         {
             return first;
         }
-        final World far = (Bukkit.getServer() == null) ? null : Bukkit.getWorld(arrival.worldName());
+        final World far = Bukkit.getWorld(arrival.worldName());
         final int sends = (far == null) ? full : (far.getViewDistance() * 16);
         return Math.max(first, Math.min(full, sends));
-    }
-
-    static int reach(final World far)
-    {
-        final int depth = ConfigManager.getMirrorViewDepth();
-        if (far == null)
-        {
-            return depth;
-        }
-        return Math.max(depth, Math.min(MOST_REACH, far.getViewDistance() * 16));
     }
 
     /** Reads one chunk of a world, so a test can hand in chunks without a server. */
