@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * When one gate refuses to dial another.
@@ -97,7 +99,7 @@ class DialRefusalTest
         final World targetWorld = mock(World.class);
         when(targetWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.TRUE);
         final Block gone = mock(Block.class);
-        when(gone.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(gone.getType()).thenReturn(Material.AIR);
         final Location where = new Location(targetWorld, 8, 64, 8);
         when(targetWorld.getBlockAt(where)).thenReturn(gone);
         when(target.getGateStructureBlocks()).thenReturn(Collections.singletonList(where));
@@ -209,11 +211,11 @@ class DialRefusalTest
         when(gate.isGateActive()).thenReturn(true);
 
         try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> world =
-                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+             MockedStatic<WorldUtils> world =
+                 mockStatic(WorldUtils.class))
         {
             manager.when(StargateManager::getAllGates).thenReturn(Arrays.asList(gate));
-            world.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+            world.when(() -> WorldUtils
                 .scheduleChunkLoad(any(Block.class))).thenAnswer(invocation -> null);
 
             StargateDialManager.dialStargate(gate, target, false);
@@ -221,7 +223,7 @@ class DialRefusalTest
             // Reaching the connection is the assertion. Checking only the return value would
             // prove nothing: without the skip the scan refuses and returns false, and with it
             // the dial goes ahead and still returns false when local activation fails.
-            world.verify(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+            world.verify(() -> WorldUtils
                 .scheduleChunkLoad(any(Block.class)));
         }
     }
@@ -248,13 +250,13 @@ class DialRefusalTest
         when(target.isGateLightsActive()).thenReturn(true);
 
         try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> world =
-                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+             MockedStatic<WorldUtils> world =
+                 mockStatic(WorldUtils.class))
         {
             manager.when(StargateManager::getAllGates).thenReturn(Collections.emptyList());
             // Chunk loading is plumbing this test is not about; stub it out so the failure
             // that matters is the local activation, not a missing chunk.
-            world.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+            world.when(() -> WorldUtils
                 .scheduleChunkLoad(any(Block.class))).thenAnswer(invocation -> null);
 
             // The dial itself still fails -- the local gate never activates against a bare
@@ -262,7 +264,7 @@ class DialRefusalTest
             // what proves that: every refusal returns before the connection is attempted.
             StargateDialManager.dialStargate(gate, target, true);
 
-            world.verify(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+            world.verify(() -> WorldUtils
                 .scheduleChunkLoad(any(Block.class)));
             verify(gate, never()).setGateTarget(any());
         }
@@ -276,11 +278,11 @@ class DialRefusalTest
         when(gate.isGateActive()).thenReturn(false);
 
         try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> world =
-                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+             MockedStatic<WorldUtils> world =
+                 mockStatic(WorldUtils.class))
         {
             manager.when(StargateManager::getAllGates).thenReturn(Collections.emptyList());
-            world.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+            world.when(() -> WorldUtils
                 .scheduleChunkLoad(any(Block.class))).thenAnswer(invocation -> null);
 
             assertFalse(StargateDialManager.dialStargate(gate, target, false));

@@ -57,7 +57,7 @@ public class Configuration
             ConfigurationYAML.writeCurrentConfiguration(yamlFile);
             if (yamlFile.exists())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
             }
             // Only here, where config.yml is first made: that is the moment an upgrade loses Settings.txt.
             LegacySettingsNotice.announce(yamlFile.getParentFile());

@@ -22,7 +22,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -37,11 +41,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * The real iris blocks are committed at the cautious edge of a sweep, never the other one.
@@ -80,7 +90,7 @@ class IrisSweepOrderingTest
     /** What {@link Material#WATER} is drawn as, so an event horizon can be told from empty air. */
     private final BlockData openWater = mock(BlockData.class);
     /** Tasks the sweep has booked and not had cancelled, in the order they were booked. */
-    private final java.util.LinkedHashMap<Integer, Runnable> pending = new java.util.LinkedHashMap<>();
+    private final LinkedHashMap<Integer, Runnable> pending = new LinkedHashMap<>();
     private final List<String> events = new ArrayList<>();
     private int nextTaskId = 1;
 
@@ -135,7 +145,7 @@ class IrisSweepOrderingTest
         // that drew the iris back over itself passed for a while.
         watcher = mock(Player.class);
         // A real player always has one, and the layering files what it has drawn them under it.
-        when(watcher.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(watcher.getUniqueId()).thenReturn(UUID.randomUUID());
         when(watcher.getLocation()).thenReturn(new Location(world, 0, 64, 3));
         when(world.getPlayers()).thenReturn(List.of(watcher));
 
@@ -218,7 +228,7 @@ class IrisSweepOrderingTest
     void aGateWiderThanTheLimitSweepsInTheLimitsSteps()
     {
         widenOpeningTo(9);
-        final int cap = com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisMaxSteps();
+        final int cap = ConfigManager.getGateIrisMaxSteps();
         assertTrue(IrisSweep.closingRings(gate.getGatePortalBlocks()).size() > cap,
             "a nineteen-wide opening must have more rings than the cap, or this proves nothing");
 
@@ -662,13 +672,13 @@ class IrisSweepOrderingTest
     @Test
     void aDrawnIrisSweepsClosedToTheIrisInEveryCell()
     {
-        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        gate.setGateFacing(BlockFace.NORTH);
         assertTrue(StargateBlockSetup.irisIsDrawn(gate), "an upright gate, whose iris is drawn");
         // The layer positions a block either side of the ring, which a shut iris hands back.
         final Block air = mock(Block.class);
         when(air.getType()).thenReturn(Material.AIR);
-        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
-        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), ArgumentMatchers.eq(-1))).thenReturn(air);
 
         // The first ring is drawn by the toggle itself, so nothing is cleared in between: what
         // counts is the last thing each cell was shown.
@@ -678,7 +688,7 @@ class IrisSweepOrderingTest
         final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
         final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
         verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
-        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        final Map<List<Integer>, BlockData> last = new HashMap<>();
         for (int i = 0; i < where.getAllValues().size(); i++)
         {
             final Location at = where.getAllValues().get(i);
@@ -689,7 +699,7 @@ class IrisSweepOrderingTest
             }
         }
         assertEquals(9, last.size(), "every cell of the opening was drawn by the sweep");
-        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        for (final Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
         {
             assertTrue((cell.getValue() != null) && (cell.getValue() != bareOpening),
                 "cell " + cell.getKey() + " was left showing the air the server really has there");
@@ -706,12 +716,12 @@ class IrisSweepOrderingTest
     @Test
     void openingADrawnIrisMidSweepFinishesTheClosingAsTheIris()
     {
-        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        gate.setGateFacing(BlockFace.NORTH);
         // Opening draws the horizon behind the opening, one block either side, so those are air.
         final Block air = mock(Block.class);
         when(air.getType()).thenReturn(Material.AIR);
-        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(1))).thenReturn(air);
-        when(world.getBlockAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.eq(-1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), ArgumentMatchers.eq(1))).thenReturn(air);
+        when(world.getBlockAt(anyInt(), anyInt(), ArgumentMatchers.eq(-1))).thenReturn(air);
         gate.toggleIrisActive(false);
         final Integer next = pending.keySet().iterator().next();
         pending.remove(next).run();
@@ -722,14 +732,14 @@ class IrisSweepOrderingTest
         final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
         final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
         verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), what.capture());
-        final java.util.Map<List<Integer>, BlockData> last = new java.util.HashMap<>();
+        final Map<List<Integer>, BlockData> last = new HashMap<>();
         for (int i = 0; i < where.getAllValues().size(); i++)
         {
             final Location at = where.getAllValues().get(i);
             last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), what.getAllValues().get(i));
         }
         assertEquals(9, last.size(), "the call-off draws every cell");
-        for (final java.util.Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
+        for (final Map.Entry<List<Integer>, BlockData> cell : last.entrySet())
         {
             assertNotNull(cell.getValue(),
                 "cell " + cell.getKey() + " was blanked to the air behind the drawn iris");
@@ -753,10 +763,10 @@ class IrisSweepOrderingTest
         gate.toggleIrisActive(false);
         assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
 
-        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
-            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        try (MockedStatic<WorldUtils> utils =
+            mockStatic(WorldUtils.class))
         {
-            gate.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+            gate.shutdownStargate(false, StargateShutdownEvent.Reason.TIMEOUT);
         }
         clearInvocations(watcher);
         finishSweep();
@@ -830,15 +840,15 @@ class IrisSweepOrderingTest
         gate.toggleIrisActive(false);
         assertTrue(StargateIrisAnimator.isSweeping(gate), "the iris is part way open");
 
-        com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(event -> { });
-        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
-            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        GateEvents.setDispatcherForTest(event -> { });
+        try (MockedStatic<WorldUtils> utils =
+            mockStatic(WorldUtils.class))
         {
             StargateDialManager.dialStargate(gate, true);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(null);
+            GateEvents.setDispatcherForTest(null);
         }
 
         assertFalse(StargateIrisAnimator.isSweeping(gate), "the sweep is called off as the gate opens");
@@ -860,15 +870,15 @@ class IrisSweepOrderingTest
             gate.toggleIrisActive(false);
             finishSweep();
 
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
             gate.setGateIrisAnimation("spiral");
             gate.toggleIrisActive(false);
             assertTrue(StargateIrisAnimator.isSweeping(gate), "its own spiral sweeps on a server set to instant");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
     }
 

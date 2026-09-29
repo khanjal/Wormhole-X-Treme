@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.Material;
+
 /**
  * Works out where the travelling rings are on a given frame.
  *
@@ -539,7 +541,7 @@ public final class RingAnimator
      *
      * <p>Visible only to somebody in creative holding a barrier, which is a fair price.
      */
-    public static final org.bukkit.Material OPENED_MATERIAL = org.bukkit.Material.BARRIER;
+    public static final Material OPENED_MATERIAL = Material.BARRIER;
 
     /**
      * The blocks that appear to be taken away while the ring works.

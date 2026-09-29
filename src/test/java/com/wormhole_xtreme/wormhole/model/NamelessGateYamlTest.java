@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -161,6 +162,6 @@ class NamelessGateYamlTest
 
         assertTrue(new File(gatesDir, ".._.._etc_pass_wd.yml").isFile(),
             "every character that could leave the directory is replaced: "
-                + java.util.Arrays.toString(gatesDir.list()));
+                + Arrays.toString(gatesDir.list()));
     }
 }

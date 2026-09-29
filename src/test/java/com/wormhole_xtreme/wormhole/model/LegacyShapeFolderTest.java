@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 
@@ -46,7 +47,7 @@ class LegacyShapeFolderTest
     /** Runs the migration, which is private and called on the way into loadShapes. */
     private void migrate() throws Exception
     {
-        final java.lang.reflect.Method m = StargateShapeRegistry.class
+        final Method m = StargateShapeRegistry.class
             .getDeclaredMethod("liftShapesOutOfLegacySubdirectories", File.class);
         m.setAccessible(true);
         m.invoke(null, gateShapes);

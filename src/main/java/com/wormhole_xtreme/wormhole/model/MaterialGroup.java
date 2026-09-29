@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 
 import org.bukkit.Material;
 
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+
 /**
  * A named set of materials a gate is built from — the Standard obsidian gate, the
  * Atlantis lapis one, and so on.
@@ -47,7 +49,7 @@ public final class MaterialGroup
     private final Material chevronMaterial;
 
     /** The ring pattern this group's gates dial with (#366), or null to follow the server. */
-    private final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin;
+    private final DialSpinPattern dialSpin;
 
     /** How this group's gates' irises cross (#427), or null to follow the server. */
     private final String irisAnimation;
@@ -108,7 +110,7 @@ public final class MaterialGroup
     }
 
     /** A copy of {@code base} with another ring pattern and iris animation. */
-    private MaterialGroup(final MaterialGroup base, final com.wormhole_xtreme.wormhole.logic.DialSpinPattern dialSpin,
+    private MaterialGroup(final MaterialGroup base, final DialSpinPattern dialSpin,
         final String irisAnimation)
     {
         this.name = base.name;
@@ -185,7 +187,7 @@ public final class MaterialGroup
     /**
      * @return the ring pattern this group's gates dial with, or null to follow the server
      */
-    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getDialSpin()
+    public DialSpinPattern getDialSpin()
     {
         return dialSpin;
     }
@@ -195,7 +197,7 @@ public final class MaterialGroup
      *            the ring pattern this group's gates dial with, or null to follow the server
      * @return a copy of this group with that pattern
      */
-    public MaterialGroup withDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
+    public MaterialGroup withDialSpin(final DialSpinPattern pattern)
     {
         return new MaterialGroup(this, pattern, irisAnimation);
     }

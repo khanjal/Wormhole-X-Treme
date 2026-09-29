@@ -20,8 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.Paper1204Riding;
+import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
@@ -85,7 +87,7 @@ class RingRiddenDeliveryTest
     private void runScheduled()
     {
         final ArgumentCaptor<Runnable> tasks = ArgumentCaptor.forClass(Runnable.class);
-        verify(scheduler, org.mockito.Mockito.atLeast(0)).scheduleSyncDelayedTask(any(), tasks.capture(), anyLong());
+        verify(scheduler, Mockito.atLeast(0)).scheduleSyncDelayedTask(any(), tasks.capture(), anyLong());
         for (final Runnable task : tasks.getAllValues())
         {
             task.run();
@@ -104,10 +106,10 @@ class RingRiddenDeliveryTest
         runScheduled();
 
         assertEquals(200.5, stack.at().getX(), 0.001, "the horse must reach the far ring");
-        verify(rider, org.mockito.Mockito.atLeastOnce()).teleport(any(Location.class));
+        verify(rider, Mockito.atLeastOnce()).teleport(any(Location.class));
         assertTrue(stack.carries(rider), "the rider must be back in the saddle at the far ring");
         // The arrival line goes out through spigot(); the refused case below relies on that.
-        verify(rider, org.mockito.Mockito.atLeastOnce()).spigot();
+        verify(rider, Mockito.atLeastOnce()).spigot();
     }
 
     /**
@@ -122,7 +124,7 @@ class RingRiddenDeliveryTest
         final Horse horse = horse();
         final Player rider = rider();
         final Location seat = new Location(world, 0.5, 65, 0.5);
-        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(rider, seat);
+        PetTestSupport.standsWhereTeleported(rider, seat);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             horse, new Location(world, 0.5, 64, 0.5), rider);
         when(horse.teleport(any(Location.class))).thenReturn(false);

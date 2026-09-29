@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -101,7 +102,7 @@ class ForceCommandTest
     {
         try (MockedStatic<CommandUtilities> util = mockStatic(CommandUtilities.class, CALLS_REAL_METHODS))
         {
-            org.junit.jupiter.api.Assertions.assertTrue(force(console, "nowhere"), "refused and explained, not a usage error");
+            Assertions.assertTrue(force(console, "nowhere"), "refused and explained, not a usage error");
 
             util.verify(() -> CommandUtilities.closeGate(any(), anyBoolean()), never());
         }

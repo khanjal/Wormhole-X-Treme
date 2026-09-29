@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -14,12 +15,16 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -55,10 +60,10 @@ class LeverClickDispatchTest
         db = mockStatic(StargateDBManager.class);
 
         // Toggling a lever schedules the block update that follows it.
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
-        when(scheduler.scheduleSyncDelayedTask(org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(Runnable.class),
-            org.mockito.ArgumentMatchers.anyLong())).thenReturn(1);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(scheduler.scheduleSyncDelayedTask(ArgumentMatchers.any(),
+            ArgumentMatchers.any(Runnable.class),
+            ArgumentMatchers.anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
 
         GateSpatialIndex.clear();
@@ -76,7 +81,7 @@ class LeverClickDispatchTest
     {
         db.close();
         GateSpatialIndex.clear();
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -96,7 +101,7 @@ class LeverClickDispatchTest
         when(b.getZ()).thenReturn(Integer.valueOf(z));
         when(b.getLocation()).thenReturn(new Location(world, x, y, z));
         // A lever reports Switch data, which is what the iris toggle reads and sets.
-        final org.bukkit.block.data.type.Switch leverData = mock(org.bukkit.block.data.type.Switch.class);
+        final Switch leverData = mock(Switch.class);
         when(b.getBlockData()).thenReturn(leverData);
         return b;
     }
@@ -135,13 +140,13 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, dial);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(dial);
 
-        org.junit.jupiter.api.Assertions.assertSame(gate, StargateManager.removeActivatedStargate(player),
+        Assertions.assertSame(gate, StargateManager.removeActivatedStargate(player),
             "the dial lever lights the gate for dialling");
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive(),
+        Assertions.assertFalse(gate.isGateIrisActive(),
             "the click was on the dial lever, so the iris must not have been touched");
     }
 
@@ -152,11 +157,11 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(iris);
 
-        org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisActive(),
+        Assertions.assertTrue(gate.isGateIrisActive(),
             "an exact click on the iris lever is an iris toggle");
     }
 
@@ -172,11 +177,11 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(iris);
 
-        org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisDefaultActive(), "the lever sets the default");
+        Assertions.assertTrue(gate.isGateIrisDefaultActive(), "the lever sets the default");
         db.verify(() -> StargateDBManager.saveStargate(gate));
     }
 
@@ -188,11 +193,11 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 7);
         final Block beside = blockAt(5, 64, 8);
         final Stargate gate = gateWithLevers(dial, iris, beside);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(beside);
 
-        org.junit.jupiter.api.Assertions.assertTrue(gate.isGateIrisDefaultActive(),
+        Assertions.assertTrue(gate.isGateIrisDefaultActive(),
             "adjacent to the iris lever and not the dial is an iris toggle");
         db.verify(() -> StargateDBManager.saveStargate(gate));
     }
@@ -208,16 +213,16 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 7);
         final Stargate gate = gateWithLevers(dial, iris, iris);
         gate.setGateIrisDeactivationCode("");
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         final boolean handled = click(iris);
 
         // Asserted with the click handled, so "the iris stayed open" is not just a click
         // that never reached the dispatch.
-        org.junit.jupiter.api.Assertions.assertTrue(handled, "the click on an indexed block was not handled");
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive(),
+        Assertions.assertTrue(handled, "the click on an indexed block was not handled");
+        Assertions.assertFalse(gate.isGateIrisActive(),
             "a stray lever shut an iris with no code");
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisDefaultActive());
+        Assertions.assertFalse(gate.isGateIrisDefaultActive());
     }
 
     /**
@@ -234,15 +239,15 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 6);
         final Block between = blockAt(5, 65, 5);
         final Stargate gate = gateWithLevers(dial, iris, between);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(between);
 
         // Asserted positively: "the iris did not move" is also true when nothing happened at
         // all, so it cannot tell a dial activation from a refusal.
-        org.junit.jupiter.api.Assertions.assertSame(gate, StargateManager.removeActivatedStargate(player),
+        Assertions.assertSame(gate, StargateManager.removeActivatedStargate(player),
             "adjacent to both means the dial, not the iris and not nothing");
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive());
+        Assertions.assertFalse(gate.isGateIrisActive());
     }
 
     /**
@@ -258,12 +263,12 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(false);
 
         click(iris);
 
         verify(player).sendMessage(contains("ermission"));
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive(),
+        Assertions.assertFalse(gate.isGateIrisActive(),
             "a refused click must not toggle the iris anyway");
         db.verifyNoInteractions();
     }
@@ -276,11 +281,11 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 6);
         final Block elsewhere = blockAt(50, 64, 50);
         final Stargate gate = gateWithLevers(dial, iris, elsewhere);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
 
         click(elsewhere);
 
-        org.junit.jupiter.api.Assertions.assertFalse(gate.isGateIrisActive());
+        Assertions.assertFalse(gate.isGateIrisActive());
         verify(player, never()).sendMessage(contains("ermission"));
     }
 }

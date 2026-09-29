@@ -14,6 +14,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -67,7 +68,7 @@ class OwnerCommandTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

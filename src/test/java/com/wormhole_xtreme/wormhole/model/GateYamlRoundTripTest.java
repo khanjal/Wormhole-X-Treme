@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -18,12 +20,14 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 
 /**
  * What survives a gate being written to disk and read back.
@@ -67,7 +71,7 @@ class GateYamlRoundTripTest
         server = mock(Server.class);
         when(server.getWorld(anyString())).thenReturn(world);
 
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -80,7 +84,7 @@ class GateYamlRoundTripTest
     void restorePlugin() throws Exception
     {
         PluginTestSupport.remove();
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -209,7 +213,7 @@ class GateYamlRoundTripTest
     void aGatesRingPatternRoundTripsAndAnUnsetOneStaysUnset() throws Exception
     {
         final Stargate spun = gate("spun");
-        spun.setGateDialSpin(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS);
+        spun.setGateDialSpin(DialSpinPattern.PEGASUS);
         StargateYamlManager.saveStargate(spun, gatesDir());
         StargateYamlManager.saveStargate(gate("plain"), gatesDir());
 
@@ -218,7 +222,7 @@ class GateYamlRoundTripTest
 
         StargateYamlManager.loadStargates(server, gatesDir());
 
-        assertEquals(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.PEGASUS,
+        assertEquals(DialSpinPattern.PEGASUS,
             StargateManager.getStargate("spun").getGateDialSpin());
         assertNull(StargateManager.getStargate("plain").getGateDialSpin());
     }
@@ -230,7 +234,7 @@ class GateYamlRoundTripTest
     @Test
     void aChosenGroupRoundTripsAndAnUnchosenOneIsNotWritten() throws Exception
     {
-        MaterialGroupRegistry.load(java.util.Map.of("Atlantis", java.util.Map.of("structure", "LAPIS_BLOCK")));
+        MaterialGroupRegistry.load(Map.of("Atlantis", Map.of("structure", "LAPIS_BLOCK")));
         try
         {
             final Stargate chosen = gate("chosen");
@@ -261,7 +265,7 @@ class GateYamlRoundTripTest
     @Test
     void aChosenGroupThatNoLongerExistsFallsBackToTheFrame()
     {
-        MaterialGroupRegistry.load(java.util.Map.of("Atlantis", java.util.Map.of("structure", "LAPIS_BLOCK")));
+        MaterialGroupRegistry.load(Map.of("Atlantis", Map.of("structure", "LAPIS_BLOCK")));
         try
         {
             final Stargate chosen = gate("gone");
@@ -272,7 +276,7 @@ class GateYamlRoundTripTest
             StargateYamlManager.loadStargates(server, gatesDir());
 
             final Stargate loaded = StargateManager.getStargate("gone");
-            org.junit.jupiter.api.Assertions.assertNotNull(loaded, "the gate still loads");
+            Assertions.assertNotNull(loaded, "the gate still loads");
             assertEquals(false, loaded.isGateMaterialGroupChosen());
         }
         finally

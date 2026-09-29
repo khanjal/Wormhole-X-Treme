@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.junit.jupiter.api.AfterEach;
@@ -58,7 +59,7 @@ class RingMoveEventTest
         // The gate path runs before the ring path and looks up the block moved into, so it
         // needs something back even though no gate is registered here.
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv -> {
-            final org.bukkit.block.Block b = mock(org.bukkit.block.Block.class);
+            final Block b = mock(Block.class);
             final int x = inv.getArgument(0, Integer.class).intValue();
             final int y = inv.getArgument(1, Integer.class).intValue();
             final int z = inv.getArgument(2, Integer.class).intValue();

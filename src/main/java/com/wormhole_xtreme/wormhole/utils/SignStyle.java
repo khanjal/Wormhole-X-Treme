@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.util.Locale;
+
 import org.bukkit.ChatColor;
 
 /**
@@ -45,7 +47,7 @@ public final class SignStyle
         }
         try
         {
-            final ChatColor found = ChatColor.valueOf(name.trim().toUpperCase(java.util.Locale.ROOT));
+            final ChatColor found = ChatColor.valueOf(name.trim().toUpperCase(Locale.ROOT));
             return found.isColor() ? found : fallback;
         }
         catch (final IllegalArgumentException notAColorName)

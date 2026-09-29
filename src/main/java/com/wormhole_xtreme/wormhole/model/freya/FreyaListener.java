@@ -21,6 +21,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
+import com.wormhole_xtreme.wormhole.PetEscort;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
@@ -36,7 +37,7 @@ public class FreyaListener implements Listener
     private static final long HUNT_CHECK_TICKS = 100L;
 
     /** After a trip, once the pet escort has had its turn, so the fallback only covers a miss. */
-    private static final long AFTER_TRIP_TICKS = com.wormhole_xtreme.wormhole.PetEscort.FOLLOW_DELAY_TICKS + 20L;
+    private static final long AFTER_TRIP_TICKS = PetEscort.FOLLOW_DELAY_TICKS + 20L;
 
     @EventHandler
     public void onJoin(final PlayerJoinEvent event)

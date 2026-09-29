@@ -1,19 +1,27 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
 /**
@@ -47,14 +55,14 @@ public class StargateManager
     // cannot be null on a block that exists. It pins no world that gates were not already
     // pinning: every Stargate holds its own gateWorld regardless.
     /** Every gate block, by world and then by packed block position. */
-    private static final ConcurrentHashMap<org.bukkit.World, ConcurrentHashMap<Long, Stargate>> gateBlocksByWorld =
+    private static final ConcurrentHashMap<World, ConcurrentHashMap<Long, Stargate>> gateBlocksByWorld =
         new ConcurrentHashMap<>();
     // List of All stargates indexed by name. Useful for dialing and such
     /** The stargate_list. */
     private static final ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<>();
     /** The read-only view of every registered gate; see openGatesView for why it is held. */
-    private static final java.util.Collection<Stargate> allGatesView =
-        java.util.Collections.unmodifiableCollection(stargateList.values());
+    private static final Collection<Stargate> allGatesView =
+        Collections.unmodifiableCollection(stargateList.values());
     // List of stargates built but not named. Indexed by the player that built it.
     /** The incomplete_stargates. */
     private static final ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<>();
@@ -81,24 +89,24 @@ public class StargateManager
     // Readers that want the narrower "and the server actually has this gate" ask isRegistered
     // for themselves; the entity sweep and the projectile tracker both do.
     /** The gates currently showing a portal. */
-    private static final java.util.Set<Stargate> openGates =
-        java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<Stargate> openGates =
+        Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     // The read-only views handed out by getOpenGates() and getAllGatesUnsorted(). Held rather
     // than wrapped afresh on each call: both are read from per-move and per-tick paths, and a
     // wrapper is an allocation that says nothing the one before it did not. Each still reads
     // through to the live collection, so nothing about what a caller sees changes.
     /** The read-only view of the open gates. */
-    private static final java.util.Set<Stargate> openGatesView =
-        java.util.Collections.unmodifiableSet(openGates);
+    private static final Set<Stargate> openGatesView =
+        Collections.unmodifiableSet(openGates);
 
     /** The gates currently showing an iris. */
-    private static final java.util.Set<Stargate> irisGates =
-        java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<Stargate> irisGates =
+        Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     /** The read-only view of the gates showing an iris. */
-    private static final java.util.Set<Stargate> irisGatesView =
-        java.util.Collections.unmodifiableSet(irisGates);
+    private static final Set<Stargate> irisGatesView =
+        Collections.unmodifiableSet(irisGates);
 
 
     /**
@@ -328,7 +336,7 @@ public class StargateManager
 
         // Announced once the gate is registered and saved, so a listener can look it up by
         // name and find it already there.
-        com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, builder);
+        GateEvents.fireCreated(complete, builder);
 
         initialiseDialSign(complete);
     }
@@ -550,7 +558,7 @@ public class StargateManager
             return null;
         }
 
-        final java.util.Set<Location> candidates = GateSpatialIndex.collectLocationsWithinRadius(loc, radiusXZ, radiusY);
+        final Set<Location> candidates = GateSpatialIndex.collectLocationsWithinRadius(loc, radiusXZ, radiusY);
         if (candidates == null || candidates.isEmpty())
         {
             return null;
@@ -601,7 +609,7 @@ public class StargateManager
      *            block z
      * @return the gate that block belongs to, or null
      */
-    private static Stargate gateAt(final org.bukkit.World world, final int x, final int y, final int z)
+    private static Stargate gateAt(final World world, final int x, final int y, final int z)
     {
         if (world == null)
         {
@@ -676,7 +684,7 @@ public class StargateManager
      *
      * @return an unmodifiable view of the registered gates
      */
-    public static java.util.Collection<Stargate> getAllGatesUnsorted()
+    public static Collection<Stargate> getAllGatesUnsorted()
     {
         return allGatesView;
     }
@@ -735,7 +743,7 @@ public class StargateManager
      *
      * @return an unmodifiable view of the gates whose iris is shut
      */
-    public static java.util.Set<Stargate> getIrisGates()
+    public static Set<Stargate> getIrisGates()
     {
         return irisGatesView;
     }
@@ -778,7 +786,7 @@ public class StargateManager
      *
      * @return an unmodifiable view of the open gates
      */
-    public static java.util.Set<Stargate> getOpenGates()
+    public static Set<Stargate> getOpenGates()
     {
         return openGatesView;
     }
@@ -820,7 +828,7 @@ public class StargateManager
      * @param uuid
      *            the player who has gone
      */
-    public static void forgetPortalVisuals(final java.util.UUID uuid)
+    public static void forgetPortalVisuals(final UUID uuid)
     {
         StargateBlockSetup.forgetDrawn(uuid);
     }
@@ -917,7 +925,7 @@ public class StargateManager
     {
         DrawnHorizon.nextFrame();
         StargateBlockSetup.tickHorizon();
-        com.wormhole_xtreme.wormhole.model.preview.GatePreviews.tickHorizon();
+        GatePreviews.tickHorizon();
     }
 
     /**
@@ -979,7 +987,7 @@ public class StargateManager
             gates.add(keys.nextElement());
         }
 
-        java.util.Collections.sort(gates, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
+        Collections.sort(gates, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
 
         return gates;
     }
@@ -1247,7 +1255,7 @@ public class StargateManager
         {
             return null;
         }
-        for (final java.util.Map.Entry<Player, Stargate> e : getActivatedStargates().entrySet())
+        for (final Map.Entry<Player, Stargate> e : getActivatedStargates().entrySet())
         {
             if (e.getValue() == s)
             {
@@ -1358,7 +1366,7 @@ public class StargateManager
     {
         if (announce)
         {
-            com.wormhole_xtreme.wormhole.events.GateEvents.fireRemoved(s, remover);
+            GateEvents.fireRemoved(s, remover);
         }
         getStargateList().remove(normalizeGateName(s.getGateName()));
         // A gate deleted while its wormhole was open would otherwise stay in the open set

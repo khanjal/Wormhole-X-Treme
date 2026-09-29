@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +34,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class GateTabCompletionTest
 {
-    private java.util.Map<String, StargateShape> savedShapes;
+    private Map<String, StargateShape> savedShapes;
 
     @BeforeEach
     void setUp() throws Exception
@@ -42,7 +44,7 @@ class GateTabCompletionTest
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
         // test JVM. It is a shared static, so put back whatever the rest of the suite had.
-        savedShapes = new java.util.HashMap<String, StargateShape>(
+        savedShapes = new HashMap<String, StargateShape>(
             StargateShapeRegistry.getStargateShapes());
         StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
     }

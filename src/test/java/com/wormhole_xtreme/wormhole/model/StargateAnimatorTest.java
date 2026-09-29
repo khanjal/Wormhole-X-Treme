@@ -3,11 +3,15 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -88,8 +92,8 @@ class StargateAnimatorTest
         gate.setGateActive(true);
         gate.setGateIrisActive(true);
         // Two waves, neither null: drawing either would ask a null World for blocks.
-        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
-        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
         gate.setGateAnimationStep3D(0);
 
         assertDoesNotThrow(() -> StargateAnimator.animateOpening(gate),
@@ -109,8 +113,8 @@ class StargateAnimatorTest
     void anOpenIrisLeavesTheWooshAlone() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
-        final org.bukkit.scheduler.BukkitScheduler scheduler =
-            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler =
+            mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -322,7 +326,7 @@ class StargateAnimatorTest
         gate.getGateLightBlocks().add(null);
         for (int n = 1; n <= 7; n++)
         {
-            gate.getGateLightBlocks().add(new java.util.ArrayList<>());
+            gate.getGateLightBlocks().add(new ArrayList<>());
         }
         gate.setGateChevronsLocked(2);
 
@@ -348,21 +352,21 @@ class StargateAnimatorTest
         gate.setGateActive(true);
         // Two waves, so the gate has a woosh and its counter means a stage part-way through it.
         // With none the kawoosh could never play at all, and the check below would hold anyway.
-        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
-        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
         final Block drawn = mock(Block.class);
-        final org.bukkit.Location at = new org.bukkit.Location(null, 1, 2, 3);
+        final Location at = new Location(null, 1, 2, 3);
         when(drawn.getLocation()).thenReturn(at);
         gate.getGateAnimatedBlocks().add(drawn);
         gate.setGateAnimationStep3D(1);
         gate.setGateIrisActive(true);
 
-        try (org.mockito.MockedStatic<StargateBlockSetup> setup = mockStatic(StargateBlockSetup.class);
-             org.mockito.MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        try (MockedStatic<StargateBlockSetup> setup = mockStatic(StargateBlockSetup.class);
+             MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
         {
             StargateAnimator.animateOpening(gate);
 
-            setup.verify(() -> StargateBlockSetup.undrawBlocks(gate, java.util.List.of(at)));
+            setup.verify(() -> StargateBlockSetup.undrawBlocks(gate, List.of(at)));
             sounds.verify(() -> GateSounds.kawoosh(gate), never());
         }
         finally
@@ -381,11 +385,11 @@ class StargateAnimatorTest
         final Stargate gate = new Stargate();
         gate.setGateActive(true);
         // A woosh to hear: a gate with none makes no kawoosh, iris or not.
-        gate.getGateWooshBlocks().add(new java.util.ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
         gate.setGateAnimationStep3D(0);
         gate.setGateIrisActive(true);
 
-        try (org.mockito.MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
+        try (MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
         {
             StargateAnimator.animateOpening(gate);
 

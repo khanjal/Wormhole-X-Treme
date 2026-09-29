@@ -1,10 +1,12 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 
 /**
@@ -282,18 +284,18 @@ public class Ring
      * finished starting — and asking again for every material in the game would then throw
      * and be caught a thousand times per tab press.
      */
-    private static final org.bukkit.Tag<Material> SLAB_TAG = resolveSlabTag();
+    private static final Tag<Material> SLAB_TAG = resolveSlabTag();
 
     /**
      * Asks the server for its slab tag.
      *
      * @return the tag, or null if there is no registry to ask
      */
-    private static org.bukkit.Tag<Material> resolveSlabTag()
+    private static Tag<Material> resolveSlabTag()
     {
         try
         {
-            return org.bukkit.Tag.SLABS;
+            return Tag.SLABS;
         }
         // LinkageError as well: a registry that is not ready fails in class
         // initialisation, which surfaces as an ExceptionInInitializerError.
@@ -456,7 +458,7 @@ public class Ring
                 found.add(material);
             }
         }
-        return java.util.Collections.unmodifiableList(found);
+        return Collections.unmodifiableList(found);
     }
 
     /**

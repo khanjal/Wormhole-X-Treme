@@ -27,11 +27,16 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
 
 /**
  * A mirror cannot be broken out from under the people using it.
@@ -110,9 +115,9 @@ class MirrorBlockProtectionTest
         new WormholeXTremeBlockListener().onBlockBreak(event);
 
         assertTrue(event.isCancelled(), "a mirror's banner does not break");
-        final org.mockito.ArgumentCaptor<net.md_5.bungee.api.chat.BaseComponent> said =
-            org.mockito.ArgumentCaptor.forClass(net.md_5.bungee.api.chat.BaseComponent.class);
-        verify(hotbar).sendMessage(org.mockito.ArgumentMatchers.eq(net.md_5.bungee.api.ChatMessageType.ACTION_BAR),
+        final ArgumentCaptor<BaseComponent> said =
+            ArgumentCaptor.forClass(BaseComponent.class);
+        verify(hotbar).sendMessage(ArgumentMatchers.eq(ChatMessageType.ACTION_BAR),
             said.capture());
         assertTrue(said.getValue().toPlainText().contains("mirror remove"), "and says how: " + said.getValue().toPlainText());
         verify(player, never()).sendMessage(anyString());

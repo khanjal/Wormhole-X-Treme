@@ -23,14 +23,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
@@ -44,6 +49,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -69,7 +75,7 @@ class MirrorCapturesTest
     /** A torch on the sand three blocks ahead of the arrival point, or null for none. */
     private BlockData torch;
     /** Every column, as "x,z", whose blocks a capture has read. */
-    private final java.util.Set<String> columnsRead = new java.util.HashSet<>();
+    private final Set<String> columnsRead = new HashSet<>();
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
@@ -102,7 +108,7 @@ class MirrorCapturesTest
         // Sand up to y 69 everywhere, air above: the arrival point stands on the beach. A test may
         // stand a torch on the sand three blocks ahead, at (100, 70, -18), which the world's
         // surface heightmap counts and the snapshot's own -- blocks a player collides with -- does not.
-        when(far.getHighestBlockYAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.any(org.bukkit.HeightMap.class)))
+        when(far.getHighestBlockYAt(anyInt(), anyInt(), ArgumentMatchers.any(HeightMap.class)))
             .thenAnswer(invocation -> ((torch != null) && (((int) invocation.getArgument(0)) == 100)
                 && (((int) invocation.getArgument(1)) == -18)) ? 70 : 69);
         MirrorCaptures.readChunksWith((world, chunkX, chunkZ) ->
@@ -209,7 +215,7 @@ class MirrorCapturesTest
             MirrorCaptures.step(6);
         });
 
-        final java.util.Set<String> box = new java.util.HashSet<>();
+        final Set<String> box = new HashSet<>();
         for (int x = 82; x <= 118; x++)
         {
             for (int z = -22; z <= -3; z++)
@@ -381,13 +387,13 @@ class MirrorCapturesTest
      * so nobody's captures are left behind to puzzle over.
      */
     @Test
-    void anEarlierBuildsCaptureFolderIsMovedUnderMirror() throws java.io.IOException
+    void anEarlierBuildsCaptureFolderIsMovedUnderMirror() throws IOException
     {
         final File data = new File(dataFolder, "data");
         final File earlier = new File(data, "mirror-captures");
         assertTrue(earlier.mkdirs());
         final File kept = new File(earlier, "world_1_2_3.view");
-        java.nio.file.Files.writeString(kept.toPath(), "not really a capture");
+        Files.writeString(kept.toPath(), "not really a capture");
 
         final File dir = DataLayout.mirrorCaptureDir();
 

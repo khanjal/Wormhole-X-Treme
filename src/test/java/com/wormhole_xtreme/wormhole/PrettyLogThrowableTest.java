@@ -26,12 +26,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * What a caught exception looks like in the log.
@@ -174,14 +178,14 @@ class PrettyLogThrowableTest
         final Logger real = Logger.getLogger("PrettyLogThrowableTest.changingTheSetting");
         real.setLevel(Level.INFO);
         set("log", real);
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.loadDefaults();
         try
         {
-            com.wormhole_xtreme.wormhole.config.ConfigManager.applySetting("log-level", "FINE");
+            ConfigManager.applySetting("log-level", "FINE");
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
             PluginTestSupport.remove();
         }
 
@@ -219,7 +223,7 @@ class PrettyLogThrowableTest
     {
         final List<String> found = new ArrayList<>();
         int scanned = 0;
-        try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
+        try (Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
             for (final Path source : walk.toList())
             {

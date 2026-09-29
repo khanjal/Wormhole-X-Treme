@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -54,7 +55,7 @@ public class Wormhole implements CommandExecutor
             else if (entry.admits(sender, new String[] { group[1], "build" }))
             {
                 // gate opens build to whoever may preview, without wormhole.config.
-                usage = com.wormhole_xtreme.wormhole.command.handlers.GateCommand.usageOf("build");
+                usage = GateCommand.usageOf("build");
             }
             else
             {

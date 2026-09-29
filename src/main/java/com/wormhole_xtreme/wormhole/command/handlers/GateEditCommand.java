@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 
@@ -14,7 +15,11 @@ import com.wormhole_xtreme.wormhole.command.WXIDC;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
  * One command for every per-gate setting.
@@ -107,8 +112,8 @@ public class GateEditCommand implements SubCommand
     @SuppressWarnings("java:S3516")
     private static boolean setIrisAnimation(final CommandSender sender, final String gateName, final String value)
     {
-        final com.wormhole_xtreme.wormhole.model.Stargate gate =
-            com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
+        final Stargate gate =
+            StargateManager.getStargate(gateName);
         if (gate == null)
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
@@ -138,13 +143,13 @@ public class GateEditCommand implements SubCommand
     }
 
     /** Where a gate's iris animation comes from, when not its own. */
-    private static String irisAnimationSource(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    private static String irisAnimationSource(final Stargate gate)
     {
         if (gate.getGateIrisAnimation() != null)
         {
             return "";
         }
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup group = gate.getGateMaterialGroup();
+        final MaterialGroup group = gate.getGateMaterialGroup();
         return ((group != null) && (group.getIrisAnimation() != null))
             ? " (from group " + group.getName() + ")" : " (the server default)";
     }
@@ -183,8 +188,8 @@ public class GateEditCommand implements SubCommand
     @SuppressWarnings("java:S3516")
     private static boolean setSpin(final CommandSender sender, final String gateName, final String value)
     {
-        final com.wormhole_xtreme.wormhole.model.Stargate gate =
-            com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
+        final Stargate gate =
+            StargateManager.getStargate(gateName);
         if (gate == null)
         {
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
@@ -212,13 +217,13 @@ public class GateEditCommand implements SubCommand
     }
 
     /** Where a gate's pattern comes from, when not its own. */
-    private static String spinSource(final com.wormhole_xtreme.wormhole.model.Stargate gate)
+    private static String spinSource(final Stargate gate)
     {
         if (gate.getGateDialSpin() != null)
         {
             return "";
         }
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup group = gate.getGateMaterialGroup();
+        final MaterialGroup group = gate.getGateMaterialGroup();
         return ((group != null) && (group.getDialSpin() != null))
             ? " (from group " + group.getName() + ")" : " (the server default)";
     }
@@ -268,8 +273,8 @@ public class GateEditCommand implements SubCommand
     private static boolean setGroup(final CommandSender sender, final String gateName,
         final String value)
     {
-        final com.wormhole_xtreme.wormhole.model.Stargate gate =
-            com.wormhole_xtreme.wormhole.model.StargateManager.getStargate(gateName);
+        final Stargate gate =
+            StargateManager.getStargate(gateName);
         if (gate == null)
         {
             sender.sendMessage(NO_GATE_CALLED + gateName + ".");
@@ -277,7 +282,7 @@ public class GateEditCommand implements SubCommand
         }
         if ((value == null) || value.isEmpty())
         {
-            final com.wormhole_xtreme.wormhole.model.MaterialGroup current =
+            final MaterialGroup current =
                 gate.getGateMaterialGroup();
             sender.sendMessage(gate.getGateName() + " is on group "
                 + (current == null ? "(none)" : current.getName()) + ". Groups are: "
@@ -289,13 +294,13 @@ public class GateEditCommand implements SubCommand
         {
             gate.chooseGateMaterialGroup(null);
             StargateDBManager.saveStargate(gate);
-            final com.wormhole_xtreme.wormhole.model.MaterialGroup byFrame = gate.getGateMaterialGroup();
+            final MaterialGroup byFrame = gate.getGateMaterialGroup();
             sender.sendMessage(gate.getGateName() + " follows its frame again: group "
                 + ((byFrame == null) ? "(none)" : byFrame.getName()) + ".");
             return true;
         }
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup group =
-            com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroup(value);
+        final MaterialGroup group =
+            MaterialGroupRegistry.getGroup(value);
         if (group == null)
         {
             sender.sendMessage("No material group called " + value + ". Groups are: "
@@ -314,14 +319,10 @@ public class GateEditCommand implements SubCommand
      */
     public static List<String> groupNames()
     {
-        final List<String> names = new ArrayList<>();
-        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g
-            : com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups())
-        {
-            names.add(g.getName());
-        }
-        java.util.Collections.sort(names);
-        return names;
+        return MaterialGroupRegistry.getGroups().stream()
+            .map(MaterialGroup::getName)
+            .sorted()
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

@@ -16,6 +16,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,12 +101,12 @@ class CompleteStargateTest
      * <p>It needs a location and a type because that dump asks every block it names for both,
      * guarded only against the block itself being null.
      */
-    private static org.bukkit.block.Block signBlock()
+    private static Block signBlock()
     {
-        final org.bukkit.World world = mock(org.bukkit.World.class);
-        final org.bukkit.block.Block b = mock(org.bukkit.block.Block.class);
-        when(b.getLocation()).thenReturn(new org.bukkit.Location(world, 1, 64, 1));
-        when(b.getType()).thenReturn(org.bukkit.Material.OAK_WALL_SIGN);
+        final World world = mock(World.class);
+        final Block b = mock(Block.class);
+        when(b.getLocation()).thenReturn(new Location(world, 1, 64, 1));
+        when(b.getType()).thenReturn(Material.OAK_WALL_SIGN);
         return b;
     }
 

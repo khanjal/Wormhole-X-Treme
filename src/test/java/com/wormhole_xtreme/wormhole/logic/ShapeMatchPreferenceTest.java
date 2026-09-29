@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.bukkit.Location;
 import org.junit.jupiter.api.BeforeEach;
@@ -208,7 +209,7 @@ class ShapeMatchPreferenceTest
     void noShippedShapeBeatsAnEqualCopyOfItself() throws Exception
     {
         int checked = 0;
-        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
             for (final Path p : listing.toList())
             {

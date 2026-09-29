@@ -62,7 +62,7 @@ class WooshSequenceTest
     /** Writes down what the sequence asked of it, and has an iris that can be shut at any stage. */
     private static final class Recorder implements WooshSequence.Canvas
     {
-        final java.util.List<String> calls = new java.util.ArrayList<>();
+        final List<String> calls = new ArrayList<>();
         boolean shut;
 
         @Override public void kawoosh() { calls.add("kawoosh"); }
@@ -74,7 +74,7 @@ class WooshSequenceTest
     }
 
     /** Plays a woosh of this many steps to the end, shutting or opening the iris before a stage. */
-    private static java.util.List<String> playAll(final int steps, final Recorder canvas,
+    private static List<String> playAll(final int steps, final Recorder canvas,
         final int toggleBefore)
     {
         int stage = 0;
@@ -93,7 +93,7 @@ class WooshSequenceTest
     @Test
     void anOpenIrisPlaysTheWholeWoosh()
     {
-        assertEquals(java.util.List.of("kawoosh", "out 0", "out 1", "back 1", "back 0", "settle"),
+        assertEquals(List.of("kawoosh", "out 0", "out 1", "back 1", "back 0", "settle"),
             playAll(2, new Recorder(), -1));
     }
 
@@ -103,7 +103,7 @@ class WooshSequenceTest
     {
         final Recorder canvas = new Recorder();
         canvas.shut = true;
-        assertEquals(java.util.List.of("kawoosh", "back all", "behind iris"), playAll(2, canvas, -1));
+        assertEquals(List.of("kawoosh", "back all", "behind iris"), playAll(2, canvas, -1));
     }
 
     /**
@@ -113,7 +113,7 @@ class WooshSequenceTest
     @Test
     void anIrisShutPartwayStopsTheWooshAndTakesBackWhatIsOut()
     {
-        assertEquals(java.util.List.of("kawoosh", "out 0", "back all", "behind iris"), playAll(2, new Recorder(), 1));
+        assertEquals(List.of("kawoosh", "out 0", "back all", "behind iris"), playAll(2, new Recorder(), 1));
     }
 
     /** Opened before the woosh: the woosh plays as though it had never been shut. */
@@ -122,7 +122,7 @@ class WooshSequenceTest
     {
         final Recorder canvas = new Recorder();
         canvas.shut = true;
-        assertEquals(java.util.List.of("kawoosh", "out 0", "out 1", "back 1", "back 0", "settle"),
+        assertEquals(List.of("kawoosh", "out 0", "out 1", "back 1", "back 0", "settle"),
             playAll(2, canvas, 0));
     }
 
@@ -130,9 +130,9 @@ class WooshSequenceTest
     @Test
     void noWooshNoKawoosh()
     {
-        assertEquals(java.util.List.of("settle"), playAll(0, new Recorder(), -1));
+        assertEquals(List.of("settle"), playAll(0, new Recorder(), -1));
         final Recorder shut = new Recorder();
         shut.shut = true;
-        assertEquals(java.util.List.of("back all", "behind iris"), playAll(0, shut, -1));
+        assertEquals(List.of("back all", "behind iris"), playAll(0, shut, -1));
     }
 }

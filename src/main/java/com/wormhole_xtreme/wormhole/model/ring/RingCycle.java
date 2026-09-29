@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -616,7 +617,7 @@ public class RingCycle
      */
     private static List<RingPassenger> riddenBySomethingElse(final List<RingPassenger> travelling)
     {
-        final java.util.Set<String> going = new java.util.HashSet<String>();
+        final Set<String> going = new HashSet<String>();
         for (final RingPassenger passenger : travelling)
         {
             // Nulls are left out deliberately. Two things that cannot say what they are would

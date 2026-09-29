@@ -15,22 +15,33 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.ProxiedCommandSender;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.command.Dial;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 
 /**
  * Building a gate from a line of words, with nobody standing there.
@@ -54,8 +65,8 @@ class GateConsoleCommandsTest
              MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
         {
             final Stargate3DShape standard = mock(Stargate3DShape.class);
-            final com.wormhole_xtreme.wormhole.model.StargateShape flat =
-                mock(com.wormhole_xtreme.wormhole.model.StargateShape.class);
+            final StargateShape flat =
+                mock(StargateShape.class);
             final World world = mock(World.class);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
@@ -63,7 +74,7 @@ class GateConsoleCommandsTest
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat")).thenReturn(flat);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
-            return GateConsoleCommands.whyNotBuildable(mock(org.bukkit.command.ConsoleCommandSender.class), words);
+            return GateConsoleCommands.whyNotBuildable(mock(ConsoleCommandSender.class), words);
         }
     }
 
@@ -140,23 +151,23 @@ class GateConsoleCommandsTest
     @Test
     void aPlayerWithoutTheRightToDialFromTheGateIsRefused()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         final Stargate start = new Stargate();
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
-                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<WXPermissions> perms =
+                 mockStatic(WXPermissions.class);
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
             // Config granted, so it is the dial right, not the config one, that refuses.
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, start, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.DIALER)).thenReturn(false);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(false);
 
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
 
-            verify(player).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
 
@@ -164,20 +175,20 @@ class GateConsoleCommandsTest
     @Test
     void aPlayerWithTheRightToDialFromTheGateDials()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         final Stargate start = new Stargate();
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms = mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, start, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.DIALER)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(true);
 
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
 
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(player, start, new String[] { "Chulak" }));
+            dial.verify(() -> Dial.dialFrom(player, start, new String[] { "Chulak" }));
         }
     }
 
@@ -188,20 +199,20 @@ class GateConsoleCommandsTest
     @Test
     void aGateAlreadyOpenIsNotDialledFrom()
     {
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final CommandSender console = mock(ConsoleCommandSender.class);
         final Stargate start = mock(Stargate.class);
         when(start.isGateActive()).thenReturn(true);
         when(start.getGateName()).thenReturn("Abydos");
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
 
             GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
 
             verify(console).sendMessage(contains("Abydos is already open."));
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
 
@@ -209,17 +220,17 @@ class GateConsoleCommandsTest
     @Test
     void theConsoleDialsFromAClosedGate()
     {
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final CommandSender console = mock(ConsoleCommandSender.class);
         final Stargate start = new Stargate();
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
 
             GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
 
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(console, start, new String[] { "Chulak" }));
+            dial.verify(() -> Dial.dialFrom(console, start, new String[] { "Chulak" }));
         }
     }
 
@@ -227,25 +238,25 @@ class GateConsoleCommandsTest
     @Test
     void aPlayerWithoutBuildRightsOnTheNetworkIsRefusedBeforeAnythingIsPlaced()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         final Stargate3DShape standard = mock(Stargate3DShape.class);
         final World world = mock(World.class);
         try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
-                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+             MockedStatic<WXPermissions> perms =
+                 mockStatic(WXPermissions.class);
              MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, "Private", com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.BUILD)).thenReturn(false);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, "Private", WXPermissions.PermissionType.BUILD)).thenReturn(false);
 
             GateConsoleCommands.build(player, line("Standard", "A", "world", "0", "-60", "0", "south", "net=Private"));
 
-            verify(player).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()), never());
         }
     }
@@ -262,16 +273,16 @@ class GateConsoleCommandsTest
         final World world = mock(World.class);
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
-        final com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part frame =
-            com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part.FRAME;
+        final GateBlueprint.Part frame =
+            GateBlueprint.Part.FRAME;
 
         assertEquals("part of it would be below the world's floor at -64.", GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -65, 0, frame, 0))));
+            List.of(new GateBlueprint.Cell(0, -65, 0, frame, 0))));
         assertEquals("part of it would be above the world's build height of 320.", GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 320, 0, frame, 0))));
+            List.of(new GateBlueprint.Cell(0, 320, 0, frame, 0))));
         assertNull(GateConsoleCommands.outsideHeight(world,
-            List.of(new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, -64, 0, frame, 0),
-                new com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell(0, 319, 0, frame, 0))),
+            List.of(new GateBlueprint.Cell(0, -64, 0, frame, 0),
+                new GateBlueprint.Cell(0, 319, 0, frame, 0))),
             "the floor and the top block are both inside");
     }
 
@@ -282,20 +293,20 @@ class GateConsoleCommandsTest
     @Test
     void aGateBeingDialledByAPlayerIsNotDialledFrom()
     {
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final CommandSender console = mock(ConsoleCommandSender.class);
         final Stargate start = mock(Stargate.class);
         when(start.isGateLightsActive()).thenReturn(true);
         when(start.getGateName()).thenReturn("Abydos");
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
 
             GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
 
             verify(console).sendMessage(contains("Abydos is being dialled."));
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
 
@@ -322,7 +333,7 @@ class GateConsoleCommandsTest
     /** A line built with one 3D shape called Standard in a world from -64 to 320, as the console. */
     private static final class Building implements AutoCloseable
     {
-        final org.bukkit.command.CommandSender console;
+        final CommandSender console;
         final Stargate3DShape standard = mock(Stargate3DShape.class);
         final World world = mock(World.class);
         final GateGrid grid = new GateGrid(0, -60, 0, BlockFace.SOUTH, BlockFace.WEST);
@@ -335,10 +346,10 @@ class GateConsoleCommandsTest
 
         Building()
         {
-            this(mock(org.bukkit.command.ConsoleCommandSender.class));
+            this(mock(ConsoleCommandSender.class));
         }
 
-        Building(final org.bukkit.command.CommandSender sender)
+        Building(final CommandSender sender)
         {
             console = sender;
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
@@ -458,11 +469,11 @@ class GateConsoleCommandsTest
         try (Building building = new Building())
         {
             final Stargate gate = mock(Stargate.class);
-            final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+            final Block button = mock(Block.class);
             when(button.getX()).thenReturn(0);
             when(button.getY()).thenReturn(-60);
             when(button.getZ()).thenReturn(0);
-            final List<Location> opening = new java.util.ArrayList<>(List.of(new Location(null, -2, -58, -3)));
+            final List<Location> opening = new ArrayList<>(List.of(new Location(null, -2, -58, -3)));
             when(gate.getGatePortalBlocks()).thenReturn(opening);
             when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(null, -1.5, -60, -1.5));
             final GatePreviews.Placed placed = new GatePreviews.Placed(GatePreviews.Outcome.PLACED, List.of(), gate, button);
@@ -473,7 +484,7 @@ class GateConsoleCommandsTest
 
             verify(building.world).getChunkAt(0, 0);
             building.previews.verify(() -> GatePreviews.builtAt(building.world, 0, -60, 0));
-            building.gates.verify(() -> StargateManager.completeStargate(gate, (org.bukkit.entity.Player) null,
+            building.gates.verify(() -> StargateManager.completeStargate(gate, (Player) null,
                 "Abydos", "open", "Traders"));
             verify(building.console).sendMessage(contains("Built Abydos at 0 -60 0 in world. Opening centred on"
                 + " -1.5 -57.5 -2.5; arrivals at -1.5 -60.0 -1.5."));
@@ -484,16 +495,16 @@ class GateConsoleCommandsTest
     @Test
     void aPlayerWithoutConfigIsRefusedBuildingOrDialling()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
-        try (MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
-                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
+        final Player player = mock(Player.class);
+        try (MockedStatic<WXPermissions> perms =
+                 mockStatic(WXPermissions.class);
              MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
         {
             GateConsoleCommands.build(player, line("Standard", "Abydos", "world", "0", "-60", "0", "south"));
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
 
             verify(player, times(2)).sendMessage(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
+                ConfigManager.MessageStrings.PERMISSION_NO.toString());
             gates.verify(() -> StargateManager.getStargate(any()), never());
         }
     }
@@ -502,10 +513,10 @@ class GateConsoleCommandsTest
     @Test
     void aDialWithTheWrongWordsOrNoSuchGateIsRefused()
     {
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.ConsoleCommandSender.class);
+        final CommandSender console = mock(ConsoleCommandSender.class);
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             GateConsoleCommands.dial(console, line("Abydos"));
             GateConsoleCommands.dial(console, line("Abydos", "Chulak", "open", "extra"));
@@ -513,7 +524,7 @@ class GateConsoleCommandsTest
 
             verify(console, times(2)).sendMessage(contains("Usage: " + GateConsoleCommands.DIAL_USAGE));
             verify(console).sendMessage(contains("No gate called Nowhere."));
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
 
@@ -524,8 +535,8 @@ class GateConsoleCommandsTest
     @Test
     void aCommandBlockBuildsWhereItsTildesPoint()
     {
-        final org.bukkit.command.BlockCommandSender commandBlock = mock(org.bukkit.command.BlockCommandSender.class);
-        final org.bukkit.block.Block itsBlock = mock(org.bukkit.block.Block.class);
+        final BlockCommandSender commandBlock = mock(BlockCommandSender.class);
+        final Block itsBlock = mock(Block.class);
         when(commandBlock.getBlock()).thenReturn(itsBlock);
         try (Building building = new Building(commandBlock))
         {
@@ -545,24 +556,24 @@ class GateConsoleCommandsTest
     @Test
     void aProxyDoesNotLendAPlayerTheRightToDial()
     {
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
-        final org.bukkit.command.ProxiedCommandSender asThemselves = mock(org.bukkit.command.ProxiedCommandSender.class);
+        final Player player = mock(Player.class);
+        final ProxiedCommandSender asThemselves = mock(ProxiedCommandSender.class);
         when(asThemselves.getCaller()).thenReturn(player);
         when(asThemselves.getCallee()).thenReturn(player);
         final Stargate start = new Stargate();
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.permissions.WXPermissions> perms =
-                 mockStatic(com.wormhole_xtreme.wormhole.permissions.WXPermissions.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.command.Dial> dial =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.Dial.class))
+             MockedStatic<WXPermissions> perms =
+                 mockStatic(WXPermissions.class);
+             MockedStatic<Dial> dial =
+                 mockStatic(Dial.class))
         {
             gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
-            perms.when(() -> com.wormhole_xtreme.wormhole.permissions.WXPermissions.checkWXPermissions(player, com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
 
             GateConsoleCommands.dial(asThemselves, line("Abydos", "Chulak"));
 
-            verify(asThemselves).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            dial.verify(() -> com.wormhole_xtreme.wormhole.command.Dial.dialFrom(any(), any(), any()), never());
+            verify(asThemselves).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
 }

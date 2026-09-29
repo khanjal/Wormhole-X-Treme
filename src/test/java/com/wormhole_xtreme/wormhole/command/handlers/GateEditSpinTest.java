@@ -11,6 +11,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Locale;
+
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +54,7 @@ class GateEditSpinTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -122,7 +125,7 @@ class GateEditSpinTest
     {
         for (final DialSpinPattern pattern : DialSpinPattern.values())
         {
-            assertTrue(GateEditCommand.spinNames().contains(pattern.name().toLowerCase(java.util.Locale.ROOT)));
+            assertTrue(GateEditCommand.spinNames().contains(pattern.name().toLowerCase(Locale.ROOT)));
         }
         assertTrue(GateEditCommand.spinNames().contains("default"));
     }

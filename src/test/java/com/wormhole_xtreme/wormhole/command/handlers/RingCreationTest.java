@@ -26,13 +26,17 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
+import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
+import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
@@ -195,7 +199,7 @@ class RingCreationTest
         return new RingCommand().execute(builder, new String[] { "ring", "create" });
     }
 
-    private static com.wormhole_xtreme.wormhole.model.ring.RingManager.PendingRing waiting()
+    private static RingManager.PendingRing waiting()
     {
         return RingManager.getPending(UUID.fromString(OWNER));
     }
@@ -272,8 +276,8 @@ class RingCreationTest
         for (final RingPattern.Offset offset : RingPattern.ODD.getPerimeter())
         {
             verify(blockAt(RX + offset.getDx(), RY, RZ + offset.getDz()), never())
-                .setType(org.mockito.ArgumentMatchers.any(Material.class),
-                    org.mockito.ArgumentMatchers.anyBoolean());
+                .setType(ArgumentMatchers.any(Material.class),
+                    ArgumentMatchers.anyBoolean());
         }
         verify(builder).sendMessage(contains("slabs stay put"));
     }
@@ -361,16 +365,16 @@ class RingCreationTest
     void aRingLaidTooNearAnExistingPairIsRefused()
     {
         config.when(ConfigManager::getRingMinSeparation).thenReturn(Integer.valueOf(50));
-        final com.wormhole_xtreme.wormhole.model.ring.Ring near =
-            new com.wormhole_xtreme.wormhole.model.ring.Ring(RX + 10, RY, RZ + 10,
-                RingPattern.ODD, com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+        final Ring near =
+            new Ring(RX + 10, RY, RZ + 10,
+                RingPattern.ODD, RingOrientation.FLOOR,
                 Material.STONE_SLAB, Material.GLOWSTONE);
-        final com.wormhole_xtreme.wormhole.model.ring.Ring far =
-            new com.wormhole_xtreme.wormhole.model.ring.Ring(2000, RY, 2000,
-                RingPattern.ODD, com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+        final Ring far =
+            new Ring(2000, RY, 2000,
+                RingPattern.ODD, RingOrientation.FLOOR,
                 Material.STONE_SLAB, Material.GLOWSTONE);
-        final com.wormhole_xtreme.wormhole.model.ring.RingPair neighbour =
-            new com.wormhole_xtreme.wormhole.model.ring.RingPair("yyyy0008", WORLD, near, far);
+        final RingPair neighbour =
+            new RingPair("yyyy0008", WORLD, near, far);
         neighbour.setOwner(UUID.randomUUID().toString());
         RingManager.addPair(neighbour, 5);
 
@@ -455,16 +459,16 @@ class RingCreationTest
     /** Another pair already to the builder's name, so the quota has something to count. */
     private void givenTheBuilderAlreadyOwnsAPair()
     {
-        final com.wormhole_xtreme.wormhole.model.ring.Ring a =
-            new com.wormhole_xtreme.wormhole.model.ring.Ring(900, 64, 900, RingPattern.ODD,
-                com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+        final Ring a =
+            new Ring(900, 64, 900, RingPattern.ODD,
+                RingOrientation.FLOOR,
                 Material.STONE_SLAB, Material.GLOWSTONE);
-        final com.wormhole_xtreme.wormhole.model.ring.Ring b =
-            new com.wormhole_xtreme.wormhole.model.ring.Ring(1100, 64, 1100, RingPattern.ODD,
-                com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+        final Ring b =
+            new Ring(1100, 64, 1100, RingPattern.ODD,
+                RingOrientation.FLOOR,
                 Material.STONE_SLAB, Material.GLOWSTONE);
-        final com.wormhole_xtreme.wormhole.model.ring.RingPair theirs =
-            new com.wormhole_xtreme.wormhole.model.ring.RingPair("zzzz0009", WORLD, a, b);
+        final RingPair theirs =
+            new RingPair("zzzz0009", WORLD, a, b);
         theirs.setOwner(OWNER);
         RingManager.addPair(theirs, 5);
     }

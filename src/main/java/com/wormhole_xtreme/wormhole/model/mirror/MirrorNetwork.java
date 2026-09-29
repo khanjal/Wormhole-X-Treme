@@ -11,6 +11,7 @@ import java.util.function.LongSupplier;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 
@@ -88,7 +89,7 @@ public final class MirrorNetwork
         {
             return null;
         }
-        final org.bukkit.block.BlockFace facing = directional.getFacing();
+        final BlockFace facing = directional.getFacing();
         // Right, looking at the wall; a hair short of the boundary, so the column stays the left one.
         final double shift = (width >= 2) ? 0.49 : 0.0;
         // The banner hangs at the top of the opening; a traveller's feet go at its bottom.

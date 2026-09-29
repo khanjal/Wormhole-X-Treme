@@ -13,6 +13,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -20,18 +22,31 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
+import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.vehicle.VehicleMoveEvent;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * What holds a drawn iris shut now that it is not a wall.
@@ -266,17 +281,17 @@ class DrawnIrisHoldsShutTest
      *            the entity interface to mock
      * @return the entity
      */
-    private <T extends org.bukkit.entity.Entity> T inTheOpening(final Class<T> type)
+    private <T extends Entity> T inTheOpening(final Class<T> type)
     {
         final T entity = mock(type);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
         when(entity.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
-        when(entity.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
+        when(entity.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(entity.isInsideVehicle()).thenReturn(false);
         when(entity.isValid()).thenReturn(true);
         when(entity.getVelocity()).thenReturn(new Vector(0, 0, -1));
-        when(world.getNearbyEntities(any(org.bukkit.util.BoundingBox.class)))
-            .thenReturn(java.util.Collections.<org.bukkit.entity.Entity>singletonList(entity));
+        when(world.getNearbyEntities(any(BoundingBox.class)))
+            .thenReturn(Collections.<Entity>singletonList(entity));
         return entity;
     }
 
@@ -289,11 +304,11 @@ class DrawnIrisHoldsShutTest
     @Test
     void anItemSentAtAShutIrisIsDestroyedRatherThanDelivered() throws Exception
     {
-        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        PluginTestSupport.scheduler(mock(BukkitScheduler.class));
         dial();
         gate.setGateIrisActive(false);
         destination.setGateIrisActive(true);
-        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+        final Item item = inTheOpening(Item.class);
 
         try
         {
@@ -317,10 +332,10 @@ class DrawnIrisHoldsShutTest
     @Test
     void aMobAtAShutIrisIsLeftStandingRatherThanDestroyed() throws Exception
     {
-        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        PluginTestSupport.scheduler(mock(BukkitScheduler.class));
         dial();
         gate.setGateIrisActive(true);
-        final org.bukkit.entity.Zombie zombie = inTheOpening(org.bukkit.entity.Zombie.class);
+        final Zombie zombie = inTheOpening(Zombie.class);
 
         try
         {
@@ -370,20 +385,20 @@ class DrawnIrisHoldsShutTest
         when(beyond.getZ()).thenReturn(Integer.valueOf(BZ - 1));
         when(beyond.getWorld()).thenReturn(world);
         when(world.getBlockAt(BX, BY, BZ - 1)).thenReturn(beyond);
-        final org.bukkit.block.data.BlockData horizon = mock(org.bukkit.block.data.BlockData.class);
-        final org.bukkit.block.data.BlockData iris = mock(org.bukkit.block.data.BlockData.class);
+        final BlockData horizon = mock(BlockData.class);
+        final BlockData iris = mock(BlockData.class);
 
-        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
-            org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        try (MockedStatic<MaterialUtils> materials =
+            Mockito.mockStatic(MaterialUtils.class))
         {
             // Stubbed with the gate's own facing rather than any(): the opening is drawn with
             // drawnAcross so that an Orientable material lies in the gate's plane, and pinning
             // the facing here is what says the gate's own facing is what reaches it.
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAcross(
-                Material.WATER, org.bukkit.block.BlockFace.NORTH)).thenReturn(horizon);
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAcross(
-                Material.IRON_BLOCK, org.bukkit.block.BlockFace.NORTH)).thenReturn(iris);
-            materials.when(() -> com.wormhole_xtreme.wormhole.utils.MaterialUtils.isAirMaterial(Material.AIR))
+            materials.when(() -> MaterialUtils.drawnAcross(
+                Material.WATER, BlockFace.NORTH)).thenReturn(horizon);
+            materials.when(() -> MaterialUtils.drawnAcross(
+                Material.IRON_BLOCK, BlockFace.NORTH)).thenReturn(iris);
+            materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR))
                 .thenReturn(true);
 
             // North-facing, so the front is the smaller z. One step from in front to behind: the
@@ -392,10 +407,10 @@ class DrawnIrisHoldsShutTest
                 new Location(world, BX + 0.5, BY, BZ - 1.5), new Location(world, BX + 0.5, BY, BZ + 1.5)));
         }
 
-        verify(player).sendBlockChange(org.mockito.ArgumentMatchers.argThat(
-            at -> (at != null) && (at.getBlockZ() == BZ)), org.mockito.ArgumentMatchers.eq(horizon));
-        verify(player).sendBlockChange(org.mockito.ArgumentMatchers.argThat(
-            at -> (at != null) && (at.getBlockZ() == BZ - 1)), org.mockito.ArgumentMatchers.eq(iris));
+        verify(player).sendBlockChange(ArgumentMatchers.argThat(
+            at -> (at != null) && (at.getBlockZ() == BZ)), ArgumentMatchers.eq(horizon));
+        verify(player).sendBlockChange(ArgumentMatchers.argThat(
+            at -> (at != null) && (at.getBlockZ() == BZ - 1)), ArgumentMatchers.eq(iris));
     }
 
     // -----------------------------------------------------------------------
@@ -413,11 +428,11 @@ class DrawnIrisHoldsShutTest
     @Test
     void aSwingAtADrawnIrisRedrawsItOnceNotOnEverySwing() throws Exception
     {
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         when(player.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ - 2.5));
-        final org.bukkit.event.player.PlayerAnimationEvent swing =
-            mock(org.bukkit.event.player.PlayerAnimationEvent.class);
+        final PlayerAnimationEvent swing =
+            mock(PlayerAnimationEvent.class);
         when(swing.getPlayer()).thenReturn(player);
 
         try
@@ -509,13 +524,13 @@ class DrawnIrisHoldsShutTest
     @Test
     void aCartAtAnIdleGatesShutIrisIsStoppedWhereItWas() throws Exception
     {
-        final org.bukkit.entity.Minecart cart = cartAt();
+        final Minecart cart = cartAt();
         final Location from = new Location(world, BX + 0.5, BY, BZ - 0.5);
-        PluginTestSupport.scheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        PluginTestSupport.scheduler(mock(BukkitScheduler.class));
 
         try
         {
-            new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+            new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(
                 cart, from, new Location(world, BX + 0.5, BY, BZ + 0.5)));
         }
         finally
@@ -532,9 +547,9 @@ class DrawnIrisHoldsShutTest
     void aCartAtAnIdleGateWithItsIrisOpenRollsOn()
     {
         gate.setGateIrisActive(false);
-        final org.bukkit.entity.Minecart cart = cartAt();
+        final Minecart cart = cartAt();
 
-        new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+        new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(
             cart, new Location(world, BX + 0.5, BY, BZ - 0.5), new Location(world, BX + 0.5, BY, BZ + 0.5)));
 
         verify(cart, never()).teleport(any(Location.class));
@@ -543,10 +558,10 @@ class DrawnIrisHoldsShutTest
     /**
      * A cart with nobody in it, rolling east.
      */
-    private org.bukkit.entity.Minecart cartAt()
+    private Minecart cartAt()
     {
-        final org.bukkit.entity.Minecart cart = mock(org.bukkit.entity.Minecart.class);
-        when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>emptyList());
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(0, 0, 1));
         // A real server says whether it moved; an unstubbed mock would say it refused.
@@ -563,7 +578,7 @@ class DrawnIrisHoldsShutTest
     @Test
     void anItemAtAnIdleGatesShutIrisIsDestroyed()
     {
-        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+        final Item item = inTheOpening(Item.class);
 
         GateEntityScanner.create().run();
 
@@ -574,7 +589,7 @@ class DrawnIrisHoldsShutTest
     @Test
     void aMobAtAnIdleGatesShutIrisIsLeftStanding()
     {
-        final org.bukkit.entity.Zombie zombie = inTheOpening(org.bukkit.entity.Zombie.class);
+        final Zombie zombie = inTheOpening(Zombie.class);
 
         GateEntityScanner.create().run();
 
@@ -621,7 +636,7 @@ class DrawnIrisHoldsShutTest
     {
         gate.setGateActive(true);
         gate.setGatePortalOpen(true);
-        final org.bukkit.entity.Item item = inTheOpening(org.bukkit.entity.Item.class);
+        final Item item = inTheOpening(Item.class);
 
         GateEntityScanner.create().run();
 
@@ -637,17 +652,17 @@ class DrawnIrisHoldsShutTest
     @Test
     void aRiddenCartTurnedBackAtAShutIrisHasItsRiderReseated() throws Exception
     {
-        final org.bukkit.entity.Minecart cart = cartAt();
+        final Minecart cart = cartAt();
         final Player rider = mock(Player.class);
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.teleport(any(Location.class))).thenReturn(true);
-        when(cart.getPassengers()).thenReturn(java.util.List.<org.bukkit.entity.Entity>of(rider));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        when(cart.getPassengers()).thenReturn(List.<Entity>of(rider));
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
 
         try
         {
-            new WormholeXTremeVehicleListener().onVehicleMove(new org.bukkit.event.vehicle.VehicleMoveEvent(
+            new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(
                 cart, new Location(world, BX + 0.5, BY, BZ - 0.5), new Location(world, BX + 0.5, BY, BZ + 0.5)));
         }
         finally
@@ -655,6 +670,6 @@ class DrawnIrisHoldsShutTest
             PluginTestSupport.scheduler(null);
         }
 
-        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), org.mockito.ArgumentMatchers.eq(5L));
+        verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), ArgumentMatchers.eq(5L));
     }
 }

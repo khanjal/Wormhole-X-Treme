@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Locale;
+
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
@@ -171,17 +173,17 @@ class ParsedSettingTest
         // toUpperCase() -- handed Level.parse a character it has never heard of and refused
         // "fine" on Turkish servers alone. Level names are fixed ASCII; the fold has to be
         // too. The default locale is JVM-wide state, so it is put back before leaving.
-        final java.util.Locale before = java.util.Locale.getDefault();
+        final Locale before = Locale.getDefault();
         try
         {
-            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"));
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
             storesAs(ConfigKeys.LOG_LEVEL, "fine", "FINE");
             storesAs(ConfigKeys.LOG_LEVEL, "info", "INFO");
             storesAs(ConfigKeys.LOG_LEVEL, "finest", "FINEST");
         }
         finally
         {
-            java.util.Locale.setDefault(before);
+            Locale.setDefault(before);
         }
     }
 

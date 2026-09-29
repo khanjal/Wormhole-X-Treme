@@ -26,6 +26,7 @@ import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -136,7 +137,7 @@ class WormholeUsageTest
     {
         final Player player = mock(Player.class);
         when(player.hasPermission(anyString())).thenReturn(false);
-        when(player.hasPermission(com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions.PREVIEW)).thenReturn(true);
+        when(player.hasPermission(PreviewPermissions.PREVIEW)).thenReturn(true);
 
         command.onCommand(player, null, "wormhole", new String[0]);
 

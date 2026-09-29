@@ -13,11 +13,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
+import org.bukkit.Material;
+
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
@@ -532,16 +539,16 @@ public final class StargateShapeRegistry
      */
     private static void reportShapesWithoutMaterialGroup()
     {
-        final java.util.List<MaterialGroup> discovered =
+        final List<MaterialGroup> discovered =
             MaterialGroupRegistry.discoverUndeclaredGroups(getStargateShapes().values());
         if (discovered.isEmpty())
         {
             return;
         }
 
-        if (!com.wormhole_xtreme.wormhole.config.ConfigManager.isGateMaterialGroupsAutodiscover())
+        if (!ConfigManager.isGateMaterialGroupsAutodiscover())
         {
-            final java.util.List<String> names = new java.util.ArrayList<String>();
+            final List<String> names = new ArrayList<String>();
             for (final MaterialGroup g : discovered)
             {
                 names.add(g.getName() + "=" + g.getStructureMaterial());
@@ -557,14 +564,14 @@ public final class StargateShapeRegistry
         {
             MaterialGroupRegistry.registerDiscoveredGroup(g);
         }
-        com.wormhole_xtreme.wormhole.config.ConfigManager.appendDiscoveredMaterialGroups(discovered);
+        ConfigManager.appendDiscoveredMaterialGroups(discovered);
         rebuildKnownStructureMaterials();
     }
 
     /** Frame materials any loaded shape declares. Replaced wholesale on load. */
     // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
     @SuppressWarnings("java:S3077")
-    private static volatile java.util.Set<org.bukkit.Material> knownStructureMaterials = java.util.Collections.emptySet();
+    private static volatile Set<Material> knownStructureMaterials = Collections.emptySet();
 
     /**
      * Gets every frame material a loaded shape declares.
@@ -575,14 +582,14 @@ public final class StargateShapeRegistry
      *
      * @return an unmodifiable set of frame materials
      */
-    public static java.util.Set<org.bukkit.Material> getKnownStructureMaterials()
+    public static Set<Material> getKnownStructureMaterials()
     {
         return knownStructureMaterials;
     }
 
     private static void rebuildKnownStructureMaterials()
     {
-        final java.util.Set<org.bukkit.Material> materials = new java.util.HashSet<org.bukkit.Material>();
+        final Set<Material> materials = new HashSet<Material>();
         for (final StargateShape shape : getStargateShapes().values())
         {
             if (shape.getShapeStructureMaterial() != null)
@@ -590,6 +597,6 @@ public final class StargateShapeRegistry
                 materials.add(shape.getShapeStructureMaterial());
             }
         }
-        knownStructureMaterials = java.util.Collections.unmodifiableSet(materials);
+        knownStructureMaterials = Collections.unmodifiableSet(materials);
     }
 }

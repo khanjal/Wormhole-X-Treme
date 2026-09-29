@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -207,7 +208,7 @@ public final class RingManager
     }
 
     /** @return every pending end, by owner */
-    public static java.util.Map<UUID, PendingRing> getAllPending()
+    public static Map<UUID, PendingRing> getAllPending()
     {
         return Collections.unmodifiableMap(pending);
     }

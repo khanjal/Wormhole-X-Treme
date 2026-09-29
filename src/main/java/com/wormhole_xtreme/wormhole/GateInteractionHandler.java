@@ -5,13 +5,20 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 
+import com.wormhole_xtreme.wormhole.command.Complete;
+import com.wormhole_xtreme.wormhole.command.Refresh;
+import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -224,7 +231,7 @@ public final class GateInteractionHandler
         {
             return direction;
         }
-        if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
+        if (clickedBlock.getBlockData() instanceof Directional clicked)
         {
             return clicked.getFacing();
         }
@@ -288,14 +295,14 @@ public final class GateInteractionHandler
     private static boolean handlePendingCompletion(final Player player, final Block clickedBlock,
                                                    final BlockFace direction)
     {
-        final String[] pending = com.wormhole_xtreme.wormhole.command.Complete.getPendingCompletion(player);
+        final String[] pending = Complete.getPendingCompletion(player);
         if (pending == null)
         {
             return false;
         }
         try
         {
-            com.wormhole_xtreme.wormhole.model.Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
+            Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
             if (found == null)
             {
                 player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
@@ -303,7 +310,7 @@ public final class GateInteractionHandler
                 return true;
             }
             completeDetectedGate(player, found, pending);
-            com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
+            Complete.removePendingCompletion(player);
         }
         catch (final RuntimeException e)
         {
@@ -313,7 +320,7 @@ public final class GateInteractionHandler
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName(), e);
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Completing the gate failed. Check server logs.");
-            com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
+            Complete.removePendingCompletion(player);
         }
         return true;
     }
@@ -324,11 +331,11 @@ public final class GateInteractionHandler
      * <p>A malformed shape can throw out of detection. That is one facing's problem, so the
      * sweep notes it and carries on rather than giving up on the other five.
      */
-    private static com.wormhole_xtreme.wormhole.model.Stargate detectAnyFacing(final Block clickedBlock, final BlockFace first)
+    private static Stargate detectAnyFacing(final Block clickedBlock, final BlockFace first)
     {
         if (first != null)
         {
-            final com.wormhole_xtreme.wormhole.model.Stargate found = detectQuietly(clickedBlock, first);
+            final Stargate found = detectQuietly(clickedBlock, first);
             if (found != null)
             {
                 return found;
@@ -336,7 +343,7 @@ public final class GateInteractionHandler
         }
         for (final BlockFace face : ALL_FACINGS)
         {
-            final com.wormhole_xtreme.wormhole.model.Stargate found = detectQuietly(clickedBlock, face);
+            final Stargate found = detectQuietly(clickedBlock, face);
             if (found != null)
             {
                 return found;
@@ -346,11 +353,11 @@ public final class GateInteractionHandler
     }
 
     /** One detection attempt, where a malformed shape is a miss rather than a failure. */
-    private static com.wormhole_xtreme.wormhole.model.Stargate detectQuietly(final Block clickedBlock, final BlockFace face)
+    private static Stargate detectQuietly(final Block clickedBlock, final BlockFace face)
     {
         try
         {
-            return com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, face);
+            return StargateHelper.checkStargate(clickedBlock, face);
         }
         catch (final RuntimeException e)
         {
@@ -361,11 +368,11 @@ public final class GateInteractionHandler
     }
 
     /** Registers the detected gate and completes it, charging for it if the server does. */
-    private static void completeDetectedGate(final Player player, final com.wormhole_xtreme.wormhole.model.Stargate found,
+    private static void completeDetectedGate(final Player player, final Stargate found,
         final String[] pending)
     {
-        com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
-        com.wormhole_xtreme.wormhole.command.Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
+        StargateManager.addIncompleteStargate(player, found);
+        Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
             "Construction Failed after interactive detection. Check server log.", null);
     }
 
@@ -405,13 +412,13 @@ public final class GateInteractionHandler
     private static boolean handlePendingRefresh(final Player player, final Block clickedBlock,
                                                 final BlockFace direction)
     {
-        if (!com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player))
+        if (!Refresh.isPendingRefresh(player))
         {
             return false;
         }
-        final boolean clearLiquid = com.wormhole_xtreme.wormhole.command.Refresh.isPendingClearLiquid(player);
-        com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
-        com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand.regenerateClicked(player, clickedBlock,
+        final boolean clearLiquid = Refresh.isPendingClearLiquid(player);
+        Refresh.removePendingRefresh(player);
+        RegenerateCommand.regenerateClicked(player, clickedBlock,
             direction, clearLiquid);
         return true;
     }
@@ -454,7 +461,7 @@ public final class GateInteractionHandler
         if (stargate.getGateTarget() != null)
         {
             //Shutdown stargate
-            stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
+            stargate.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
             player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
             return true;
         }
@@ -617,7 +624,7 @@ public final class GateInteractionHandler
         final Block clickedBlock = event.getClickedBlock();
         final Player player = event.getPlayer();
 
-        if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
+        if ((clickedBlock != null) && (MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
             logActivatorClick(player, clickedBlock);
             if (buttonLeverHit(player, clickedBlock, null))
@@ -625,7 +632,7 @@ public final class GateInteractionHandler
                 return true;
             }
         }
-        else if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(clickedBlock.getType())))
+        else if ((clickedBlock != null) && (MaterialUtils.isWallSign(clickedBlock.getType())))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)
@@ -752,7 +759,7 @@ public final class GateInteractionHandler
      */
     private static List<Block> blocksAround(final Block clickedBlock)
     {
-        final org.bukkit.World world = clickedBlock.getWorld();
+        final World world = clickedBlock.getWorld();
         final List<Block> out = new ArrayList<>(26);
         for (int dx = -1; dx <= 1; dx++)
         {
@@ -838,8 +845,8 @@ public final class GateInteractionHandler
      */
     private static BlockFace[] probeFaces(final Block candidate)
     {
-        final org.bukkit.block.data.BlockData data = candidate.getBlockData();
-        if (data instanceof org.bukkit.block.data.Directional directional)
+        final BlockData data = candidate.getBlockData();
+        if (data instanceof Directional directional)
         {
             return new BlockFace[] { directional.getFacing() };
         }

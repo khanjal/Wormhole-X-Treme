@@ -7,6 +7,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +59,7 @@ class MaterialGroupConfigWriteTest
     void groupIsInsertedIntoAnExistingSectionWithoutLosingTheOnesAlreadyThere() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList(
+        Files.write(cfg.toPath(), Arrays.asList(
             "log-level: INFO",
             "",
             "# Material groups",
@@ -89,7 +90,7 @@ class MaterialGroupConfigWriteTest
     void sectionIsCreatedWhenTheConfigHasNoneYet() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
+        Files.write(cfg.toPath(), Arrays.asList("log-level: INFO"));
 
         assertTrue(ConfigurationYAML.appendMaterialGroups(cfg, diamond()));
 
@@ -104,7 +105,7 @@ class MaterialGroupConfigWriteTest
     void writingProducesExactlyOneTopLevelSectionKey() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList(
+        Files.write(cfg.toPath(), Arrays.asList(
             "gate-material-groups:",
             "  Standard:",
             "    structure: OBSIDIAN"));
@@ -126,7 +127,7 @@ class MaterialGroupConfigWriteTest
     void nothingIsWrittenForAnEmptyGroupList() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
+        Files.write(cfg.toPath(), Arrays.asList("log-level: INFO"));
         final byte[] before = Files.readAllBytes(cfg.toPath());
 
         assertFalse(ConfigurationYAML.appendMaterialGroups(cfg, new ArrayList<>()));
@@ -150,7 +151,7 @@ class MaterialGroupConfigWriteTest
     void aNewGroupIsWrittenAmongTheDefinitionsNotAfterTheNextKeysComment() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList(
+        Files.write(cfg.toPath(), Arrays.asList(
             "gate-material-groups:",
             "  Standard:",
             "    structure: OBSIDIAN",

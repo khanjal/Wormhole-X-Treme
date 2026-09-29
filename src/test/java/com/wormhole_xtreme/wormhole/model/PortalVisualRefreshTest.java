@@ -4,12 +4,25 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Redrawing the portal for a player who arrives after the gate opened.
@@ -29,7 +42,7 @@ class PortalVisualRefreshTest
     @AfterEach
     void afterEach()
     {
-        com.wormhole_xtreme.wormhole.PluginTestSupport.forgetAllGates();
+        PluginTestSupport.forgetAllGates();
     }
 
     private static Stargate openGateAt(final World world, final int x, final int y, final int z)
@@ -145,7 +158,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 102, 64, 100));
 
@@ -164,7 +177,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 900, 64, 900));
 
@@ -180,7 +193,7 @@ class PortalVisualRefreshTest
         openGateAt(world, 100, 64, 100);
 
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(false);
 
         StargateBlockSetup.refreshPortalVisuals(player);
@@ -203,7 +216,7 @@ class PortalVisualRefreshTest
         gate.setGatePortalOpen(false);
 
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 102, 64, 100));
 
@@ -222,7 +235,7 @@ class PortalVisualRefreshTest
         gate.setGateActive(false);
 
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(world, 100, 64, 100));
 
@@ -238,7 +251,7 @@ class PortalVisualRefreshTest
         gate.getGateLightBlocks().add(null);
         for (int n = 1; n <= 8; n++)
         {
-            gate.getGateLightBlocks().add(new java.util.ArrayList<>(java.util.List.of(new Location(here, 200 + n, 64, 0))));
+            gate.getGateLightBlocks().add(new ArrayList<>(List.of(new Location(here, 200 + n, 64, 0))));
         }
         final Stargate target = new Stargate();
         target.setGateWorld(there);
@@ -251,27 +264,27 @@ class PortalVisualRefreshTest
     private static boolean irisCellsSent;
 
     /** Which light blocks, by x, a player arriving by the open gate is sent. */
-    private static java.util.Set<Integer> chevronsSentFor(final World here)
+    private static Set<Integer> chevronsSentFor(final World here)
     {
         when(here.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv -> {
-            final org.bukkit.block.Block b = mock(org.bukkit.block.Block.class);
+            final Block b = mock(Block.class);
             when(b.getLocation()).thenReturn(new Location(here, inv.getArgument(0, Integer.class),
                 inv.getArgument(1, Integer.class), inv.getArgument(2, Integer.class)));
             return b;
         });
         final Player player = mock(Player.class);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOnline()).thenReturn(true);
         when(player.getLocation()).thenReturn(new Location(here, 102, 64, 100));
-        final org.mockito.ArgumentCaptor<Location> sent = org.mockito.ArgumentCaptor.forClass(Location.class);
-        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.utils.MaterialUtils> materials =
-                 mockStatic(com.wormhole_xtreme.wormhole.utils.MaterialUtils.class))
+        final ArgumentCaptor<Location> sent = ArgumentCaptor.forClass(Location.class);
+        try (MockedStatic<MaterialUtils> materials =
+                 mockStatic(MaterialUtils.class))
         {
             StargateBlockSetup.refreshPortalVisuals(player);
         }
         verify(player, atLeastOnce()).sendBlockChange(sent.capture(), any());
         irisCellsSent = sent.getAllValues().stream().anyMatch(l -> l.getBlockX() == 100);
-        final java.util.Set<Integer> xs = new java.util.TreeSet<>();
+        final Set<Integer> xs = new TreeSet<>();
         for (final Location l : sent.getAllValues())
         {
             if (l.getBlockX() > 200)
@@ -290,7 +303,7 @@ class PortalVisualRefreshTest
         when(here.getName()).thenReturn("here");
         openEightChevronGate(here, here);
 
-        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7), chevronsSentFor(here));
+        assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7), chevronsSentFor(here));
     }
 
     /** Open to another world, the eighth is shown too. */
@@ -303,7 +316,7 @@ class PortalVisualRefreshTest
         when(there.getName()).thenReturn("there");
         openEightChevronGate(here, there);
 
-        assertEquals(java.util.Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here));
+        assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7, 8), chevronsSentFor(here));
     }
 
     /**
@@ -321,7 +334,7 @@ class PortalVisualRefreshTest
         gate.setGatePortalOpen(false);
         gate.setGateChevronsLocked(3);
 
-        assertEquals(java.util.Set.of(1, 2, 3), chevronsSentFor(here));
+        assertEquals(Set.of(1, 2, 3), chevronsSentFor(here));
     }
 
     /** Dialling behind its own shut iris, a gate is shown its iris, and the chevrons locked so far. */
@@ -331,13 +344,13 @@ class PortalVisualRefreshTest
         final World here = mock(World.class);
         when(here.getName()).thenReturn("here");
         final Stargate gate = openEightChevronGate(here, here);
-        gate.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        gate.setGateFacing(BlockFace.NORTH);
         gate.setGateIrisActive(true);
         gate.setGatePortalOpen(false);
         gate.setGateChevronsLocked(2);
 
-        final java.util.Set<Integer> xs = chevronsSentFor(here);
-        assertEquals(java.util.Set.of(1, 2), xs, "only the chevrons locked so far");
+        final Set<Integer> xs = chevronsSentFor(here);
+        assertEquals(Set.of(1, 2), xs, "only the chevrons locked so far");
         assertTrue(irisCellsSent, "the shut iris is drawn over the empty opening");
     }
 }

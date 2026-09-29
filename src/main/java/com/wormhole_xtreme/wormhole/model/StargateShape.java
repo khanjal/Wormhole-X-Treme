@@ -1,9 +1,13 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -96,7 +100,7 @@ public class StargateShape
      * A shape restricts this only when a palette would make it ambiguous against
      * another shape with the same frame layout.
      */
-    private final java.util.Set<String> shapeMaterialGroups = new java.util.HashSet<String>();
+    private final Set<String> shapeMaterialGroups = new HashSet<String>();
 
     /** The shape woosh ticks. */
     private int shapeWooshTicks = 3;
@@ -113,8 +117,8 @@ public class StargateShape
     private static final Pattern MARKER = Pattern.compile("(\\[[^\\]]*+\\])");
 
     /** The material keys a shape file may carry, each against the setting it fills. */
-    private static final java.util.Map<String, java.util.function.BiConsumer<StargateShape, Material>> MATERIAL_KEYS =
-        java.util.Map.of(
+    private static final Map<String, BiConsumer<StargateShape, Material>> MATERIAL_KEYS =
+        Map.of(
             "PORTAL_MATERIAL", StargateShape::setShapePortalMaterial,
             "IRIS_MATERIAL", StargateShape::setShapeIrisMaterial,
             "STARGATE_MATERIAL", StargateShape::setShapeStructureMaterial,
@@ -123,8 +127,8 @@ public class StargateShape
             "SIGN_MATERIAL", StargateShape::setShapeSignMaterial);
 
     /** Which slot of the corner offset each BUTTON_ key fills. */
-    private static final java.util.Map<String, Integer> BUTTON_AXES =
-        java.util.Map.of("BUTTON_RIGHT", 0, "BUTTON_UP", 1, "BUTTON_AWAY", 2);
+    private static final Map<String, Integer> BUTTON_AXES =
+        Map.of("BUTTON_RIGHT", 0, "BUTTON_UP", 1, "BUTTON_AWAY", 2);
 
     /**
      * Instantiates a new stargate shape.
@@ -292,7 +296,7 @@ public class StargateShape
      */
     private void applyLegacySetting(final String line)
     {
-        for (final java.util.Map.Entry<String, Integer> axis : BUTTON_AXES.entrySet())
+        for (final Map.Entry<String, Integer> axis : BUTTON_AXES.entrySet())
         {
             if (line.contains(axis.getKey()))
             {
@@ -309,7 +313,7 @@ public class StargateShape
             setShapeWooshDepth(Integer.parseInt(line.split("=")[1]));
             return;
         }
-        for (final java.util.Map.Entry<String, java.util.function.BiConsumer<StargateShape, Material>> key
+        for (final Map.Entry<String, BiConsumer<StargateShape, Material>> key
             : MATERIAL_KEYS.entrySet())
         {
             if (line.contains(key.getKey()) && (line.split("=").length > 1))

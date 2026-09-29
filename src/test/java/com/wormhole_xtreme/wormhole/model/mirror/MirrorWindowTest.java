@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -273,7 +274,7 @@ class MirrorWindowTest
 
         final double[] shadow = window.shadow(0.5, 64.0, -3.0, 2, 63, -2);
         assertTrue((shadow != MirrorWindow.UNSEEN) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
-            "off to the right and magnified: " + java.util.Arrays.toString(shadow));
+            "off to the right and magnified: " + Arrays.toString(shadow));
         assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
         assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
     }

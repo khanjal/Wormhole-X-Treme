@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -91,7 +92,7 @@ class PreviewBlockChangeTest
             final BlockBreakEvent event = new BlockBreakEvent(blockAt(10, 64, 20), player);
             new WormholeXTremeBlockListener().onBlockBreak(event);
 
-            org.junit.jupiter.api.Assertions.assertTrue(event.isCancelled());
+            Assertions.assertTrue(event.isCancelled());
             previews.verify(() -> GatePreviews.blockChanged(any(), anyInt(), anyInt(), anyInt()), never());
         }
         finally

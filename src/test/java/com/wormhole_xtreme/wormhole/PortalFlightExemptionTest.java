@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.GameMode;
@@ -70,7 +71,7 @@ class PortalFlightExemptionTest
      * exemption by one test is revoked by the next one and the result depends on the order
      * they ran in.
      */
-    private static java.util.Set<UUID> flightGrants() throws Exception
+    private static Set<UUID> flightGrants() throws Exception
     {
         return PrivateStatics.of(WormholeXTremePlayerListener.class, "portalFlightGranted");
     }

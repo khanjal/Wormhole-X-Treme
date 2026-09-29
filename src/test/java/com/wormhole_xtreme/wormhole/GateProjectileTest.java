@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -15,15 +16,28 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Egg;
+import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.Fireball;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Snowball;
+import org.bukkit.entity.TNTPrimed;
+import org.bukkit.entity.ThrownPotion;
+import org.bukkit.entity.Trident;
+import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -55,7 +69,7 @@ class GateProjectileTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
         PluginTestSupport.scheduler(scheduler);
@@ -138,8 +152,8 @@ class GateProjectileTest
 
         // spawnArrow creates it already travelling; a plain spawn produces something that
         // behaves like an arrow which has already landed.
-        final org.mockito.ArgumentCaptor<Vector> dir = org.mockito.ArgumentCaptor.forClass(Vector.class);
-        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Vector> dir = ArgumentCaptor.forClass(Vector.class);
+        final ArgumentCaptor<Float> speed = ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), dir.capture(), speed.capture(), anyFloat(), any(Class.class));
 
         assertTrue(dir.getValue().getX() > 0, "should fly east, the way the destination gate faces");
@@ -156,7 +170,7 @@ class GateProjectileTest
         // again a tick later.
         sendArrowThroughGate();
 
-        final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
+        final ArgumentCaptor<Vector> v = ArgumentCaptor.forClass(Vector.class);
         verify(spawned, times(2)).setVelocity(v.capture());
         assertTrue(v.getValue().getX() > 0, "should still be flying east on the re-apply");
         assertEquals(3.0, v.getValue().length(), 1e-6);
@@ -250,11 +264,11 @@ class GateProjectileTest
 
         sendArrowThroughGate();
 
-        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Float> speed = ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
         assertEquals(3.0, speed.getValue(), 1e-5, "a stalled arrow should leave at bow speed");
 
-        final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
+        final ArgumentCaptor<Vector> v = ArgumentCaptor.forClass(Vector.class);
         verify(spawned, atLeastOnce()).setVelocity(v.capture());
         assertEquals(3.0, v.getValue().length(), 1e-6);
         assertTrue(v.getValue().getX() > 0, "and still leave the way the gate faces");
@@ -269,7 +283,7 @@ class GateProjectileTest
 
         sendArrowThroughGate();
 
-        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Float> speed = ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
         assertEquals(3.0, speed.getValue(), 1e-5);
     }
@@ -282,7 +296,7 @@ class GateProjectileTest
 
         sendArrowThroughGate();
 
-        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<Float> speed = ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
         assertEquals(5.0, speed.getValue(), 1e-5);
     }
@@ -292,20 +306,20 @@ class GateProjectileTest
     {
         // Anything that flies under its own momentum has the same problem, so the rule is
         // Projectile, not Arrow.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
-            org.bukkit.entity.Snowball.class, org.bukkit.entity.Egg.class,
-            org.bukkit.entity.EnderPearl.class, org.bukkit.entity.ThrownPotion.class,
-            org.bukkit.entity.Trident.class, org.bukkit.entity.Fireball.class))
+        for (final Class<? extends Entity> type : Arrays.asList(
+            Snowball.class, Egg.class,
+            EnderPearl.class, ThrownPotion.class,
+            Trident.class, Fireball.class))
         {
-            assertTrue(org.bukkit.entity.Projectile.class.isAssignableFrom(type),
+            assertTrue(Projectile.class.isAssignableFrom(type),
                 type.getSimpleName() + " should be handled by the projectile path");
         }
         // And these are not projectiles, so they keep the ordinary teleport.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
-            org.bukkit.entity.Item.class, org.bukkit.entity.TNTPrimed.class,
-            org.bukkit.entity.FallingBlock.class, org.bukkit.entity.Zombie.class))
+        for (final Class<? extends Entity> type : Arrays.asList(
+            Item.class, TNTPrimed.class,
+            FallingBlock.class, Zombie.class))
         {
-            assertFalse(org.bukkit.entity.Projectile.class.isAssignableFrom(type),
+            assertFalse(Projectile.class.isAssignableFrom(type),
                 type.getSimpleName() + " should take the ordinary teleport path");
         }
     }
@@ -314,7 +328,7 @@ class GateProjectileTest
     void aNonProjectileIsStillJustTeleported()
     {
         // Only projectiles need replacing; everything else moves as before.
-        final org.bukkit.entity.Zombie zombie = mock(org.bukkit.entity.Zombie.class);
+        final Zombie zombie = mock(Zombie.class);
         when(zombie.getUniqueId()).thenReturn(UUID.randomUUID());
         when(zombie.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
         when(zombie.getPassengers()).thenReturn(Collections.<Entity>emptyList());

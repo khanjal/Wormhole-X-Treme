@@ -2,9 +2,13 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 /**
  * Tab completion for {@code /wormhole ring edit}, which is the one command here with a
@@ -39,7 +43,7 @@ class RingTabCompletionTest
     {
         assertTrue(complete("ring", "").containsAll(List.of("build", "fire")));
 
-        final org.bukkit.entity.Player player = org.mockito.Mockito.mock(org.bukkit.entity.Player.class);
+        final Player player = Mockito.mock(Player.class);
         final List<String> offered = SubCommands.find("ring").completeArgs(player, new String[] { "ring", "" });
         assertTrue(offered.contains("create"));
         assertFalse(offered.contains("build"));
@@ -102,7 +106,7 @@ class RingTabCompletionTest
     void lightsAreFilteredByWhatHasBeenTyped()
     {
         final List<String> typed = complete("ring", "edit", "light", "sea");
-        assertEquals(java.util.Collections.singletonList("sea_lantern"), typed);
+        assertEquals(Collections.singletonList("sea_lantern"), typed);
     }
 
     @Test
@@ -138,7 +142,7 @@ class RingTabCompletionTest
     @Test
     void accessAndStyleOfferTheirOwnWords()
     {
-        assertEquals(java.util.Arrays.asList("public", "private"),
+        assertEquals(Arrays.asList("public", "private"),
             complete("ring", "edit", "access", ""));
         final List<String> styles = complete("ring", "edit", "style", "");
         assertTrue(styles.contains("fast"));

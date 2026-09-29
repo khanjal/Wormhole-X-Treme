@@ -1,10 +1,12 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.ChatColor;
 import org.bukkit.block.sign.Side;
@@ -18,6 +20,7 @@ import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -99,13 +102,13 @@ class StargateDialManager
         {
             synchronized (gate.getGateNetwork().getNetworkGateLock())
             {
-                final java.util.List<Stargate> netList = gate.getGateNetwork().getNetworkGateList();
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
+                final List<Stargate> netList = gate.getGateNetwork().getNetworkGateList();
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                     "SignDial: gate=" + gate.getGateName() + " network=" + gate.getGateNetwork().getNetworkName()
                     + " networkSize=" + netList.size());
                 for (final Stargate s : netList)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                         "SignDial:   peer=" + s.getGateName() + " signPowered=" + s.isGateSignPowered());
                     if (!s.getGateName().equals(gate.getGateName()))
                     {
@@ -116,21 +119,21 @@ class StargateDialManager
         }
         else
         {
-            final java.util.List<Stargate> allGates = StargateManager.getAllGates();
-            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+            final List<Stargate> allGates = StargateManager.getAllGates();
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "SignDial: gate=" + gate.getGateName() + " network=none(public) allGatesSize=" + allGates.size());
             for (final Stargate s : allGates)
             {
                 if (s.getGateNetwork() == null && !s.getGateName().equals(gate.getGateName()))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "SignDial:   peer=" + s.getGateName() + " signPowered=" + s.isGateSignPowered());
                     others.add(s);
                 }
             }
         }
 
-        java.util.Collections.sort(others, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
+        Collections.sort(others, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
         return others;
     }
 
@@ -144,7 +147,7 @@ class StargateDialManager
     private static void updateDialSign(final Stargate gate, final int step)
     {
         // Fetch the sign block state first.
-        final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
+        final BlockState bState = gate.getGateDialSignBlock().getState();
         if (!(bState instanceof Sign))
         {
             // Was a silent return, which is how a gate went quietly dead: the sign is gone, so
@@ -252,7 +255,7 @@ class StargateDialManager
     {
         if (teleportSign && gate.getGateDialSignBlock() != null)
         {
-            final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
+            final BlockState bState = gate.getGateDialSignBlock().getState();
             if (!(bState instanceof Sign))
             {
                 return;
@@ -330,7 +333,7 @@ class StargateDialManager
         {
             return false;
         }
-        if (!com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(gate.getGateDialSignBlock().getType()))
+        if (!MaterialUtils.isWallSign(gate.getGateDialSignBlock().getType()))
         {
             return false;
         }

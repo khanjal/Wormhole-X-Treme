@@ -7,12 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,12 +68,12 @@ class WormholePlaceholdersTest
     private static void drain()
     {
         for (final Stargate existing
-            : new java.util.ArrayList<>(StargateManager.getAllGatesUnsorted()))
+            : new ArrayList<>(StargateManager.getAllGatesUnsorted()))
         {
             existing.setGateActive(false);
             StargateManager.removeStargate(existing);
         }
-        for (final Stargate open : new java.util.ArrayList<>(StargateManager.getOpenGates()))
+        for (final Stargate open : new ArrayList<>(StargateManager.getOpenGates()))
         {
             open.setGateActive(false);
         }
@@ -103,8 +105,8 @@ class WormholePlaceholdersTest
         // PlaceholderAPI shows both in /papi info. The version has to come from the plugin
         // rather than be typed here, or every release would report whatever number somebody
         // last remembered to change.
-        final org.bukkit.plugin.PluginDescriptionFile description =
-            mock(org.bukkit.plugin.PluginDescriptionFile.class);
+        final PluginDescriptionFile description =
+            mock(PluginDescriptionFile.class);
         when(description.getVersion()).thenReturn("9.9.9");
         when(WormholeXTreme.getThisPlugin().getDescription()).thenReturn(description);
 

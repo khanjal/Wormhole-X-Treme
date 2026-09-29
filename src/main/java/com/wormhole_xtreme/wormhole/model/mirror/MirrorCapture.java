@@ -1228,9 +1228,9 @@ public final class MirrorCapture
     /**
      * What a capture holds, one {@code mirror debug} line each.
      */
-    public java.util.List<String> describeLines()
+    public List<String> describeLines()
     {
-        return java.util.List.of(
+        return List.of(
             MirrorText.field("box", worldName + " x " + minX + ".." + (minX + sizeX - 1) + " y " + minY + ".."
                 + (minY + sizeY - 1) + " z " + minZ + ".." + (minZ + sizeZ - 1)),
             MirrorText.field("kept", filled() + " blocks and " + seenAir() + " air of " + size() + ", "

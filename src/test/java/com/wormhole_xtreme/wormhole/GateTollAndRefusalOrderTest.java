@@ -22,6 +22,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +75,7 @@ class GateTollAndRefusalOrderTest
     {
         GateSpatialIndex.clear();
         set("thisPlugin", mock(WormholeXTreme.class));
-        set("scheduler", mock(org.bukkit.scheduler.BukkitScheduler.class));
+        set("scheduler", mock(BukkitScheduler.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);

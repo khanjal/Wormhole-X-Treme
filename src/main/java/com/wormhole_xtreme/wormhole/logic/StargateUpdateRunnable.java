@@ -5,6 +5,7 @@ import java.util.logging.Level;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
 /**
@@ -109,7 +110,7 @@ public class StargateUpdateRunnable implements Runnable
         switch (action)
         {
             case SHUTDOWN :
-                stargate.shutdownStargate(true, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.TIMEOUT);
+                stargate.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
                 break;
             case ANIMATE_WOOSH :
                 stargate.animateOpening();

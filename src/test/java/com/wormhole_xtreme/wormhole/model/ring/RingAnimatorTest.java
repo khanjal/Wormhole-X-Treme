@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -531,7 +532,7 @@ class RingAnimatorTest
             seen.add(Integer.valueOf((placement.getY() * 2) + (placement.isTop() ? 1 : 0)));
         }
         final List<Integer> out = new ArrayList<>(seen);
-        java.util.Collections.sort(out, java.util.Collections.reverseOrder());
+        Collections.sort(out, Collections.reverseOrder());
         return out;
     }
 

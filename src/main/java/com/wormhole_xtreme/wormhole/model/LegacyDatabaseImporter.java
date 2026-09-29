@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -208,7 +209,7 @@ public final class LegacyDatabaseImporter
      */
     private static boolean importOneQuietly(final ResultSet rows, final int[] movedExits,
         final List<String> skipped)
-        throws java.sql.SQLException
+        throws SQLException
     {
         final String name = column(rows, "Name");
         try
@@ -254,7 +255,7 @@ public final class LegacyDatabaseImporter
     // is. LegacySqliteImportTest runs the whole import against a real database.
     static String importOne(final ResultSet rows, final String name,
         final int[] movedExits)
-        throws java.sql.SQLException
+        throws SQLException
     {
         final byte[] data = rows.getBytes("GateData");
         final String worldName = column(rows, "WorldName");
@@ -390,7 +391,7 @@ public final class LegacyDatabaseImporter
         {
             return rows.getString(name);
         }
-        catch (final java.sql.SQLException notInThisSchema)
+        catch (final SQLException notInThisSchema)
         {
             return null;
         }

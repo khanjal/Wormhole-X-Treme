@@ -26,15 +26,20 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -47,15 +52,21 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -139,7 +150,7 @@ class MirrorWindowsTest
                 invocation.getArgument(2)));
         // Sky over sky above a column's top is skipped, and a bare mock's top is y 0: the
         // real side here reaches the top of the world, so nothing a test builds is skipped.
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class)))
             .thenReturn(Integer.MAX_VALUE);
 
         banner = bannerAt(10);
@@ -259,7 +270,7 @@ class MirrorWindowsTest
     {
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -270,8 +281,8 @@ class MirrorWindowsTest
                 final Block bannerBlock = world.getBlockAt(10, 64, 10);
                 when(opening.getRelative(BlockFace.NORTH)).thenReturn(bannerBlock);
                 MirrorWindows.resend(viewer, opening, BlockFace.NORTH);
-                final org.mockito.ArgumentCaptor<Runnable> soon = org.mockito.ArgumentCaptor.forClass(Runnable.class);
-                verify(scheduler).runTaskAsynchronously(org.mockito.ArgumentMatchers.any(org.bukkit.plugin.Plugin.class),
+                final ArgumentCaptor<Runnable> soon = ArgumentCaptor.forClass(Runnable.class);
+                verify(scheduler).runTaskAsynchronously(ArgumentMatchers.any(Plugin.class),
                     soon.capture());
                 verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
                 soon.getValue().run();
@@ -307,7 +318,7 @@ class MirrorWindowsTest
     {
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -315,10 +326,10 @@ class MirrorWindowsTest
             {
                 MirrorProximity.tick();
                 MirrorWindows.resend(viewer);
-                final org.mockito.ArgumentCaptor<Runnable> later = org.mockito.ArgumentCaptor.forClass(Runnable.class);
-                verify(scheduler, org.mockito.Mockito.atLeastOnce()).scheduleSyncDelayedTask(
-                    org.mockito.ArgumentMatchers.any(org.bukkit.plugin.Plugin.class), later.capture(),
-                    org.mockito.ArgumentMatchers.eq(1L));
+                final ArgumentCaptor<Runnable> later = ArgumentCaptor.forClass(Runnable.class);
+                verify(scheduler, Mockito.atLeastOnce()).scheduleSyncDelayedTask(
+                    ArgumentMatchers.any(Plugin.class), later.capture(),
+                    ArgumentMatchers.eq(1L));
                 verify(viewer, times(1)).sendBlockChanges(anyCollection());
                 later.getAllValues().forEach(Runnable::run);
             });
@@ -773,7 +784,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -1140,7 +1151,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -1186,7 +1197,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -1211,7 +1222,7 @@ class MirrorWindowsTest
             for (final Collection<BlockState> batch : sent.subList(ticks[0] + 1, sent.size()))
             {
                 assertTrue(batch.size() <= 500, "no batch over a tick's worth on the way out: " + batch.size());
-                assertTrue(positions(batch).values().stream().allMatch(java.util.Objects::isNull),
+                assertTrue(positions(batch).values().stream().allMatch(Objects::isNull),
                     "the way out is the real world, block for block");
             }
             assertTrue(after.contains("looking into: no window"), "and the view ends with the last batch: " + after);
@@ -1261,13 +1272,13 @@ class MirrorWindowsTest
     }
 
     /** Runs every task booked on a scheduler, those booked while running too, and says how many ran. */
-    private static int runBooked(final org.bukkit.scheduler.BukkitScheduler scheduler)
+    private static int runBooked(final BukkitScheduler scheduler)
     {
         int ran = 0;
         while (true)
         {
             final ArgumentCaptor<Runnable> booked = ArgumentCaptor.forClass(Runnable.class);
-            verify(scheduler, atLeast(0)).scheduleSyncDelayedTask(any(org.bukkit.plugin.Plugin.class),
+            verify(scheduler, atLeast(0)).scheduleSyncDelayedTask(any(Plugin.class),
                 booked.capture(), anyLong());
             final List<Runnable> all = booked.getAllValues();
             if (ran >= all.size())
@@ -1787,13 +1798,13 @@ class MirrorWindowsTest
         withServer(() ->
         {
             MirrorProximity.tick();
-            verify(viewer).hideEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
-            verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(aside));
+            verify(viewer).hideEntity(any(), ArgumentMatchers.eq(stand));
+            verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(aside));
             stand(viewer, 10.5, -40.0);
             MirrorProximity.tick();
         });
 
-        verify(viewer).showEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
+        verify(viewer).showEntity(any(), ArgumentMatchers.eq(stand));
     }
 
     /**
@@ -1810,10 +1821,10 @@ class MirrorWindowsTest
         final Entity stand = mock(ArmorStand.class);
         when(stand.getUniqueId()).thenReturn(UUID.randomUUID());
         when(stand.getLocation()).thenReturn(new Location(world, 10.5, 63.0, 14.5));
-        final Entity display = mock(org.bukkit.entity.BlockDisplay.class);
+        final Entity display = mock(BlockDisplay.class);
         when(display.getUniqueId()).thenReturn(UUID.randomUUID());
         when(display.getLocation()).thenReturn(new Location(world, 10.0, 63.0, 14.0));
-        final Entity box = mock(org.bukkit.entity.Interaction.class);
+        final Entity box = mock(Interaction.class);
         when(box.getUniqueId()).thenReturn(UUID.randomUUID());
         when(box.getLocation()).thenReturn(new Location(world, 10.5, 63.2, 14.5));
         when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble()))
@@ -1822,14 +1833,14 @@ class MirrorWindowsTest
         withServer(() ->
         {
             MirrorProximity.tick();
-            verify(viewer).hideEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
+            verify(viewer).hideEntity(any(), ArgumentMatchers.eq(stand));
             stand(viewer, 10.5, -40.0);
             MirrorProximity.tick();
         });
 
-        verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(display));
-        verify(viewer, never()).showEntity(any(), org.mockito.ArgumentMatchers.eq(display));
-        verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(box));
+        verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(display));
+        verify(viewer, never()).showEntity(any(), ArgumentMatchers.eq(display));
+        verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(box));
     }
 
     @Test
@@ -2229,7 +2240,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -2274,7 +2285,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         try
         {
@@ -2682,13 +2693,13 @@ class MirrorWindowsTest
      * Identity equality is what a mock gave, and the drawing keeps blocks in sets.
      */
     private static <T> T standIn(final Class<T> type,
-        final java.util.function.BiFunction<java.lang.reflect.Method, Object[], Object> answers,
+        final BiFunction<Method, Object[], Object> answers,
         final Class<?>... also)
     {
         final Class<?>[] types = new Class<?>[also.length + 1];
         types[0] = type;
         System.arraycopy(also, 0, types, 1, also.length);
-        return type.cast(java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(),
             types, (self, method, arguments) -> switch (method.getName())
             {
                 case "equals" -> self == arguments[0];
@@ -2702,7 +2713,7 @@ class MirrorWindowsTest
      * Refuses a call this stand-in does not answer. A null would be taken for a real reading and
      * read as a passing test; the drawing is full of places where absent and empty differ.
      */
-    private static Object uncovered(final Class<?> type, final java.lang.reflect.Method method)
+    private static Object uncovered(final Class<?> type, final Method method)
     {
         throw new UnsupportedOperationException(
             "MirrorWindowsTest's " + type.getSimpleName() + " stand-in does not answer "

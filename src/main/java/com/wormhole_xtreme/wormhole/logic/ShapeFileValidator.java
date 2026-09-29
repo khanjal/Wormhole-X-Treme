@@ -1,11 +1,15 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
@@ -86,7 +90,7 @@ public final class ShapeFileValidator
          */
         public static Result unreadable(final String reason)
         {
-            return new Result(false, null, java.util.Collections.singletonList(reason));
+            return new Result(false, null, Collections.singletonList(reason));
         }
     }
 
@@ -248,18 +252,14 @@ public final class ShapeFileValidator
      */
     private static List<String> checkSingletonMarkerCounts(final String[] fileLines)
     {
-        final java.util.Map<String, Integer> counts = countMarkers(fileLines);
+        final Map<String, Integer> counts = countMarkers(fileLines);
 
-        final List<String> problems = new ArrayList<>();
-        for (final java.util.Map.Entry<String, Integer> entry : counts.entrySet())
-        {
-            if (entry.getValue() > 1)
-            {
-                problems.add("found " + entry.getValue() + " :" + entry.getKey()
-                    + " blocks, only 1 per gate is supported -- all but the last one parsed "
-                    + "are silently ignored rather than rejected");
-            }
-        }
+        final List<String> problems = counts.entrySet().stream()
+            .filter(entry -> entry.getValue() > 1)
+            .map(entry -> "found " + entry.getValue() + " :" + entry.getKey()
+                + " blocks, only 1 per gate is supported -- all but the last one parsed "
+                + "are silently ignored rather than rejected")
+            .collect(Collectors.toCollection(ArrayList::new));
         if (counts.get("A") == 0)
         {
             problems.add("no :A block -- there is nowhere for the activation switch to attach, "
@@ -279,9 +279,9 @@ public final class ShapeFileValidator
      *            the shape file
      * @return each marker against its count, every marker present even at zero
      */
-    private static java.util.Map<String, Integer> countMarkers(final String[] fileLines)
+    private static Map<String, Integer> countMarkers(final String[] fileLines)
     {
-        final java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        final Map<String, Integer> counts = new LinkedHashMap<>();
         for (final String tag : SINGLETON_MARKERS)
         {
             counts.put(tag, 0);
@@ -308,7 +308,7 @@ public final class ShapeFileValidator
      * @param counts
      *            the running counts, updated in place
      */
-    private static void countMarkersOn(final String line, final java.util.Map<String, Integer> counts)
+    private static void countMarkersOn(final String line, final Map<String, Integer> counts)
     {
         final Matcher m = CELL.matcher(line);
         while (m.find())

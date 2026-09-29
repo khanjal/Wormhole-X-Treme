@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.bukkit.entity.Entity;
+import org.junit.jupiter.api.Assertions;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import org.bukkit.Location;
@@ -133,20 +136,20 @@ class WormholeXTremeVehicleListenerEventTest
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
         final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
         new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
 
-        final org.mockito.ArgumentCaptor<Location> sent =
-            org.mockito.ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<Location> sent =
+            ArgumentCaptor.forClass(Location.class);
         verify(cart, atLeastOnce()).teleport(sent.capture());
         final Location arrival = sent.getValue();
-        org.junit.jupiter.api.Assertions.assertEquals(5.5, arrival.getX(), 0.001,
+        Assertions.assertEquals(5.5, arrival.getX(), 0.001,
             "a shut far iris returns the cart to the source gate, not the far one");
-        org.junit.jupiter.api.Assertions.assertEquals(200.5,
+        Assertions.assertEquals(200.5,
             target.getGatePlayerTeleportLocation().getZ(), 0.001,
             "the far gate's own arrival point is untouched");
 
@@ -197,15 +200,15 @@ class WormholeXTremeVehicleListenerEventTest
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
         final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
         new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
 
-        final org.mockito.ArgumentCaptor<Location> sent =
-            org.mockito.ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<Location> sent =
+            ArgumentCaptor.forClass(Location.class);
         verify(cart, atLeastOnce()).teleport(sent.capture());
         final Location arrival = sent.getValue();
         assertEquals(6.5, arrival.getX(), 0.001, "one block east, the way the source gate faces");
@@ -262,7 +265,7 @@ class WormholeXTremeVehicleListenerEventTest
         when(rider.teleport(any(Location.class))).thenReturn(true);
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>singletonList(rider));
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>singletonList(rider));
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
@@ -270,8 +273,8 @@ class WormholeXTremeVehicleListenerEventTest
         new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
 
         verify(rider).sendMessage(contains("Remote Iris is locked"));
-        final org.mockito.ArgumentCaptor<Location> sent =
-            org.mockito.ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<Location> sent =
+            ArgumentCaptor.forClass(Location.class);
         verify(cart, atLeastOnce()).teleport(sent.capture());
         assertEquals(5.5, sent.getValue().getX(), 0.001,
             "the rider is put out at the source gate, as an empty cart would be");
@@ -317,7 +320,7 @@ class WormholeXTremeVehicleListenerEventTest
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
@@ -373,7 +376,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
         when(rider.teleport(any(Location.class))).thenReturn(true);
-        when(boat.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
+        when(boat.getPassengers()).thenReturn(Collections.<Entity>singletonList(rider));
         when(boat.getUniqueId()).thenReturn(UUID.randomUUID());
         when(boat.isValid()).thenReturn(true);
         when(rider.isValid()).thenReturn(true);
@@ -455,7 +458,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Minecart cart = mock(Minecart.class);
         final Player rider = mock(Player.class);
         when(rider.teleport(any(Location.class))).thenReturn(true);
-        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>singletonList(rider));
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.isValid()).thenReturn(true);
         when(cart.getType()).thenReturn(EntityType.MINECART);
@@ -506,7 +509,7 @@ class WormholeXTremeVehicleListenerEventTest
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
         new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart,

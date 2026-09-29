@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import org.bukkit.command.ConsoleCommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,17 +42,17 @@ class ConfigCommandMetricsTest
     {
         try (MockedStatic<MetricsSupport> metrics = mockStatic(MetricsSupport.class))
         {
-            new ConfigCommand().execute(mock(org.bukkit.command.ConsoleCommandSender.class),
+            new ConfigCommand().execute(mock(ConsoleCommandSender.class),
                 new String[] { "config", "metrics-enabled", "false" });
             metrics.verify(MetricsSupport::disableMetrics);
             metrics.verify(() -> MetricsSupport.enableMetrics(any()), never());
 
-            new ConfigCommand().execute(mock(org.bukkit.command.ConsoleCommandSender.class),
+            new ConfigCommand().execute(mock(ConsoleCommandSender.class),
                 new String[] { "config", "METRICS_ENABLED", "true" });
             metrics.verify(() -> MetricsSupport.enableMetrics(any()));
 
             metrics.clearInvocations();
-            new ConfigCommand().execute(mock(org.bukkit.command.ConsoleCommandSender.class),
+            new ConfigCommand().execute(mock(ConsoleCommandSender.class),
                 new String[] { "config", "placeholders-enabled", "false" });
             metrics.verifyNoInteractions();
         }

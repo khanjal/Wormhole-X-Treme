@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Powerable;
 import org.junit.jupiter.api.AfterEach;
@@ -58,8 +60,8 @@ class GateLeverWriteIsGuardedTest
         when(lever.getBlockData()).thenReturn(data);
         // toggleDialLeverState keeps the lever's chunk loaded while the gate is open, so the
         // block has to be able to answer where it lives before it can be written to at all.
-        final org.bukkit.World world = mock(org.bukkit.World.class);
-        final org.bukkit.Chunk chunk = mock(org.bukkit.Chunk.class);
+        final World world = mock(World.class);
+        final Chunk chunk = mock(Chunk.class);
         when(chunk.getX()).thenReturn(0);
         when(chunk.getZ()).thenReturn(0);
         when(lever.getWorld()).thenReturn(world);

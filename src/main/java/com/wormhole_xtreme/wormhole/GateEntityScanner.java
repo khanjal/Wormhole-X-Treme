@@ -1,17 +1,22 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.ThrownPotion;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -19,6 +24,7 @@ import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 
 /**
  * Sweeps active gates for loose entities — dropped items, wandering mobs — standing in an
@@ -172,7 +178,7 @@ public final class GateEntityScanner implements Runnable
      *            whether an iris at either end is covering the way through
      */
     private static void sendOneThroughQuietly(final Entity entity, final Stargate gate,
-        final Location arrival, final org.bukkit.block.BlockFace facing, final boolean irisShut)
+        final Location arrival, final BlockFace facing, final boolean irisShut)
     {
         try
         {
@@ -259,7 +265,7 @@ public final class GateEntityScanner implements Runnable
      */
     private static void splatOnIris(final Entity entity)
     {
-        if (entity instanceof org.bukkit.entity.Item)
+        if (entity instanceof Item)
         {
             entity.remove();
         }
@@ -338,8 +344,8 @@ public final class GateEntityScanner implements Runnable
             // Kill credit, and for an ender pearl, who gets teleported when it lands.
             shot.setShooter(from.getShooter());
         }
-        if ((from instanceof org.bukkit.entity.ThrownPotion thrown)
-            && (to instanceof org.bukkit.entity.ThrownPotion replacement))
+        if ((from instanceof ThrownPotion thrown)
+            && (to instanceof ThrownPotion replacement))
         {
             // Without this the potion still splashes but has no effect.
             replacement.setItem(thrown.getItem());
@@ -591,8 +597,8 @@ public final class GateEntityScanner implements Runnable
         // gate opened.
         // Display and interaction entities are scenery another plugin put somewhere on purpose,
         // holograms and build previews among them, and have no business travelling.
-        if ((entity instanceof Hanging) || (entity instanceof org.bukkit.entity.Display)
-            || (entity instanceof org.bukkit.entity.Interaction))
+        if ((entity instanceof Hanging) || (entity instanceof Display)
+            || (entity instanceof Interaction))
         {
             return false;
         }
@@ -604,8 +610,8 @@ public final class GateEntityScanner implements Runnable
     /** Whether a player rides anywhere in this entity's passenger stack. */
     private static boolean carriesAPlayer(final Entity entity)
     {
-        final List<Entity> parents = new java.util.ArrayList<>();
-        final List<Entity> children = new java.util.ArrayList<>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
         for (final Entity child : children)
         {
@@ -654,8 +660,8 @@ public final class GateEntityScanner implements Runnable
             ? respawnProjectile(shot, arrival, exit, exitGate)
             : null;
 
-        final List<Entity> parents = new java.util.ArrayList<>();
-        final List<Entity> children = new java.util.ArrayList<>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         final Entity moved;
         if (arrived != null)
         {
@@ -698,6 +704,6 @@ public final class GateEntityScanner implements Runnable
             WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(child.getUniqueId());
         }
         // The shared re-seat, whose retries fetch a passenger that did not land beside its mount.
-        com.wormhole_xtreme.wormhole.utils.PassengerReattach.schedule(entity, parents, children, exit, 1L);
+        PassengerReattach.schedule(entity, parents, children, exit, 1L);
     }
 }

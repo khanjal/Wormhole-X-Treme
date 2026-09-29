@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.plugin;
 
 import java.util.logging.Level;
 
+import org.bukkit.plugin.RegisteredServiceProvider;
+
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
@@ -35,7 +37,7 @@ public class PermissionsSupport
             boolean providerFound = false;
             try {
                 final Class<?> permClass = Class.forName("net.milkbowl.vault.permission.Permission");
-                final org.bukkit.plugin.RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
+                final RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
                 if (rsp != null) {
                     providerFound = true;
                     WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Vault provider detected; permission checks will use Vault/Bukkit provider.");

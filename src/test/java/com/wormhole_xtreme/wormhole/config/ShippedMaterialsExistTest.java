@@ -7,13 +7,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.model.ring.Ring;
 
 /**
  * Every material this plugin ships by name has to exist in the Minecraft version it targets.
@@ -38,7 +45,7 @@ class ShippedMaterialsExistTest
      * <p>Listed explicitly rather than guessed at, so a genuine material never gets skipped
      * by a rule that was trying to be clever.
      */
-    private static final List<String> NOT_MATERIALS = java.util.Arrays.asList(
+    private static final List<String> NOT_MATERIALS = Arrays.asList(
         "MATERIAL_GROUPS", "PORTAL_MATERIAL", "IRIS_MATERIAL", "STARGATE_MATERIAL",
         "ACTIVE_MATERIAL", "SIGN_MATERIAL", "CHEVRON_MATERIAL", "LIGHT_TICKS", "WOOSH_TICKS",
         "REDSTONE_ACTIVATED", "TRUE", "FALSE", "WALL_SIGN");
@@ -66,7 +73,7 @@ class ShippedMaterialsExistTest
         if (Files.isDirectory(shapes))
         {
             // try-with-resources: Files.list holds an open directory handle until closed.
-            try (java.util.stream.Stream<Path> listing = Files.list(shapes))
+            try (Stream<Path> listing = Files.list(shapes))
             {
                 for (final Path p : listing.toList())
                 {
@@ -83,8 +90,8 @@ class ShippedMaterialsExistTest
     @Test
     void everyMaterialNamedInShippedFilesResolves() throws Exception
     {
-        final java.util.Set<String> unknown = new TreeSet<>();
-        final java.util.Set<String> checked = new TreeSet<>();
+        final Set<String> unknown = new TreeSet<>();
+        final Set<String> checked = new TreeSet<>();
 
         for (final Path file : shippedResources())
         {
@@ -131,8 +138,8 @@ class ShippedMaterialsExistTest
         // scan above never sees them. They are plain text resolved at runtime exactly like a
         // shape's materials, and a name that stopped existing would ship unnoticed and only
         // fail when somebody built a ring.
-        final java.util.Map<ConfigManager.ConfigKeys, String> named =
-            new java.util.LinkedHashMap<ConfigManager.ConfigKeys, String>();
+        final Map<ConfigManager.ConfigKeys, String> named =
+            new LinkedHashMap<ConfigManager.ConfigKeys, String>();
         for (final Setting setting : DefaultSettings.config)
         {
             if ((setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL)
@@ -144,7 +151,7 @@ class ShippedMaterialsExistTest
         }
 
         assertEquals(3, named.size(), "a ring material default was added or renamed");
-        for (final java.util.Map.Entry<ConfigManager.ConfigKeys, String> entry : named.entrySet())
+        for (final Map.Entry<ConfigManager.ConfigKeys, String> entry : named.entrySet())
         {
             assertNotNull(Material.matchMaterial(entry.getValue()),
                 entry.getKey() + " defaults to " + entry.getValue()
@@ -155,7 +162,7 @@ class ShippedMaterialsExistTest
         // it has to be something a ring could actually have been laid in.
         final Material fallback = Material.matchMaterial(
             named.get(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL));
-        assertTrue(com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(fallback),
+        assertTrue(Ring.isUsableAsRing(fallback),
             fallback + " is the ring fallback and must be something a ring could be laid in");
     }
 

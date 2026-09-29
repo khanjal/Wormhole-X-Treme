@@ -5,12 +5,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.command.handlers.BeamCommand;
 
 /**
  * A player-facing subcommand answers to its own permission node, not to {@code wormhole.config}.
@@ -99,7 +101,7 @@ class WormholeCommandPermissionTest
     {
         // Console and command blocks have never been asked for wormhole.config -- they hold
         // no permissions to check -- and moving the gate must not have started asking.
-        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.CommandSender.class);
+        final CommandSender console = mock(CommandSender.class);
 
         command.onCommand(console, null, "wormhole", new String[] { "restrict" });
 
@@ -112,8 +114,8 @@ class WormholeCommandPermissionTest
     {
         // It checked nothing of its own, which went unnoticed while the wormhole.config gate
         // in front of it meant no ordinary player could reach it either way.
-        final com.wormhole_xtreme.wormhole.command.handlers.BeamCommand beam =
-            new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand();
+        final BeamCommand beam =
+            new BeamCommand();
 
         beam.execute(player, new String[] { "beam", "list" });
 

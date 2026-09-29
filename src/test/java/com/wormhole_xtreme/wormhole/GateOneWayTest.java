@@ -11,12 +11,17 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -44,7 +49,7 @@ class GateOneWayTest
 
         // markVehicleRecentlyTeleported schedules the un-mark, so the sweep needs a
         // scheduler or it dies before teleporting and every test passes vacuously.
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         // Run delayed tasks inline so the next-tick velocity re-apply is observable here.
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
@@ -93,7 +98,7 @@ class GateOneWayTest
         when(zombie.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(zombie.isInsideVehicle()).thenReturn(false);
         when(zombie.isValid()).thenReturn(true);
-        when(zombie.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, -1.5));
+        when(zombie.getVelocity()).thenReturn(new Vector(0, 0, -1.5));
         // A real server says whether it moved; an unstubbed mock would say it refused.
         when(zombie.teleport(any(Location.class))).thenReturn(true);
         when(world.getNearbyEntities(any(BoundingBox.class)))
@@ -196,12 +201,12 @@ class GateOneWayTest
         {
             GateEntityScanner.create().run();
 
-            final org.mockito.ArgumentCaptor<org.bukkit.util.Vector> sent =
-                org.mockito.ArgumentCaptor.forClass(org.bukkit.util.Vector.class);
+            final ArgumentCaptor<Vector> sent =
+                ArgumentCaptor.forClass(Vector.class);
             // Set once immediately and once on the next tick: teleporting clears motion and
             // a same-tick velocity is routinely lost to it, which left arrows dropping.
             verify(zombie, times(2)).setVelocity(sent.capture());
-            final org.bukkit.util.Vector v = sent.getValue();
+            final Vector v = sent.getValue();
 
             assertTrue(v.getX() > 0, "should leave heading east, the way the far gate faces");
             assertEquals(0.0, v.getZ(), 1e-9, "the original northward component should be gone");
@@ -228,7 +233,7 @@ class GateOneWayTest
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity zombie = zombieIn(10, 64, 20);
-        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        final Chicken chicken = mock(Chicken.class);
         when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
         when(chicken.isValid()).thenReturn(true);
         when(chicken.teleport(any(Location.class))).thenReturn(true);
@@ -264,7 +269,7 @@ class GateOneWayTest
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity horse = zombieIn(10, 64, 20);
-        final org.bukkit.entity.Player rider = mock(org.bukkit.entity.Player.class);
+        final Player rider = mock(Player.class);
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.teleport(any(Location.class))).thenReturn(true);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
@@ -297,7 +302,7 @@ class GateOneWayTest
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity zombie = zombieIn(10, 64, 20);
-        final org.bukkit.entity.Chicken chicken = mock(org.bukkit.entity.Chicken.class);
+        final Chicken chicken = mock(Chicken.class);
         when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
         when(chicken.isValid()).thenReturn(true);
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
@@ -339,15 +344,15 @@ class GateOneWayTest
         StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity falling = zombieIn(10, 64, 20);
-        when(falling.getVelocity()).thenReturn(new org.bukkit.util.Vector(0.3, -0.4, -0.2));
+        when(falling.getVelocity()).thenReturn(new Vector(0.3, -0.4, -0.2));
         try
         {
             GateEntityScanner.create().run();
 
-            final org.mockito.ArgumentCaptor<org.bukkit.util.Vector> sent =
-                org.mockito.ArgumentCaptor.forClass(org.bukkit.util.Vector.class);
+            final ArgumentCaptor<Vector> sent =
+                ArgumentCaptor.forClass(Vector.class);
             verify(falling, times(2)).setVelocity(sent.capture());
-            final org.bukkit.util.Vector v = sent.getValue();
+            final Vector v = sent.getValue();
             // 0.2 north into a north-facing gate; the fall and the drift along it are dropped.
             assertEquals(0.2, v.getX(), 1e-9, "should leave east at the 0.2 it was moving through the gate");
             assertEquals(0.0, v.getY(), 1e-9);
@@ -367,8 +372,8 @@ class GateOneWayTest
     @Test
     void aFallThroughAFloorGateIsDroppedToo()
     {
-        final org.bukkit.util.Vector through = GateEntityScanner.throughGate(
-            new org.bukkit.util.Vector(0, -0.6, 0), BlockFace.NORTH);
+        final Vector through = GateEntityScanner.throughGate(
+            new Vector(0, -0.6, 0), BlockFace.NORTH);
         assertEquals(0.0, through.length(), 1e-9);
     }
 
@@ -376,7 +381,7 @@ class GateOneWayTest
     @Test
     void aGateWithNoFacingKeepsTheWholeVelocity()
     {
-        final org.bukkit.util.Vector incoming = new org.bukkit.util.Vector(0.3, -0.4, -0.2);
+        final Vector incoming = new Vector(0.3, -0.4, -0.2);
         assertEquals(incoming, GateEntityScanner.throughGate(incoming, null));
         assertEquals(incoming, GateEntityScanner.throughGate(incoming, BlockFace.SELF));
     }
@@ -398,11 +403,11 @@ class GateOneWayTest
         }
         StargateManager.registerStargate(origin);
         final Entity item = zombieIn(10, 64, 20);
-        when(item.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, 0));
+        when(item.getVelocity()).thenReturn(new Vector(0, 0, 0));
         try
         {
             GateEntityScanner.create().run();
-            verify(item, times(1)).setVelocity(any(org.bukkit.util.Vector.class));
+            verify(item, times(1)).setVelocity(any(Vector.class));
         }
         finally
         {

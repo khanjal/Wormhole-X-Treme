@@ -1,5 +1,12 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -9,19 +16,33 @@ import java.util.Set;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
+import org.bukkit.block.sign.SignSide;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.BoundingBox;
 
+import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
+import com.wormhole_xtreme.wormhole.logic.GateRederivation;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -75,7 +96,7 @@ class StargateBlockSetup
             logSignPlacement(gate, nameSign, toward, placeBlock);
             placeGateSign(gate, placeBlock, toward);
         }
-        else if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(placeBlock.getType()))
+        else if (MaterialUtils.isWallSign(placeBlock.getType()))
         {
             logSignRemoval(gate, placeBlock);
             removeGateSign(gate, placeBlock);
@@ -121,7 +142,7 @@ class StargateBlockSetup
      * <p>Every read in the placement log wants the same thing, and guarding each one inline is
      * what made the method unreadable.
      */
-    private static String describe(final java.util.function.Supplier<Object> read)
+    private static String describe(final Supplier<Object> read)
     {
         try
         {
@@ -163,7 +184,7 @@ class StargateBlockSetup
         dbg.append("Sign removal: Gate=").append(gate.getGateName());
         try
         {
-            final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
+            final Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
             dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
         }
         catch (final Exception e)
@@ -184,14 +205,14 @@ class StargateBlockSetup
     private static void placeGateSign(final Stargate gate, final Block placeBlock, final BlockFace toward)
     {
         gate.getGateStructureBlocks().add(placeBlock.getLocation());
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, gate.getEffectiveSignMaterial(), null);
+        CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, placeBlock, gate.getEffectiveSignMaterial(), null);
         placeBlock.setType(gate.getEffectiveSignMaterial(), false);
         final Directional signData = (Directional) placeBlock.getBlockData();
         signData.setFacing(toward);
         placeBlock.setBlockData(signData, false);
 
         final Sign sign = (Sign) placeBlock.getState();
-        final org.bukkit.block.sign.SignSide front = sign.getSide(Side.FRONT);
+        final SignSide front = sign.getSide(Side.FRONT);
         // Colour codes do not count toward a sign's visible width, so the owner is still
         // truncated on the text alone -- painting it cannot push it off the sign.
         front.setLine(0, SignStyle.paint(
@@ -228,15 +249,15 @@ class StargateBlockSetup
      */
     private static void removeGateSign(final Stargate gate, final Block placeBlock)
     {
-        final Material frame = com.wormhole_xtreme.wormhole.logic.GateRederivation.frameMaterialAt(gate, placeBlock);
+        final Material frame = GateRederivation.frameMaterialAt(gate, placeBlock);
         if (frame != null)
         {
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock, frame, null);
+            CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, placeBlock, frame, null);
             placeBlock.setType(frame);
             return;
         }
         gate.getGateStructureBlocks().remove(placeBlock.getLocation());
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, placeBlock);
+        CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, placeBlock);
         placeBlock.setType(Material.AIR);
     }
 
@@ -302,7 +323,7 @@ class StargateBlockSetup
         }
         try
         {
-            final org.bukkit.block.BlockState before = signBlock.getState();
+            final BlockState before = signBlock.getState();
             if (!(before instanceof Sign))
             {
                 return;
@@ -320,7 +341,7 @@ class StargateBlockSetup
                 facing = oldFacing.getFacing();
             }
 
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, signBlock, want, null);
+            CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, signBlock, want, null);
             signBlock.setType(want, false);
 
             if (facing != null)
@@ -333,7 +354,7 @@ class StargateBlockSetup
                 }
             }
 
-            final org.bukkit.block.BlockState after = signBlock.getState();
+            final BlockState after = signBlock.getState();
             if (after instanceof Sign fresh)
             {
                 restoreSignSide(fresh.getSide(Side.FRONT), frontLines, frontGlows);
@@ -356,7 +377,7 @@ class StargateBlockSetup
     }
 
     /** Writes saved lines and glow back onto one face of a replaced sign. */
-    private static void restoreSignSide(final org.bukkit.block.sign.SignSide side,
+    private static void restoreSignSide(final SignSide side,
                                         final String[] lines,
                                         final boolean glowing)
     {
@@ -475,11 +496,11 @@ class StargateBlockSetup
     {
         final Block iris = gate.getGateIrisLeverBlock();
         gate.getGateStructureBlocks().add(iris.getLocation());
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris, Material.LEVER, null);
+        CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, iris, Material.LEVER, null);
         iris.setType(Material.LEVER);
-        final org.bukkit.block.data.type.Switch irisSwitch =
-            (org.bukkit.block.data.type.Switch) iris.getBlockData();
-        irisSwitch.setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        final Switch irisSwitch =
+            (Switch) iris.getBlockData();
+        irisSwitch.setAttachedFace(FaceAttachable.AttachedFace.WALL);
         irisSwitch.setFacing(gate.getGateFacing());
         iris.setBlockData(irisSwitch);
     }
@@ -493,7 +514,7 @@ class StargateBlockSetup
             return;
         }
         gate.getGateStructureBlocks().remove(iris.getLocation());
-        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, iris);
+        CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, iris);
         iris.setType(Material.AIR);
     }
 
@@ -569,7 +590,7 @@ class StargateBlockSetup
                     // Wire laid again over its own wire is not a placement, so every regen does not log one.
                     if (current == Material.AIR)
                     {
-                        com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
+                        CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, target, Material.REDSTONE_WIRE, null);
                     }
                     target.setType(Material.REDSTONE_WIRE);
                 }
@@ -584,7 +605,7 @@ class StargateBlockSetup
         else if (target.getType() == Material.REDSTONE_WIRE)
         {
             gate.getGateStructureBlocks().remove(target.getLocation());
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, target);
+            CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, target);
             target.setType(Material.AIR);
         }
     }
@@ -603,7 +624,7 @@ class StargateBlockSetup
                 if (gate.getGateRedstoneGateActivatedBlock().getType() == Material.LEVER)
                 {
                     gate.getGateStructureBlocks().remove(gate.getGateRedstoneGateActivatedBlock().getLocation());
-                    com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateRedstoneGateActivatedBlock());
+                    CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, gate.getGateRedstoneGateActivatedBlock());
                     gate.getGateRedstoneGateActivatedBlock().setType(Material.AIR);
                 }
             }
@@ -629,7 +650,7 @@ class StargateBlockSetup
             else if (current == Material.AIR)
             {
                 gate.getGateStructureBlocks().add(ra.getLocation());
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, ra, Material.LEVER, null);
+                CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, ra, Material.LEVER, null);
                 ra.setType(Material.LEVER);
             }
             else
@@ -653,7 +674,7 @@ class StargateBlockSetup
         if ((gate.getGateDialSignBlock() != null) && (gate.getGateDialSign() != null))
         {
             final Block teleportSign = gate.getGateDialSignBlock().getRelative(gate.getGateFacing());
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, teleportSign);
+            CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, teleportSign);
             teleportSign.setType(Material.AIR);
         }
     }
@@ -666,7 +687,7 @@ class StargateBlockSetup
         for (final Location bc : gate.getGateStructureBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-            com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, b);
+            CoreProtectLog.removed(CoreProtectLog.PLUGIN_USER, b);
             b.setType(Material.AIR);
         }
     }
@@ -684,8 +705,8 @@ class StargateBlockSetup
      * to ask what a client is currently showing. Remembering what was sent is the only way to
      * know what needs taking back.
      */
-    private static final java.util.Map<java.util.UUID, Set<String>> DRAWN =
-        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, Set<String>>();
+    private static final Map<UUID, Set<String>> DRAWN =
+        new ConcurrentHashMap<UUID, Set<String>>();
 
     /**
      * Sends a client-side-only appearance for every portal block of {@code gate}.
@@ -822,7 +843,7 @@ class StargateBlockSetup
      */
     public static void splashArrival(final Player player)
     {
-        final long ticks = com.wormhole_xtreme.wormhole.config.ConfigManager
+        final long ticks = ConfigManager
             .getGateArrivalSplashTicks();
         if ((player == null) || (ticks <= 0L) || !player.isOnline())
         {
@@ -1292,7 +1313,7 @@ class StargateBlockSetup
      */
     private static void takeBackStaleLayers(final Player player, final Location playerAt)
     {
-        final java.util.Map<String, List<IrisLayering.Placement>> drawn =
+        final Map<String, List<IrisLayering.Placement>> drawn =
             LAYER_DRAWN.get(player.getUniqueId());
         if ((drawn == null) || drawn.isEmpty())
         {
@@ -1356,7 +1377,7 @@ class StargateBlockSetup
         // A player near enough to be drawn to is a player whose chunks are loaded, which is
         // the moment an older world's built iris can be taken out. It matches nothing once it
         // has run, so it costs a type check per cell after that.
-        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
+        BuiltIrisUpgrade.clearLeftover(gate);
         final BlockData irisData =
             MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
         for (final Location bc : gate.getGatePortalBlocks())
@@ -1543,9 +1564,9 @@ class StargateBlockSetup
      * move that changed nothing is told apart from one that did, without sending a packet to
      * find out.
      */
-    private static final java.util.Map<java.util.UUID,
-        java.util.Map<String, List<IrisLayering.Placement>>> LAYER_DRAWN =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID,
+        Map<String, List<IrisLayering.Placement>>> LAYER_DRAWN =
+            new ConcurrentHashMap<>();
 
     /**
      * Whether a gate's opening is drawn in two layers, iris and horizon, and so differently
@@ -1673,7 +1694,7 @@ class StargateBlockSetup
         final List<Location> ring = gate.getGatePortalBlocks();
         for (final Player player : gate.getGateWorld().getPlayers())
         {
-            final java.util.Map<String, List<IrisLayering.Placement>> held =
+            final Map<String, List<IrisLayering.Placement>> held =
                 LAYER_DRAWN.get(player.getUniqueId());
             final List<IrisLayering.Placement> layers =
                 (held == null) ? null : held.get(gate.getGateName());
@@ -1755,7 +1776,7 @@ class StargateBlockSetup
         // A player near enough to be drawn to is a player whose chunks are loaded, which is the
         // moment an older world's built iris can be taken out. The unlayered path does it in
         // sendIrisTo; a layered gate reaches neither that nor fillGateIris again.
-        com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade.clearLeftover(gate);
+        BuiltIrisUpgrade.clearLeftover(gate);
         final Material irisMaterial = gate.getEffectiveIrisMaterial();
         final Material portalMaterial = gate.getEffectivePortalMaterial();
         final BlockData iris = MaterialUtils.drawnAcross(irisMaterial, gate.getGateFacing());
@@ -1997,10 +2018,10 @@ class StargateBlockSetup
      *
      * @return their live map, created empty if this is the first time
      */
-    private static java.util.Map<String, List<IrisLayering.Placement>> layersDrawnFor(final Player player)
+    private static Map<String, List<IrisLayering.Placement>> layersDrawnFor(final Player player)
     {
         return LAYER_DRAWN.computeIfAbsent(player.getUniqueId(),
-            key -> new java.util.concurrent.ConcurrentHashMap<>());
+            key -> new ConcurrentHashMap<>());
     }
 
     /**
@@ -2092,7 +2113,7 @@ class StargateBlockSetup
      */
     private static void sendLights(final Player player, final Stargate gate, final boolean lit)
     {
-        final List<java.util.List<Location>> groups = gate.getGateLightBlocks();
+        final List<List<Location>> groups = gate.getGateLightBlocks();
         if (groups == null)
         {
             return;
@@ -2105,7 +2126,7 @@ class StargateBlockSetup
         final int lastShown = lit ? StargateAnimator.lastShownWave(gate, groups) : (groups.size() - 1);
         for (int i = 0; i < groups.size(); i++)
         {
-            final java.util.List<Location> group = groups.get(i);
+            final List<Location> group = groups.get(i);
             if ((group == null) || (i > lastShown))
             {
                 continue;
@@ -2134,7 +2155,7 @@ class StargateBlockSetup
     @SuppressWarnings("java:S2583")
     private static Set<String> drawnFor(final Player player)
     {
-        final java.util.UUID uuid = player.getUniqueId();
+        final UUID uuid = player.getUniqueId();
         if (uuid == null)
         {
             // No identity to file it under, so there is nothing to remember between calls.
@@ -2153,7 +2174,7 @@ class StargateBlockSetup
      * @param uuid
      *            the player who has gone
      */
-    public static void forgetDrawn(final java.util.UUID uuid)
+    public static void forgetDrawn(final UUID uuid)
     {
         DRAWN.remove(uuid);
         LAYER_DRAWN.remove(uuid);
@@ -2321,8 +2342,8 @@ class StargateBlockSetup
      */
     static void clearIrisPath(final Stargate gate)
     {
-        final org.bukkit.World world = gate.getGateWorld();
-        final org.bukkit.util.BoundingBox bounds = gate.getGatePortalBounds();
+        final World world = gate.getGateWorld();
+        final BoundingBox bounds = gate.getGatePortalBounds();
         final Location exit = gate.getGatePlayerTeleportLocation();
         if (world == null || bounds == null || exit == null)
         {
@@ -2331,22 +2352,22 @@ class StargateBlockSetup
 
         // One query for the whole opening, the same shape as the entity sweep: the box
         // encloses the ring, so candidates are still confirmed against the portal blocks.
-        final java.util.Collection<org.bukkit.entity.Entity> candidates = world.getNearbyEntities(bounds);
+        final Collection<Entity> candidates = world.getNearbyEntities(bounds);
         if (candidates.isEmpty())
         {
             return;
         }
 
         Location safe = null;
-        final java.util.Set<org.bukkit.entity.Entity> moved =
-            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-        for (final org.bukkit.entity.Entity entity : candidates)
+        final Set<Entity> moved =
+            Collections.newSetFromMap(new IdentityHashMap<>());
+        for (final Entity entity : candidates)
         {
             try
             {
                 // Only a living thing can suffocate, and only one standing where the iris
                 // is about to be is in the way.
-                if (!(entity instanceof org.bukkit.entity.LivingEntity)
+                if (!(entity instanceof LivingEntity)
                     || !isInIrisPath(gate, entity.getLocation()))
                 {
                     continue;
@@ -2387,17 +2408,17 @@ class StargateBlockSetup
      * @param gate
      *            the gate, for the log
      */
-    private static void moveClearOfIris(final org.bukkit.entity.Entity root, final Location safe,
-        final java.util.Set<org.bukkit.entity.Entity> moved, final Stargate gate)
+    private static void moveClearOfIris(final Entity root, final Location safe,
+        final Set<Entity> moved, final Stargate gate)
     {
         if (!moved.add(root))
         {
             return;
         }
-        final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<>();
-        final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<>();
-        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(root, parents, children);
-        if (!com.wormhole_xtreme.wormhole.RiddenTeleport.move(root, safe, parents, children))
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
+        EntityUtils.collectPassengerPairs(root, parents, children);
+        if (!RiddenTeleport.move(root, safe, parents, children))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not move " + root.getType() + CLEAR_OF_IRIS + gate.getGateName());
@@ -2406,11 +2427,11 @@ class StargateBlockSetup
         if (!children.isEmpty())
         {
             // Five ticks, as at a gate: a rider was teleported, and must acknowledge it first.
-            com.wormhole_xtreme.wormhole.utils.PassengerReattach.schedule(root, parents, children, null, 5L);
+            PassengerReattach.schedule(root, parents, children, null, 5L);
         }
-        final java.util.List<org.bukkit.entity.Entity> everyone = new java.util.ArrayList<>(children);
+        final List<Entity> everyone = new ArrayList<>(children);
         everyone.add(root);
-        for (final org.bukkit.entity.Entity one : everyone)
+        for (final Entity one : everyone)
         {
             if (one instanceof Player traveller)
             {
@@ -2422,9 +2443,9 @@ class StargateBlockSetup
     }
 
     /** What an entity is riding, and what that is riding, down to the one on the ground. */
-    private static org.bukkit.entity.Entity outermostVehicle(final org.bukkit.entity.Entity entity)
+    private static Entity outermostVehicle(final Entity entity)
     {
-        org.bukkit.entity.Entity root = entity;
+        Entity root = entity;
         for (int depth = 0; (depth < 16) && (root.getVehicle() != null); depth++)
         {
             root = root.getVehicle();
@@ -2478,7 +2499,7 @@ class StargateBlockSetup
             {
                 WorldUtils.scheduleChunkLoad(gate.getGateDialLeverBlock());
             }
-            org.bukkit.Material mat = Material.AIR;
+            Material mat = Material.AIR;
             try
             {
                 mat = gate.getGateDialLeverBlock().getType();
@@ -2492,7 +2513,7 @@ class StargateBlockSetup
             // placed activation item (button/lever) otherwise.
             if (regenerate && (mat == Material.AIR))
             {
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock(), Material.LEVER, null);
+                CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, gate.getGateDialLeverBlock(), Material.LEVER, null);
                 gate.getGateDialLeverBlock().setType(Material.LEVER);
                 final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
                 rld.setFacing(gate.getGateFacing());

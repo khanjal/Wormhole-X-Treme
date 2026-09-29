@@ -13,6 +13,17 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+import org.bukkit.util.BoundingBox;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.utils.BlockKey;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+
 /**
  * WormholeXtreme Stargate Class/Instance.
  * 
@@ -238,10 +249,10 @@ public class Stargate implements GateIris
      * was never actually discriminating here, since the old key was always built with this
      * gate's own {@code gateWorld}.
      */
-    private java.util.Set<Long> gatePortalBlockLookup = null;
+    private Set<Long> gatePortalBlockLookup = null;
 
     /** Bounding box enclosing every portal block, for one-shot entity queries. Built lazily. */
-    private org.bukkit.util.BoundingBox gatePortalBounds = null;
+    private BoundingBox gatePortalBounds = null;
 
     /** Portal block count the caches were built from, used to spot a changed gate. */
     private int gatePortalCacheSize = -1;
@@ -259,8 +270,8 @@ public class Stargate implements GateIris
         {
             return;
         }
-        final java.util.Set<Long> lookup =
-            new java.util.HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
+        final Set<Long> lookup =
+            new HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
         final Extents extents = new Extents();
         for (final Location l : gatePortalBlocks)
         {
@@ -268,7 +279,7 @@ public class Stargate implements GateIris
             {
                 continue;
             }
-            lookup.add(Long.valueOf(com.wormhole_xtreme.wormhole.utils.BlockKey.pack(
+            lookup.add(Long.valueOf(BlockKey.pack(
                 l.getBlockX(), l.getBlockY(), l.getBlockZ())));
             extents.include(l);
         }
@@ -318,9 +329,9 @@ public class Stargate implements GateIris
          *
          * @return the enclosing box
          */
-        org.bukkit.util.BoundingBox toBoundingBox()
+        BoundingBox toBoundingBox()
         {
-            return new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+            return new BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
         }
     }
 
@@ -345,7 +356,7 @@ public class Stargate implements GateIris
     {
         refreshPortalCaches();
         return gatePortalBlockLookup.contains(Long.valueOf(
-            com.wormhole_xtreme.wormhole.utils.BlockKey.pack(x, y, z)));
+            BlockKey.pack(x, y, z)));
     }
 
     /**
@@ -464,7 +475,7 @@ public class Stargate implements GateIris
         {
             return false;
         }
-        final java.util.List<Location> portal = getGatePortalBlocks();
+        final List<Location> portal = getGatePortalBlocks();
         if ((portal == null) || portal.isEmpty())
         {
             return false;
@@ -509,7 +520,7 @@ public class Stargate implements GateIris
         final Location fixed = new Location(gateWorld, x, y, z);
         try
         {
-            fixed.setYaw(com.wormhole_xtreme.wormhole.utils.WorldUtils
+            fixed.setYaw(WorldUtils
                 .getDegreesFromBlockFace(gateFacing));
             fixed.setPitch(0f);
         }
@@ -531,7 +542,7 @@ public class Stargate implements GateIris
      *
      * @return the bounding box, or null if the gate has no portal blocks
      */
-    public org.bukkit.util.BoundingBox getGatePortalBounds()
+    public BoundingBox getGatePortalBounds()
     {
         refreshPortalCaches();
         return gatePortalBounds;
@@ -610,12 +621,12 @@ public class Stargate implements GateIris
     }
 
     /** This gate's own ring pattern (#366), or null to follow its group and then the server. */
-    private com.wormhole_xtreme.wormhole.logic.DialSpinPattern gateDialSpin = null;
+    private DialSpinPattern gateDialSpin = null;
 
     /**
      * @return this gate's own ring pattern, or null when it has none
      */
-    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpin()
+    public DialSpinPattern getGateDialSpin()
     {
         return gateDialSpin;
     }
@@ -624,7 +635,7 @@ public class Stargate implements GateIris
      * @param pattern
      *            this gate's own ring pattern, or null to follow its group and then the server
      */
-    public void setGateDialSpin(final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern)
+    public void setGateDialSpin(final DialSpinPattern pattern)
     {
         gateDialSpin = pattern;
     }
@@ -654,15 +665,15 @@ public class Stargate implements GateIris
      */
     public String getEffectiveIrisAnimation()
     {
-        return com.wormhole_xtreme.wormhole.config.ConfigManager.getGateIrisAnimation(gateIrisAnimation, getGateMaterialGroup());
+        return ConfigManager.getGateIrisAnimation(gateIrisAnimation, getGateMaterialGroup());
     }
 
     /**
      * @return the ring pattern this gate dials with: its own, its group's, or the server's
      */
-    public com.wormhole_xtreme.wormhole.logic.DialSpinPattern getEffectiveDialSpin()
+    public DialSpinPattern getEffectiveDialSpin()
     {
-        return com.wormhole_xtreme.wormhole.config.ConfigManager.getGateDialSpinPattern(gateDialSpin, getGateMaterialGroup());
+        return ConfigManager.getGateDialSpinPattern(gateDialSpin, getGateMaterialGroup());
     }
 
     /**
@@ -1410,7 +1421,7 @@ public class Stargate implements GateIris
         // Try UUID comparison first (new format)
         try
         {
-            java.util.UUID.fromString(gateOwner);
+            UUID.fromString(gateOwner);
             return player.getUniqueId().toString().equals(gateOwner);
         }
         catch (final IllegalArgumentException e)
@@ -1659,7 +1670,7 @@ public class Stargate implements GateIris
     }
 
     /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
-    public List<org.bukkit.block.Block> strandedLiquid()
+    public List<Block> strandedLiquid()
     {
         return StargateBlockSetup.strandedLiquid(this);
     }

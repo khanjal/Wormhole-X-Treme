@@ -1,5 +1,8 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.List;
+import java.util.stream.IntStream;
+
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
@@ -37,9 +40,9 @@ public class WooshDepthCommand implements SubCommand
      *
      * @return every acceptable depth, as words, lowest first
      */
-    public static java.util.List<String> depths()
+    public static List<String> depths()
     {
-        return java.util.stream.IntStream.rangeClosed(MIN_DEPTH, MAX_DEPTH)
+        return IntStream.rangeClosed(MIN_DEPTH, MAX_DEPTH)
             .mapToObj(String::valueOf).toList();
     }
 

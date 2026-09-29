@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -32,10 +33,18 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * A shut iris over an open wormhole, stacked from whichever side it is seen.
@@ -62,7 +71,7 @@ class IrisLayeringTest
     private BlockData truthBehind;
     private BlockData truthAhead;
     private Block ahead;
-    private com.wormhole_xtreme.wormhole.WormholeXTreme plugin;
+    private WormholeXTreme plugin;
     private MockedStatic<MaterialUtils> materials;
 
     @BeforeEach
@@ -681,15 +690,15 @@ class IrisLayeringTest
         standAt(Z - 4);
         gate.setGateActive(false);
         gate.setGateIrisActive(false);
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+        ConfigTestSupport.set(
+            ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
         try
         {
             StargateLifecycle.setIrisState(gate, true);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
 
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
@@ -711,15 +720,15 @@ class IrisLayeringTest
     {
         standAt(Z + 4);
         gate.setGateIrisActive(false);
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+        ConfigTestSupport.set(
+            ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION, "instant");
         try
         {
             StargateLifecycle.setIrisState(gate, true);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigTestSupport.clear();
         }
 
         verify(viewer, never()).sendBlockChange(at(Z + 1), eq(horizon));
@@ -743,15 +752,15 @@ class IrisLayeringTest
         doNothing().when(quiet).toggleDialLeverState(anyBoolean());
         doNothing().when(quiet).toggleRedstoneGateActivatedPower();
         doNothing().when(quiet).lightStargate(anyBoolean());
-        com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(e -> { });
-        try (MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> utils =
-            mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        GateEvents.setDispatcherForTest(e -> { });
+        try (MockedStatic<WorldUtils> utils =
+            mockStatic(WorldUtils.class))
         {
-            quiet.shutdownStargate(false, com.wormhole_xtreme.wormhole.events.StargateShutdownEvent.Reason.MANUAL);
+            quiet.shutdownStargate(false, StargateShutdownEvent.Reason.MANUAL);
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.events.GateEvents.setDispatcherForTest(null);
+            GateEvents.setDispatcherForTest(null);
         }
 
         assertTrue(quiet.isGateIrisActive(), "the iris was left shut, against its open default");
@@ -784,8 +793,8 @@ class IrisLayeringTest
 
         // Which of the two a given cell takes depends on the frame, which is shared and has
         // been moved by whatever ran before this. That they differ is the whole claim.
-        final org.mockito.ArgumentCaptor<BlockData> sent =
-            org.mockito.ArgumentCaptor.forClass(BlockData.class);
+        final ArgumentCaptor<BlockData> sent =
+            ArgumentCaptor.forClass(BlockData.class);
         verify(viewer, times(2)).sendBlockChange(
             argThat(l -> (l != null) && (l.getBlockZ() == (Z + 1))), sent.capture());
         assertTrue(sent.getAllValues().contains(ice), "one cell takes one ice: " + sent.getAllValues());
@@ -947,9 +956,9 @@ class IrisLayeringTest
     /** What was last sent into the cell behind the ring, or null if nothing was. */
     private BlockData sentBehind()
     {
-        final org.mockito.ArgumentCaptor<BlockData> sent =
-            org.mockito.ArgumentCaptor.forClass(BlockData.class);
-        verify(viewer, org.mockito.Mockito.atLeastOnce()).sendBlockChange(at(Z + 1), sent.capture());
+        final ArgumentCaptor<BlockData> sent =
+            ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, Mockito.atLeastOnce()).sendBlockChange(at(Z + 1), sent.capture());
         return sent.getValue();
     }
 
@@ -964,14 +973,14 @@ class IrisLayeringTest
     @Test
     void aDrawSaysInTheLogWhereItPutTheLayers()
     {
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(Boolean.TRUE);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(Boolean.TRUE);
         when(viewer.getName()).thenReturn("Tester");
         standAt(Z - 4);
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
-        final org.mockito.ArgumentCaptor<String> said = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), said.capture());
+        final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
+        verify(plugin).prettyLog(eq(Level.FINE), said.capture());
         final String line = said.getValue();
         assertTrue(line.startsWith("Iris layers:"), line);
         assertTrue(line.contains("Gate=Layered"), line);
@@ -992,7 +1001,7 @@ class IrisLayeringTest
 
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
-        verify(plugin, never()).prettyLog(any(java.util.logging.Level.class), any(String.class));
+        verify(plugin, never()).prettyLog(any(Level.class), any(String.class));
     }
 
     /**

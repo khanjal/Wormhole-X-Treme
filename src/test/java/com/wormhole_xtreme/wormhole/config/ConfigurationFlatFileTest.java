@@ -7,13 +7,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +72,7 @@ class ConfigurationFlatFileTest
         // without the check, "Setting:" throws on key[1], the catch logs it, and the parse
         // carries on to find 45 anyway. What separates them is that a truncated line is
         // ordinary and is not worth complaining about.
-        verify(plugin, never()).prettyLog(any(java.util.logging.Level.class), anyString());
+        verify(plugin, never()).prettyLog(any(Level.class), anyString());
     }
 
     @Test
@@ -87,7 +87,7 @@ class ConfigurationFlatFileTest
         // As above: the answer is "30" either way, because an index thrown here is caught per
         // line and the parse runs on to its own default. The length check is what keeps it
         // from being reported as a parse error every time somebody wraps a long value.
-        verify(plugin, never()).prettyLog(any(java.util.logging.Level.class), anyString());
+        verify(plugin, never()).prettyLog(any(Level.class), anyString());
     }
 
     @Test

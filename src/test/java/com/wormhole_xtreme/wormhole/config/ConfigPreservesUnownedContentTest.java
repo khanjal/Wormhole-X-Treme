@@ -2,6 +2,9 @@ package com.wormhole_xtreme.wormhole.config;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -172,8 +175,8 @@ class ConfigPreservesUnownedContentTest
     @Test
     void theShippedConfigKeepsItsMaterialGroupsThroughASave() throws Exception
     {
-        final java.nio.file.Path shipped = java.nio.file.Paths.get("src/main/resources/config.yml");
-        final List<String> before = java.nio.file.Files.readAllLines(shipped);
+        final Path shipped = Paths.get("src/main/resources/config.yml");
+        final List<String> before = Files.readAllLines(shipped);
         assertTrue(before.contains("gate-material-groups:"),
             "the shipped config must define material groups, or this proves nothing");
 

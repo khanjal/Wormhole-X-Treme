@@ -16,7 +16,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -31,6 +33,10 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -77,7 +83,7 @@ class PetEscortTest
     void tearDown() throws Exception
     {
         // Static, and emptied by a scheduled task a mocked scheduler never runs.
-        final java.util.Set<UUID> marked = PrivateStatics.of(WormholeXTremeVehicleListener.class, "recentlyTeleported");
+        final Set<UUID> marked = PrivateStatics.of(WormholeXTremeVehicleListener.class, "recentlyTeleported");
         marked.clear();
         ChunkTickets.clear();
         ConfigTestSupport.clear();
@@ -323,7 +329,7 @@ class PetEscortTest
         PetEscort.follow(List.of(wolf), owner);
 
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
-            org.mockito.ArgumentMatchers.eq(PetEscort.FOLLOW_DELAY_TICKS));
+            ArgumentMatchers.eq(PetEscort.FOLLOW_DELAY_TICKS));
         verify(wolf, never()).teleport(any(Location.class));
     }
 
@@ -346,7 +352,7 @@ class PetEscortTest
         verify(chunk, never()).removePluginChunkTicket(any());
         later.run();
 
-        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(wolf, chunk);
+        final InOrder order = Mockito.inOrder(wolf, chunk);
         order.verify(wolf).teleport(any(Location.class));
         order.verify(chunk).removePluginChunkTicket(plugin);
     }
@@ -391,7 +397,7 @@ class PetEscortTest
         verify(chunk, never()).removePluginChunkTicket(any());
         later.run();
 
-        final org.mockito.InOrder order = org.mockito.Mockito.inOrder(wolf, chunk);
+        final InOrder order = Mockito.inOrder(wolf, chunk);
         order.verify(wolf).teleport(any(Location.class));
         order.verify(chunk).removePluginChunkTicket(plugin);
     }
@@ -511,7 +517,7 @@ class PetEscortTest
 
         PetEscort.follow(List.of(pet), tamer);
 
-        final org.mockito.ArgumentCaptor<Runnable> task = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        final ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler).scheduleSyncDelayedTask(any(), task.capture(), eq(PetEscort.FOLLOW_DELAY_TICKS));
         verify(pet, never()).teleport(any(Location.class));
         return task.getValue();
@@ -526,7 +532,7 @@ class PetEscortTest
     @Test
     void withDetailLoggingEachOwnPetThatStaysSaysWhy()
     {
-        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
         final Wolf sitting = wolfOf(owner);
         when(sitting.isSitting()).thenReturn(true);
         final Wolf riding = wolfOf(owner);
@@ -542,11 +548,11 @@ class PetEscortTest
 
         assertTrue(PetEscort.gather(owner).isEmpty());
 
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: sitting"));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: riding something"));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: dead"));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("stays behind: not a following pet"));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Pets travelling with"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("stays behind: sitting"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("stays behind: riding something"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("stays behind: dead"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("stays behind: not a following pet"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Pets travelling with"));
     }
 
     @Test
@@ -556,7 +562,7 @@ class PetEscortTest
             .thenThrow(new IllegalStateException("off the main thread"));
 
         assertTrue(PetEscort.gather(owner).isEmpty(), "the owner's own trip must still go ahead");
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("Could not look for"),
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Could not look for"),
             nullable(Throwable.class));
     }
 
@@ -568,6 +574,6 @@ class PetEscortTest
         when(wolf.teleport(any(Location.class))).thenReturn(false);
 
         assertEquals(0, PetEscort.bring(List.of(wolf), owner));
-        verify(plugin).prettyLog(eq(java.util.logging.Level.FINE), contains("the teleport was refused"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("the teleport was refused"));
     }
 }

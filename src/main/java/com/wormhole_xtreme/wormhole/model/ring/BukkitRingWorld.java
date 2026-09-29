@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -12,8 +14,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
+import com.wormhole_xtreme.wormhole.PetEscort;
+import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.events.RingTravelEvent;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Everything the ring subsystem does to a real world, in one place.
@@ -125,7 +132,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     @Override
     public void showBlock(final int x, final int y, final int z, final Material material)
     {
-        send(x, y, z, com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(material));
+        send(x, y, z, MaterialUtils.drawnAs(material));
     }
 
     /* (non-Javadoc)
@@ -135,7 +142,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     public void showSlab(final int x, final int y, final int z, final Material material,
         final boolean top)
     {
-        final BlockData data = com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(material);
+        final BlockData data = MaterialUtils.drawnAs(material);
         if (data instanceof Slab slab)
         {
             slab.setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);
@@ -269,18 +276,18 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             return true;
         }
-        final org.bukkit.entity.Entity entity = ((BukkitRingPassenger) passenger).getEntity();
+        final Entity entity = ((BukkitRingPassenger) passenger).getEntity();
         if (!(entity instanceof Player))
         {
             // Cargo raises nothing, so cancelling stops a person and not the world around
             // them. An item drifting onto a pad is not a decision anybody wants to make.
             return true;
         }
-        final com.wormhole_xtreme.wormhole.events.RingTravelEvent event =
-            new com.wormhole_xtreme.wormhole.events.RingTravelEvent(pair, (Player) entity, from, to);
+        final RingTravelEvent event =
+            new RingTravelEvent(pair, (Player) entity, from, to);
         try
         {
-            org.bukkit.Bukkit.getPluginManager().callEvent(event);
+            Bukkit.getPluginManager().callEvent(event);
         }
         // No server to dispatch through, which happens in tests and during shutdown. A trip
         // nobody could object to is better than a trip that throws.
@@ -321,22 +328,22 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         // The stack is noted first, moved apart, and put back once everything has landed.
         final List<Entity> parents = new ArrayList<>();
         final List<Entity> children = new ArrayList<>();
-        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
+        EntityUtils.collectPassengerPairs(entity, parents, children);
         // A pet standing in the ring is already cargo; this brings the ones following from outside it.
         final List<Entity> pets = (entity instanceof Player owner)
-            ? com.wormhole_xtreme.wormhole.PetEscort.gather(owner) : List.of();
+            ? PetEscort.gather(owner) : List.of();
 
-        if (!com.wormhole_xtreme.wormhole.RiddenTeleport.move(entity, arrival, parents, children))
+        if (!RiddenTeleport.move(entity, arrival, parents, children))
         {
             // Everyone is still aboard at this end, so nobody is told they arrived.
-            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Rings could not move " + entity.getType() + "; it stays where it is");
             return;
         }
         reseat(parents, children);
         if (entity instanceof Player owner)
         {
-            com.wormhole_xtreme.wormhole.PetEscort.follow(pets, owner);
+            PetEscort.follow(pets, owner);
         }
 
         // After the teleport, so it lands on a client that is already looking at the far end.
@@ -393,7 +400,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
                     // outcome than a stack trace, but not a reason to abandon the rest.
                     catch (final RuntimeException e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger", e);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not re-seat a ring passenger", e);
                     }
                 }
             }, 1L);

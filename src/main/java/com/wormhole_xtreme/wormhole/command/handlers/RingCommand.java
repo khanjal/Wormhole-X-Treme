@@ -4,13 +4,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Slab;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitGround;
 import com.wormhole_xtreme.wormhole.model.ring.RingBlockage;
@@ -25,6 +31,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 
 /**
  * Everything a player does to a transport ring that is not walking into one.
@@ -348,14 +355,14 @@ public class RingCommand implements SubCommand
      * @param user
      *            who the slabs are logged to CoreProtect as
      */
-    static void consumeTemplate(final org.bukkit.World world, final Ring ring, final String user)
+    static void consumeTemplate(final World world, final Ring ring, final String user)
     {
         for (final int[] block : ring.perimeterBlocks())
         {
-            final org.bukkit.block.Block at = world.getBlockAt(block[0], block[1], block[2]);
+            final Block at = world.getBlockAt(block[0], block[1], block[2]);
             if (at.getType() == ring.getRingMaterial())
             {
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.removed(user, at);
+                CoreProtectLog.removed(user, at);
                 at.setType(Material.AIR, false);
             }
         }
@@ -374,7 +381,7 @@ public class RingCommand implements SubCommand
      */
     private static int returnTemplates(final RingPair pair, final String user)
     {
-        final org.bukkit.World world = org.bukkit.Bukkit.getWorld(pair.getWorldName());
+        final World world = Bukkit.getWorld(pair.getWorldName());
         if (world == null)
         {
             return 0;
@@ -396,26 +403,26 @@ public class RingCommand implements SubCommand
      *            who the slabs are logged to CoreProtect as: the player removing the ring
      * @return how many slabs were laid down
      */
-    private static int restoreTemplate(final org.bukkit.World world, final Ring ring, final String user)
+    private static int restoreTemplate(final World world, final Ring ring, final String user)
     {
         final boolean top = ring.getOrientation() == RingOrientation.CEILING;
         int laid = 0;
         for (final int[] block : ring.perimeterBlocks())
         {
-            final org.bukkit.block.Block at = world.getBlockAt(block[0], block[1], block[2]);
+            final Block at = world.getBlockAt(block[0], block[1], block[2]);
             if (at.getType() != Material.AIR)
             {
                 // Something is there now. Putting the slab back would destroy it, and the
                 // player can lay one more slab far more easily than they can undo that.
                 continue;
             }
-            final org.bukkit.block.data.BlockData data = ring.getRingMaterial().createBlockData();
-            if (data instanceof org.bukkit.block.data.type.Slab slab)
+            final BlockData data = ring.getRingMaterial().createBlockData();
+            if (data instanceof Slab slab)
             {
                 slab.setType(top
-                    ? org.bukkit.block.data.type.Slab.Type.TOP
-                    : org.bukkit.block.data.type.Slab.Type.BOTTOM);
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(user, at, slab.getMaterial(), slab);
+                    ? Slab.Type.TOP
+                    : Slab.Type.BOTTOM);
+                CoreProtectLog.placing(user, at, slab.getMaterial(), slab);
                 at.setBlockData(slab, false);
                 laid++;
             }
@@ -435,11 +442,11 @@ public class RingCommand implements SubCommand
      *            the ring being placed
      * @return true if it touches gate blocks
      */
-    static boolean touchesGate(final org.bukkit.World world, final Ring ring)
+    static boolean touchesGate(final World world, final Ring ring)
     {
         for (final int[] block : ring.perimeterBlocks())
         {
-            if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
+            if (StargateManager.isBlockInGate(
                 world.getBlockAt(block[0], block[1], block[2])))
             {
                 return true;
@@ -447,7 +454,7 @@ public class RingCommand implements SubCommand
         }
         for (final int[] block : ring.interiorBlocks())
         {
-            if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
+            if (StargateManager.isBlockInGate(
                 world.getBlockAt(block[0], block[1], block[2])))
             {
                 return true;
@@ -1167,12 +1174,12 @@ public class RingCommand implements SubCommand
     @SuppressWarnings("deprecation")
     private static OfflinePlayer findPlayer(final String name)
     {
-        final Player online = org.bukkit.Bukkit.getPlayerExact(name);
+        final Player online = Bukkit.getPlayerExact(name);
         if (online != null)
         {
             return online;
         }
-        final OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(name);
+        final OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
         // getOfflinePlayer invents a profile for a name nobody has ever used, so having
         // played before is the only way to tell a real absent player from a typo.
         return offline.hasPlayedBefore() ? offline : null;

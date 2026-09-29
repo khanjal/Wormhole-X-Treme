@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,9 +19,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -109,9 +115,9 @@ class WormholeXTremePlayerListenerMountTest
         when(rider2.getName()).thenReturn("r2");
 
         // Track teleport and addPassenger invocations and simulate successful addPassenger
-        final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
-        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] mount.teleport called"); return true; }).when(mount).teleport(any(Location.class));
-        final java.util.concurrent.atomic.AtomicInteger adds = new java.util.concurrent.atomic.AtomicInteger(0);
+        final AtomicInteger teleports = new AtomicInteger(0);
+        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "[TEST-DEBUG] mount.teleport called"); return true; }).when(mount).teleport(any(Location.class));
+        final AtomicInteger adds = new AtomicInteger(0);
         doAnswer(inv -> { adds.incrementAndGet(); return true; }).when(mount).addPassenger(any());
 
         // Execute delayed runnables immediately so reattach tasks run synchronously in the test.
@@ -122,8 +128,8 @@ class WormholeXTremePlayerListenerMountTest
         }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
 
         // Sanity: ensure our mock wiring is correct
-        org.junit.jupiter.api.Assertions.assertNotNull(rider1.getVehicle(), "rider1.getVehicle() should be non-null and return mount");
-        org.junit.jupiter.api.Assertions.assertNotNull(rider2.getVehicle(), "rider2.getVehicle() should be non-null and return mount");
+        Assertions.assertNotNull(rider1.getVehicle(), "rider1.getVehicle() should be non-null and return mount");
+        Assertions.assertNotNull(rider2.getVehicle(), "rider2.getVehicle() should be non-null and return mount");
 
         // Act: simulate both players moving into the gate portal block
         // fromLoc must be a different block coordinate from toLoc so hasChangedBlockCoordinates returns true.
@@ -136,11 +142,11 @@ class WormholeXTremePlayerListenerMountTest
         listener.onPlayerMove(ev2);
 
         // Assert: mount was teleported and both riders were reattached
-        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
         // JUnit assertions rather than the `assert` keyword, which only evaluates when the
         // JVM runs with -ea and would otherwise let this test pass without checking anything.
-        org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0, "the mount should have been teleported");
-        org.junit.jupiter.api.Assertions.assertTrue(adds.get() >= 2, "both riders should have been re-seated");
+        Assertions.assertTrue(teleports.get() > 0, "the mount should have been teleported");
+        Assertions.assertTrue(adds.get() >= 2, "both riders should have been re-seated");
         // Five ticks: the riders were teleported too, and a client will not take a seat until
         // it has acknowledged that.
         verify(mockScheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(5L));
@@ -209,7 +215,7 @@ class WormholeXTremePlayerListenerMountTest
         when(rider.getName()).thenReturn("camelRider");
         when(rider.teleport(any(Location.class))).thenReturn(true);
 
-        final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
+        final AtomicInteger teleports = new AtomicInteger(0);
         doAnswer(inv -> { teleports.incrementAndGet(); return true; }).when(mount).teleport(any(Location.class));
         doAnswer(inv -> true).when(mount).addPassenger(any());
 
@@ -225,7 +231,7 @@ class WormholeXTremePlayerListenerMountTest
 
         new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider, fromLoc, toLoc));
 
-        org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0,
+        Assertions.assertTrue(teleports.get() > 0,
             "gate under the mount should have been detected and the mount teleported");
 
         StargateManager.removeBlockIndex(portal);
@@ -328,25 +334,25 @@ class WormholeXTremePlayerListenerMountTest
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             mount, new Location(world, 70.5, 64, 80.5), rider);
         runTasksAtOnce();
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
-        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        ConfigTestSupport.loadDefaults();
+        ConfigManager.setUseCooldownEnabled(true);
         try
         {
             new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
                 new Location(world, 70.5, 64, 78.5), new Location(world, 70.5, 64, 80.5)));
 
-            org.junit.jupiter.api.Assertions.assertEquals(arrival.getX(), stack.at().getX(), 0.001,
+            Assertions.assertEquals(arrival.getX(), stack.at().getX(), 0.001,
                 "the pig must reach the far gate rather than stay in this one");
-            org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider),
+            Assertions.assertTrue(stack.carries(rider),
                 "the rider must be back in the saddle at the far end");
-            org.junit.jupiter.api.Assertions.assertTrue(StargateRestrictions.isPlayerUseCooldown(rider),
+            Assertions.assertTrue(StargateRestrictions.isPlayerUseCooldown(rider),
                 "a trip that happened spends the cooldown");
         }
         finally
         {
             StargateRestrictions.removePlayerUseCooldown(rider);
-            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigManager.setUseCooldownEnabled(false);
+            ConfigTestSupport.clear();
         }
     }
 
@@ -370,24 +376,24 @@ class WormholeXTremePlayerListenerMountTest
         // Something else refuses: another plugin cancelling the teleport, say.
         when(mount.teleport(any(Location.class))).thenReturn(false);
         runTasksAtOnce();
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
-        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        ConfigTestSupport.loadDefaults();
+        ConfigManager.setUseCooldownEnabled(true);
         try
         {
             new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
                 new Location(world, 60.5, 64, 68.5), new Location(world, 60.5, 64, 70.5)));
 
-            org.junit.jupiter.api.Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
-            org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
-            org.junit.jupiter.api.Assertions.assertFalse(StargateRestrictions.isPlayerUseCooldown(rider),
+            Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
+            Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
+            Assertions.assertFalse(StargateRestrictions.isPlayerUseCooldown(rider),
                 "no cooldown for a trip that did not happen");
-            verify(rider).sendMessage(org.mockito.ArgumentMatchers.contains("could not be sent through"));
+            verify(rider).sendMessage(ArgumentMatchers.contains("could not be sent through"));
         }
         finally
         {
             StargateRestrictions.removePlayerUseCooldown(rider);
-            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+            ConfigManager.setUseCooldownEnabled(false);
+            ConfigTestSupport.clear();
         }
     }
 
@@ -409,7 +415,7 @@ class WormholeXTremePlayerListenerMountTest
         new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
             new Location(world, 90.5, 64, 68.5), new Location(world, 90.5, 64, 70.5)));
 
-        org.junit.jupiter.api.Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
-        org.junit.jupiter.api.Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
+        Assertions.assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
+        Assertions.assertTrue(stack.carries(rider), "the rider must still be aboard");
     }
 }

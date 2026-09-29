@@ -37,6 +37,7 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 - **4-space indentation** (no tabs).
 - `final` on every local variable and parameter that is not reassigned.
 - One blank line between logical sections inside a method; two blank lines between methods.
+- Import types; do not write `org.bukkit.World` or `java.util.UUID` inline. A package-qualified name in code is only for a clash between two types with the same simple name; `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
 
 ### Java Idioms Used In This Codebase
 - **Anonymous `Runnable` classes for scheduled tasks** — not lambdas. Every one of the 22 scheduler

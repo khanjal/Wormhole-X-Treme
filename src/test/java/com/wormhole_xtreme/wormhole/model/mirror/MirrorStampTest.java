@@ -13,6 +13,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.DyeColor;
@@ -313,7 +314,7 @@ class MirrorStampTest
     /** A preset with a base colour and any number of "COLOUR PATTERN" layers. */
     private static MirrorPreset preset(final String base, final String... layers)
     {
-        final List<String> lines = new java.util.ArrayList<>();
+        final List<String> lines = new ArrayList<>();
         lines.add("Base=" + base);
         for (final String layer : layers)
         {

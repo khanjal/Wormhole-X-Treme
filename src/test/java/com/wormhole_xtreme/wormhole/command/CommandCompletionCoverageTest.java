@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -22,6 +24,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
@@ -51,14 +54,14 @@ class CommandCompletionCoverageTest
     private static final Set<String> NOTHING_TO_OFFER =
         Set.of("shutdown_timeout", "activate_timeout", "restrict", "freya");
 
-    private java.util.Map<String, StargateShape> savedShapes;
+    private Map<String, StargateShape> savedShapes;
 
     @BeforeEach
     void setUp() throws Exception
     {
         PluginTestSupport.install(mock(WormholeXTreme.class));
         clearGates();
-        savedShapes = new java.util.HashMap<>(StargateShapeRegistry.getStargateShapes());
+        savedShapes = new HashMap<>(StargateShapeRegistry.getStargateShapes());
         StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
     }
 
@@ -70,7 +73,7 @@ class CommandCompletionCoverageTest
         StargateShapeRegistry.getStargateShapes().putAll(savedShapes);
         // One test loads the config defaults to have settings to offer. The map is empty until
         // something reads a file, so putting it back empty is putting it back as it was.
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
 
@@ -200,7 +203,7 @@ class CommandCompletionCoverageTest
     {
         // Without these there are no settings to offer, so the assertion below would hold
         // whether or not anything stopped the delegation.
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.loadDefaults();
         assertFalse(complete("config", "config", "").isEmpty(), "config itself has settings to offer");
 
         assertEquals(List.of(), complete("gate", "gate", "set", ""));

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntSupplier;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -213,7 +214,7 @@ class ConfigFileShapeTest
      *            the getter that does the clamping
      */
     private static void assertFloor(final ConfigKeys key, final int below, final int floor,
-        final java.util.function.IntSupplier getter)
+        final IntSupplier getter)
     {
         ConfigTestSupport.set(key, below);
 

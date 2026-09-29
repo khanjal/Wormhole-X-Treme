@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.Paper1204Riding;
+import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
@@ -76,7 +77,7 @@ class IrisClearsRiddenMountTest
         when(rider.getUniqueId()).thenReturn(UUID.randomUUID());
         when(rider.isValid()).thenReturn(true);
         // Sitting in the opening too; where they are decides whether the horse will seat them.
-        com.wormhole_xtreme.wormhole.PetTestSupport.standsWhereTeleported(rider, new Location(world, BX + 0.5, BY + 1, BZ + 0.5));
+        PetTestSupport.standsWhereTeleported(rider, new Location(world, BX + 0.5, BY + 1, BZ + 0.5));
         final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
             horse, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(horse, rider));

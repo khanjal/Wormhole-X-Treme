@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.block.Block;
@@ -44,8 +46,8 @@ class WormholeXTremeRedstoneListener implements Listener
     private static final long TRIGGER_WINDOW_MS = 250L;
 
     /** When each gate last acted on a redstone trigger, keyed by gate name. */
-    private static final java.util.Map<String, Long> lastTrigger =
-        new java.util.concurrent.ConcurrentHashMap<String, Long>();
+    private static final Map<String, Long> lastTrigger =
+        new ConcurrentHashMap<String, Long>();
 
     /**
      * Whether a trigger arriving now is a repeat of one already acted on.

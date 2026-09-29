@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,7 +90,7 @@ class BeamGalleryTest
 
     /** A phase as {@code first-last}, in the order the renderer writes it. */
     private static String span(final List<BeamFrame> frames,
-        final java.util.function.Predicate<BeamFrame> active)
+        final Predicate<BeamFrame> active)
     {
         int first = -1;
         int last = -1;
@@ -106,7 +107,7 @@ class BeamGalleryTest
 
     /** The tick one of the marks falls on. */
     private static int mark(final List<BeamFrame> frames,
-        final java.util.function.Predicate<BeamFrame> is)
+        final Predicate<BeamFrame> is)
     {
         for (int tick = 0; tick < frames.size(); tick++)
         {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -25,7 +26,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
@@ -83,7 +86,7 @@ class PendingCompletionDetectionTest
         Complete.removePendingCompletion(player);
         StargateManager.removeIncompleteStargate(player);
         GateSpatialIndex.clear();
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -203,14 +206,14 @@ class PendingCompletionDetectionTest
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
             MockedStatic<StargateManager> mgr = mockStatic(StargateManager.class,
-                org.mockito.Mockito.CALLS_REAL_METHODS))
+                Mockito.CALLS_REAL_METHODS))
         {
             helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
             helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
                 .thenReturn(found);
-            mgr.when(() -> StargateManager.completeStargate(any(), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+            mgr.when(() -> StargateManager.completeStargate(any(), ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
                 .thenReturn(false);
 
             click();

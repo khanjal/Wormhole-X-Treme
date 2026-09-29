@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 
@@ -80,7 +81,7 @@ class BeamCommandTest
         final CommandSender sender = mock(CommandSender.class);
         final String[] args = { "beam", "admin", "goto", "10.5", "64", "-20" };
 
-        final org.bukkit.Location result = command.resolveDestination(sender, args, 3, null, 90f, 45f);
+        final Location result = command.resolveDestination(sender, args, 3, null, 90f, 45f);
 
         assertNotNull(result);
         assertEquals(10.5, result.getX(), 1e-9);
@@ -113,7 +114,7 @@ class BeamCommandTest
     {
         final CommandSender sender = mock(CommandSender.class);
         final String[] args = { "beam", "admin", "goto", "100", "64" };
-        final org.bukkit.Location result = command.resolveDestination(sender, args, 3, null, 0f, 0f);
+        final Location result = command.resolveDestination(sender, args, 3, null, 0f, 0f);
         assertNull(result, "two bare numbers are neither a player name nor a full x/y/z");
         verify(sender).sendMessage(contains("Expected a player name"));
     }

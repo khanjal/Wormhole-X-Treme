@@ -21,7 +21,9 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -111,7 +113,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth"));
         assertTrue(run("wooshdepth", "alpha", "3", "extra"));
 
-        verify(sender, org.mockito.Mockito.atLeastOnce())
+        verify(sender, Mockito.atLeastOnce())
             .sendMessage(contains("/wormhole wooshdepth"));
     }
 
@@ -252,7 +254,7 @@ class WooshDepthCommandTest
         final Player player = mock(Player.class);
         when(player.getName()).thenReturn("nobody");
         when(player.isOp()).thenReturn(false);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(false);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
 
         assertTrue(new WooshDepthCommand().execute(player, new String[] {"wooshdepth", "alpha", "5"}));

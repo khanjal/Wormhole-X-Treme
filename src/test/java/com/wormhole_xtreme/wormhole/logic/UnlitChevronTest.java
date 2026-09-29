@@ -3,15 +3,22 @@ package com.wormhole_xtreme.wormhole.logic;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+import org.yaml.snakeyaml.Yaml;
 
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
@@ -222,7 +229,7 @@ class UnlitChevronTest
     @Test
     void noShippedShapeUsedTheCombinationBeforeItMeantSomething() throws Exception
     {
-        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
             for (final Path p : listing.toList())
             {
@@ -365,14 +372,14 @@ class UnlitChevronTest
     @Test
     void theShippedStandardPaletteOffersUnlitChevrons() throws Exception
     {
-        final java.util.Map<String, Object> root = YamlMaps.asMap(
-            new org.yaml.snakeyaml.Yaml().load(new String(
+        final Map<String, Object> root = YamlMaps.asMap(
+            new Yaml().load(new String(
                 Files.readAllBytes(Paths.get("src/main/resources/config.yml")),
-                java.nio.charset.StandardCharsets.UTF_8)));
-        final java.util.Map<String, Object> section = YamlMaps.asMap(root.get("gate-material-groups"));
+                StandardCharsets.UTF_8)));
+        final Map<String, Object> section = YamlMaps.asMap(root.get("gate-material-groups"));
 
-        final java.util.concurrent.atomic.AtomicReference<Object> state =
-            com.wormhole_xtreme.wormhole.PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
+        final AtomicReference<Object> state =
+            PrivateStatics.of(MaterialGroupRegistry.class, "STATE");
         final Object previous = state.get();
         MaterialGroupRegistry.load(section);
         try
@@ -400,7 +407,7 @@ class UnlitChevronTest
     @Test
     void everyLightMarkedCellOfEveryShippedShapeIsAlsoAFrameBlock() throws Exception
     {
-        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
             for (final Path p : listing.toList())
             {
@@ -450,7 +457,7 @@ class UnlitChevronTest
     {
         final Stargate3DShape standard = load("Standard");
         final StargateShapeLayer face = standard.getShapeLayers().get(1);
-        final java.util.Set<Long> lit = StargateHelper.lightCells(face);
+        final Set<Long> lit = StargateHelper.lightCells(face);
 
         assertEquals(8, lit.size(),
             "Standard's eight chevrons must produce eight distinct keys -- a key that "

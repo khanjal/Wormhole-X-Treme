@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+import java.util.UUID;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -82,7 +84,7 @@ class GateEntryRefusalTest
         player = mock(Player.class);
         when(player.getName()).thenReturn("walker");
         when(player.isOp()).thenReturn(true);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
     }
 
     @AfterEach

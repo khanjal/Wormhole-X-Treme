@@ -14,6 +14,7 @@ import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -107,7 +108,7 @@ class Utf8GateStorageTest
         when(dial.getWorld()).thenReturn(w);
         s.setGateDialLeverBlock(dial);
         s.setGatePlayerTeleportLocation(new Location(w, 65.0, 65.0, 65.0));
-        s.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        s.setGateFacing(BlockFace.NORTH);
         return s;
     }
 

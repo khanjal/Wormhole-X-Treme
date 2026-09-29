@@ -9,13 +9,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -54,7 +57,7 @@ class WXListTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -200,10 +203,10 @@ class WXListTest
     void aPlayerWithoutTheNodeIsRefused()
     {
         gate("alpha", null);
-        final org.bukkit.entity.Player player = mock(org.bukkit.entity.Player.class);
+        final Player player = mock(Player.class);
         when(player.getName()).thenReturn("nosy");
         when(player.isOp()).thenReturn(false);
-        when(player.hasPermission(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(false);
 
         new WXList().onCommand(player, null, "list", new String[0]);
 

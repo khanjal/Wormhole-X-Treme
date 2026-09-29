@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
+import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -33,7 +34,7 @@ public final class PlaceholderSupport
      */
     // A function reference, not a container: volatile is the whole synchronisation it needs.
     @SuppressWarnings("java:S3077")
-    private static volatile java.util.function.BooleanSupplier registrar = null;
+    private static volatile BooleanSupplier registrar = null;
 
     /** Static helpers only. */
     private PlaceholderSupport()
@@ -49,7 +50,7 @@ public final class PlaceholderSupport
      * @param replacement
      *            what to do instead of registering, or null to register for real
      */
-    public static void setRegistrarForTest(final java.util.function.BooleanSupplier replacement)
+    public static void setRegistrarForTest(final BooleanSupplier replacement)
     {
         registrar = replacement;
     }
@@ -81,7 +82,7 @@ public final class PlaceholderSupport
             // Only reached with PlaceholderAPI on the classpath, which is what makes naming
             // the expansion class here safe. Hoisting this above the check would load it on
             // every server and fail on the ones without.
-            final java.util.function.BooleanSupplier how = registrar;
+            final BooleanSupplier how = registrar;
             registered = (how != null) ? how.getAsBoolean() : new WormholePlaceholders().register();
             if (registered)
             {

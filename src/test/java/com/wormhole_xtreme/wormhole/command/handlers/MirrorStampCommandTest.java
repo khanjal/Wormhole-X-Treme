@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
@@ -35,6 +36,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.SubCommands;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -246,7 +248,7 @@ class MirrorStampCommandTest
     {
         pointedMirror();
         final MirrorView nether =
-            new MirrorView("NETHER_WASTES", java.util.List.of(DyeColor.BROWN), true);
+            new MirrorView("NETHER_WASTES", List.of(DyeColor.BROWN), true);
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
         {
@@ -268,7 +270,7 @@ class MirrorStampCommandTest
     {
         pointedMirror();
         final MirrorView library =
-            new MirrorView("FOREST", java.util.List.of(DyeColor.BROWN), true);
+            new MirrorView("FOREST", List.of(DyeColor.BROWN), true);
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
         {
@@ -493,9 +495,9 @@ class MirrorStampCommandTest
         return new MirrorCommand().execute(sender, args);
     }
 
-    private static java.util.List<String> complete(final String... args)
+    private static List<String> complete(final String... args)
     {
-        return com.wormhole_xtreme.wormhole.command.SubCommands.find("mirror")
+        return SubCommands.find("mirror")
             .completeArgs(null, args);
     }
 }

@@ -1,9 +1,15 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.concurrent.Callable;
+
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CompassMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -42,7 +48,7 @@ public class Compass implements CommandExecutor
     {
         try
         {
-            for (final org.bukkit.inventory.ItemStack item : player.getInventory().getContents())
+            for (final ItemStack item : player.getInventory().getContents())
             {
                 if (isOrdinaryCompass(item))
                 {
@@ -71,14 +77,14 @@ public class Compass implements CommandExecutor
      *            the item to judge, possibly null
      * @return true if it will point where the heading says
      */
-    private static boolean isOrdinaryCompass(final org.bukkit.inventory.ItemStack item)
+    private static boolean isOrdinaryCompass(final ItemStack item)
     {
-        if ((item == null) || (item.getType() != org.bukkit.Material.COMPASS))
+        if ((item == null) || (item.getType() != Material.COMPASS))
         {
             return false;
         }
-        final org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        return !(meta instanceof org.bukkit.inventory.meta.CompassMeta compass)
+        final ItemMeta meta = item.getItemMeta();
+        return !(meta instanceof CompassMeta compass)
             || !compass.hasLodestone();
     }
 
@@ -150,7 +156,7 @@ public class Compass implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
+        return CommandUtilities.runCommandSafe(sender, new Callable<Boolean>()
         {
             // runCommandSafe wants a Callable<Boolean>, and every path here has handled the
             // command, so the Boolean it hands back is always true.

@@ -4,11 +4,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+
+import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.junit.jupiter.api.Assertions;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 class GateSerializerTest
 {
@@ -45,7 +55,7 @@ class GateSerializerTest
 
         s1.setGateDialLeverBlock(dial);
         s1.setGatePlayerTeleportLocation(new Location(w, 65.0, 65.0, 65.0));
-        s1.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        s1.setGateFacing(BlockFace.NORTH);
 
         final byte[] data = GateSerializer.stargateToBinary(s1);
         assertNotNull(data);
@@ -93,7 +103,7 @@ class GateSerializerTest
         when(dial.getWorld()).thenReturn(w);
         s.setGateDialLeverBlock(dial);
         s.setGatePlayerTeleportLocation(new Location(w, 65.0, 65.0, 65.0));
-        s.setGateFacing(org.bukkit.block.BlockFace.NORTH);
+        s.setGateFacing(BlockFace.NORTH);
         return s;
     }
 
@@ -103,19 +113,19 @@ class GateSerializerTest
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
         s1.setGateCustom(true);
-        s1.setGateCustomStructureMaterial(org.bukkit.Material.LAPIS_BLOCK);
-        s1.setGateCustomPortalMaterial(org.bukkit.Material.LAVA);
-        s1.setGateCustomLightMaterial(org.bukkit.Material.SEA_LANTERN);
-        s1.setGateCustomIrisMaterial(org.bukkit.Material.YELLOW_STAINED_GLASS);
+        s1.setGateCustomStructureMaterial(Material.LAPIS_BLOCK);
+        s1.setGateCustomPortalMaterial(Material.LAVA);
+        s1.setGateCustomLightMaterial(Material.SEA_LANTERN);
+        s1.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
 
         final Stargate s2 = GateSerializer.parseVersionedData(
             GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertTrue(s2.isGateCustom());
-        assertEquals(org.bukkit.Material.LAPIS_BLOCK, s2.getGateCustomStructureMaterial());
-        assertEquals(org.bukkit.Material.LAVA, s2.getGateCustomPortalMaterial());
-        assertEquals(org.bukkit.Material.SEA_LANTERN, s2.getGateCustomLightMaterial());
-        assertEquals(org.bukkit.Material.YELLOW_STAINED_GLASS, s2.getGateCustomIrisMaterial());
+        assertEquals(Material.LAPIS_BLOCK, s2.getGateCustomStructureMaterial());
+        assertEquals(Material.LAVA, s2.getGateCustomPortalMaterial());
+        assertEquals(Material.SEA_LANTERN, s2.getGateCustomLightMaterial());
+        assertEquals(Material.YELLOW_STAINED_GLASS, s2.getGateCustomIrisMaterial());
     }
 
     @Test
@@ -142,10 +152,10 @@ class GateSerializerTest
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
         s1.setGateCustom(true);
-        s1.setGateCustomStructureMaterial(org.bukkit.Material.LAPIS_BLOCK);
+        s1.setGateCustomStructureMaterial(Material.LAPIS_BLOCK);
 
         final byte[] data = GateSerializer.stargateToBinary(s1);
-        final String asLatin1 = new String(data, java.nio.charset.StandardCharsets.ISO_8859_1);
+        final String asLatin1 = new String(data, StandardCharsets.ISO_8859_1);
 
         assertTrue(asLatin1.contains("LAPIS_BLOCK"),
             "material should be encoded by name so it survives a Bukkit version change");
@@ -158,8 +168,8 @@ class GateSerializerTest
         // longer be eyeballed. Over-allocating leaves trailing padding, which the reader
         // reports; this pins that it does not happen for either a gate with materials or
         // one without.
-        final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
-            mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
+        final WormholeXTreme plugin =
+            mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
         try
         {
@@ -167,8 +177,8 @@ class GateSerializerTest
 
             final Stargate withMaterials = minimalGate(w);
             withMaterials.setGateCustom(true);
-            withMaterials.setGateCustomStructureMaterial(org.bukkit.Material.LAPIS_BLOCK);
-            withMaterials.setGateCustomIrisMaterial(org.bukkit.Material.YELLOW_STAINED_GLASS);
+            withMaterials.setGateCustomStructureMaterial(Material.LAPIS_BLOCK);
+            withMaterials.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
             GateSerializer.parseVersionedData(GateSerializer.stargateToBinary(withMaterials), w, "a", null);
 
             GateSerializer.parseVersionedData(GateSerializer.stargateToBinary(minimalGate(w)), w, "b", null);
@@ -199,9 +209,9 @@ class GateSerializerTest
     {
         final World w = mockWorld();
         final byte[] data = GateSerializer.stargateToBinary(minimalGate(w));
-        java.nio.ByteBuffer.wrap(data).putInt(data.length - 4, Integer.MAX_VALUE);
+        ByteBuffer.wrap(data).putInt(data.length - 4, Integer.MAX_VALUE);
 
-        final IllegalArgumentException refused = org.junit.jupiter.api.Assertions.assertThrows(
+        final IllegalArgumentException refused = Assertions.assertThrows(
             IllegalArgumentException.class, () -> GateSerializer.parseVersionedData(data, w, "garbled", null));
         assertTrue(refused.getMessage().contains("claims " + Integer.MAX_VALUE + " layers"),
             "the reason should name the count that cannot be right: " + refused.getMessage());
@@ -224,7 +234,7 @@ class GateSerializerTest
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
         s1.setGateCustom(true);
-        s1.setGateCustomPortalMaterial(org.bukkit.Material.WATER);
+        s1.setGateCustomPortalMaterial(Material.WATER);
         s1.setGateCustomWooshTicks(7);
         s1.setGateCustomLightTicks(5);
 
@@ -232,7 +242,7 @@ class GateSerializerTest
             GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertNull(s2.getGateCustomStructureMaterial());
-        assertEquals(org.bukkit.Material.WATER, s2.getGateCustomPortalMaterial());
+        assertEquals(Material.WATER, s2.getGateCustomPortalMaterial());
         assertNull(s2.getGateCustomLightMaterial());
         assertNull(s2.getGateCustomIrisMaterial());
         // Fields after the variable-length section must still line up.
@@ -255,7 +265,7 @@ class GateSerializerTest
         final Stargate s1 = minimalGate(w);
         s1.getGateLightBlocks().add(null);
         s1.getGateLightBlocks().add(null);
-        final java.util.ArrayList<Location> thirdWave = new java.util.ArrayList<Location>();
+        final ArrayList<Location> thirdWave = new ArrayList<Location>();
         thirdWave.add(new Location(w, 1, 2, 3));
         s1.getGateLightBlocks().add(thirdWave);
 

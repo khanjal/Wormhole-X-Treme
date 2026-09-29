@@ -1,11 +1,24 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
-import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import java.util.stream.Stream;
+
 import org.bukkit.Material;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.model.IrisSweep;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.ring.Ring;
+import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 
 
 /**
@@ -625,7 +638,7 @@ public class ConfigManager
      */
     public static int getRingMaxCeilingDrop()
     {
-        return Math.max(com.wormhole_xtreme.wormhole.model.ring.Ring.MIN_CEILING_DROP,
+        return Math.max(Ring.MIN_CEILING_DROP,
             intSetting(ConfigKeys.RING_MAX_CEILING_DROP, 10));
     }
 
@@ -795,12 +808,12 @@ public class ConfigManager
      *
      * @return never null
      */
-    public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern()
+    public static DialSpinPattern getGateDialSpinPattern()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
-        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern = (s == null) ? null
-            : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? com.wormhole_xtreme.wormhole.logic.DialSpinPattern.TOP : pattern;
+        final DialSpinPattern pattern = (s == null) ? null
+            : DialSpinPattern.parse(String.valueOf(s.getValue()));
+        return (pattern == null) ? DialSpinPattern.TOP : pattern;
     }
 
     /**
@@ -813,9 +826,9 @@ public class ConfigManager
      *            its material group, or null
      * @return never null
      */
-    public static com.wormhole_xtreme.wormhole.logic.DialSpinPattern getGateDialSpinPattern(
-        final com.wormhole_xtreme.wormhole.logic.DialSpinPattern own,
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup group)
+    public static DialSpinPattern getGateDialSpinPattern(
+        final DialSpinPattern own,
+        final MaterialGroup group)
     {
         if (own != null)
         {
@@ -835,7 +848,7 @@ public class ConfigManager
      *            the setting's name as typed, in either spelling
      * @return the values, empty for free text or a number
      */
-    public static java.util.List<String> valuesFor(final String typed)
+    public static List<String> valuesFor(final String typed)
     {
         final ConfigKeys key;
         try
@@ -844,25 +857,25 @@ public class ConfigManager
         }
         catch (final IllegalArgumentException notASetting)
         {
-            return java.util.List.of();
+            return List.of();
         }
         switch (key)
         {
             case GATE_DIAL_SPIN:
-                return java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
+                return Arrays.stream(DialSpinPattern.values())
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
                 return irisAnimations();
             case RING_DEFAULT_ACCESS:
-                return java.util.List.of("public", "private");
+                return List.of("public", "private");
             case RING_DEFAULT_STYLE:
-                return java.util.List.of("concurrent", "sequential");
+                return List.of("concurrent", "sequential");
             case LOG_LEVEL:
-                return java.util.List.of("SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL", "OFF");
+                return List.of("SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL", "OFF");
             default:
                 final Setting s = getConfigurations().get(key);
-                return ((s != null) && (s.getValue() instanceof Boolean)) ? java.util.List.of("true", "false")
-                    : java.util.List.of();
+                return ((s != null) && (s.getValue() instanceof Boolean)) ? List.of("true", "false")
+                    : List.of();
         }
     }
 
@@ -1028,7 +1041,7 @@ public class ConfigManager
      *            its material group, or null
      * @return one of {@link #irisAnimations()}
      */
-    public static String getGateIrisAnimation(final String own, final com.wormhole_xtreme.wormhole.model.MaterialGroup group)
+    public static String getGateIrisAnimation(final String own, final MaterialGroup group)
     {
         if (own != null)
         {
@@ -1042,12 +1055,12 @@ public class ConfigManager
     }
 
     /** @return the iris animations there are: the four sweep styles, then {@code instant} */
-    public static java.util.List<String> irisAnimations()
+    public static List<String> irisAnimations()
     {
-        return java.util.stream.Stream.concat(
-            java.util.Arrays.stream(com.wormhole_xtreme.wormhole.model.IrisSweep.Style.values())
+        return Stream.concat(
+            Arrays.stream(IrisSweep.Style.values())
                 .map(style -> style.name().toLowerCase(Locale.ROOT)),
-            java.util.stream.Stream.of("instant")).toList();
+            Stream.of("instant")).toList();
     }
 
     /**
@@ -1532,7 +1545,7 @@ public class ConfigManager
      *            the groups to add
      */
     public static void appendDiscoveredMaterialGroups(
-        final java.util.List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+        final List<MaterialGroup> groups)
     {
         ConfigurationYAML.appendMaterialGroups(ConfigurationYAML.getConfigFile(configuredPluginName), groups);
     }
@@ -1733,14 +1746,14 @@ public class ConfigManager
      *
      * @return the setting names, sorted
      */
-    public static java.util.List<String> settingNames()
+    public static List<String> settingNames()
     {
-        final java.util.List<String> names = new java.util.ArrayList<String>();
+        final List<String> names = new ArrayList<String>();
         for (final ConfigKeys key : getConfigurations().keySet())
         {
             names.add(key.name());
         }
-        java.util.Collections.sort(names);
+        Collections.sort(names);
         return names;
     }
 
@@ -1798,7 +1811,7 @@ public class ConfigManager
         if (setting.getName() == ConfigKeys.LOG_LEVEL)
         {
             // Read once at startup otherwise, so the change would wait for a restart.
-            com.wormhole_xtreme.wormhole.WormholeXTreme.applyLogLevel(getLogLevel());
+            WormholeXTreme.applyLogLevel(getLogLevel());
         }
         else if (setting.getName() == ConfigKeys.METRICS_ENABLED)
         {
@@ -1816,17 +1829,17 @@ public class ConfigManager
         {
             if (isMetricsEnabled())
             {
-                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.enableMetrics(
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin());
+                MetricsSupport.enableMetrics(
+                    WormholeXTreme.getThisPlugin());
             }
             else
             {
-                com.wormhole_xtreme.wormhole.plugin.MetricsSupport.disableMetrics();
+                MetricsSupport.disableMetrics();
             }
         }
         catch (final Exception | LinkageError e)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Could not follow metrics-enabled", e);
         }
     }
@@ -1898,11 +1911,11 @@ public class ConfigManager
      *            the text to look for, empty for everything
      * @return the matching names, sorted
      */
-    public static java.util.List<String> settingNamesMatching(final String needle)
+    public static List<String> settingNamesMatching(final String needle)
     {
         final String wanted = (needle == null) || (needle.trim().isEmpty())
             ? "" : settingKey(needle);
-        final java.util.List<String> found = new java.util.ArrayList<String>();
+        final List<String> found = new ArrayList<String>();
         for (final String name : settingNames())
         {
             if (name.contains(wanted))

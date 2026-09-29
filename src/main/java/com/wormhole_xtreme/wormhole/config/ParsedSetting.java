@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -133,8 +134,8 @@ final class ParsedSetting
     {
         if (key == ConfigKeys.GATE_DIAL_SPIN)
         {
-            final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern =
-                com.wormhole_xtreme.wormhole.logic.DialSpinPattern.parse(raw);
+            final DialSpinPattern pattern =
+                DialSpinPattern.parse(raw);
             return (pattern == null)
                 ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
                 : accepted(pattern.name());

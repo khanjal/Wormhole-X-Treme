@@ -7,7 +7,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -125,7 +127,7 @@ class RingMessagesTest
     @Test
     void everyBlockageReasonReadsDifferently()
     {
-        final java.util.Set<String> seen = new java.util.HashSet<String>();
+        final Set<String> seen = new HashSet<String>();
         for (final RingBlockage why : RingBlockage.values())
         {
             seen.add(refusalText(why));

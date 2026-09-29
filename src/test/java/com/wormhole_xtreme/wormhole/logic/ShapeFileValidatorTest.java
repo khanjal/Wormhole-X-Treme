@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -69,7 +70,7 @@ class ShapeFileValidatorTest
         // The validator has to agree with the parser and the rest of the test suite about
         // what "fine" looks like -- a false positive here would make the command useless the
         // first time someone ran it against a shape nobody had touched.
-        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
+        try (Stream<Path> listing = Files.list(SHAPE_DIR))
         {
             for (final Path shape : listing.toList())
             {

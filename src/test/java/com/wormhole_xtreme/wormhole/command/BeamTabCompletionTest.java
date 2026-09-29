@@ -175,7 +175,7 @@ class BeamTabCompletionTest
     @Test
     void sendNamesAPlayerWhereGotoNamesAnywhere()
     {
-        final org.bukkit.entity.Player bob = mock(org.bukkit.entity.Player.class);
+        final Player bob = mock(Player.class);
         when(bob.getName()).thenReturn("bob");
         final BeamDestination spawn = named("spawn");
 

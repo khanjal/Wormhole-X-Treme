@@ -4,13 +4,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -193,12 +199,12 @@ class CompleteCommandTest
         final Stargate halfBuilt = new Stargate();
         halfBuilt.setGateName("Partial");
         StargateManager.addIncompleteStargate(player, halfBuilt);
-        try (org.mockito.MockedStatic<StargateManager> mgr =
-            org.mockito.Mockito.mockStatic(StargateManager.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        try (MockedStatic<StargateManager> mgr =
+            Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
         {
-            mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+            mgr.when(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString())).thenReturn(false);
 
             new Complete().onCommand(player, null, "wormhole", new String[] {"Fresh"});
         }
@@ -266,26 +272,26 @@ class CompleteCommandTest
      * {@code anyShape}, and returns the gate that reached completion.
      */
     private static Stargate completeWhileDetectionAnswers(final Player player,
-        final java.util.function.Consumer<org.mockito.stubbing.OngoingStubbing<Stargate>> answer,
+        final Consumer<OngoingStubbing<Stargate>> answer,
         final Stargate anyShape)
     {
         final Stargate held = new Stargate();
         held.setGateName("Held");
         StargateManager.addIncompleteStargate(player, held);
         final Stargate[] completed = new Stargate[1];
-        try (org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.logic.StargateHelper> helper =
-                org.mockito.Mockito.mockStatic(com.wormhole_xtreme.wormhole.logic.StargateHelper.class);
-            org.mockito.MockedStatic<StargateManager> mgr =
-                org.mockito.Mockito.mockStatic(StargateManager.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        try (MockedStatic<StargateHelper> helper =
+                Mockito.mockStatic(StargateHelper.class);
+            MockedStatic<StargateManager> mgr =
+                Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
         {
-            answer.accept(helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any())));
-            helper.when(() -> com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(anyShape);
-            mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString())).thenAnswer(call -> {
+            answer.accept(helper.when(() -> StargateHelper.checkStargate(
+                ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any())));
+            helper.when(() -> StargateHelper.checkStargate(
+                ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(anyShape);
+            mgr.when(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString())).thenAnswer(call -> {
                     completed[0] = StargateManager.getIncompleteStargate(player);
                     return false;
                 });

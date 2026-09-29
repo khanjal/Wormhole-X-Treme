@@ -20,6 +20,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -206,7 +207,7 @@ class MirrorArrivalTest
     void directionalWinsIfSomethingImplementsBoth()
     {
         final BlockData both = mock(BlockData.class,
-            org.mockito.Mockito.withSettings().extraInterfaces(Directional.class, Rotatable.class));
+            Mockito.withSettings().extraInterfaces(Directional.class, Rotatable.class));
         when(((Directional) both).getFacing()).thenReturn(BlockFace.EAST);
         when(((Rotatable) both).getRotation()).thenReturn(BlockFace.WEST);
 

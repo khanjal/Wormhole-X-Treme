@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
+import java.util.Locale;
+
 import org.bukkit.Location;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -47,7 +49,7 @@ public final class PlaceholderValues
         {
             return null;
         }
-        switch (params.toLowerCase(java.util.Locale.ROOT))
+        switch (params.toLowerCase(Locale.ROOT))
         {
             case "gates_total":
                 return Integer.toString(gatesTotal());

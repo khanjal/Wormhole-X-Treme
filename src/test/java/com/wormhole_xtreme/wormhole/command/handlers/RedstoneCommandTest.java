@@ -13,9 +13,11 @@ import java.util.ArrayList;
 
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -103,10 +105,10 @@ class RedstoneCommandTest
     @Test
     void theWrongNumberOfArgumentsIsAUsageError()
     {
-        org.junit.jupiter.api.Assertions.assertTrue(run("redstone"));
-        org.junit.jupiter.api.Assertions.assertTrue(run("redstone", "alpha", "true", "extra"));
+        Assertions.assertTrue(run("redstone"));
+        Assertions.assertTrue(run("redstone", "alpha", "true", "extra"));
 
-        verify(sender, org.mockito.Mockito.atLeastOnce())
+        verify(sender, Mockito.atLeastOnce())
             .sendMessage(contains("/wormhole redstone"));
     }
 

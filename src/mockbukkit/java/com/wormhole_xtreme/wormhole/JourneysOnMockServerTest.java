@@ -8,9 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -36,7 +39,11 @@ import org.mockbukkit.mockbukkit.simulate.entity.PlayerSimulation;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
  * A player's whole trip through each way of travelling, on a simulated server: set it up by
@@ -65,7 +72,7 @@ class JourneysOnMockServerTest
     }
 
     /** Settles the server, and says which repeating tasks it is left running. */
-    private static java.util.Set<Integer> settledTasks()
+    private static Set<Integer> settledTasks()
     {
         MockServerSupport.settle(server);
         assertEquals(0, MockServerSupport.oneOffTasks(server), () -> "still rescheduling after 30 minutes: "
@@ -74,9 +81,9 @@ class JourneysOnMockServerTest
     }
 
     /** Every repeating task running once the trip has settled was already running before it. */
-    private static void assertNothingNewRunning(final java.util.Set<Integer> before, final String trip)
+    private static void assertNothingNewRunning(final Set<Integer> before, final String trip)
     {
-        final java.util.Set<Integer> started = new java.util.TreeSet<>(settledTasks());
+        final Set<Integer> started = new TreeSet<>(settledTasks());
         started.removeAll(before);
         assertTrue(started.isEmpty(), "tasks still running after " + trip + ": " + started);
     }
@@ -152,7 +159,7 @@ class JourneysOnMockServerTest
         final Stargate beta = buildGate(p, world, 40.5, "Beta");
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         click(p, Action.RIGHT_CLICK_BLOCK, alpha.getGateDialLeverBlock(), BlockFace.SOUTH);
         p.performCommand("dial Beta");
@@ -190,7 +197,7 @@ class JourneysOnMockServerTest
         p.performCommand("wormhole beam admin set Home");
         p.teleport(new Location(world, -20.5, 64, -20.5, 0f, 0f));
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         p.performCommand("wormhole beam to Home");
         ticks(100);
@@ -219,7 +226,7 @@ class JourneysOnMockServerTest
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
         final List<String> made = p.messages();
         assertTrue(made.stream().anyMatch(m -> m.contains("is live")), "pair not made: " + made);
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         walk(p, new Location(world, 0.6, 64, 0.6));
         ticks(200);
@@ -259,7 +266,7 @@ class JourneysOnMockServerTest
         final Cat sitter = pet(waiting, Cat.class, p, true);
         final Wolf strangers = pet(new Location(world, 1.5, 64, -0.5), Wolf.class, stranger, false);
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialLeverBlock(), BlockFace.SOUTH);
         p.performCommand("dial Park");
@@ -295,7 +302,7 @@ class JourneysOnMockServerTest
         p.teleport(new Location(here, 0.5, 64, 0.5, 0f, 0f));
         final Cat follower = pet(new Location(here, 2.5, 64, 0.5), Cat.class, p, false);
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         p.performCommand("wormhole beam to Den");
         ticks(120);
@@ -341,7 +348,7 @@ class JourneysOnMockServerTest
         pullIrisLever(p, far);
         assertTrue(far.isGateIrisActive(), "Chulak's iris did not shut");
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         final List<String> bare = dial(p, home, "Chulak", null);
         assertFalse(home.isGateActive(), "dialled through a shut iris with no code: " + bare);
@@ -377,7 +384,7 @@ class JourneysOnMockServerTest
         final Stargate far = buildGate(p, world, 40.5, "Dakara", "idc=8888");
         keeper.teleport(new Location(world, 40.5, 64, 0.5, 0f, 0f));
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         final List<String> dialled = dial(p, home, "Dakara", null);
         assertTrue(home.isGateActive(), "Tollan did not open: " + dialled);
@@ -423,7 +430,7 @@ class JourneysOnMockServerTest
         assertEquals("", far.getGateIrisDeactivationCode(), "the code was not cleared");
 
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
         final List<String> dialled = dial(p, home, "Hebridan", null);
         assertTrue(home.isGateActive(), "Vorash did not open: " + dialled);
         ticks(20 * 320);
@@ -478,7 +485,7 @@ class JourneysOnMockServerTest
         // The dial sign hangs on the [D] block beside the DHD's activation block, facing the
         // same way as the button: here, one block west of it.
         final Block button = world.getBlockAt(0, 65, 0);
-        assertTrue(org.bukkit.Tag.BUTTONS.isTagged(button.getType()), "no DHD button where expected: " + button.getType());
+        assertTrue(Tag.BUTTONS.isTagged(button.getType()), "no DHD button where expected: " + button.getType());
         final Block sign = button.getRelative(BlockFace.WEST);
         sign.setType(Material.OAK_WALL_SIGN);
         final BlockData facing = sign.getBlockData();
@@ -486,7 +493,7 @@ class JourneysOnMockServerTest
         sign.setBlockData(facing);
         final Sign written = (Sign) sign.getState();
         // Paper's text component, since the tests compile only against Paper and setLine is deprecated there.
-        written.getSide(Side.FRONT).line(0, net.kyori.adventure.text.Component.text(signName));
+        written.getSide(Side.FRONT).line(0, Component.text(signName));
         written.update(true);
         p.performCommand("wormhole gate complete " + complete);
         final String name = complete.split(" ")[0];
@@ -521,7 +528,7 @@ class JourneysOnMockServerTest
         click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialSignBlock(), BlockFace.NORTH);
         ticks(5);
         assertSame(far, home.getGateDialSignTarget(), "the second step is not Cedar: " + p.messages());
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         click(p, Action.RIGHT_CLICK_BLOCK, home.getGateDialLeverBlock(), BlockFace.NORTH);
         ticks(200);
@@ -564,13 +571,13 @@ class JourneysOnMockServerTest
         final List<String> told = p.messages();
         assertSame(far, home.getGateDialSignTarget(), "the second step is not Target: " + told);
         assertTrue(told.stream().anyMatch(m -> m.contains("Dialer set to: Target")), "not told: " + told);
-        final String shown = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        final String shown = PlainTextComponentSerializer.plainText()
             .serialize(((Sign) home.getGateDialSignBlock().getState()).getSide(Side.FRONT).line(2));
         assertTrue(shown.contains("Target"), "the sign's selected line reads \"" + shown + "\"");
         final Block output = home.getGateRedstoneGateActivatedBlock();
         assertFalse(((Switch) output.getBlockData()).isPowered(), "the [RA] lever is on before any dial");
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         // Dust on the [RD] cell, as a player's circuit leaves it.
         final Block trigger = home.getGateRedstoneDialActivationBlock();
@@ -624,7 +631,7 @@ class JourneysOnMockServerTest
             p.teleport(new Location(w, 0.5, 64, 1.5, 0f, 0f));
             p.lookAt(banner);
             p.performCommand("wormhole mirror create " + w.getName());
-            assertNotNull(com.wormhole_xtreme.wormhole.model.mirror.MirrorManager.byName(w.getName()),
+            assertNotNull(MirrorManager.byName(w.getName()),
                 w.getName() + " was not made a mirror: " + p.messages());
         }
         final Block libraryBanner = library.getBlockAt(0, 66, 4);
@@ -632,7 +639,7 @@ class JourneysOnMockServerTest
         p.teleport(new Location(library, 0.5, 64, 2.5, 0f, 0f));
         p.lookAt(libraryBanner);
         p.messages();
-        final java.util.Set<Integer> before = settledTasks();
+        final Set<Integer> before = settledTasks();
 
         click(p, Action.RIGHT_CLICK_BLOCK, libraryBanner, BlockFace.NORTH);
         final List<String> chose = p.messages();

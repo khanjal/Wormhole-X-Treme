@@ -1,5 +1,12 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -31,8 +38,8 @@ final class GateDismount
      * The passengers {@link RiddenTeleport} is taking off right now; main thread only. By
      * identity: the event hands back the same cached Bukkit entity the passenger list held.
      */
-    private static final java.util.Set<Entity> UNSEATING =
-        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    private static final Set<Entity> UNSEATING =
+        Collections.newSetFromMap(new IdentityHashMap<>());
 
     /** Static helpers only. */
     private GateDismount()
@@ -48,9 +55,9 @@ final class GateDismount
      * @param unseat
      *            the dismounts to allow
      */
-    static void allowWhile(final java.util.Collection<? extends Entity> riders, final Runnable unseat)
+    static void allowWhile(final Collection<? extends Entity> riders, final Runnable unseat)
     {
-        final java.util.List<Entity> added = new java.util.ArrayList<>();
+        final List<Entity> added = new ArrayList<>();
         for (final Entity rider : riders)
         {
             if (UNSEATING.add(rider))

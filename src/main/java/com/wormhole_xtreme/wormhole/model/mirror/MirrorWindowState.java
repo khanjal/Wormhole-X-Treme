@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
@@ -35,7 +36,7 @@ final class MirrorWindowState
     /** The turn far-side blocks need to face the right way here. */
     final StructureRotation rotation;
     /** The flip across the wall a reflection's blocks need, or none. */
-    final org.bukkit.block.structure.Mirror flip;
+    final Mirror flip;
     /** Far-side states turned by {@link #rotation}, each turned once. */
     final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
     Set<Long> solid = Set.of();
@@ -75,12 +76,12 @@ final class MirrorWindowState
         // A reflection is flipped across the wall, not turned: stairs and doors keep their side.
         if (!shape.mirrored())
         {
-            this.flip = org.bukkit.block.structure.Mirror.NONE;
+            this.flip = Mirror.NONE;
         }
         else
         {
-            this.flip = (shape.into().x() != 0) ? org.bukkit.block.structure.Mirror.FRONT_BACK
-                : org.bukkit.block.structure.Mirror.LEFT_RIGHT;
+            this.flip = (shape.into().x() != 0) ? Mirror.FRONT_BACK
+                : Mirror.LEFT_RIGHT;
         }
         open.forEach(cell -> openKeys.add(MirrorWindows.key(cell.x(), cell.y(), cell.z())));
     }

@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews.Outcome;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews.Placed;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
+import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 
 /**
  * Turns a preview into real blocks for {@code gate preview place}, after checking every block it would
@@ -103,7 +104,7 @@ final class PreviewPlacer
                 {
                     attached.setAttachedFace(FaceAttachable.AttachedFace.WALL);
                 }
-                com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.placing(com.wormhole_xtreme.wormhole.plugin.CoreProtectLog.PLUGIN_USER, block, data.getMaterial(), data);
+                CoreProtectLog.placing(CoreProtectLog.PLUGIN_USER, block, data.getMaterial(), data);
                 block.setBlockData(data, false);
             }
         }

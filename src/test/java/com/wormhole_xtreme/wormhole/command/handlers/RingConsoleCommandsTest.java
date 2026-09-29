@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -28,6 +29,7 @@ import org.bukkit.block.data.type.Slab;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.ProxiedCommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -44,6 +47,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 
@@ -335,7 +339,7 @@ class RingConsoleCommandsTest
     {
         final Player player = mock(Player.class);
         when(player.hasPermission(anyString())).thenReturn(Boolean.FALSE);
-        final org.bukkit.command.ProxiedCommandSender asThemselves = mock(org.bukkit.command.ProxiedCommandSender.class);
+        final ProxiedCommandSender asThemselves = mock(ProxiedCommandSender.class);
         when(asThemselves.getCaller()).thenReturn(player);
         when(asThemselves.getCallee()).thenReturn(player);
 
@@ -344,7 +348,7 @@ class RingConsoleCommandsTest
         verify(asThemselves).sendMessage(contains("needs " + RingPermissions.ADMIN));
         assertTrue(pairs().isEmpty());
 
-        final org.bukkit.command.ProxiedCommandSender fromAMap = mock(org.bukkit.command.ProxiedCommandSender.class);
+        final ProxiedCommandSender fromAMap = mock(ProxiedCommandSender.class);
         final BlockCommandSender commandBlock = mock(BlockCommandSender.class);
         when(fromAMap.getCaller()).thenReturn(commandBlock);
         when(fromAMap.getCallee()).thenReturn(player);
@@ -357,10 +361,10 @@ class RingConsoleCommandsTest
     @Test
     void aCircleAPlayerIsPairingIsNotTaken()
     {
-        final Ring waiting = com.wormhole_xtreme.wormhole.model.ring.RingTemplate.detect(
-            new com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
+        final Ring waiting = RingTemplate.detect(
+            new BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
             .getRing();
-        RingManager.setPending(java.util.UUID.randomUUID(), waiting, WORLD);
+        RingManager.setPending(UUID.randomUUID(), waiting, WORLD);
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
@@ -374,10 +378,10 @@ class RingConsoleCommandsTest
     @Test
     void aCirclePairedAtTheSamePlaceInAnotherWorldDoesNotStandInTheWay()
     {
-        final Ring waiting = com.wormhole_xtreme.wormhole.model.ring.RingTemplate.detect(
-            new com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
+        final Ring waiting = RingTemplate.detect(
+            new BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE)
             .getRing();
-        RingManager.setPending(java.util.UUID.randomUUID(), waiting, "world_nether");
+        RingManager.setPending(UUID.randomUUID(), waiting, "world_nether");
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 

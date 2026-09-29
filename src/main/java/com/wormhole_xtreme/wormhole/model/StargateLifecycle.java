@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -379,8 +380,8 @@ class StargateLifecycle
         if ((gate.getGateIrisLeverBlock() != null)
             && (gate.getGateIrisLeverBlock().getType() == Material.LEVER))
         {
-            final org.bukkit.block.data.Powerable lp =
-                (org.bukkit.block.data.Powerable) gate.getGateIrisLeverBlock().getBlockData();
+            final Powerable lp =
+                (Powerable) gate.getGateIrisLeverBlock().getBlockData();
             lp.setPowered(gate.isGateIrisActive());
             gate.getGateIrisLeverBlock().setBlockData(lp);
         }

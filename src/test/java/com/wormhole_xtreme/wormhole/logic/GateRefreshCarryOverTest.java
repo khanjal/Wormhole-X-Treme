@@ -8,13 +8,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 
 /**
  * What a regenerated gate keeps from the one it replaces. The fresh gate is saved straight
@@ -57,15 +66,15 @@ class GateRefreshCarryOverTest
     @Test
     void aRegeneratedGateKeepsEverySettingGateEditMade()
     {
-        final com.wormhole_xtreme.wormhole.model.MaterialGroup atlantis = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
-            "Atlantis", org.bukkit.Material.LAPIS_BLOCK, org.bukkit.Material.WATER, org.bukkit.Material.STONE,
-            org.bukkit.Material.SEA_LANTERN, org.bukkit.Material.OAK_WALL_SIGN);
+        final MaterialGroup atlantis = new MaterialGroup(
+            "Atlantis", Material.LAPIS_BLOCK, Material.WATER, Material.STONE,
+            Material.SEA_LANTERN, Material.OAK_WALL_SIGN);
         final Stargate existing = new Stargate();
         existing.setGateCustom(true);
-        existing.setGateCustomStructureMaterial(org.bukkit.Material.GOLD_BLOCK);
-        existing.setGateCustomPortalMaterial(org.bukkit.Material.LAVA);
-        existing.setGateCustomLightMaterial(org.bukkit.Material.SHROOMLIGHT);
-        existing.setGateCustomIrisMaterial(org.bukkit.Material.GLASS);
+        existing.setGateCustomStructureMaterial(Material.GOLD_BLOCK);
+        existing.setGateCustomPortalMaterial(Material.LAVA);
+        existing.setGateCustomLightMaterial(Material.SHROOMLIGHT);
+        existing.setGateCustomIrisMaterial(Material.GLASS);
         existing.setGateCustomWooshTicks(7);
         existing.setGateCustomLightTicks(9);
         existing.setGateCustomWooshDepth(5);
@@ -75,16 +84,16 @@ class GateRefreshCarryOverTest
         existing.chooseGateMaterialGroup(atlantis);
         // Detected on a gold frame, so the gold the old gate carried is still what it is built from.
         final Stargate fresh = new Stargate();
-        fresh.setGateMaterialGroup(new com.wormhole_xtreme.wormhole.model.MaterialGroup("Gold", org.bukkit.Material.GOLD_BLOCK,
-            org.bukkit.Material.WATER, org.bukkit.Material.STONE, org.bukkit.Material.GLOWSTONE, org.bukkit.Material.OAK_WALL_SIGN));
+        fresh.setGateMaterialGroup(new MaterialGroup("Gold", Material.GOLD_BLOCK,
+            Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN));
 
         GateRefresh.carryOverSettings(existing, fresh);
 
         assertEquals(true, fresh.isGateCustom(), "custom");
-        assertEquals(org.bukkit.Material.GOLD_BLOCK, fresh.getGateCustomStructureMaterial(), "structure");
-        assertEquals(org.bukkit.Material.LAVA, fresh.getGateCustomPortalMaterial(), "portal");
-        assertEquals(org.bukkit.Material.SHROOMLIGHT, fresh.getGateCustomLightMaterial(), "light");
-        assertEquals(org.bukkit.Material.GLASS, fresh.getGateCustomIrisMaterial(), "iris");
+        assertEquals(Material.GOLD_BLOCK, fresh.getGateCustomStructureMaterial(), "structure");
+        assertEquals(Material.LAVA, fresh.getGateCustomPortalMaterial(), "portal");
+        assertEquals(Material.SHROOMLIGHT, fresh.getGateCustomLightMaterial(), "light");
+        assertEquals(Material.GLASS, fresh.getGateCustomIrisMaterial(), "iris");
         assertEquals(7, fresh.getGateCustomWooshTicks(), "woosh ticks");
         assertEquals(9, fresh.getGateCustomLightTicks(), "light ticks");
         assertEquals(5, fresh.getGateCustomWooshDepth(), "woosh depth");
@@ -107,25 +116,25 @@ class GateRefreshCarryOverTest
         existing.setGateName("alpha");
         existing.setGateIrisActive(true);
         final Stargate fresh = spy(new Stargate());
-        doNothing().when(fresh).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
-        final org.bukkit.block.Block button = mock(org.bukkit.block.Block.class);
+        doNothing().when(fresh).toggleIrisActive(ArgumentMatchers.anyBoolean());
+        final Block button = mock(Block.class);
 
-        try (org.mockito.MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
-             org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.command.CommandUtilities> util =
-                 mockStatic(com.wormhole_xtreme.wormhole.command.CommandUtilities.class);
-             org.mockito.MockedStatic<com.wormhole_xtreme.wormhole.model.StargateDBManager> db =
-                 mockStatic(com.wormhole_xtreme.wormhole.model.StargateDBManager.class))
+        try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
+             MockedStatic<CommandUtilities> util =
+                 mockStatic(CommandUtilities.class);
+             MockedStatic<StargateDBManager> db =
+                 mockStatic(StargateDBManager.class))
         {
-            helper.when(() -> StargateHelper.checkStargate(button, org.bukkit.block.BlockFace.NORTH)).thenReturn(fresh);
+            helper.when(() -> StargateHelper.checkStargate(button, BlockFace.NORTH)).thenReturn(fresh);
             // What removal does to an iris-coded gate: opens its iris.
-            util.when(() -> com.wormhole_xtreme.wormhole.command.CommandUtilities.gateRemove(existing, false, false))
+            util.when(() -> CommandUtilities.gateRemove(existing, false, false))
                 .thenAnswer(call ->
                 {
                     existing.setGateIrisActive(false);
                     return null;
                 });
 
-            GateRefresh.refresh(existing, button, org.bukkit.block.BlockFace.NORTH);
+            GateRefresh.refresh(existing, button, BlockFace.NORTH);
         }
 
         verify(fresh).toggleIrisActive(false);
@@ -141,7 +150,7 @@ class GateRefreshCarryOverTest
 
         GateRefresh.carryOverMetadata(existing, fresh, false);
 
-        verify(fresh, never()).toggleIrisActive(org.mockito.ArgumentMatchers.anyBoolean());
+        verify(fresh, never()).toggleIrisActive(ArgumentMatchers.anyBoolean());
     }
 
     /**
@@ -154,15 +163,15 @@ class GateRefreshCarryOverTest
     {
         final Stargate existing = new Stargate();
         existing.setGateCustom(true);
-        existing.setGateCustomStructureMaterial(org.bukkit.Material.OBSIDIAN);
+        existing.setGateCustomStructureMaterial(Material.OBSIDIAN);
         final Stargate fresh = new Stargate();
-        fresh.setGateMaterialGroup(new com.wormhole_xtreme.wormhole.model.MaterialGroup("Atlantis", org.bukkit.Material.LAPIS_BLOCK,
-            org.bukkit.Material.WATER, org.bukkit.Material.STONE, org.bukkit.Material.SEA_LANTERN, org.bukkit.Material.OAK_WALL_SIGN));
+        fresh.setGateMaterialGroup(new MaterialGroup("Atlantis", Material.LAPIS_BLOCK,
+            Material.WATER, Material.STONE, Material.SEA_LANTERN, Material.OAK_WALL_SIGN));
 
         GateRefresh.carryOverSettings(existing, fresh);
 
-        org.junit.jupiter.api.Assertions.assertNull(fresh.getGateCustomStructureMaterial(), "obsidian into a lapis frame is not kept");
-        assertEquals(org.bukkit.Material.LAPIS_BLOCK, fresh.getEffectiveStructureMaterial());
+        Assertions.assertNull(fresh.getGateCustomStructureMaterial(), "obsidian into a lapis frame is not kept");
+        assertEquals(Material.LAPIS_BLOCK, fresh.getEffectiveStructureMaterial());
     }
 
     /** A gate's own iris animation (#427) survives a regen. */

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -214,7 +215,7 @@ class GateBlueprintTest
     @Test
     void aShapeWithFrameNearerThanItsDhdStandsFurtherBack() throws Exception
     {
-        final List<String> lines = new java.util.ArrayList<>(Files.readAllLines(SHAPE_DIR.resolve("Standard.shape")));
+        final List<String> lines = new ArrayList<>(Files.readAllLines(SHAPE_DIR.resolve("Standard.shape")));
         final int layer2 = lines.indexOf("Layer#2=");
         // The marker taken off layer 4, and put on the same cell of layer 2.
         lines.replaceAll(line -> line.startsWith("#") ? line : line.replace("[S:A]", "[S]"));
@@ -317,7 +318,7 @@ class GateBlueprintTest
             final Stargate3DShape s = shape(name);
             final GateGrid grid = GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.NORTH);
             assertEquals(BlockFace.SOUTH, grid.facing());
-            final List<Cell> all = new java.util.ArrayList<>(GateBlueprint.of(s, grid));
+            final List<Cell> all = new ArrayList<>(GateBlueprint.of(s, grid));
             all.addAll(GateBlueprint.openingOf(s, grid));
             all.addAll(GateBlueprint.wooshOf(s, grid));
             for (final Cell cell : all)

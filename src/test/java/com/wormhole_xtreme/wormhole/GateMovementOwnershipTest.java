@@ -3,18 +3,29 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
+import java.util.UUID;
+
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Camel;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.Donkey;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
+import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Horse;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Llama;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Painting;
 import org.bukkit.entity.Pig;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Strider;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
@@ -46,7 +57,7 @@ class GateMovementOwnershipTest
     void ridableAnimalsAreNotTheVehicleListenersJobDespiteBeingVehicles()
     {
         // Each of these is a Bukkit Vehicle and none of them raises VehicleMoveEvent.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
+        for (final Class<? extends Entity> type : Arrays.asList(
             Horse.class, Pig.class, Camel.class, Donkey.class, Llama.class, Strider.class))
         {
             final Entity e = mockOf(type);
@@ -60,7 +71,7 @@ class GateMovementOwnershipTest
     void ordinaryMobsAndItemsAreNobodyElsesJob()
     {
         // These reach a gate only via the periodic sweep, so it must not skip them.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
+        for (final Class<? extends Entity> type : Arrays.asList(
             Zombie.class, Skeleton.class, Cow.class, Item.class))
         {
             assertFalse(WormholeXTremeVehicleListener.handlesMovementOf(mockOf(type)),
@@ -72,8 +83,8 @@ class GateMovementOwnershipTest
     void thrownItemsAndOrbsAreSwept()
     {
         // Confirmed in game: drop an item into an open gate and it comes out the far side.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
-            org.bukkit.entity.Item.class, org.bukkit.entity.ExperienceOrb.class))
+        for (final Class<? extends Entity> type : Arrays.asList(
+            Item.class, ExperienceOrb.class))
         {
             assertFalse(WormholeXTremeVehicleListener.handlesMovementOf(mockOf(type)),
                 type.getSimpleName() + " should be left to the entity sweep");
@@ -86,11 +97,11 @@ class GateMovementOwnershipTest
         // An item frame or painting is attached to a block. Sending one through a gate
         // rips it off the wall and orphans it at the far end, so a decorated gate frame
         // would strip itself every time the gate opened.
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(
-            org.bukkit.entity.ItemFrame.class, org.bukkit.entity.Painting.class))
+        for (final Class<? extends Entity> type : Arrays.asList(
+            ItemFrame.class, Painting.class))
         {
             final Entity e = mockOf(type);
-            assertTrue(e instanceof org.bukkit.entity.Hanging, type.getSimpleName() + " should be Hanging");
+            assertTrue(e instanceof Hanging, type.getSimpleName() + " should be Hanging");
         }
     }
 
@@ -105,11 +116,11 @@ class GateMovementOwnershipTest
     void displayEntitiesAreNeverSweptThoughAnItemIs()
     {
         final Entity item = mockOf(Item.class);
-        when(item.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(item.getUniqueId()).thenReturn(UUID.randomUUID());
         assertTrue(GateEntityScanner.shouldSendThrough(item), "an item in an open gate is sent through");
 
-        for (final Class<? extends Entity> type : java.util.Arrays.asList(org.bukkit.entity.BlockDisplay.class,
-            org.bukkit.entity.TextDisplay.class, org.bukkit.entity.ItemDisplay.class, org.bukkit.entity.Interaction.class))
+        for (final Class<? extends Entity> type : Arrays.asList(BlockDisplay.class,
+            TextDisplay.class, ItemDisplay.class, Interaction.class))
         {
             assertFalse(GateEntityScanner.shouldSendThrough(mockOf(type)), type.getSimpleName() + " stays put");
         }

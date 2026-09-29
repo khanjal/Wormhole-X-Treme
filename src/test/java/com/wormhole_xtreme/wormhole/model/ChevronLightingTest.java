@@ -22,6 +22,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -355,8 +356,8 @@ class ChevronLightingTest
 
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), any()), times(7));
             sounds.verify(() -> GateSounds.locked(gate));
-            sounds.verify(() -> GateSounds.chevron(any(), org.mockito.ArgumentMatchers.anyInt(),
-                org.mockito.ArgumentMatchers.anyInt()), never());
+            sounds.verify(() -> GateSounds.chevron(any(), ArgumentMatchers.anyInt(),
+                ArgumentMatchers.anyInt()), never());
         }
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(1L));
         assertEquals(true, gate.isGateLightsActive());

@@ -73,7 +73,7 @@ class FreyaCommandTest
     void tearDown() throws Exception
     {
         FreyaPreferences.clear();
-        com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion.forgetAll();
+        FreyaCompanion.forgetAll();
         PluginTestSupport.remove();
     }
 

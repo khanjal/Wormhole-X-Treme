@@ -1,17 +1,24 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
 /**
  * The Class Complete.
@@ -27,19 +34,19 @@ public class Complete implements CommandExecutor, TabCompleter
     public static final String HELP = "-help";
 
     /** Completions a player has been asked to confirm, holding their name, idc and network. */
-    private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, String[]> pendingCompletions = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Player, String[]> pendingCompletions = new ConcurrentHashMap<>();
 
-    public static void addPendingCompletion(final org.bukkit.entity.Player p, final String name, final String idc, final String network)
+    public static void addPendingCompletion(final Player p, final String name, final String idc, final String network)
     {
         pendingCompletions.put(p, new String[] { name, idc, network });
     }
 
-    public static String[] getPendingCompletion(final org.bukkit.entity.Player p)
+    public static String[] getPendingCompletion(final Player p)
     {
         return pendingCompletions.get(p);
     }
 
-    public static void removePendingCompletion(final org.bukkit.entity.Player p)
+    public static void removePendingCompletion(final Player p)
     {
         pendingCompletions.remove(p);
     }
@@ -220,7 +227,7 @@ public class Complete implements CommandExecutor, TabCompleter
         }
         catch (final RuntimeException e)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Re-reading " + held.getGateName() + " failed; completing it as first detected", e);
             return;
         }
@@ -247,10 +254,10 @@ public class Complete implements CommandExecutor, TabCompleter
     public static boolean completeAndCharge(final Player player, final String name, final String idc,
         final String network, final String onRefused, final String refusedLog)
     {
-        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+        final double buildCost = (ConfigManager.isEconomyEnabled() && EconomySupport.isAvailable())
             ? ConfigManager.getEconomyBuildCost()
             : 0.0;
-        if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+        if ((buildCost > 0) && !EconomySupport.canAfford(player, buildCost))
         {
             player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
             return false;
@@ -260,16 +267,16 @@ public class Complete implements CommandExecutor, TabCompleter
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + onRefused);
             if (refusedLog != null)
             {
-                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, refusedLog);
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, refusedLog);
             }
             return false;
         }
         player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_SUCCESS.toString());
         if (buildCost > 0)
         {
-            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+            EconomySupport.charge(player, buildCost);
             player.sendMessage(ConfigManager.MessageStrings.ECONOMY_BUILD_CHARGED.toString()
-                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+                + buildCost + " " + EconomySupport.currencyName(buildCost));
         }
         return true;
     }
@@ -302,7 +309,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 }
                 catch (final Exception e)
                 {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wormhole complete", e);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole complete", e);
                     final Player player = (Player) sender;
                     player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
                     return true;
@@ -314,11 +321,11 @@ public class Complete implements CommandExecutor, TabCompleter
     }
 
     @Override
-    public java.util.List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args)
+    public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args)
     {
         // Disable Bukkit's default player-name autocompletion for /wxcomplete.
         // Return an empty list so the client receives no suggestions.
-        return java.util.Collections.emptyList();
+        return Collections.emptyList();
     }
 
 }

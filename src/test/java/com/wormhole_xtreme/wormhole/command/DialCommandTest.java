@@ -15,18 +15,22 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What {@code /wormhole dial} tells a player when it will not connect them.
@@ -63,7 +67,7 @@ class DialCommandTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -310,8 +314,8 @@ class DialCommandTest
     void anArgumentCountItCannotServeGetsItsUsage()
     {
         assertNotNull(new Dial());
-        org.junit.jupiter.api.Assertions.assertTrue(dial(), "no arguments: answered here");
-        org.junit.jupiter.api.Assertions.assertTrue(dial("a", "b", "c"), "three arguments: answered here");
-        verify(player, times(2)).sendMessage(org.mockito.ArgumentMatchers.<String>argThat((String s) -> com.wormhole_xtreme.wormhole.utils.ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
+        Assertions.assertTrue(dial(), "no arguments: answered here");
+        Assertions.assertTrue(dial("a", "b", "c"), "three arguments: answered here");
+        verify(player, times(2)).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
     }
 }

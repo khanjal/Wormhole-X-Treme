@@ -1,7 +1,9 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
+import java.lang.reflect.Method;
 import java.util.logging.Level;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
@@ -80,8 +82,8 @@ public final class EconomySupport
         if (economy == null || amount <= 0) return true;
         try
         {
-            final java.lang.reflect.Method hasMethod =
-                economy.getClass().getMethod("has", org.bukkit.OfflinePlayer.class, double.class);
+            final Method hasMethod =
+                economy.getClass().getMethod("has", OfflinePlayer.class, double.class);
             return (Boolean) hasMethod.invoke(economy, player, amount);
         }
         catch (final Exception | LinkageError t)
@@ -100,11 +102,11 @@ public final class EconomySupport
         if (economy == null || amount <= 0) return true;
         try
         {
-            final java.lang.reflect.Method withdrawMethod =
-                economy.getClass().getMethod("withdrawPlayer", org.bukkit.OfflinePlayer.class, double.class);
+            final Method withdrawMethod =
+                economy.getClass().getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
             final Object result = withdrawMethod.invoke(economy, player, amount);
             // EconomyResponse.transactionSuccess()
-            final java.lang.reflect.Method successMethod = result.getClass().getMethod("transactionSuccess");
+            final Method successMethod = result.getClass().getMethod("transactionSuccess");
             return (Boolean) successMethod.invoke(result);
         }
         catch (final Exception | LinkageError t)
@@ -125,12 +127,12 @@ public final class EconomySupport
         {
             if (amount == 1.0)
             {
-                final java.lang.reflect.Method m = economy.getClass().getMethod("currencyNameSingular");
+                final Method m = economy.getClass().getMethod("currencyNameSingular");
                 return (String) m.invoke(economy);
             }
             else
             {
-                final java.lang.reflect.Method m = economy.getClass().getMethod("currencyNamePlural");
+                final Method m = economy.getClass().getMethod("currencyNamePlural");
                 return (String) m.invoke(economy);
             }
         }

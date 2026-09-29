@@ -25,6 +25,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 
@@ -182,9 +183,9 @@ class RiddenTeleportTest
         when(boat.removePassenger(any())).thenAnswer(call ->
         {
             // Where the rider stands is what the rule would look up; aside, it must not look.
-            org.mockito.Mockito.clearInvocations(rider);
+            Mockito.clearInvocations(rider);
             GateDismount.shouldRefuse(rider);
-            ruleLooked[0] = !org.mockito.Mockito.mockingDetails(rider).getInvocations().isEmpty();
+            ruleLooked[0] = !Mockito.mockingDetails(rider).getInvocations().isEmpty();
             // Somebody else getting off in the same instant is still asked about.
             GateDismount.shouldRefuse(bystander);
             return Boolean.TRUE;

@@ -2,19 +2,25 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
+import com.wormhole_xtreme.wormhole.PetEscort;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.utils.ActionBar;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -194,16 +200,16 @@ public final class MirrorInteraction
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
         final Location arrival = (safe == null) ? destination : safe;
-        final java.util.List<org.bukkit.entity.Entity> pets = com.wormhole_xtreme.wormhole.PetEscort.gather(player);
+        final List<Entity> pets = PetEscort.gather(player);
         if (!player.teleport(arrival))
         {
-            com.wormhole_xtreme.wormhole.utils.PluginLog.log(java.util.logging.Level.FINE,
+            PluginLog.log(Level.FINE,
                 "Mirror trip for " + player.getName() + " refused by another plugin");
             sayRefused(player, target);
             return;
         }
-        com.wormhole_xtreme.wormhole.PetEscort.follow(pets, player);
-        com.wormhole_xtreme.wormhole.utils.PluginLog.log(java.util.logging.Level.FINE, "Mirror "
+        PetEscort.follow(pets, player);
+        PluginLog.log(Level.FINE, "Mirror "
             + MirrorText.quoted(target.name()) + " took " + player.getName() + " to " + target.destination().worldName());
         // Only on a trip that actually happened. The far banner is now in front of them, and
         // the click that sent them there may still have another event in it.
@@ -263,7 +269,7 @@ public final class MirrorInteraction
      */
     private static void hint(final Player player, final String message)
     {
-        com.wormhole_xtreme.wormhole.utils.ActionBar.send(player, "§3:: " + message);
+        ActionBar.send(player, "§3:: " + message);
         // Or the approach line replaces it at the next sweep, before it can be read.
         MirrorSignpost.hold(player);
     }

@@ -8,11 +8,13 @@ import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -33,6 +35,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -404,7 +407,7 @@ public class MirrorCommand implements SubCommand
     @SuppressWarnings("java:S2589")
     private static Block partnerOf(final Block block)
     {
-        if (!(block.getBlockData() instanceof org.bukkit.block.data.Directional directional))
+        if (!(block.getBlockData() instanceof Directional directional))
         {
             return null;
         }
@@ -414,7 +417,7 @@ public class MirrorCommand implements SubCommand
             final Block beside = block.getWorld().getBlockAt(block.getX() + (side * facing.getModZ()),
                 block.getY(), block.getZ() - (side * facing.getModX()));
             if ((beside != null) && (beside.getType() != null) && beside.getType().name().endsWith("WALL_BANNER")
-                && (beside.getBlockData() instanceof org.bukkit.block.data.Directional other)
+                && (beside.getBlockData() instanceof Directional other)
                 && (other.getFacing() == facing) && (MirrorManager.at(MirrorBlock.of(beside)) == null))
             {
                 return beside;
@@ -426,7 +429,7 @@ public class MirrorCommand implements SubCommand
     /** Whether one wall banner is the one to the right of another, looking at the wall they hang on. */
     private static boolean isRightOf(final Block right, final Block of)
     {
-        if (!(of.getBlockData() instanceof org.bukkit.block.data.Directional directional))
+        if (!(of.getBlockData() instanceof Directional directional))
         {
             return false;
         }
@@ -564,7 +567,7 @@ public class MirrorCommand implements SubCommand
         if (MirrorStamp.apply(banner, preset))
         {
             // The banner just written reaches every client over the view that hides it.
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.resendFor(mirror.name());
+            MirrorWindows.resendFor(mirror.name());
             remember(mirror, MirrorLook.named(preset.name()));
             say(sender, MirrorText.quoted(mirror.name()) + " looks like "
                 + MirrorText.name(preset.name()) + " now.");
@@ -644,7 +647,7 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset, view))
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.resendFor(mirror.name());
+            MirrorWindows.resendFor(mirror.name());
             remember(mirror, look);
             say(sender, MirrorText.quoted(mirror.name()) + " now shows "
                 + describe(view, preset) + ".");
@@ -1258,7 +1261,7 @@ public class MirrorCommand implements SubCommand
      */
     private static void debug(final CommandSender sender, final String[] args)
     {
-        final String last = (args.length > 2) ? args[args.length - 1].toLowerCase(java.util.Locale.ROOT) : "";
+        final String last = (args.length > 2) ? args[args.length - 1].toLowerCase(Locale.ROOT) : "";
         if ("-off".equals(last) || "-on".equals(last))
         {
             blind(sender, "-off".equals(last));
@@ -1291,8 +1294,8 @@ public class MirrorCommand implements SubCommand
         MirrorCaptures.describe(mirror).forEach(line -> say(sender, line));
         if (sender instanceof Player player)
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.describe(player).forEach(line -> say(sender, line));
-            final org.bukkit.Location eye = player.getEyeLocation();
+            MirrorWindows.describe(player).forEach(line -> say(sender, line));
+            final Location eye = player.getEyeLocation();
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
         }
@@ -1304,7 +1307,7 @@ public class MirrorCommand implements SubCommand
         final Player player = asPlayer(sender);
         if (player != null)
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, off);
+            MirrorWindows.blind(player, off);
             say(sender, off ? "Views are off for you: mirrors are banners, and the world is as it is. "
                 + "mirror debug -on turns them back on." : "Views are back on for you, as everyone sees them.");
         }
@@ -1316,7 +1319,7 @@ public class MirrorCommand implements SubCommand
         final Player player = asPlayer(sender);
         if (player != null)
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.full(player, mirror.name());
+            MirrorWindows.full(player, mirror.name());
             say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
                 + "everything its capture holds, through the opening, past the edges and into the ground. "
                 + "mirror debug -on stops that.");
@@ -1335,7 +1338,7 @@ public class MirrorCommand implements SubCommand
         say(sender, MirrorCaptures.summary(mirror));
         if (sender instanceof Player player)
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.summary(player).forEach(line -> say(sender, line));
+            MirrorWindows.summary(player).forEach(line -> say(sender, line));
         }
         say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " -all") + " for the rest.");
     }

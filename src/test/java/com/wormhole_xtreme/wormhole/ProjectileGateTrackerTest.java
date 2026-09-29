@@ -12,13 +12,16 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +63,7 @@ class ProjectileGateTrackerTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
-        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
         PluginTestSupport.scheduler(scheduler);
@@ -74,14 +77,14 @@ class ProjectileGateTrackerTest
         when(portal.getY()).thenReturn(Integer.valueOf(BY));
         when(portal.getZ()).thenReturn(Integer.valueOf(BZ));
         when(portal.getWorld()).thenReturn(world);
-        when(portal.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(portal.getType()).thenReturn(Material.AIR);
         final Block elsewhere = mock(Block.class);
         when(elsewhere.getLocation()).thenReturn(new Location(world, 0, 0, 0));
         when(elsewhere.getX()).thenReturn(Integer.valueOf(0));
         when(elsewhere.getY()).thenReturn(Integer.valueOf(0));
         when(elsewhere.getZ()).thenReturn(Integer.valueOf(0));
         when(elsewhere.getWorld()).thenReturn(world);
-        when(elsewhere.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(elsewhere.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(elsewhere);
         when(world.getBlockAt(BX, BY, BZ)).thenReturn(portal);
 
@@ -110,7 +113,7 @@ class ProjectileGateTrackerTest
         when(arrow.isValid()).thenReturn(true);
         when(arrow.getType()).thenReturn(EntityType.ARROW);
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -3.0));
-        when(arrow.getPickupStatus()).thenReturn(org.bukkit.entity.AbstractArrow.PickupStatus.ALLOWED);
+        when(arrow.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
 
         spawned = mock(Arrow.class);
         when(spawned.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -273,7 +276,7 @@ class ProjectileGateTrackerTest
         when(another.isValid()).thenReturn(true);
         when(another.getType()).thenReturn(EntityType.ARROW);
         when(another.getVelocity()).thenReturn(new Vector(0, 0, -3.0));
-        when(another.getPickupStatus()).thenReturn(org.bukkit.entity.AbstractArrow.PickupStatus.ALLOWED);
+        when(another.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
         when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
         return another;
     }
@@ -379,7 +382,7 @@ class ProjectileGateTrackerTest
         when(exitPortal.getZ()).thenReturn(Integer.valueOf(BZ));
         when(exitPortal.getWorld()).thenReturn(world);
         when(exitPortal.getLocation()).thenReturn(new Location(world, DX, BY, BZ));
-        when(exitPortal.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(exitPortal.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(DX, BY, BZ)).thenReturn(exitPortal);
         destination.getGatePortalBlocks().add(new Location(world, DX, BY, BZ));
         StargateTestSupport.target(destination, origin);
@@ -415,7 +418,7 @@ class ProjectileGateTrackerTest
     void aReplacementThatHitsOnArrivalIsNotPushedOnAgain() throws Exception
     {
         final List<Runnable> later = new ArrayList<>();
-        final org.bukkit.scheduler.BukkitScheduler holding = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        final BukkitScheduler holding = mock(BukkitScheduler.class);
         when(holding.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { later.add(inv.getArgument(1, Runnable.class)); return 1; });
         PluginTestSupport.scheduler(holding);

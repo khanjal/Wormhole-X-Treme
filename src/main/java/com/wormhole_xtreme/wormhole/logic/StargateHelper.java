@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -14,10 +15,14 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Lightweight, trimmed Stargate helper. Responsibilities:
@@ -142,7 +147,7 @@ public final class StargateHelper
      *            the material to test
      * @return true if any loaded shape or configured material group builds frames from it
      */
-    public static boolean isPossibleGateFrameMaterial(final org.bukkit.Material material)
+    public static boolean isPossibleGateFrameMaterial(final Material material)
     {
         if (material == null)
         {
@@ -354,11 +359,11 @@ public final class StargateHelper
      * @return the material every frame block must be, or null if the frame belongs to no
      *         palette this shape accepts
      */
-    private static org.bukkit.Material resolveStructureMaterial(final GateFrame frame,
+    private static Material resolveStructureMaterial(final GateFrame frame,
                                                                  final Stargate3DShape shape,
                                                                  final List<StargateShapeLayer> shapeLayers)
     {
-        final org.bukkit.Material shapeMaterial = shape.getShapeStructureMaterial();
+        final Material shapeMaterial = shape.getShapeStructureMaterial();
         for (int layerIdx = 1; layerIdx < shapeLayers.size(); layerIdx++)
         {
             final StargateShapeLayer layer = shapeLayers.get(layerIdx);
@@ -368,7 +373,7 @@ public final class StargateHelper
             }
             final Integer[] pos = layer.getLayerBlockPositions().get(0);
             final Block cell = frame.blockAt(layerIdx, pos);
-            final org.bukkit.Material found = cell.getType();
+            final Material found = cell.getType();
 
             if (found == shapeMaterial)
             {
@@ -396,9 +401,9 @@ public final class StargateHelper
      *
      * @return the keys of its light-marked cells, empty if it has none
      */
-    static java.util.Set<Long> lightCells(final StargateShapeLayer layer)
+    static Set<Long> lightCells(final StargateShapeLayer layer)
     {
-        final java.util.Set<Long> cells = new java.util.HashSet<Long>();
+        final Set<Long> cells = new HashSet<Long>();
         final List<List<Integer[]>> waves = layer.getLayerLightPositions();
         if (waves == null)
         {
@@ -483,7 +488,7 @@ public final class StargateHelper
         // one .shape file per palette — costs a full extra geometry scan per palette on
         // every detection attempt, and detection already runs up to 156 times for a
         // single click on a directional block that is not a gate.
-        final org.bukkit.Material structMat = resolveStructureMaterial(frame, shape, shapeLayers);
+        final Material structMat = resolveStructureMaterial(frame, shape, shapeLayers);
         if (structMat == null)
         {
             return null; // frame is not built from any palette this shape accepts
@@ -496,7 +501,7 @@ public final class StargateHelper
         // What an unlit chevron is built from, if this gate has them at all. Null is the
         // ordinary case and means neither shape nor palette named one: [S:L#n] then accepts
         // only the frame material, exactly as before, and a [C] cell means the same as [S].
-        final org.bukkit.Material chevronMat = Stargate.resolveChevronMaterial(shape, group);
+        final Material chevronMat = Stargate.resolveChevronMaterial(shape, group);
 
         if (!frameMatchesShape(frame, shapeLayers, numLayers, structMat, chevronMat))
         {
@@ -516,8 +521,8 @@ public final class StargateHelper
     private static boolean frameMatchesShape(final GateFrame frame,
                                             final List<StargateShapeLayer> shapeLayers,
                                             final int numLayers,
-                                            final org.bukkit.Material structMat,
-                                            final org.bukkit.Material chevronMat)
+                                            final Material structMat,
+                                            final Material chevronMat)
     {
         for (int layerIdx = 1; layerIdx < numLayers; layerIdx++)
         {
@@ -558,13 +563,13 @@ public final class StargateHelper
      * @return true if every frame cell matches
      */
     private static boolean structureCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
-                                               final int layerIdx, final org.bukkit.Material structMat,
-                                               final org.bukkit.Material chevronMat)
+                                               final int layerIdx, final Material structMat,
+                                               final Material chevronMat)
     {
-        final java.util.Set<Long> litCells = lightCells(layer);
+        final Set<Long> litCells = lightCells(layer);
         for (final Integer[] pos : layer.getLayerBlockPositions())
         {
-            final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
+            final Material found = frame.blockAt(layerIdx, pos).getType();
             if (!cellMatches(found, pos, litCells, structMat, chevronMat))
             {
                 return false;
@@ -591,9 +596,9 @@ public final class StargateHelper
      * @param chevronMat
      *            the chevron material, or null if the shape has none
      */
-    private static boolean cellMatches(final org.bukkit.Material found, final Integer[] pos,
-        final java.util.Set<Long> litCells, final org.bukkit.Material structMat,
-        final org.bukkit.Material chevronMat)
+    private static boolean cellMatches(final Material found, final Integer[] pos,
+        final Set<Long> litCells, final Material structMat,
+        final Material chevronMat)
     {
         if (found == structMat)
         {
@@ -623,18 +628,18 @@ public final class StargateHelper
      * @return true if every strict chevron cell matches
      */
     private static boolean chevronCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
-                                             final int layerIdx, final org.bukkit.Material structMat,
-                                             final org.bukkit.Material chevronMat)
+                                             final int layerIdx, final Material structMat,
+                                             final Material chevronMat)
     {
-        final org.bukkit.Material wanted = (chevronMat != null) ? chevronMat : structMat;
-        final java.util.Set<Long> lenient = new java.util.HashSet<>();
+        final Material wanted = (chevronMat != null) ? chevronMat : structMat;
+        final Set<Long> lenient = new HashSet<>();
         for (final Integer[] pos : layer.getLayerLenientChevronPositions())
         {
             lenient.add(cellKey(pos));
         }
         for (final Integer[] pos : layer.getLayerChevronPositions())
         {
-            final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
+            final Material found = frame.blockAt(layerIdx, pos).getType();
             if (found == wanted)
             {
                 continue;
@@ -668,7 +673,7 @@ public final class StargateHelper
      * @return true if no portal cell is the frame material
      */
     private static boolean portalCellsAreOpen(final GateFrame frame, final StargateShapeLayer layer,
-                                              final int layerIdx, final org.bukkit.Material structMat)
+                                              final int layerIdx, final Material structMat)
     {
         for (final Integer[] pos : layer.getLayerPortalPositions())
         {
@@ -990,7 +995,7 @@ public final class StargateHelper
         {
             final Block cell = frame.blockAt(layerIdx, dPos);
             final Block signBlock = cell.getRelative(frame.facing());
-            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(signBlock.getType()))
+            if (MaterialUtils.isWallSign(signBlock.getType()))
             {
                 try
                 {
@@ -1003,7 +1008,7 @@ public final class StargateHelper
                     // colour codes into the gate's name -- invisible characters in a name
                     // that has to be typed to dial it.
                     final String line0 = signState.getSide(Side.FRONT).getLine(0);
-                    final String signName = com.wormhole_xtreme.wormhole.utils.SignStyle
+                    final String signName = SignStyle
                         .stripFormatting(line0).trim();
                     if (!signName.isEmpty())
                     {
@@ -1172,7 +1177,7 @@ public final class StargateHelper
         {
             return true;
         }
-        for (final org.bukkit.Location loc : gate.getGateStructureBlocks())
+        for (final Location loc : gate.getGateStructureBlocks())
         {
             if ((loc != null) && (loc.getBlockX() == c.getX())
                 && (loc.getBlockY() == c.getY()) && (loc.getBlockZ() == c.getZ()))

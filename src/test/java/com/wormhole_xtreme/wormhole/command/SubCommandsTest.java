@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.command;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,10 +42,10 @@ class SubCommandsTest
         // nobody reads, and the guard against drifting back is that this list is exact: a new
         // noun has to be added here deliberately rather than appearing unnoticed.
         final List<String> expected =
-            java.util.Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config");
+            Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config");
         final List<String> offered = SubCommands.namesMatching("");
         assertEquals(expected,
-            offered.stream().sorted(java.util.Comparator.comparing(expected::indexOf)).toList(),
+            offered.stream().sorted(Comparator.comparing(expected::indexOf)).toList(),
             "the advertised list should be exactly the six nouns");
     }
 
@@ -155,7 +157,7 @@ class SubCommandsTest
         // unreachable for anyone but an operator; adding one that does not in fact check
         // anything hands it to every player on the server.
         final Set<String> expected = new HashSet<>(
-            java.util.Arrays.asList("beam", "ring", "go", "list", "compass", "idc", "freya"));
+            Arrays.asList("beam", "ring", "go", "list", "compass", "idc", "freya"));
         for (final SubCommands.Entry e : SubCommands.all())
         {
             assertEquals(expected.contains(e.getName()), e.checksOwnPermissions(),

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -39,12 +40,15 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * A real gate's inner ring turning while it dials (#357): a light travels round its frame to the
@@ -199,16 +203,16 @@ class GateRingTurnTest
     {
         try
         {
-            for (final com.wormhole_xtreme.wormhole.logic.DialSpinPattern pattern
-                : com.wormhole_xtreme.wormhole.logic.DialSpinPattern.values())
+            for (final DialSpinPattern pattern
+                : DialSpinPattern.values())
             {
-                com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                    com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, pattern.name());
+                ConfigTestSupport.set(
+                    ConfigManager.ConfigKeys.GATE_DIAL_SPIN, pattern.name());
                 final Stargate gate = standardGate();
-                final int ticks = (pattern == com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
+                final int ticks = (pattern == DialSpinPattern.NONE)
                     ? 0 : StargateAnimator.spinOf(gate).frames(pattern, 1, gate.getEffectiveLightTicks());
-                if ((pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.NONE)
-                    && (pattern != com.wormhole_xtreme.wormhole.logic.DialSpinPattern.UNIVERSE))
+                if ((pattern != DialSpinPattern.NONE)
+                    && (pattern != DialSpinPattern.UNIVERSE))
                 {
                     assertEquals(gate.getEffectiveLightTicks(), ticks, pattern + " keeps the chevron's interval");
                 }
@@ -228,8 +232,8 @@ class GateRingTurnTest
         finally
         {
             // The default, as the other tests here assume.
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
@@ -282,8 +286,8 @@ class GateRingTurnTest
     {
         try
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
             final Stargate gate = standardGate();
             final Location origin = at(DialSpin.of(cells, grid).rest(DialSpinPattern.UNIVERSE, 1, 7).stream()
                 .filter(c -> c.wave() != Stargate.LOCAL_CHEVRONS).findFirst().orElseThrow());
@@ -308,8 +312,8 @@ class GateRingTurnTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
@@ -323,8 +327,8 @@ class GateRingTurnTest
     {
         try
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "UNIVERSE");
             shape = new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Grand.shape"))
                 .toArray(new String[0]));
             grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
@@ -360,8 +364,8 @@ class GateRingTurnTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
@@ -478,12 +482,12 @@ class GateRingTurnTest
         });
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class);
-             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> worlds =
-                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class, CALLS_REAL_METHODS))
+             MockedStatic<WorldUtils> worlds =
+                 mockStatic(WorldUtils.class, CALLS_REAL_METHODS))
         {
             // Chunk loading is the server's; everything else about the dial runs for real.
-            worlds.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils.scheduleChunkLoad(any())).thenAnswer(inv -> null);
-            worlds.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils.forceLoadDestinationChunks(any())).thenAnswer(inv -> null);
+            worlds.when(() -> WorldUtils.scheduleChunkLoad(any())).thenAnswer(inv -> null);
+            worlds.when(() -> WorldUtils.forceLoadDestinationChunks(any())).thenAnswer(inv -> null);
             near.setGateLightsActive(true);
             StargateDialManager.dialStargate(near, far, true);
             // The dial's own steps, not the shutdown timer.
@@ -522,8 +526,8 @@ class GateRingTurnTest
     {
         try
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
             final Stargate still = standardGate();
             still.setGateDialSpin(DialSpinPattern.NONE);
             final Stargate turning = standardGate();
@@ -536,8 +540,8 @@ class GateRingTurnTest
             assertEquals(1, still.getGateLightingCurrentIteration(), "NONE locks the first chevron at once");
             assertEquals(0, turning.getGateLightingCurrentIteration(), "the server's TOP is still turning");
 
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "NONE");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "NONE");
             final Stargate own = standardGate();
             own.setGateDialSpin(DialSpinPattern.PEGASUS);
             assertNotNull(StargateAnimator.spinOf(own), "a gate's own pattern turns it on a server set to none");
@@ -545,8 +549,8 @@ class GateRingTurnTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
-                com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
+            ConfigTestSupport.set(
+                ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
@@ -555,9 +559,9 @@ class GateRingTurnTest
     void aGroupsPatternComesBeforeTheServers()
     {
         final Stargate gate = standardGate();
-        gate.setGateMaterialGroup(new MaterialGroup("Atlantis", org.bukkit.Material.LAPIS_BLOCK,
-            org.bukkit.Material.WATER, org.bukkit.Material.STONE, org.bukkit.Material.GLOWSTONE,
-            org.bukkit.Material.OAK_WALL_SIGN).withDialSpin(DialSpinPattern.PEGASUS));
+        gate.setGateMaterialGroup(new MaterialGroup("Atlantis", Material.LAPIS_BLOCK,
+            Material.WATER, Material.STONE, Material.GLOWSTONE,
+            Material.OAK_WALL_SIGN).withDialSpin(DialSpinPattern.PEGASUS));
 
         assertEquals(DialSpinPattern.PEGASUS, gate.getEffectiveDialSpin());
         gate.setGateDialSpin(DialSpinPattern.LAP);

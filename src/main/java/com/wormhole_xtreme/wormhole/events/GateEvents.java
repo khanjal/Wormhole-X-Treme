@@ -1,8 +1,10 @@
 package com.wormhole_xtreme.wormhole.events;
 
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 
@@ -31,7 +33,7 @@ public final class GateEvents
      */
     // A function reference, not a container: volatile is the whole synchronisation it needs.
     @SuppressWarnings("java:S3077")
-    private static volatile java.util.function.Consumer<Event> dispatcher = null;
+    private static volatile Consumer<Event> dispatcher = null;
 
     /** Static helpers only. */
     private GateEvents()
@@ -48,7 +50,7 @@ public final class GateEvents
      * @param replacement
      *            where to send events, or null to deliver through Bukkit as normal
      */
-    public static void setDispatcherForTest(final java.util.function.Consumer<Event> replacement)
+    public static void setDispatcherForTest(final Consumer<Event> replacement)
     {
         dispatcher = replacement;
     }
@@ -124,7 +126,7 @@ public final class GateEvents
      */
     public static boolean firePlayerTravel(final Stargate stargate, final Player player,
                                            final Stargate destination,
-                                           final org.bukkit.Location arrival)
+                                           final Location arrival)
     {
         final StargatePlayerTravelEvent event =
             new StargatePlayerTravelEvent(stargate, player, destination, arrival);
@@ -142,7 +144,7 @@ public final class GateEvents
     {
         try
         {
-            final java.util.function.Consumer<Event> replacement = dispatcher;
+            final Consumer<Event> replacement = dispatcher;
             if (replacement != null)
             {
                 replacement.accept(event);

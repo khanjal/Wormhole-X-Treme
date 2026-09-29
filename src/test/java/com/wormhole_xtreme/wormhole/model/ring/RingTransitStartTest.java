@@ -19,12 +19,15 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -38,6 +41,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
+import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
  * Whether a pair fires at all, and how often somebody is told when it will not.
@@ -88,7 +92,7 @@ class RingTransitStartTest
     {
         RingTransit.clock = () -> now;
         RingTransit.clear();
-        com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
+        ChunkTickets.clear();
         RingManager.clear();
         blocks.clear();
         chunks.clear();
@@ -152,7 +156,7 @@ class RingTransitStartTest
             config.close();
             RingTransit.clear();
             RingManager.clear();
-            com.wormhole_xtreme.wormhole.utils.ChunkTickets.clear();
+            ChunkTickets.clear();
             PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
             PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
         }
@@ -169,7 +173,7 @@ class RingTransitStartTest
     }
 
     /** What start() currently believes is mid-cycle. */
-    private static java.util.Set<String> running() throws Exception
+    private static Set<String> running() throws Exception
     {
         return PrivateStatics.of(RingTransit.class, "running");
     }
@@ -433,12 +437,12 @@ class RingTransitStartTest
         final RingPair pair = pair();
         buildOver(BX, BY, BZ);
         final Chunk shared = world.getChunkAt(AX >> 4, AZ >> 4);
-        com.wormhole_xtreme.wormhole.utils.ChunkTickets.hold(shared);
+        ChunkTickets.hold(shared);
 
         walkIn(pair, walker);
 
         verify(shared, never()).removePluginChunkTicket(any());
-        com.wormhole_xtreme.wormhole.utils.ChunkTickets.release(shared);
+        ChunkTickets.release(shared);
         verify(shared).removePluginChunkTicket(any());
     }
 
@@ -561,7 +565,7 @@ class RingTransitStartTest
 
         assertTrue(walkIn(pair, walker));
 
-        verify(world, times(2)).playSound(any(org.bukkit.Location.class), anyString(),
-            any(org.bukkit.SoundCategory.class), anyFloat(), anyFloat());
+        verify(world, times(2)).playSound(any(Location.class), anyString(),
+            any(SoundCategory.class), anyFloat(), anyFloat());
     }
 }

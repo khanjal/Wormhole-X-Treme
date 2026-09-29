@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.List;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -62,7 +63,7 @@ public final class RingMessages
         {
             if (passenger instanceof BukkitRingPassenger bukkitPassenger)
             {
-                final org.bukkit.entity.Entity entity = bukkitPassenger.getEntity();
+                final Entity entity = bukkitPassenger.getEntity();
                 if (entity instanceof Player player)
                 {
                     status(player, message);

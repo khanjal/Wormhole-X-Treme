@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import org.bukkit.command.CommandSender;
@@ -74,7 +75,7 @@ class CommandSafetyNetTest
     @Test
     void aCheckedExceptionIsCaughtToo()
     {
-        final Callable<Boolean> boom = () -> { throw new java.io.IOException("disk"); };
+        final Callable<Boolean> boom = () -> { throw new IOException("disk"); };
 
         assertTrue(CommandUtilities.runCommandSafe(player, boom));
 

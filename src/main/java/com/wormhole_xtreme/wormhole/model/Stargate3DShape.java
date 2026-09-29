@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,8 +18,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 public class Stargate3DShape extends StargateShape
 {
     /** Splits "Layer#3=" into its parts; runs once per line of a shape file. */
-    private static final java.util.regex.Pattern LAYER_HEADER_PARTS =
-        java.util.regex.Pattern.compile("[#=]");
+    private static final Pattern LAYER_HEADER_PARTS =
+        Pattern.compile("[#=]");
 
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
@@ -302,11 +304,11 @@ public class Stargate3DShape extends StargateShape
         return SETTING_EQUALS.matcher(setting).replaceFirst("=");
     }
 
-    private static final java.util.regex.Pattern SETTING_EQUALS = java.util.regex.Pattern.compile("\\s*=\\s*");
+    private static final Pattern SETTING_EQUALS = Pattern.compile("\\s*=\\s*");
 
     /** The material keys a shape file may carry, each against the setting it fills. */
-    private static final java.util.Map<String, java.util.function.BiConsumer<Stargate3DShape, Material>> MATERIAL_KEYS =
-        java.util.Map.of(
+    private static final Map<String, BiConsumer<Stargate3DShape, Material>> MATERIAL_KEYS =
+        Map.of(
             "PORTAL_MATERIAL=", StargateShape::setShapePortalMaterial,
             "IRIS_MATERIAL=", StargateShape::setShapeIrisMaterial,
             "STARGATE_MATERIAL=", StargateShape::setShapeStructureMaterial,
@@ -329,7 +331,7 @@ public class Stargate3DShape extends StargateShape
         {
             return false;
         }
-        for (final java.util.Map.Entry<String, java.util.function.BiConsumer<Stargate3DShape, Material>> key
+        for (final Map.Entry<String, BiConsumer<Stargate3DShape, Material>> key
             : MATERIAL_KEYS.entrySet())
         {
             if (line.contains(key.getKey()))

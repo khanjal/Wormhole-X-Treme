@@ -6,9 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.Location;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * Which cells an iris covers first, and in which order.
@@ -333,13 +337,13 @@ class IrisSweepTest
     @Test
     void theConfigCommandOffersEveryStyleAndInstant()
     {
-        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.loadDefaults();
         final List<String> offered =
-            com.wormhole_xtreme.wormhole.config.ConfigManager.valuesFor("gate-iris-animation");
+            ConfigManager.valuesFor("gate-iris-animation");
 
         for (final IrisSweep.Style style : IrisSweep.Style.values())
         {
-            final String word = style.name().toLowerCase(java.util.Locale.ROOT);
+            final String word = style.name().toLowerCase(Locale.ROOT);
             assertTrue(offered.contains(word), "should offer " + word + ", got " + offered);
             assertEquals(style, IrisSweep.Style.of(word), word + " should read back as itself");
         }

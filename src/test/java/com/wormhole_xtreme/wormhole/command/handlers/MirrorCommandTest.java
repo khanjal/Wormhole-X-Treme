@@ -16,31 +16,44 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.banner.Pattern;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -79,7 +92,7 @@ class MirrorCommandTest
         PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
         // The too-close warning reaches twice the depth; at the default depth that is the whole world.
-        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 32);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 32);
         MirrorManager.clear();
 
         here = mock(World.class);
@@ -114,12 +127,12 @@ class MirrorCommandTest
         final Directional facing = mock(Directional.class);
         when(facing.getFacing()).thenReturn(BlockFace.NORTH);
         when(block.getBlockData()).thenReturn(facing);
-        final org.bukkit.block.data.BlockData solid = mock(org.bukkit.block.data.BlockData.class);
+        final BlockData solid = mock(BlockData.class);
         when(solid.isOccluding()).thenReturn(true);
         final Block wall = mock(Block.class);
         when(wall.getBlockData()).thenReturn(solid);
-        when(here.getBlockAt(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
-            org.mockito.ArgumentMatchers.anyInt())).thenReturn(wall);
+        when(here.getBlockAt(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(),
+            ArgumentMatchers.anyInt())).thenReturn(wall);
         return block;
     }
 
@@ -141,7 +154,7 @@ class MirrorCommandTest
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
             new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
         when(player.getEyeLocation()).thenReturn(standing);
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -168,8 +181,8 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
             new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
-        final org.mockito.ArgumentCaptor<String> said = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -177,7 +190,7 @@ class MirrorCommandTest
         }
 
         verify(player, atLeastOnce()).sendMessage(said.capture());
-        final java.util.List<String> lines = said.getAllValues();
+        final List<String> lines = said.getAllValues();
         assertTrue(lines.size() <= 6, "chat shows ten lines, and this should leave room around it: " + lines);
         assertTrue(lines.stream().anyMatch(line -> line.contains(
             "capture: " + MirrorText.VALUE_COLOUR + MirrorText.BAD_COLOUR + "file missing")), "the capture on one line: " + lines);
@@ -195,15 +208,15 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
             new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         try
         {
             run(player, "mirror", "debug", "-off");
-            assertTrue(com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.isBlind(player), "off");
+            assertTrue(MirrorWindows.isBlind(player), "off");
             verify(player).sendMessage(contains("Views are off for you"));
 
             run(player, "mirror", "debug", "-on");
-            assertFalse(com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.isBlind(player), "back on");
+            assertFalse(MirrorWindows.isBlind(player), "back on");
             verify(player).sendMessage(contains("Views are back on for you"));
 
             run(player, "mirror", "debug", "museum", "-full");
@@ -211,7 +224,7 @@ class MirrorCommandTest
         }
         finally
         {
-            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, false);
+            MirrorWindows.blind(player, false);
         }
     }
 
@@ -269,7 +282,7 @@ class MirrorCommandTest
     {
         final Block banner = banner(Material.WHITE_WALL_BANNER);
         when(here.getBlockAt(1, 64, 1)).thenReturn(banner);
-        final org.bukkit.command.BlockCommandSender commandBlock = mock(org.bukkit.command.BlockCommandSender.class);
+        final BlockCommandSender commandBlock = mock(BlockCommandSender.class);
         final Block itsBlock = mock(Block.class);
         when(commandBlock.getBlock()).thenReturn(itsBlock);
         when(itsBlock.getLocation()).thenReturn(new Location(here, 1, 62, 3));
@@ -309,7 +322,7 @@ class MirrorCommandTest
     @Test
     void aMirrorMadeTooCloseToAnotherSaysSo()
     {
-        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
         MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 12), null));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
@@ -332,11 +345,11 @@ class MirrorCommandTest
     {
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         final Block wall = here.getBlockAt(0, 0, 0);
-        final org.bukkit.block.data.BlockData open = mock(org.bukkit.block.data.BlockData.class);
+        final BlockData open = mock(BlockData.class);
         final Block gap = mock(Block.class);
         when(gap.getBlockData()).thenReturn(open);
-        when(here.getBlockAt(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
-            org.mockito.ArgumentMatchers.anyInt())).thenAnswer(call ->
+        when(here.getBlockAt(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(),
+            ArgumentMatchers.anyInt())).thenAnswer(call ->
                 ((((int) call.getArgument(0)) == 3) && (((int) call.getArgument(1)) == 61)
                     && (((int) call.getArgument(2)) == 2)) ? gap : wall);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
@@ -352,7 +365,7 @@ class MirrorCommandTest
     @Test
     void aMirrorFarEnoughAwayOrInAnotherWorldIsNotWarnedAbout()
     {
-        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
         MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 66), null));
         MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world_nether", 1, 64, 2), null));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
@@ -524,16 +537,16 @@ class MirrorCommandTest
     @Test
     void setGivesAPlainWhiteBannerTheMirrorLook()
     {
-        com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load(new java.io.File(dataFolder, "presets"));
+        MirrorPresetRegistry.load(new File(dataFolder, "presets"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
-        final org.bukkit.block.Banner cloth = mock(org.bukkit.block.Banner.class);
-        when(cloth.getPatterns()).thenReturn(new java.util.ArrayList<>());
+        final Banner cloth = mock(Banner.class);
+        when(cloth.getPatterns()).thenReturn(new ArrayList<>());
         when(wallBanner.getState()).thenReturn(cloth);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
         assertTrue(run(player, "mirror", "create", "museum"));
 
-        verify(cloth).setBaseColor(org.bukkit.DyeColor.LIGHT_BLUE);
+        verify(cloth).setBaseColor(DyeColor.LIGHT_BLUE);
         verify(cloth).update(true);
         assertEquals(MirrorLook.named("mirror"), MirrorManager.byName("museum").look(),
             "and the mirror should remember the look it was given");
@@ -574,10 +587,10 @@ class MirrorCommandTest
     @Test
     void setLeavesAPatternedBannerAsItWas()
     {
-        com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load(new java.io.File(dataFolder, "presets"));
+        MirrorPresetRegistry.load(new File(dataFolder, "presets"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
-        final org.bukkit.block.Banner cloth = mock(org.bukkit.block.Banner.class);
-        when(cloth.getPatterns()).thenReturn(java.util.List.of(mock(org.bukkit.block.banner.Pattern.class)));
+        final Banner cloth = mock(Banner.class);
+        when(cloth.getPatterns()).thenReturn(List.of(mock(Pattern.class)));
         when(wallBanner.getState()).thenReturn(cloth);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -830,7 +843,7 @@ class MirrorCommandTest
     {
         final Block post = banner(Material.WHITE_BANNER);
 
-        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(post)),
+        assertEquals(post, MirrorCommand.bannerInSight(null, List.of(post)),
             "a banner the ray missed but the line of sight crossed is the one meant");
     }
 
@@ -847,7 +860,7 @@ class MirrorCommandTest
         final Block aimed = banner(Material.WHITE_WALL_BANNER);
         final Block nearer = banner(Material.MAGENTA_BANNER);
 
-        assertEquals(aimed, MirrorCommand.bannerInSight(aimed, java.util.List.of(nearer, aimed)));
+        assertEquals(aimed, MirrorCommand.bannerInSight(aimed, List.of(nearer, aimed)));
     }
 
     /** A banner the ray passed through on its way to the wall behind it still counts. */
@@ -857,7 +870,7 @@ class MirrorCommandTest
         final Block wall = banner(Material.STONE);
         final Block hanging = banner(Material.WHITE_WALL_BANNER);
 
-        assertEquals(hanging, MirrorCommand.bannerInSight(wall, java.util.List.of(hanging, wall)));
+        assertEquals(hanging, MirrorCommand.bannerInSight(wall, List.of(hanging, wall)));
     }
 
     /**
@@ -873,8 +886,8 @@ class MirrorCommandTest
     {
         final Block stone = banner(Material.STONE);
 
-        assertNull(MirrorCommand.bannerInSight(stone, java.util.List.of(stone)));
-        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of()));
+        assertNull(MirrorCommand.bannerInSight(stone, List.of(stone)));
+        assertNull(MirrorCommand.bannerInSight(null, List.of()));
         assertNull(MirrorCommand.bannerInSight(null, null));
     }
 
@@ -892,7 +905,7 @@ class MirrorCommandTest
         final Rotatable onAPost = mock(Rotatable.class);
         when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(null);
-        when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
+        when(player.getLineOfSight(null, 6)).thenReturn(List.of(post));
 
         assertTrue(run(player, "mirror", "create", "Post"));
 
@@ -917,7 +930,7 @@ class MirrorCommandTest
         final Block cloth = banner(Material.AIR);
         when(cloth.getRelative(BlockFace.DOWN)).thenReturn(post);
 
-        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(cloth)),
+        assertEquals(post, MirrorCommand.bannerInSight(null, List.of(cloth)),
             "the block above a banner on a post is where its cloth is drawn");
     }
 
@@ -936,7 +949,7 @@ class MirrorCommandTest
         final Block crossed = banner(Material.MAGENTA_BANNER);
         when(crossed.getRelative(BlockFace.DOWN)).thenReturn(underfoot);
 
-        assertEquals(crossed, MirrorCommand.bannerInSight(null, java.util.List.of(crossed)));
+        assertEquals(crossed, MirrorCommand.bannerInSight(null, List.of(crossed)));
     }
 
     /**
@@ -953,7 +966,7 @@ class MirrorCommandTest
         final Block wallAbove = banner(Material.STONE);
         when(wallAbove.getRelative(BlockFace.DOWN)).thenReturn(hanging);
 
-        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of(wallAbove)));
+        assertNull(MirrorCommand.bannerInSight(null, List.of(wallAbove)));
     }
 
     /**

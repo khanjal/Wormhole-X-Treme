@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.SoundCategory;
@@ -98,7 +100,7 @@ class GateSizeSoundTest
     @Test
     void aShapeCanSetItsOwnSoundScale() throws Exception
     {
-        final java.util.List<String> lines = new java.util.ArrayList<>(
+        final List<String> lines = new ArrayList<>(
             Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Standard.shape")));
         lines.add("SOUND_SCALE = 2.5;");
         assertEquals(2.5, new Stargate3DShape(lines.toArray(new String[0])).getShapeSoundScale(), EPSILON);
