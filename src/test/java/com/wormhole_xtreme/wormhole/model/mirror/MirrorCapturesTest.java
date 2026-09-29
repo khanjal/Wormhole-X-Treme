@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -759,7 +760,7 @@ class MirrorCapturesTest
             "a mirror's hole keeps the name every capture on disk already has");
         assertEquals(MirrorCaptures.keyOf(place) + "_5x5", MirrorCaptures.keyOf(place, 5, 5),
             "a gate's is the place and its hole");
-        assertFalse(MirrorCaptures.keyOf(place, 1, 2).equals(MirrorCaptures.keyOf(place, 5, 5)),
+        assertNotEquals(MirrorCaptures.keyOf(place, 1, 2), MirrorCaptures.keyOf(place, 5, 5),
             "two gates of different sizes onto one gate do not share a capture");
     }
 }

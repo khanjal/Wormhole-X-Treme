@@ -141,7 +141,7 @@ public final class MirrorPlacement
             // A pair says how big its wall is: a wall built for one banner is a column short of two.
             final String needs = (width >= 2)
                 ? "Two banners make a mirror two wide, which needs solid wall " + (width + (2 * BORDER))
-                    + " across and " + (MirrorWindow.HEIGHT + (2 * BORDER)) + " tall; the block at "
+                    + " across and " + (MirrorWindow.BANNER_HEIGHT + (2 * BORDER)) + " tall; the block at "
                 : "A mirror needs solid wall a block out on every side of its opening, and the block at ";
             return needs + gap.x() + " " + gap.y() + " " + gap.z() + " is not.";
         }
@@ -315,7 +315,7 @@ public final class MirrorPlacement
         // To the right, looking at the wall.
         final int rightX = facing.getModZ();
         final int rightZ = -facing.getModX();
-        final int bottom = y - (MirrorWindow.HEIGHT - 1);
+        final int bottom = y - (MirrorWindow.BANNER_HEIGHT - 1);
         for (int across = -border; across <= ((width - 1) + border); across++)
         {
             for (int at = bottom - border; at <= (y + border); at++)

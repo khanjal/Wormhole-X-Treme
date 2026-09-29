@@ -59,7 +59,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public MirrorWindow(final Spot base, final Spot into, final Spot far, final Spot ahead,
         final boolean mirrored, final int width)
     {
-        this(base, into, far, ahead, mirrored, (width >= 2) ? 2 : 1, HEIGHT);
+        this(base, into, far, ahead, mirrored, (width >= 2) ? 2 : 1, BANNER_HEIGHT);
     }
 
     /** An opening is at least a block each way. */
@@ -70,7 +70,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /** How tall a mirror's opening is: the banner's cloth. */
-    static final int HEIGHT = 2;
+    static final int BANNER_HEIGHT = 2;
 
     /** The furthest a candidate may be from the opening along its face, however close the eye. */
     static final int WIDEST = 64;
@@ -194,7 +194,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         }
         final Spot into = new Spot(-facing.getModX(), 0, -facing.getModZ());
         // A wall banner hangs down from where it is hung, so the opening runs down from it.
-        final int bottom = banner.y() - (HEIGHT - 1);
+        final int bottom = banner.y() - (BANNER_HEIGHT - 1);
         return new MirrorWindow(
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,

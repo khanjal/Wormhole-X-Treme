@@ -100,34 +100,52 @@ public final class GateViews
         {
             for (final Stargate gate : StargateManager.getOpenGates())
             {
-                final String name = gate.getGateName();
-                // An iris crossing paints the opening a ring at a time and fills it at the end; clearing
-                // the horizon under it left the sweep's picture standing over the view.
-                if (StargateIrisAnimator.isSweeping(gate))
-                {
-                    busy.add(name);
-                    continue;
-                }
-                final MirrorWindow shape = watched(gate) ? shapeOf(gate) : null;
-                if (shape == null)
-                {
-                    continue;
-                }
-                open.add(name);
-                final Location first = gate.getGatePortalBlocks().get(0);
-                final boolean drawn = MirrorWindows.offerGate(PREFIX + name,
-                    gate.getGateWorld().getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()), shape,
-                    cellsOf(gate), MirrorPoint.of(gate.getGateTarget().getGatePlayerTeleportLocation()),
-                    !OPEN.contains(name));
-                if (drawn && "open".equals(level))
-                {
-                    clear.add(name);
-                }
+                offer(gate, "open".equals(level), open, clear, busy);
             }
         }
         OPEN.retainAll(busy);
         OPEN.addAll(open);
         settleHorizons(clear, busy);
+    }
+
+    /**
+     * Offers one open gate, if it can show a view now, and notes what became of it.
+     *
+     * @param clears
+     *            true at {@code open}, where a drawn view clears the horizon
+     * @param open
+     *            added to if it was offered
+     * @param clear
+     *            added to if its horizon should be cleared
+     * @param busy
+     *            added to if its iris is crossing, so it is left as it is
+     */
+    private static void offer(final Stargate gate, final boolean clears, final Set<String> open,
+        final Set<String> clear, final Set<String> busy)
+    {
+        final String name = gate.getGateName();
+        // An iris crossing paints the opening a ring at a time and fills it at the end; clearing
+        // the horizon under it left the sweep's picture standing over the view.
+        if (StargateIrisAnimator.isSweeping(gate))
+        {
+            busy.add(name);
+            return;
+        }
+        final MirrorWindow shape = watched(gate) ? shapeOf(gate) : null;
+        if (shape == null)
+        {
+            return;
+        }
+        open.add(name);
+        final Location first = gate.getGatePortalBlocks().get(0);
+        final boolean drawn = MirrorWindows.offerGate(PREFIX + name,
+            gate.getGateWorld().getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()), shape,
+            cellsOf(gate), MirrorPoint.of(gate.getGateTarget().getGatePlayerTeleportLocation()),
+            !OPEN.contains(name));
+        if (drawn && clears)
+        {
+            clear.add(name);
+        }
     }
 
     /**
@@ -150,18 +168,13 @@ public final class GateViews
             return false;
         }
         final double reach = ConfigManager.getMirrorProximityDistance();
-        for (final Player player : world.getPlayers())
+        return world.getPlayers().stream().map(Player::getLocation).anyMatch(at ->
         {
-            final Location at = player.getLocation();
             final double dx = at.getX() - first.getX();
             final double dy = at.getY() - first.getY();
             final double dz = at.getZ() - first.getZ();
-            if (((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach))
-            {
-                return true;
-            }
-        }
-        return false;
+            return ((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach);
+        });
     }
 
     /**

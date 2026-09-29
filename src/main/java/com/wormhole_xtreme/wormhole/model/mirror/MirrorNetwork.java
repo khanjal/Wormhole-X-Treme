@@ -93,7 +93,7 @@ public final class MirrorNetwork
         // Right, looking at the wall; a hair short of the boundary, so the column stays the left one.
         final double shift = (width >= 2) ? 0.49 : 0.0;
         // The banner hangs at the top of the opening; a traveller's feet go at its bottom.
-        final int floor = banner.getY() - (MirrorWindow.HEIGHT - 1);
+        final int floor = banner.getY() - (MirrorWindow.BANNER_HEIGHT - 1);
         return new MirrorPoint(banner.getWorld().getName(), banner.getX() + 0.5 + (shift * facing.getModZ()),
             floor, banner.getZ() + 0.5 - (shift * facing.getModX()),
             MirrorArrival.yawOf(facing), 0.0f);
@@ -113,7 +113,7 @@ public final class MirrorNetwork
         final MirrorBlock banner = mirror.banner();
         return (room != null) && room.worldName().equals(banner.worldName())
             && ((int) Math.floor(room.x()) == banner.x()) && ((int) Math.floor(room.z()) == banner.z())
-            && ((int) Math.floor(room.y()) == (banner.y() - (MirrorWindow.HEIGHT - 1)));
+            && ((int) Math.floor(room.y()) == (banner.y() - (MirrorWindow.BANNER_HEIGHT - 1)));
     }
 
     /**

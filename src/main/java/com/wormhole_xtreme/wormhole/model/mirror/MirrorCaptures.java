@@ -638,8 +638,25 @@ public final class MirrorCaptures
      */
     static void install(final MirrorPoint destination, final MirrorCapture capture)
     {
-        LOADED.put(keyOf(destination), new Held(capture, System.currentTimeMillis()));
-        ABSENT.remove(keyOf(destination));
+        install(destination, MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT, capture);
+    }
+
+    /**
+     * Puts a capture seen through a hole of a given size in memory as though it had been taken, for a test.
+     *
+     * @param destination
+     *            the place it is of
+     * @param holeWidth
+     *            the hole's width
+     * @param holeHeight
+     *            its height
+     */
+    static void install(final MirrorPoint destination, final int holeWidth, final int holeHeight,
+        final MirrorCapture capture)
+    {
+        final String key = keyOf(destination, holeWidth, holeHeight);
+        LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+        ABSENT.remove(key);
         changed();
     }
 
