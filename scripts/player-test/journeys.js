@@ -19,7 +19,8 @@ const {
   startClock, stamp, traceGate, ringPerimeter, nameAt, standardGate, visit, dialAndOpen, walkThrough,
   waitForShut, describeRide, getOff, drive, clearAround,
   inNether, inTheNether, clearMobs, layBoatLane, boatInto, layRails, minecartInto, saddledHorse,
-  rideInto, wolfNear, waitForWolf, tamedWolf, walkInWithWolf
+  rideInto, wolfNear, waitForWolf, tamedWolf, walkInWithWolf, ringInto, beamTo, yawOff,
+  turnMirror, punchMirror
 } = kit
 
 const version = process.argv[2]
@@ -155,10 +156,7 @@ const beam = {
     bot.chat('/wormhole beam to Home')
     await waitFor(() => near(v(10.5, -63, 20.5), 1), 30,
       `beaming to Home (setting it said ${JSON.stringify(set)}; beaming said ${JSON.stringify(heard)})`)
-    // Mineflayer keeps yaw in radians, turning the other way from 180 degrees on: Bukkit's -90, east,
-    // is its 3/2 pi.
-    const off = Math.abs(((bot.entity.yaw - 1.5 * Math.PI) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI)
-    if (off > 0.1) throw new Error(`arrived facing ${bot.entity.yaw.toFixed(2)} radians, not east (${(1.5 * Math.PI).toFixed(2)})`)
+    if (yawOff(-90) > 0.1) throw new Error(`arrived facing ${bot.entity.yaw.toFixed(2)} radians, not east (${(1.5 * Math.PI).toFixed(2)})`)
     narrate('Landed at Home, facing east')
   }
 }
@@ -193,29 +191,7 @@ const ring = {
     if (!made.some((line) => line.includes('is live'))) throw new Error(`the pair was not made: ${JSON.stringify(made)}`)
   },
   async run () {
-    const partner = v(30.5, -63, 40.5)
-    // A ring used a moment ago recharges first, and says for how long; wait that out and go again.
-    for (let attempt = 1; ; attempt++) {
-      await teleport(0.5, -63, 34.5, 0)
-      await sleep(2000)
-      messages()
-      narrate('Walking into the left ring; its countdown runs before the rings rise')
-      // The countdown is 100 ticks by default before the rings even rise.
-      await walk(v(0.5, -63, 40.5), () => near(partner, 3), 10)
-      const until = Date.now() + 30000
-      let recharge = null
-      while (Date.now() < until && !near(partner, 3) && !recharge) {
-        recharge = heard.join(' ').match(/Ready in (\d+) seconds?/)
-        await sleep(100)
-      }
-      if (near(partner, 3)) break
-      if (!recharge || attempt > 2) throw new Error(`arriving in the partner ring did not happen within 30s (heard: ${JSON.stringify(heard)}); ${where()}`)
-      narrate(`The rings are recharging; waiting ${recharge[1]} s to go again`)
-      await teleport(0.5, -63, 34.5, 0)
-      await sleep((Number(recharge[1]) + 1) * 1000)
-    }
-    narrate('Came out in the right ring')
-    console.log(`  ${where()}`)
+    await ringInto(v(0.5, -63, 40.5), v(30.5, -63, 40.5), 'the right ring')
   }
 }
 
@@ -570,31 +546,11 @@ const mirror = {
     if (gold()) throw new Error(`gold at ${gold()} behind Alpha before it was turned to Beta (a run just before may have left it open onto Beta; a fresh server gives the check a clean start)`)
     messages()
     narrate('Right-clicking Alpha to open it onto Beta')
-    await bot.lookAt(banner.offset(0.5, 0.2, 0.9), true)
-    // Its answer, above the hotbar, says the click was taken. Once in a full run it was not heard and
-    // nothing changed, so a click that goes unanswered is tried again, as a player would, and said.
-    // The likely miss is aim, not the plugin: the server raytraces from the bot's own look, and on a
-    // thin wall banner that can land on the wall behind, which the plugin rightly ignores.
-    const chose = () => heard.some((line) => line.includes("opens onto 'Beta'"))
-    for (let click = 1; !chose(); click++) {
-      if (click > 3) throw new Error(`three right-clicks on Alpha went unanswered (heard ${JSON.stringify(heard)}; the banner reads ${nameAt(banner)})`)
-      if (click > 1) narrate(`Right-click ${click - 1} went unanswered; clicking again`)
-      await bot.activateBlock(bot.blockAt(banner), v(0, 0, 1), v(0.5, 0.2, 1))
-      const until = Date.now() + 4000
-      while (Date.now() < until && !chose()) await sleep(100)
-    }
+    await turnMirror(banner, 'south', 'Beta')
     await waitFor(() => gold() !== null, 10, () => `Beta's gold block showing behind Alpha (heard ${JSON.stringify([...new Set(heard)])}; ${seen()})`)
     narrate(`Beta's room shows through Alpha: gold at ${gold()}`)
     await sleep(2000)
-    narrate('Punching Alpha to go through')
-    await bot.lookAt(banner.offset(0.5, 0.2, 0.9), true)
-    bot._client.write('block_dig', { status: 0, location: banner, face: 3 })
-    bot.swingArm()
-    bot._client.write('block_dig', { status: 1, location: banner, face: 3 })
-    const beta = v(bx + 0.5, -63, bz + 0.5)
-    await waitFor(() => near(beta, 1.5), 10, () => `arriving at Beta's banner (heard ${JSON.stringify(heard)})`)
-    narrate('Came out at Beta')
-    console.log(`  ${where()}`)
+    await punchMirror(banner, 'south', v(bx + 0.5, -63, bz + 0.5), 'Beta')
   }
 }
 
@@ -871,24 +827,6 @@ const pet = {
     await teleport(...standardGate(hx, hz).stand, 180)
     console.log(`  beam destinations: ${JSON.stringify(savedHome)} ${JSON.stringify(savedAway)}`)
   },
-  /**
-   * Beams to a pad and waits to land there, in the nether or not. A beam straight after arriving by
-   * one is refused while the arrival still plays, as it should be, so that is waited out and asked again.
-   */
-  async beam (to, spot, nether) {
-    for (let attempt = 1; ; attempt++) {
-      messages()
-      bot.chat(`/wormhole beam to ${to}`)
-      const until = Date.now() + 30000
-      while (Date.now() < until && !(inTheNether() === nether && near(spot, 1)) && !heard.some((l) => l.includes('already beaming'))) await sleep(100)
-      if (inTheNether() === nether && near(spot, 1)) return
-      if (attempt > 3 || !heard.some((l) => l.includes('already beaming'))) {
-        throw new Error(`beaming to ${to} did not happen within 30s (heard ${JSON.stringify(heard)}); ${where()}`)
-      }
-      narrate('Still arriving from the last beam; asking again in a moment')
-      await sleep(2000)
-    }
-  },
   async setPets (on) {
     const from = logSize()
     serverCommand(`wx config pets-follow-owner ${on}`)
@@ -954,7 +892,7 @@ const pet = {
       }
       if (inTheNether()) {
         try {
-          await this.beam(`${homeLabel}Pad`, homePad, false)
+          await beamTo(`${homeLabel}Pad`, homePad, false)
         } catch (e) {
           // Said, and the bot fetched home from the console, so the legs after still run.
           failed.push(`beaming home after ${label}: ${e.message}`)
@@ -975,7 +913,7 @@ const pet = {
       controlTag = tag
       await this.setPets(false)
       try {
-        await this.beam(`${awayLabel}Pad`, awayPad, true)
+        await beamTo(`${awayLabel}Pad`, awayPad, true)
         await sleep(4000)
         if (wolfNear(wolf.uuid, 60)) throw new Error('the wolf came to the nether with pets-follow-owner off, so something other than the plugin brings it, and the legs below prove nothing')
       } finally {
@@ -998,10 +936,10 @@ const pet = {
       await teleport(...home.stand, 180)
       const wolf = await tamedWolf(followAt, tag)
       await waitForWolf(wolf, tag, 10, 10, 'the wolf coming near before beaming')
-      await this.beam(`${awayLabel}Pad`, awayPad, true)
+      await beamTo(`${awayLabel}Pad`, awayPad, true)
       await waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot at ${awayLabel}Pad`)
       narrate('The wolf beamed to the nether too; beaming back, and it must come back')
-      await this.beam(`${homeLabel}Pad`, homePad, false)
+      await beamTo(`${homeLabel}Pad`, homePad, false)
       await waitForWolf(wolf, tag, 5, 8, `the wolf arriving beside the bot back at ${homeLabel}Pad`)
     })
 

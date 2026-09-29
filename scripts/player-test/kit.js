@@ -32,6 +32,11 @@ function logSize () {
   return fs.statSync(logFile).size
 }
 
+/** What the server has logged from byte `from` on. */
+function logSince (from) {
+  return fs.readFileSync(logFile).subarray(from).toString('utf8')
+}
+
 /** Waits for the log, from byte `from` on, to match; returns the match. */
 async function waitForLog (pattern, seconds, from) {
   const deadline = Date.now() + seconds * 1000
@@ -686,6 +691,114 @@ async function walkInWithWolf (wolf, tag, from, to, toLabel, inOther) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Rings, beams and mirrors, as the CI trips and the lab's bays both take them.
+
+/**
+ * Walks into the ring anchored at `anchor` (a block's middle, where a player stands) from six
+ * blocks north of it, and waits to come out in the ring at `partner`. A ring used a moment ago
+ * recharges first, and says for how long; that is waited out and it goes again.
+ */
+async function ringInto (anchor, partner, label = 'the partner ring') {
+  for (let attempt = 1; ; attempt++) {
+    await teleport(anchor.x, anchor.y, anchor.z - 6, 0)
+    await sleep(2000)
+    messages()
+    narrate('Walking into the ring; its countdown runs before the rings rise')
+    // The countdown is 100 ticks by default before the rings even rise.
+    await walk(anchor, () => near(partner, 3), 10)
+    const until = Date.now() + 30000
+    let recharge = null
+    while (Date.now() < until && !near(partner, 3) && !recharge) {
+      recharge = heard.join(' ').match(/Ready in (\d+) seconds?/)
+      await sleep(100)
+    }
+    if (near(partner, 3)) break
+    if (!recharge || attempt > 2) throw new Error(`arriving in ${label} did not happen within 30s (heard: ${JSON.stringify(heard)}); ${where()}`)
+    narrate(`The rings are recharging; waiting ${recharge[1]} s to go again`)
+    await teleport(anchor.x, anchor.y, anchor.z - 6, 0)
+    await sleep((Number(recharge[1]) + 1) * 1000)
+  }
+  narrate(`Came out in ${label}`)
+  console.log(`  ${where()}`)
+}
+
+/**
+ * Beams to `to` and waits to land at `spot`, in the nether or not. A beam straight after arriving by
+ * one is refused while the arrival still plays, as it should be, so that is waited out and asked again.
+ */
+async function beamTo (to, spot, nether) {
+  for (let attempt = 1; ; attempt++) {
+    messages()
+    bot.chat(`/wormhole beam to ${to}`)
+    const until = Date.now() + 30000
+    while (Date.now() < until && !(inTheNether() === nether && near(spot, 1)) && !heard.some((l) => l.includes('already beaming'))) await sleep(100)
+    if (inTheNether() === nether && near(spot, 1)) return
+    if (attempt > 3 || !heard.some((l) => l.includes('already beaming'))) {
+      throw new Error(`beaming to ${to} did not happen within 30s (heard ${JSON.stringify(heard)}); ${where()}`)
+    }
+    narrate('Still arriving from the last beam; asking again in a moment')
+    await sleep(2000)
+  }
+}
+
+/**
+ * How far, in radians, the bot faces from Bukkit's yaw `degrees` (0 south, 90 west, 180 north, -90
+ * east). Mineflayer keeps yaw in radians, turning the other way: Bukkit's -90, east, is its 3/2 pi.
+ */
+function yawOff (degrees) {
+  const want = Math.PI - degrees * Math.PI / 180
+  return Math.abs(((bot.entity.yaw - want) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI)
+}
+
+/** A wall banner's facing as the unit step out from its wall, and the face index block_dig takes. */
+const bannerFaces = {
+  south: { step: [0, 0, 1], dig: 3 },
+  north: { step: [0, 0, -1], dig: 2 },
+  east: { step: [1, 0, 0], dig: 5 },
+  west: { step: [-1, 0, 0], dig: 4 }
+}
+
+/** Where on a wall banner the bot aims, a little in front of its face and low on it. */
+function bannerAim (banner, facing) {
+  const [dx, , dz] = bannerFaces[facing].step
+  return banner.offset(0.5 + dx * 0.4, 0.2, 0.5 + dz * 0.4)
+}
+
+/**
+ * Right-clicks the mirror at `banner` until it says it opens onto `to`. Its answer, above the
+ * hotbar, says the click was taken; a click that goes unanswered is tried again, as a player
+ * would. The likely miss is aim, not the plugin: the server raytraces from the bot's own look, and
+ * on a thin wall banner that can land on the wall behind, which the plugin rightly ignores.
+ * `clicks` bounds it: a mirror steps through the others by name, one a click.
+ */
+async function turnMirror (banner, facing, to, clicks = 3) {
+  const [dx, , dz] = bannerFaces[facing].step
+  await bot.lookAt(bannerAim(banner, facing), true)
+  const chose = () => heard.some((line) => line.includes(`opens onto '${to}'`))
+  for (let click = 1; !chose(); click++) {
+    if (click > clicks) throw new Error(`${clicks} right-clicks on the mirror never opened it onto ${to} (heard ${JSON.stringify(heard)}; the banner reads ${nameAt(banner)})`)
+    if (click > 1) narrate(`Right-click ${click - 1} did not open it onto ${to}; clicking again`)
+    const answered = heard.length
+    await bot.activateBlock(bot.blockAt(banner), v(dx, 0, dz), v(0.5 + dx * 0.5, 0.2, 0.5 + dz * 0.5))
+    const until = Date.now() + 4000
+    while (Date.now() < until && !chose() && !heard.slice(answered).some((line) => line.includes('opens onto'))) await sleep(100)
+  }
+}
+
+/** Punches the mirror at `banner` to go through, and waits to be put at `arrival`. */
+async function punchMirror (banner, facing, arrival, label) {
+  narrate('Punching the mirror to go through')
+  await bot.lookAt(bannerAim(banner, facing), true)
+  const face = bannerFaces[facing].dig
+  bot._client.write('block_dig', { status: 0, location: banner, face })
+  bot.swingArm()
+  bot._client.write('block_dig', { status: 1, location: banner, face })
+  await waitFor(() => near(arrival, 1.5), 10, () => `arriving at ${label} (heard ${JSON.stringify(heard)})`)
+  narrate(`Came out at ${label}`)
+  console.log(`  ${where()}`)
+}
+
+// ---------------------------------------------------------------------------------------------
 
 let gone = null
 
@@ -763,6 +876,7 @@ module.exports = {
   v,
   serverCommand,
   logSize,
+  logSince,
   waitForLog,
   waitFor,
   heard,
@@ -813,5 +927,11 @@ module.exports = {
   serverHasWolf,
   waitForWolf,
   tamedWolf,
-  walkInWithWolf
+  walkInWithWolf,
+  ringInto,
+  beamTo,
+  yawOff,
+  bannerAim,
+  turnMirror,
+  punchMirror
 }

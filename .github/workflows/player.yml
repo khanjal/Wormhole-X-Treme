@@ -3,6 +3,10 @@ name: Player journeys
 # A bot joins a real Paper server as a player and travels by gate, beam and ring; see
 # scripts/player-boot.sh. Run by hand from the Actions tab, and whenever the harness itself changes.
 # Not on every pull request yet: it is new, and a flaky bot there would cost more than it catches.
+#
+# The lab (scripts/lab.sh) is for a person, not a check, but it shares the bot's code; its
+# self-test, which has the bot work every panel as a watcher would, runs here when either changes,
+# so neither can break the other unseen.
 on:
   workflow_dispatch:
   push:
@@ -10,6 +14,7 @@ on:
       - scripts/player-boot.sh
       - scripts/player-test/**
       - scripts/boot-test.sh
+      - scripts/lab.sh
       - .github/workflows/player.yml
 
 permissions:
@@ -52,6 +57,54 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: player-log-${{ matrix.version }}
+          path: boot/console.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  lab:
+    name: Lab self-test on paper ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest and newest the journeys run, and 26.1.2, the lab's default: the newest
+        # Mineflayer speaks. Signs and books changed format at 1.21.5, so both sides are covered.
+        include:
+          - version: "1.20.4"
+            java: "21"
+          - version: "1.21.11"
+            java: "21"
+          - version: "26.1.2"
+            java: "25"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build the plugin
+        run: mvn --batch-mode -DskipTests package
+
+      - name: Fetch paper ${{ matrix.version }}
+        run: bash scripts/fetch-server.sh paper ${{ matrix.version }} server.jar
+
+      - name: Work every panel in the lab
+        env:
+          BOOT_DIR: boot
+          LAB_SELFTEST: "1"
+        run: bash scripts/lab.sh server.jar target/WormholeXTreme.jar ${{ matrix.version }}
+
+      - name: Upload the server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lab-log-${{ matrix.version }}
           path: boot/console.log
           if-no-files-found: ignore
           retention-days: 7

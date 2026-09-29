@@ -171,6 +171,65 @@ which vanilla brings along by itself. An item and a mob dropped into a gate are 
 with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
 from the console, act as the player, then check where the bot is and what it sees.
 
+### The lab
+
+The trips above are the right shape for CI and the wrong shape for trying something by hand. To
+see a Grand gate in Atlantis materials with a lava portal, or a slow ring stack, `scripts/lab.sh`
+starts a server with a test world laid out as a laboratory, and you join it and pick from signs:
+
+```bash
+bash scripts/fetch-server.sh paper 26.1.2 server.jar
+mvn -DskipTests package
+bash scripts/lab.sh server.jar target/WormholeXTreme.jar          # 26.1.2 unless a version is given
+```
+
+Join `localhost:25599` from a client of that version, under any name. You arrive in the hub, an
+SGC-style base, in adventure mode, and the lectern there explains the rest. Say `stop` in chat to
+shut the lab down; the server stops with it.
+
+Each bay has a control panel: a sign for each choice with a **next** button under it, a **Run**
+button, a **Reset** lever, and a lamp that is green when idle, amber while a run goes and red when
+the last one failed. Run has the bot build what the signs show and make the trip while you watch;
+it says in chat what it is doing and, on a failure, what it expected and where it ended up. The
+mission board in the hub keeps each bay's last result.
+
+| Bay | Where | The panel picks | Run |
+|---|---|---|---|
+| Stargate | north of the hub | shape, material group, portal, the far iris (none, shut with the code, shut without), dialling by DHD, the console, the dial sign or redstone, the traveller (on foot, boat, minecart, horse, wolf), and Midway across the room or Offworld in the nether | builds the gate as a player does (`gate build`, `preview place`, `gate complete`), dials and goes through. A shut iris with no code must refuse the dial |
+| Rings | east, through the gate room | ODD or EVEN, the slab, fast or slow, how far apart | lays the pair, links it and rides it |
+| Beams | west, through the gate room | a landing pad or Offworld, which way to face, the bot, a horse under it, or its wolf | saves the destination facing that way and beams there |
+| Mirrors | south of the hub | a mirror to start from and one to go to | right-clicks the first until it opens onto the second, and punches through |
+
+The stargate and ring bays each have a **build pad**, where you are in creative. Build any gate
+there with the preview (`/wormhole gate build <shape>`, then `preview place`) and press the pad's
+Run: the bot completes it as `LabPad`, dials Midway and walks through. In the ring bay, lay a
+circle of slabs round each of the two gold blocks and press Run for the bot to pair and ride them.
+The mirror gallery has a bare wall marked for a banner of your own, which joins as `yours`.
+
+**How it is built.** The world is a template, not a save file: `player-test/lab.js` builds it with
+console commands on the fresh world `boot-test.sh` makes, from the small pieces in
+`player-test/lab/pieces.js`, so it survives version changes and diffs in review. Each bay is a file
+in `player-test/lab/`. Every button and lever sits on a command block that says what was pressed
+(`/say lab:next gate shape`); look at the block to read it. The bot hears that in chat and owns
+the panels: on 1.20 and later right-clicking a sign opens its editor, so signs cannot cycle
+themselves, and the bot moves to the next value and rewrites the sign. One run goes at a time in
+the whole lab, and presses on a panel whose run is going are ignored, which the bot says.
+
+A lab run and a CI run are the same code. The steps a trip is made of, from dialling and walking
+through to riding a boat or taking a wolf along, are in `player-test/kit.js`, which `journeys.js`
+uses too; the lab only lays out the world and says which gate, ring, beam or mirror to take. Nothing
+in the lab ships in the plugin, and there is no lab code in `src/main`.
+
+**Its self-test.** `LAB_SELFTEST=1` has the bot work every panel as a watcher would, pressing the
+buttons and reading back the signs, through a spread of settings in each bay, both build pads, and
+every Reset, and then checks each bay is empty again; it exits failing if anything did.
+`LAB_SELFTEST=gate,mirror` tests only those bays. The Player journeys workflow runs it on Paper
+1.20.4, 1.21.11 and 26.1.2 whenever the bot's code changes, so the lab cannot drift from the trips.
+
+The version must be one Mineflayer speaks, as for the journeys; 26.1.2 is the newest it does, and
+`lab.sh`'s default should move up when Mineflayer does. `BOOT_DIR` keeps the server folder, but
+use a new one each time, since the lab is built on a fresh world.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
