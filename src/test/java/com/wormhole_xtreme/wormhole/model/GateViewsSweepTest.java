@@ -373,11 +373,14 @@ class GateViewsSweepTest
         try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
         {
             GateViews.refreshWatched(1_000_000L);
+            // Within the minute: not looked at again.
             GateViews.refreshWatched(1_030_000L);
             near(false);
+            // Nobody there, twice over a minute apart: the gate's chunks may not be loaded, so nothing.
             GateViews.refreshWatched(1_070_000L);
+            GateViews.refreshWatched(1_140_000L);
             near(true);
-            GateViews.refreshWatched(1_090_000L);
+            GateViews.refreshWatched(1_150_000L);
 
             captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(32),
                 eq(GateViews.REFRESH_SECONDS)), times(2));

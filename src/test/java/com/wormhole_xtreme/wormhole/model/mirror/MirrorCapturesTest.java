@@ -806,7 +806,8 @@ class MirrorCapturesTest
         final MirrorCapture capture = MirrorCaptures.get(gateKey());
 
         assertTrue(MirrorCaptures.reaches(capture, mirror.destination(), 8), "as deep as it was asked");
-        assertFalse(MirrorCaptures.reaches(capture, mirror.destination(), 40), "and no deeper");
+        // Past the two blocks a capture keeps beyond its depth, and short of the 16 a mirror's reaches here.
+        assertFalse(MirrorCaptures.reaches(capture, mirror.destination(), 12), "and no deeper: not a mirror's reach");
     }
 
     /**
