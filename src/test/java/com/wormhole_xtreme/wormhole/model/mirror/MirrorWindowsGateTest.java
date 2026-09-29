@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,6 +25,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 
@@ -59,6 +61,8 @@ class MirrorWindowsGateTest
         PluginTestSupport.install(plugin);
         PluginTestSupport.scheduler(null);
         ConfigTestSupport.clear();
+        // No fill behind the first step unless a test is about it.
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 0);
         MirrorWindows.clear();
 
         world = mock(World.class);
@@ -196,5 +200,47 @@ class MirrorWindowsGateTest
         MirrorWindows.release(NAME);
 
         assertFalse(MirrorWindows.holdsWindow(NAME), "released by name as its gate closes");
+    }
+
+    /**
+     * Once the first step is in, the fill out to the full depth is asked for behind it.
+     *
+     * <p>A remote gate shows its first step at once; what lies past it should follow rather than
+     * waiting for somebody to raise the depth and dial again.
+     */
+    @Test
+    void theFirstStepIsFollowedByTheFill()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        MirrorCaptures.install(key(), capture(20));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
+
+            assertTrue(MirrorWindows.offerGate(gate, false), "the first step is drawn meanwhile");
+            bukkit.verify(() -> Bukkit.getWorld("far"));
+        }
+    }
+
+    @Test
+    void aCaptureThatReachesTheFullDepthIsLeftAlone()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        MirrorCaptures.install(key(), capture(60));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            assertTrue(MirrorWindows.offerGate(gate, false));
+            bukkit.verify(() -> Bukkit.getWorld(anyString()), never());
+        }
+    }
+
+    @Test
+    void theFullDepthIsTheFirstStepsWhereItIsOffOrShallower()
+    {
+        assertEquals(16, MirrorWindows.fullDepthOf(gate), "off");
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 8);
+        assertEquals(16, MirrorWindows.fullDepthOf(gate), "shallower than the first step");
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        assertEquals(48, MirrorWindows.fullDepthOf(gate));
     }
 }

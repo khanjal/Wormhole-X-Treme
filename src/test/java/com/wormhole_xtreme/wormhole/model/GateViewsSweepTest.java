@@ -385,7 +385,8 @@ class GateViewsSweepTest
             GateViews.refreshWatched(1_150_000L);
             GateViews.refreshWatched(1_210_000L);
 
-            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(32),
+            // To the full depth, 96 by default: somebody there means most of the fill's chunks are loaded.
+            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(96),
                 eq(GateViews.REFRESH_SECONDS)), times(2));
         }
     }

@@ -165,8 +165,9 @@ public final class GateViews
         final Location arrival = gate.getGatePlayerTeleportLocation();
         if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
         {
-            MirrorCaptures.refreshGate(gate.getGateName(), MirrorPoint.of(arrival), ConfigManager.getGateViewDepth(),
-                REFRESH_SECONDS);
+            // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
+            MirrorCaptures.refreshGate(gate.getGateName(), MirrorPoint.of(arrival),
+                Math.max(ConfigManager.getGateViewDepth(), ConfigManager.getGateViewFullDepth()), REFRESH_SECONDS);
         }
     }
 

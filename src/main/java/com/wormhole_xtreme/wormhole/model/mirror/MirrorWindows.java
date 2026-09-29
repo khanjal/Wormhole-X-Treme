@@ -625,7 +625,7 @@ public final class MirrorWindows
         final MirrorWindow shape = gate.shape();
         final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(gate.anchor()), gate.destination());
         final MirrorWindowState window = new MirrorWindowState(stand, shape, gate.anchor(), gate.open(), capture,
-            true, gate.depth());
+            true, drawDepthOf(gate, capture));
         final MirrorWindowState previous = WINDOWS.get(name);
         if ((previous != null) && previous.shape.equals(shape))
         {
@@ -664,22 +664,54 @@ public final class MirrorWindows
     }
 
     /**
-     * The capture a gate is drawn from, asking for a fresh one if it has none, it is shallower than
-     * the view now draws, or the gate has just opened and it is old.
+     * The capture a gate is drawn from, asking for the next step of it: the first, out to
+     * {@code gate-view-depth}, if it has none, it is shallower than that, or the gate has just opened
+     * and it is old; otherwise the fill out to {@code gate-view-full-depth}, behind the first, if it
+     * does not reach that yet.
+     *
+     * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
+     * fill several times that, most of them read off the disk. A retake starts the steps again, so
+     * the near part is current quickly and the far part follows.
      *
      * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
      */
     private static MirrorCapture gateCapture(final GateWindow gate, final boolean opened)
     {
-        final String key = gate.captureKey();
-        final MirrorCapture capture = MirrorCaptures.get(key);
+        final MirrorCapture capture = MirrorCaptures.get(gate.captureKey());
+        final int full = fullDepthOf(gate);
+        final int ask;
         if ((capture == null) || !MirrorCaptures.reaches(capture, gate.destination(), gate.depth())
             || (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS)))
         {
-            MirrorCaptures.requestGate(key, gate.target(), gate.destination(), gate.shape().width(),
-                gate.shape().height(), gate.depth());
+            ask = gate.depth();
+        }
+        else
+        {
+            ask = MirrorCaptures.reaches(capture, gate.destination(), full) ? 0 : full;
+        }
+        if (ask > 0)
+        {
+            MirrorCaptures.requestGate(gate.captureKey(), gate.target(), gate.destination(), gate.shape().width(),
+                gate.shape().height(), ask);
         }
         return capture;
+    }
+
+    /**
+     * How far a gate's view is filled in behind its first step.
+     *
+     * @return {@code gate-view-full-depth}, or the first step's depth where that is off or no deeper
+     */
+    static int fullDepthOf(final GateWindow gate)
+    {
+        return Math.max(gate.depth(), ConfigManager.getGateViewFullDepth());
+    }
+
+    /** How deep a gate is drawn from its capture: the full depth once the fill is in, and the first step's until then. */
+    private static int drawDepthOf(final GateWindow gate, final MirrorCapture capture)
+    {
+        final int full = fullDepthOf(gate);
+        return MirrorCaptures.reaches(capture, gate.destination(), full) ? full : gate.depth();
     }
 
     /**

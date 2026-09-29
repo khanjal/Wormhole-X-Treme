@@ -658,9 +658,16 @@ The old one is drawn until the new one arrives. Walking out of range and back is
 The dial's ask needs somebody near the dialling gate, as the view itself does, so a gate dialled
 by redstone with nobody about waits for the first sweep with somebody there.
 
-**A gate's view has its own depth**, `gate-view-depth`, 32 by default against a mirror's 160. At
-a mirror's depth the box round a far gate nobody had loaded was some 230 chunks, read twice before
-anything showed; at 32 it is about fifteen. With `mirror-fog-at-depth` on, a player drawn only a
+**A gate's view comes in two steps.** The first reaches `gate-view-depth`, 32 by default against a
+mirror's 160: at a mirror's depth the box round a far gate nobody had loaded was some 230 chunks,
+read twice before anything showed, and at 32 it is about fifteen. Once that is in, the fill out to
+`gate-view-full-depth`, 96 by default, is taken behind it, a chunk a tick rather than two since
+nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
+the view deepens when the fill arrives. A retake as the gate opens starts the steps again, so the
+near part is current quickly and the far part follows; a refresh while somebody is at the gate
+goes straight to the full depth. `0` turns the fill off. A deeper view costs more to draw as a
+viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
+stutters. With `mirror-fog-at-depth` on, a player drawn only a
 gate's view has their send distance pulled in to that depth, not a mirror's: at 32, two chunks and
 the edge, in every direction, for as long as they are near the gate.
 

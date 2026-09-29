@@ -130,8 +130,11 @@ public class ConfigManager
         /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
         GATE_VIEW,
 
-        /** How far past a gate's opening its view is captured and drawn. */
+        /** How far past a gate's opening its view is captured and drawn, first. */
         GATE_VIEW_DEPTH,
+
+        /** How far a gate's view is filled in, behind its first step. */
+        GATE_VIEW_FULL_DEPTH,
 
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
@@ -1116,6 +1119,18 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_DEPTH);
         return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
+    }
+
+    /**
+     * How far a gate's view is filled in behind its first step, in the background (#516).
+     *
+     * @return blocks, 4 to 160; or 0 for no fill, the view staying at {@code gate-view-depth}
+     */
+    public static int getGateViewFullDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
+        final int depth = (s == null) ? 96 : s.getIntValue();
+        return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
     }
 
     /**

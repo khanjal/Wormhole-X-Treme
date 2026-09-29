@@ -47,6 +47,12 @@ public final class MirrorCaptures
     /** Chunks read per tick while a capture is being taken. */
     private static final int CHUNKS_PER_TICK = 2;
 
+    /**
+     * Chunks a background capture reads a tick: a gate's fill past its first step, which nobody is
+     * waiting on, and whose chunks are mostly read off the disk on the main thread.
+     */
+    private static final int BACKGROUND_CHUNKS_PER_TICK = 1;
+
     /** How long a capture nobody has looked at stays in memory. */
     private static final long IDLE_MILLIS = 300_000L;
 
@@ -550,7 +556,7 @@ public final class MirrorCaptures
     public static boolean request(final QuantumMirror mirror)
     {
         return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
-            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0);
+            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false);
     }
 
     /**
@@ -567,13 +573,16 @@ public final class MirrorCaptures
      * @param holeHeight
      *            and tall
      * @param depth
-     *            how far past the opening it reaches: {@code gate-view-depth}, not a mirror's reach
+     *            how far past the opening it reaches: {@code gate-view-depth} for the first step, and
+     *            anything deeper is the background fill to {@code gate-view-full-depth}, taken at half the pace
      * @return true if a capture is now being taken, or already was
      */
     public static boolean requestGate(final String key, final String gate, final MirrorPoint arrival,
         final int holeWidth, final int holeHeight, final int depth)
     {
-        return request(key, "gate '" + gate + "'", arrival, new int[] { holeWidth, holeHeight }, Math.max(4, depth));
+        final boolean fill = depth > ConfigManager.getGateViewDepth();
+        return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
+            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill);
     }
 
     /**
@@ -585,9 +594,11 @@ public final class MirrorCaptures
      *            {@code {width, height}} of the opening it is seen through
      * @param depth
      *            how far ahead it reaches, or 0 for a mirror's: as far as the far world sends
+     * @param background
+     *            true for a capture nobody is waiting on, read at half the pace
      */
     private static boolean request(final String key, final String what, final MirrorPoint destination,
-        final int[] hole, final int depth)
+        final int[] hole, final int depth, final boolean background)
     {
         if (JOBS.containsKey(key))
         {
@@ -610,6 +621,7 @@ public final class MirrorCaptures
         final int reach = (depth > 0) ? depth : reach(far);
         final int floor = (depth > 0) ? depth : ConfigManager.getMirrorViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
+        job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -873,6 +885,8 @@ public final class MirrorCaptures
         private final int holeHeight;
         /** How far ahead it is taken, and the least a cut to fit may leave. */
         private final int reach;
+        /** Chunks read a tick. */
+        private int perTick = CHUNKS_PER_TICK;
         private final int floor;
 
         /**
@@ -928,7 +942,7 @@ public final class MirrorCaptures
         @Override
         public void run()
         {
-            for (int i = 0; (i < CHUNKS_PER_TICK) && !done && !sifting; i++)
+            for (int i = 0; (i < perTick) && !done && !sifting; i++)
             {
                 step();
             }
