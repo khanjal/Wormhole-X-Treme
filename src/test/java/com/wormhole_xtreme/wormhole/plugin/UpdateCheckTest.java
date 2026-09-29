@@ -48,6 +48,8 @@ class UpdateCheckTest
 {
     private static final String MINECRAFT = "1.21.8";
 
+    private static final String MODRINTH = UpdateCheck.modrinthUrl(MINECRAFT);
+
     private static final String GITHUB_PAGE = "https://github.com/khanjal/Wormhole-X-Treme/releases/tag/v1.9.0";
 
     /** One Modrinth version entry. */
@@ -72,6 +74,8 @@ class UpdateCheckTest
     {
         final List<String> asked = new ArrayList<>();
 
+        final List<String> notes = new ArrayList<>();
+
         private final String modrinthBody;
 
         private final String gitHubBody;
@@ -86,13 +90,19 @@ class UpdateCheckTest
         public String get(final String url) throws IOException
         {
             asked.add(url);
-            final String body = UpdateCheck.MODRINTH_API.equals(url) ? modrinthBody : gitHubBody;
+            final String body = url.startsWith(UpdateCheck.MODRINTH_API) ? modrinthBody : gitHubBody;
             if (body == null)
             {
                 throw new IOException("HTTP 404 from " + url);
             }
             return body;
         }
+    }
+
+    private static Optional<UpdateCheck.Release> findNewer(final Canned fetcher, final String running,
+        final String minecraft)
+    {
+        return UpdateCheck.findNewer(fetcher, running, minecraft, fetcher.notes::add);
     }
 
     /** Compared as strings, "1.10.0" sorts before "1.9.0", and nothing after 1.9 would ever be announced. */
@@ -140,7 +150,7 @@ class UpdateCheckTest
         assertFalse(UpdateCheck.isNewer("1..2", "1.0"));
         assertFalse(UpdateCheck.isNewer("", "1.0"));
         assertEquals(Optional.empty(),
-            UpdateCheck.findNewer(new Canned(null, gitHub("nightly")), "1.8.1", MINECRAFT));
+            findNewer(new Canned(null, gitHub("nightly")), "1.8.1", MINECRAFT));
     }
 
     /** An older plugin is told about the newest release built for its Minecraft version, and where to find it. */
@@ -150,7 +160,7 @@ class UpdateCheckTest
         final Canned fetcher = new Canned(modrinth(entry("1.9.0", "release", MINECRAFT)), gitHub("v1.9.0"));
 
         assertEquals(Optional.of(new UpdateCheck.Release("1.9.0", UpdateCheck.MODRINTH_PAGE)),
-            UpdateCheck.findNewer(fetcher, "1.8.1", MINECRAFT));
+            findNewer(fetcher, "1.8.1", MINECRAFT));
     }
 
     /** A development build, newer than any release, is not told to go back to one; nor is the release itself. */
@@ -159,9 +169,9 @@ class UpdateCheckTest
     {
         final String answer = modrinth(entry("1.9.0", "release", MINECRAFT));
 
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(new Canned(answer, null), "1.10.0-SNAPSHOT", MINECRAFT));
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(new Canned(answer, null), "1.9.0", MINECRAFT));
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(new Canned(answer, null), "v1.9", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(answer, null), "1.10.0-SNAPSHOT", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(answer, null), "1.9.0", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(answer, null), "v1.9", MINECRAFT));
     }
 
     /** A newer release not built for this server's Minecraft version is passed over for one that is. */
@@ -213,8 +223,8 @@ class UpdateCheckTest
         final Canned fetcher = new Canned(null, gitHub("v1.9.0"));
 
         assertEquals(Optional.of(new UpdateCheck.Release("v1.9.0", GITHUB_PAGE)),
-            UpdateCheck.findNewer(fetcher, "1.8.1", MINECRAFT));
-        assertEquals(List.of(UpdateCheck.MODRINTH_API, UpdateCheck.GITHUB_API), fetcher.asked);
+            findNewer(fetcher, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH, UpdateCheck.GITHUB_API), fetcher.asked);
     }
 
     /** A Modrinth body that is not a list of versions counts as a failure too. */
@@ -222,9 +232,9 @@ class UpdateCheckTest
     void aMalformedModrinthAnswerFallsBackToGitHub()
     {
         assertEquals(Optional.of(new UpdateCheck.Release("v1.9.0", GITHUB_PAGE)),
-            UpdateCheck.findNewer(new Canned("<html>Not Found</html>", gitHub("v1.9.0")), "1.8.1", MINECRAFT));
+            findNewer(new Canned("<html>Not Found</html>", gitHub("v1.9.0")), "1.8.1", MINECRAFT));
         assertEquals(Optional.of(new UpdateCheck.Release("v1.9.0", GITHUB_PAGE)),
-            UpdateCheck.findNewer(new Canned("{\"error\":\"not_found\"}", gitHub("v1.9.0")), "1.8.1", MINECRAFT));
+            findNewer(new Canned("{\"error\":\"not_found\"}", gitHub("v1.9.0")), "1.8.1", MINECRAFT));
     }
 
     /**
@@ -237,10 +247,10 @@ class UpdateCheckTest
         final Canned current = new Canned(modrinth(entry("1.8.1", "release", MINECRAFT)), gitHub("v9.9.9"));
         final Canned noneForThisVersion = new Canned(modrinth(entry("9.9.9", "release", "26.2")), gitHub("v9.9.9"));
 
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(current, "1.8.1", MINECRAFT));
-        assertEquals(List.of(UpdateCheck.MODRINTH_API), current.asked, "GitHub was asked after Modrinth answered");
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(noneForThisVersion, "1.8.1", MINECRAFT));
-        assertEquals(List.of(UpdateCheck.MODRINTH_API), noneForThisVersion.asked);
+        assertEquals(Optional.empty(), findNewer(current, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH), current.asked, "GitHub was asked after Modrinth answered");
+        assertEquals(Optional.empty(), findNewer(noneForThisVersion, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH), noneForThisVersion.asked);
     }
 
     /** Neither source answering, or answering nonsense, is quiet: no notification and nothing thrown. */
@@ -249,11 +259,71 @@ class UpdateCheckTest
     {
         final Canned down = new Canned(null, null);
 
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(down, "1.8.1", MINECRAFT));
-        assertEquals(List.of(UpdateCheck.MODRINTH_API, UpdateCheck.GITHUB_API), down.asked, "GitHub was tried before giving up");
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(new Canned("[", "{"), "1.8.1", MINECRAFT));
-        assertEquals(Optional.empty(), UpdateCheck.findNewer(new Canned(null, "[]"), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(down, "1.8.1", MINECRAFT));
+        assertEquals(List.of(MODRINTH, UpdateCheck.GITHUB_API), down.asked, "GitHub was tried before giving up");
+        assertEquals(Optional.empty(), findNewer(new Canned("[", "{"), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, "[]"), "1.8.1", MINECRAFT));
         assertNull(UpdateCheck.latestFromGitHub("{\"message\":\"Not Found\"}"));
+    }
+
+    /**
+     * Modrinth is asked only for this Minecraft version's releases, so a long history cannot pass
+     * the body cap, read as malformed, and fall back to GitHub, which cannot filter by version.
+     */
+    @Test
+    void modrinthIsAskedForThisMinecraftVersionOnly()
+    {
+        final Canned fetcher = new Canned(modrinth(entry("1.9.0", "release", "26.2")), null);
+
+        findNewer(fetcher, "1.8.1", "26.2");
+
+        assertEquals(List.of(UpdateCheck.MODRINTH_API + "?game_versions=%5B%2226.2%22%5D&include_changelog=false"),
+            fetcher.asked, "the server's Minecraft version, JSON-encoded, in the query");
+    }
+
+    /** Each quiet way to find nothing says why at FINE, so an operator can see the check ran. */
+    @Test
+    void eachQuietOutcomeSaysWhy()
+    {
+        final Canned bothDown = new Canned(null, null);
+        final Canned noneForThisVersion = new Canned(modrinth(entry("9.9.9", "release", "26.2")), null);
+
+        findNewer(bothDown, "1.8.1", MINECRAFT);
+        findNewer(noneForThisVersion, "1.8.1", MINECRAFT);
+
+        assertEquals(2, bothDown.notes.size(), "one line for Modrinth, one for GitHub: " + bothDown.notes);
+        assertTrue(bothDown.notes.get(0).contains("HTTP 404") && bothDown.notes.get(0).contains("trying GitHub"),
+            "Modrinth's failure, with its reason: " + bothDown.notes.get(0));
+        assertTrue(bothDown.notes.get(1).startsWith("GitHub did not answer") && bothDown.notes.get(1).contains("HTTP 404"),
+            bothDown.notes.get(1));
+        assertEquals(List.of("Modrinth lists no release for Minecraft " + MINECRAFT + "."), noneForThisVersion.notes);
+    }
+
+    /** A tag carrying a newline or a colour code would forge a log line or restyle chat; it is not announced. */
+    @Test
+    void aTagThatIsNotPlainTextIsNotAnnounced()
+    {
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9\\nFAKE LINE")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9\u00a7c")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(), findNewer(new Canned(null, gitHub("v9.9.9 now")), "1.8.1", MINECRAFT));
+        assertEquals(Optional.empty(),
+            findNewer(new Canned(modrinth(entry("9.9.9\u00a7c", "release", MINECRAFT)), null), "1.8.1", MINECRAFT));
+        assertEquals(Optional.of(new UpdateCheck.Release("v9.9.9", GITHUB_PAGE)),
+            findNewer(new Canned(null, gitHub("v9.9.9")), "1.8.1", MINECRAFT), "the same tag, plain, is announced");
+    }
+
+    /** Only a github.com page is passed on as where to get a release. */
+    @Test
+    void aPageOffGitHubIsNotAnnounced()
+    {
+        final String elsewhere = "{\"tag_name\":\"v9.9.9\",\"html_url\":\"https://example.com/khanjal/Wormhole-X-Treme\"}";
+        final String lookalike = "{\"tag_name\":\"v9.9.9\",\"html_url\":\"https://github.com.example.com/x\"}";
+        final String spaced = "{\"tag_name\":\"v9.9.9\",\"html_url\":\"https://github.com/x \\u00a7cclick\"}";
+
+        assertNull(UpdateCheck.latestFromGitHub(elsewhere));
+        assertNull(UpdateCheck.latestFromGitHub(lookalike));
+        assertNull(UpdateCheck.latestFromGitHub(spaced));
+        assertEquals(new UpdateCheck.Release("v9.9.9", GITHUB_PAGE), UpdateCheck.latestFromGitHub(gitHub("v9.9.9")));
     }
 
     /** Bukkit's version carries the API revision after the Minecraft one, which Modrinth does not list. */

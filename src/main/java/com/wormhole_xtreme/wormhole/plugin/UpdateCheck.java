@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -48,6 +51,11 @@ public final class UpdateCheck implements Listener
     private static final int MAX_BODY_BYTES = 1 << 20;
 
     private static final int[] NONE = {};
+
+    /** No whitespace, control characters or colour codes reach the log or chat from a remote answer. */
+    private static final Pattern SAFE_VERSION = Pattern.compile("[vV]?[0-9A-Za-z.+-]{1,40}");
+
+    private static final Pattern SAFE_GITHUB_PAGE = Pattern.compile("https://github\\.com/[!-~]{1,200}");
 
     private final String message;
 
@@ -100,7 +108,8 @@ public final class UpdateCheck implements Listener
     {
         try
         {
-            final Optional<Release> newer = findNewer(fetcher, running, minecraft);
+            final Optional<Release> newer = findNewer(fetcher, running, minecraft,
+                line -> WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, line));
             if (newer.isPresent())
             {
                 final Release release = newer.get();
@@ -147,20 +156,28 @@ public final class UpdateCheck implements Listener
      *            this plugin's version
      * @param minecraft
      *            the server's Minecraft version, such as 1.21.8
+     * @param note
+     *            where to say why nothing was found, for the FINE log
      * @return the newer release, or empty when there is none or nothing could be told
      */
-    static Optional<Release> findNewer(final Fetcher fetcher, final String running, final String minecraft)
+    static Optional<Release> findNewer(final Fetcher fetcher, final String running, final String minecraft,
+        final Consumer<String> note)
     {
         Release latest;
         try
         {
-            final String version = latestFromModrinth(fetcher.get(MODRINTH_API), minecraft);
+            final String version = latestFromModrinth(fetcher.get(modrinthUrl(minecraft)), minecraft);
+            if (version == null)
+            {
+                note.accept("Modrinth lists no release for Minecraft " + minecraft + ".");
+            }
             latest = (version == null) ? null : new Release(version, MODRINTH_PAGE);
         }
         // Modrinth's answer, even one with nothing newer, is final; only its failing falls back.
         catch (final IOException | RuntimeException modrinthFailed)
         {
-            latest = fromGitHub(fetcher);
+            note.accept("Modrinth did not answer the update check (" + modrinthFailed + "); trying GitHub.");
+            latest = fromGitHub(fetcher, note);
         }
         if ((latest != null) && isNewer(latest.version(), running))
         {
@@ -169,7 +186,7 @@ public final class UpdateCheck implements Listener
         return Optional.empty();
     }
 
-    private static Release fromGitHub(final Fetcher fetcher)
+    private static Release fromGitHub(final Fetcher fetcher, final Consumer<String> note)
     {
         try
         {
@@ -177,8 +194,22 @@ public final class UpdateCheck implements Listener
         }
         catch (final IOException | RuntimeException gitHubFailed)
         {
+            note.accept("GitHub did not answer the update check either (" + gitHubFailed + ").");
             return null;
         }
+    }
+
+    /** Modrinth's versions for this Minecraft version alone, so a long history stays well under the body cap. */
+    static String modrinthUrl(final String minecraft)
+    {
+        return MODRINTH_API + "?game_versions="
+            + URLEncoder.encode("[\"" + minecraft + "\"]", StandardCharsets.UTF_8) + "&include_changelog=false";
+    }
+
+    /** Whether remote text is fit to put in the log and chat as a version. */
+    static boolean safeVersion(final String version)
+    {
+        return (version != null) && SAFE_VERSION.matcher(version).matches();
     }
 
     /**
@@ -205,7 +236,7 @@ public final class UpdateCheck implements Listener
             final JsonObject entry = element.getAsJsonObject();
             final String number = string(entry, "version_number");
             if ("release".equals(string(entry, "version_type")) && builtFor(entry, minecraft)
-                && (numbers(number).length > 0) && ((best == null) || isNewer(number, best)))
+                && safeVersion(number) && (numbers(number).length > 0) && ((best == null) || isNewer(number, best)))
             {
                 best = number;
             }
@@ -235,7 +266,7 @@ public final class UpdateCheck implements Listener
      *
      * @param json
      *            GitHub's answer
-     * @return the release, or null if it names no tag or page
+     * @return the release, or null if it names no tag or GitHub page fit to show
      * @throws RuntimeException
      *             if the body is not a JSON object
      */
@@ -244,7 +275,8 @@ public final class UpdateCheck implements Listener
         final JsonObject release = JsonParser.parseString(json).getAsJsonObject();
         final String tag = string(release, "tag_name");
         final String page = string(release, "html_url");
-        return ((tag == null) || (page == null)) ? null : new Release(tag, page);
+        return (safeVersion(tag) && (page != null) && SAFE_GITHUB_PAGE.matcher(page).matches())
+            ? new Release(tag, page) : null;
     }
 
     private static String string(final JsonObject object, final String key)
