@@ -122,36 +122,79 @@ async function download(url, file, { sha256, size }) {
   return file;
 }
 
-/**
- * The Paper jar for a version under `dir`: the newest STABLE build PaperMC's fill API lists,
- * downloaded when it is not the one cached, and checked against the published size and SHA-256.
- * The build, size and checksum are kept beside the jar, so offline a cached jar is still checked
- * before it is used. A jar cached before this record existed is used as it is, offline only.
- */
-async function ensurePaperJar(dir, version) {
-  const file = path.join(dir, `paper-${version}.jar`);
-  const metaFile = path.join(dir, `paper-${version}.json`);
-  const meta = fs.existsSync(metaFile) ? JSON.parse(fs.readFileSync(metaFile, 'utf8')) : null;
-  fs.mkdirSync(dir, { recursive: true });
-  let build;
+/** Writes a file whole or not at all: a crash mid-write leaves the old one, never half of it. */
+function writeAtomic(file, data) {
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, file);
+}
+
+/** The build record beside a cached jar, or null if there is none or it is not one. */
+function readJarRecord(metaFile) {
+  if (!fs.existsSync(metaFile)) return null;
   try {
-    const builds = await getJson(`https://fill.papermc.io/v3/projects/paper/versions/${version}/builds`);
-    build = builds.filter((b) => b.channel === 'STABLE').sort((a, b) => b.id - a.id)[0];
-    if (!build) throw Object.assign(new Error(`PaperMC lists no STABLE build of ${version}`), { final: true });
-  } catch (e) {
-    if (e.final) throw e;
-    if (!fs.existsSync(file)) throw new Error(`cannot reach PaperMC for Paper ${version} and none is cached: ${e.message}`);
-    if (meta && sha256Of(file) !== meta.sha256) throw new Error(`${file} does not match the SHA-256 recorded for it; delete it and run online`);
-    console.log(`PaperMC unreachable (${e.message}); using the cached Paper ${version}${meta ? ` build ${meta.id}` : ''}`);
+    const m = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+    return m && Number.isInteger(m.id) && Number.isInteger(m.size) && /^[0-9a-f]{64}$/.test(m.sha256) ? m : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True if `file` is the jar `record` describes: its size and SHA-256 both. */
+function jarMatches(file, record) {
+  return Boolean(record) && fs.existsSync(file) && fs.statSync(file).size === record.size && sha256Of(file) === record.sha256;
+}
+
+/**
+ * The Paper jar for a version under `dir`: the newest STABLE build PaperMC's fill API lists (or
+ * build `build`, when named), downloaded when the cached jar is not that build, and checked
+ * against the published size and SHA-256. The build, size and checksum are recorded beside the
+ * jar, so a cached jar is checked before it is used when PaperMC cannot be asked, or lists no
+ * stable build. The facility's jar has a name of its own: scripts/watch-local.ps1 keeps
+ * paper-<version>.jar in the same folder and runs a server from it.
+ */
+async function ensurePaperJar(dir, version, { build: pinned = null } = {}) {
+  const file = path.join(dir, `paper-${version}-facility.jar`);
+  const metaFile = path.join(dir, `paper-${version}-facility.json`);
+  const meta = readJarRecord(metaFile);
+  fs.mkdirSync(dir, { recursive: true });
+  const cached = (why) => {
+    if (pinned !== null && (!meta || meta.id !== pinned)) throw new Error(`${why}, and build ${pinned} of Paper ${version} is not the one cached`);
+    if (!fs.existsSync(file)) throw new Error(`${why}, and no Paper ${version} is cached`);
+    if (!jarMatches(file, meta)) throw new Error(`${why}, and ${file} is not the build recorded for it; delete it and run online`);
+    console.log(`${why}; using the cached Paper ${version} build ${meta.id}`);
     return file;
+  };
+  let builds;
+  try {
+    builds = await getJson(`https://fill.papermc.io/v3/projects/paper/versions/${version}/builds`);
+  } catch (e) {
+    return cached(`PaperMC unreachable (${e.message})`);
+  }
+  let build;
+  if (pinned !== null) {
+    build = builds.find((b) => b.id === pinned);
+    if (!build) throw new Error(`PaperMC lists no build ${pinned} of Paper ${version}`);
+  } else {
+    build = builds.filter((b) => b.channel === 'STABLE').sort((a, b) => b.id - a.id)[0];
+    if (!build) return cached(`PaperMC lists no STABLE build of ${version} (--paper-build <n> picks one)`);
   }
   const d = build.downloads && build.downloads['server:default'];
-  if (!d || !d.url || !d.checksums || !d.checksums.sha256) throw new Error(`PaperMC lists no checked download for ${version} build ${build.id}`);
+  if (!d || !d.url || !d.checksums || !d.checksums.sha256 || !Number.isInteger(d.size)) {
+    throw new Error(`PaperMC lists no checked download (URL, size and SHA-256) for ${version} build ${build.id}`);
+  }
   const want = { id: build.id, sha256: d.checksums.sha256, size: d.size };
-  if (fs.existsSync(file) && meta && meta.id === want.id && sha256Of(file) === want.sha256) return file;
-  console.log(`downloading Paper ${version} build ${build.id} (stable)`);
+  if (jarMatches(file, want)) {
+    // The jar is the published one; a record lost or cut short is written again.
+    if (!meta || meta.id !== want.id) writeAtomic(metaFile, `${JSON.stringify(want, null, 2)}\n`);
+    return file;
+  }
+  console.log(`downloading Paper ${version} build ${build.id} (${build.channel ? build.channel.toLowerCase() : 'unknown channel'})`);
+  // The old record goes first: a crash before the new one is written leaves a jar with no
+  // record, which is checked again online and refused offline, never trusted.
+  fs.rmSync(metaFile, { force: true });
   await download(d.url, file, want);
-  fs.writeFileSync(metaFile, `${JSON.stringify(want, null, 2)}\n`);
+  writeAtomic(metaFile, `${JSON.stringify(want, null, 2)}\n`);
   return file;
 }
 
@@ -348,6 +391,7 @@ class Server extends EventEmitter {
     this.proc = spawn(this.java, args, {
       cwd: this.folder, stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform === 'win32', windowsHide: true,
     });
+    this.watch();
     this.proc.stdin.setDefaultEncoding('utf8');
     // A write to a server that is dying is not a crash of the launcher: it is noticed as the exit.
     this.proc.stdin.on('error', (e) => { this.stdinError = e; });
@@ -369,15 +413,54 @@ class Server extends EventEmitter {
     this.proc.stdout.on('data', reader());
     this.proc.stderr.on('data', reader());
     // A JVM killed by a signal exits with no code; it has exited all the same.
-    this.proc.on('exit', (code, signal) => { this.exited = code === null ? (signal || 'signal') : code; this.emit('exit', this.exited); });
+    this.proc.on('exit', (code, signal) => {
+      this.callOffDog();
+      this.exited = code === null ? (signal || 'signal') : code;
+      this.emit('exit', this.exited);
+    });
     return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
+  }
+
+  /**
+   * A watchdog process that kills the JVM if the launcher dies without running its exit hook
+   * (Task Manager, taskkill /F, SIGKILL): nothing else would, since the JVM has no console. It
+   * holds the read end of a pipe from the launcher and acts only on its EOF, which only a dead
+   * launcher sends; every other way the JVM or the launcher ends calls it off first. No PID is
+   * polled, so none is guessed at after it has been freed and reused.
+   */
+  watch() {
+    if (!this.proc.pid) return;
+    const code = 'const jvm = Number(process.argv[1]);'
+      + 'const bite = () => { try { process.kill(jvm); } catch { /* gone */ } process.exit(0); };'
+      + 'process.stdin.on("data", () => {}); process.stdin.on("end", bite); process.stdin.on("error", bite);';
+    try {
+      this.dog = spawn(process.execPath, ['-e', code, String(this.proc.pid)], {
+        detached: true, stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true,
+      });
+      this.dog.on('error', () => {});
+      this.dog.stdin.on('error', () => {});
+      this.dog.stdin.unref();
+      this.dog.unref();
+    } catch { /* the exit hook still covers every exit but a hard kill */ }
+  }
+
+  /** Stops the watchdog: the JVM is gone, or is being killed by the launcher itself. */
+  callOffDog() {
+    if (this.dog && this.dog.exitCode === null && this.dog.signalCode === null) {
+      try { this.dog.kill(); } catch { /* already gone */ }
+    }
+    this.dog = null;
   }
 
   /** Resolves with the first log line (from now on) matching `re`, or rejects naming `what`. */
   waitFor(re, ms, what) {
     return new Promise((resolve, reject) => {
       const onLine = (line) => { if (re.test(line)) { done(); resolve(line); } };
-      const onExit = (code) => { done(); reject(new Error(`server exited (${code}) while waiting for ${what}`)); };
+      const onExit = (code) => {
+        done();
+        const tail = this.log.slice(-10).map((l) => `\n    ${l}`).join('');
+        reject(new Error(`server exited (${code}) while waiting for ${what}${tail ? `; its last lines:${tail}` : ''}`));
+      };
       const timer = setTimeout(() => { done(); reject(new Error(`timed out after ${ms} ms waiting for ${what}`)); }, ms);
       const done = () => { clearTimeout(timer); this.off('line', onLine); this.off('exit', onExit); };
       this.on('line', onLine);
@@ -396,6 +479,7 @@ class Server extends EventEmitter {
     if (this.proc && this.exited === null) {
       try { this.proc.kill(); } catch { /* already gone */ }
     }
+    this.callOffDog();
   }
 
   /**
@@ -480,12 +564,34 @@ class Server extends EventEmitter {
   }
 }
 
+/**
+ * Ties a server to this launcher. The first SIGINT, SIGTERM or SIGHUP calls `onSignal`, which
+ * ends the run and stops the server; a second one kills the JVM and exits at once, so a stop
+ * that hangs can always be cut short. An exit any other way kills a JVM still running.
+ */
+function tieToProcess(srv, onSignal) {
+  let signals = 0;
+  const handler = (sig) => {
+    signals++;
+    if (signals === 1) {
+      console.error(`${sig}: stopping the server (again to kill it)`);
+      onSignal(sig);
+      return;
+    }
+    console.error(`${sig} again: killing the server`);
+    srv.kill();
+    process.exit(130);
+  };
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, handler);
+  process.on('exit', () => srv.kill());
+}
+
 /** WX_ECHO=1 (or true, yes, on) echoes the server's log; unset, 0, false, no or off does not. */
 function echoOn(value) {
   return Boolean(value) && !/^(0|false|no|off)$/i.test(String(value).trim());
 }
 
 module.exports = {
-  echoOn, jdkVersion, Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  echoOn, jdkVersion, Server, tieToProcess, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };
