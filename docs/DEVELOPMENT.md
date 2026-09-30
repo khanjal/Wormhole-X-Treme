@@ -181,13 +181,14 @@ no workflow runs it, and none should until it has earned a place as a release ch
 npm install --prefix scripts/facility
 node scripts/facility/run-facility.js 26.1.2               # build the campus, hold for a tester
 node scripts/facility/run-facility.js 1.21.11 --selftest   # prove it, exit 1 on any FAIL
-node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.2
+node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   # in parallel
 ```
 
 The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
 `--no-build` skip that), downloads the Paper jar into `.local-server/` the first time, and
 starts the server in `.local-server/facility-<version>/` on port 25590 (`--port`) with a fresh
-world (`--keep-world` keeps it). It finds Java 21 or 25 by version on its own; `--java` names
+world (`--keep-world` keeps it); another `--port` gets its own folder, `facility-<version>-<port>`,
+so two runs never share a world. It finds Java 21 or 25 by version on its own; `--java` names
 one. `WX_ECHO=1` prints the server's log as it runs.
 
 Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
@@ -216,6 +217,14 @@ in the opening, where Probe is, what a tick function in the datapack caught at t
 the first tick it was there (position, motion, and whether it is the same entity), and what the
 plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
 
+There are two self-test profiles. The full one runs the whole matrix (about 170 cells counting
+resets) and takes about 25 minutes on one version; it is the one to iterate on, on 1.21.11.
+`--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
+one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate and the first
+#491 cell, in about 4½ minutes. It is the cross-version check (text formats, entity ids, boats, the
+1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
+`--port`, `--port`+2 and so on.
+
 `--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
 expected to fail by the name of its failing check and is listed at the end of the run as a known
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
@@ -225,9 +234,10 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
 
 - A tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
   the far end and does not copy the arrow's potion.
-- An item tossed (Q) or dispensed into an upright opening flies through its one block between
-  two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate. Only an item lying
-  in the opening when a sweep runs is sent.
+- An item tossed (Q) or dispensed into an upright opening mostly flies through its one block
+  between two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate; of five
+  tossed, one came out of Relay, and of five dispensed, none. Only an item lying in the opening when
+  a sweep runs is sent (as itself, name and enchantment intact: the spilled-items cell passes).
 - #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
   plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on
   fix/491-cart-shut-iris, where they pass with `--fixed 491`).

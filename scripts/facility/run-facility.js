@@ -11,7 +11,7 @@
 //   --plugin <jar>       use this plugin jar instead of building one
 //   --no-build           use target/WormholeXTreme.jar as it is
 //   --jdk17 <path>       java for the Maven build (default: a JDK 17 found the same way)
-//   --port <n>           server port (default 25590)
+//   --port <n>           server port (default 25590); another port gets its own server folder
 //   --keep-world         keep the world from the last run instead of starting fresh
 //   --quick              self-test with the short matrix (the cells marked quick): a few minutes
 //   --cells <regex>      self-test only the matrix cells whose names match
@@ -32,11 +32,12 @@ const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
 
 const DEFAULT_VERSION = '26.1.2';
+const DEFAULT_PORT = 25590;
 const REPO = path.resolve(__dirname, '..', '..');
 const LOCAL = path.join(REPO, '.local-server');
 
 function parseArgs(argv) {
-  const a = { port: 25590, selftest: false, build: true };
+  const a = { port: DEFAULT_PORT, selftest: false, build: true };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--java') a.java = argv[++i];
@@ -117,7 +118,9 @@ async function main() {
   const javaMajor = server.checkJava(java, version);
   const jar = await server.ensurePaperJar(LOCAL, version);
   const plugin = pluginJar(args);
-  const folder = path.join(LOCAL, `facility-${version}`);
+  // One folder per version and port, so runs side by side (--versions, or two terminals) never
+  // share a world: a fresh run deletes the worlds of the folder it uses.
+  const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
 
   if (!args.keepWorld) server.freshWorlds(folder, { pluginData: true });
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'adventure', viewDistance: 10, mobs: true });
