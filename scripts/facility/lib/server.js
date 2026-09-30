@@ -418,7 +418,9 @@ class Server extends EventEmitter {
       this.exited = code === null ? (signal || 'signal') : code;
       this.emit('exit', this.exited);
     });
-    return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
+    this.starting = this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
+    this.starting.then(() => { this.ready = true; }, () => {});
+    return this.starting;
   }
 
   /**
@@ -552,12 +554,17 @@ class Server extends EventEmitter {
   async stop(ms = 60000) {
     if (!this.proc || this.exited !== null) return this.exited;
     const exit = new Promise((resolve) => this.once('exit', resolve));
-    try {
-      this.send('stop');
-    } catch {
-      this.kill();
-    }
     const timer = setTimeout(() => this.kill(), ms);
+    // A stop sent before the server is up is lost: Paper fails it on its first tick (a console
+    // source with no level), so it waits for Done, within the same bound.
+    if (!this.ready && this.starting) await Promise.race([this.starting.catch(() => {}), exit]);
+    if (this.exited === null) {
+      try {
+        this.send('stop');
+      } catch {
+        this.kill();
+      }
+    }
     const code = await exit;
     clearTimeout(timer);
     return code;
