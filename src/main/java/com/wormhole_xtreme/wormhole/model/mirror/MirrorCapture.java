@@ -1155,10 +1155,7 @@ public final class MirrorCapture
     public void save(final File file) throws IOException
     {
         final File parent = file.getParentFile();
-        if ((parent != null) && !parent.isDirectory() && !parent.mkdirs())
-        {
-            throw new IOException("could not create " + parent);
-        }
+        makeFolder(parent);
         final File temp = new File(parent, file.getName() + ".tmp");
         try (FileOutputStream raw = new FileOutputStream(temp);
             DataOutputStream out = new DataOutputStream(new GZIPOutputStream(raw, 65_536)))
@@ -1190,6 +1187,23 @@ public final class MirrorCapture
             air.write(out);
         }
         Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Makes the folder a capture is written into, if it is not there yet.
+     *
+     * <p>Two captures finishing together can both find it missing; the one whose {@code mkdirs}
+     * loses the race gets false although the folder now exists, so it is looked for again.
+     *
+     * @throws IOException
+     *             if there is still no folder
+     */
+    static void makeFolder(final File folder) throws IOException
+    {
+        if ((folder != null) && !folder.isDirectory() && !folder.mkdirs() && !folder.isDirectory())
+        {
+            throw new IOException("could not create " + folder);
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -500,6 +501,40 @@ class MirrorCaptureTest
 
         assertTrue(after.isBuried(2, 2, 2));
         assertFalse(after.isBuried(0, 0, 0), "the edge");
+    }
+
+    /**
+     * A capture whose folder another capture made first is still written.
+     *
+     * <p>Two mirrors made at once on a new server both found the captures folder missing; the one
+     * whose {@code mkdirs} lost the race threw "could not create", and its view never reached the
+     * disk, so after a restart that mirror had none. Here the folder appears between the look and
+     * the {@code mkdirs}, which then reports false, as the losing capture saw it.
+     */
+    @Test
+    void aFolderAnotherCaptureMadeFirstIsNotAFailure() throws IOException
+    {
+        final File folder = mock(File.class);
+        when(folder.isDirectory()).thenReturn(false, true);
+        when(folder.mkdirs()).thenReturn(false);
+
+        MirrorCapture.makeFolder(folder);
+
+        verify(folder).mkdirs();
+    }
+
+    /** A folder that cannot be made is still refused, and names it. */
+    @Test
+    void aFolderThatCannotBeMadeIsRefused()
+    {
+        final File folder = mock(File.class);
+        when(folder.isDirectory()).thenReturn(false);
+        when(folder.mkdirs()).thenReturn(false);
+        when(folder.toString()).thenReturn("captures");
+
+        final IOException refused = assertThrows(IOException.class, () -> MirrorCapture.makeFolder(folder));
+
+        assertTrue(refused.getMessage().contains("captures"), refused.getMessage());
     }
 
     /**

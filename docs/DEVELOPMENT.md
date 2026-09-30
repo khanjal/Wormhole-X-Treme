@@ -171,6 +171,76 @@ which vanilla brings along by itself. An item and a mob dropped into a gate are 
 with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
 from the console, act as the player, then check where the bot is and what it sees.
 
+### Facility (in progress)
+
+`scripts/facility/` is the Wormhole Research Facility: a flat test campus that a tester walks
+and drives from clickable chat, and that a bot drives from the same console. It never runs in
+GitHub, not as a pull-request check, a release job or a manually dispatched workflow: it is a
+local pre-release check. Before making a release, run `--selftest` locally on all three versions.
+
+```bash
+npm install --prefix scripts/facility
+node scripts/facility/run-facility.js 26.1.2               # build the campus, hold for a tester
+node scripts/facility/run-facility.js 1.21.11 --selftest   # prove it, exit 1 on any FAIL
+node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.2
+```
+
+The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
+`--no-build` skip that), downloads the newest stable Paper build to
+`.local-server/paper-<version>-facility.jar` (checked against PaperMC's published size and
+SHA-256, and fetched again when a newer stable build is out; offline, or when PaperMC lists no
+stable build, the cached jar is checked against the build recorded with it; `--paper-build <n>`
+picks a build, checked the same way), and starts the server in `.local-server/facility-<version>/`
+on port 25590 (`--port`) with a fresh world (`--keep-world` keeps it, and puts back any plugin
+setting a killed run left changed). It finds the Java a version needs on its own (17 for 1.20.4,
+21 for 1.20.5 to 1.21.x, 25 for 26.x); `--java` names one. `WX_ECHO=1` prints the server's log as
+it runs (`0`, `false`, `no` and `off` do not). However the launcher ends, the server goes with
+it: Ctrl+C stops it, a second Ctrl+C kills it, and a watchdog kills the JVM if the launcher is
+itself killed. The spike does the same.
+
+Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
+link; `!` does the same. Eight plates round the atrium's centre go to each wing and to the two
+far sites, and each wing has a plate home by its door. Say "stop" in chat, or press Ctrl+C, to
+end it.
+
+Every coordinate is in `lib/campus.js`: wings, corridors, lanes, chambers, plates, forceload
+rectangles. Move a wing or resize a room there and run it again; `wings/` compiles the campus
+into a datapack function per wing and a reset per chamber, and refuses to build a layout whose
+parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
+its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
+adding a file to `chambers/` against the contract written at the top of `chambers/index.js`;
+only `c0`, the calibration cell in Ops, has them so far.
+
+The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
+every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
+after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
+tester's path through the console, every reset, that the plugin holds
+no gates or mirrors, that each setting a chamber changed is back, and that the plugin logged no
+fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
+
+The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
+datapack function that builds a box, a `/trigger` console whose menu reaches a player who is not
+an op and whose code reaches the bot, a text display that reads back as written, and a bossbar.
+It takes one version and `--java`; `--hold` keeps the server up so a person can click the menu.
+
+What it found:
+
+- A server sends a player the scores of an objective only while the objective sits in a display
+  slot, so a bare trigger objective never reaches the bot. The console puts `wx` in the sidebar
+  of a team colour nobody is on: every client is sent the scores and none draws them.
+- Mineflayer 4.39's `scoreUpdated` never fires from 1.20.3 on, so the bot reads the score
+  packets itself.
+- A real 26.1.2 client that is not an op runs `/trigger` from a menu click, and the bot reads
+  each code; clicked by hand three times with `--hold`, re-armed between clicks.
+- The click-event key names are the only switch a tellraw needs, but getting them wrong is
+  silent from 1.21.5: the old keys are accepted and the click is dropped. A text display in the
+  other era's form is silent too: blank on 1.20.4, raw JSON on the newer two. So the spike judges
+  both by what the client receives, not by the server's reply.
+- An out-of-range `pack_format` loads with no warning in the log, so the version table is checked
+  against the `version.json` inside the server's own jar instead.
+- Paper writes its console in the Windows code page unless told otherwise, which turns a `·` in
+  a readback into a replacement character; the server is started with UTF-8 output.
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
