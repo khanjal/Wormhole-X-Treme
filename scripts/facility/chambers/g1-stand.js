@@ -517,11 +517,11 @@ async function sweep(ctx, o, geom, f) {
     }
   } else if (t === 'lying item') {
     // Still, in the middle of the opening, tagged from the start: what the plugin's sweep is for.
-    await ctx.menagerie.summon('item', { ...inOpening, y: bottom.y }, ctx.tag, `Item:${itemNbt(version, relic)},PickupDelay:32767s,Motion:[0.0d,0.0d,0.0d]`);
-    for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_item] add ${tagName}`);
+    // Tagged in the summon itself: the plugin's once-a-second sweep may send it before a second
+    // command could tag it, and it would then arrive looking like a new entity.
+    await ctx.menagerie.summon('item', { ...inOpening, y: bottom.y }, ctx.tag, `Item:${itemNbt(version, relic)},PickupDelay:32767s,Motion:[0.0d,0.0d,0.0d]`, ['wx_launched', 'wx_seen']);
   } else if (t === 'xp') {
-    await ctx.menagerie.summon('experience_orb', { ...inOpening, y: bottom.y + 0.2 }, ctx.tag, 'Value:7s');
-    await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_experience_orb] add wx_launched`);
+    await ctx.menagerie.summon('experience_orb', { ...inOpening, y: bottom.y + 0.2 }, ctx.tag, 'Value:7s', ['wx_launched']);
   } else if (t === 'armour stand') {
     await ctx.menagerie.summon('armor_stand', { ...inOpening, y: bottom.y }, ctx.tag);
   } else if (t === 'zombie') {

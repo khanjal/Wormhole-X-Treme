@@ -206,9 +206,10 @@ class Menagerie {
   }
 
   /** Summons any other traveller (vehicle, mob, stand, orb, frame) with the run's tag. */
-  async summon(kind, at, tag, nbt = '') {
+  async summon(kind, at, tag, nbt = '', tags = []) {
     const extra = nbt ? `,${nbt}` : '';
-    await this.must(`summon ${entityId(this.version, kind)} ${at.x} ${at.y} ${at.z} {Tags:["${tag}","wx_kind_${kind}"]${extra}}`);
+    const all = [tag, `wx_kind_${kind}`, ...tags].map((t) => `"${t}"`).join(',');
+    await this.must(`summon ${entityId(this.version, kind)} ${at.x} ${at.y} ${at.z} {Tags:[${all}]${extra}}`);
     return `@e[tag=${tag},tag=wx_kind_${kind},limit=1]`;
   }
 
