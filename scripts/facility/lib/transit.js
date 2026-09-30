@@ -53,10 +53,11 @@ function drawn(probe, geom) {
 /**
  * Whether the gates shut again within timeout-shutdown (and 5 s), as a probe standing by one of
  * them is shown. A probe that has just arrived is not shown the opening at once, so the open
- * gate is waited for first (3 s): "not drawn" straight after arrival is not "shut".
+ * gate is waited for first (8 s): "not drawn" straight after arrival is not "shut". Null if
+ * neither was ever drawn open to it.
  */
 async function shutAgain(probe, geoms) {
-  await trip.until(async () => geoms.some((g) => drawn(probe, g)), 3000, 2);
+  if (!(await trip.until(async () => geoms.some((g) => drawn(probe, g)), 8000, 2))) return null;
   return trip.until(async () => geoms.every((g) => !drawn(probe, g)), (SHUT_SECONDS + 5) * 1000, 10);
 }
 
@@ -67,8 +68,9 @@ async function shutAgain(probe, geoms) {
  */
 async function shutByCommand(srv, probe, names, seen) {
   const kit = new GateKit(srv);
-  // Seen open first: a probe that has just arrived is not shown the opening at once.
-  await trip.until(async () => drawn(probe, seen), 3000, 2);
+  // Seen open first: a probe that has just arrived is not shown the opening at once, and "shut"
+  // is no fact about an opening never drawn to it.
+  if (!(await trip.until(async () => drawn(probe, seen), 8000, 2))) return `the gate ${probe.name} came out of was never drawn open to it, so its shut cannot be judged`;
   const said = [];
   for (const n of names) said.push((await kit.force(n)).text);
   if (!said.every((t) => /has been closed/.test(t))) return `closing by command was not answered: ${said.join(' | ')}`;
@@ -215,6 +217,7 @@ class Transit {
     if (facing > 15) return { ok: false, detail: `came out at Hall facing ${mcYaw(p2).toFixed(0)}°, not south` };
     // Both ends shut again within timeout-shutdown, seen from Hall.
     const shut = await shutAgain(p2, [hall, ops]);
+    if (shut === null) return { ok: false, detail: 'neither gate was drawn open to Probe2 after the trip, so their shutting cannot be judged' };
     if (!shut) return { ok: false, detail: `the gates were still open ${SHUT_SECONDS + 5} s after the trip` };
     return { ok: true, detail: `at Hall within ${flat(p2.position, arrival).toFixed(2)}, facing south; both gates shut ${((Date.now() - t0) / 1000).toFixed(0)} s after` };
   }
