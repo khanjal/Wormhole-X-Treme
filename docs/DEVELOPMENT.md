@@ -316,7 +316,7 @@ and two dispatches, a mirror round and its hold, a wall refusal, a capture, a ho
 and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
-them all, and if the launcher is killed outright its children stop their servers too.
+them all, and if the launcher is killed outright its children and their servers go with it.
 
 `--shards N` runs one version's matrix on N servers of that version at once, each on its own port
 and folder with its own campus (`--port`, +2, +4, ...), and merges their reports into one summary

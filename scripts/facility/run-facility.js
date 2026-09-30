@@ -147,7 +147,8 @@ async function fanOut(args) {
   for (const v of versions) await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
   // Each child stops its own server however it ends, and watches its JVM with a watchdog of its
   // own. It is --tied: it holds a pipe from this launcher and stops when that closes, so a
-  // launcher killed outright takes its children with it. A signal here closes the pipes, which
+  // launcher killed outright takes its children with it (on Windows, Node's job object kills
+  // them at once, and their watchdogs their JVMs). A signal here closes the pipes, which
   // stops them as a first signal does; a second kills them, leaving their watchdogs to kill
   // their JVMs. A console Ctrl+C reaches the children directly as well.
   const children = [];
