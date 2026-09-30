@@ -21,7 +21,8 @@ const HIDDEN_SLOT = 'sidebar.team.dark_gray';
  * had chamber * 1000, which allows nine options; G1 has sixteen.)
  */
 function encode({ chamber, option, value }) {
-  if (option < 0 || option > 99 || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
+  // Option ACTION_OPTION (99) is the actions' slot, so a chamber has options 0..98.
+  if (option < 0 || option >= ACTION_OPTION || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
   return chamber * 10000 + option * 100 + value;
 }
 
