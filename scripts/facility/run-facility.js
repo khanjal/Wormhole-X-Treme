@@ -13,9 +13,10 @@
 //   --jdk17 <path>       java for the Maven build (default: a JDK 17 found the same way)
 //   --port <n>           server port (default 25590)
 //   --keep-world         keep the world from the last run instead of starting fresh
+//   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
-// press Ctrl+C to shut it down.
+// press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
 
 const fs = require('fs');
 const path = require('path');
@@ -43,6 +44,10 @@ function parseArgs(argv) {
     else if (x === '--selftest') a.selftest = true;
     else if (x === '--versions') a.versions = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (x === '--keep-world') a.keepWorld = true;
+    else if (x === '--paper-build') {
+      a.paperBuild = Number(argv[++i]);
+      if (!Number.isInteger(a.paperBuild) || a.paperBuild <= 0) throw new Error(`--paper-build takes a build number, not ${argv[i]}`);
+    }
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -69,6 +74,7 @@ async function acrossVersions(args) {
   for (const v of args.versions) {
     const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port)];
     if (args.java) child.push('--java', args.java);
+    if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
     console.log(`\n=== ${v} ===`);
     const code = await new Promise((resolve) => {
       const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'inherit'] });
@@ -93,7 +99,7 @@ async function main() {
   const java = args.java || server.findJava(server.requiredJava(version));
   if (!java) throw new Error(`no Java ${server.requiredJava(version)} found for ${version}; pass --java`);
   const javaMajor = server.checkJava(java, version);
-  const jar = await server.ensurePaperJar(LOCAL, version);
+  const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
   const plugin = pluginJar(args);
   const folder = path.join(LOCAL, `facility-${version}`);
 
