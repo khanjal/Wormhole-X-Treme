@@ -50,7 +50,8 @@ const OPTIONS = {
     v('wolf', 'a tamed wolf follows Probe'), v('cat', 'a tamed cat follows'), v('parrot', 'a tamed parrot follows'),
     v('sitting wolf', 'told to sit: must stay'), v('projectile', 'see projectile, launcher and angle'),
     v('dropped item', 'Probe drops a named, enchanted sword into the opening'), v('dispensed item', 'a dispenser drops it in'),
-    v('spilled items', 'a hopper cart broken in the opening'), v('xp', 'an experience orb'), v('armour stand', 'swept through'),
+    v('lying item', 'a named, enchanted sword lying still in the opening'),
+    v('spilled items', 'a hopper cart broken in the opening (its drops scatter a little)'), v('xp', 'an experience orb'), v('armour stand', 'swept through'),
     v('item frame', 'hung by the opening: must not move'), v('zombie', 'swept through'),
     v('cart at iris', 'issue #491: a cart run at a shut iris must stop flush at its face'),
   ],
@@ -477,6 +478,10 @@ async function sweep(ctx, o, geom, f) {
     for (const part of ['hopper_minecart', 'minecart', 'hopper']) {
       await ctx.server.run(`kill @e[type=minecraft:item,distance=..4,x=${inOpening.x},y=${bottom.y},z=${inOpening.z},nbt={Item:{id:"minecraft:${part}"}}]`);
     }
+  } else if (t === 'lying item') {
+    // Still, in the middle of the opening, tagged from the start: what the plugin's sweep is for.
+    await ctx.menagerie.summon('item', { ...inOpening, y: bottom.y }, ctx.tag, `Item:${itemNbt(version, relic)},PickupDelay:32767s,Motion:[0.0d,0.0d,0.0d]`);
+    for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_item] add ${tagName}`);
   } else if (t === 'xp') {
     await ctx.menagerie.summon('experience_orb', { ...inOpening, y: bottom.y + 0.2 }, ctx.tag, 'Value:7s');
     await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_experience_orb] add wx_launched`);
@@ -755,13 +760,14 @@ function checks(ctx, o) {
   // Items and orbs.
   if (obs.tosses > 1) list.push(c(`every one of the ${obs.tosses} came out of ${dest}`, () => obs.arrival && obs.arrival.count === obs.tosses && obs.leftBehind === 0));
   list.push(c(`it came out of ${dest}`, arrived));
-  if (t === 'xp') {
+  if (t === 'xp' || t === 'lying item') {
     // Summoned with its tags, so it can be judged as an entity: the plugin moves it, not a copy.
     list.push(c('as itself (the same entity, tags and all)', () => obs.arrival && obs.arrival.same));
-  } else {
+  }
+  if (t !== 'xp') {
     // A dropped, dispensed or spilled stack is born untagged and is tagged on the next tick; the
     // plugin's sweep can take it in between, so it is judged as the design says, by its stack:
-    // the one named, enchanted item, not by entity identity.
+    // the one named, enchanted item (and a lying one by its identity as well, above).
     list.push(c('the same stack: one, still named and enchanted', () => /Relic of the Stand/.test(obs.arrivalData || '')
       && /sharpness/.test(obs.arrivalData || '') && /[Cc]ount: 1[b,}]/.test(obs.arrivalData || '')));
   }

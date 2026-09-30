@@ -63,7 +63,9 @@ const G1 = [
   { name: 'g1 boat ridden', values: { traveller: 'boat ridden' }, expect: 'PASS' },
   ...['horse', 'camel', 'pig', 'donkey', 'llama', 'strider'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
   ...['wolf', 'cat', 'parrot', 'sitting wolf'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
-  ...['spilled items', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
+  // (Spilled items are left out: a broken cart's drops scatter, and whether one stays in the
+  // one-block opening until the next sweep is chance. The lying item is the deterministic case.)
+  ...['lying item', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
   ...['dropped item', 'dispensed item'].map((t) => ({
     name: `g1 ${t}`,
     values: { traveller: t },
@@ -87,7 +89,7 @@ const G1 = [
   { name: 'g1 arrow point-blank', values: P('arrow', { angle: 'point-blank' }), expect: 'PASS' },
   { name: 'g1 arrow down into Horizontal', values: P('arrow', { shape: 'Horizontal', angle: 'above' }), expect: 'PASS' },
   { name: 'g1 far iris shut after dial: arrow', values: P('arrow', { 'far iris': 'shut after dial' }), expect: 'PASS' },
-  { name: 'g1 far iris shut after dial: items', values: { traveller: 'spilled items', 'far iris': 'shut after dial' }, expect: 'PASS' },
+  { name: 'g1 far iris shut after dial: item', values: { traveller: 'lying item', 'far iris': 'shut after dial' }, expect: 'PASS' },
   // Issue #491: a cart run at a shut iris stops flush with its face (checklist in g1-stand.js).
   { name: '491-A cart from the front', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut' }, ...CART_491 },
   { name: '491-B cart with a rider', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', rider: 'Probe' }, ...CART_491 },

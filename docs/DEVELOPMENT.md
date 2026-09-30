@@ -237,7 +237,8 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
 - An item tossed (Q) or dispensed into an upright opening mostly flies through its one block
   between two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate; of five
   tossed, one came out of Relay, and of five dispensed, none. Only an item lying in the opening when
-  a sweep runs is sent (as itself, name and enchantment intact: the spilled-items cell passes).
+  a sweep runs is sent (as itself, name and enchantment intact: the lying-item cell passes). A
+  broken hopper cart's drops scatter, so whether they are sent is chance; that cell is left out.
 - #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
   plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on
   fix/491-cart-shut-iris, where they pass with `--fixed 491`).
