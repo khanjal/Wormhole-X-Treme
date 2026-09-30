@@ -61,11 +61,25 @@ class Blueprint {
 
   keepClear(id, b) { this.keep.push({ id, box: b }); return this; }
 
-  /** The block volumes the decoration wrote. */
+  /**
+   * The block volumes the decoration wrote, and the block each thing it summoned stands in (a
+   * plaque or a console's label): an entity in a cell is in a test's way as much as a block.
+   */
   decorBoxes() {
-    return this.ops.filter((o) => o.decor).map((o) => ({ box: o.kind === 'fill' ? o.box : box3(...o.at, ...o.at), block: o.block }));
+    const out = [];
+    for (const o of this.ops.filter((x) => x.decor)) {
+      if (o.kind === 'fill') out.push({ box: o.box, block: o.block });
+      else if (o.kind === 'set') out.push({ box: box3(...o.at, ...o.at), block: o.block });
+      else {
+        const m = /^summon (\S+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)/.exec(o.line);
+        if (!m) throw new Error(`${this.name}: a decoration command the guardrail cannot place: ${o.line.slice(0, 80)}`);
+        const [x, y, z] = m.slice(2).map((s) => Math.floor(Number(s)));
+        out.push({ box: box3(x, y, z, x, y, z), block: m[1], entity: true });
+      }
+    }
+    return out;
   }
-  cmd(line) { this.ops.push({ kind: 'cmd', line }); return this; }
+  cmd(line) { this.ops.push({ kind: 'cmd', line, decor: this.decorating }); return this; }
   anchor(x, y, z, block, what) { this.anchors.push({ at: [x, y, z], block, what, decor: this.decorating }); return this; }
   mustBeClear(id, b) { this.clear.push({ id, box: b }); return this; }
 
@@ -445,8 +459,13 @@ function plaque(version, { id, wing, at, text: words, colour = 'white', scale = 
  */
 function banner(bp, x, y, z, facing, colour = 'white') {
   const back = { north: [0, 1], south: [0, -1], west: [1, 0], east: [-1, 0] }[facing];
-  const solid = (bx, by, bz) => bp.ops.some((o) => o.kind === 'fill' && o.block !== 'minecraft:air'
-    && bx >= o.box.x0 && bx <= o.box.x1 && by >= o.box.y0 && by <= o.box.y1 && bz >= o.box.z0 && bz <= o.box.z1);
+  // The last op to write the block decides it: a fill of air after a solid one leaves air.
+  const solid = (bx, by, bz) => {
+    const last = [...bp.ops].reverse().find((o) => (o.kind === 'fill'
+      && bx >= o.box.x0 && bx <= o.box.x1 && by >= o.box.y0 && by <= o.box.y1 && bz >= o.box.z0 && bz <= o.box.z1)
+      || (o.kind === 'set' && o.at[0] === bx && o.at[1] === by && o.at[2] === bz));
+    return Boolean(last) && !/^minecraft:(cave_|void_)?air$/.test(last.block);
+  };
   const wx = x + back[0];
   const wz = z + back[1];
   for (const dy of [-1, 0, 1]) {

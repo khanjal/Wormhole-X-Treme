@@ -60,10 +60,10 @@ function chambersOf(wingId) {
 }
 
 /**
- * The blueprint for `build/<wing>`. `version` picks the text form for boards; `plain` leaves the
- * decoration out (WX_PLAIN=1), for a quicker build that tests the same.
+ * The blueprint for `build/<wing>`. `version` picks the text form for boards. The decoration is
+ * always built: some of it carries tests (the far sites' mirror piers, their Dial Ops consoles).
  */
-function buildWing(wingId, version, { plain = process.env.WX_PLAIN === '1' } = {}) {
+function buildWing(wingId, version) {
   const w = campus.wing(wingId);
   const out = new bp.Blueprint(`wx:build/${wingId}`, w.dim);
   out.cmd(`kill @e[type=minecraft:text_display,tag=wx_wing_${wingId}]`);
@@ -119,7 +119,7 @@ function buildWing(wingId, version, { plain = process.env.WX_PLAIN === '1' } = {
       spec: [{ text: w.title.toUpperCase(), color: w.text, bold: true }, ...(w.nick ? ['\n', { text: w.nick, color: 'gray' }] : [])],
     }));
   }
-  if (!plain && DECOR[wingId]) out.decorate(() => DECOR[wingId].decorate(out, w, version));
+  if (DECOR[wingId]) out.decorate(() => DECOR[wingId].decorate(out, w, version));
   return out;
 }
 
@@ -145,8 +145,8 @@ function resetChamber(ch) {
 }
 
 /** Every build and reset, in build order. */
-function allBlueprints(version, opts = {}) {
-  const builds = ORDER.map((id) => ({ fn: `build/${id}`, wing: id, dim: campus.wing(id).dim, bp: buildWing(id, version, opts) }));
+function allBlueprints(version) {
+  const builds = ORDER.map((id) => ({ fn: `build/${id}`, wing: id, dim: campus.wing(id).dim, bp: buildWing(id, version) }));
   const resets = campus.CHAMBERS.filter((c) => c.kind !== 'desk')
     .map((c) => ({ fn: `reset/${c.id}`, chamber: c.id, dim: campus.wing(c.wing).dim, bp: resetChamber(c) }));
   return { builds, resets };
