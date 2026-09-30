@@ -143,7 +143,7 @@ async function selftest(fac, { buildReport, log = console.log }) {
       const missing = campus.WINGS.filter((w) => !clickOn(tabs, w.title)).map((w) => w.title);
       check('console', 'Console shows a tab for every wing', missing.length === 0, missing.length ? `no tab for ${missing.join(', ')}: ${tabs.toString().trim()}` : tabs.toString().trim());
       const listing = await click(tabs, 'Operations', (m) => clickOn(m, 'Calibration Cell'), 'the Ops chambers');
-      check('console', 'the Ops tab lists the calibration cell with its state', /C0 Calibration Cell {2}(idle · never run|\w+)/.test(listing.toString()), listing.toString().trim());
+      check('console', 'the Ops tab lists the calibration cell with its state', /C0 Calibration Cell\s+(idle · never run|pass|fail|refused|running|staged|idle)\b/.test(listing.toString()), listing.toString().trim());
       const opts = await click(listing, 'Calibration Cell', (m) => clickOn(m, 'button'), 'the calibration menu');
       check('console', 'the chamber menu offers its options, the first current', /control\s+\[lever\] button/.test(opts.toString()), opts.toString().trim());
       const chosen = await click(opts, 'button', (m) => /\[button\]/.test(m.toString()), 'the menu with button chosen');
