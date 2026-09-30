@@ -67,8 +67,8 @@ const G1 = [
   ...['dropped item', 'dispensed item'].map((t) => ({
     name: `g1 ${t}`,
     values: { traveller: t },
-    expect: 'FAIL:it came out of Relay',
-    known: 'an item tossed or dispensed into the opening flies through its one block in a tick or two, between the entity sweeps (every 20 ticks), and lands behind the gate: only an item lying in the opening when a sweep runs is sent',
+    expect: 'FAIL:every one of the 5 came out of Relay',
+    known: 'of five items tossed (or dispensed) into the opening, some fly through its one block between two entity sweeps (every 20 ticks) and land behind the gate: only an item lying in the opening when a sweep runs is sent',
   })),
   // Every projectile, and the launchers and angles.
   ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'trident', 'snowball', 'egg', 'pearl',

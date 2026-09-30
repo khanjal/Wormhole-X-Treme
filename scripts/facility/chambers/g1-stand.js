@@ -76,6 +76,8 @@ const OPTIONS = {
 };
 
 const MOUNTS = ['horse', 'camel', 'pig', 'donkey', 'strider'];
+// How many times a tossed or dispensed item is sent (see sweep()).
+const TOSSES = 5;
 const PETS = { wolf: 'wolf', cat: 'cat', parrot: 'parrot', 'sitting wolf': 'wolf' };
 const SIGN_SHAPES = ['StandardSignDial', 'MinimalSignDial', 'HorizontalSignDial'];
 const EXPECTED_REFUSAL = {
@@ -434,26 +436,38 @@ async function sweep(ctx, o, geom, f) {
   const dest = f.geom;
   const relic = ARMOURY.relic;
   await ctx.watch.arm(O, { x: geom.centre.x, y: bottom.y + 1, z: inOpening.z + geom.normal.z * 1.5 }, { ...dest.itemArrival, dim: f.dim });
+  // A toss has a little random spread, so one toss may land in the opening or go through it:
+  // TOSSES of them make the outcome a property of the plugin, not of one throw.
+  obs.tosses = ['dropped item', 'dispensed item'].includes(t) ? TOSSES : 1;
   if (t === 'dropped item') {
-    await ctx.menagerie.give(probe.name, 'relic');
-    await probe.waitForItem(relic.id);
-    await probe.hold(relic.id);
-    // Close enough that the tossed stack lands in the opening (beside a flat one), then away,
-    // so Probe does not pick it up again before the plugin's sweep finds it.
+    // Close enough that a tossed stack reaches the opening (beside a flat one), then away, so
+    // Probe does not pick it up again before the plugin's sweep finds it.
     const stand = geom.flat
       ? { x: geom.centre.x + geom.right.x * 3.2, y: PLACE.floorY, z: geom.centre.z + geom.right.z * 3.2 }
       : { ...front(geom, 0.85), y: PLACE.floorY };
-    await probe.teleport(stand, O);
-    // Steeply down into the opening's bottom cell, so the toss lands inside it.
-    await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 0.2, z: inOpening.z });
-    await probe.dropOne();
-    await ticks(3);
-    await probe.teleport(front(geom, 8), O);
+    for (let i = 0; i < TOSSES; i++) {
+      await ctx.menagerie.give(probe.name, 'relic');
+      await probe.waitForItem(relic.id);
+      await probe.hold(relic.id);
+      await probe.teleport(stand, O);
+      // Steeply down into the opening's bottom cell.
+      await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 0.2, z: inOpening.z });
+      await probe.dropOne();
+      await ticks(3);
+      await probe.teleport(front(geom, 8), O);
+    }
   } else if (t === 'dispensed item') {
     const d = front(geom, 1);
+    const dx = Math.floor(d.x);
     const dz = Math.floor(d.z);
-    await run(ctx, `setblock ${Math.floor(d.x)} ${bottom.y + 1} ${dz} minecraft:dispenser[facing=north]{Items:[${itemNbt(version, relic, ',Slot:0b')}]}`);
-    await run(ctx, `setblock ${Math.floor(d.x)} ${bottom.y + 2} ${dz} minecraft:redstone_block`);
+    const stack = Array.from({ length: TOSSES }, (_, i) => itemNbt(version, relic, `,Slot:${i}b`)).join(',');
+    await run(ctx, `setblock ${dx} ${bottom.y + 1} ${dz} minecraft:dispenser[facing=north]{Items:[${stack}]}`);
+    for (let i = 0; i < TOSSES; i++) {
+      await run(ctx, `setblock ${dx} ${bottom.y + 2} ${dz} minecraft:redstone_block`);
+      await ticks(4);
+      await run(ctx, `setblock ${dx} ${bottom.y + 2} ${dz} minecraft:air`);
+      await ticks(4);
+    }
   } else if (t === 'spilled items') {
     const items = `Items:[${itemNbt(version, relic, ',Slot:0b')}]`;
     await ctx.menagerie.summon('hopper_minecart', { ...inOpening, y: bottom.y }, ctx.tag, items);
@@ -734,6 +748,7 @@ function checks(ctx, o) {
     return list;
   }
   // Items and orbs.
+  if (obs.tosses > 1) list.push(c(`every one of the ${obs.tosses} came out of ${dest}`, () => obs.arrival && obs.arrival.count === obs.tosses && obs.leftBehind === 0));
   list.push(c(`it came out of ${dest}`, arrived));
   list.push(c('as itself (the same entity, tags and all)', () => obs.arrival && obs.arrival.same));
   if (t !== 'xp') list.push(c('still named and enchanted', () => /Relic of the Stand/.test(obs.arrivalData || '') && /sharpness/.test(obs.arrivalData || '')));
