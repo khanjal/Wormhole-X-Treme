@@ -142,7 +142,7 @@ class FacilityConsole {
     await this.tell(player, [
       { text: 'Welcome to the Wormhole Research Facility. ', color: 'aqua' },
       { text: '[Console]', color: 'gold', bold: true, click: { run: triggerCommand(HOME) }, hover: 'every chamber, every option; or say !' },
-      { text: '  Stand on a plate in the atrium to go to a wing.', color: 'gray' },
+      { text: '  Gate north, ring pad east, beam pad west; tp plates under the balcony.', color: 'gray' },
     ]);
   }
 

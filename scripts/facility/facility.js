@@ -15,6 +15,7 @@ const chambers = require('./chambers');
 const wings = require('./wings');
 const { Menagerie } = require('./lib/menagerie');
 const { Watch } = require('./lib/observe');
+const { Transit } = require('./lib/transit');
 
 const BOT = 'Probe';
 
@@ -38,6 +39,8 @@ class Facility {
     this.bars = [];
     this.menagerie = new Menagerie(srv, version);
     this.watch = new Watch(srv);
+    this.transit = new Transit(this);
+    this.keepRings = new Set(); // the transit pair: permanent, never taken down by a chamber
   }
 
   // ---- world -------------------------------------------------------------------------------
@@ -188,6 +191,10 @@ class Facility {
         out.push({ id: e.def.id, ok: true, detail: detail || 'set up' });
       } catch (err) { out.push({ id: e.def.id, ok: false, detail: err.message }); }
     }
+    // The transit routes last: the Ops gate's console dials the far gates made above.
+    try {
+      out.push({ id: 'transit', ok: true, detail: await this.transit.build() });
+    } catch (err) { out.push({ id: 'transit', ok: false, detail: err.message }); }
     return out;
   }
 
@@ -273,7 +280,12 @@ class Facility {
         { text: s ? `${s.state.toUpperCase()}${s.line ? ` · ${s.line}` : ''}` : 'never run', color: colour });
     }
     lines.push('\n', { text: `${later} more chambers built, awaiting their tests`, color: 'dark_gray' });
+    lines.push(...this.transit.wallLines());
     return lines;
+  }
+
+  async refreshOpsWall() {
+    await this.boards.set('opswall', this.opsWallSpec());
   }
 
   chamberSpec(e) {

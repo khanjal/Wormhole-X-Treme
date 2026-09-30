@@ -4,13 +4,17 @@
 //
 //   world     the flat world's layers, every wing's sentinel and anchor blocks, and every cell
 //             volume clear air, so later chambers start from a known state
+//   transit   Probe2 (never opped) walks each transit route: the gate from the Ops console and
+//             back by the DHD and /dial, the ring pair both ways, the beam by its button and back
+//             typed; the routes' fixtures are listed where the plugin lists them
 //   plates    every tp plate sends Probe to the right place in the right world
 //   boards    Probe is shown the Ops boards' text (judged by what the client receives)
 //   matrix    each chamber's cells with an expected outcome (PASS, REFUSED:<reason>), each run
 //             followed by its reset, which must leave the cell as built
 //   resets    every chamber's reset function, then its cell must be clear
 //   console   a non-op Tester clicks through the menus, chooses an option, runs and resets
-//   empty     the plugin holds nothing the facility did not make: its fixture gates, no mirrors
+//   empty     the plugin holds nothing the facility did not make: its fixture gates, the transit
+//             ring pair and beam destinations, no mirrors
 //   settings  every setting a chamber needed is back to what it was
 //   faults    the plugin log has no fault in it (server.js KNOWN_BENIGN aside)
 
@@ -18,6 +22,7 @@ const campus = require('./lib/campus');
 const { chamber } = require('./lib/campus');
 const text = require('./lib/text');
 const { join, waitEvent } = require('./lib/probe');
+const { RingKit } = require('./lib/rings');
 
 /**
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
@@ -40,7 +45,7 @@ async function selftest(fac, {
   const srv = fac.srv;
 
   await guard('world', async () => {
-    // A spot of bare atrium floor (the centre has the transit ring's sea lantern).
+    // A spot of bare atrium floor, clear of every inlay (runway, ring rim, beam pad).
     const floor = await fac.isBlock(campus.OVERWORLD, [-10, -1, 10], 'minecraft:smooth_quartz');
     const under = await fac.isBlock(campus.OVERWORLD, [-10, -2, 10], 'minecraft:stone');
     check('world', 'flat layers: quartz at y -1 over stone', floor && under, `quartz ${floor}, stone ${under}`);
@@ -64,17 +69,32 @@ async function selftest(fac, {
     for (const f of fixtures) check('fixtures', f.id, f.ok, f.detail);
   });
 
+  await guard('transit', async () => {
+    const fixture = fixtures.find((f) => f.id === 'transit');
+    if (!fixture || !fixture.ok) {
+      check('transit', 'the routes were made', false, fixture ? fixture.detail : 'no transit fixture');
+      return;
+    }
+    for (const r of await fac.transit.walk({ quick })) check('transit', r.id, r.ok, r.detail);
+    const listing = await transitListing(fac);
+    check('transit', 'gate list shows Ops and Hall', listing.gates.includes('Ops') && listing.gates.includes('Hall'), listing.gates.join(', '));
+    check('transit', 'ring list shows the transit pair', listing.rings.includes(fac.transit.ringId), `${fac.transit.ringId} in: ${listing.ringText}`);
+    check('transit', 'beam list shows Atrium and BeamLab', /Atrium/.test(listing.beams) && /BeamLab/.test(listing.beams), listing.beams);
+  });
+
   await guard('plates', async () => {
     const probe = fac.probe;
     const home = campus.TRANSIT.home;
     const close = (dest, dim) => probe.dimension === dim && probe.distanceTo(dest) < 1.6;
+    const c = campus.TRANSIT.centre;
     for (const p of campus.TRANSIT.plates) {
       const w = campus.wing(p.to);
-      // From the ring's centre, the straight line to any plate crosses no other plate.
-      const c = campus.TRANSIT.centre;
-      await probe.teleport({ x: c.x + 0.5, y: 0, z: c.z + 0.5, yaw: 180 });
+      // From just south of the service corridor's row, north onto the plate: no other plate is
+      // on that line.
+      const at = { x: c.x + p.dx, y: 0, z: c.z + p.dz };
+      await probe.teleport({ x: at.x + 0.5, y: 0, z: campus.TRANSIT.approachZ, yaw: 180 });
       let landed = null;
-      try { landed = await probe.standOn({ x: campus.TRANSIT.centre.x + p.dx, y: 0, z: campus.TRANSIT.centre.z + p.dz }); } catch (e) { landed = { error: e.message }; }
+      try { landed = await probe.standOn(at); } catch (e) { landed = { error: e.message }; }
       check('plates', `${p.dir} plate to ${w.title}`, !landed.error && close(w.entrance, w.dim),
         landed.error || `at ${probe.position.floored()} in ${probe.dimension}`);
       if (landed.error) continue;
@@ -190,8 +210,15 @@ async function selftest(fac, {
     const gates = await srv.run('wormhole list');
     const listed = gates.lines.filter((l) => !/Available gates|No gates found/.test(l)).join(',')
       .replace(/§./g, '').split(',').map((x) => x.trim()).filter(Boolean).sort();
-    const fixed = [...Object.keys(require('./chambers/relay').farGates()), ...require('./chambers/g2-gallery').gallery().map((g) => g.name)].sort();
+    const fixed = [...Object.keys(require('./chambers/relay').farGates()), ...require('./chambers/g2-gallery').gallery().map((g) => g.name),
+      ...Object.keys(campus.ROUTES.gates)].sort();
     check('empty', 'only the fixture gates', JSON.stringify(listed) === JSON.stringify(fixed), `listed ${listed.join(', ') || 'none'}; fixtures ${fixed.join(', ')}`);
+    const listing = await transitListing(fac);
+    const keep = [...fac.keepRings];
+    check('empty', 'only the transit ring pair', JSON.stringify(listing.rings) === JSON.stringify(keep), `listed ${listing.ringText || 'none'}; kept ${keep.join(', ') || 'none'}`);
+    const beams = campus.ROUTES.beams.map((b) => b.name).sort();
+    const listedBeams = (/Beam destinations: (.*)$/.exec(listing.beams) || [null, ''])[1].split(', ').filter(Boolean).sort();
+    check('empty', 'only the transit beam destinations', JSON.stringify(listedBeams) === JSON.stringify(beams), listing.beams);
     const mirrors = await srv.run('wormhole mirror list');
     check('empty', 'no mirrors', mirrors.lines.some((l) => /No mirrors yet/.test(l)), mirrors.lines.join(' | '));
   });
@@ -206,6 +233,17 @@ async function selftest(fac, {
   check('faults', 'plugin log has no faults', fac.faults.count === 0, fac.faults.faults.slice(0, 3).join(' | ') || '0 faults');
   results.known = known;
   return results;
+}
+
+/** What the plugin lists: gates (console), ring pairs and public beam destinations (as Probe: player-only). */
+async function transitListing(fac) {
+  const g = await fac.srv.run('wormhole list');
+  const gates = g.lines.filter((l) => !/Available gates|No gates found/.test(l)).join(',')
+    .replace(/§./g, '').split(',').map((x) => x.trim()).filter(Boolean);
+  const kit = new RingKit(fac.srv, fac.probe);
+  const rings = await kit.list();
+  const beams = await kit.ask('/wormhole beam list', { until: /Beam destinations|No public beam/ });
+  return { gates, rings: rings.ids.sort(), ringText: rings.text, beams };
 }
 
 /** Waits (bounded) until a client-side condition holds; metadata can trail the spawn packet. */

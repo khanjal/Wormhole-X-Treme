@@ -44,6 +44,8 @@ const PALETTE = {
 /**
  * The wings. `room` is the main hall; `entrance` is where a tp plate or `!go` puts you, inside
  * the wing's door, facing in. `colour` is the concrete/text colour of the department.
+ * `homePlate`, where given, is the plate back to Ops: two blocks into the wing's corridor, out
+ * of its lobby (the rest keep theirs beside the entrance).
  */
 const WINGS = [
   {
@@ -55,21 +57,25 @@ const WINGS = [
     id: 'gates', title: 'Gate Dynamics', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
     room: { x0: -70, x1: 70, z0: -170, z1: -40, y0: 0, h: 36 },
     entrance: { x: 0.5, y: 0, z: -43.5, yaw: 180 },
+    homePlate: { x: 2, y: 0, z: -37 },
   },
   {
     id: 'rings', title: 'Ring Transit', colour: 'lime', text: 'green', dim: OVERWORLD,
     room: { x0: 40, x1: 110, z0: -30, z1: 30, y0: 0, h: 14 },
     entrance: { x: 43.5, y: 0, z: 0.5, yaw: -90 },
+    homePlate: { x: 36, y: 0, z: 2 },
   },
   {
     id: 'beams', title: 'Beam Physics', colour: 'light_blue', text: 'aqua', dim: OVERWORLD,
     room: { x0: -110, x1: -40, z0: -30, z1: 30, y0: 0, h: 12 },
     entrance: { x: -42.5, y: 0, z: 0.5, yaw: 90 },
+    homePlate: { x: -36, y: 0, z: 2 },
   },
   {
     id: 'mirrors', title: 'Mirror Optics', colour: 'magenta', text: 'light_purple', dim: OVERWORLD,
     room: { x0: -40, x1: 40, z0: 40, z1: 90, y0: 0, h: 12 },
     entrance: { x: 0.5, y: 0, z: 43.5, yaw: 0 },
+    homePlate: { x: 2, y: 0, z: 36 },
   },
   {
     id: 'menagerie', title: 'Menagerie and Motor Pool', colour: 'orange', text: 'gold', dim: OVERWORLD,
@@ -188,22 +194,63 @@ const MENAGERIE = {
   arrowRange: { x0: 84, x1: 128, z0: -70, z1: -64, target: { x: 128, y: 1, z: -67 } },
 };
 
-/** The transit ring in the atrium: eight plates round the centre, each a command-block tp. */
+/**
+ * The tp plates: the fallback that works with the plugin down, in the service corridor under
+ * the mezzanine (x -20..20, z -20..-15), four apart so `@p[distance=..2]` never picks the wrong
+ * one. `home` is where a plate home and a welcome put you.
+ */
 const TRANSIT = {
-  centre: { x: 0, z: 0 },
+  centre: { x: 0, z: -18 },
   plates: [
-    { dir: 'N', dx: 0, dz: -6, to: 'gates' },
-    { dir: 'NE', dx: 4, dz: -4, to: 'menagerie' },
-    { dir: 'E', dx: 6, dz: 0, to: 'rings' },
-    { dir: 'SE', dx: 4, dz: 4, to: 'systems' },
-    { dir: 'S', dx: 0, dz: 6, to: 'mirrors' },
-    { dir: 'SW', dx: -4, dz: 4, to: 'range' },
-    { dir: 'W', dx: -6, dz: 0, to: 'beams' },
-    { dir: 'NW', dx: -4, dz: -4, to: 'annex' },
+    { dir: 'annex', dx: -16, dz: 0, to: 'annex' },
+    { dir: 'range', dx: -12, dz: 0, to: 'range' },
+    { dir: 'beams', dx: -8, dz: 0, to: 'beams' },
+    { dir: 'mirrors', dx: -4, dz: 0, to: 'mirrors' },
+    { dir: 'gates', dx: 4, dz: 0, to: 'gates' },
+    { dir: 'rings', dx: 8, dz: 0, to: 'rings' },
+    { dir: 'menagerie', dx: 12, dz: 0, to: 'menagerie' },
+    { dir: 'systems', dx: 16, dz: 0, to: 'systems' },
   ],
-  // A plate at each far site, and one in each wing by its entrance, that brings you back to Ops.
-  // Off every plate's line: walking straight on from here, north, crosses no plate.
+  // Where a walk onto a plate starts: south of the corridor's line, walking north onto it.
+  approachZ: -15.5,
   home: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
+};
+
+/**
+ * The transit routes: each wing reached from Ops by the feature it tests, built as session
+ * fixtures the way a server's own staff would (console forms, and Probe where the plugin wants a
+ * player), and walked by the self-test every run.
+ *
+ *  - gates: `Ops` in the atrium and `Hall` in the Gate hall's lobby, Standard, facing south, on
+ *    the default network (a non-op may use an ownerless gate). A dial console of command-block
+ *    buttons by each (the console form of `gate dial`), and the DHD for `/dial`.
+ *  - rings: a public pair, `Ops` in the atrium and `Lab` in the Ring lab, off the door lines;
+ *    the slabs are consumed when paired, so a rim in the floor marks each pad.
+ *  - beams: public destinations `Atrium` and `BeamLab`, each on a pad; a button by each prompts
+ *    whoever is nearest with a click that runs `/wormhole beam to <the other>` as them. A command
+ *    block cannot beam the presser itself: `beam to` refuses a non-player sender (a command block
+ *    running `execute as @p` included), and `beam admin send` takes a player's exact name.
+ *  - mirrors (stage 4): the spots are kept free.
+ */
+const ROUTES = {
+  gates: {
+    Ops: { wing: 'ops', dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 0, openingAt: -13, floorY: 0,
+      runway: { x0: -1, x1: 1, z0: -8, z1: -3 }, console: { x: -5, z: -8, dial: ['Hall', 'Range', 'Annex'] } },
+    Hall: { wing: 'gates', dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 0, openingAt: -53, floorY: 0,
+      runway: { x0: -1, x1: 1, z0: -48, z1: -45 }, console: { x: -3, z: -48, dial: ['Ops'] } },
+  },
+  rings: {
+    pattern: 'ODD', slab: 'polished_deepslate_slab',
+    ends: [{ name: 'Ops', wing: 'ops', x: 13, y: 0, z: -6 }, { name: 'Lab', wing: 'rings', x: 52, y: 0, z: -4 }],
+  },
+  beams: [
+    { name: 'Atrium', wing: 'ops', x: -13, y: 0, z: -6, yaw: 90, button: { x: -17, z: -6 }, to: 'BeamLab' },
+    { name: 'BeamLab', wing: 'beams', x: -46, y: 0, z: 0, yaw: 90, button: { x: -46, z: -4 }, to: 'Atrium' },
+  ],
+  mirrors: [
+    { name: 'Ops', wing: 'ops', x: -10, y: 2, z: 20, stage: 4 },
+    { name: 'Optics', wing: 'mirrors', x: -10, y: 2, z: 40, stage: 4 },
+  ],
 };
 
 /** Ops boards: the Ops wall (one line per chamber), the fault counter and the welcome board. */
@@ -263,5 +310,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, OPS, GATES, FORCELOAD, wing, chamber,
+  TRANSIT, ROUTES, OPS, GATES, FORCELOAD, wing, chamber,
 };

@@ -5,6 +5,7 @@
 
 const campus = require('../lib/campus');
 const bp = require('../lib/blueprint');
+const transit = require('./transit');
 
 const EXTRAS = {
   ops: require('./ops'),
@@ -31,8 +32,9 @@ function roomWalls(r) {
   ];
 }
 
-/** Where the plate home to Ops sits in a wing: two blocks to the right of its entrance. */
+/** Where the plate home to Ops sits in a wing: its own, or two blocks to the right of its entrance. */
 function homePlate(w) {
+  if (w.homePlate) return w.homePlate;
   const e = w.entrance;
   const facingZ = Math.abs(Math.sin((e.yaw * Math.PI) / 180)) < 0.5;
   const x = Math.floor(e.x) + (facingZ ? 2 : 0);
@@ -65,6 +67,7 @@ function buildWing(wingId, version) {
     }
   }
   if (extra.structures) extra.structures(out, w, version);
+  transit.structures(out, wingId, version);
 
   // Systems is the mezzanine over Ops, so Ops builds its desk.
   const chambers = wingId === 'ops' ? [...chambersOf('ops'), ...chambersOf('systems')] : chambersOf(wingId);
@@ -167,6 +170,7 @@ function validateLayout(version = '1.21.11') {
     const p = w.id === 'systems' ? { x: 3, y: 6, z: -17 } : homePlate(w);
     items.push({ what: `plate home from ${w.id}`, dim: w.dim, box: bp.box3(p.x, p.y - 1, p.z, p.x, p.y + 1, p.z) });
   }
+  for (const t of transit.footprints()) items.push({ what: t.what, dim: campus.wing(t.wing).dim, box: t.box });
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
       const a = items[i];

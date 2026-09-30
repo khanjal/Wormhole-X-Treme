@@ -224,11 +224,12 @@ function checks(ctx, o, expect = {}) {
   return list;
 }
 
-/** Takes every pair a run made down again (as Probe), and anything half-made. */
+/** Takes every pair a run made down again (as Probe), and anything half-made; never the transit pair. */
 async function cleanup(ctx, kit) {
   await ctx.probe.dismount().catch(() => {});
   const { ids } = await kit.list();
-  for (const id of ids) await kit.remove(id);
+  const keep = ctx.facility.keepRings || new Set();
+  for (const id of ids.filter((x) => !keep.has(x))) await kit.remove(id);
   await kit.ask('/wormhole ring cancel', { ms: 600 });
   await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
   if (ctx.facility.probe2) await ctx.facility.probe2.teleport(campus.TRANSIT.home).catch(() => {});
