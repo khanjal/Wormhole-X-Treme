@@ -338,6 +338,10 @@ class Facility {
       return { outcome: 'REFUSED', reason: refusal, checks: [] };
     }
     const ctx = this.makeCtx(e);
+    // Where a run's time goes, for the report: ms per phase.
+    const timing = {};
+    let mark = Date.now();
+    const lap = (phase) => { timing[phase] = Date.now() - mark; mark = Date.now(); };
     const bar = new RunBar(this.srv, this.version, e.def.id, `${e.def.id.toUpperCase()} ${e.def.title}`, 6);
     this.bars.push(bar);
     ctx.step = (name) => bar.advance(name);
@@ -347,7 +351,9 @@ class Facility {
     try {
       await bar.advance('resetting the cell');
       if (ch.cleanup) await ch.cleanup(ctx);
+      lap('cleanup');
       const reset = await this.runFunction(this.resetFunction(e));
+      lap('reset');
       if (!reset.ok) throw Object.assign(new Error(`reset before staging: ${reset.detail}`), { phase: 'fixture' });
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
       await bar.advance('applying settings');
@@ -356,6 +362,7 @@ class Facility {
       try {
         await ch.stage(ctx, v);
       } catch (err) { err.phase = 'fixture'; throw err; }
+      lap('stage');
       if (mode === 'stage') {
         this.held.add(e.def.id);
         await this.setStatus(e, 'staged', 'yours: Reset when done');
@@ -365,6 +372,7 @@ class Facility {
       try {
         await ch.run(ctx, v);
       } catch (err) { err.phase = 'trip'; throw err; }
+      lap('run');
       await bar.advance('checking');
       const checks = [];
       for (const c of ch.checks(ctx, v)) {
@@ -379,6 +387,8 @@ class Facility {
     } finally {
       if (mode !== 'stage') await this.config.restore();
     }
+    lap('checks');
+    result.timing = timing;
     await this.setStatus(e, result.outcome === 'PASS' ? 'pass' : 'fail', result.reason || 'all checks true');
     await bar.finish(result.outcome === 'PASS', result.outcome === 'PASS' ? 'PASS' : `FAIL · ${result.reason}`, holdMs);
     this.lastCtx = { ctx, v, e };

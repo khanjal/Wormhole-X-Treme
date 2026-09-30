@@ -45,7 +45,8 @@ const OPTIONS = {
   traveller: [
     v('walk', 'Probe on foot'), v('minecart', 'an empty cart on rails'), v('minecart ridden', 'Probe in the cart'),
     v('boat', 'an empty boat on blue ice'), v('boat ridden', 'Probe rows it'),
-    ...['horse', 'camel', 'pig', 'donkey', 'llama', 'strider'].map((k) => v(k, `Probe riding a ${k}`)),
+    ...['horse', 'camel', 'pig', 'donkey', 'strider'].map((k) => v(k, `Probe riding a ${k}`)),
+    v('llama', 'walks in riderless and is swept through: a rider cannot steer a llama'),
     v('wolf', 'a tamed wolf follows Probe'), v('cat', 'a tamed cat follows'), v('parrot', 'a tamed parrot follows'),
     v('sitting wolf', 'told to sit: must stay'), v('projectile', 'see projectile, launcher and angle'),
     v('dropped item', 'Probe drops a named, enchanted sword into the opening'), v('dispensed item', 'a dispenser drops it in'),
@@ -74,7 +75,7 @@ const OPTIONS = {
   'run-up': [v('6', 'rails in front of the face'), v('10', ''), v('16', '')],
 };
 
-const MOUNTS = ['horse', 'camel', 'pig', 'donkey', 'llama', 'strider'];
+const MOUNTS = ['horse', 'camel', 'pig', 'donkey', 'strider'];
 const PETS = { wolf: 'wolf', cat: 'cat', parrot: 'parrot', 'sitting wolf': 'wolf' };
 const SIGN_SHAPES = ['StandardSignDial', 'MinimalSignDial', 'HorizontalSignDial'];
 const EXPECTED_REFUSAL = {
@@ -229,7 +230,7 @@ async function stageTraveller(ctx, o, geom) {
   }
   if (t === 'cart at iris') await stageCartRun(ctx, o, geom);
   if (MOUNTS.includes(t)) {
-    const at = t === 'llama' ? front(geom, 2.5) : front(geom, 6);
+    const at = front(geom, 6);
     await ctx.menagerie.animal(t, at, ctx.tag, { saddled: true });
   }
   if (PETS[t]) {
@@ -331,8 +332,22 @@ async function sendTraveller(ctx, o, geom, f) {
   const obs = ctx.observed;
   const dest = f.geom;
   const beyond = front(geom, -2.5);
+  // A summoned traveller is marked as launched, so the tick function catches the first tick it
+  // is within 5 of the far exit (a fast cart or boat is carried well past it within a second).
+  const launched = async (kind) => {
+    for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_${kind}] add ${tagName}`);
+  };
+  const arrival = async (ms) => {
+    await ctx.watch.waitArrival(ms);
+    await ticks(5);
+    return ctx.watch.arrival();
+  };
   if (t === 'walk' || PETS[t]) {
     const mark = obs.chat.length;
+    if (PETS[t]) {
+      await ctx.watch.arm(O, front(geom, 30), { ...dest.arrival, dim: f.dim }, { freeze: false });
+      await launched(PETS[t]);
+    }
     const target = geom.flat ? { x: geom.centre.x, z: geom.centre.z } : beyond;
     await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.dimension !== O || probe.distanceTo(dest.arrival) < 3 }).catch(() => {});
     await until(async () => probe.dimension === f.dim && probe.distanceTo(dest.arrival) < 3, 4000);
@@ -340,7 +355,9 @@ async function sendTraveller(ctx, o, geom, f) {
     obs.probeAt = { dim: probe.dimension, d: probe.distanceTo(dest.arrival), home: probe.distanceTo(geom.arrival), pos: probe.position.floored().toString() };
     obs.walkChat = chatSince(ctx, mark);
     if (PETS[t]) {
-      obs.petNear = await until(() => near(ctx, f.dim, probe.position, `tag=${ctx.tag},tag=wx_kind_${PETS[t]}`, 6), 5000);
+      // The plugin sends a pet after its owner 20 ticks later, to the owner's arrival.
+      const a = await arrival(5000);
+      obs.petNear = a.count > 0 && a.same;
       obs.petStayed = await near(ctx, O, front(geom, 7, 1.5), `tag=${ctx.tag},tag=wx_kind_${PETS[t]}`, 3);
     }
     return undefined;
@@ -352,39 +369,42 @@ async function sendTraveller(ctx, o, geom, f) {
       await probe.waitForItem(stick);
       await probe.hold(stick);
     }
-    await probe.teleport(front(geom, t === 'llama' ? 4 : 7.5), O);
-    await probe.mount(ctx.tag);
-    if (t === 'llama') {
-      // A llama cannot be steered; it is pushed, as a lead would pull it.
-      await run(ctx, `data merge entity @e[tag=${ctx.tag},tag=wx_kind_llama,limit=1] {Motion:[0.0d,0.0d,${(-geom.normal.z * 1.2).toFixed(1)}d]}`);
-    } else {
-      await probe.drive(beyond, { speed: 0.25, ms: 15000 }).catch((e) => { obs.driveError = e.message; });
-    }
-    await until(() => near(ctx, f.dim, dest.itemArrival, `tag=${ctx.tag},tag=wx_kind_${t}`, 4), 6000);
+    await ctx.watch.arm(O, front(geom, 30), { ...dest.itemArrival, dim: f.dim }, { freeze: false });
+    await launched(t);
+    const animal = await ctx.probe.entityByTag(ctx.tag);
+    // Beside it, not behind: a camel is nearly two blocks long.
+    await probe.teleport({ x: animal.x + geom.right.x * 1.6, y: 0, z: animal.z + geom.right.z * 1.6, yaw: 90 }, O);
+    await probe.mount(ctx.tag, 5000, 3);
+    await probe.drive(beyond, { speed: 0.25, ms: 15000 }).catch((e) => { obs.driveError = e.message; });
+    const a = await arrival(6000);
     await ticks(10);
-    obs.mountArrived = await near(ctx, f.dim, dest.itemArrival, `tag=${ctx.tag},tag=wx_kind_${t}`, 4);
-    obs.stillRiding = Boolean(probe.bot.vehicle) && probe.dimension === f.dim && probe.distanceTo(dest.arrival) < 5;
+    obs.mountArrived = a.count > 0 && a.same;
+    const where = await probe.entityByTag(ctx.tag);
+    obs.mountAt = where ? `${where.x.toFixed(1)} ${where.y.toFixed(1)} ${where.z.toFixed(1)}` : 'gone';
+    obs.stillRiding = Boolean(probe.bot.vehicle) && probe.dimension === f.dim && probe.distanceTo(dest.arrival) < 6;
     return undefined;
   }
   if (t === 'minecart' || t === 'minecart ridden' || t === 'boat' || t === 'boat ridden') {
     const kind = t.startsWith('minecart') ? 'minecart' : 'boat';
-    const at = front(geom, 6);
+    // An empty boat on land stops within two blocks of a push, so it starts close; a cart rolls.
+    const at = front(geom, t === 'boat' ? 2 : 6);
     await ctx.menagerie.summon(kind, { ...at, y: kind === 'minecart' ? 0.1 : 0 }, ctx.tag);
     const sel = `@e[tag=${ctx.tag},tag=wx_kind_${kind},limit=1]`;
+    await ctx.watch.arm(O, front(geom, 30), { ...dest.cartArrival, dim: f.dim }, { freeze: false });
+    await launched(kind);
     const mark = obs.chat.length;
     if (t.endsWith('ridden')) {
-      await probe.teleport(front(geom, 7.5), O);
-      await probe.mount(ctx.tag);
+      await probe.teleport({ x: at.x + geom.right.x * 1.5, y: 0, z: at.z + geom.right.z * 1.5, yaw: 90 }, O);
+      await probe.mount(ctx.tag, 5000, 3);
     }
     if (t === 'boat ridden') {
       await probe.drive(beyond, { speed: 0.35, ms: 15000 }).catch((e) => { obs.driveError = e.message; });
     } else {
-      await run(ctx, `data merge entity ${sel} {Motion:[0.0d,0.0d,${(-geom.normal.z * 0.6).toFixed(1)}d]}`);
+      await run(ctx, `data merge entity ${sel} {Motion:[0.0d,0.0d,${(-geom.normal.z * (kind === 'boat' ? 1.0 : 0.6)).toFixed(1)}d]}`);
     }
-    const target = kind === 'minecart' ? dest.cartArrival : dest.cartArrival;
-    await until(() => near(ctx, f.dim, target, `tag=${ctx.tag},tag=wx_kind_${kind}`, 5), 8000);
+    const a = await arrival(8000);
     await ticks(20);
-    obs.vehicleArrived = await near(ctx, f.dim, target, `tag=${ctx.tag},tag=wx_kind_${kind}`, 6);
+    obs.vehicleArrived = a.count > 0 && a.same;
     obs.stillRiding = Boolean(probe.bot.vehicle) && probe.dimension === f.dim;
     obs.walkChat = chatSince(ctx, mark);
     return undefined;
@@ -409,11 +429,18 @@ async function sweep(ctx, o, geom, f) {
     await ctx.menagerie.give(probe.name, 'relic');
     await probe.waitForItem(relic.id);
     await probe.hold(relic.id);
-    await probe.teleport({ ...front(geom, geom.flat ? 0 : 1.3), y: PLACE.floorY }, O);
-    await probe.look({ x: inOpening.x, y: bottom.y + 0.5, z: inOpening.z });
+    // Close enough that the tossed stack lands in the opening (beside a flat one), then away,
+    // so Probe does not pick it up again before the plugin's sweep finds it.
+    const stand = geom.flat
+      ? { x: geom.centre.x + geom.right.x * 3.2, y: PLACE.floorY, z: geom.centre.z + geom.right.z * 3.2 }
+      : { ...front(geom, 1.0), y: PLACE.floorY };
+    await probe.teleport(stand, O);
+    await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 1.0, z: inOpening.z });
     await probe.dropOne();
+    await ticks(3);
+    await probe.teleport(front(geom, 8), O);
   } else if (t === 'dispensed item') {
-    const d = front(geom, 2);
+    const d = front(geom, 1);
     const dz = Math.floor(d.z);
     await run(ctx, `setblock ${Math.floor(d.x)} ${bottom.y + 1} ${dz} minecraft:dispenser[facing=north]{Items:[${itemNbt(version, relic, ',Slot:0b')}]}`);
     await run(ctx, `setblock ${Math.floor(d.x)} ${bottom.y + 2} ${dz} minecraft:redstone_block`);
@@ -428,17 +455,31 @@ async function sweep(ctx, o, geom, f) {
     await ctx.menagerie.summon('armor_stand', { ...inOpening, y: bottom.y }, ctx.tag);
   } else if (t === 'zombie') {
     await ctx.menagerie.summon('zombie', { ...inOpening, y: bottom.y }, ctx.tag, 'NoAI:1b,PersistenceRequired:1b,Silent:1b');
+  } else if (t === 'llama') {
+    await ctx.menagerie.animal('llama', { ...inOpening, y: bottom.y }, ctx.tag, {});
+    await run(ctx, `data merge entity @e[tag=${ctx.tag},tag=wx_kind_llama,limit=1] {NoAI:1b}`);
   } else if (t === 'item frame') {
     // Hung on the frame block beside the opening's middle row, facing out of the gate.
-    const side = { x: mid.x + 3 * geom.right.x, y: mid.y, z: mid.z };
-    const hang = { x: side.x + geom.normal.x, y: side.y, z: side.z + geom.normal.z };
+    const rowY = Math.round(geom.centre.y - 0.5);
+    const openZ = Math.floor(geom.opening[0].z);
+    const sides = geom.frame.filter((p) => p.y === rowY && p.z === openZ && !geom.opening.some((q) => q.x === p.x && q.y === p.y && q.z === p.z));
+    const side = sides.sort((p, q) => Math.abs(p.x + 0.5 - geom.centre.x) - Math.abs(q.x + 0.5 - geom.centre.x))[0] || { x: mid.x, y: mid.y, z: mid.z };
+    // Hung inside the opening, on the frame beside it, facing in: in the portal, where the sweep
+    // looks, and still it must not be taken (the plugin excludes hanging entities).
+    const inward = Math.sign(geom.centre.x - (side.x + 0.5)) || 0;
+    const inwardZ = Math.sign(geom.centre.z - (side.z + 0.5)) || 0;
+    const hang = geom.normal.z !== 0 ? { x: side.x + inward, y: side.y, z: side.z } : { x: side.x, y: side.y, z: side.z + inwardZ };
+    const facing = geom.normal.z !== 0 ? (inward > 0 ? 5 : 4) : (inwardZ > 0 ? 3 : 2);
     obs.framePlace = hang;
-    await ctx.menagerie.summon('item_frame', { x: hang.x, y: hang.y, z: hang.z }, ctx.tag, `Facing:${geom.normal.z > 0 ? 3 : 2}b`);
+    await ctx.menagerie.summon('item_frame', { x: hang.x, y: hang.y, z: hang.z }, ctx.tag, `Facing:${facing}b`);
   }
   const scan = 20; // entity-scan-interval-ticks, the default
-  if (['armour stand', 'zombie'].includes(t)) {
-    const kind = t === 'zombie' ? 'zombie' : 'armor_stand';
-    obs.mobArrived = await until(() => near(ctx, f.dim, dest.itemArrival, `tag=${ctx.tag},tag=wx_kind_${kind}`, 5), (scan + 60) * 50);
+  if (['armour stand', 'zombie', 'llama'].includes(t)) {
+    const kind = t === 'armour stand' ? 'armor_stand' : t;
+    for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_${kind}] add ${tagName}`);
+    await ctx.watch.waitArrival((scan + 60) * 50);
+    const a = await ctx.watch.arrival();
+    obs.mobArrived = a.count > 0 && a.same;
     return undefined;
   }
   if (t === 'item frame') {
@@ -450,6 +491,9 @@ async function sweep(ctx, o, geom, f) {
   await ticks(4);
   obs.arrival = await ctx.watch.arrival();
   obs.leftBehind = await ctx.watch.leftBehind();
+  const stray = await ctx.server.run('data get entity @e[tag=wx_launched,tag=!wx_arrived,limit=1] Pos');
+  obs.strayAt = stray.lines.join(' ');
+  obs.items = (await ctx.server.run(`execute positioned ${geom.centre.x} ${geom.centre.y} ${geom.centre.z} if entity @e[type=minecraft:item,distance=..12]`)).lines.join(' ');
   const dump = await ctx.server.run(`execute in ${f.dim} run data get entity @e[tag=wx_arrived,limit=1]`);
   obs.arrivalData = dump.lines.join(' ');
   return undefined;
@@ -467,7 +511,8 @@ async function shoot(ctx, o, geom, f) {
   if (o.angle === 'above') from = { x: aim.x, y: 6, z: aim.z };
   else if (o.angle === 'point-blank') from = front(geom, 1.6);
   else if (o.angle === 'glancing') from = front(geom, 10 * Math.cos(Math.PI / 6), 10 * Math.sin(Math.PI / 6));
-  else from = front(geom, 10);
+  // A thrown potion is slow and falls short from ten blocks; it is thrown from four.
+  else from = front(geom, ['splash potion', 'lingering potion'].includes(p) ? 4 : 10);
   // Arrows, pearls and tridents are left to fly on (a pearl must land, a trident come back).
   const freeze = !['pearl', 'trident'].includes(p);
   const eye = { x: from.x, y: from.y + 1.62, z: from.z };
@@ -519,7 +564,17 @@ async function shoot(ctx, o, geom, f) {
   obs.leftBehind = await ctx.watch.leftBehind();
   obs.arrivalData = (await ctx.server.run(`execute in ${f.dim} run data get entity @e[tag=wx_arrived,limit=1]`)).lines.join(' ');
   if (p === 'pearl') {
-    obs.pearlCarried = await until(async () => probe.dimension === f.dim && probe.distanceTo(dest.arrival) < 10, 5000);
+    // It flies on out of the far gate and lands a few blocks on; Probe goes where it lands.
+    // It flies on out of the far gate (through Relay's cell door) and lands where it lands; the
+    // thrower must be in the far world, out in front of the far gate, on its line.
+    const onLine = () => {
+      const d = { x: probe.position.x - dest.arrival.x, z: probe.position.z - dest.arrival.z };
+      const along = d.x * dest.normal.x + d.z * dest.normal.z;
+      const across = Math.abs(d.x * dest.right.x + d.z * dest.right.z);
+      return along > -1 && across < 3;
+    };
+    obs.pearlCarried = await until(async () => probe.dimension === f.dim && onLine(), 5000);
+    obs.pearlLanding = `${probe.dimension} ${probe.position.floored()}`;
   }
   if (p === 'trident') {
     obs.tridentBack = await until(async () => probe.bot.inventory.items().some((i) => i.name === 'trident'), 10000);
@@ -638,7 +693,7 @@ function checks(ctx, o) {
     return list;
   }
   if (t === 'item frame') return list.concat([c('the item frame stayed where it hung', () => obs.frameStayed)]);
-  if (t === 'armour stand' || t === 'zombie') return list.concat([c(`the ${t} came out of ${dest}`, () => obs.mobArrived)]);
+  if (['armour stand', 'zombie', 'llama'].includes(t)) return list.concat([c(`the ${t} came out of ${dest}`, () => obs.mobArrived)]);
   const arrived = () => obs.arrival && obs.arrival.count > 0;
   if (stopped) {
     list.push(c('it was stopped: nothing came out', () => obs.arrival && obs.arrival.count === 0));

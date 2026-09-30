@@ -24,6 +24,9 @@ function trackedTypes(version) {
   if (atLeast(version, '1.21.5')) types.push('splash_potion', 'lingering_potion');
   else types.push('potion');
   if (atLeast(version, '1.21')) types.push('wind_charge');
+  // Travellers the facility summons and tags itself (so only their arrival is caught here).
+  types.push('minecart', 'hopper_minecart', 'horse', 'camel', 'pig', 'donkey', 'llama', 'strider', 'wolf', 'cat', 'parrot',
+    'armor_stand', 'zombie', atLeast(version, '1.21.2') ? 'oak_boat' : 'boat');
   return types.map((t) => ({ id: `minecraft:${t}`, required: false }));
 }
 

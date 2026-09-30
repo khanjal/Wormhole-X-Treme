@@ -144,7 +144,11 @@ class Menagerie {
 
   async must(command) {
     const r = await this.srv.run(command);
-    if (r.errors.length) throw new Error(`${command}: ${r.errors.join(' ')}`);
+    // Summoning a hanging entity logs "Block-attached entity at invalid position: null" as its
+    // NBT is read, before its position is set; the summon itself succeeds and says so.
+    const errors = r.lines.some((l) => /^Summoned new /.test(l))
+      ? r.errors.filter((l) => !/^Block-attached entity at invalid position: null$/.test(l)) : r.errors;
+    if (errors.length) throw new Error(`${command}: ${errors.join(' ')}`);
     return r;
   }
 

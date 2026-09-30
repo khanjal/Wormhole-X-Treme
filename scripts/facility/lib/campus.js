@@ -131,7 +131,7 @@ const CHAMBERS = [
     box: { x0: -20, x1: 20, z0: -140, z1: -104, y0: 0, h: 30 }, door: 's', gallery: 'w' },
   { id: 'relay', wing: 'gates', title: 'Relay Gate', kind: 'cell', stage: 2, logic: 'relay',
     box: { x0: 30, x1: 50, z0: -140, z1: -120, y0: 0, h: 24 }, door: 's', gallery: 'e' },
-  { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2,
+  { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2, logic: 'g2-gallery',
     box: { x0: -66, x1: 66, z0: -168, z1: -150, y0: 0, h: 30 }, door: 'w', gallery: 's' },
   { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5,
     box: { x0: 40, x1: 66, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'w', gallery: 's' },

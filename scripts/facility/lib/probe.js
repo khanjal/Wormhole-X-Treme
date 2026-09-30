@@ -259,10 +259,27 @@ class Probe {
     return best ? best.e : null;
   }
 
-  /** Right-clicks an entity to get on it, as a player mounts; resolves once seated. */
-  async mount(tag, ms = 5000) {
+  /** Right-clicks an entity to get on it, as a player mounts; resolves once seated. An animal with
+   * its AI on can step away between the look and the click, so a few tries are allowed. */
+  async mount(tag, ms = 5000, tries = 1) {
+    for (let i = 1; ; i++) {
+      try {
+        return await this.mountOnce(tag, ms);
+      } catch (err) {
+        if (i >= tries) throw err;
+        await ticks(10);
+      }
+    }
+  }
+
+  async mountOnce(tag, ms) {
     const target = await this.clientEntity(tag);
-    if (!target) throw new Error(`${this.name} cannot see ${tag} to mount`);
+    if (!target) {
+      const p = await this.entityByTag(tag);
+      const seen = Object.values(this.bot.entities).filter((e) => e !== this.bot.entity && p && e.position.distanceTo(new Vec3(p.x, p.y, p.z)) < 8)
+        .map((e) => `${e.name}@${e.position.distanceTo(new Vec3(p.x, p.y, p.z)).toFixed(1)}`);
+      throw new Error(`${this.name} cannot see ${tag} to mount (server has it at ${p ? `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}` : 'nowhere'}; near it: ${seen.join(', ') || 'nothing'})`);
+    }
     const seated = waitEvent(this.bot, 'mount', () => true, ms, `a seat on ${target.name}`);
     await this.look({ x: target.position.x, y: target.position.y + 1, z: target.position.z });
     this.bot.mount(target);

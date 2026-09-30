@@ -23,17 +23,11 @@ const { join, waitEvent } = require('./lib/probe');
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
  * result like any other: `REFUSED:<the chamber's reason>`.
  */
-const MATRIX = {
-  c0: [
-    { values: { target: 'gold_block', control: 'lever' }, expect: 'PASS' },
-    { values: { target: 'gold_block', control: 'button' }, expect: 'PASS' },
-    { values: { target: 'glass', control: 'lever' }, expect: 'REFUSED:a lever or button needs a solid block to hang on' },
-    { values: { target: 'glass', control: 'button' }, expect: 'REFUSED:a lever or button needs a solid block to hang on' },
-  ],
-};
+const { MATRIX, defaultsOf, expectation } = require('./matrix');
 
-async function selftest(fac, { buildReport, fixtures = [], log = console.log }) {
+async function selftest(fac, { buildReport, fixtures = [], only = null, fixed = [], log = console.log }) {
   const results = [];
+  const known = [];
   const check = (section, name, ok, detail) => {
     results.push({ section, name, ok: Boolean(ok), detail });
     log(`  ${ok ? 'ok  ' : 'FAIL'} ${section} · ${name}${detail ? ` — ${detail}` : ''}`);
@@ -108,15 +102,24 @@ async function selftest(fac, { buildReport, fixtures = [], log = console.log }) 
       const e = fac.entries.find((x) => x.def.id === id);
       const needs = e.chamber.needs ? Object.keys((e.chamber.needs({}) || {}).config || {}) : [];
       for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
+      const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
-        const label = `${id} ${Object.values(cell.values).join(' ')}`;
-        const r = await fac.runChamber(e, { values: cell.values, raw: true, holdMs: 0 });
-        const got = r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
-        check('matrix', `${label} → ${cell.expect}`, got === cell.expect,
-          got === cell.expect ? (r.checks.length ? `${r.checks.length} checks true` : r.reason || '') : `got ${got}${r.reason && r.outcome !== 'REFUSED' ? ` (${r.reason})` : ''}`);
+        const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
+        if (only && !only.test(label)) continue;
+        const want = expectation(cell, fac.version, fixed);
+        const t0 = Date.now();
+        const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
+        const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
+        const ok = got === want;
+        const secs = ((Date.now() - t0) / 1000).toFixed(1);
+        const detail = ok
+          ? `${cell.known ? `KNOWN PLUGIN FAILURE: ${cell.known}; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+          : `got ${got}${cell.known ? ` (expected the known plugin failure: ${cell.known})` : ''}, ${secs} s`;
+        check('matrix', `${label} → ${want}`, ok, detail);
+        if (ok && cell.known) known.push({ label, note: cell.known, version: fac.version });
         if (r.outcome !== 'REFUSED') {
           const reset = await fac.resetChamber(e);
-          check('matrix', `${label} reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
+          check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
         }
       }
     }
@@ -190,6 +193,7 @@ async function selftest(fac, { buildReport, fixtures = [], log = console.log }) 
   });
 
   check('faults', 'plugin log has no faults', fac.faults.count === 0, fac.faults.faults.slice(0, 3).join(' | ') || '0 faults');
+  results.known = known;
   return results;
 }
 

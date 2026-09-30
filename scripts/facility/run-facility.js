@@ -13,6 +13,9 @@
 //   --jdk17 <path>       java for the Maven build (default: a JDK 17 found the same way)
 //   --port <n>           server port (default 25590)
 //   --keep-world         keep the world from the last run instead of starting fresh
+//   --cells <regex>      self-test only the matrix cells whose names match
+//   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
+//                        cells are expected to pass
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down.
@@ -43,6 +46,8 @@ function parseArgs(argv) {
     else if (x === '--selftest') a.selftest = true;
     else if (x === '--versions') a.versions = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (x === '--keep-world') a.keepWorld = true;
+    else if (x === '--cells') a.cells = argv[++i];
+    else if (x === '--fixed') a.fixed = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -69,6 +74,8 @@ async function acrossVersions(args) {
   for (const v of args.versions) {
     const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port)];
     if (args.java) child.push('--java', args.java);
+    if (args.cells) child.push('--cells', args.cells);
+    if (args.fixed) child.push('--fixed', args.fixed.join(','));
     console.log(`\n=== ${v} ===`);
     const code = await new Promise((resolve) => {
       const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'inherit'] });
@@ -133,7 +140,9 @@ async function main() {
     await fac.refreshBoards();
 
     if (args.selftest) {
-      const results = await selftest(fac, { buildReport: report, fixtures });
+      const ts = Date.now();
+      const results = await selftest(fac, { buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [] });
+      const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
       const sections = [...new Set(results.map((r) => r.section))];
       console.log(`\nfacility self-test on ${version}:`);
@@ -143,7 +152,12 @@ async function main() {
         console.log(`  ${failed.length ? 'FAIL' : 'PASS'}  ${s} (${mine.length - failed.length}/${mine.length})${failed.length ? ` — ${failed.map((f) => `${f.name}: ${f.detail}`).join('; ')}` : ''}`);
       }
       const bad = results.filter((r) => !r.ok).length;
-      console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks; generation ${buildMs} ms, ${total} chunks forceloaded`);
+      if (results.known.length) {
+        console.log(`known plugin failures on ${version} (expected, not hidden):`);
+        for (const k of results.known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
+      }
+      console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${results.known.length} known plugin failures); `
+        + `self-test ${(testMs / 1000).toFixed(0)} s, generation ${buildMs} ms, ${total} chunks forceloaded`);
       exit = bad || stray.length ? 1 : 0;
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
