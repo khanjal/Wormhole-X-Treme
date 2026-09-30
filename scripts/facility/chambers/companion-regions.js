@@ -26,7 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const campus = require('../lib/campus');
 const { GateKit } = require('../lib/gatekit');
-const { Groups } = require('../lib/groups');
+const { Groups, BASELINE } = require('../lib/groups');
 const { deskLayout } = require('../lib/blueprint');
 const { ticks } = require('../lib/probe');
 const relay = require('./relay');
@@ -477,7 +477,7 @@ async function cleanup(ctx) {
   await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
   if (fac.probe2) {
     fac.probe2.bot.chat('/wormhole gate preview clear -all');
-    if (fac.has('luckperms')) await new Groups(ctx.server).put(fac.probe2.name, 'default').catch(() => {});
+    if (fac.has('luckperms')) await new Groups(ctx.server).put(fac.probe2.name, BASELINE).catch(() => {});
   }
   if (await kit.exists(GUARDED)) await kit.remove(GUARDED);
   if (await kit.exists(FAR)) await kit.force(FAR);

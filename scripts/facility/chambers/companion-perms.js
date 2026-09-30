@@ -17,7 +17,7 @@
 
 const campus = require('../lib/campus');
 const { GateKit } = require('../lib/gatekit');
-const { Groups, nodesOf } = require('../lib/groups');
+const { Groups, BASELINE, nodesOf } = require('../lib/groups');
 const { BeamKit } = require('../lib/beams');
 const { deskLayout } = require('../lib/blueprint');
 const { ticks } = require('../lib/probe');
@@ -142,7 +142,7 @@ async function cleanup(ctx) {
   const kit = new GateKit(ctx.server);
   if (fac.probe2) {
     fac.probe2.bot.chat('/wormhole gate preview clear -all');
-    if (fac.has('luckperms')) await new Groups(ctx.server).put(fac.probe2.name, 'default').catch(() => {});
+    if (fac.has('luckperms')) await new Groups(ctx.server).put(fac.probe2.name, BASELINE).catch(() => {});
   }
   await new BeamKit(ctx.server).drop(fac.probe, 'public', 'PermDock');
   if (await kit.exists(GATE)) await kit.remove(GATE);

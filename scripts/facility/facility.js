@@ -17,7 +17,7 @@ const { Menagerie } = require('./lib/menagerie');
 const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
 const { companionFault } = require('./lib/companions');
-const { Groups, GROUPS } = require('./lib/groups');
+const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
@@ -308,6 +308,9 @@ class Facility {
     bot.on('end', (reason) => { p2.gone = p2.gone || `disconnected: ${reason}`; });
     await this.srv.run('deop Probe2');
     await this.srv.run('gamemode adventure Probe2');
+    // With a permissions plugin, a player holds only the nodes given: Probe2 is a visitor, the
+    // player the rest of the facility means (a mirror, for one, needs a gate's use nodes).
+    if (this.has('luckperms')) await this.joinGroup('Probe2', BASELINE_GROUP, { quiet: true });
     await this.shield('Probe2');
     await this.probe2.teleport(campus.TRANSIT.home);
     return this.probe2;
@@ -340,10 +343,11 @@ class Facility {
   }
 
   /** Puts a player in a tester group (lib/groups.js), making the groups the first time. */
-  async joinGroup(player, group) {
+  async joinGroup(player, group, { quiet = false } = {}) {
     const groups = new Groups(this.srv);
     if (!this.groupsReady) { await groups.ensure(); this.groupsReady = true; }
     await groups.put(player, group);
+    if (quiet) return;
     const why = GROUPS[group] ? GROUPS[group].why : 'none of the tester groups';
     await this.console.tell(player, [{ text: `You are in ${group} now: `, color: 'white' }, { text: why, color: 'gray' },
       { text: '. An op passes every Wormhole check whatever the group.', color: 'dark_gray' }]);

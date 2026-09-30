@@ -21,6 +21,9 @@ const GROUPS = {
   operator: { why: 'a builder who may also configure and manage everything, without being a server op', parent: 'builder', nodes: ADMIN },
 };
 
+/** Probe2's group whenever a chamber has not put it in another: the player the facility means. */
+const BASELINE = 'visitor';
+
 /** Every node a group holds, its parents' included. */
 function nodesOf(group) {
   const g = GROUPS[group];
@@ -82,4 +85,4 @@ class Groups {
   }
 }
 
-module.exports = { Groups, GROUPS, nodesOf, USE, BUILD, ADMIN };
+module.exports = { Groups, GROUPS, BASELINE, nodesOf, USE, BUILD, ADMIN };
