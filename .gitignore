@@ -41,3 +41,6 @@ PR-*-review.md
 
 # scripts/watch-local.ps1's server jars, plugin build and server folders.
 /.local-server/
+
+# The research facility's own dependencies, installed by npm in scripts/facility.
+/scripts/facility/node_modules/
