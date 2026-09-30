@@ -281,6 +281,9 @@ async function checkBossbar(srv, version, probe) {
   check(M, 'removed', removed.errors.length === 0 && d !== null, removed.lines.join(' ') + (d ? '' : '; Probe saw no removal'));
 }
 
+/** Ends hold mode; set while holding. */
+let holding = null;
+
 /** Keeps the server up for a person to click the menu; prints every code Probe reads. */
 async function hold(srv, version, probe, port) {
   const events = wxConsole.listen(probe);
@@ -308,9 +311,11 @@ async function hold(srv, version, probe, port) {
   console.log(`\nholding: join localhost:${port} with Minecraft ${version} (not opped) and click a word in the menu.`);
   console.log('Say "stop" in chat, or press Ctrl+C, to end it.');
   await new Promise((resolve) => {
+    holding = resolve;
     probe.on('chat', (username, message) => { if (username !== 'Probe' && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-    process.once('SIGINT', resolve);
+    if (probe.ended) resolve(); else probe.once('end', resolve);
   });
+  holding = null;
 }
 
 // ---- the run ------------------------------------------------------------------------------
@@ -335,6 +340,12 @@ async function main() {
   const srv = new server.Server({ jar, java: args.java, folder, version });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const bots = [];
+  // The same folder and port as the facility's: a server left behind would fail the next run.
+  server.tieToProcess(srv, () => {
+    if (holding) { holding(); return; }
+    for (const b of bots) b.quit();
+    srv.stop().catch(() => {}).then(() => process.exit(130));
+  });
   try {
     const t0 = Date.now();
     await srv.start();

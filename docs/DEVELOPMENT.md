@@ -186,14 +186,17 @@ node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.
 ```
 
 The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
-`--no-build` skip that), downloads the newest stable Paper build into `.local-server/` (checked
-against PaperMC's published size and SHA-256, and fetched again when a newer stable build is out;
-offline, the cached jar is checked against the checksum recorded with it), and starts the server
-in `.local-server/facility-<version>/` on port 25590 (`--port`) with a fresh world
-(`--keep-world` keeps it). It finds the Java a version needs on its own (17 for 1.20.4, 21 for
-1.20.5 to 1.21.x, 25 for 26.x); `--java` names one. `WX_ECHO=1` prints the server's log as it
-runs (`0`, `false`, `no` and `off` do not). However the launcher ends (a failure, Ctrl+C, a
-signal), it stops the server, and kills the JVM if it is still running as the launcher exits.
+`--no-build` skip that), downloads the newest stable Paper build to
+`.local-server/paper-<version>-facility.jar` (checked against PaperMC's published size and
+SHA-256, and fetched again when a newer stable build is out; offline, or when PaperMC lists no
+stable build, the cached jar is checked against the build recorded with it; `--paper-build <n>`
+picks a build, checked the same way), and starts the server in `.local-server/facility-<version>/`
+on port 25590 (`--port`) with a fresh world (`--keep-world` keeps it, and puts back any plugin
+setting a killed run left changed). It finds the Java a version needs on its own (17 for 1.20.4,
+21 for 1.20.5 to 1.21.x, 25 for 26.x); `--java` names one. `WX_ECHO=1` prints the server's log as
+it runs (`0`, `false`, `no` and `off` do not). However the launcher ends, the server goes with
+it: Ctrl+C stops it, a second Ctrl+C kills it, and a watchdog kills the JVM if the launcher is
+itself killed. The spike does the same.
 
 Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
 link; `!` does the same. Eight plates round the atrium's centre go to each wing and to the two

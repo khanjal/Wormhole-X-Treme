@@ -115,20 +115,22 @@ async function main() {
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port });
-  // However the launcher goes, the server goes with it: a signal stops it cleanly (and ends hold
-  // mode), and a launcher that exits any other way kills a JVM still running, so no server is
-  // left holding the port and the world folder.
+  // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
+  // stops the server, a second one kills it, and an exit any other way kills a JVM still
+  // running, so no server is left holding the port and the world folder.
   let holding = null;
   let stopping = false;
-  const onSignal = (sig) => {
+  const shutDown = async () => {
+    stopping = true;
+    // Bounded: its bossbar removals queue behind whatever run is in flight.
+    await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
+    await srv.stop();
+  };
+  server.tieToProcess(srv, () => {
     if (holding) { holding(); return; }
     if (stopping) return;
-    stopping = true;
-    console.error(`facility: ${sig}: stopping the server`);
-    Promise.resolve(fac.close()).catch(() => {}).then(() => srv.stop()).catch(() => {}).then(() => process.exit(130));
-  };
-  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => onSignal(sig));
-  process.on('exit', () => srv.kill());
+    shutDown().catch(() => {}).then(() => process.exit(130));
+  });
   let exit = 0;
   // A stray rejection is a bug in the facility: log it, fail the run, and still stop the server.
   const stray = [];
@@ -168,9 +170,13 @@ async function main() {
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;
-        fac.probe.bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-        // Without Probe nobody hears "stop": say so and end rather than hang.
-        fac.probe.bot.once('end', (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); });
+        const bot = fac.probe.bot;
+        bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
+        // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
+        // now or before the hold began.
+        const gone = (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
+        if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        if (srv.exited !== null) resolve();
         srv.once('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
       });
       holding = null;
@@ -179,8 +185,7 @@ async function main() {
     console.error(`facility: ${e.stack || e}`);
     exit = 1;
   } finally {
-    await fac.close().catch(() => {});
-    await srv.stop();
+    await shutDown();
   }
   return exit;
 }

@@ -386,6 +386,7 @@ class Server extends EventEmitter {
     this.proc = spawn(this.java, args, {
       cwd: this.folder, stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform === 'win32', windowsHide: true,
     });
+    this.watch();
     this.proc.stdin.setDefaultEncoding('utf8');
     // A write to a server that is dying is not a crash of the launcher: it is noticed as the exit.
     this.proc.stdin.on('error', (e) => { this.stdinError = e; });
@@ -411,11 +412,34 @@ class Server extends EventEmitter {
     return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
   }
 
+  /**
+   * A watchdog process that kills the JVM if the launcher dies without running its exit hook
+   * (Task Manager, taskkill /F, SIGKILL): nothing else would, since the JVM has no console.
+   */
+  watch() {
+    const code = 'const [parent, child] = process.argv.slice(1).map(Number);'
+      + 'const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; } };'
+      + 'const t = setInterval(() => { if (!alive(child)) clearInterval(t);'
+      + ' else if (!alive(parent)) { try { process.kill(child); } catch { /* gone */ } clearInterval(t); } }, 1000);';
+    if (!this.proc.pid) return;
+    try {
+      const dog = spawn(process.execPath, ['-e', code, String(process.pid), String(this.proc.pid)], {
+        detached: true, stdio: 'ignore', windowsHide: true,
+      });
+      dog.on('error', () => {});
+      dog.unref();
+    } catch { /* the exit hook still covers every exit but a hard kill */ }
+  }
+
   /** Resolves with the first log line (from now on) matching `re`, or rejects naming `what`. */
   waitFor(re, ms, what) {
     return new Promise((resolve, reject) => {
       const onLine = (line) => { if (re.test(line)) { done(); resolve(line); } };
-      const onExit = (code) => { done(); reject(new Error(`server exited (${code}) while waiting for ${what}`)); };
+      const onExit = (code) => {
+        done();
+        const tail = this.log.slice(-10).map((l) => `\n    ${l}`).join('');
+        reject(new Error(`server exited (${code}) while waiting for ${what}${tail ? `; its last lines:${tail}` : ''}`));
+      };
       const timer = setTimeout(() => { done(); reject(new Error(`timed out after ${ms} ms waiting for ${what}`)); }, ms);
       const done = () => { clearTimeout(timer); this.off('line', onLine); this.off('exit', onExit); };
       this.on('line', onLine);
@@ -518,12 +542,34 @@ class Server extends EventEmitter {
   }
 }
 
+/**
+ * Ties a server to this launcher. The first SIGINT, SIGTERM or SIGHUP calls `onSignal`, which
+ * ends the run and stops the server; a second one kills the JVM and exits at once, so a stop
+ * that hangs can always be cut short. An exit any other way kills a JVM still running.
+ */
+function tieToProcess(srv, onSignal) {
+  let signals = 0;
+  const handler = (sig) => {
+    signals++;
+    if (signals === 1) {
+      console.error(`${sig}: stopping the server (again to kill it)`);
+      onSignal(sig);
+      return;
+    }
+    console.error(`${sig} again: killing the server`);
+    srv.kill();
+    process.exit(130);
+  };
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, handler);
+  process.on('exit', () => srv.kill());
+}
+
 /** WX_ECHO=1 (or true, yes, on) echoes the server's log; unset, 0, false, no or off does not. */
 function echoOn(value) {
   return Boolean(value) && !/^(0|false|no|off)$/i.test(String(value).trim());
 }
 
 module.exports = {
-  echoOn, jdkVersion, Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  echoOn, jdkVersion, Server, tieToProcess, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };
