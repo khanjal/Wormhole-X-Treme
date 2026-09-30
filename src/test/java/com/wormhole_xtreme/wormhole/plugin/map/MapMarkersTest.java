@@ -8,9 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -24,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import org.bukkit.Server;
@@ -34,9 +40,12 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.dynmap.DynmapCommonAPI;
 import org.dynmap.DynmapCommonAPIListener;
+import org.dynmap.markers.MarkerAPI;
+import org.dynmap.markers.MarkerSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -76,11 +85,18 @@ class MapMarkersTest
     {
         final List<MapSnapshot> applied = new ArrayList<>();
         int clears = 0;
+        boolean up = true;
 
         @Override
         public String name()
         {
             return "Test map";
+        }
+
+        @Override
+        public boolean ready()
+        {
+            return up;
         }
 
         @Override
@@ -242,6 +258,14 @@ class MapMarkersTest
         assertSame(showing, map.applied.get(1));
     }
 
+    /** Runs the one look the last {@code requestRefresh} booked on the next tick. */
+    private void runBookedLook()
+    {
+        final ArgumentCaptor<Runnable> look = ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler, atLeastOnce()).runTask(eq(plugin), look.capture());
+        look.getValue().run();
+    }
+
     @Test
     void aMapThatComesUpIsGivenTheLatestPictureAgain()
     {
@@ -251,11 +275,149 @@ class MapMarkersTest
         MapMarkers.tick();
         runBackground();
 
-        MapMarkers.requestDraw();
+        MapMarkers.providerReady();
+        runBookedLook();
 
-        assertEquals(1, background.size());
+        assertEquals(1, background.size(), "an unchanged picture is drawn again for a map that just came up");
         runBackground();
         assertEquals(2, map.applied.size());
+    }
+
+    @Test
+    void nothingIsLookedAtOrDrawnWhileTheMapIsNotUp()
+    {
+        final AtomicInteger looks = new AtomicInteger();
+        MapMarkers.setSourceForTest(() ->
+        {
+            looks.incrementAndGet();
+            return showing;
+        });
+        map.up = false;
+        enable();
+
+        MapMarkers.tick();
+        MapMarkers.tick();
+        MapMarkers.tick();
+
+        assertEquals(0, looks.get(), "no scan every five seconds for a map that is not there");
+        assertTrue(background.isEmpty());
+
+        map.up = true;
+        MapMarkers.tick();
+        assertEquals(1, looks.get(), "and looked at as soon as it is");
+    }
+
+    @Test
+    void aDiallingGateIsNotWatchedWhileTheMapIsNotUp()
+    {
+        final List<Runnable> checks = holdFormingChecks();
+        map.up = false;
+        enable();
+        final Stargate gate = mock(Stargate.class);
+        when(gate.isGateActive()).thenReturn(true);
+
+        MapMarkers.watchForming(gate);
+
+        assertTrue(checks.isEmpty());
+        map.up = true;
+        MapMarkers.watchForming(gate);
+        assertEquals(1, checks.size(), "watched as usual once the map is up");
+    }
+
+    /** A Dynmap that is up, with markers on, drawing into one mocked set. */
+    private static DynmapCommonAPI dynmapUp(final MarkerAPI markers)
+    {
+        final DynmapCommonAPI dynmap = mock(DynmapCommonAPI.class);
+        when(dynmap.markerAPIInitialized()).thenReturn(true);
+        when(dynmap.getMarkerAPI()).thenReturn(markers);
+        return dynmap;
+    }
+
+    private void enableRealDynmap(final boolean installedAndRunning)
+    {
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
+        final Plugin installed = mock(Plugin.class);
+        when(installed.isEnabled()).thenReturn(installedAndRunning);
+        when(pluginManager.getPlugin("dynmap")).thenReturn(installed);
+        MapMarkers.enable(plugin);
+    }
+
+    @Test
+    void dynmapInstalledButNotRunningIsSaidOnceAndNothingIsClaimedOrDrawn()
+    {
+        // As on a server whose Dynmap does not support its Minecraft version: Dynmap disables
+        // itself, and the map must not claim to be showing anything.
+        final AtomicInteger looks = new AtomicInteger();
+        MapMarkers.setSourceForTest(() ->
+        {
+            looks.incrementAndGet();
+            return showing;
+        });
+        try
+        {
+            enableRealDynmap(false);
+
+            MapMarkers.tick();
+            MapMarkers.tick();
+            MapMarkers.tick();
+
+            verify(logger, times(1)).prettyLog(eq(Level.WARNING), contains("not running"));
+            verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
+            assertEquals(0, looks.get());
+            assertTrue(background.isEmpty());
+            MapMarkers.disable();
+            assertFalse(MapMarkers.isRunning());
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
+    }
+
+    @Test
+    void dynmapStartingLaterIsAnnouncedOnceAndDrawnInFull()
+    {
+        final MarkerAPI markers = mock(MarkerAPI.class);
+        final MarkerSet set = mock(MarkerSet.class);
+        when(markers.createMarkerSet(anyString(), anyString(), isNull(), anyBoolean())).thenReturn(set);
+        try
+        {
+            enableRealDynmap(false);
+            MapMarkers.tick();
+
+            DynmapCommonAPIListener.apiInitialized(dynmapUp(markers));
+            runBookedLook();
+            runBackground();
+
+            verify(logger, times(1)).prettyLog(eq(Level.INFO), contains("Showing"));
+            verify(set).createMarker(eq("start"), eq("start"), eq(false), eq("world"), anyDouble(), anyDouble(),
+                anyDouble(), any(), eq(false));
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
+    }
+
+    @Test
+    void showingIsSaidWhenDynmapArrivesNotAtEnable()
+    {
+        final MarkerAPI markers = mock(MarkerAPI.class);
+        try
+        {
+            enableRealDynmap(true);
+            verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
+            verify(logger, never()).prettyLog(eq(Level.WARNING), contains("not running"));
+
+            DynmapCommonAPIListener.apiInitialized(dynmapUp(markers));
+
+            verify(logger, times(1)).prettyLog(eq(Level.INFO), contains("Showing"));
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
     }
 
     @Test

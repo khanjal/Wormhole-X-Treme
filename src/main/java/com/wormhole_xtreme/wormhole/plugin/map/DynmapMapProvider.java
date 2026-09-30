@@ -140,6 +140,12 @@ public final class DynmapMapProvider implements MapProvider
         return "Dynmap";
     }
 
+    @Override
+    public boolean ready()
+    {
+        return session.api() != null;
+    }
+
     /** Starts listening for Dynmap; called back at once if it is already up. */
     public void register()
     {

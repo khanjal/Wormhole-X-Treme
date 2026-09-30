@@ -168,6 +168,18 @@ class DynmapMapProviderTest
     }
 
     @Test
+    void itIsReadyOnlyWhileDynmapIsUp()
+    {
+        assertFalse(provider.ready(), "not before Dynmap has handed over its markers");
+        provider.attach(api);
+        assertTrue(provider.ready());
+        provider.detach();
+        assertFalse(provider.ready(), "nor after Dynmap has gone");
+        provider.clear();
+        provider.detach();
+    }
+
+    @Test
     void dynmapComingUpAsksForARedrawAndDoesNoMarkerWorkThere()
     {
         // Dynmap tells us it is up on the main thread; making layers and icons writes files,
