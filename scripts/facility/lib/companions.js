@@ -281,11 +281,11 @@ const SWITCHES = { worldguard: { 'worldguard-enabled': 'true' }, dynmap: { 'dynm
  * Null for anything else.
  */
 function companionFault(line, plugins) {
-  for (const p of plugins) {
-    if (new RegExp(`Could not load '?plugins[\\\\/][^']*' in folder|Error occurred while enabling ${p} `).test(line)
-      && (line.includes(p) || /Could not load/.test(line))) return line.trim();
-  }
-  if (plugins.includes('dynmap') && /\[dynmap\].*(Failed to start WebServer|Address already in use|BindException)/i.test(line)) return line.trim();
+  // Paper's words for a jar it would not load (a newer class version among them) or enable.
+  // ("Could not load plugin 'worldedit-bukkit-7.4.5.jar' in folder 'plugins'", then the cause.)
+  if (/Could not load (plugin )?'|Error loading plugin|^Caused by: java\.lang\.UnsupportedClassVersionError/.test(line)) return line.trim();
+  if (plugins.some((p) => line.includes(`Error occurred while enabling ${p} `))) return line.trim();
+  if (plugins.includes('dynmap') && /\[dynmap\].*(Failed to start|Address already in use|BindException)/i.test(line)) return line.trim();
   return null;
 }
 

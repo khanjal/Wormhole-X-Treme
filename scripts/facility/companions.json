@@ -1,5 +1,5 @@
 {
-  "about": "Companion plugins for run-facility.js --with, pinned by version and SHA-256. Each is read from the plugin cache first (--plugin-cache: its <minecraft version> folder, then any/), then from .local-server/companions/, and only then downloaded from `url`, an official release source (Modrinth, GitHub releases). Never SpigotMC: its downloads are not scriptable. A build with no url is cache-only and says where it comes from. `versions` lists the Minecraft versions a build is pinned for, or * for every one.",
+  "about": "Companion plugins for run-facility.js --with, pinned by version and SHA-256. Each is read from the plugin cache first (--plugin-cache: its <minecraft version> folder, then any/), then from .local-server/companions/, and only then downloaded from `url`, an official release source (Modrinth, GitHub releases). Never SpigotMC: its downloads are not scriptable. A build with no url would be cache-only and say where it comes from. `versions` lists the Minecraft versions a build is pinned for, or * for every one.",
   "sets": {
     "permissions": ["luckperms", "vault"],
     "regions": ["worldedit", "worldguard"],
@@ -41,8 +41,8 @@
         {
           "versions": "1.21.11", "version": "3.8", "file": "Dynmap-3.8-spigot.jar", "size": 11819070,
           "sha256": "4771dbe8cbb3ec6a3ee080141361de6d822eac55b55aad7c9e5de031423a6dd7",
-          "source": "SpigotMC resource 274 only: Modrinth has 3.8 for Forge and Fabric alone, and Dynmap's GitHub releases stop at 3.3. Put it in the plugin cache's 1.21.11 folder.",
-          "url": null
+          "source": "dynmap.us, the Dynmap project's own build server (the same bytes as CurseForge file 7460127; Modrinth has 3.8 for Forge and Fabric only, Dynmap's GitHub releases stop at 3.3, and SpigotMC resource 274 is not scriptable)",
+          "url": "https://dynmap.us/builds/dynmap/Dynmap-3.8-spigot.jar"
         }
       ],
       "unsupported": [

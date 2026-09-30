@@ -17,6 +17,7 @@ const { Menagerie } = require('./lib/menagerie');
 const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
 const { companionFault } = require('./lib/companions');
+const { Groups, GROUPS } = require('./lib/groups');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
@@ -323,7 +324,10 @@ class Facility {
         watch: (player, e) => this.watch(player, e),
         go: (player, w) => this.go(player, w),
         transit: (player, action) => this.transitAction(player, action),
+        group: (player, group) => this.joinGroup(player, group),
       },
+      groups: this.has('luckperms') ? [...Object.entries(GROUPS).map(([id, g]) => ({ id, why: g.why })),
+        { id: 'default', why: 'none of them: only what every player has' }] : null,
     });
     await this.console.start();
     // Once: a restart makes a new console (it reads the new Probe's packets) but the log is the same.
@@ -333,6 +337,16 @@ class Facility {
       const m = /: (\w+) joined the game/.exec(line);
       if (m && m[1] !== BOT && m[1] !== 'Probe2') this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
     });
+  }
+
+  /** Puts a player in a tester group (lib/groups.js), making the groups the first time. */
+  async joinGroup(player, group) {
+    const groups = new Groups(this.srv);
+    if (!this.groupsReady) { await groups.ensure(); this.groupsReady = true; }
+    await groups.put(player, group);
+    const why = GROUPS[group] ? GROUPS[group].why : 'none of the tester groups';
+    await this.console.tell(player, [{ text: `You are in ${group} now: `, color: 'white' }, { text: why, color: 'gray' },
+      { text: '. An op passes every Wormhole check whatever the group.', color: 'dark_gray' }]);
   }
 
   async welcome(player) {
@@ -471,7 +485,7 @@ class Facility {
     }
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
-    const refusal = ch.refuses ? ch.refuses(v, this.version) : null;
+    const refusal = ch.refuses ? ch.refuses(v, this.version, this) : null;
     if (refusal) {
       await this.setStatus(e, 'refused', refusal);
       return { outcome: 'REFUSED', reason: refusal, checks: [] };
@@ -676,4 +690,4 @@ class Facility {
   }
 }
 
-module.exports = { Facility, BOT, httpText };
+module.exports = { Facility, BOT };
