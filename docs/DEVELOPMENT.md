@@ -320,11 +320,12 @@ them all, and if the launcher is killed outright its children stop their servers
 
 `--shards N` runs one version's matrix on N servers of that version at once, each on its own port
 and folder with its own campus (`--port`, +2, +4, ...), and merges their reports into one summary
-and one exit code; with `--versions` it is versions x shards servers. Every cell runs exactly as it
-does alone. The split is by measured time, not by count: every self-test writes each cell's
-seconds to `.local-server/cell-times-<version>.json`, and the next split puts the longest cells
-first onto the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world,
-fixtures, resets, empty, settings and faults sections run on every shard, since they guard that
+and one exit code; with `--versions` it is versions x shards servers, each tied to the launcher as
+with `--versions` alone. Every cell runs exactly as it does alone. The split is by measured time,
+not by count: every self-test writes each cell's seconds to
+`.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
+the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
+resets, empty, settings and faults sections run on every shard, since they guard that
 shard's own world, so a sharded summary has more checks than a single run (705 against 486 at
 N = 4); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,

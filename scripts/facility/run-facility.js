@@ -21,7 +21,8 @@
 //                        own port and folder, run at once, with one merged report (lib/shards.js);
 //                        with --versions, versions x shards servers
 //   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
-//   --tied               (set by --versions for its children) stop when stdin closes
+//   --tied               (set by --versions and --shards for their children) stop when stdin
+//                        closes
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
@@ -141,6 +142,9 @@ async function fanOut(args) {
   const jar = pluginJar(args);
   const versions = args.versions || [args.version];
   const n = args.shards || 1;
+  // Fetched here, once per version: shards of one version starting at once would each download
+  // the same jar over the others.
+  for (const v of versions) await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
   // Each child stops its own server however it ends, and watches its JVM with a watchdog of its
   // own. It is --tied: it holds a pipe from this launcher and stops when that closes, so a
   // launcher killed outright takes its children with it. A signal here closes the pipes, which
@@ -290,7 +294,7 @@ async function main() {
     shutDown().catch(() => {}).then(() => process.exit(130));
   });
   if (args.tied) {
-    // A --versions launcher's child: the end of its pipe is a stop, like a first signal, and a
+    // A --versions or --shards launcher's child: the end of its pipe is a stop, like a first signal, and a
     // launcher that has gone reads nothing this one writes.
     for (const s of [process.stdout, process.stderr]) s.on('error', () => {});
     process.stdin.on('end', () => { if (!stopping) stopFor('the parent launcher closed the pipe'); });
