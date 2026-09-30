@@ -8,11 +8,70 @@
 // restore(owner) puts that owner's back in reverse, so a chamber that declares `needs.config`
 // never leaks a setting into the next run, and one chamber's restore never undoes another's
 // held stage.
+//
+// The plugin saves every change to its config file, so a launcher killed before its restore
+// would leave it there for the next --keep-world run. Each setting's value from before the
+// facility first changed it is kept in a journal in the server folder until it is put back, and
+// recover() puts back whatever a killed run left in it.
+
+const fs = require('fs');
+const path = require('path');
+
+const JOURNAL = 'facility-settings.json';
 
 class Config {
-  constructor(srv) {
+  /** `journal` is the file to keep outstanding changes in; null keeps none. */
+  constructor(srv, { journal = srv.folder ? path.join(srv.folder, JOURNAL) : null } = {}) {
     this.srv = srv;
     this.stacks = new Map();
+    this.journal = journal;
+  }
+
+  /** The journal's { setting: value before the facility changed it }; {} if there is none. */
+  readJournal() {
+    if (!this.journal || !fs.existsSync(this.journal)) return {};
+    try {
+      const j = JSON.parse(fs.readFileSync(this.journal, 'utf8'));
+      return j && typeof j === 'object' && !Array.isArray(j) ? j : {};
+    } catch {
+      return {};
+    }
+  }
+
+  writeJournal(j) {
+    if (!this.journal) return;
+    if (!Object.keys(j).length) { fs.rmSync(this.journal, { force: true }); return; }
+    const tmp = `${this.journal}.tmp`;
+    fs.writeFileSync(tmp, `${JSON.stringify(j, null, 2)}\n`);
+    fs.renameSync(tmp, this.journal);
+  }
+
+  /** True if any owner's stack still holds a change of `name`. */
+  holds(name) {
+    return [...this.stacks.values()].some((s) => s.some((x) => x.name === name));
+  }
+
+  /** Drops `name` from the journal once no owner holds a change of it. */
+  settle(name) {
+    if (this.holds(name)) return;
+    const j = this.readJournal();
+    if (name in j) { delete j[name]; this.writeJournal(j); }
+  }
+
+  /**
+   * Puts back every setting a run killed before its restore left changed, from the journal;
+   * returns what it put back. A setting it cannot write stays in the journal, and it throws.
+   */
+  async recover() {
+    const j = this.readJournal();
+    const done = [];
+    for (const [name, before] of Object.entries(j)) {
+      await this.write(name, before);
+      delete j[name];
+      this.writeJournal(j);
+      done.push(`${name}=${before}`);
+    }
+    return done;
   }
 
   /** The setting's current value as the plugin prints it. Throws for an unknown setting. */
@@ -34,7 +93,17 @@ class Config {
   /** Sets a value for `owner`, remembering what it replaced. */
   async set(name, value, owner = '') {
     const before = await this.get(name);
-    const now = await this.write(name, value);
+    // Journalled before the write, so no moment exists when the change is saved and the value
+    // it replaced is not.
+    const j = this.readJournal();
+    if (!(name in j)) { j[name] = before; this.writeJournal(j); }
+    let now;
+    try {
+      now = await this.write(name, value);
+    } catch (e) {
+      this.settle(name);
+      throw e;
+    }
     if (!this.stacks.has(owner)) this.stacks.set(owner, []);
     this.stacks.get(owner).push({ name, before });
     return now;
@@ -55,7 +124,8 @@ class Config {
 
   /**
    * Puts `owner`'s recorded settings back, newest first (every owner's when none is given);
-   * returns what it restored.
+   * returns what it restored. A record leaves its stack only once its write is accepted, so a
+   * refused restore throws with the setting still recorded, to be restored again.
    */
   async restore(owner) {
     const done = [];
@@ -63,8 +133,10 @@ class Config {
     for (const o of owners) {
       const stack = this.stacks.get(o) || [];
       while (stack.length) {
-        const { name, before } = stack.pop();
+        const { name, before } = stack[stack.length - 1];
         await this.write(name, before);
+        stack.pop();
+        this.settle(name);
         done.push(`${name}=${before}`);
       }
       this.stacks.delete(o);
@@ -79,5 +151,7 @@ class Config {
     return out;
   }
 }
+
+Config.JOURNAL = JOURNAL;
 
 module.exports = { Config };

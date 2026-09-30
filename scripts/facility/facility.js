@@ -67,6 +67,12 @@ class Facility {
       await this.srv.waitLoaded(f.dim, points, 120000);
     }
     this.loadMs = Date.now() - t0;
+    try {
+      const recovered = await this.config.recover();
+      if (recovered.length) this.log(`  put back settings a killed run left changed: ${recovered.join(', ')}`);
+    } catch (e) {
+      problems.push(`settings a killed run left changed: ${e.message}`);
+    }
     return problems;
   }
 
@@ -300,11 +306,16 @@ class Facility {
 
   /**
    * Runs one chamber: refuse, or reset the cell, apply its settings, stage, (run, check), and
-   * put the settings back. `values` are option indices, or option values if `raw`. Returns
+   * put the settings back. `values` are option indices, or option values if `raw`. A Run of a
+   * chamber that is staged is refused until its Reset. Returns
    * { outcome: PASS | FAIL | REFUSED | STAGED, reason, checks }.
    */
   async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
     const ch = e.chamber;
+    // A run would reset the cell and put its settings back under a stage a person is using.
+    if (mode !== 'stage' && this.held.has(e.def.id)) {
+      return { outcome: 'REFUSED', reason: 'staged for a person: Reset it first', checks: [] };
+    }
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
     const refusal = ch.refuses ? ch.refuses(v) : null;

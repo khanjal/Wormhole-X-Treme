@@ -213,7 +213,8 @@ only `c0`, the calibration cell in Ops, has them so far.
 
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
 every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
-after each run, a non-op tester's path through the console, every reset, that the plugin holds
+after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
+tester's path through the console, every reset, that the plugin holds
 no gates or mirrors, that each setting a chamber changed is back, and that the plugin logged no
 fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
 

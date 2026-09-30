@@ -7,7 +7,8 @@
 //   plates    every tp plate sends Probe to the right place in the right world
 //   boards    Probe is shown the Ops boards' text (judged by what the client receives)
 //   matrix    each chamber's cells with an expected outcome (PASS, REFUSED:<reason>), each run
-//             followed by its reset, which must leave the cell as built
+//             followed by its reset, which must leave the cell as built; then a Run of a
+//             staged chamber, which is refused
 //   resets    every chamber's reset function, then its cell must be clear
 //   console   a non-op Tester clicks through the menus, chooses an option, runs and resets
 //   empty     the plugin holds nothing the facility did not make: no gates, no mirrors
@@ -114,6 +115,17 @@ async function selftest(fac, { buildReport, log = console.log }) {
         }
       }
     }
+    // A Run of a staged chamber is refused, and the stage's setting stays until its Reset.
+    const c0 = fac.entries.find((x) => x.def.id === 'c0');
+    const cell = MATRIX.c0[0].values;
+    const [name, value] = Object.entries(c0.chamber.needs(cell).config)[0];
+    const staged = await fac.runChamber(c0, { values: cell, raw: true, mode: 'stage', holdMs: 0 });
+    const run = await fac.runChamber(c0, { values: cell, raw: true, holdMs: 0 });
+    const held = await fac.config.get(name);
+    check('matrix', 'c0 Run while staged is refused, the stage kept', staged.outcome === 'STAGED' && run.outcome === 'REFUSED' && held === value,
+      `${staged.outcome}, then ${run.outcome}${run.reason ? ` (${run.reason})` : ''}; ${name} ${held}`);
+    const reset = await fac.resetChamber(c0);
+    check('matrix', 'c0 reset after a stage leaves the cell as built', reset.ok, reset.problems.join('; ') || 'clean');
   });
 
   // A person's path through the console, played by Tester (never opped): every step clicks the

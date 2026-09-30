@@ -27,6 +27,7 @@ const generate = require('./lib/generate');
 const wings = require('./wings');
 const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
+const { Config } = require('./lib/config');
 
 const DEFAULT_VERSION = '26.1.2';
 const REPO = path.resolve(__dirname, '..', '..');
@@ -103,7 +104,11 @@ async function main() {
   const plugin = pluginJar(args);
   const folder = path.join(LOCAL, `facility-${version}`);
 
-  if (!args.keepWorld) server.freshWorlds(folder, { pluginData: true });
+  // The settings journal describes the plugin's config file, so it goes when that does.
+  if (!args.keepWorld) {
+    server.freshWorlds(folder, { pluginData: true });
+    fs.rmSync(path.join(folder, Config.JOURNAL), { force: true });
+  }
   // Survival by default: a tester is put in adventure by the welcome, and the self-test's check
   // of that would pass without it if the server's default were adventure already.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10 });
