@@ -47,8 +47,12 @@ class Boards {
  */
 class RunBar {
   constructor(srv, version, id, title, steps) {
-    Object.assign(this, { srv, version, id: `wx:run_${id}`, title, steps, step: 0 });
+    // Its own id each run: a run inside the last one's three seconds must not be removed by
+    // the last one's timer.
+    RunBar.count = (RunBar.count || 0) + 1;
+    Object.assign(this, { srv, version, id: `wx:run_${id}_${RunBar.count}`, title, steps, step: 0 });
     this.timer = null;
+    this.closed = false;
   }
 
   async open() {
@@ -78,6 +82,8 @@ class RunBar {
   async close() {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+    if (this.closed) return;
+    this.closed = true;
     if (this.srv.exited === null) await this.srv.run(`bossbar remove ${this.id}`);
   }
 }
