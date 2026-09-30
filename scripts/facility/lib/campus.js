@@ -140,7 +140,7 @@ const CHAMBERS = [
   { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5,
     box: { x0: -66, x1: -34, z0: -140, z1: -110, y0: 0, h: 16 }, door: 'e', gallery: 's' },
   // Ring Transit
-  { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3,
+  { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3, logic: 'r1-pair',
     box: { x0: 44, x1: 106, z0: -26, z1: -10, y0: 0, h: 12 }, door: 's', gallery: 'n' },
   { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3,
     box: { x0: 44, x1: 58, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'e' },
@@ -149,8 +149,9 @@ const CHAMBERS = [
   { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true,
     box: { x0: 82, x1: 104, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'w' },
   { id: 'r5', wing: 'rings', title: 'Edit Desk', kind: 'desk', stage: 3, at: { x: 100, y: 0, z: -4 } },
-  { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3,
-    box: { x0: 112, x1: 320, z0: -2, z1: 2, y0: 0, h: 5 } },
+  // Nine wide, so a seven-wide ring fits; long enough for a pair 257 apart (one over the limit).
+  { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3, logic: 'r6-range',
+    box: { x0: 112, x1: 380, z0: -4, z1: 4, y0: 0, h: 6 } },
   // Beam Physics
   { id: 'b1', wing: 'beams', title: 'Pad Array', kind: 'cell', stage: 3,
     box: { x0: -104, x1: -52, z0: -26, z1: 8, y0: 0, h: 10 }, door: 'e', gallery: 's' },
@@ -243,7 +244,7 @@ const FORCELOAD = [
   { dim: OVERWORLD, from: [-42, -38], to: [42, 92], why: 'Ops, Systems, Mirror Optics' },
   { dim: OVERWORLD, from: [38, -32], to: [112, 32], why: 'Ring Transit' },
   { dim: OVERWORLD, from: [71, -122], to: [132, -58], why: 'Menagerie and Motor Pool' },
-  { dim: OVERWORLD, from: [112, -3], to: [322, 3], why: 'the range tunnel' },
+  { dim: OVERWORLD, from: [112, -5], to: [382, 5], why: 'the range tunnel' },
   { dim: NETHER, from: [-31, -31], to: [31, 31], why: 'The Range' },
   { dim: END, from: [978, 978], to: [1022, 1022], why: 'The Annex' },
 ];

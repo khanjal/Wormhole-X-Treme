@@ -60,7 +60,7 @@ const campus = require('../lib/campus');
 
 /** The console's entries: every campus chamber in order, with its logic module if it has one. */
 function entries() {
-  return campus.CHAMBERS.filter((c) => c.kind !== 'tunnel').map((def, i) => ({
+  return campus.CHAMBERS.filter((c) => c.kind !== 'tunnel' || c.logic).map((def, i) => ({
     number: i + 1,
     def,
     chamber: def.logic ? require(`./${def.logic}`) : null,

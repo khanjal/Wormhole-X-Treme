@@ -79,7 +79,7 @@ function buildWing(wingId, version) {
       bp.room(out, ch.box, { wall: 'minecraft:glass', roof: 'minecraft:glass', skirting: null });
       const b = ch.box;
       const mz = Math.floor((b.z0 + b.z1) / 2);
-      out.fill(bp.box3(b.x0 - 1, b.y0, mz - 2, b.x0 - 1, b.y0 + 3, mz + 2), 'minecraft:air');
+      out.fill(bp.box3(b.x0 - 1, b.y0, b.z0, b.x0 - 1, b.y0 + b.h - 2, b.z1), 'minecraft:air');
       out.fill(bp.box3(b.x0, b.y0 - 1, mz, b.x1, b.y0 - 1, mz), campus.PALETTE.guide);
       out.mustBeClear(ch.id, bp.interior(b));
     }

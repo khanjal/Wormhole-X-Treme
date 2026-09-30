@@ -207,6 +207,21 @@ class Facility {
     return this.probe;
   }
 
+  /**
+   * A second body for the tests that need two (a ring swap, a private pair, a player's beam
+   * place, a cooldown an op would skip): Probe2, never opped, in adventure mode. Joined on first
+   * use and kept for the session.
+   */
+  async second() {
+    if (this.probe2 && this.probe2.bot.entity) return this.probe2;
+    const bot = await join({ port: this.port, version: this.version, username: 'Probe2' });
+    this.probe2 = new Probe(bot, this.srv);
+    await this.srv.run('deop Probe2');
+    await this.srv.run('gamemode adventure Probe2');
+    await this.probe2.teleport(campus.TRANSIT.home);
+    return this.probe2;
+  }
+
   /** Starts the console and greets everyone who joins from now on. */
   async openConsole() {
     const wingList = campus.WINGS;
@@ -222,7 +237,7 @@ class Facility {
     await this.console.start();
     this.srv.on('line', (line) => {
       const m = /: (\w+) joined the game/.exec(line);
-      if (m && m[1] !== BOT) this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
+      if (m && m[1] !== BOT && m[1] !== 'Probe2') this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
     });
   }
 
@@ -441,6 +456,7 @@ class Facility {
   async close() {
     for (const b of this.bars) await b.close().catch(() => {});
     if (this.probe) this.probe.bot.quit();
+    if (this.probe2) this.probe2.bot.quit();
   }
 }
 
