@@ -10,6 +10,7 @@ const { cellLayout } = require('../lib/blueprint');
 const trip = require('../lib/ringtrip');
 const mirrors = require('../lib/mirrors');
 const { ticks } = require('../lib/probe');
+const { atLeast } = require('../lib/version');
 
 const def = campus.chamber('m3');
 const O = campus.OVERWORLD;
@@ -70,7 +71,9 @@ module.exports = {
       obs.after = await look(probe, heard);
       return;
     }
-    const patterns = async () => (await ctx.server.run(`data get block ${DESK.x} ${DESK.y} ${DESK.z} patterns`)).lines.join(' ');
+    // A banner's block entity keeps them as `Patterns` before 1.20.5 and `patterns` from it.
+    const key = atLeast(ctx.version, '1.20.5') ? 'patterns' : 'Patterns';
+    const patterns = async () => (await ctx.server.run(`data get block ${DESK.x} ${DESK.y} ${DESK.z} ${key}`)).lines.join(' ');
     obs.patternsBefore = await patterns();
     obs.stamped = o.case === 'stamp a look' ? await kit.set(DESK.name, '-stamp', 'portal') : await kit.set(DESK.name, '-stamp');
     obs.patternsAfter = await patterns();

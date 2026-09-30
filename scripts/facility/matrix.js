@@ -217,7 +217,7 @@ const QUICK = new Set([
   'g2 Standard to its neighbour',
   'r1 walk ODD by console', 'r1 swap', 'r2 ceiling 11 up refused', 'r3 shaft 20 down', 'r4 mixed slabs', 'r5 name',
   'tunnel 257 apart: refused', 'b1 N public', 'b1 Trap', 'b2 send to public', 'b2 cooldown',
-  'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'g1 horse to the Range', 'b1 End',
+  'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'm3 stamp a look', 'g1 horse to the Range', 'b1 End',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;

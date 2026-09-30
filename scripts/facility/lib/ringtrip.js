@@ -93,17 +93,27 @@ async function stepIn(probe, end, dim = O, from = { dx: 0, dz: 5.5 }) {
   await probe.walkTo({ x: end.x + 0.5, z: end.z + 0.5 }, { within: 0.3, ms: 8000 }).catch(() => {});
 }
 
-/** Waits (bounded) for a probe to be put down near a point; returns { ok, at, when }. */
-async function arrival(probe, at, ms = 15000, dim = O) {
-  let when = null;
-  const onMove = () => { if (when === null && probe.distanceTo(at) < 2) when = Date.now(); };
+/** Notes when the server first puts a probe down near a point, from now on; stop() when done. */
+function arrivalWatch(probe, at) {
+  const w = { when: null };
+  const onMove = () => { if (w.when === null && probe.distanceTo(at) < 2) w.when = Date.now(); };
   probe.bot.on('forcedMove', onMove);
+  w.stop = () => probe.bot.off('forcedMove', onMove);
+  return w;
+}
+
+/**
+ * Waits (bounded) for a probe to be put down near a point; returns { ok, at, when }. `watch`, an
+ * arrivalWatch started earlier, times an arrival that may come before this is called.
+ */
+async function arrival(probe, at, ms = 15000, dim = O, watch = null) {
+  const w = watch || arrivalWatch(probe, at);
   try {
     const ok = await until(async () => probe.dimension === dim && flat(probe.position, at) < 1.5 && Math.abs(probe.position.y - at.y) < 1.5, ms);
     await probe.settle();
-    return { ok, at: { x: probe.position.x, y: probe.position.y, z: probe.position.z }, when };
+    return { ok, at: { x: probe.position.x, y: probe.position.y, z: probe.position.z }, when: w.when };
   } finally {
-    probe.bot.off('forcedMove', onMove);
+    w.stop();
   }
 }
 
@@ -118,14 +128,24 @@ async function send(ctx, traveller, a, b, dim = O) {
   const t0 = Date.now();
   if (traveller === 'walk' || traveller === 'swap') {
     let p2 = null;
-    if (traveller === 'swap') {
-      p2 = await ctx.facility.second();
-      obs.chat2 = [];
-      listen(p2, obs.chat2);
-      await stepIn(p2, b, dim, obs.from);
+    // Timed from before either steps in: the swap may come while the second is still walking.
+    const w1 = arrivalWatch(probe, arrB);
+    let w2 = null;
+    try {
+      if (traveller === 'swap') {
+        p2 = await ctx.facility.second();
+        w2 = arrivalWatch(p2, arrA);
+        obs.chat2 = [];
+        listen(p2, obs.chat2);
+        await stepIn(p2, b, dim, obs.from);
+      }
+      await stepIn(probe, a, dim, obs.from);
+    } catch (e) {
+      w1.stop();
+      if (w2) w2.stop();
+      throw e;
     }
-    await stepIn(probe, a, dim, obs.from);
-    const [r1, r2] = await Promise.all([arrival(probe, arrB, 15000, dim), p2 ? arrival(p2, arrA, 15000, dim) : null]);
+    const [r1, r2] = await Promise.all([arrival(probe, arrB, 15000, dim, w1), p2 ? arrival(p2, arrA, 15000, dim, w2) : null]);
     obs.probeArrived = r1;
     obs.probe2Arrived = r2;
     obs.countdown = said(obs.chat, /Transport in \d+ seconds?/, t0);

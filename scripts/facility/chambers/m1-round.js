@@ -93,6 +93,8 @@ module.exports = {
     const seen = mirrors.watchWindow(traveller, ROUND);
     try {
       obs.approach = await mirrors.approach(traveller, ROUND, heard, 3, 4000);
+      // Where it stood while it listened: "nothing was named" means something only from there.
+      obs.stood = traveller.distanceTo(mirrors.frontOf(ROUND, 3));
       obs.expected = order(o.start === 'none' ? null : o.start);
       const index = obs.expected.indexOf(o.to);
       obs.clicks = [];
@@ -143,7 +145,10 @@ module.exports = {
       list.push(c('walking up, it was named above the hotbar: "Round -- right-click to choose a mirror."', () => /^:: Round -- right-click to choose a mirror\.$/.test(obs.approach || '')));
       list.push(c(`once chosen, the line names it: "Round -- punch to travel to ${o.to}, ..."`, () => new RegExp(`^:: Round -- punch to travel to ${o.to}, right-click for another\\.$`).test(obs.pointing || '')));
     } else {
-      list.push(c('with the approach message off, nothing was named above the hotbar on walking up', () => obs.approach === null));
+      // Silence is only a fact from a traveller standing at the mirror whose bar was heard: the
+      // same place, where its right-clicks were answered above the hotbar.
+      list.push(c('with the approach message off, nothing was named above the hotbar on walking up (standing at it, where its clicks were answered)',
+        () => obs.approach === null && obs.stood < 1 && (obs.clicks || []).some((h) => /opens onto/.test(h))));
     }
     const n = network().length - 1;
     list.push(c(`the right-clicks walked the round by name: ${(obs.expected || []).slice(0, (obs.expected || []).indexOf(o.to) + 1).join(', ')}`,
@@ -173,4 +178,5 @@ module.exports = {
 
   reset: 'wx:reset/m1',
   ROUND,
+  END_SPARE,
 };

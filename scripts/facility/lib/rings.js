@@ -84,7 +84,7 @@ class RingKit {
    * Probe says a player command and collects what it is told for `ms` (or until `until` matches).
    * Chat and action bar alike, as plain text.
    */
-  async ask(command, { ms = 2000, until = null } = {}) {
+  async ask(command, { ms = 2000, until = null, settle = 0 } = {}) {
     const bot = this.probe.bot;
     const heard = [];
     const onChat = (m) => heard.push(m.toString());
@@ -95,6 +95,8 @@ class RingKit {
       while (Date.now() < end && !(until && heard.some((h) => until.test(h)))) {
         await new Promise((resolve) => { setTimeout(resolve, 100); });
       }
+      // The rest of a reply sent in one go, after its first line.
+      if (settle) await new Promise((resolve) => { setTimeout(resolve, settle); });
     } finally {
       bot.off('message', onChat);
     }
@@ -106,9 +108,15 @@ class RingKit {
     return this.ask(`/wormhole ring remove ${id}`, { until: /Removed both ends|no ring pair called/ });
   }
 
-  /** The ids Probe's `ring list` shows (an op sees every pair). */
+  /**
+   * The ids Probe's `ring list` shows (an op sees every pair). Waits for the reply itself, not a
+   * fixed time: under load a late reply read as "no pairs" leaks a pair into the next cell. The
+   * lines are sent in one go, so once the first is in, the rest follow at once.
+   */
   async list() {
-    const text = await this.ask('/wormhole ring list', { ms: 1500 });
+    const reply = /You have no transport rings\.|, (PUBLIC|PRIVATE), /;
+    const text = await this.ask('/wormhole ring list', { ms: 10000, until: reply, settle: 300 });
+    if (!reply.test(text)) throw new Error(`ring list was not answered within 10 s (heard: ${text || 'nothing'})`);
     const ids = [...text.matchAll(/\((\w{8})\)|^(\w{8}) —|\/ (\w{8}) —/g)].map((m) => m[1] || m[2] || m[3]);
     return { text, ids };
   }

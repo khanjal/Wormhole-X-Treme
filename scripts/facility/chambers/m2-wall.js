@@ -85,14 +85,21 @@ module.exports = {
     obs.made = await kit.create(name, mirrorOf(n));
     if (o.case === 'two wide') obs.again = await kit.create(name, { ...mirrorOf(n), x: n.partner[0], z: n.partner[2] });
     if (o.case === 'protected') {
+      // The control: the same block, on no mirror, where the same punch reaches. It must break,
+      // or a punch that never landed would read as protection.
+      const control = [n.x + 3, 1, n.z1 + 1];
+      await ctx.server.run(`setblock ${control.join(' ')} ${WALL}`);
       await ctx.probe.teleport({ x: n.banner[0] + 2.5, y: 0, z: n.banner[2] + 0.5, yaw: 90 });
       await ticks(10);
+      const still = async (at, block) => (await ctx.server.run(`execute if block ${at.join(' ')} ${block}`)).lines.some((l) => /Test passed/.test(l));
+      await ctx.probe.punch({ x: control[0], y: control[1], z: control[2] }, 2);
+      await ticks(10);
+      obs.controlBroke = !(await still(control, WALL));
       for (const at of [n.banner, [n.x, 3, n.banner[2] - 1]]) {
         await ctx.probe.punch({ x: at[0], y: at[1], z: at[2] }, 5);
         await ticks(10);
       }
       await ticks(20);
-      const still = async (at, block) => (await ctx.server.run(`execute if block ${at.join(' ')} ${block}`)).lines.some((l) => /Test passed/.test(l));
       obs.bannerStays = await still(n.banner, '#minecraft:banners');
       obs.wallStays = await still([n.x, 3, n.banner[2] - 1], WALL);
     }
@@ -127,7 +134,8 @@ module.exports = {
         return [c('made', made), c(`the second banner is the same mirror: "Mirror '${obs.name}' is already this banner. Nothing to do."`,
           () => new RegExp(`Mirror '${obs.name}' is already this banner\\. Nothing to do\\.`).test(obs.again || ''))];
       case 'protected':
-        return [c('made', made), c('its banner survived a punch from an op in creative', () => obs.bannerStays), c('and so did its wall', () => obs.wallStays)];
+        return [c('made', made), c('the same punch broke the same block on no mirror (the control)', () => obs.controlBroke),
+          c('its banner survived a punch from an op in creative', () => obs.bannerStays), c('and so did its wall', () => obs.wallStays)];
       case 'remove':
         return [c('made', made), c(`"'${obs.name}' is an ordinary banner again."`, () => new RegExp(`'${obs.name}' is an ordinary banner again\\.`).test(obs.removed || '')),
           c('and the list has only the transit mirrors', () => obs.listed && !obs.listed.includes(obs.name) && obs.listed.includes('Ops'))];
