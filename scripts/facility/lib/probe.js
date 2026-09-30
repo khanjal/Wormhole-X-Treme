@@ -219,10 +219,25 @@ class Probe {
     this.bot._client.write('block_dig', { status: 1, location: at, face, sequence: 0 });
   }
 
+  /**
+   * The block at a point as this client knows it, waiting (bounded) for its chunk: a bot just
+   * teleported into another world is sent the chunks round it over the next ticks, and on
+   * 1.20.4 a button two blocks away was not there yet when the press came.
+   */
+  async blockSeen({ x, y, z }, ms = 10000) {
+    const at = new Vec3(x, y, z);
+    const end = Date.now() + ms;
+    for (;;) {
+      const block = this.bot.blockAt(at);
+      if (block) return block;
+      if (Date.now() > end) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+      await ticks(2);
+    }
+  }
+
   /** Right-clicks a block without waiting for it to change (a button the plugin may consume). */
   async press({ x, y, z }) {
-    const block = this.bot.blockAt(new Vec3(x, y, z));
-    if (!block) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+    const block = await this.blockSeen({ x, y, z });
     await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
     await this.bot.activateBlock(block);
   }
