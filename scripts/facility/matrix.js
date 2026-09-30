@@ -82,8 +82,15 @@ const G1 = [
     known: '#537: of five items tossed (or dispensed) into the opening, some fly through its one block between two entity sweeps (every 20 ticks) and land behind the gate: only an item lying in the opening when a sweep runs is sent',
   })),
   // Every projectile, and the launchers and angles.
-  ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'trident', 'snowball', 'egg', 'pearl',
+  ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'snowball', 'egg', 'pearl',
     'splash potion', 'lingering potion'].map((p) => ({ name: `g1 ${p}`, values: P(p), expect: 'PASS' })),
+  {
+    // Passed while Probe threw in creative, which never uses a trident up; found once thrown in survival.
+    name: 'g1 trident',
+    values: P('trident'),
+    expect: 'FAIL:the loyal trident came back to Probe',
+    known: 'not yet filed (the #536 family): the plugin re-makes a trident at the far gate with a plain trident as its item, so it comes out without Loyalty, sticks where it lands and never comes back; thrown away from a gate it is back in about a second',
+  },
   {
     name: 'g1 tipped arrow',
     values: P('tipped arrow'),
