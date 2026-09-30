@@ -194,13 +194,17 @@ module.exports = {
     await ctx.probe.dismount().catch(() => {});
     const p2 = ctx.facility.probe2;
     // Probe (an op) may send commands as fast as it likes; Probe2 is kicked for spam past about
-    // ten in a burst, so it drops only the place it saved.
+    // ten in a burst, so it lists its places once and drops only the pads among them. (Cleanup
+    // runs with a fresh context, before the next run or at a reset: nothing the run recorded.)
     for (const d of Object.keys(PADS)) {
       const name = `Pad-${d}`;
       await kit.drop(ctx.probe, 'public', name);
       await kit.drop(ctx.probe, 'place', name);
     }
-    if (p2 && obs.saver === p2.name) await kit.drop(p2, 'place', obs.name);
+    if (p2 && !p2.gone) {
+      const listed = (/Your places: (.*)$/.exec(await kit.places(p2)) || [null, ''])[1];
+      for (const name of listed.split(', ').filter((n) => /^Pad-/.test(n))) await kit.drop(p2, 'place', name);
+    }
     await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
     await ctx.probe.teleport(campus.TRANSIT.home).catch(() => {});
     if (p2) await p2.teleport(campus.TRANSIT.home).catch(() => {});

@@ -19,6 +19,8 @@ const DEN = { x: -80, y: 0, z: 16, yaw: 90 };
 const STAND = { x: -59.5, y: 0, z: 24.5, yaw: 90 }; // the desk's seat: where travellers start
 const NETHER_SPOT = { x: -12, y: 64, z: -8 };
 const COOLDOWN = 8;
+// When Probe2's last cooldown began: kept here, since a cleanup runs with a fresh context.
+let cooldownFrom = 0;
 
 const CASES = {
   'send to public': 'console `beam admin send Probe2 Dock`',
@@ -102,6 +104,7 @@ module.exports = {
       const who = a === 'cooldown' ? p2 : probe;
       obs.first = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock' });
       obs.cooldownFrom = Date.now();
+      if (who === p2) cooldownFrom = obs.cooldownFrom;
       await who.teleport(STAND);
       obs.second = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock', refusal: /You must wait longer before beaming again\./ });
       const wait = (obs.second.told.map((t) => /Current Wait \(in seconds\): (\d+)/.exec(t)).find(Boolean) || [])[1];
@@ -111,6 +114,7 @@ module.exports = {
         await who.teleport(STAND);
         obs.third = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock' });
         obs.cooldownFrom = Date.now();
+        cooldownFrom = obs.cooldownFrom;
       }
     }
   },
@@ -170,7 +174,6 @@ module.exports = {
   },
 
   async cleanup(ctx) {
-    const obs = ctx.observed;
     const kit = new BeamKit(ctx.server);
     const p2 = ctx.facility.probe2;
     await kit.drop(ctx.probe, 'public', 'Dock');
@@ -178,10 +181,8 @@ module.exports = {
     await kit.drop(ctx.probe, 'place', 'Den');
     if (p2) await kit.drop(p2, 'place', 'Den');
     // A cooldown left running would refuse the next run's first beam.
-    if (obs.cooldownFrom) {
-      const left = obs.cooldownFrom + (COOLDOWN + 1) * 1000 - Date.now();
-      if (left > 0) await ticks(Math.ceil(left / 50));
-    }
+    const left = cooldownFrom + (COOLDOWN + 1) * 1000 - Date.now();
+    if (left > 0) await ticks(Math.ceil(left / 50));
     await ctx.probe.teleport(campus.TRANSIT.home).catch(() => {});
     if (p2) await p2.teleport(campus.TRANSIT.home).catch(() => {});
   },

@@ -242,7 +242,9 @@ async function stageTraveller(ctx, o, geom) {
   }
   if (PETS[t]) {
     const at = front(geom, 7, 1.5);
-    await ctx.menagerie.animal(PETS[t], at, ctx.tag, { owner: ctx.probe.name, sitting: t === 'sitting wolf' });
+    // A parrot left free perches on Probe's shoulder (and stops being an entity) if given time,
+    // so it sits until the moment Probe sets off.
+    await ctx.menagerie.animal(PETS[t], at, ctx.tag, { owner: ctx.probe.name, sitting: t === 'sitting wolf' || t === 'parrot' });
   }
 }
 
@@ -377,6 +379,7 @@ async function sendTraveller(ctx, o, geom, f) {
     const mark = obs.chat.length;
     if (PETS[t]) {
       await ctx.watch.arm(O, front(geom, 30), { ...dest.arrival, dim: f.dim }, { freeze: false });
+      if (t === 'parrot') await ctx.server.run(`data merge entity @e[tag=${ctx.tag},tag=wx_kind_parrot,limit=1] {Sitting:0b}`);
       await launched(PETS[t]);
     }
     if (geom.flat) {

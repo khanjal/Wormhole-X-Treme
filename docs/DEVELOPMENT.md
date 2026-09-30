@@ -192,9 +192,23 @@ so two runs never share a world. It finds Java 21 or 25 by version on its own; `
 one. `WX_ECHO=1` prints the server's log as it runs.
 
 Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
-link; `!` does the same. Eight plates round the atrium's centre go to each wing and to the two
-far sites, and each wing has a plate home by its door. Say "stop" in chat, or press Ctrl+C, to
-end it.
+link; `!` does the same. Each wing is reached by the feature it tests, built by the plugin as a
+session fixture (`lib/transit.js`, positions in `campus.ROUTES`):
+
+- the gate `Ops`, north in the atrium, and `Hall` in the Gate hall's lobby: press a button on the
+  dial console beside either (the console form of `gate dial`), or press the DHD and `/dial Hall`;
+  the Ops console also dials Range and Annex;
+- the ring pair `Ops` (east in the atrium) and `Lab` (just inside the Ring lab): step in and stand
+  still; a rim in the floor marks each pad, since a paired ring's slabs are taken up;
+- the beam pads `Atrium` (west in the atrium) and `BeamLab`: press the button by the pad and click
+  the prompt, or say `/wormhole beam to BeamLab`. A command block cannot beam whoever pressed it:
+  `beam to` refuses a sender that is not a player (a command block running `execute as @p`
+  included) and `beam admin send` takes a player's exact name, not `@p`. So the button sends the
+  nearest player a chat prompt whose click runs `beam to` as them.
+
+The tp plates are the fallback that works with the plugin down: eight in a row in the service
+corridor under the mezzanine, and a plate home two blocks into each wing's corridor. Say "stop"
+in chat, or press Ctrl+C, to end it.
 
 Every coordinate is in `lib/campus.js`: wings, corridors, lanes, chambers, plates, forceload
 rectangles. Move a wing or resize a room there and run it again; `wings/` compiles the campus
@@ -202,9 +216,12 @@ into a datapack function per wing and a reset per chamber, and refuses to build 
 parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
 its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
 adding a file to `chambers/` against the contract written at the top of `chambers/index.js`.
-So far `c0` (the calibration cell in Ops), `g1` (the Test Stand) and `g2` (the Shape Gallery)
-have them; the far gates (Relay across the hall, Range in the nether, Annex in the End) and the
-gallery's six gates are built once a session as fixtures, and the Menagerie is stocked.
+So far `c0` (the calibration cell in Ops), `g1` (the Test Stand), `g2` (the Shape Gallery), the
+five ring chambers and the range tunnel, and the two beam chambers have them; the far gates
+(Relay across the hall, Range in the nether, Annex in the End), the gallery's six gates and the
+transit routes are built once a session as fixtures, and the Menagerie is stocked. A fixture is
+permanent: a chamber's reset and cleanup leave it alone (`Facility.keepRings` spares the transit
+ring pair from the ring chambers' "take down every pair" cleanup).
 
 G1 builds its gate by the console form, flush with the floor, dials a far gate, and sends one
 traveller through: Probe on foot, riding (horse, camel, pig, donkey, strider), in a cart or a
@@ -216,6 +233,35 @@ refused with the reason. A check is a fact recorded during the run: what Probe's
 in the opening, where Probe is, what a tick function in the datapack caught at the far exit on
 the first tick it was there (position, motion, and whether it is the same entity), and what the
 plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
+
+The ring chambers (stage 3) pair two circles of slabs by the console form `ring build` (public)
+or as Probe with `ring create` in each (private, Probe's), and send one traveller: Probe on foot,
+Probe and Probe2 swapping ends in one instant, Probe on a horse, or a zombie, an item or a cart
+fired from the console. Probe2 is a second bot, never opped and in adventure mode, for what needs
+a player who is not an op. `r1` is the pair stand (patterns, six slabs, distances, private pairs
+and who may use them, styles, the shortest countdown); `r2` hangs one ring from the ceiling (6
+and 10 up pass, 11 and 2 are refused in the plugin's words) and checks the rings stood on the
+floor; `r3` pairs the top of the 60-deep shaft with 20, 40 or 60 down, and at
+`ring-max-link-height 30` the deeper ones are refused; `r4` lays each faulty circle and reads the
+refusal back; `r5` edits a pair (a name announced on arrival, a pad light drawn, private,
+allow, deny, owner); the range tunnel pairs 64, 128 and 250 apart and refuses 257. Timing: the
+swap comes about 154 ticks after a ring is armed and the pair recharges for 30 s after the cycle.
+
+The beam chambers send a traveller by `beam to`, `go`, `admin send` or `admin goto`. `b1` has
+named pads, each saved facing its letter, a trap with no floor (the landing is one down) and a
+blocked pad (one up), and pads in the Range and the Annex; the traveller is Probe2 (watched by
+Probe, whose client must lose sight of it while it travels), Probe, Probe on a horse, or Probe2
+with its wolf; the timing presets are measured against the plugin's timeline to within 0.25 s.
+`b2` is the dispatch desk: `admin send` to a public destination, a player, coordinates in the
+nether, and nobody; `admin goto` and `admin set` as an op and as Probe2 (refused); a player's own
+place against another's (refused); `go` to a gate as an op and as Probe2 (refused); and the
+cooldown, which Probe2 waits out and an op skips.
+
+The self-test's `transit` section, after the fixtures and before the matrix, walks every route as
+Probe2: the gate from the Ops console's `Hall` button (and both gates shut again within
+`timeout-shutdown`), back by the Hall DHD and `/dial Ops`, the ring pair both ways (announced by
+name, recharging on the way straight back), the beam out by the button and back typed. Each
+route's last result is on the Ops wall under TRANSIT. `--quick` walks one route per feature.
 
 There are two self-test profiles. The full one runs the whole matrix (about 170 cells counting
 resets) and takes about 25 minutes on one version; it is the one to iterate on, on 1.21.11.
@@ -247,6 +293,20 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
   real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
   expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
 
+What stage 3 found (none of it a plugin fault; the design had some of it wrong):
+
+- `ring-min-separation` applies between different pairs, not between a pair's own two ends, so a
+  pair 8 apart is not refused.
+- A ring arms on a player's move inside it. A player standing still sends no moves, so after a
+  trip it is carried back only once it moves, not when the cooldown ends. Naming an end means
+  standing in it, which arms the pair; stepping out cancels the countdown.
+- A beam's `beam-rise-ticks` only paces the rising column: the descent starts at the teleport
+  (envelop + teleport-at-step), so the whole beam is envelop + teleport-at-step + descend + fade,
+  52 ticks by default. `beam-descend-ticks` or a later `beam-teleport-at-step` makes it longer.
+- The server kicks a player who is not an op for spam after about ten commands in a burst, so
+  Probe2 sends only what a run needs. Probe2 rejoins if it is kicked, and the log says why.
+- An arrival must match height as well as place: the shaft's two ends share x and z.
+
 What stage 2 found about the harness itself:
 
 - Before 1.21, `spawn-animals=false` in server.properties discards a summoned animal at once, and
@@ -262,10 +322,11 @@ What stage 2 found about the harness itself:
 - An empty boat on land stops within two blocks of a push, so the boat cell starts close.
 
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
-every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
-after each run, a non-op tester's path through the console, every reset, that the plugin holds
-no gates or mirrors, that each setting a chamber changed is back, and that the plugin logged no
-fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
+the transit routes, every plate, the Ops boards as Probe's client sees them, the matrix with a
+reset after each run, a non-op tester's path through the console, every reset, that the plugin
+holds nothing the facility did not make (its fixture gates, the transit ring pair and beam
+destinations, no beam places, no mirrors), that each setting any cell changed is back, and that
+the plugin logged no fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
 
 The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
 datapack function that builds a box, a `/trigger` console whose menu reaches a player who is not
