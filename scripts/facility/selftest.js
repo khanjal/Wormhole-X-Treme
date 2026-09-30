@@ -217,6 +217,40 @@ async function selftest(fac, {
     }
   });
 
+  // Players are not hurt and do not go hungry (Facility.shield and the damage gamerules), and a
+  // mob still is: a non-op Tester dropped fourteen blocks and shot (the hit is seen by its own
+  // client as a hurt, so it did land), and a pig dropped ten (fourteen would kill it), which must
+  // come down hurt.
+  if (first) await guard('players', async () => {
+    const tester = await join({ port: fac.port, version: fac.version, username: 'Tester' });
+    try {
+      await waitEvent(tester, 'message', (m) => /Welcome to the Wormhole Research Facility/.test(m.toString()), 20000, 'the welcome');
+      await new Promise((resolve) => { setTimeout(resolve, 1000); });
+      const at = { x: -10.5, z: 10.5 };
+      const mob = 'wx_players_mob';
+      await srv.run(`kill @e[tag=${mob}]`);
+      await srv.run(`summon minecraft:pig ${at.x + 4} 10 ${at.z} {PersistenceRequired:1b,Silent:1b,Tags:["${mob}"]}`);
+      await srv.run(`tp Tester ${at.x} 14 ${at.z}`);
+      await new Promise((resolve) => { setTimeout(resolve, 3000); });
+      let hurt = 0;
+      const onHurt = (e) => { if (e === tester.entity) hurt++; };
+      tester.on('entityHurt', onHurt);
+      const t = tester.entity.position;
+      await srv.run(`summon minecraft:arrow ${t.x.toFixed(2)} ${(t.y + 3).toFixed(2)} ${t.z.toFixed(2)} {Motion:[0.0,-1.5,0.0]}`);
+      await new Promise((resolve) => { setTimeout(resolve, 2000); });
+      tester.off('entityHurt', onHurt);
+      const mobHealth = (await srv.run(`data get entity @e[tag=${mob},limit=1] Health`)).lines.join(' ');
+      const hp = Number((/(-?[\d.]+)f?\s*$/.exec(mobHealth) || [])[1]);
+      check('players', 'Tester (not an op) is still at full health after a fourteen-block fall', tester.health === 20, `health ${tester.health}`);
+      check('players', 'and an arrow that hit it (its client saw the hit)', hurt > 0 && tester.health === 20, `hits ${hurt}, health ${tester.health}`);
+      check('players', 'and is not hungry', tester.food === 20, `food ${tester.food}`);
+      check('players', 'a pig dropped ten blocks still takes damage', Number.isFinite(hp) && hp < 10, mobHealth);
+      await srv.run(`kill @e[tag=${mob}]`);
+    } finally {
+      tester.quit();
+    }
+  });
+
   await guard('resets', async () => {
     for (const f of fac.manifest.functions.filter((x) => x.fn.startsWith('reset/'))) {
       const e = fac.entries.find((x) => x.def.id === f.chamber) || { def: chamber(f.chamber), chamber: null };
@@ -259,7 +293,9 @@ async function selftest(fac, {
     }
   });
 
-  check('faults', 'plugin log has no faults', fac.faults.count === 0, fac.faults.faults.slice(0, 3).join(' | ') || '0 faults');
+  check('faults', 'plugin log has no faults', fac.faults.count === 0,
+    fac.faults.faults.slice(0, 3).join(' | ') || (fac.faults.known.length ? `0 faults; KNOWN PLUGIN FAULT: ${fac.faults.known[0].note} (${fac.faults.known.length}x)` : '0 faults'));
+  for (const k of fac.faults.known) known.push({ label: `plugin log: ${k.line}`, note: k.note, version: fac.version });
   results.known = known;
   results.times = times;
   results.sectionMs = sectionMs;

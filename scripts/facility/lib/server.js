@@ -36,6 +36,11 @@ const GAMERULES = {
   logAdminCommands: ['logAdminCommands', 'log_admin_commands'],
   patrols: ['doPatrolSpawning', 'spawn_patrols'],
   traders: ['doTraderSpawning', 'spawn_wandering_traders'],
+  // Players only: a mob still falls, burns, drowns and freezes.
+  fallDamage: ['fallDamage', 'fall_damage'],
+  fireDamage: ['fireDamage', 'fire_damage'],
+  drowningDamage: ['drowningDamage', 'drowning_damage'],
+  freezeDamage: ['freezeDamage', 'freeze_damage'],
 };
 
 function gameruleName(version, rule) {
@@ -305,6 +310,28 @@ const KNOWN_BENIGN = [
 ];
 
 /**
+ * Plugin faults that are known plugin bugs: counted and reported as known, the way a matrix cell's
+ * known failure is, never hidden and never benign. Each with its evidence; `issue` once filed.
+ */
+const KNOWN_FAULTS = [
+  {
+    re: /^\[WormholeXTreme\] Could not write mirror capture \S+\.view$/,
+    // MirrorCapture.save: `!parent.isDirectory() && !parent.mkdirs()` then throw. Two captures
+    // finishing together (the transit mirrors, at fixture time) each find the folder missing; the
+    // one whose mkdirs loses the race throws "could not create ...\\captures", and that capture
+    // is never written (it stays in memory). Seen on 1.21.11 in a sharded run and in three servers
+    // started together.
+    note: 'a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',
+    issue: null,
+  },
+];
+
+/** The known fault a line is, or null. */
+function knownFault(message) {
+  return KNOWN_FAULTS.find((k) => k.re.test(message)) || null;
+}
+
+/**
  * A log line's fault message if it is a plugin fault, else null: a WARN or ERROR from
  * WormholeXTreme, a stack frame in its package, or a failure to load, enable or pass an event
  * to it. Messages on KNOWN_BENIGN are not faults.
@@ -486,6 +513,6 @@ function echoOn(value) {
 }
 
 module.exports = {
-  echoOn, jdkVersion, Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  echoOn, jdkVersion, Server, KNOWN_FAULTS, knownFault, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };

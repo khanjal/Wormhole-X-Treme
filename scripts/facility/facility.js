@@ -52,7 +52,8 @@ class Facility {
     // Paper keeps gamerules per world: the nether and the End need them too (a ghast spawned in
     // the Range, with mob spawning off only in the overworld, fireballed Probe2 on a transit trip).
     for (const dim of [campus.OVERWORLD, campus.NETHER, campus.END]) {
-      for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands']) {
+      for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands',
+        'fallDamage', 'fireDamage', 'drowningDamage', 'freezeDamage']) {
         const cmd = `execute in ${dim} run gamerule ${server.gameruleName(this.version, rule)} false`;
         const r = await this.srv.run(cmd);
         if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
@@ -229,10 +230,28 @@ class Facility {
 
   // ---- people --------------------------------------------------------------------------------
 
+  /**
+   * Players in the facility do not go hungry or get hurt: infinite Saturation and Resistance 255,
+   * particles hidden (`infinite` is from 1.19.4). Given on join, and again every five seconds to
+   * everyone (a death or a bucket of milk clears them, and a respawn or a world change would
+   * otherwise go unnoticed). Mobs are not given it: a cell's mob still takes damage.
+   */
+  async shield(who = '@a') {
+    await this.srv.run(`effect give ${who} minecraft:saturation infinite 255 true`);
+    await this.srv.run(`effect give ${who} minecraft:resistance infinite 255 true`);
+  }
+
+  startShielding() {
+    if (this.shieldTimer) return;
+    this.shieldTimer = setInterval(() => { this.shield().catch(() => {}); }, 5000);
+  }
+
   async connectProbe() {
     const bot = await join({ port: this.port, version: this.version, username: BOT });
     this.probe = new Probe(bot, this.srv);
     for (const c of [`op ${BOT}`, `gamemode creative ${BOT}`]) await this.srv.run(c);
+    await this.shield(BOT);
+    this.startShielding();
     await this.probe.teleport(campus.TRANSIT.home);
     return this.probe;
   }
@@ -252,6 +271,7 @@ class Facility {
     bot.on('end', (reason) => { p2.gone = p2.gone || `disconnected: ${reason}`; });
     await this.srv.run('deop Probe2');
     await this.srv.run('gamemode adventure Probe2');
+    await this.shield('Probe2');
     await this.probe2.teleport(campus.TRANSIT.home);
     return this.probe2;
   }
@@ -279,6 +299,7 @@ class Facility {
   async welcome(player) {
     const h = campus.TRANSIT.home;
     await this.srv.run(`gamemode adventure ${player}`);
+    await this.shield(player);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
   }
@@ -536,6 +557,8 @@ class Facility {
   }
 
   async close() {
+    if (this.shieldTimer) clearInterval(this.shieldTimer);
+    this.shieldTimer = null;
     for (const [name, value] of Object.entries(this.baseline || {})) await this.config.write(name, value).catch(() => {});
     for (const b of this.bars) await b.close().catch(() => {});
     if (this.probe) this.probe.bot.quit();
