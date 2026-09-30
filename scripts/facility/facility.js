@@ -455,7 +455,7 @@ class Facility {
     // A desk has no cell and no reset function: its cleanup is all of its reset.
     if (!f) {
       await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
-      if (this.held.delete(e.def.id)) await this.config.restore();
+      if (this.held.delete(e.def.id)) await this.config.restore(e.def.id);
       return { ok: problems.length === 0, problems };
     }
     const r = await this.runFunction(f);
