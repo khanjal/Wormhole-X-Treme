@@ -136,16 +136,18 @@ async function selftest(fac, { buildReport, log = console.log }) {
         return next;
       };
       const welcome = await said((m) => clickOn(m, '[Console]'), 20000, 'the welcome line');
-      check('console', 'Tester is greeted with a Console link', true, welcome.toString());
+      check('console', 'Tester is greeted with a Console link', /^Welcome to the Wormhole Research Facility\. \[Console\]/.test(welcome.toString()), welcome.toString());
+      // The server's own default is survival (run-facility), so adventure here is the welcome's doing.
       check('console', 'Tester arrives in adventure mode', tester.game.gameMode === 'adventure', tester.game.gameMode);
       const tabs = await click(welcome, '[Console]', (m) => clickOn(m, 'Operations'), 'the wing tabs');
-      check('console', 'Console shows the wing tabs', true, tabs.toString().trim());
+      const missing = campus.WINGS.filter((w) => !clickOn(tabs, w.title)).map((w) => w.title);
+      check('console', 'Console shows a tab for every wing', missing.length === 0, missing.length ? `no tab for ${missing.join(', ')}: ${tabs.toString().trim()}` : tabs.toString().trim());
       const listing = await click(tabs, 'Operations', (m) => clickOn(m, 'Calibration Cell'), 'the Ops chambers');
-      check('console', 'the Ops tab lists the calibration cell', true, listing.toString().trim());
+      check('console', 'the Ops tab lists the calibration cell with its state', /C0 Calibration Cell {2}(idle · never run|\w+)/.test(listing.toString()), listing.toString().trim());
       const opts = await click(listing, 'Calibration Cell', (m) => clickOn(m, 'button'), 'the calibration menu');
-      check('console', 'the chamber menu offers its options', true, opts.toString().trim());
+      check('console', 'the chamber menu offers its options, the first current', /control\s+\[lever\] button/.test(opts.toString()), opts.toString().trim());
       const chosen = await click(opts, 'button', (m) => /\[button\]/.test(m.toString()), 'the menu with button chosen');
-      check('console', 'choosing an option marks it current', true, chosen.toString().trim());
+      check('console', 'choosing an option marks it current, and only it', /control\s+lever \[button\]/.test(chosen.toString()), chosen.toString().trim());
       const ran = said((m) => /C0 Calibration Cell: (PASS|FAIL)/.test(m.toString()), 60000, 'the run result');
       tester.chat('!run c0');
       const result = await ran;

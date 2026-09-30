@@ -77,6 +77,11 @@ module.exports = {
     const list = [
       { name: 'target stands where staged', test: () => test(ctx, `execute if block ${at(TARGET)} minecraft:${v.target}`) },
       { name: 'the setting it needs is in force', afterReset: null, test: async () => (await ctx.config.get(SETTING)) === '0.5' },
+      // Or the check above, and the self-test's "restored", would hold whether it was set or not.
+      { name: 'and it replaced a different value', afterReset: null, test: async () => {
+        const was = ctx.config.replaced(ctx.owner, SETTING);
+        return was !== undefined && was !== '0.5';
+      } },
       { name: 'Probe saw the lamp light', afterReset: null, test: async () => ctx.observed.lampLit === true },
     ];
     if (v.control === 'lever') {

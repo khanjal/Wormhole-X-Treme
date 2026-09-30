@@ -18,7 +18,8 @@ const HIDDEN_SLOT = 'sidebar.team.dark_gray';
 
 /** Codes are chamber * 1000 + option * 100 + value; this one table maps both ways. */
 function encode({ chamber, option, value }) {
-  if (option < 0 || option > 9 || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
+  // Option ACTION_OPTION (9) is the actions' slot, so a chamber has options 0..8.
+  if (option < 0 || option >= ACTION_OPTION || value < 0 || value > 99) throw new Error(`code out of range: ${chamber}/${option}/${value}`);
   return chamber * 1000 + option * 100 + value;
 }
 
