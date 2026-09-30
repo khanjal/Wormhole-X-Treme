@@ -456,6 +456,17 @@ async function sendTraveller(ctx, o, geom, f) {
     obs.vehicleArrived = a.count > 0 && a.same;
     obs.stillRiding = Boolean(probe.bot.vehicle) && probe.dimension === f.dim;
     obs.walkChat = chatSince(ctx, mark);
+    if (o['own iris'] === 'shut') {
+      // Where it ended, in blocks out in front of the opening's middle (negative: past it), so a
+      // vehicle that never moved does not read as one the iris stopped.
+      const pos = await ctx.server.run(`execute in ${O} run data get entity ${sel} Pos`);
+      const m = /\[(-?[\d.]+)d, (-?[\d.]+)d, (-?[\d.]+)d\]/.exec(pos.lines.join(' '));
+      const plane = front(geom, 0);
+      obs.vehicleRun = m ? {
+        from: (at.x - plane.x) * geom.normal.x + (at.z - plane.z) * geom.normal.z,
+        to: (Number(m[1]) - plane.x) * geom.normal.x + (Number(m[3]) - plane.z) * geom.normal.z,
+      } : null;
+    }
     return undefined;
   }
   if (t === 'projectile') return shoot(ctx, o, geom, f);
@@ -483,6 +494,8 @@ async function sweep(ctx, o, geom, f) {
     const stand = geom.flat
       ? { x: geom.centre.x + geom.right.x * 3.2, y: PLACE.floorY, z: geom.centre.z + geom.right.z * 3.2 }
       : { ...front(geom, 0.85), y: PLACE.floorY };
+    obs.tossedOut = 0;
+    const holding = () => probe.bot.inventory.items().some((i) => i.name === relic.id);
     for (let i = 0; i < TOSSES; i++) {
       await ctx.menagerie.give(probe.name, 'relic');
       await probe.waitForItem(relic.id);
@@ -491,6 +504,8 @@ async function sweep(ctx, o, geom, f) {
       // Steeply down into the opening's bottom cell.
       await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 0.2, z: inOpening.z });
       await probe.dropOne();
+      // Out of Probe's hand, as the server sees it: the harness's half of "tossed".
+      if (await until(async () => !holding(), 1000, 1)) obs.tossedOut++;
       await ticks(3);
       await probe.teleport(front(geom, 8), O);
     }
@@ -506,6 +521,10 @@ async function sweep(ctx, o, geom, f) {
       await run(ctx, `setblock ${dx} ${bottom.y + 2} ${dz} minecraft:air`);
       await ticks(4);
     }
+    // The harness's half of "dispensed": what the dispenser still holds (none, if it fired five times).
+    const left = await ctx.server.run(`data get block ${dx} ${bottom.y + 1} ${dz} Items`);
+    obs.dispenserHolds = left.lines.join(' ');
+    obs.dispenserLeft = [...obs.dispenserHolds.matchAll(/[Cc]ount: (\d+)/g)].reduce((n, m) => n + Number(m[1]), 0);
   } else if (t === 'spilled items') {
     const items = `Items:[${itemNbt(version, relic, ',Slot:0b')}]`;
     await ctx.menagerie.summon('hopper_minecart', { ...inOpening, y: bottom.y }, ctx.tag, items);
@@ -561,10 +580,14 @@ async function sweep(ctx, o, geom, f) {
     obs.frameStayed = await near(ctx, O, obs.framePlace, `tag=${ctx.tag},tag=wx_kind_item_frame`, 1);
     return undefined;
   }
-  await ctx.watch.waitArrival((scan + 60) * 50);
+  // Every toss, or the deadline: one sent in the last toss may lie in the opening until the next
+  // sweep, a second off.
+  await ctx.watch.waitArrival((scan + 60) * 50, obs.tosses);
   await ticks(4);
   obs.arrival = await ctx.watch.arrival();
   obs.leftBehind = await ctx.watch.leftBehind();
+  obs.launches = await ctx.watch.launches();
+  obs.leftCounts = await ctx.watch.leftBehindCounts();
   const stray = await ctx.server.run('data get entity @e[tag=wx_launched,tag=!wx_arrived,limit=1] Pos');
   obs.strayAt = stray.lines.join(' ');
   obs.items = (await ctx.server.run(`execute positioned ${geom.centre.x} ${geom.centre.y} ${geom.centre.z} if entity @e[type=minecraft:item,distance=..12]`)).lines.join(' ');
@@ -621,6 +644,9 @@ async function shoot(ctx, o, geom, f) {
     }[p];
     const holder = o.launcher === 'tester' ? (await testerName(ctx)) : probe.name;
     if (!holder) throw new Error('launcher "tester" needs a person on the server');
+    // A creative player keeps a thrown trident and never picks one back up, so "came back" is
+    // only a fact in survival (cleanup puts Probe back in creative).
+    if (p === 'trident' && o.launcher === 'bot') await run(ctx, `gamemode survival ${probe.name}`);
     for (const item of kit) await ctx.menagerie.give(holder, item);
     if (o.launcher === 'tester') {
       await ctx.server.run(`tellraw ${holder} {"text":"G1: shoot the ${p} into the Stand's opening now (60 s)","color":"gold"}`);
@@ -633,13 +659,14 @@ async function shoot(ctx, o, geom, f) {
       if (['arrow', 'spectral arrow', 'tipped arrow', 'trident'].includes(p)) await probe.drawAndLoose(25);
       else if (['bolt', 'piercing bolt', 'firework'].includes(p)) await probe.drawAndLoose(30, { crossbow: true });
       else await probe.use();
+      if (p === 'trident') obs.tridentThrown = await until(async () => !probe.bot.inventory.items().some((i) => i.name === 'trident'), 2000, 1);
     }
   }
-  obs.launched = true;
   await ctx.watch.waitArrival(6000);
   await ticks(6);
   obs.arrival = await ctx.watch.arrival();
   obs.leftBehind = await ctx.watch.leftBehind();
+  obs.launches = await ctx.watch.launches();
   obs.strayAt = (await ctx.server.run('data get entity @e[tag=wx_launched,tag=!wx_arrived,limit=1] Pos')).lines.join(' ');
   obs.arrivalData = (await ctx.server.run(`execute in ${f.dim} run data get entity @e[tag=wx_arrived,limit=1]`)).lines.join(' ');
   if (p === 'pearl') {
@@ -655,7 +682,7 @@ async function shoot(ctx, o, geom, f) {
     obs.pearlCarried = await until(async () => probe.dimension === f.dim && onLine(), 5000);
     obs.pearlLanding = `${probe.dimension} ${probe.position.floored()}`;
   }
-  if (p === 'trident') {
+  if (p === 'trident' && obs.tridentThrown) {
     obs.tridentBack = await until(async () => probe.bot.inventory.items().some((i) => i.name === 'trident'), 10000);
   }
   obs.shotChat = chatSince(ctx, mark);
@@ -738,6 +765,10 @@ function checks(ctx, o) {
   if (o.portal !== 'group') list.push(c(`the portal is set to ${o.portal}`, () => new RegExp(`portal material set to: ${o.portal}`).test(obs.portal || '')));
   const t = o.traveller;
   if (t === 'cart at iris') return list.concat(cartChecks(o, obs));
+  // A far iris row proves nothing unless the iris was shut: the lever moved and the plugin shut it.
+  const farIris = o['far iris'] !== 'open' && !['busy', 'self'].includes(o.destination);
+  const farShutCheck = c(`${destOf(o)}'s iris was shut at its lever`, () => obs.farIrisShut === true);
+  if (farIris && o['far iris'] !== 'shut after dial') list.push(farShutCheck);
   const refusal = EXPECTED_REFUSAL[o.destination] || EXPECTED_REFUSAL[o['far iris']];
   if (refusal) {
     list.push(c(`the dial was refused: "${refusal.source.replace(/\\/g, '')}"`, () => refusal.test(obs.dial || '')));
@@ -750,10 +781,12 @@ function checks(ctx, o) {
   if (o.portal !== 'group') list.push(c(`the opening is drawn as ${o.portal}`, () => (obs.drawn || '').toUpperCase() === o.portal));
   const dest = destOf(o);
   const stopped = o['far iris'] === 'shut after dial';
+  if (farIris && stopped) list.push(farShutCheck);
   if (t === 'walk' || PETS[t]) {
     if (o['own iris'] === 'shut') {
       // The shut iris is drawn solid on the client, so a player walks into it and stops; the
       // plugin's "Iris is locked!" is only for a client that gets into the opening regardless.
+      list.push(c('the Stand\'s own iris was shut at its lever', () => obs.ownIrisShut === true));
       list.push(c('Probe did not cross', () => obs.probeAt && obs.probeAt.dim === O && obs.probeAt.d > 5));
       list.push(c('Probe was stopped at the iris, in front of the Stand', () => obs.probeAt && obs.probeAt.home < 2));
     } else if (stopped) {
@@ -775,14 +808,26 @@ function checks(ctx, o) {
   }
   if (t.startsWith('minecart') || t.startsWith('boat')) {
     const kind = t.startsWith('minecart') ? 'cart' : 'boat';
-    if (o['own iris'] === 'shut') list.push(c(`the ${kind} did not cross`, () => !obs.vehicleArrived));
-    else list.push(c(`the same ${kind} came out of ${dest}`, () => obs.vehicleArrived));
+    if (o['own iris'] === 'shut') {
+      list.push(c('the Stand\'s own iris was shut at its lever', () => obs.ownIrisShut === true));
+      // Not only "nothing arrived": it ran at least a block towards the iris and ended in front of
+      // the opening's far side, so a vehicle that never moved fails.
+      list.push(c(`the ${kind} ran at the iris and ended on the near side`, () => obs.vehicleRun
+        && obs.vehicleRun.to <= obs.vehicleRun.from - 1 && obs.vehicleRun.to > -0.5));
+      list.push(c(`the ${kind} did not cross`, () => !obs.vehicleArrived));
+    } else {
+      list.push(c(`the same ${kind} came out of ${dest}`, () => obs.vehicleArrived));
+    }
     if (t.endsWith('ridden') && o['own iris'] !== 'shut') list.push(c('Probe is still in it', () => obs.stillRiding));
     return list;
   }
   if (t === 'item frame') return list.concat([c('the item frame stayed where it hung', () => obs.frameStayed)]);
   if (['armour stand', 'zombie', 'llama'].includes(t)) return list.concat([c(`the ${t} came out of ${dest}`, () => obs.mobArrived)]);
   const arrived = () => obs.arrival && obs.arrival.count > 0;
+  // Seen leaving the launcher by the tick function, or taken by the plugin before it could be.
+  // A lying item needs none: its summon is checked, and it is summoned in the opening.
+  const launched = () => obs.launches && obs.launches.tagged + obs.launches.fresh > 0;
+  if (t === 'projectile') list.push(c('it was launched (seen leaving the launcher)', launched));
   if (stopped) {
     list.push(c('it was stopped: nothing came out', () => obs.arrival && obs.arrival.count === 0));
     list.push(c('and nothing was left on the near side', () => obs.leftBehind === 0));
@@ -799,13 +844,29 @@ function checks(ctx, o) {
       const ints = offlineUuidInts(ctx.probe.name);
       list.push(c('its owner is still Probe', () => ints.every((i) => (obs.arrivalData || '').includes(String(i)))));
     }
-    if (['tipped arrow', 'splash potion', 'lingering potion'].includes(p)) list.push(c('its slowness survived', () => /slowness/.test(obs.arrivalData || '')));
+    if (['tipped arrow', 'splash potion', 'lingering potion'].includes(p)) {
+      // What left the launcher carried slowness, so a plain arrival is the plugin's doing.
+      list.push(c(`the ${p} launched carried slowness`, () => /slowness/.test((obs.launches && obs.launches.first) || '')));
+      list.push(c('its slowness survived', () => /slowness/.test(obs.arrivalData || '')));
+    }
     if (p === 'pearl') list.push(c(`the pearl carried Probe to ${dest}`, () => obs.pearlCarried));
-    if (p === 'trident') list.push(c('the loyal trident came back to Probe', () => obs.tridentBack));
+    if (p === 'trident' && o.launcher === 'bot') {
+      list.push(c('the trident left Probe\'s inventory (thrown in survival)', () => obs.tridentThrown));
+      list.push(c('the loyal trident came back to Probe', () => obs.tridentBack));
+    }
     return list;
   }
   // Items and orbs.
-  if (obs.tosses > 1) list.push(c(`every one of the ${obs.tosses} came out of ${dest}`, () => obs.arrival && obs.arrival.count === obs.tosses && obs.leftBehind === 0));
+  if (obs.tosses > 1) {
+    // The harness's half first: all of them went out, and every one is accounted for (arrived, or
+    // lying on this side), so a toss that failed or a stack Probe picked up again is not read as
+    // the plugin losing it.
+    if (t === 'dropped item') list.push(c(`all ${obs.tosses} left Probe's hand`, () => obs.tossedOut === obs.tosses));
+    if (t === 'dispensed item') list.push(c(`the dispenser fired all ${obs.tosses}`, () => obs.dispenserLeft === 0 && /\[/.test(obs.dispenserHolds || '')));
+    list.push(c(`all ${obs.tosses} are accounted for: arrived, or lying on this side`, () => obs.arrival
+      && obs.arrival.count + (obs.leftCounts || []).reduce((a, b) => a + b, 0) === obs.tosses));
+    list.push(c(`every one of the ${obs.tosses} came out of ${dest}`, () => obs.arrival && obs.arrival.count === obs.tosses && obs.leftBehind === 0));
+  }
   list.push(c(`it came out of ${dest}`, arrived));
   if (t === 'xp' || t === 'lying item') {
     // Summoned with its tags, so it can be judged as an entity: the plugin moves it, not a copy.
@@ -875,18 +936,21 @@ async function shut(ctx, o) {
   const kit = kitOf(ctx);
   const f = farOf(o);
   const ends = [{ name: STAND, dim: O, geom: obs.geom }, { name: f.name, dim: f.dim, geom: f.geom }];
-  obs.closed = [];
-  for (const e of ends) obs.closed.push((await kit.force(e.name)).text);
   const probe = ctx.probe;
-  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
-  const list = [c('closed by command: "<gate> has been closed, darkened, ..."', () => obs.closed.every((t) => /has been closed/.test(t)))];
   // Only an end whose opening Probe's client has in view is judged: another world's, or one too
-  // far off to be sent, would pass whatever the plugin did.
+  // far off to be sent, would pass whatever the plugin did. And it must be seen drawn open before
+  // the close, or an opening never drawn to Probe would read as shut.
   const { Vec3 } = require('vec3');
   const inView = (g) => g.opening.every((p) => probe.bot.blockAt(new Vec3(p.x, p.y, p.z)) !== null);
-  for (const e of ends) {
-    if (probe.dimension !== e.dim || !inView(e.geom)) continue;
-    list.push(c(`${e.name} shut on command: its opening is no longer drawn`, async () => (await kit.waitShut(probe, e.geom)) === true));
+  const judged = ends.filter((e) => probe.dimension === e.dim && inView(e.geom));
+  for (const e of judged) e.seenOpen = (await kit.waitDrawn(probe, e.geom)) === true;
+  obs.closed = [];
+  for (const e of ends) obs.closed.push((await kit.force(e.name)).text);
+  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const list = [c('closed by command: "<gate> has been closed, darkened, ..."', () => obs.closed.every((t) => /has been closed/.test(t)))];
+  for (const e of judged) {
+    list.push(c(`${e.name} shut on command: drawn open before, and its opening no longer drawn`,
+      async () => e.seenOpen && (await kit.waitShut(probe, e.geom)) === true));
   }
   return list;
 }
@@ -903,6 +967,7 @@ async function cleanup(ctx) {
   await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
   await ctx.server.run('kill @e[tag=wx_spit]');
   await ctx.server.run(`clear ${ctx.probe.name}`);
+  await ctx.server.run(`gamemode creative ${ctx.probe.name}`);
   await ctx.server.run('execute in minecraft:overworld run fill -1 5 -135 1 6 -120 minecraft:air replace minecraft:glass');
 }
 
