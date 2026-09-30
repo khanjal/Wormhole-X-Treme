@@ -158,6 +158,18 @@ public class ConfigManager
         COREPROTECT_ENABLED,
         /** Whether the WorldGuard region flags wormhole-build and wormhole-use are registered (#240). */
         WORLDGUARD_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on Dynmap (#236). */
+        DYNMAP_ENABLED,
+        /** Whether gates and the lines between dialled pairs are a web map layer. */
+        MAP_SHOW_GATES,
+        /** Whether transport rings are a web map layer. */
+        MAP_SHOW_RINGS,
+        /** Whether public beam destinations are a web map layer. */
+        MAP_SHOW_BEAMS,
+        /** Whether quantum mirrors are a web map layer. */
+        MAP_SHOW_MIRRORS,
+        /** Whether gates with an iris code are drawn on the web map. */
+        MAP_SHOW_IRIS_GATES,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -2010,6 +2022,48 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.WORLDGUARD_ENABLED);
         return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on Dynmap. */
+    public static boolean isDynmapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates and the lines between dialled pairs are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_GATES);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if transport rings are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowRings()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_RINGS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if public beam destinations are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowBeams()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_BEAMS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if quantum mirrors are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowMirrors()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_MIRRORS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if gates with an iris code appear on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowIrisGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_IRIS_GATES);
+        return (s == null) || s.getBooleanValue();
     }
 
     /** Returns true if the PlaceholderAPI expansion should be registered. */
