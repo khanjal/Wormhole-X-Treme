@@ -230,6 +230,11 @@ async function selftest(fac, {
       const mob = 'wx_players_mob';
       await srv.run(`kill @e[tag=${mob}]`);
       await srv.run(`summon minecraft:pig ${at.x + 4} 10 ${at.z} {PersistenceRequired:1b,Silent:1b,Tags:["${mob}"]}`);
+      // The lowest health the client is told of, not just the last: Saturation heals a hurt
+      // player back to full within a couple of seconds, which would hide a hit.
+      let lowest = tester.health;
+      const onHealth = () => { lowest = Math.min(lowest, tester.health); };
+      tester.on('health', onHealth);
       await srv.run(`tp Tester ${at.x} 14 ${at.z}`);
       await new Promise((resolve) => { setTimeout(resolve, 3000); });
       let hurt = 0;
@@ -239,10 +244,11 @@ async function selftest(fac, {
       await srv.run(`summon minecraft:arrow ${t.x.toFixed(2)} ${(t.y + 3).toFixed(2)} ${t.z.toFixed(2)} {Motion:[0.0,-1.5,0.0]}`);
       await new Promise((resolve) => { setTimeout(resolve, 2000); });
       tester.off('entityHurt', onHurt);
+      tester.off('health', onHealth);
       const mobHealth = (await srv.run(`data get entity @e[tag=${mob},limit=1] Health`)).lines.join(' ');
       const hp = Number((/(-?[\d.]+)f?\s*$/.exec(mobHealth) || [])[1]);
-      check('players', 'Tester (not an op) is still at full health after a fourteen-block fall', tester.health === 20, `health ${tester.health}`);
-      check('players', 'and an arrow that hit it (its client saw the hit)', hurt > 0 && tester.health === 20, `hits ${hurt}, health ${tester.health}`);
+      check('players', 'Tester (not an op) never dropped below full health through a fourteen-block fall and an arrow', lowest === 20, `lowest ${lowest}, now ${tester.health}`);
+      check('players', 'and the arrow did hit it (its client saw the hit)', hurt > 0, `hits ${hurt}`);
       check('players', 'and is not hungry', tester.food === 20, `food ${tester.food}`);
       check('players', 'a pig dropped ten blocks still takes damage', Number.isFinite(hp) && hp < 10, mobHealth);
       await srv.run(`kill @e[tag=${mob}]`);
