@@ -408,27 +408,43 @@ class Server extends EventEmitter {
     this.proc.stdout.on('data', reader());
     this.proc.stderr.on('data', reader());
     // A JVM killed by a signal exits with no code; it has exited all the same.
-    this.proc.on('exit', (code, signal) => { this.exited = code === null ? (signal || 'signal') : code; this.emit('exit', this.exited); });
+    this.proc.on('exit', (code, signal) => {
+      this.callOffDog();
+      this.exited = code === null ? (signal || 'signal') : code;
+      this.emit('exit', this.exited);
+    });
     return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
   }
 
   /**
    * A watchdog process that kills the JVM if the launcher dies without running its exit hook
-   * (Task Manager, taskkill /F, SIGKILL): nothing else would, since the JVM has no console.
+   * (Task Manager, taskkill /F, SIGKILL): nothing else would, since the JVM has no console. It
+   * holds the read end of a pipe from the launcher and acts only on its EOF, which only a dead
+   * launcher sends; every other way the JVM or the launcher ends calls it off first. No PID is
+   * polled, so none is guessed at after it has been freed and reused.
    */
   watch() {
-    const code = 'const [parent, child] = process.argv.slice(1).map(Number);'
-      + 'const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; } };'
-      + 'const t = setInterval(() => { if (!alive(child)) clearInterval(t);'
-      + ' else if (!alive(parent)) { try { process.kill(child); } catch { /* gone */ } clearInterval(t); } }, 1000);';
     if (!this.proc.pid) return;
+    const code = 'const jvm = Number(process.argv[1]);'
+      + 'const bite = () => { try { process.kill(jvm); } catch { /* gone */ } process.exit(0); };'
+      + 'process.stdin.on("data", () => {}); process.stdin.on("end", bite); process.stdin.on("error", bite);';
     try {
-      const dog = spawn(process.execPath, ['-e', code, String(process.pid), String(this.proc.pid)], {
-        detached: true, stdio: 'ignore', windowsHide: true,
+      this.dog = spawn(process.execPath, ['-e', code, String(this.proc.pid)], {
+        detached: true, stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true,
       });
-      dog.on('error', () => {});
-      dog.unref();
+      this.dog.on('error', () => {});
+      this.dog.stdin.on('error', () => {});
+      this.dog.stdin.unref();
+      this.dog.unref();
     } catch { /* the exit hook still covers every exit but a hard kill */ }
+  }
+
+  /** Stops the watchdog: the JVM is gone, or is being killed by the launcher itself. */
+  callOffDog() {
+    if (this.dog && this.dog.exitCode === null && this.dog.signalCode === null) {
+      try { this.dog.kill(); } catch { /* already gone */ }
+    }
+    this.dog = null;
   }
 
   /** Resolves with the first log line (from now on) matching `re`, or rejects naming `what`. */
@@ -458,6 +474,7 @@ class Server extends EventEmitter {
     if (this.proc && this.exited === null) {
       try { this.proc.kill(); } catch { /* already gone */ }
     }
+    this.callOffDog();
   }
 
   /**
