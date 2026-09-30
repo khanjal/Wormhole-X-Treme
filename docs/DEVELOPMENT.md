@@ -440,6 +440,10 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
 - The #236 checklist's gate rename has nothing to run: `gate edit` has no `name` field, so a gate
   cannot be renamed (`map rename`, a known failure). Rings (`ring edit name`) and mirrors (made
   again at the same banner) do relabel.
+- With a permissions plugin, a player holds only the nodes given, and a mirror is used under a
+  gate's use check (`wormhole.use.sign` or `wormhole.use.dialer`, both `default: false`), where
+  rings and beams have nodes that default to true: Probe2 with no group could not choose a mirror
+  on the transit route. So Probe2 joins as a `visitor` whenever LuckPerms is installed.
 - LuckPerms and WorldGuard answer several console commands (`lp ...`, `rg load`, `rg addmember`,
   an unknown `rg flag`) from another thread, after the command's fence: the desks wait for the
   answer line in the log instead.
