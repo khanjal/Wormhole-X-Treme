@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -127,6 +128,13 @@ public final class GateConsoleCommands
             sender.sendMessage(error + "Not built: " + outOfHeight);
             return;
         }
+        // A player is held to the regions it would stand in, as building it by hand would be.
+        if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
+            && !RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
+        {
+            sender.sendMessage(RegionFlags.BUILD_REFUSED);
+            return;
+        }
         loadChunksUnder(world, shape, grid);
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
@@ -218,6 +226,10 @@ public final class GateConsoleCommands
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
+        if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && RegionFlags.refusesUse(player, start))
+        {
+            return;
+        }
         Dial.dialFrom(sender, start, Arrays.copyOfRange(rest, 1, rest.length));
     }
 
@@ -237,6 +249,17 @@ public final class GateConsoleCommands
                 world.getChunkAt(cx, cz);
             }
         }
+    }
+
+    /** Where each of these cells stands in the world. */
+    private static List<Location> locationsOf(final World world, final List<GateBlueprint.Cell> cells)
+    {
+        final List<Location> out = new ArrayList<>(cells.size());
+        for (final GateBlueprint.Cell cell : cells)
+        {
+            out.add(new Location(world, cell.x(), cell.y(), cell.z()));
+        }
+        return out;
     }
 
     /** Every block the gate will take: its frame, DHD and opening. */

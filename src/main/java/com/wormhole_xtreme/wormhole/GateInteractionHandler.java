@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -204,17 +205,28 @@ public final class GateInteractionHandler
 
         if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
         {
-            if (newGate.isGateSignPowered())
-            {
-                newGate.resetTeleportSign();
-            }
-            StargateManager.removeIncompleteStargate(player);
+            withdrawOffer(player, newGate);
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
+        if (RegionFlags.refusesBuild(player, newGate))
+        {
+            withdrawOffer(player, newGate);
             return;
         }
 
         StargateManager.addIncompleteStargate(player, newGate);
         announceValidDesign(player, newGate);
+    }
+
+    /** Forgets a gate its builder may not have, putting its sign back as it was. */
+    private static void withdrawOffer(final Player player, final Stargate newGate)
+    {
+        if (newGate.isGateSignPowered())
+        {
+            newGate.resetTeleportSign();
+        }
+        StargateManager.removeIncompleteStargate(player);
     }
 
     /**
@@ -371,6 +383,10 @@ public final class GateInteractionHandler
     private static void completeDetectedGate(final Player player, final Stargate found,
         final String[] pending)
     {
+        if (RegionFlags.refusesBuild(player, found))
+        {
+            return;
+        }
         StargateManager.addIncompleteStargate(player, found);
         Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
             "Construction Failed after interactive detection. Check server log.", null);
@@ -433,6 +449,11 @@ public final class GateInteractionHandler
         if (stargate.isGateActive() || stargate.isGateLightsActive())
         {
             return closeOrDeactivate(stargate, player);
+        }
+        // Shutting a gate down stays allowed; only opening one is a region's to refuse.
+        if (RegionFlags.refusesUse(player, stargate))
+        {
+            return false;
         }
         if (stargate.isGateSignPowered())
         {
@@ -868,6 +889,10 @@ public final class GateInteractionHandler
     {
         if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD))
         {
+            if (RegionFlags.refusesBuild(player, nearbyGate))
+            {
+                return;
+            }
             StargateManager.addIncompleteStargate(player, nearbyGate);
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");

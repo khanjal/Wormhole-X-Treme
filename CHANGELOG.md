@@ -13,6 +13,17 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
 
+### For server admins
+
+**Added**
+
+- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
+  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
+  from or travelled through, at either end. A flag only takes away: a player still needs the
+  usual permission, and WorldGuard's region bypass gets past the flag. Off until
+  `worldguard-enabled` is set, which takes a restart. Rings, beams and mirrors are not covered
+  yet. See [the guide](docs/guide/SERVER.md#worldguard).
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world

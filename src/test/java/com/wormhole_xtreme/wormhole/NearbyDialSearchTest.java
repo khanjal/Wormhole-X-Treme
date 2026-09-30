@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Location;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -248,6 +250,35 @@ class NearbyDialSearchTest
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player),
                 "the centre of the 3x3x3 is skipped, so nothing is found");
+        }
+    }
+
+    /** With the build permission, a gate in a region denying gate building is refused, with the region's reason. */
+    @Test
+    void aGateInARegionDenyingBuildingIsNotOffered()
+    {
+        leverAt(1, 0, 0, Material.OBSIDIAN);
+        final Stargate found = unregisteredGate();
+        when(found.getGateStructureBlocks()).thenReturn(List.of(new Location(null, 1, 64, 0)));
+        RegionFlags.setCheckForTest((who, where, action) -> false);
+
+        try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
+             MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
+        {
+            helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
+            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(found);
+            perms.when(() -> WXPermissions.checkWXPermissions(any(Player.class), any(Stargate.class), any()))
+                .thenReturn(true);
+
+            assertTrue(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
+
+            verify(player).sendMessage(RegionFlags.BUILD_REFUSED);
+            manager.verify(() -> StargateManager.addIncompleteStargate(any(), any()), never());
+        }
+        finally
+        {
+            RegionFlags.setCheckForTest(null);
         }
     }
 }
