@@ -29,10 +29,10 @@ const { RingKit } = require('./lib/rings');
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
  * result like any other: `REFUSED:<the chamber's reason>`.
  */
-const { MATRIX, defaultsOf, expectation } = require('./matrix');
+const { MATRIX, defaultsOf, expectation, applies } = require('./matrix');
 
 async function selftest(fac, {
-  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null,
+  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null, companions = null,
 }) {
   const results = [];
   const known = [];
@@ -137,6 +137,8 @@ async function selftest(fac, {
       const e = fac.entries.find((x) => x.def.id === id);
       const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
+        // First: a companion cell's settings may not exist in a jar tested without its companion.
+        if (!applies(cell, companions)) continue;
         // Every setting any cell needs is read before its first run, and checked at the end.
         const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
         for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }

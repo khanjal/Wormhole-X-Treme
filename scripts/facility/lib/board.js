@@ -92,9 +92,11 @@ class RunBar {
  * Counts plugin faults in the server's output (server.pluginFault decides what is one) from the
  * moment it is attached, and shows the count on the Ops fault board: green at zero, red with
  * the first fault's line after that. Attach it before the server starts to see enable faults.
+ * `extra(line)` names more faults (a companion plugin that failed to load, a map that could
+ * not bind its port), or null.
  */
 class FaultCounter {
-  constructor(srv) {
+  constructor(srv, { extra = null } = {}) {
     this.srv = srv;
     this.faults = [];
     // Known plugin bugs (server.KNOWN_FAULTS): reported, not counted as new faults. The stack
@@ -103,7 +105,7 @@ class FaultCounter {
     this.onChange = null;
     let inKnownTrace = false;
     srv.on('line', (line) => {
-      const f = server.pluginFault(line);
+      const f = server.pluginFault(line) || (extra && extra(line));
       const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
       if (logLine) inKnownTrace = false;
       if (!f) return;
