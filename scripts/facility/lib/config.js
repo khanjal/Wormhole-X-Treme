@@ -59,19 +59,26 @@ class Config {
   }
 
   /**
-   * Puts back every setting a run killed before its restore left changed, from the journal;
-   * returns what it put back. A setting it cannot write stays in the journal, and it throws.
+   * Puts back every setting a run killed before its restore left changed, from the journal.
+   * Returns { restored, refused }: an entry the plugin refuses (a setting renamed or retyped
+   * between builds) is dropped too and named in `refused`, so it fails one start, not every one.
    */
   async recover() {
     const j = this.readJournal();
-    const done = [];
+    const restored = [];
+    const refused = [];
     for (const [name, before] of Object.entries(j)) {
-      await this.write(name, before);
+      try {
+        await this.write(name, before);
+        restored.push(`${name}=${before}`);
+      } catch (e) {
+        if (!e.refused) throw e; // a server that did not answer: keep the entry for next time
+        refused.push(`${name}=${before} (${e.message})`);
+      }
       delete j[name];
       this.writeJournal(j);
-      done.push(`${name}=${before}`);
     }
-    return done;
+    return { restored, refused };
   }
 
   /** The setting's current value as the plugin prints it. Throws for an unknown setting. */
@@ -86,7 +93,7 @@ class Config {
   async write(name, value) {
     const r = await this.srv.run(`wormhole config ${name} ${value}`);
     const m = r.lines.map((l) => /^([A-Z0-9_]+) is now (.*)\.$/.exec(l.trim())).find(Boolean);
-    if (!m) throw new Error(`wormhole config ${name} ${value} was refused: ${r.lines.join(' | ') || 'no answer'}`);
+    if (!m) throw Object.assign(new Error(`wormhole config ${name} ${value} was refused: ${r.lines.join(' | ') || 'no answer'}`), { refused: true });
     return m[2];
   }
 

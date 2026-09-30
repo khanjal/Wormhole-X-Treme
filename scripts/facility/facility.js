@@ -68,10 +68,13 @@ class Facility {
     }
     this.loadMs = Date.now() - t0;
     try {
-      const recovered = await this.config.recover();
-      if (recovered.length) this.log(`  put back settings a killed run left changed: ${recovered.join(', ')}`);
+      const { restored, refused } = await this.config.recover();
+      if (restored.length) this.log(`  put back settings a killed run left changed: ${restored.join(', ')}`);
+      for (const r of refused) {
+        problems.push(`${Config.JOURNAL} held ${r}; dropped it from the journal, so set that setting by hand if it matters`);
+      }
     } catch (e) {
-      problems.push(`settings a killed run left changed: ${e.message}`);
+      problems.push(`cannot put back the settings in ${Config.JOURNAL}, kept for the next start: ${e.message}`);
     }
     return problems;
   }

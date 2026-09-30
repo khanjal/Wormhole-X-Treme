@@ -183,7 +183,7 @@ class Probe {
       changed.catch(() => {});
       throw e;
     }
-    const [, now] = await changed;
+    const [, now] = await this.alive(changed, `waiting for ${block.name} at ${x} ${y} ${z} to change`, ms + 1000);
     return now;
   }
 
