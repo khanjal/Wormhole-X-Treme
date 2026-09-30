@@ -63,13 +63,13 @@ const G1 = [
   { name: 'g1 boat ridden', values: { traveller: 'boat ridden' }, expect: 'PASS' },
   ...['horse', 'camel', 'pig', 'donkey', 'llama', 'strider'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
   ...['wolf', 'cat', 'parrot', 'sitting wolf'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
-  ...['dropped item', 'spilled items', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
-  {
-    name: 'g1 dispensed item',
-    values: { traveller: 'dispensed item' },
+  ...['spilled items', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
+  ...['dropped item', 'dispensed item'].map((t) => ({
+    name: `g1 ${t}`,
+    values: { traveller: t },
     expect: 'FAIL:it came out of Relay',
-    known: 'an item thrown through the opening crosses it between two entity sweeps (every 20 ticks) and lands behind the gate: only an item lying in the opening when a sweep runs is sent',
-  },
+    known: 'an item tossed or dispensed into the opening flies through its one block in a tick or two, between the entity sweeps (every 20 ticks), and lands behind the gate: only an item lying in the opening when a sweep runs is sent',
+  })),
   // Every projectile, and the launchers and angles.
   ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'trident', 'snowball', 'egg', 'pearl',
     'splash potion', 'lingering potion'].map((p) => ({ name: `g1 ${p}`, values: P(p), expect: 'PASS' })),
@@ -87,7 +87,7 @@ const G1 = [
   { name: 'g1 arrow point-blank', values: P('arrow', { angle: 'point-blank' }), expect: 'PASS' },
   { name: 'g1 arrow down into Horizontal', values: P('arrow', { shape: 'Horizontal', angle: 'above' }), expect: 'PASS' },
   { name: 'g1 far iris shut after dial: arrow', values: P('arrow', { 'far iris': 'shut after dial' }), expect: 'PASS' },
-  { name: 'g1 far iris shut after dial: dropped item', values: { traveller: 'dropped item', 'far iris': 'shut after dial' }, expect: 'PASS' },
+  { name: 'g1 far iris shut after dial: items', values: { traveller: 'spilled items', 'far iris': 'shut after dial' }, expect: 'PASS' },
   // Issue #491: a cart run at a shut iris stops flush with its face (checklist in g1-stand.js).
   { name: '491-A cart from the front', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut' }, ...CART_491 },
   { name: '491-B cart with a rider', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', rider: 'Probe' }, ...CART_491 },

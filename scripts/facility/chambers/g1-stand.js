@@ -348,8 +348,13 @@ async function sendTraveller(ctx, o, geom, f) {
       await ctx.watch.arm(O, front(geom, 30), { ...dest.arrival, dim: f.dim }, { freeze: false });
       await launched(PETS[t]);
     }
-    const target = geom.flat ? { x: geom.centre.x, z: geom.centre.z } : beyond;
-    await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.dimension !== O || probe.distanceTo(dest.arrival) < 3 }).catch(() => {});
+    if (geom.flat) {
+      // A flat gate is stepped into: Probe is put just above the middle of the opening and falls.
+      // (Walking up to it crosses the DHD button, which sits in a hole in the floor.)
+      await probe.teleport({ x: geom.centre.x, y: PLACE.floorY + 0.2, z: geom.centre.z }, O).catch(() => {});
+    } else {
+      await probe.walkTo(beyond, { within: 0.4, ms: 15000, until: () => probe.dimension !== O || probe.distanceTo(dest.arrival) < 3 }).catch(() => {});
+    }
     await until(async () => probe.dimension === f.dim && probe.distanceTo(dest.arrival) < 3, 4000);
     await probe.settle();
     obs.probeAt = { dim: probe.dimension, d: probe.distanceTo(dest.arrival), home: probe.distanceTo(geom.arrival), pos: probe.position.floored().toString() };
@@ -433,9 +438,10 @@ async function sweep(ctx, o, geom, f) {
     // so Probe does not pick it up again before the plugin's sweep finds it.
     const stand = geom.flat
       ? { x: geom.centre.x + geom.right.x * 3.2, y: PLACE.floorY, z: geom.centre.z + geom.right.z * 3.2 }
-      : { ...front(geom, 1.0), y: PLACE.floorY };
+      : { ...front(geom, 0.85), y: PLACE.floorY };
     await probe.teleport(stand, O);
-    await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 1.0, z: inOpening.z });
+    // Steeply down into the opening's bottom cell, so the toss lands inside it.
+    await probe.look(geom.flat ? { x: geom.centre.x, y: bottom.y + 0.5, z: geom.centre.z } : { x: inOpening.x, y: bottom.y + 0.2, z: inOpening.z });
     await probe.dropOne();
     await ticks(3);
     await probe.teleport(front(geom, 8), O);
@@ -666,8 +672,10 @@ function checks(ctx, o) {
   const stopped = o['far iris'] === 'shut after dial';
   if (t === 'walk' || PETS[t]) {
     if (o['own iris'] === 'shut') {
-      list.push(c('Probe was told "Iris is locked!"', () => /Iris is locked!/.test(obs.walkChat || '')));
+      // The shut iris is drawn solid on the client, so a player walks into it and stops; the
+      // plugin's "Iris is locked!" is only for a client that gets into the opening regardless.
       list.push(c('Probe did not cross', () => obs.probeAt && obs.probeAt.dim === O && obs.probeAt.d > 5));
+      list.push(c('Probe was stopped at the iris, in front of the Stand', () => obs.probeAt && obs.probeAt.home < 2));
     } else if (stopped) {
       list.push(c('Probe was told "Remote Iris is locked!"', () => /Remote Iris is locked!/.test(obs.walkChat || '')));
       list.push(c('Probe was put back at the Stand', () => obs.probeAt && obs.probeAt.dim === O && obs.probeAt.home < 3));

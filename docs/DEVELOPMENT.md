@@ -200,8 +200,26 @@ rectangles. Move a wing or resize a room there and run it again; `wings/` compil
 into a datapack function per wing and a reset per chamber, and refuses to build a layout whose
 parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
 its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
-adding a file to `chambers/` against the contract written at the top of `chambers/index.js`;
-only `c0`, the calibration cell in Ops, has them so far.
+adding a file to `chambers/` against the contract written at the top of `chambers/index.js`.
+So far `c0` (the calibration cell in Ops), `g1` (the Test Stand) and `g2` (the Shape Gallery)
+have them; the far gates (Relay across the hall, Range in the nether, Annex in the End) and the
+gallery's six gates are built once a session as fixtures, and the Menagerie is stocked.
+
+G1 builds its gate by the console form, flush with the floor, dials a far gate, and sends one
+traveller through: Probe on foot, riding (horse, camel, pig, donkey, strider), in a cart or a
+boat, with a pet following, a projectile from a bow, crossbow, hand, dispenser or you, a dropped
+or dispensed or spilled item, an orb, an armour stand, a zombie, a swept llama, or an item frame
+that must stay put. Its options (shape, group, chevrons, dial, spin, destination, irises, portal
+and the rest) each carry their reason as hover text; the combinations that cannot be run are
+refused with the reason. A check is a fact recorded during the run: what Probe's client was shown
+in the opening, where Probe is, what a tick function in the datapack caught at the far exit on
+the first tick it was there (position, motion, and whether it is the same entity), and what the
+plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
+
+`--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
+expected to fail by the name of its failing check and is listed at the end of the run as a known
+plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
+expects those cells to pass instead.
 
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
 every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset

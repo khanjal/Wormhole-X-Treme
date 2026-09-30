@@ -10,7 +10,7 @@
 //             followed by its reset, which must leave the cell as built
 //   resets    every chamber's reset function, then its cell must be clear
 //   console   a non-op Tester clicks through the menus, chooses an option, runs and resets
-//   empty     the plugin holds nothing the facility did not make: no gates, no mirrors
+//   empty     the plugin holds nothing the facility did not make: its fixture gates, no mirrors
 //   settings  every setting a chamber needed is back to what it was
 //   faults    the plugin log has no fault in it (server.js KNOWN_BENIGN aside)
 
@@ -179,8 +179,13 @@ async function selftest(fac, { buildReport, fixtures = [], only = null, fixed = 
   });
 
   await guard('empty', async () => {
+    // Only the session's fixtures: the far gates and the gallery. A gate a run built and its
+    // reset left behind would show here.
     const gates = await srv.run('wormhole list');
-    check('empty', 'no gates', gates.lines.some((l) => /No gates found/.test(l)), gates.lines.join(' | '));
+    const listed = gates.lines.filter((l) => !/Available gates|No gates found/.test(l)).join(',')
+      .replace(/§./g, '').split(',').map((x) => x.trim()).filter(Boolean).sort();
+    const fixed = [...Object.keys(require('./chambers/relay').farGates()), ...require('./chambers/g2-gallery').gallery().map((g) => g.name)].sort();
+    check('empty', 'only the fixture gates', JSON.stringify(listed) === JSON.stringify(fixed), `listed ${listed.join(', ') || 'none'}; fixtures ${fixed.join(', ')}`);
     const mirrors = await srv.run('wormhole mirror list');
     check('empty', 'no mirrors', mirrors.lines.some((l) => /No mirrors yet/.test(l)), mirrors.lines.join(' | '));
   });

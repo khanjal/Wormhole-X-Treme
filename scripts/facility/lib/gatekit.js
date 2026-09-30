@@ -55,7 +55,14 @@ class GateKit {
    * Returns { geom, text } or throws with the plugin's refusal.
    */
   async build(name, geom, { dim = campus.OVERWORLD, net = null, idc = null, floorY = 0 } = {}) {
-    const b = geom.bounds;
+    // The grid, and the DHD button one out in front of it (below the floor too, for a gate
+    // whose holder sits under it).
+    const k = geom.button;
+    const g = geom.bounds;
+    const b = {
+      x0: Math.min(g.x0, k.x), x1: Math.max(g.x1, k.x), y0: Math.min(g.y0, k.y), y1: Math.max(g.y1, k.y),
+      z0: Math.min(g.z0, k.z), z1: Math.max(g.z1, k.z),
+    };
     const floor = FLOORS[dim];
     const pit = `${b.x0} ${Math.min(b.y0, floorY - 1)} ${b.z0} ${b.x1} ${floorY - 1} ${b.z1}`;
     await this.srv.run(`execute in ${dim} run fill ${pit} minecraft:air`);
