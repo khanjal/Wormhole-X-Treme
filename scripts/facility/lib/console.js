@@ -87,12 +87,25 @@ function listen(bot) {
 //
 // Code space (a trigger score is one integer; 0 is what `enable` writes, so it means nothing):
 //   1            the console home
+//   2            the Transit tab;  3 + t: transit action t (TRANSIT_ACTIONS)
 //   10 + w       wing tab w (index into the wing list)
 //   30 + w       go to wing w
 //   N*10000 + o*100 + v    chamber N (1-based): option o (0..98) set to its value v,
 //   N*10000 + 9900 + a     or action a on it (ACTIONS below)
 
 const HOME = 1;
+const TRANSIT_TAB = 2;
+const TRANSIT_ACTION = 3;
+// The Transit tab: each runs the console form for the player who clicked (what the buttons in the
+// Gate Room and by the pads run), or prints the smoke test's last word on each route.
+const TRANSIT_ACTIONS = [
+  { id: 'dial Hall', word: 'Dial Hall', why: 'the Ops gate dials Hall, in the Gate hall\'s lobby' },
+  { id: 'dial Range', word: 'Dial Range', why: 'the Ops gate dials the Range, in the nether' },
+  { id: 'dial Annex', word: 'Dial Annex', why: 'the Ops gate dials the Annex, in the End' },
+  { id: 'beam lab', word: 'Beam to lab', why: 'beam me to the BeamLab pad' },
+  { id: 'beam home', word: 'Beam home', why: 'beam me to the Atrium pad' },
+  { id: 'routes', word: 'Routes', why: 'the last smoke-test result on each route' },
+];
 const TAB = 10;
 const GO = 30;
 const ACTION_OPTION = 99;
@@ -156,7 +169,17 @@ class FacilityConsole {
       const here = w.id === current;
       parts.push({ text: here ? `[${w.title}]` : w.title, color: here ? 'gold' : w.text, click: { run: triggerCommand(TAB + i) }, hover: `the ${w.title} tab` }, ' ');
     });
+    const here = current === 'transit';
+    parts.push({ text: here ? '[⇄ Transit]' : '⇄ Transit', color: here ? 'gold' : 'white', click: { run: triggerCommand(TRANSIT_TAB) }, hover: 'dial, beam, and the routes\' last results' });
     return parts;
+  }
+
+  async transitTab(player) {
+    await this.tell(player, [{ text: '── TRANSIT ── ', color: 'white', bold: true }, { text: 'the ways between wings, by the plugin', color: 'gray' }]);
+    const acts = [{ text: '  ' }];
+    TRANSIT_ACTIONS.forEach((a, i) => acts.push({ text: `[${a.word}]`, color: a.id === 'routes' ? 'gold' : 'aqua', click: { run: triggerCommand(TRANSIT_ACTION + i) }, hover: a.why }, ' '));
+    await this.tell(player, acts);
+    await this.tell(player, this.tabsLine('transit'));
   }
 
   async home(player) {
@@ -222,6 +245,8 @@ class FacilityConsole {
     if (!code || player === this.bot.username) return;
     for (const c of rearmCommands(player)) await this.srv.run(c);
     if (code === HOME) return this.home(player);
+    if (code === TRANSIT_TAB) return this.transitTab(player);
+    if (code >= TRANSIT_ACTION && code < TRANSIT_ACTION + TRANSIT_ACTIONS.length) return this.handlers.transit(player, TRANSIT_ACTIONS[code - TRANSIT_ACTION].id);
     if (code >= TAB && code < TAB + this.wings.length) return this.tab(player, this.wings[code - TAB].id);
     if (code >= GO && code < GO + this.wings.length) return this.handlers.go(player, this.wings[code - GO]);
     const d = decode(code);
@@ -256,6 +281,7 @@ class FacilityConsole {
     const wingOf = (word) => this.wings.find((w) => w.id === word || w.title.toLowerCase().startsWith(word));
     const entryOf = (word) => this.entries.find((x) => x.def.id === word);
     const [first, second, third] = words;
+    if (first === 'transit') return this.transitTab(player);
     if (first === 'go' && second) {
       const w = wingOf(second);
       return w ? this.handlers.go(player, w) : this.tell(player, [{ text: `no wing ${second}`, color: 'red' }]);
@@ -281,5 +307,5 @@ class FacilityConsole {
 
 module.exports = {
   OBJECTIVE, HIDDEN_SLOT, encode, decode, setupCommands, rearmCommands, triggerCommand, menu, listen,
-  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, ACTION_OPTION,
+  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, ACTION_OPTION, TRANSIT_TAB, TRANSIT_ACTION, TRANSIT_ACTIONS,
 };

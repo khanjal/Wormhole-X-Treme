@@ -127,4 +127,5 @@ module.exports = {
     await trip.cleanup(ctx, new RingKit(ctx.server, ctx.probe));
     for (const end of [A, B]) await new RingKit(ctx.server, ctx.probe).clear('ODD', end);
   },
+  ENDS: [A, B],
 };

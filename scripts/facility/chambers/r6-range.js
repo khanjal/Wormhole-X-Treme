@@ -50,4 +50,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/tunnel',
+  A,
 };

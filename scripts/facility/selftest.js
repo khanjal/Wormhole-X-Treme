@@ -176,6 +176,10 @@ async function selftest(fac, {
       check('console', 'Tester arrives in adventure mode', tester.game.gameMode === 'adventure', tester.game.gameMode);
       const tabs = await click(welcome, '[Console]', (m) => clickOn(m, 'Operations'), 'the wing tabs');
       check('console', 'Console shows the wing tabs', true, tabs.toString().trim());
+      const transitTab = await click(tabs, '⇄ Transit', (m) => clickOn(m, '[Routes]'), 'the Transit tab');
+      check('console', 'the Transit tab offers dialling, beaming and the routes', /Dial Hall.*Beam to lab.*Routes/.test(transitTab.toString()), transitTab.toString().trim());
+      const routes = await click(transitTab, '[Routes]', (m) => /gate Ops→Hall: /.test(m.toString()), 'the routes’ results');
+      check('console', 'Routes prints each route’s last result', /gate Ops→Hall: (PASS|FAIL|not walked)/.test(routes.toString()), routes.toString().trim());
       const listing = await click(tabs, 'Operations', (m) => clickOn(m, 'Calibration Cell'), 'the Ops chambers');
       check('console', 'the Ops tab lists the calibration cell', true, listing.toString().trim());
       const opts = await click(listing, 'Calibration Cell', (m) => clickOn(m, 'button'), 'the calibration menu');

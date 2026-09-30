@@ -6,6 +6,19 @@
 const campus = require('../lib/campus');
 const bp = require('../lib/blueprint');
 const transit = require('./transit');
+const guard = require('./decor/guard');
+
+// Each wing's decoration (stage 3.6), run inside `decorate` so the guardrail sees every block.
+const DECOR = {
+  ops: require('./decor/ops'),
+  gates: require('./decor/gates'),
+  rings: require('./decor/rings'),
+  beams: require('./decor/beams'),
+  mirrors: require('./decor/mirrors'),
+  menagerie: require('./decor/menagerie'),
+  range: require('./decor/range'),
+  annex: require('./decor/annex'),
+};
 
 const EXTRAS = {
   ops: require('./ops'),
@@ -46,8 +59,11 @@ function chambersOf(wingId) {
   return campus.CHAMBERS.filter((c) => c.wing === wingId);
 }
 
-/** The blueprint for `build/<wing>`. `version` picks the text form for boards. */
-function buildWing(wingId, version) {
+/**
+ * The blueprint for `build/<wing>`. `version` picks the text form for boards; `plain` leaves the
+ * decoration out (WX_PLAIN=1), for a quicker build that tests the same.
+ */
+function buildWing(wingId, version, { plain = process.env.WX_PLAIN === '1' } = {}) {
   const w = campus.wing(wingId);
   const out = new bp.Blueprint(`wx:build/${wingId}`, w.dim);
   out.cmd(`kill @e[type=minecraft:text_display,tag=wx_wing_${wingId}]`);
@@ -100,9 +116,10 @@ function buildWing(wingId, version) {
     const e = w.entrance;
     out.cmd(bp.summonBoard(version, {
       id: `sign_${wingId}`, wing: wingId, at: { x: e.x, y: e.y + 3.2, z: e.z }, scale: 1.5,
-      spec: [{ text: w.title.toUpperCase(), color: w.text, bold: true }],
+      spec: [{ text: w.title.toUpperCase(), color: w.text, bold: true }, ...(w.nick ? ['\n', { text: w.nick, color: 'gray' }] : [])],
     }));
   }
+  if (!plain && DECOR[wingId]) out.decorate(() => DECOR[wingId].decorate(out, w, version));
   return out;
 }
 
@@ -128,8 +145,8 @@ function resetChamber(ch) {
 }
 
 /** Every build and reset, in build order. */
-function allBlueprints(version) {
-  const builds = ORDER.map((id) => ({ fn: `build/${id}`, wing: id, dim: campus.wing(id).dim, bp: buildWing(id, version) }));
+function allBlueprints(version, opts = {}) {
+  const builds = ORDER.map((id) => ({ fn: `build/${id}`, wing: id, dim: campus.wing(id).dim, bp: buildWing(id, version, opts) }));
   const resets = campus.CHAMBERS.filter((c) => c.kind !== 'desk')
     .map((c) => ({ fn: `reset/${c.id}`, chamber: c.id, dim: campus.wing(c.wing).dim, bp: resetChamber(c) }));
   return { builds, resets };
@@ -185,6 +202,16 @@ function validateLayout(version = '1.21.11') {
     && chunk(box.x0) >= chunk(f.from[0]) && chunk(box.x1) <= chunk(f.to[0])
     && chunk(box.z0) >= chunk(f.from[1]) && chunk(box.z1) <= chunk(f.to[1]));
   const { builds, resets } = allBlueprints(version);
+  problems.push(...guard.check(builds));
+  // Every block is one 1.20.4 knows (the facility's floor): a newer name is refused here, not
+  // by a function that fails to load on the older server.
+  const known = require('minecraft-data')('1.20.4').blocksByName;
+  for (const f of [...builds, ...resets]) {
+    for (const o of f.bp.ops.filter((x) => x.kind !== 'cmd')) {
+      const name = o.block.replace(/^minecraft:/, '').replace(/[[{].*$/, '');
+      if (!known[name]) problems.push(`${f.fn}: ${o.block.replace(/\{.*$/, '')} is not a block on 1.20.4`);
+    }
+  }
   for (const f of [...builds, ...resets]) {
     for (const b of f.bp.boxes()) {
       // A box may span two forceload rectangles; check it piece by piece along x.

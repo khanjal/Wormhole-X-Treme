@@ -243,6 +243,7 @@ class Facility {
         run: (player, e, action) => this.request(player, e, action),
         watch: (player, e) => this.watch(player, e),
         go: (player, w) => this.go(player, w),
+        transit: (player, action) => this.transitAction(player, action),
       },
     });
     await this.console.start();
@@ -257,6 +258,24 @@ class Facility {
     await this.srv.run(`gamemode adventure ${player}`);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
+  }
+
+  /** A Transit tab action for `player`: the console forms the Gate Room's buttons run. */
+  async transitAction(player, action) {
+    const say = async (cmd) => (await this.srv.run(cmd)).lines.map((l) => l.replace(/§./g, '')).join(' / ') || 'no answer';
+    let words;
+    if (action.startsWith('dial ')) words = await say(`wormhole gate dial Ops ${action.slice(5)}`);
+    else if (action === 'beam lab') words = await say(`wormhole beam admin send ${player} BeamLab`);
+    else if (action === 'beam home') words = await say(`wormhole beam admin send ${player} Atrium`);
+    else {
+      const lines = this.transit.routes().map((r) => {
+        const s = this.transit.status[r.id];
+        return `${r.id}: ${s ? `${s.ok ? 'PASS' : 'FAIL'} at ${s.time} · ${s.detail}` : 'not walked this session'}`;
+      });
+      for (const l of lines) await this.console.tell(player, [{ text: `  ${l}`, color: 'gray' }]);
+      return;
+    }
+    await this.console.tell(player, [{ text: `${action}: `, color: 'white' }, { text: words, color: 'gray' }]);
   }
 
   async go(player, w) {
@@ -315,6 +334,7 @@ class Facility {
     const pylon = { pass: 'pass', fail: 'fail', running: 'running', refused: 'idle', staged: 'running' }[state] || 'idle';
     await this.boards.pylon(L.pylon, pylon, campus.wing(e.def.wing).dim);
     await this.boards.set(e.def.id, this.chamberSpec(e));
+    for (const m of campus.BOARD_MIRRORS[e.def.id] || []) await this.boards.set(m, this.chamberSpec(e)).catch(() => {});
     await this.boards.set('opswall', this.opsWallSpec());
   }
 

@@ -186,4 +186,5 @@ module.exports = {
     await ctx.probe.teleport(campus.TRANSIT.home).catch(() => {});
     if (p2) await p2.teleport(campus.TRANSIT.home).catch(() => {});
   },
+  SPOTS: { DOCK, DEN, STAND, NETHER_SPOT },
 };

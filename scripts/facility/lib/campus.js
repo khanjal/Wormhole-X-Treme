@@ -39,7 +39,14 @@ const PALETTE = {
   hazardB: 'minecraft:black_concrete',
   pylonBase: 'minecraft:polished_deepslate',
   sentinel: 'minecraft:lodestone',
+  // Stage 3.6 (creative pass 1.2); every one of them is in 1.20.0.
+  operated: 'minecraft:waxed_cut_copper',
+  deckFloor: 'minecraft:deepslate_tiles',
+  light: 'minecraft:light[level=15]',
 };
+
+/** Boards shown twice: the G1 board is mirrored in the control room over its gallery. */
+const BOARD_MIRRORS = { g1: ['g1_control'] };
 
 /**
  * The wings. `room` is the main hall; `entrance` is where a tp plate or `!go` puts you, inside
@@ -49,52 +56,52 @@ const PALETTE = {
  */
 const WINGS = [
   {
-    id: 'ops', title: 'Operations', colour: 'white', text: 'white', dim: OVERWORLD,
+    id: 'ops', title: 'Operations', nick: 'the Gate Room and the Atrium', colour: 'white', text: 'white', dim: OVERWORLD,
     room: { x0: -20, x1: 20, z0: -20, z1: 20, y0: 0, h: 16 },
     entrance: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
   },
   {
-    id: 'gates', title: 'Gate Dynamics', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
+    id: 'gates', title: 'Gate Dynamics', nick: 'the Hangar', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
     room: { x0: -70, x1: 70, z0: -170, z1: -40, y0: 0, h: 36 },
     entrance: { x: 0.5, y: 0, z: -43.5, yaw: 180 },
     homePlate: { x: 2, y: 0, z: -37 },
   },
   {
-    id: 'rings', title: 'Ring Transit', colour: 'lime', text: 'green', dim: OVERWORLD,
+    id: 'rings', title: 'Ring Transit', nick: 'the Concourse', colour: 'lime', text: 'green', dim: OVERWORLD,
     room: { x0: 40, x1: 110, z0: -30, z1: 30, y0: 0, h: 14 },
     entrance: { x: 43.5, y: 0, z: 0.5, yaw: -90 },
     homePlate: { x: 36, y: 0, z: 2 },
   },
   {
-    id: 'beams', title: 'Beam Physics', colour: 'light_blue', text: 'aqua', dim: OVERWORLD,
+    id: 'beams', title: 'Beam Physics', nick: 'the Transporter Bay', colour: 'light_blue', text: 'aqua', dim: OVERWORLD,
     room: { x0: -110, x1: -40, z0: -30, z1: 30, y0: 0, h: 12 },
     entrance: { x: -42.5, y: 0, z: 0.5, yaw: 90 },
     homePlate: { x: -36, y: 0, z: 2 },
   },
   {
-    id: 'mirrors', title: 'Mirror Optics', colour: 'magenta', text: 'light_purple', dim: OVERWORLD,
+    id: 'mirrors', title: 'Mirror Optics', nick: 'the Looking-Glass Gallery', colour: 'magenta', text: 'light_purple', dim: OVERWORLD,
     room: { x0: -40, x1: 40, z0: 40, z1: 90, y0: 0, h: 12 },
     entrance: { x: 0.5, y: 0, z: 43.5, yaw: 0 },
     homePlate: { x: 2, y: 0, z: 36 },
   },
   {
-    id: 'menagerie', title: 'Menagerie and Motor Pool', colour: 'orange', text: 'gold', dim: OVERWORLD,
+    id: 'menagerie', title: 'Menagerie and Motor Pool', nick: 'the Yard', colour: 'orange', text: 'gold', dim: OVERWORLD,
     room: { x0: 80, x1: 130, z0: -120, z1: -60, y0: 0, h: 10 },
     entrance: { x: 81.5, y: 0, z: -95.5, yaw: -90 },
   },
   {
-    id: 'systems', title: 'Systems', colour: 'yellow', text: 'yellow', dim: OVERWORLD,
+    id: 'systems', title: 'Systems', nick: 'the Briefing Room', colour: 'yellow', text: 'yellow', dim: OVERWORLD,
     // The mezzanine over Ops, not a room of its own: a gallery 6 above the atrium floor.
     room: null,
     entrance: { x: 0.5, y: 6, z: -16.5, yaw: 0 },
   },
   {
-    id: 'range', title: 'The Range', colour: 'red', text: 'red', dim: NETHER,
+    id: 'range', title: 'The Range', nick: 'Forward Base', colour: 'red', text: 'red', dim: NETHER,
     room: { x0: -30, x1: 30, z0: -30, z1: 30, y0: 64, h: 20 }, shell: 'dome',
     entrance: { x: 0.5, y: 64, z: 8.5, yaw: 180 },
   },
   {
-    id: 'annex', title: 'The Annex', colour: 'purple', text: 'dark_purple', dim: END,
+    id: 'annex', title: 'The Annex', nick: 'the Observatory', colour: 'purple', text: 'dark_purple', dim: END,
     room: { x0: 980, x1: 1020, z0: 980, z1: 1020, y0: 60, h: 20 }, shell: 'open',
     entrance: { x: 1000.5, y: 60, z: 1008.5, yaw: 180 },
   },
@@ -150,7 +157,8 @@ const CHAMBERS = [
     box: { x0: 44, x1: 106, z0: -26, z1: -10, y0: 0, h: 12 }, door: 's', gallery: 'n' },
   { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3, logic: 'r2-ceiling',
     box: { x0: 44, x1: 58, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'e' },
-  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60, logic: 'r3-shaft',
+  // R3's gallery is glass over a light well (wings/decor/rings.js): the Shaft Window.
+  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60, logic: 'r3-shaft', galleryFloor: 'minecraft:glass',
     box: { x0: 66, x1: 72, z0: 8, z1: 14, y0: 0, h: 12 }, door: 'n', gallery: 's' },
   { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true, logic: 'r4-bench',
     box: { x0: 82, x1: 104, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'w' },
@@ -310,5 +318,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, ROUTES, OPS, GATES, FORCELOAD, wing, chamber,
+  TRANSIT, ROUTES, OPS, GATES, FORCELOAD, BOARD_MIRRORS, wing, chamber,
 };
