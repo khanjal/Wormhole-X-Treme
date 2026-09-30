@@ -26,6 +26,10 @@ function maybeEvent(emitter, event, test, ms) {
 /** Connects a bot and resolves once it has spawned; `onCreate(bot)` runs before it connects. */
 function join({ host = '127.0.0.1', port, version, username, onCreate = null }) {
   const bot = mineflayer.createBot({ host, port, username, version, auth: 'offline' });
+  // An 'error' with no listener throws out of the event loop and takes the launcher (and the
+  // finally that stops the server) with it; keep the last one for whoever asks.
+  bot.on('error', (e) => { bot.lastError = e; });
+  bot.on('end', (reason) => { bot.ended = reason || 'ended'; });
   if (onCreate) onCreate(bot);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${username} did not spawn within 60 s`)), 60000);

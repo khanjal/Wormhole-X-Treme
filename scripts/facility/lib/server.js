@@ -3,6 +3,7 @@
 // stdout, and every wait is a wait for a named line with a deadline.
 
 const { spawn, spawnSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
@@ -14,6 +15,9 @@ const USER_AGENT = 'wx-facility (https://github.com/khanjal/Wormhole-X-Treme)';
 
 // Lines a console command prints when the server refused or could not parse it.
 const COMMAND_ERROR = /<--\[HERE\]|Unknown or incomplete command|Incorrect argument|Invalid |Expected |Unknown |Unterminated|Malformed|Failed to|Could not|Can't |No entity was found|No player was found|That position is not loaded|Only one|Too many|An unexpected error/;
+
+// A player's chat as Paper logs it: "<name> text", marked [Not Secure] on an offline server.
+const CHAT = /^\[\d\d:\d\d:\d\d INFO\]: (\[Not Secure\] )?<[^>]+> /;
 
 // Paper's own log header, and whether a line is a WARN or ERROR at all.
 const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
@@ -60,46 +64,93 @@ function checkJava(java, version) {
   return major;
 }
 
-function getJson(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
-      let body = '';
-      res.on('data', (d) => { body += d; });
-      res.on('end', () => {
-        if (res.statusCode !== 200) return reject(new Error(`${url}: HTTP ${res.statusCode} ${body.slice(0, 200)}`));
-        try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
-      });
-    }).on('error', reject);
-  });
-}
+const MAX_REDIRECTS = 5;
 
-function download(url, file) {
+/** GETs `url`, following at most MAX_REDIRECTS redirects (relative ones too); resolves with the response. */
+function get(url, redirects = 0) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
+    const req = https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
+      res.on('error', reject);
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        return resolve(download(res.headers.location, file));
+        if (redirects >= MAX_REDIRECTS) return reject(new Error(`${url}: more than ${MAX_REDIRECTS} redirects`));
+        return resolve(get(new URL(res.headers.location, url).toString(), redirects + 1));
       }
-      if (res.statusCode !== 200) return reject(new Error(`${url}: HTTP ${res.statusCode}`));
-      const tmp = `${file}.part`;
-      const out = fs.createWriteStream(tmp);
-      res.pipe(out);
-      out.on('finish', () => out.close(() => { fs.renameSync(tmp, file); resolve(file); }));
-      out.on('error', reject);
-    }).on('error', reject);
+      return resolve(res);
+    });
+    req.on('error', reject);
+    req.setTimeout(60000, () => req.destroy(new Error(`${url}: no answer in 60 s`)));
   });
 }
 
-/** The Paper jar for a version under `dir`, downloaded from PaperMC's fill API if absent. */
+async function getJson(url) {
+  const res = await get(url);
+  const body = await new Promise((resolve, reject) => {
+    let b = '';
+    res.on('data', (d) => { b += d; });
+    res.on('end', () => resolve(b));
+    res.on('error', reject);
+  });
+  if (res.statusCode !== 200) throw new Error(`${url}: HTTP ${res.statusCode} ${body.slice(0, 200)}`);
+  return JSON.parse(body);
+}
+
+function sha256Of(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
+/** Downloads to `file`, refusing a body whose size or SHA-256 is not the one PaperMC published. */
+async function download(url, file, { sha256, size }) {
+  const res = await get(url);
+  if (res.statusCode !== 200) { res.resume(); throw new Error(`${url}: HTTP ${res.statusCode}`); }
+  const tmp = `${file}.part`;
+  await new Promise((resolve, reject) => {
+    const out = fs.createWriteStream(tmp);
+    res.on('error', (e) => { out.destroy(); reject(e); });
+    out.on('error', reject);
+    out.on('finish', resolve);
+    res.pipe(out);
+  });
+  const got = { size: fs.statSync(tmp).size, sha256: sha256Of(tmp) };
+  if (got.size !== size || got.sha256 !== sha256) {
+    fs.rmSync(tmp, { force: true });
+    throw new Error(`${url}: got ${got.size} bytes with SHA-256 ${got.sha256}; PaperMC published ${size} bytes, ${sha256}`);
+  }
+  fs.renameSync(tmp, file);
+  return file;
+}
+
+/**
+ * The Paper jar for a version under `dir`: the newest STABLE build PaperMC's fill API lists,
+ * downloaded when it is not the one cached, and checked against the published size and SHA-256.
+ * The build, size and checksum are kept beside the jar, so offline a cached jar is still checked
+ * before it is used. A jar cached before this record existed is used as it is, offline only.
+ */
 async function ensurePaperJar(dir, version) {
   const file = path.join(dir, `paper-${version}.jar`);
-  if (fs.existsSync(file)) return file;
+  const metaFile = path.join(dir, `paper-${version}.json`);
+  const meta = fs.existsSync(metaFile) ? JSON.parse(fs.readFileSync(metaFile, 'utf8')) : null;
   fs.mkdirSync(dir, { recursive: true });
-  const build = await getJson(`https://fill.papermc.io/v3/projects/paper/versions/${version}/builds/latest`);
-  const url = build.downloads && build.downloads['server:default'] && build.downloads['server:default'].url;
-  if (!url) throw new Error(`PaperMC lists no download for ${version}`);
-  console.log(`downloading Paper ${version} build ${build.id}`);
-  return download(url, file);
+  let build;
+  try {
+    const builds = await getJson(`https://fill.papermc.io/v3/projects/paper/versions/${version}/builds`);
+    build = builds.filter((b) => b.channel === 'STABLE').sort((a, b) => b.id - a.id)[0];
+    if (!build) throw Object.assign(new Error(`PaperMC lists no STABLE build of ${version}`), { final: true });
+  } catch (e) {
+    if (e.final) throw e;
+    if (!fs.existsSync(file)) throw new Error(`cannot reach PaperMC for Paper ${version} and none is cached: ${e.message}`);
+    if (meta && sha256Of(file) !== meta.sha256) throw new Error(`${file} does not match the SHA-256 recorded for it; delete it and run online`);
+    console.log(`PaperMC unreachable (${e.message}); using the cached Paper ${version}${meta ? ` build ${meta.id}` : ''}`);
+    return file;
+  }
+  const d = build.downloads && build.downloads['server:default'];
+  if (!d || !d.url || !d.checksums || !d.checksums.sha256) throw new Error(`PaperMC lists no checked download for ${version} build ${build.id}`);
+  const want = { id: build.id, sha256: d.checksums.sha256, size: d.size };
+  if (fs.existsSync(file) && meta && meta.id === want.id && sha256Of(file) === want.sha256) return file;
+  console.log(`downloading Paper ${version} build ${build.id} (stable)`);
+  await download(d.url, file, want);
+  fs.writeFileSync(metaFile, `${JSON.stringify(want, null, 2)}\n`);
+  return file;
 }
 
 /** One stored or deflated entry of a zip file, found through its central directory. */
@@ -182,6 +233,25 @@ function installPlugin(folder, jar) {
 }
 
 /**
+ * The version numbers in a JDK folder's name, major first: jdk-17.0.17.10-hotspot is [17, 0, 17,
+ * 10], java-21-openjdk-amd64 is [21], jdk1.8.0_202 is [8, 0, 202]. Null if it names none.
+ */
+function jdkVersion(name) {
+  const m = /(?:jdk|java|temurin|openjdk|zulu|corretto)[^0-9]*(\d+(?:[._+]\d+)*)/i.exec(name);
+  if (!m) return null;
+  const v = m[1].split(/[._+]/).map(Number);
+  return v[0] === 1 && v.length > 1 ? v.slice(1) : v;
+}
+
+function compareVersions(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] || 0) - (b[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/**
  * A JDK's java for a major version: JAVA<major>_HOME if set, else the usual install folders
  * (Adoptium, Oracle and Microsoft on Windows, /usr/lib/jvm on Linux). Null if none is found.
  */
@@ -192,12 +262,12 @@ function findJava(major) {
   const roots = process.platform === 'win32'
     ? ['C:/Program Files/Eclipse Adoptium', 'C:/Program Files/Java', 'C:/Program Files/Microsoft']
     : ['/usr/lib/jvm', '/Library/Java/JavaVirtualMachines'];
-  const named = new RegExp(`(^|[^0-9])${major}([.-]|$)`);
   for (const root of roots) {
     if (!fs.existsSync(root)) continue;
-    const hit = fs.readdirSync(root).filter((d) => named.test(d)).sort().pop();
+    const hit = fs.readdirSync(root).map((d) => ({ d, v: jdkVersion(d) })).filter((x) => x.v && x.v[0] === major)
+      .sort((a, b) => compareVersions(b.v, a.v))[0];
     if (!hit) continue;
-    for (const bin of [path.join(root, hit, 'bin', exe), path.join(root, hit, 'Contents', 'Home', 'bin', exe)]) {
+    for (const bin of [path.join(root, hit.d, 'bin', exe), path.join(root, hit.d, 'Contents', 'Home', 'bin', exe)]) {
       if (fs.existsSync(bin)) return bin;
     }
   }
@@ -257,6 +327,9 @@ class Server extends EventEmitter {
     this.log = [];
     this.fenceCount = 0;
     this.exited = null;
+    // Every console command goes through one queue: run() owns the log between its command and
+    // its fence, so two at once would read each other's lines.
+    this.queue = Promise.resolve();
   }
 
   start() {
@@ -265,23 +338,33 @@ class Server extends EventEmitter {
     const args = [`-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false',
       '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8',
       '-jar', path.resolve(this.jar), '--nogui'];
-    this.proc = spawn(this.java, args, { cwd: this.folder, stdio: ['pipe', 'pipe', 'pipe'] });
+    // Its own process group on Windows, so a Ctrl+C in the console reaches the launcher, which
+    // stops the server, rather than the JVM directly while the launcher is still writing to it.
+    this.proc = spawn(this.java, args, {
+      cwd: this.folder, stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform === 'win32', windowsHide: true,
+    });
     this.proc.stdin.setDefaultEncoding('utf8');
-    let buf = '';
-    const onData = (d) => {
-      buf += d.toString('utf8');
-      let i;
-      while ((i = buf.indexOf('\n')) >= 0) {
-        const raw = buf.slice(0, i).replace(/\r$/, '');
-        buf = buf.slice(i + 1);
-        const line = raw.replace(/\x1b\[[0-9;]*[A-Za-z]/g, ''); // eslint-disable-line no-control-regex
-        this.log.push(line);
-        this.emit('line', line);
-      }
+    // A write to a server that is dying is not a crash of the launcher: it is noticed as the exit.
+    this.proc.stdin.on('error', (e) => { this.stdinError = e; });
+    // One buffer per stream: a line split across two reads must not be spliced with the other's.
+    const reader = () => {
+      let buf = '';
+      return (d) => {
+        buf += d.toString('utf8');
+        let i;
+        while ((i = buf.indexOf('\n')) >= 0) {
+          const raw = buf.slice(0, i).replace(/\r$/, '');
+          buf = buf.slice(i + 1);
+          const line = raw.replace(/\x1b\[[0-9;]*[A-Za-z]/g, ''); // eslint-disable-line no-control-regex
+          this.log.push(line);
+          this.emit('line', line);
+        }
+      };
     };
-    this.proc.stdout.on('data', onData);
-    this.proc.stderr.on('data', onData);
-    this.proc.on('exit', (code) => { this.exited = code; this.emit('exit', code); });
+    this.proc.stdout.on('data', reader());
+    this.proc.stderr.on('data', reader());
+    // A JVM killed by a signal exits with no code; it has exited all the same.
+    this.proc.on('exit', (code, signal) => { this.exited = code === null ? (signal || 'signal') : code; this.emit('exit', this.exited); });
     return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
   }
 
@@ -298,8 +381,16 @@ class Server extends EventEmitter {
   }
 
   send(command) {
-    if (this.exited !== null) throw new Error(`server has exited; cannot send ${command}`);
+    if (this.exited !== null) throw new Error(`server has exited (${this.exited}); cannot send ${command}`);
+    if (this.stdinError || !this.proc.stdin.writable) throw new Error(`the server's console is closed; cannot send ${command}`);
     this.proc.stdin.write(`${command}\n`);
+  }
+
+  /** Kills the JVM at once, if it is still running: for a launcher on its way out. */
+  kill() {
+    if (this.proc && this.exited === null) {
+      try { this.proc.kill(); } catch { /* already gone */ }
+    }
   }
 
   /**
@@ -307,21 +398,32 @@ class Server extends EventEmitter {
    * written synchronously on the main thread, so everything between the command and the
    * fence's echo belongs to it. Returns { lines, errors }.
    */
-  async run(command, ms = 15000) {
+  run(command, ms = 15000) {
+    const job = this.queue.then(() => this.runNow(command, ms));
+    this.queue = job.catch(() => {});
+    return job;
+  }
+
+  async runNow(command, ms) {
     const n = ++this.fenceCount;
     const holder = `#fence${n}`;
     const lines = [];
     const collect = (line) => { lines.push(line); };
     this.on('line', collect);
-    const fence = this.waitFor(new RegExp(`Set \\[?wxfence\\]? for ${holder} to ${n}`), ms, `the echo of: ${command}`);
-    this.send(command);
-    this.send(`scoreboard players set ${holder} wxfence ${n}`);
+    let fence;
     try {
+      fence = this.waitFor(new RegExp(`Set \\[?wxfence\\]? for ${holder} to ${n}`), ms, `the echo of: ${command}`);
+      this.send(command);
+      this.send(`scoreboard players set ${holder} wxfence ${n}`);
       await fence;
+    } catch (e) {
+      if (fence) fence.catch(() => {});
+      throw e;
     } finally {
       this.off('line', collect);
     }
-    const own = lines.filter((l) => !l.includes(holder)).map((l) => {
+    // A player's chat line can land between a command and its fence; it is not the command's.
+    const own = lines.filter((l) => !l.includes(holder) && !CHAT.test(l)).map((l) => {
       const m = LOG_LINE.exec(l);
       return m ? { level: m[2], text: m[3] } : { level: 'INFO', text: l };
     }).filter((l) => !ASYNC_NOISE.test(l.text));
@@ -359,17 +461,26 @@ class Server extends EventEmitter {
   }
 
   async stop(ms = 60000) {
-    if (this.exited !== null) return this.exited;
+    if (!this.proc || this.exited !== null) return this.exited;
     const exit = new Promise((resolve) => this.once('exit', resolve));
-    this.send('stop');
-    const timer = setTimeout(() => this.proc.kill(), ms);
+    try {
+      this.send('stop');
+    } catch {
+      this.kill();
+    }
+    const timer = setTimeout(() => this.kill(), ms);
     const code = await exit;
     clearTimeout(timer);
     return code;
   }
 }
 
+/** WX_ECHO=1 (or true, yes, on) echoes the server's log; unset, 0, false, no or off does not. */
+function echoOn(value) {
+  return Boolean(value) && !/^(0|false|no|off)$/i.test(String(value).trim());
+}
+
 module.exports = {
-  Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  echoOn, jdkVersion, Server, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };

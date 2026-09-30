@@ -1,5 +1,5 @@
 'use strict';
-// The Wormhole Research Facility launcher. Local only: there is no CI job for it.
+// The Wormhole Research Facility launcher. A local pre-release check: it never runs in GitHub.
 //
 //   node scripts/facility/run-facility.js [version]            build the campus and hold for a tester
 //   node scripts/facility/run-facility.js [version] --selftest run the self-test, exit 1 on any FAIL
@@ -98,15 +98,31 @@ async function main() {
   const folder = path.join(LOCAL, `facility-${version}`);
 
   if (!args.keepWorld) server.freshWorlds(folder, { pluginData: true });
-  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'adventure', viewDistance: 10 });
+  // Survival by default: a tester is put in adventure by the welcome, and the self-test's check
+  // of that would pass without it if the server's default were adventure already.
+  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10 });
   server.installPlugin(folder, plugin);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 
   console.log(`facility: Paper ${version} on Java ${javaMajor}, port ${args.port}, ${folder}`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
-  if (process.env.WX_ECHO) srv.on('line', (l) => console.log(`  | ${l}`));
+  if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port });
+  // However the launcher goes, the server goes with it: a signal stops it cleanly (and ends hold
+  // mode), and a launcher that exits any other way kills a JVM still running, so no server is
+  // left holding the port and the world folder.
+  let holding = null;
+  let stopping = false;
+  const onSignal = (sig) => {
+    if (holding) { holding(); return; }
+    if (stopping) return;
+    stopping = true;
+    console.error(`facility: ${sig}: stopping the server`);
+    Promise.resolve(fac.close()).catch(() => {}).then(() => srv.stop()).catch(() => {}).then(() => process.exit(130));
+  };
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => onSignal(sig));
+  process.on('exit', () => srv.kill());
   let exit = 0;
   // A stray rejection is a bug in the facility: log it, fail the run, and still stop the server.
   const stray = [];
@@ -145,9 +161,13 @@ async function main() {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
+        holding = resolve;
         fac.probe.bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-        process.once('SIGINT', resolve);
+        // Without Probe nobody hears "stop": say so and end rather than hang.
+        fac.probe.bot.once('end', (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); });
+        srv.once('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
       });
+      holding = null;
     }
   } catch (e) {
     console.error(`facility: ${e.stack || e}`);
