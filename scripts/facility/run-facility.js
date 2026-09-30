@@ -46,31 +46,50 @@ const LOCAL = path.join(REPO, '.local-server');
 
 function parseArgs(argv) {
   const a = { port: DEFAULT_PORT, selftest: false, build: true };
+  // An option's value, refused if it is missing (the last word, or the next option): a missing
+  // --cells or --fixed would otherwise reach every child as "undefined".
+  const value = (i) => {
+    const got = argv[i + 1];
+    if (got === undefined || got.startsWith('--')) throw new Error(`${argv[i]} needs a value`);
+    return got;
+  };
+  const whole = (name, s, min) => {
+    const n = Number(s);
+    if (!Number.isInteger(n) || n < min) throw new Error(`${name} takes a whole number from ${min}, not ${s}`);
+    return n;
+  };
+  const list = (s) => s.split(',').map((t) => t.trim()).filter(Boolean);
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
-    if (x === '--java') a.java = argv[++i];
-    else if (x === '--jdk17') a.jdk17 = argv[++i];
-    else if (x === '--plugin') { a.plugin = argv[++i]; a.build = false; }
+    if (x === '--java') a.java = value(i++);
+    else if (x === '--jdk17') a.jdk17 = value(i++);
+    else if (x === '--plugin') { a.plugin = value(i++); a.build = false; }
     else if (x === '--no-build') a.build = false;
-    else if (x === '--port') a.port = Number(argv[++i]);
+    else if (x === '--port') a.port = whole('--port', value(i++), 1);
     else if (x === '--selftest') a.selftest = true;
-    else if (x === '--versions') a.versions = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
+    else if (x === '--versions') a.versions = list(value(i++));
     else if (x === '--keep-world') a.keepWorld = true;
-    else if (x === '--cells') a.cells = argv[++i];
-    else if (x === '--quick') a.quick = true;
-    else if (x === '--fixed') a.fixed = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
-    else if (x === '--shards') a.shards = Number(argv[++i]);
-    else if (x === '--shard') { const [k, n] = argv[++i].split('/').map(Number); a.shard = { index: k - 1, count: n }; }
-    else if (x === '--plan') a.plan = argv[++i];
-    else if (x === '--report') a.report = argv[++i];
-    else if (x === '--tied') a.tied = true;
-    else if (x === '--paper-build') {
-      a.paperBuild = Number(argv[++i]);
-      if (!Number.isInteger(a.paperBuild) || a.paperBuild <= 0) throw new Error(`--paper-build takes a build number, not ${argv[i]}`);
+    else if (x === '--cells') {
+      a.cells = value(i++);
+      // Refused here, before a server is started and a campus built for nothing.
+      try { new RegExp(a.cells); } catch (e) { throw new Error(`--cells ${a.cells}: ${e.message}`); }
     }
+    else if (x === '--quick') a.quick = true;
+    else if (x === '--fixed') a.fixed = list(value(i++));
+    else if (x === '--shards') a.shards = whole('--shards', value(i++), 1);
+    else if (x === '--shard') {
+      const m = /^(\d+)\/(\d+)$/.exec(value(i++));
+      if (!m || Number(m[1]) < 1 || Number(m[1]) > Number(m[2])) throw new Error(`--shard takes k/n, not ${argv[i]}`);
+      a.shard = { index: Number(m[1]) - 1, count: Number(m[2]) };
+    }
+    else if (x === '--plan') a.plan = value(i++);
+    else if (x === '--report') a.report = value(i++);
+    else if (x === '--tied') a.tied = true;
+    else if (x === '--paper-build') a.paperBuild = whole('--paper-build', value(i++), 1);
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
+  if (a.versions && !a.versions.length) throw new Error('--versions names no version');
   a.version = a.version || DEFAULT_VERSION;
   return a;
 }
@@ -139,18 +158,13 @@ function sampleResources(pids, everyMs = 10000) {
  * Returns the exit code: 0 only if every child and every merged check passed.
  */
 async function fanOut(args) {
-  const jar = pluginJar(args);
-  const versions = args.versions || [args.version];
-  const n = args.shards || 1;
-  // Fetched here, once per version: shards of one version starting at once would each download
-  // the same jar over the others.
-  for (const v of versions) await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
   // Each child stops its own server however it ends, and watches its JVM with a watchdog of its
   // own. It is --tied: it holds a pipe from this launcher and stops when that closes, so a
   // launcher killed outright takes its children with it (on Windows, Node's job object kills
   // them at once, and their watchdogs their JVMs). A signal here closes the pipes, which
   // stops them as a first signal does; a second kills them, leaving their watchdogs to kill
-  // their JVMs. A console Ctrl+C reaches the children directly as well.
+  // their JVMs. A console Ctrl+C reaches the children directly as well. A signal before any
+  // child is started (while the Paper jars are fetched) ends the run there.
   const children = [];
   let signals = 0;
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
@@ -162,8 +176,26 @@ async function fanOut(args) {
       }
     });
   }
+  const jar = pluginJar(args);
+  const versions = args.versions || [args.version];
+  const n = args.shards || 1;
+  // Fetched here, once per version: shards of one version starting at once would each download
+  // the same jar over the others.
+  for (const v of versions) {
+    await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
+    if (signals) return 130;
+  }
   fs.mkdirSync(LOCAL, { recursive: true });
   const work = fs.mkdtempSync(path.join(LOCAL, 'run-'));
+  try {
+    return await fanOutIn(work, { args, jar, versions, n, children, stopped: () => signals > 0 });
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+}
+
+/** fanOut's children, in the work folder `work` (removed by fanOut however this ends). */
+async function fanOutIn(work, { args, jar, versions, n, children, stopped }) {
   const jobs = [];
   for (const [vi, v] of versions.entries()) {
     let planFile = null;
@@ -181,6 +213,7 @@ async function fanOut(args) {
   const t0 = Date.now();
   const sampler = sampleResources(() => children.filter((c) => c.exitCode === null).map((c) => c.pid));
   const runs = jobs.map((j) => new Promise((resolve) => {
+    if (stopped()) { resolve({ ...j, code: null, report: null, why: 'not started: the launcher was stopped' }); return; }
     const tag = n > 1 ? `${j.v} ${j.si + 1}/${n}` : j.v;
     const child = [__filename, j.v, '--selftest', '--tied', '--plugin', jar, '--port', String(j.port), '--report', j.report];
     if (n > 1) child.push('--shard', `${j.si + 1}/${n}`, '--plan', j.planFile);
@@ -193,24 +226,39 @@ async function fanOut(args) {
     p.stdin.on('error', () => {});
     children.push(p);
     // One buffer per stream: a line split across two reads must not be spliced with the other's.
+    const show = (line) => { if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${tag}] ${line}`); };
     const reader = () => {
       let buf = '';
-      return (d) => {
+      const read = (d) => {
         buf += d.toString();
         let k;
         while ((k = buf.indexOf('\n')) >= 0) {
-          const line = buf.slice(0, k);
+          show(buf.slice(0, k));
           buf = buf.slice(k + 1);
-          if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${tag}] ${line}`);
         }
       };
+      read.flush = () => { if (buf) show(buf); buf = ''; };
+      return read;
     };
-    p.stdout.on('data', reader());
-    p.stderr.on('data', reader());
-    p.on('exit', (code) => {
-      const report = fs.existsSync(j.report) ? JSON.parse(fs.readFileSync(j.report, 'utf8')) : null;
-      resolve({ ...j, code, report });
-    });
+    const out = reader();
+    const err = reader();
+    p.stdout.on('data', out);
+    p.stderr.on('data', err);
+    let settled = false;
+    const finish = (code, why) => {
+      if (settled) return;
+      settled = true;
+      out.flush();
+      err.flush();
+      let report = null;
+      if (fs.existsSync(j.report)) {
+        try { report = JSON.parse(fs.readFileSync(j.report, 'utf8')); } catch (e) { why = `its report is not JSON (${e.message})`; }
+      }
+      resolve({ ...j, code, report, why });
+    };
+    // 'close', not 'exit': the child's last lines (its summary) are still in its pipes at exit.
+    p.on('close', (code) => finish(code));
+    p.on('error', (e) => finish(null, `could not be started: ${e.message}`));
   }));
   const done = await Promise.all(runs);
   const use = sampler.stop();
@@ -227,7 +275,7 @@ async function fanOut(args) {
       const failed = in_.filter((r) => !r.ok);
       console.log(`  ${failed.length ? 'FAIL' : 'PASS'}  ${sec} (${in_.length - failed.length}/${in_.length})${failed.length ? ` — ${failed.map((f) => `${f.name}: ${f.detail}`).join('; ')}` : ''}`);
     }
-    for (const d of missing) console.log(`  FAIL  shard ${d.si + 1} wrote no report (exit ${d.code})`);
+    for (const d of missing) console.log(`  FAIL  shard ${d.si + 1} wrote no report (exit ${d.code}${d.why ? `; ${d.why}` : ''})`);
     if (known.length) {
       console.log(`known plugin failures on ${v} (expected, not hidden):`);
       for (const k of known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
@@ -245,7 +293,6 @@ async function fanOut(args) {
   }
   console.log(`\nwall ${(wall / 60).toFixed(1)} min for ${jobs.length} server(s); peak memory ${use.peakGb.toFixed(1)} GB (the servers and their launchers), `
     + `peak CPU ${use.peakCpu.toFixed(0)}%, mean ${use.meanCpu.toFixed(0)}% (the whole machine)`);
-  fs.rmSync(work, { recursive: true, force: true });
   return allOk ? 0 : 1;
 }
 
@@ -277,7 +324,7 @@ async function main() {
   console.log(`facility: Paper ${version} on Java ${javaMajor}, port ${args.port}, ${folder}`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
-  const fac = new Facility({ srv, version, manifest, port: args.port });
+  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [] });
   // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
   // stops the server, a second one kills it, and an exit any other way kills a JVM still
   // running, so no server is left holding the port and the world folder.
