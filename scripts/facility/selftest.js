@@ -80,6 +80,8 @@ async function selftest(fac, {
     check('transit', 'gate list shows Ops and Hall', listing.gates.includes('Ops') && listing.gates.includes('Hall'), listing.gates.join(', '));
     check('transit', 'ring list shows the transit pair', listing.rings.includes(fac.transit.ringId), `${fac.transit.ringId} in: ${listing.ringText}`);
     check('transit', 'beam list shows Atrium and BeamLab', /Atrium/.test(listing.beams) && /BeamLab/.test(listing.beams), listing.beams);
+    const held = await new (require('./lib/mirrors').MirrorKit)(srv).list();
+    check('transit', 'mirror list shows Ops, Optics, Range and Annex', ['Annex', 'Ops', 'Optics', 'Range'].every((n) => held.names.includes(n)), held.text);
   });
 
   await guard('plates', async () => {
@@ -230,8 +232,10 @@ async function selftest(fac, {
       const places = await bk.places(who);
       check('empty', `${who.name} has no beam places`, /You have no places set\./.test(places), places);
     }
-    const mirrors = await srv.run('wormhole mirror list');
-    check('empty', 'no mirrors', mirrors.lines.some((l) => /No mirrors yet/.test(l)), mirrors.lines.join(' | '));
+    const { MirrorKit } = require('./lib/mirrors');
+    const held = await new MirrorKit(srv).list();
+    const expected = campus.ROUTES.mirrors.map((m) => m.name).sort();
+    check('empty', 'only the transit mirrors', JSON.stringify(held.names) === JSON.stringify(expected), `listed ${held.names.join(', ') || 'none'}; transit ${expected.join(', ')}`);
   });
 
   await guard('settings', async () => {

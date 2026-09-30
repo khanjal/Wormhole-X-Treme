@@ -41,6 +41,13 @@ const G1 = [
   { name: 'g1 walk into Horizontal', values: { shape: 'Horizontal' }, expect: 'PASS' },
   { name: 'g1 walk to the Range', values: { destination: 'Range' }, expect: 'PASS' },
   { name: 'g1 walk to the Annex', values: { destination: 'Annex' }, expect: 'PASS' },
+  // Cross-world rows (stage 4): travellers other than a walker, into the nether and the End.
+  { name: 'g1 horse to the Range', values: { destination: 'Range', traveller: 'horse' }, expect: 'PASS' },
+  { name: 'g1 minecart to the Annex', values: { destination: 'Annex', traveller: 'minecart' }, expect: 'PASS' },
+  { name: 'g1 wolf to the Range', values: { destination: 'Range', traveller: 'wolf' }, expect: 'PASS' },
+  { name: 'g1 arrow to the Annex', values: { destination: 'Annex', ...P('arrow') }, expect: 'PASS' },
+  { name: 'g1 zombie to the Range', values: { destination: 'Range', traveller: 'zombie' }, expect: 'PASS' },
+  { name: 'g1 lying item to the Annex', values: { destination: 'Annex', traveller: 'lying item' }, expect: 'PASS' },
   { name: 'g1 group Atlantis', values: { group: 'Atlantis' }, expect: 'PASS' },
   { name: 'g1 spin pegasus', values: { spin: 'pegasus' }, expect: 'PASS' },
   { name: 'g1 portal LAVA', values: { portal: 'LAVA' }, expect: 'PASS' },
@@ -183,6 +190,18 @@ const MATRIX = {
   r5: ['name', 'light', 'private', 'allow', 'deny', 'owner'].map((edit) => ({ name: `r5 ${edit}`, values: { edit }, expect: 'PASS' })),
   tunnel: ['64', '128', '250', '257'].map((d) => ({ name: `tunnel ${d} apart${d === '257' ? ': refused' : ''}`, values: { distance: d }, expect: 'PASS' })),
   b1: B1,
+  m1: [
+    ...['Annex', 'Optics', 'Ops', 'Range'].map((to) => ({ name: `m1 round to ${to}`, values: { to }, expect: 'PASS' })),
+    { name: 'm1 -start Range, round to Optics', values: { to: 'Optics', start: 'Range' }, expect: 'PASS' },
+    { name: 'm1 an op to the Range', values: { to: 'Range', traveller: 'op' }, expect: 'PASS' },
+    { name: 'm1 the three-second hold', values: { to: 'Ops', hold: 'watched' }, expect: 'PASS' },
+    { name: 'm1 approach message off', values: { to: 'Annex', approach: 'off' }, expect: 'PASS' },
+    { name: 'm1 one mirror per world', values: { limit: 'one per world' }, expect: 'PASS' },
+    { name: 'm1 limit row with a trip', values: { limit: 'one per world', to: 'Ops' }, expect: 'REFUSED:the limit row only makes a mirror; nothing travels' },
+  ],
+  m2: ['solid', 'gap one out', 'gap two out', 'on a post', 'two wide', 'protected', 'remove', 'limit']
+    .map((c) => ({ name: `m2 ${c}`, values: { case: c }, expect: 'PASS' })),
+  m3: ['capture', 'stamp a look', 'stamp from the room'].map((c) => ({ name: `m3 ${c}`, values: { case: c }, expect: 'PASS' })),
   b2: ['send to public', 'send to player', 'send to coordinates', 'send to nobody', 'goto as op', 'goto as player', 'set as player',
     'own place', 'another\'s place', 'go to a gate as op', 'go to a gate as player', 'cooldown', 'op skips cooldown']
     .map((action) => ({ name: `b2 ${action}`, values: { action }, expect: 'PASS' })),
@@ -198,6 +217,7 @@ const QUICK = new Set([
   'g2 Standard to its neighbour',
   'r1 walk ODD by console', 'r1 swap', 'r2 ceiling 11 up refused', 'r3 shaft 20 down', 'r4 mixed slabs', 'r5 name',
   'tunnel 257 apart: refused', 'b1 N public', 'b1 Trap', 'b2 send to public', 'b2 cooldown',
+  'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'g1 horse to the Range', 'b1 End',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;

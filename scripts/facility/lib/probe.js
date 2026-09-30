@@ -167,6 +167,54 @@ class Probe {
     return now;
   }
 
+  /**
+   * Turns to face a point and tells the server at once. Mineflayer only sends a turn with its
+   * next move, so a bot that turns and stands still is, to the server, still facing the old way
+   * (which is what the mirror approach line, a ray from the eye, reads).
+   */
+  async face(p) {
+    const bot = this.bot;
+    await bot.lookAt(new Vec3(p.x, p.y, p.z), true);
+    const eye = bot.entity.position.offset(0, bot.entity.height * 0.9, 0);
+    const dx = p.x - eye.x;
+    const dy = p.y - eye.y;
+    const dz = p.z - eye.z;
+    const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+    const pitch = -Math.atan2(dy, Math.hypot(dx, dz)) * (180 / Math.PI);
+    bot._client.write('look', { yaw, pitch, onGround: true, flags: { onGround: true } });
+  }
+
+  /**
+   * Right-clicks a block as a client does when the click does nothing client-side (a banner):
+   * no arm swing. Mineflayer's activateBlock always swings, and Paper reads a swing at a block
+   * the player is facing as a left click on it: a punch, which sends a mirror's viewer through.
+   */
+  async rightClick({ x, y, z }, { dir = null, cursor = null } = {}) {
+    const block = this.bot.blockAt(new Vec3(x, y, z));
+    if (!block) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+    // The click lands where the eye's ray meets the block's shape: a wall banner's cloth hangs
+    // against its wall, and Paper ignores a click whose point is outside it.
+    const c = cursor || new Vec3(0.5, 0.5, 0.5);
+    await this.face({ x: x + c.x, y: y + c.y, z: z + c.z });
+    const swing = this.bot.swingArm;
+    this.bot.swingArm = () => {};
+    try {
+      await this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c);
+    } finally {
+      this.bot.swingArm = swing;
+    }
+  }
+
+  /** Left-clicks a block as a punch: starts digging it, swings, and stops. */
+  async punch({ x, y, z }, face = 1) {
+    const at = new Vec3(x, y, z);
+    await this.face({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+    this.bot._client.write('block_dig', { status: 0, location: at, face, sequence: 0 });
+    this.bot.swingArm();
+    await ticks(2);
+    this.bot._client.write('block_dig', { status: 1, location: at, face, sequence: 0 });
+  }
+
   /** Right-clicks a block without waiting for it to change (a button the plugin may consume). */
   async press({ x, y, z }) {
     const block = this.bot.blockAt(new Vec3(x, y, z));

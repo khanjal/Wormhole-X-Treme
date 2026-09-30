@@ -55,7 +55,7 @@ function footprints() {
     out.push({ what: `beam button ${p.name}`, wing: p.wing, box: bp.box3(p.button.x - 1, 0, p.button.z, p.button.x + 1, 2, p.button.z) });
   }
   for (const m of R.mirrors) {
-    out.push({ what: `mirror ${m.name} (stage ${m.stage})`, wing: m.wing, box: bp.box3(m.x - 1, 0, m.z, m.x + 1, 3, m.z) });
+    out.push({ what: `mirror ${m.name}`, wing: m.wing, box: bp.box3(m.x, m.y, m.z, m.x, m.y, m.z) });
   }
   return out;
 }

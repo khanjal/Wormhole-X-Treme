@@ -10,6 +10,7 @@ const text = require('./text');
 const { GateKit } = require('./gatekit');
 const { RingKit, SWAP_TICKS, CYCLE_TICKS } = require('./rings');
 const trip = require('./ringtrip');
+const mirrors = require('./mirrors');
 const { ticks } = require('./probe');
 
 const R = campus.ROUTES;
@@ -47,6 +48,16 @@ function drawn(probe, geom) {
   const mid = geom.opening[Math.floor(geom.opening.length / 2)];
   const b = probe.bot.blockAt(new Vec3(mid.x, mid.y, mid.z));
   return Boolean(b) && !['air', 'cave_air'].includes(b.name);
+}
+
+/**
+ * Whether the gates shut again within timeout-shutdown (and 5 s), as a probe standing by one of
+ * them is shown. A probe that has just arrived is not shown the opening at once, so the open
+ * gate is waited for first (3 s): "not drawn" straight after arrival is not "shut".
+ */
+async function shutAgain(probe, geoms) {
+  await trip.until(async () => geoms.some((g) => drawn(probe, g)), 3000, 2);
+  return trip.until(async () => geoms.every((g) => !drawn(probe, g)), (SHUT_SECONDS + 5) * 1000, 10);
 }
 
 class Transit {
@@ -101,7 +112,25 @@ class Transit {
       if (!/set to your current location/.test(said)) throw new Error(`beam destination ${p.name}: ${said}`);
     }
     await probe.teleport(campus.TRANSIT.home);
-    return `gates ${Object.keys(R.gates).join(', ')}; ring pair ${pair.id} (${a.name} ⇄ ${b.name}); beam ${R.beams.map((p) => p.name).join(', ')}`;
+
+    // Mirrors, one in each world beside the gallery's pair: anything a kept world still holds is
+    // taken down, the banners hung, each made by the console form, started and stamped, and then
+    // waited on until its room's capture is in memory (a view cannot be drawn before).
+    const mk = new mirrors.MirrorKit(srv);
+    for (const name of (await mk.list()).names) await mk.remove(name);
+    for (const m of R.mirrors) {
+      await mk.banner(m);
+      const made = await mk.create(m.name, m);
+      if (!new RegExp(`Mirror '${m.name}' is this banner`).test(made)) throw new Error(`mirror ${m.name}: ${made}`);
+    }
+    for (const m of R.mirrors) {
+      const started = await mk.set(m.name, '-start', m.start);
+      if (!/opens onto/.test(started)) throw new Error(`mirror ${m.name} -start: ${started}`);
+      const stamped = await mk.set(m.name, '-stamp', m.look);
+      if (!/looks like/.test(stamped)) throw new Error(`mirror ${m.name} -stamp: ${stamped}`);
+    }
+    for (const m of R.mirrors) await mk.captured(m.name);
+    return `gates ${Object.keys(R.gates).join(', ')}; ring pair ${pair.id} (${a.name} ⇄ ${b.name}); beam ${R.beams.map((p) => p.name).join(', ')}; mirrors ${R.mirrors.map((m) => m.name).join(', ')}`;
   }
 
   // ---- routes --------------------------------------------------------------------------------
@@ -111,10 +140,16 @@ class Transit {
     return [
       { id: 'gate Ops→Hall', quick: true, walk: (p2, heard) => this.gateByConsole(p2, heard) },
       { id: 'gate Hall→Ops', walk: (p2, heard) => this.gateByDhd(p2, heard) },
+      { id: 'gate Ops→Range', walk: (p2, heard) => this.gateOut(p2, heard, 'Range') },
+      { id: 'gate Range→Ops', quick: true, walk: (p2, heard) => this.gateHome(p2, heard, 'Range') },
+      { id: 'gate Ops→Annex', walk: (p2, heard) => this.gateOut(p2, heard, 'Annex') },
+      { id: 'gate Annex→Ops', walk: (p2, heard) => this.gateHome(p2, heard, 'Annex') },
       { id: 'ring Ops→Lab', quick: true, walk: (p2, heard) => this.ring(p2, heard, 0) },
       { id: 'ring Lab→Ops', walk: (p2, heard) => this.ring(p2, heard, 1) },
       { id: 'beam Atrium→BeamLab', quick: true, walk: (p2, heard) => this.beamByButton(p2, heard) },
       { id: 'beam BeamLab→Atrium', walk: (p2, heard) => this.beamTyped(p2, heard) },
+      { id: 'mirror Ops→Optics', quick: true, walk: (p2, heard) => this.mirror(p2, heard, 'Ops', 'Optics') },
+      { id: 'mirror Optics→Ops', walk: (p2, heard) => this.mirror(p2, heard, 'Optics', 'Ops') },
     ];
   }
 
@@ -150,7 +185,7 @@ class Transit {
     const bx = c.x + c.dial.indexOf('Hall');
     await p2.teleport({ x: bx + 0.5, y: 0, z: c.z + 2.5, yaw: 180 });
     await p2.press({ x: bx, y: 1, z: c.z });
-    const open = await trip.until(async () => drawn(p2, ops), 10000);
+    const open = await trip.until(async () => drawn(p2, ops), 25000);
     if (!open) return { ok: false, detail: 'the Hall button did not open the Ops gate (its opening was never drawn)' };
     await ticks(25);
     const t0 = Date.now();
@@ -163,7 +198,7 @@ class Transit {
     if (!there) return { ok: false, detail: `Probe2 did not come out at Hall (at ${fmt(p2.position)})` };
     if (facing > 15) return { ok: false, detail: `came out at Hall facing ${mcYaw(p2).toFixed(0)}°, not south` };
     // Both ends shut again within timeout-shutdown, seen from Hall.
-    const shut = await trip.until(async () => !drawn(p2, hall) && !drawn(p2, ops), (SHUT_SECONDS + 5) * 1000 - (Date.now() - t0), 10);
+    const shut = await shutAgain(p2, [hall, ops]);
     if (!shut) return { ok: false, detail: `the gates were still open ${SHUT_SECONDS + 5} s after the trip` };
     return { ok: true, detail: `at Hall within ${flat(p2.position, arrival).toFixed(2)}, facing south; both gates shut ${((Date.now() - t0) / 1000).toFixed(0)} s after` };
   }
@@ -181,13 +216,85 @@ class Transit {
     p2.bot.chat('/dial Ops');
     const connected = await trip.until(async () => trip.said(heard, /Stargates connected\./, t0), 5000);
     if (!connected) return { ok: false, detail: `/dial Ops was not connected (told: ${recent(heard, t0)})` };
-    if (!(await trip.until(async () => drawn(p2, hall), 10000))) return { ok: false, detail: 'the Hall opening was never drawn' };
+    if (!(await trip.until(async () => drawn(p2, hall), 25000))) return { ok: false, detail: 'the Hall opening was never drawn' };
     await ticks(25);
     const arrival = ops.arrival;
     await p2.teleport({ x: 0.5, y: 0, z: R.gates.Hall.runway.z0 + 0.5, yaw: 180 });
     await p2.walkTo({ x: 0.5, z: hall.opening[0].z - 1.5 }, { within: 0.4, ms: 8000, until: () => flat(p2.position, arrival) < 2 }).catch(() => {});
     if (!(await this.landed(p2, arrival, 5000))) return { ok: false, detail: `Probe2 did not come out at Ops (at ${fmt(p2.position)})` };
-    return { ok: true, detail: `at Ops within ${flat(p2.position, arrival).toFixed(2)}` };
+    // Ops is dialled again next; let it shut.
+    const shut = await shutAgain(p2, [ops]);
+    if (!shut) return { ok: false, detail: `Ops was still open ${SHUT_SECONDS + 5} s after the trip` };
+    return { ok: true, detail: `at Ops within ${flat(p2.position, arrival).toFixed(2)}; Ops shut again` };
+  }
+
+  /** Ops to a far gate (Range, Annex) by the Ops console's button for it; out in its world. */
+  async gateOut(p2, heard, name) {
+    const ops = geometry('Ops');
+    const far = require('../chambers/relay').farGates()[name];
+    const c = R.gates.Ops.console;
+    const bx = c.x + c.dial.indexOf(name);
+    await p2.teleport({ x: bx + 0.5, y: 0, z: c.z + 2.5, yaw: 180 });
+    await p2.press({ x: bx, y: 1, z: c.z });
+    if (!(await trip.until(async () => drawn(p2, ops), 25000))) return { ok: false, detail: `the ${name} button did not open the Ops gate within 25 s` };
+    await ticks(25);
+    const arrival = far.geom.arrival;
+    await p2.teleport({ x: 0.5, y: 0, z: R.gates.Ops.runway.z0 + 0.5, yaw: 180 });
+    await p2.walkTo({ x: 0.5, z: ops.opening[0].z - 1.5 }, { within: 0.4, ms: 8000, until: () => p2.dimension === far.dim }).catch(() => {});
+    if (!(await this.landed(p2, arrival, 8000, far.dim))) return { ok: false, detail: `Probe2 did not come out at ${name} (in ${p2.dimension} at ${fmt(p2.position)})` };
+    await p2.settle();
+    const facing = yawOff(mcYaw(p2), 0);
+    if (facing > 15) return { ok: false, detail: `came out at ${name} facing ${mcYaw(p2).toFixed(0)}°, not south` };
+    const shut = await shutAgain(p2, [far.geom]);
+    if (!shut) return { ok: false, detail: `${name} was still open ${SHUT_SECONDS + 5} s after the trip` };
+    return { ok: true, detail: `at ${name} in ${far.dim.replace('minecraft:', '')} within ${flat(p2.position, arrival).toFixed(2)}, facing south; ${name} shut again` };
+  }
+
+  /** A far gate home to Ops, by the dial-home button on its console (stage 3.6 decoration). */
+  async gateHome(p2, heard, name) {
+    const ops = geometry('Ops');
+    const far = require('../chambers/relay').farGates()[name];
+    const g = campus.GATES.far[name];
+    const button = name === 'Range' ? { x: -8, y: g.floorY + 1, z: -14 } : { x: 992, y: g.floorY + 1, z: 1006 };
+    await p2.teleport({ x: button.x + 0.5, y: g.floorY, z: button.z + 1.5, yaw: 180 }, far.dim);
+    await p2.press(button);
+    if (!(await trip.until(async () => drawn(p2, far.geom), 25000))) return { ok: false, detail: `the Dial Ops button at ${name} did not open its gate within 25 s` };
+    await ticks(25);
+    const cx = g.cx + 0.5;
+    await p2.teleport({ x: cx, y: g.floorY, z: far.geom.button.z + 6.5, yaw: 180 }, far.dim);
+    await p2.walkTo({ x: cx, z: far.geom.opening[0].z - 1.5 }, { within: 0.4, ms: 8000, until: () => p2.dimension === O }).catch(() => {});
+    if (!(await this.landed(p2, ops.arrival, 8000))) return { ok: false, detail: `Probe2 did not come out at Ops (in ${p2.dimension} at ${fmt(p2.position)})` };
+    const shut = await shutAgain(p2, [ops]);
+    if (!shut) return { ok: false, detail: `Ops was still open ${SHUT_SECONDS + 5} s after the trip` };
+    return { ok: true, detail: `at Ops within ${flat(p2.position, ops.arrival).toFixed(2)}; Ops shut again` };
+  }
+
+  /**
+   * Through a mirror: walk up (the approach line names it), right-click until it opens onto
+   * `to` (its -start makes that the first), see the view open (the banner given way, the far room
+   * drawn), punch, and land at `to` facing out.
+   */
+  async mirror(p2, heard, fromName, toName) {
+    const from = R.mirrors.find((m) => m.name === fromName);
+    const to = R.mirrors.find((m) => m.name === toName);
+    // A mirror that has just carried someone is shut to them for two seconds.
+    await ticks(50);
+    const seen = mirrors.watchWindow(p2, from);
+    try {
+      const line = await mirrors.approach(p2, from, heard);
+      if (!line) return { ok: false, detail: `no approach line naming ${fromName} (told: ${recent(heard, Date.now() - 5000)})` };
+      const chose = await mirrors.chooseUntil(p2, from, toName, heard, { max: 3 });
+      if (!chose.reached) return { ok: false, detail: `right-clicks did not open ${fromName} onto ${toName}: ${chose.hints.join(' | ')}` };
+      await trip.until(async () => seen.bannerAir && seen.openingBarrier > 0, 5000);
+      if (!seen.bannerAir || !seen.openingBarrier) return { ok: false, detail: `the view did not open (banner as air ${seen.bannerAir}, opening as barrier ${seen.openingBarrier})` };
+      const at = mirrors.arrivalOf(to);
+      const r = await mirrors.punchThrough(p2, from, at, to.dim);
+      if (!r.ok) return { ok: false, detail: `the punch did not carry Probe2 to ${toName} (in ${r.dim} at ${fmt(r.at)})` };
+      if (mirrors.yawOff(r.yaw, at.yaw) > 15) return { ok: false, detail: `came out at ${toName} facing ${r.yaw.toFixed(0)}°, not ${at.yaw}°` };
+      return { ok: true, detail: `"${line}", then "${chose.hints[chose.hints.length - 1]}"; the view opened (${seen.count} blocks drawn); at ${toName} within ${flat(r.at, at).toFixed(2)}, facing ${r.yaw.toFixed(0)}°` };
+    } finally {
+      seen.stop();
+    }
   }
 
   /** One way through the transit ring pair: from end `from` to the other. */

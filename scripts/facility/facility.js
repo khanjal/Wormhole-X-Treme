@@ -49,10 +49,14 @@ class Facility {
   async prepare() {
     await this.srv.prepareFence();
     const problems = [];
-    for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands']) {
-      const cmd = `gamerule ${server.gameruleName(this.version, rule)} false`;
-      const r = await this.srv.run(cmd);
-      if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
+    // Paper keeps gamerules per world: the nether and the End need them too (a ghast spawned in
+    // the Range, with mob spawning off only in the overworld, fireballed Probe2 on a transit trip).
+    for (const dim of [campus.OVERWORLD, campus.NETHER, campus.END]) {
+      for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands']) {
+        const cmd = `execute in ${dim} run gamerule ${server.gameruleName(this.version, rule)} false`;
+        const r = await this.srv.run(cmd);
+        if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
+      }
     }
     for (const c of ['time set 6000', 'weather clear', `setworldspawn ${Math.floor(campus.TRANSIT.home.x)} 0 ${Math.floor(campus.TRANSIT.home.z)}`]) {
       const r = await this.srv.run(c);
@@ -69,6 +73,14 @@ class Facility {
     }
     this.loadMs = Date.now() - t0;
     await this.watch.prepare();
+    // The facility's baseline settings (campus.BASELINE), put back at close.
+    this.baseline = {};
+    for (const [name, value] of Object.entries(campus.BASELINE)) {
+      try {
+        this.baseline[name] = await this.config.get(name);
+        await this.config.write(name, value);
+      } catch (e) { problems.push(`baseline ${name}: ${e.message}`); }
+    }
     return problems;
   }
 
@@ -181,6 +193,11 @@ class Facility {
    */
   async fixtures() {
     const out = [];
+    // Whatever the far worlds spawned before their mob spawning was turned off.
+    for (const [dim, types] of [[campus.NETHER, ['ghast', 'blaze', 'magma_cube', 'zombified_piglin', 'piglin', 'piglin_brute', 'hoglin', 'wither_skeleton', 'skeleton', 'enderman', 'strider']],
+      [campus.END, ['enderman', 'shulker', 'endermite']]]) {
+      for (const t of types) await this.srv.run(`execute in ${dim} run kill @e[type=minecraft:${t}]`);
+    }
     try {
       await this.menagerie.stock();
       out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
@@ -496,6 +513,7 @@ class Facility {
   }
 
   async close() {
+    for (const [name, value] of Object.entries(this.baseline || {})) await this.config.write(name, value).catch(() => {});
     for (const b of this.bars) await b.close().catch(() => {});
     if (this.probe) this.probe.bot.quit();
     if (this.probe2) this.probe2.bot.quit();

@@ -171,11 +171,11 @@ const CHAMBERS = [
     box: { x0: -104, x1: -52, z0: -26, z1: 8, y0: 0, h: 10 }, door: 'e', gallery: 's' },
   { id: 'b2', wing: 'beams', title: 'Dispatch Desk', kind: 'desk', stage: 3, logic: 'b2-dispatch', at: { x: -60, y: 0, z: 22 } },
   // Mirror Optics
-  { id: 'm1', wing: 'mirrors', title: 'Mirror Round', kind: 'cell', stage: 4,
+  { id: 'm1', wing: 'mirrors', title: 'Mirror Round', kind: 'cell', stage: 4, logic: 'm1-round',
     box: { x0: -36, x1: 36, z0: 50, z1: 68, y0: 0, h: 10 }, door: 'n', gallery: 's' },
-  { id: 'm2', wing: 'mirrors', title: 'Wall Bench', kind: 'cell', stage: 4, creative: true,
+  { id: 'm2', wing: 'mirrors', title: 'Wall Bench', kind: 'cell', stage: 4, creative: true, logic: 'm2-wall',
     box: { x0: -36, x1: -8, z0: 76, z1: 88, y0: 0, h: 8 }, door: 'n', gallery: 'e' },
-  { id: 'm3', wing: 'mirrors', title: 'Capture Desk', kind: 'cell', stage: 4,
+  { id: 'm3', wing: 'mirrors', title: 'Capture Desk', kind: 'cell', stage: 4, logic: 'm3-capture',
     box: { x0: 8, x1: 36, z0: 76, z1: 88, y0: 0, h: 8 }, door: 'n', gallery: 'w' },
   // The far sites: fixtures come in stage 4, the places for them now.
   { id: 'range-site', wing: 'range', title: 'Range Fixtures', kind: 'desk', stage: 4, at: { x: 0, y: 64, z: -8 } },
@@ -255,11 +255,19 @@ const ROUTES = {
     { name: 'Atrium', wing: 'ops', x: -13, y: 0, z: -6, yaw: 90, button: { x: -17, z: -6 }, to: 'BeamLab' },
     { name: 'BeamLab', wing: 'beams', x: -46, y: 0, z: 0, yaw: 90, button: { x: -46, z: -4 }, to: 'Atrium' },
   ],
+  // One in each world beside Ops and the gallery (so the default per-world limit of 1 is kept in
+  // the nether and the End). `wall: 'room'` hangs on a room's wall, `'pier'` on a free-standing
+  // pier the decoration builds; `floorY` is where a traveller's feet land.
   mirrors: [
-    { name: 'Ops', wing: 'ops', x: -10, y: 2, z: 20, stage: 4 },
-    { name: 'Optics', wing: 'mirrors', x: -10, y: 2, z: 40, stage: 4 },
+    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 2, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
+    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 2, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
+    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 66, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
+    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 62, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
   ],
 };
+
+/** The facility's baseline: two mirrors in the overworld, room for the chambers' own. Restored at close. */
+const BASELINE = { 'mirror-per-world-limit': '6' };
 
 /** Ops boards: the Ops wall (one line per chamber), the fault counter and the welcome board. */
 /**
@@ -318,5 +326,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, ROUTES, OPS, GATES, FORCELOAD, BOARD_MIRRORS, wing, chamber,
+  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, wing, chamber,
 };

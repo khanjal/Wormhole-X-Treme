@@ -152,8 +152,17 @@ class Menagerie {
     return r;
   }
 
-  /** Stocks one of each animal in its pen, NoAI, silent, tagged wx_stock_<kind>. */
+  /**
+   * Stocks one of each animal in its pen, NoAI, silent, tagged wx_stock_<kind>; and hangs the
+   * armoury's wares on its inside wall in glow frames that cannot be turned or emptied, tagged
+   * wx_decor so no chamber's `kill @e[tag=wx_run_*]` touches them (creative pass 3.6).
+   */
   async stock() {
+    const a = campus.MENAGERIE.armoury;
+    await this.srv.run('kill @e[type=minecraft:glow_item_frame,tag=wx_decor]');
+    for (const [i, id] of ['bow', 'crossbow', 'trident', 'spectral_arrow', 'firework_rocket', 'snowball'].entries()) {
+      await this.must(`summon minecraft:glow_item_frame ${a.x1 - 1} 1 ${a.z0 + 2 + i} {Facing:4b,Fixed:1b,Invulnerable:1b,Tags:["wx_decor"],Item:${itemNbt(this.version, { id })}}`);
+    }
     for (const kind of [...MOUNTS, ...PETS]) {
       const at = penOf(kind);
       if (!at) continue;

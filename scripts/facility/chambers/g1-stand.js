@@ -193,6 +193,12 @@ async function stage(ctx, o) {
   const far = relay.farGates();
   for (const g of Object.values(far)) if (!(await kit.exists(g.name))) await relay.fixture(ctx);
   for (const g of Object.values(far)) { await kit.force(g.name); await kit.edit(g.name, 'idc', '-clear'); }
+  // A far world's arrival is forceloaded; wait until it answers as loaded all the same, since a
+  // trip into a chunk still being brought in is a harness flake, not a plugin failure.
+  if (['Range', 'Annex'].includes(o.destination)) {
+    const a = farOf(o).geom.arrival;
+    await ctx.server.waitLoaded(farOf(o).dim, [[Math.floor(a.x), Math.floor(a.y), Math.floor(a.z)]], 30000);
+  }
   if (await kit.exists(STAND)) await kit.remove(STAND);
 
   const geom = kit.place(o.shape, PLACE.facing, PLACE);

@@ -102,11 +102,13 @@ function forbidden(builds) {
   for (const e of campus.ROUTES.rings.ends) walk(`the walk into the ${e.name} ring`, e.x, e.z, e.x + 1, e.z + 6);
   for (const g of Object.values(campus.ROUTES.gates)) walk('a transit gate\'s walk lane', g.runway.x0, g.runway.z0 - 5, g.runway.x1, g.runway.z1);
   for (const p of campus.ROUTES.beams) walk(`the ${p.name} beam button's standing spot`, p.button.x - 1, p.button.z, p.button.x + 1, p.button.z + 2);
+  // A mirror's wall patch (a room's wall: decoration may not replace it; a pier is decoration and
+  // is the wall) and the air in front of it, where a traveller lands.
   for (const m of campus.ROUTES.mirrors) {
-    const wallZ = m.wing === 'ops' ? m.z + 1 : m.z - 1;
-    const front = m.wing === 'ops' ? [m.z - 3, m.z] : [m.z, m.z + 3];
-    out.push({ what: `the ${m.name} mirror's wall`, dim: O, box: bp.box3(m.x - 1, 0, wallZ, m.x + 1, 3, wallZ) });
-    out.push({ what: `the air in front of the ${m.name} mirror`, dim: O, box: bp.box3(m.x - 1, 0, front[0], m.x + 1, 3, front[1]) });
+    const s = m.facing === 'north' ? -1 : 1;
+    const f = m.floorY;
+    if (m.wall === 'room') out.push({ what: `the ${m.name} mirror's wall`, dim: m.dim, box: bp.box3(m.x - 1, f, m.z - s, m.x + 1, m.y + 1, m.z - s) });
+    out.push({ what: `the air in front of the ${m.name} mirror`, dim: m.dim, box: bp.box3(m.x - 1, f, m.z, m.x + 1, m.y + 1, m.z + 3 * s) });
   }
   return out;
 }

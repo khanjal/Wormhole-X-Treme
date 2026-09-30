@@ -86,6 +86,7 @@ module.exports = {
       if (o.destination === 'Trap') await srv.run(`setblock ${pad.x} -1 ${pad.z} minecraft:air`);
       if (o.destination === 'Blocked') await srv.run(`setblock ${pad.x} 0 ${pad.z} minecraft:white_concrete`);
     }
+    if (pad.dim !== O) await srv.waitLoaded(pad.dim, [[pad.x, pad.y, pad.z]], 30000);
     const traveller = ['player', 'wolf'].includes(o.traveller) ? p2 : ctx.probe;
     obs.travellerName = traveller.name;
     // Who saves it: an op for a public one, the traveller for its own place, Probe for another's.
