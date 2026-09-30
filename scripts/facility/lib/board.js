@@ -97,11 +97,18 @@ class FaultCounter {
   constructor(srv) {
     this.srv = srv;
     this.faults = [];
+    // Known plugin bugs (server.KNOWN_FAULTS): reported, not counted as new faults. The stack
+    // trace a known fault prints belongs to it.
+    this.known = [];
     this.onChange = null;
+    let inKnownTrace = false;
     srv.on('line', (line) => {
       const f = server.pluginFault(line);
+      const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
+      if (logLine) inKnownTrace = false;
       if (!f) return;
-      this.faults.push(f);
+      const k = server.knownFault(f);
+      if (k) { this.known.push({ line: f, note: k.note, issue: k.issue }); inKnownTrace = true; } else if (!inKnownTrace) this.faults.push(f);
       if (this.onChange) this.onChange(this);
     });
   }
@@ -111,7 +118,8 @@ class FaultCounter {
   }
 
   spec() {
-    if (!this.faults.length) return [{ text: 'Plugin log: ', color: 'white' }, { text: '0 faults', color: 'green', bold: true }];
+    const known = this.known.length ? [{ text: ` (${this.known.length} known)`, color: 'gold' }] : [];
+    if (!this.faults.length) return [{ text: 'Plugin log: ', color: 'white' }, { text: '0 faults', color: 'green', bold: true }, ...known];
     const first = this.faults[0];
     return [{ text: 'Plugin log: ', color: 'white' }, { text: `${this.count} fault${this.count > 1 ? 's' : ''}`, color: 'red', bold: true },
       '\n', { text: first.length > 80 ? `${first.slice(0, 77)}...` : first, color: 'red' }];

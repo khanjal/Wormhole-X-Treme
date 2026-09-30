@@ -87,7 +87,9 @@ class MirrorKit {
     let said = '';
     while (Date.now() < end) {
       said = await this.say(`wormhole mirror debug ${name}`);
-      if (/capture: \d+ bytes/.test(said) && !/being taken now/.test(said)) return said;
+      // In memory is what a window draws from. The file is written after, off the main thread, and
+      // is not waited for: when it cannot be written the plugin logs it and the fault counter says so.
+      if (/capture: [^,]+, in memory/.test(said) && !/being taken now/.test(said)) return said;
       await ticks(20);
     }
     throw new Error(`the capture of ${name} was not taken within ${ms / 1000} s: ${said}`);

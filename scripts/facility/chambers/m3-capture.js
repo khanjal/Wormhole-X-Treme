@@ -79,7 +79,7 @@ module.exports = {
   checks(ctx, o) {
     const obs = ctx.observed;
     const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
-    const list = [c('Desk was made', () => /Mirror 'Desk' is this banner\./.test(obs.made || '')), c('and its room captured', () => /capture: \d+ bytes/.test(obs.captured || ''))];
+    const list = [c('Desk was made', () => /Mirror 'Desk' is this banner\./.test(obs.made || '')), c('and its room captured', () => /capture: [^,]+, in memory/.test(obs.captured || ''))];
     if (o.case === 'capture') {
       const has = (r) => r && r.kinds.includes('gold_block');
       list.push(c('walking up, the view was drawn', () => obs.before && obs.before.count > 200));

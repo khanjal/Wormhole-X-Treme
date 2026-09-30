@@ -136,7 +136,7 @@ module.exports = {
     }
     const list = [
       c('Round was made: "Mirror \'Round\' is this banner."', () => /Mirror 'Round' is this banner\./.test(obs.made || '')),
-      c('its room was captured', () => /capture: \d+ bytes/.test(obs.captured || '')),
+      c('its room was captured', () => /capture: [^,]+, in memory/.test(obs.captured || '')),
     ];
     if (o.start !== 'none') list.push(c(`"A right-click on 'Round' opens onto '${o.start}' first."`, () => new RegExp(`opens onto '${o.start}' first`).test(obs.started || '')));
     if (o.approach === 'on') {
