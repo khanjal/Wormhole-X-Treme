@@ -44,6 +44,9 @@ module.exports = {
     if (!obs.id) return;
     if (o.edit === 'light') obs.edit = await kit.ask(`/wormhole ring edit ${obs.id} light SEA_LANTERN`, { until: /Pad light set to|not a block/ });
     if (['private', 'allow', 'deny'].includes(o.edit)) obs.edit = await kit.ask(`/wormhole ring edit ${obs.id} access private`, { until: /Access set to/ });
+    // The plugin knows a player only once they have been on the server: Probe2 joins first
+    // (in a shard, no earlier cell may have brought it).
+    if (o.edit === 'allow' || o.edit === 'deny') await ctx.facility.second();
     if (o.edit === 'allow' || o.edit === 'deny') obs.allow = await kit.ask(`/wormhole ring allow Probe2 ${obs.id}`, { until: /may now use|could already/ });
     if (o.edit === 'deny') obs.deny = await kit.ask(`/wormhole ring deny Probe2 ${obs.id}`, { until: /may no longer use|was not on the list/ });
     if (o.edit === 'owner') {

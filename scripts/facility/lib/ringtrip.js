@@ -79,6 +79,8 @@ async function stagePair(ctx, o, a, b, opts = {}) {
     obs.built = r.text;
   }
   if (o.timing === 'slow') obs.style = await kit.ask(`/wormhole ring edit ${obs.id} style slow`, { until: /Style set to/ });
+  // The plugin knows a player only once they have been on the server: Probe2 joins first.
+  if (o.access === 'allowed') await ctx.facility.second();
   if (o.access === 'allowed') obs.allow = await kit.ask(`/wormhole ring allow Probe2 ${obs.id}`, { until: /may now use|could already/ });
 }
 
