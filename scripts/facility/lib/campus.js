@@ -142,13 +142,13 @@ const CHAMBERS = [
   // Ring Transit
   { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3, logic: 'r1-pair',
     box: { x0: 44, x1: 106, z0: -26, z1: -10, y0: 0, h: 12 }, door: 's', gallery: 'n' },
-  { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3,
+  { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3, logic: 'r2-ceiling',
     box: { x0: 44, x1: 58, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'e' },
-  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60,
+  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60, logic: 'r3-shaft',
     box: { x0: 66, x1: 72, z0: 8, z1: 14, y0: 0, h: 12 }, door: 'n', gallery: 's' },
-  { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true,
+  { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true, logic: 'r4-bench',
     box: { x0: 82, x1: 104, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'w' },
-  { id: 'r5', wing: 'rings', title: 'Edit Desk', kind: 'desk', stage: 3, at: { x: 100, y: 0, z: -4 } },
+  { id: 'r5', wing: 'rings', title: 'Edit Desk', kind: 'desk', stage: 3, logic: 'r5-edit', at: { x: 100, y: 0, z: -4 } },
   // Nine wide, so a seven-wide ring fits; long enough for a pair 257 apart (one over the limit).
   { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3, logic: 'r6-range',
     box: { x0: 112, x1: 380, z0: -4, z1: 4, y0: 0, h: 6 } },

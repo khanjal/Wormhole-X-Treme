@@ -97,7 +97,7 @@ async function arrival(probe, at, ms = 15000, dim = O) {
   const onMove = () => { if (when === null && probe.distanceTo(at) < 2) when = Date.now(); };
   probe.bot.on('forcedMove', onMove);
   try {
-    const ok = await until(async () => probe.dimension === dim && flat(probe.position, at) < 1.5, ms);
+    const ok = await until(async () => probe.dimension === dim && flat(probe.position, at) < 1.5 && Math.abs(probe.position.y - at.y) < 1.5, ms);
     await probe.settle();
     return { ok, at: { x: probe.position.x, y: probe.position.y, z: probe.position.z }, when };
   } finally {
@@ -234,4 +234,4 @@ async function cleanup(ctx, kit) {
   if (ctx.facility.probe2) await ctx.facility.probe2.teleport(campus.TRANSIT.home).catch(() => {});
 }
 
-module.exports = { listen, said, stagePair, stepIn, arrival, send, walkAs, checks, cleanup, near };
+module.exports = { listen, said, until, stagePair, stepIn, arrival, send, walkAs, checks, cleanup, near };

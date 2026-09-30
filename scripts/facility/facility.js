@@ -367,7 +367,8 @@ class Facility {
       await bar.advance('resetting the cell');
       if (ch.cleanup) await ch.cleanup(ctx);
       lap('cleanup');
-      const reset = await this.runFunction(this.resetFunction(e));
+      const rf = this.resetFunction(e);
+      const reset = rf ? await this.runFunction(rf) : { ok: true };
       lap('reset');
       if (!reset.ok) throw Object.assign(new Error(`reset before staging: ${reset.detail}`), { phase: 'fixture' });
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
@@ -421,9 +422,14 @@ class Facility {
   async resetChamber(e) {
     const problems = [];
     const f = this.resetFunction(e);
-    if (!f) return { ok: true, problems };
     if (e.chamber && e.chamber.cleanup) {
       try { await e.chamber.cleanup(this.makeCtx(e)); } catch (err) { problems.push(`cleanup: ${err.message}`); }
+    }
+    // A desk has no cell and no reset function: its cleanup is all of its reset.
+    if (!f) {
+      await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
+      if (this.held.delete(e.def.id)) await this.config.restore();
+      return { ok: problems.length === 0, problems };
     }
     const r = await this.runFunction(f);
     if (!r.ok) problems.push(r.detail);
