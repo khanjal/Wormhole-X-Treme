@@ -137,8 +137,11 @@ module.exports = {
     if (o.traveller === 'wolf') {
       const pad = PADS[o.destination];
       // A wolf with its AI on is put beside its owner a second after the landing, then potters
-      // about: anywhere near the pad is "came along" (the start pad is 18 blocks off).
-      obs.wolfCame = await trip.until(() => trip.near(ctx, { x: pad.x + 0.5, y: pad.y, z: pad.z + 0.5 }, `tag=${ctx.tag},tag=wx_kind_wolf`, 6, pad.dim), 4000);
+      // about: seen 1 to 6 blocks from the pad in seven runs, so within 8 is "came along" (left
+      // behind, it would be at the start, 23 blocks away).
+      obs.wolfCame = await trip.until(() => trip.near(ctx, { x: pad.x + 0.5, y: pad.y, z: pad.z + 0.5 }, `tag=${ctx.tag},tag=wx_kind_wolf`, 8, pad.dim), 4000);
+      const at = await ctx.server.run(`data get entity @e[tag=${ctx.tag},tag=wx_kind_wolf,limit=1] Pos`);
+      obs.wolfAt = at.lines.join(' ').replace(/.*data: /, '');
     }
     if (o.timing === 'clamped vanish' && obs.beam.done) {
       // Not left frozen: two blocks' walk.
