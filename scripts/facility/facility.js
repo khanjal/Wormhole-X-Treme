@@ -220,9 +220,13 @@ class Facility {
    * use and kept for the session.
    */
   async second() {
-    if (this.probe2 && this.probe2.bot.entity) return this.probe2;
+    if (this.probe2 && this.probe2.bot.entity && !this.probe2.gone) return this.probe2;
+    if (this.probe2 && this.probe2.gone) this.log(`  Probe2 rejoins (it left: ${this.probe2.gone})`);
     const bot = await join({ port: this.port, version: this.version, username: 'Probe2' });
     this.probe2 = new Probe(bot, this.srv);
+    const p2 = this.probe2;
+    bot.on('kicked', (reason) => { p2.gone = `kicked: ${typeof reason === 'string' ? reason : JSON.stringify(reason)}`; });
+    bot.on('end', (reason) => { p2.gone = p2.gone || `disconnected: ${reason}`; });
     await this.srv.run('deop Probe2');
     await this.srv.run('gamemode adventure Probe2');
     await this.probe2.teleport(campus.TRANSIT.home);

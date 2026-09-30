@@ -219,6 +219,12 @@ async function selftest(fac, {
     const beams = campus.ROUTES.beams.map((b) => b.name).sort();
     const listedBeams = (/Beam destinations: (.*)$/.exec(listing.beams) || [null, ''])[1].split(', ').filter(Boolean).sort();
     check('empty', 'only the transit beam destinations', JSON.stringify(listedBeams) === JSON.stringify(beams), listing.beams);
+    const { BeamKit } = require('./lib/beams');
+    const bk = new BeamKit(srv);
+    for (const who of [fac.probe, await fac.second()]) {
+      const places = await bk.places(who);
+      check('empty', `${who.name} has no beam places`, /You have no places set\./.test(places), places);
+    }
     const mirrors = await srv.run('wormhole mirror list');
     check('empty', 'no mirrors', mirrors.lines.some((l) => /No mirrors yet/.test(l)), mirrors.lines.join(' | '));
   });

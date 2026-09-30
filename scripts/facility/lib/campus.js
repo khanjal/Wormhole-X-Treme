@@ -159,9 +159,9 @@ const CHAMBERS = [
   { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3, logic: 'r6-range',
     box: { x0: 112, x1: 380, z0: -4, z1: 4, y0: 0, h: 6 } },
   // Beam Physics
-  { id: 'b1', wing: 'beams', title: 'Pad Array', kind: 'cell', stage: 3,
+  { id: 'b1', wing: 'beams', title: 'Pad Array', kind: 'cell', stage: 3, logic: 'b1-pads',
     box: { x0: -104, x1: -52, z0: -26, z1: 8, y0: 0, h: 10 }, door: 'e', gallery: 's' },
-  { id: 'b2', wing: 'beams', title: 'Dispatch Desk', kind: 'desk', stage: 3, at: { x: -60, y: 0, z: 22 } },
+  { id: 'b2', wing: 'beams', title: 'Dispatch Desk', kind: 'desk', stage: 3, logic: 'b2-dispatch', at: { x: -60, y: 0, z: 22 } },
   // Mirror Optics
   { id: 'm1', wing: 'mirrors', title: 'Mirror Round', kind: 'cell', stage: 4,
     box: { x0: -36, x1: 36, z0: 50, z1: 68, y0: 0, h: 10 }, door: 'n', gallery: 's' },
