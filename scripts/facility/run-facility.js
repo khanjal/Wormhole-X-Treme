@@ -17,6 +17,9 @@
 //   --cells <regex>      self-test only the matrix cells whose names match
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
+//   --shards <n>         self-test: split the matrix across n servers of the version, each on its
+//                        own port and folder, run at once, with one merged report (lib/shards.js);
+//                        with --versions, versions x shards servers
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down.
@@ -30,6 +33,7 @@ const generate = require('./lib/generate');
 const wings = require('./wings');
 const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
+const shards = require('./lib/shards');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -51,6 +55,10 @@ function parseArgs(argv) {
     else if (x === '--cells') a.cells = argv[++i];
     else if (x === '--quick') a.quick = true;
     else if (x === '--fixed') a.fixed = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
+    else if (x === '--shards') a.shards = Number(argv[++i]);
+    else if (x === '--shard') { const [k, n] = argv[++i].split('/').map(Number); a.shard = { index: k - 1, count: n }; }
+    else if (x === '--plan') a.plan = argv[++i];
+    else if (x === '--report') a.report = argv[++i];
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -71,55 +79,152 @@ function pluginJar(args) {
 }
 
 /**
- * --versions: one child process per version, all at once, each on its own port (--port, +2,
- * +4, ...) and in its own server folder; every line is prefixed with its version. Returns the
- * exit code: 0 only if every version passed.
+ * The peak memory (working set) of these processes and their children, and the machine's CPU
+ * use, sampled every `everyMs`; returns { stop() -> { peakGb, peakCpu, meanCpu } }.
  */
-async function acrossVersions(args) {
+function sampleResources(pids, everyMs = 10000) {
+  const os = require('os');
+  const { execFile } = require('child_process');
+  let peakGb = 0;
+  let peakCpu = 0;
+  const cpus = [];
+  let last = os.cpus();
+  const tick = () => {
+    const now = os.cpus();
+    let busy = 0;
+    let all = 0;
+    now.forEach((c, i) => {
+      const a = c.times;
+      const b = last[i].times;
+      const idle = a.idle - b.idle;
+      const total = (a.user - b.user) + (a.nice - b.nice) + (a.sys - b.sys) + (a.irq - b.irq) + idle;
+      busy += total - idle;
+      all += total;
+    });
+    last = now;
+    if (all > 0) { const pct = (100 * busy) / all; cpus.push(pct); peakCpu = Math.max(peakCpu, pct); }
+    const list = pids().join(',');
+    if (!list) return;
+    const ps = process.platform === 'win32'
+      ? ['powershell', ['-NoProfile', '-Command', `$ids=@(${list}); $p=Get-CimInstance Win32_Process | Where-Object { $ids -contains $_.ProcessId -or $ids -contains $_.ParentProcessId }; ($p | Measure-Object WorkingSetSize -Sum).Sum`]]
+      : ['sh', ['-c', `ps -o rss= -p $(pgrep -d, -P ${list}),${list} | awk '{s+=$1*1024} END {print s}'`]];
+    execFile(ps[0], ps[1], { windowsHide: true }, (err, out) => {
+      const bytes = Number(String(out || '').trim());
+      if (!err && bytes) peakGb = Math.max(peakGb, bytes / 1024 ** 3);
+    });
+  };
+  const timer = setInterval(tick, everyMs);
+  return {
+    stop() {
+      clearInterval(timer);
+      const meanCpu = cpus.length ? cpus.reduce((a, b) => a + b, 0) / cpus.length : 0;
+      return { peakGb, peakCpu, meanCpu };
+    },
+  };
+}
+
+/**
+ * --versions and --shards: one child process per version and shard, all at once, each on its own
+ * port (--port, +2, +4, ...) and in its own server folder; every line is prefixed with which it
+ * is. Each shard writes its results to a report; they are merged per version into one summary.
+ * Returns the exit code: 0 only if every child and every merged check passed.
+ */
+async function fanOut(args) {
   const jar = pluginJar(args);
+  const versions = args.versions || [args.version];
+  const n = args.shards || 1;
   // Each child stops its own server however it ends; a signal to this launcher is passed on to
   // them (a console Ctrl+C reaches them directly, being in the same console).
   const children = [];
   for (const sig of ['SIGTERM', 'SIGHUP']) process.on(sig, () => { for (const c of children) c.kill(sig); });
-  const runs = args.versions.map((v, i) => new Promise((resolve) => {
-    const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port + 2 * i)];
+  fs.mkdirSync(LOCAL, { recursive: true });
+  const work = fs.mkdtempSync(path.join(LOCAL, 'run-'));
+  const jobs = [];
+  for (const [vi, v] of versions.entries()) {
+    let planFile = null;
+    if (n > 1) {
+      const names = shards.labels({ quick: args.quick, only: args.cells ? new RegExp(args.cells) : null });
+      const p = shards.plan(names, shards.loadTimes(LOCAL, v), n);
+      planFile = path.join(work, `plan-${v}.json`);
+      fs.writeFileSync(planFile, JSON.stringify(p));
+      console.log(`${v}: ${names.length} matrix cells in ${n} shards, expected ${p.loads.map((x) => `${Math.round(x / 60)} min`).join(' / ')} of tests`);
+    }
+    for (let si = 0; si < n; si++) {
+      jobs.push({ v, si, port: args.port + 2 * (vi * n + si), planFile, report: path.join(work, `report-${v}-${si + 1}.json`) });
+    }
+  }
+  const t0 = Date.now();
+  const sampler = sampleResources(() => children.filter((c) => c.exitCode === null).map((c) => c.pid));
+  const runs = jobs.map((j) => new Promise((resolve) => {
+    const tag = n > 1 ? `${j.v} ${j.si + 1}/${n}` : j.v;
+    const child = [__filename, j.v, '--selftest', '--plugin', jar, '--port', String(j.port), '--report', j.report];
+    if (n > 1) child.push('--shard', `${j.si + 1}/${n}`, '--plan', j.planFile);
     if (args.java) child.push('--java', args.java);
     if (args.cells) child.push('--cells', args.cells);
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
     const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'pipe'] });
     children.push(p);
-    let tail = '';
     // One buffer per stream: a line split across two reads must not be spliced with the other's.
     const reader = () => {
       let buf = '';
       return (d) => {
         buf += d.toString();
-        let n;
-        while ((n = buf.indexOf('\n')) >= 0) {
-          const line = buf.slice(0, n);
-          buf = buf.slice(n + 1);
-          if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${v}] ${line}`);
-          tail = (tail + line + '\n').slice(-4000);
+        let k;
+        while ((k = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, k);
+          buf = buf.slice(k + 1);
+          if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${tag}] ${line}`);
         }
       };
     };
     p.stdout.on('data', reader());
     p.stderr.on('data', reader());
-    p.on('exit', (c) => resolve({ v, code: c, tail }));
+    p.on('exit', (code) => {
+      const report = fs.existsSync(j.report) ? JSON.parse(fs.readFileSync(j.report, 'utf8')) : null;
+      resolve({ ...j, code, report });
+    });
   }));
-  const summary = await Promise.all(runs);
-  console.log('\nfacility self-test across versions:');
-  for (const s of summary) {
-    const line = /self-test on \S+: (.*)/.exec(s.tail);
-    console.log(`  ${s.code === 0 ? 'PASS' : 'FAIL'}  ${s.v}${line ? `  ${line[1]}` : ''}`);
+  const done = await Promise.all(runs);
+  const use = sampler.stop();
+  const wall = (Date.now() - t0) / 1000;
+  let allOk = true;
+  for (const v of versions) {
+    const mine = done.filter((d) => d.v === v);
+    const results = mine.flatMap((d) => (d.report ? d.report.results : []));
+    const known = mine.flatMap((d) => (d.report ? d.report.known : []));
+    const missing = mine.filter((d) => !d.report);
+    console.log(`\nfacility self-test on ${v}${n > 1 ? ` (${n} shards)` : ''}:`);
+    for (const sec of [...new Set(results.map((r) => r.section))]) {
+      const in_ = results.filter((r) => r.section === sec);
+      const failed = in_.filter((r) => !r.ok);
+      console.log(`  ${failed.length ? 'FAIL' : 'PASS'}  ${sec} (${in_.length - failed.length}/${in_.length})${failed.length ? ` — ${failed.map((f) => `${f.name}: ${f.detail}`).join('; ')}` : ''}`);
+    }
+    for (const d of missing) console.log(`  FAIL  shard ${d.si + 1} wrote no report (exit ${d.code})`);
+    if (known.length) {
+      console.log(`known plugin failures on ${v} (expected, not hidden):`);
+      for (const k of known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
+    }
+    const bad = results.filter((r) => !r.ok).length + missing.length;
+    const slowest = Math.max(...mine.map((d) => (d.report ? d.report.testMs : 0))) / 1000;
+    console.log(`self-test on ${v}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${known.length} known plugin failures); `
+      + `slowest shard's self-test ${slowest.toFixed(0)} s`);
+    if (bad || mine.some((d) => d.code !== 0)) allOk = false;
+    // What this run measured, for the next run's split.
+    const times = Object.assign({}, ...mine.map((d) => (d.report ? d.report.times : {})));
+    const first = mine.find((d) => d.si === 0 && d.report);
+    const once = first ? ['transit', 'plates', 'boards', 'console'].reduce((a, sec) => a + (first.report.sectionMs[sec] || 0), 0) / 1000 : 0;
+    if (Object.keys(times).length) shards.saveTimes(LOCAL, v, times, n > 1 ? Math.round(once) : undefined);
   }
-  return summary.every((s) => s.code === 0) ? 0 : 1;
+  console.log(`\nwall ${(wall / 60).toFixed(1)} min for ${jobs.length} server(s); peak memory ${use.peakGb.toFixed(1)} GB (the servers and their launchers), `
+    + `peak CPU ${use.peakCpu.toFixed(0)}%, mean ${use.meanCpu.toFixed(0)}% (the whole machine)`);
+  fs.rmSync(work, { recursive: true, force: true });
+  return allOk ? 0 : 1;
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  if (args.versions) return acrossVersions(args);
+  if (args.versions || (args.shards > 1 && !args.shard)) return fanOut(args);
   const { version } = args;
   const java = args.java || server.findJava(server.requiredJava(version));
   if (!java) throw new Error(`no Java ${server.requiredJava(version)} found for ${version}; pass --java`);
@@ -183,8 +288,14 @@ async function main() {
 
     if (args.selftest) {
       const ts = Date.now();
+      let shard = null;
+      if (args.shard) {
+        const planned = JSON.parse(fs.readFileSync(args.plan, 'utf8'));
+        shard = { ...args.shard, cells: new Set(planned.shards[args.shard.index]) };
+        console.log(`shard ${args.shard.index + 1}/${args.shard.count}: ${shard.cells.size} matrix cells`);
+      }
       const results = await selftest(fac, {
-        buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick),
+        buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
       });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
@@ -203,6 +314,14 @@ async function main() {
       console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${results.known.length} known plugin failures); `
         + `self-test ${(testMs / 1000).toFixed(0)} s, generation ${buildMs} ms, ${total} chunks forceloaded`);
       exit = bad || stray.length ? 1 : 0;
+      if (args.report) {
+        fs.writeFileSync(args.report, JSON.stringify({
+          version, shard: args.shard || null, testMs, results: results.map((r) => ({ section: r.section, name: r.name, ok: r.ok, detail: r.detail })),
+          known: results.known, times: results.times, sectionMs: results.sectionMs,
+        }));
+      } else if (!args.cells) {
+        shards.saveTimes(LOCAL, version, results.times);
+      }
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');

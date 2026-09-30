@@ -31,17 +31,27 @@ const { RingKit } = require('./lib/rings');
 const { MATRIX, defaultsOf, expectation } = require('./matrix');
 
 async function selftest(fac, {
-  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log,
+  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null,
 }) {
   const results = [];
   const known = [];
+  // Seconds per matrix cell (its run and its reset) and per section, for sharding the next run.
+  const times = {};
+  const sectionMs = {};
   const check = (section, name, ok, detail) => {
     results.push({ section, name, ok: Boolean(ok), detail });
     log(`  ${ok ? 'ok  ' : 'FAIL'} ${section} · ${name}${detail ? ` — ${detail}` : ''}`);
   };
   const guard = async (section, fn) => {
+    const t0 = Date.now();
     try { await fn(); } catch (e) { check(section, 'threw', false, e.stack || String(e)); }
+    sectionMs[section] = (sectionMs[section] || 0) + (Date.now() - t0);
   };
+  // With --shards, each shard (lib/shards.js) runs its share of the matrix. The sections that
+  // check its own world and state (world, fixtures, resets, empty, settings, faults) run on every
+  // shard; the ones about the campus as a whole (transit, plates, boards, console) on the first.
+  const first = !shard || shard.index === 0;
+  const inShard = (label) => !shard || shard.cells.has(label);
   const srv = fac.srv;
 
   await guard('world', async () => {
@@ -69,7 +79,7 @@ async function selftest(fac, {
     for (const f of fixtures) check('fixtures', f.id, f.ok, f.detail);
   });
 
-  await guard('transit', async () => {
+  if (first) await guard('transit', async () => {
     const fixture = fixtures.find((f) => f.id === 'transit');
     if (!fixture || !fixture.ok) {
       check('transit', 'the routes were made', false, fixture ? fixture.detail : 'no transit fixture');
@@ -84,7 +94,7 @@ async function selftest(fac, {
     check('transit', 'mirror list shows Ops, Optics, Range and Annex', ['Annex', 'Ops', 'Optics', 'Range'].every((n) => held.names.includes(n)), held.text);
   });
 
-  await guard('plates', async () => {
+  if (first) await guard('plates', async () => {
     const probe = fac.probe;
     const home = campus.TRANSIT.home;
     const close = (dest, dim) => probe.dimension === dim && probe.distanceTo(dest) < 1.6;
@@ -110,7 +120,7 @@ async function selftest(fac, {
     await probe.teleport(home);
   });
 
-  await guard('boards', async () => {
+  if (first) await guard('boards', async () => {
     await fac.probe.teleport({ x: 0.5, y: 0, z: -8.5, yaw: 180 });
     const near = (at, words) => fac.probe.displaysNear(at, 2).some((t) => t.includes(words));
     const wall = await waitShown(fac, () => near(campus.OPS.wall, 'OPS WALL') && near(campus.OPS.wall, 'Calibration Cell'));
@@ -132,6 +142,7 @@ async function selftest(fac, {
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
+        if (!inShard(label)) continue;
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
@@ -150,13 +161,14 @@ async function selftest(fac, {
           const reset = await fac.resetChamber(e);
           check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
         }
+        times[label] = Math.round((Date.now() - t0) / 100) / 10;
       }
     }
   });
 
   // A person's path through the console, played by Tester (never opped): every step clicks the
   // word the previous menu sent, by running the command in its click event, as a client does.
-  await guard('console', async () => {
+  if (first) await guard('console', async () => {
     // Kept from the moment the bot exists: the welcome can arrive before spawn resolves.
     const inbox = [];
     const tester = await join({ port: fac.port, version: fac.version, username: 'Tester', onCreate: (b) => b.on('message', (m) => inbox.push(m)) });
@@ -249,6 +261,8 @@ async function selftest(fac, {
 
   check('faults', 'plugin log has no faults', fac.faults.count === 0, fac.faults.faults.slice(0, 3).join(' | ') || '0 faults');
   results.known = known;
+  results.times = times;
+  results.sectionMs = sectionMs;
   return results;
 }
 
