@@ -263,11 +263,12 @@ Probe2: the gate from the Ops console's `Hall` button (and both gates shut again
 name, recharging on the way straight back), the beam out by the button and back typed. Each
 route's last result is on the Ops wall under TRANSIT. `--quick` walks one route per feature.
 
-There are two self-test profiles. The full one runs the whole matrix (about 170 cells counting
-resets) and takes about 25 minutes on one version; it is the one to iterate on, on 1.21.11.
+There are two self-test profiles. The full one runs the whole matrix (315 checks counting
+resets) and takes about 48 minutes on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
-one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate and the first
-#491 cell, in about 4½ minutes. It is the cross-version check (text formats, entity ids, boats, the
+one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
+#491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
+and two dispatches, and one transit route per feature, in about 9 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on.
 
