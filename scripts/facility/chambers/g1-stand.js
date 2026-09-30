@@ -72,6 +72,7 @@ const OPTIONS = {
   'iris gate': [v('idle', 'cart at iris: the Stand is idle'), v('incoming', 'cart at iris: the Stand is the far end of an open wormhole from Relay')],
   approach: [v('front', 'cart at iris: from the DHD side'), v('behind', 'cart at iris: from the back')],
   rider: [v('none', 'cart at iris: empty'), v('Probe', 'cart at iris: Probe rides it')],
+  vehicle: [v('cart', 'cart at iris: a minecart on rails'), v('boat', 'cart at iris: a boat Probe rows (#491 D)')],
   'cart speed': [v('0.4', 'full speed on rails (blocks per tick)'), v('0.2', 'half speed')],
   'run-up': [v('6', 'rails in front of the face'), v('10', ''), v('16', '')],
 };
@@ -98,7 +99,10 @@ function refuses(o, version = '26.1.2') {
   if (['busy', 'self'].includes(o.destination) && o['far iris'] !== 'open') return 'the dial is refused anyway; nothing for an iris to stop';
   const t = o.traveller;
   if (t === 'cart at iris') {
-    if (flat) return 'the Horizontal control for #491 is not built yet';
+    if (o.vehicle === 'boat' && o.rider !== 'Probe') return 'an empty boat stops within two blocks of a push; the boat is rowed by Probe';
+    // A flat gate's DHD button, name sign and lever lie in the floor in front of it, so its
+    // cart comes from behind.
+    if (flat && (o.vehicle === 'boat' || o.approach !== 'behind' || o['iris gate'] !== 'idle')) return 'the Horizontal control is a cart from behind at an idle gate';
     if (o['iris gate'] === 'incoming' && o['own iris'] === 'open') return 'the open-iris control is an idle gate';
     return null;
   }
@@ -246,11 +250,31 @@ async function stageTraveller(ctx, o, geom) {
 async function stageCartRun(ctx, o, geom) {
   const n = Number(o['run-up']);
   const face = cartFace(geom, o.approach);
-  const x = Math.floor(geom.centre.x);
   const lane = [];
   for (let i = 1; i <= n; i++) lane.push(face.firstBlock + face.dir * (i - 1));
+  // Straight in along the middle, unless the gate has something of its own in the floor there
+  // (a flat gate's name sign and lever sit in front of it): then the nearest clear column.
+  let x = Math.floor(geom.centre.x);
+  for (const dx of [0, -1, 1, -2, 2]) {
+    const cx = Math.floor(geom.centre.x) + dx;
+    let clear = true;
+    for (const z of lane) {
+      const r = await ctx.server.run(`execute unless block ${cx} -1 ${z} minecraft:smooth_quartz unless block ${cx} -1 ${z} minecraft:obsidian`);
+      if (r.lines.some((l) => /Test passed/.test(l))) { clear = false; break; }
+    }
+    if (clear) { x = cx; break; }
+  }
   const z0 = Math.min(...lane);
   const z1 = Math.max(...lane);
+  if (o.vehicle === 'boat') {
+    // Ice under the lane, except where the gate's own frame lies in the floor (Massive's lone
+    // :EP and :EM blocks): a rowed boat does not need it, and the gate must stay whole.
+    for (const z of lane) {
+      if (!geom.frame.some((f) => f.x === x && f.y === -1 && f.z === z)) await run(ctx, `setblock ${x} -1 ${z} minecraft:blue_ice`);
+    }
+    ctx.observed.cartLane = { x, z0, z1, start: lane[lane.length - 1] };
+    return;
+  }
   await run(ctx, `fill ${x} 0 ${z0} ${x} 0 ${z1} minecraft:rail[shape=north_south]`);
   // The two farthest rails are powered, on redstone blocks, so the cart leaves at full speed.
   for (const z of lane.slice(-2)) {
@@ -266,10 +290,14 @@ async function stageCartRun(ctx, o, geom) {
  * its -F side. `dir` is the way the rails run out from the face.
  */
 function cartFace(geom, approach) {
-  const z = Math.floor(geom.opening[0].z);
+  // An upright opening is one block along the axis; a flat one several, and its near edge is
+  // the one a cart from the front reaches first.
+  const zs = geom.opening.map((c) => c.z);
   const sign = geom.normal.z; // facing south: +1
-  if (approach === 'front') return { face: sign > 0 ? z + 1 : z, firstBlock: z + sign, dir: sign, travel: -sign };
-  return { face: sign > 0 ? z : z + 1, firstBlock: z - sign, dir: -sign, travel: sign };
+  const near = sign > 0 ? Math.max(...zs) : Math.min(...zs);
+  const far = sign > 0 ? Math.min(...zs) : Math.max(...zs);
+  if (approach === 'front') return { face: sign > 0 ? near + 1 : near, firstBlock: near + sign, dir: sign, travel: -sign };
+  return { face: sign > 0 ? far : far + 1, firstBlock: far - sign, dir: -sign, travel: sign };
 }
 
 // ---- run -----------------------------------------------------------------------------------
@@ -648,16 +676,23 @@ async function cartAtIris(ctx, o, geom) {
   const mid = geom.opening.find((c) => c.y === Math.min(...geom.opening.map((p) => p.y)) && c.x === lane.x) || geom.opening[0];
   const shown = probe.bot.blockAt(new Vec3(mid.x, mid.y, mid.z));
   obs.irisShown = shown ? shown.name : null;
-  const at = { x: lane.x + 0.5, y: 0.1, z: lane.start + 0.5 };
-  await ctx.menagerie.summon('minecart', at, ctx.tag);
-  const sel = `@e[tag=${ctx.tag},tag=wx_kind_minecart,limit=1]`;
+  const kind = o.vehicle === 'boat' ? 'boat' : 'minecart';
+  const at = { x: lane.x + 0.5, y: kind === 'boat' ? 0 : 0.1, z: lane.start + 0.5 };
+  await ctx.menagerie.summon(kind, at, ctx.tag);
+  const sel = `@e[tag=${ctx.tag},tag=wx_kind_${kind},limit=1]`;
   if (o.rider === 'Probe') {
-    await probe.teleport({ x: at.x + face.dir * 1.2, y: 0, z: at.z + face.dir * 1.2 }, O);
-    await probe.mount(ctx.tag);
+    await probe.teleport({ x: at.x + 1.5, y: 0, z: at.z, yaw: 90 }, O);
+    await probe.mount(ctx.tag, 5000, 3);
   }
   await ctx.watch.track(sel);
   const speed = Number(o['cart speed']);
-  await run(ctx, `data merge entity ${sel} {Motion:[0.0d,0.0d,${(face.travel * speed).toFixed(2)}d]}`);
+  if (kind === 'boat') {
+    // Rowed by its rider, as a client does: straight at the face and on past it; the plugin must
+    // stop it. The drive ends when the server moves the boat itself, or at the target.
+    probe.drive({ x: at.x, z: face.face + face.travel * 4 }, { speed, ms: 8000 }).catch(() => {});
+  } else {
+    await run(ctx, `data merge entity ${sel} {Motion:[0.0d,0.0d,${(face.travel * speed).toFixed(2)}d]}`);
+  }
   // Until it has been still for ten ticks (or 10 s).
   let last = null;
   let still = 0;
@@ -781,7 +816,8 @@ function checks(ctx, o) {
  */
 function cartChecks(o, obs) {
   const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
-  const HALF = 0.49;
+  // Half the vehicle's length along the run: a minecart is 0.98 wide, a boat 1.375.
+  const HALF = o.vehicle === 'boat' ? 0.6875 : 0.49;
   const t = obs.track;
   const face = obs.face;
   // The farthest the front got toward the face, and where it ended.
@@ -790,6 +826,18 @@ function cartChecks(o, obs) {
   const past = (front) => (face.travel < 0 ? face.face - front : front - face.face); // > 0: over the face
   const list = [c('the cart ran (tracked every tick)', () => t && t.ticks > 5)];
   if (o['iris gate'] === 'incoming') list.push(c('the Stand is the open far end of Relay\'s wormhole', () => /Stargates connected/.test(obs.dial || '') && obs.drawn));
+  if (obs.geom && obs.geom.flat) {
+    // The control: a Horizontal gate's iris is real blocks in the floor, so the cart rolls over
+    // it and must never sink into the opening (and, with it open, drops in).
+    if (o['own iris'] === 'shut') list.push(c('the iris is shut', () => obs.ownIrisShut === true));
+    if (o['own iris'] === 'open') {
+      list.push(c('with the iris open, the cart dropped into the opening', () => t && t.ymin < -0.5));
+      return list;
+    }
+    list.push(c('the cart rolled onto the shut iris', () => t && past(reach()) > 0.5));
+    list.push(c('and never sank into the opening', () => t && t.ymin >= -0.01));
+    return list;
+  }
   if (o['own iris'] === 'open') {
     list.push(c('with the iris open, the cart passed through the opening', () => t && past(reach()) > 1));
     return list;

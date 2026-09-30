@@ -232,16 +232,20 @@ expects those cells to pass instead.
 
 Known plugin failures (stage 2), each expected by name in `matrix.js`:
 
-- A tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
+- #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
   the far end and does not copy the arrow's potion.
-- An item tossed (Q) or dispensed into an upright opening mostly flies through its one block
+- #537: an item tossed (Q) or dispensed into an upright opening mostly flies through its one block
   between two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate; of five
   tossed, one came out of Relay, and of five dispensed, none. Only an item lying in the opening when
   a sweep runs is sent (as itself, name and enchantment intact: the lying-item cell passes). A
   broken hopper cart's drops scatter, so whether they are sent is chance; that cell is left out.
 - #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
   plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on
-  fix/491-cart-shut-iris, where they pass with `--fixed 491`).
+  fix/491-cart-shut-iris, where they pass with `--fixed 491`). Cell `491-D`, a boat its rider rows
+  at the iris, is let about two blocks past the face before it is put back, on main and on the
+  fix alike. The Horizontal control (`491-H`: a cart rolled onto a flat gate's shut iris, which is
+  real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
+  expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
 
 What stage 2 found about the harness itself:
 

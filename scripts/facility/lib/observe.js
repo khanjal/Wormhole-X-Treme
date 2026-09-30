@@ -46,6 +46,8 @@ function functions() {
     'observe/track': [
       `execute store result score #tx ${OBJECTIVE} run data get entity @s Pos[0] 10000`,
       `execute store result score #tz ${OBJECTIVE} run data get entity @s Pos[2] 10000`,
+      `execute store result score #ty ${OBJECTIVE} run data get entity @s Pos[1] 10000`,
+      `scoreboard players operation #tymin ${OBJECTIVE} < #ty ${OBJECTIVE}`,
       `execute store result score #tvx ${OBJECTIVE} run data get entity @s Motion[0] 10000`,
       `execute store result score #tvz ${OBJECTIVE} run data get entity @s Motion[2] 10000`,
       `scoreboard players operation #txmin ${OBJECTIVE} < #tx ${OBJECTIVE}`,
@@ -143,7 +145,7 @@ class Watch {
   /** Starts per-tick tracking of one entity (by selector); clears the last track. */
   async track(selector) {
     await this.srv.run('tag @e[tag=wx_track] remove wx_track');
-    for (const [h, v] of [['#txmin', 2147483647], ['#tzmin', 2147483647], ['#txmax', -2147483648], ['#tzmax', -2147483648], ['#tticks', 0]]) {
+    for (const [h, v] of [['#txmin', 2147483647], ['#tzmin', 2147483647], ['#tymin', 2147483647], ['#txmax', -2147483648], ['#tzmax', -2147483648], ['#tticks', 0]]) {
       await this.srv.run(`scoreboard players set ${h} ${OBJECTIVE} ${v}`);
     }
     const r = await this.srv.run(`tag ${selector} add wx_track`);
@@ -155,7 +157,7 @@ class Watch {
     const n = async (h) => (await this.score(h)) / 10000;
     return {
       ticks: await this.score('#tticks'),
-      x: await n('#tx'), z: await n('#tz'), vx: await n('#tvx'), vz: await n('#tvz'),
+      x: await n('#tx'), y: await n('#ty'), ymin: await n('#tymin'), z: await n('#tz'), vx: await n('#tvx'), vz: await n('#tvz'),
       xmin: await n('#txmin'), xmax: await n('#txmax'), zmin: await n('#tzmin'), zmax: await n('#tzmax'),
     };
   }

@@ -115,13 +115,14 @@ async function selftest(fac, {
         const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
         const ok = got === want;
         // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
-        const knownNow = Boolean(cell.known) && want !== 'PASS';
+        const note = cell.regressedBy && fixed.includes(cell.regressedBy) ? cell.regressionNote : cell.known;
+        const knownNow = Boolean(note) && want !== 'PASS';
         const secs = ((Date.now() - t0) / 1000).toFixed(1);
         const detail = ok
-          ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${cell.known}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
-          : `got ${got}${knownNow ? ` (expected the known plugin failure: ${cell.known})` : ''}, ${secs} s`;
+          ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+          : `got ${got}${knownNow ? ` (expected the known plugin failure: ${note})` : ''}, ${secs} s`;
         check('matrix', `${label} → ${want}`, ok, detail);
-        if (ok && knownNow) known.push({ label, note: cell.known, version: fac.version });
+        if (ok && knownNow) known.push({ label, note, version: fac.version });
         if (r.outcome !== 'REFUSED') {
           const reset = await fac.resetChamber(e);
           check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');

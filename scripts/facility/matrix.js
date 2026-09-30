@@ -17,6 +17,7 @@ function defaultsOf(chamber) {
 }
 
 function expectation(cell, version, fixed = []) {
+  if (cell.regressedBy && fixed.includes(cell.regressedBy)) return cell.regression;
   if (cell.fixedBy && fixed.includes(cell.fixedBy)) return 'PASS';
   return typeof cell.expect === 'function' ? cell.expect(version) : cell.expect;
 }
@@ -70,7 +71,8 @@ const G1 = [
     name: `g1 ${t}`,
     values: { traveller: t },
     expect: 'FAIL:every one of the 5 came out of Relay',
-    known: 'of five items tossed (or dispensed) into the opening, some fly through its one block between two entity sweeps (every 20 ticks) and land behind the gate: only an item lying in the opening when a sweep runs is sent',
+    fixedBy: '537',
+    known: '#537: of five items tossed (or dispensed) into the opening, some fly through its one block between two entity sweeps (every 20 ticks) and land behind the gate: only an item lying in the opening when a sweep runs is sent',
   })),
   // Every projectile, and the launchers and angles.
   ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'trident', 'snowball', 'egg', 'pearl',
@@ -79,7 +81,8 @@ const G1 = [
     name: 'g1 tipped arrow',
     values: P('tipped arrow'),
     expect: 'FAIL:its slowness survived',
-    known: 'the plugin re-makes an arrow at the far gate as a plain one: a tipped arrow comes out as item minecraft:arrow, without its potion',
+    fixedBy: '536',
+    known: '#536: the plugin re-makes an arrow at the far gate as a plain one: a tipped arrow comes out as item minecraft:arrow, without its potion',
   },
   { name: 'g1 wind charge', values: P('wind charge'), expect: (v) => (atLeast(v, '1.21') ? 'PASS' : 'REFUSED:there are no wind charges before 1.21') },
   { name: 'g1 fireball from a dispenser', values: P('fireball', { launcher: 'dispenser' }), expect: 'PASS' },
@@ -95,7 +98,22 @@ const G1 = [
   { name: '491-B cart with a rider', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', rider: 'Probe' }, ...CART_491 },
   { name: '491-C cart from behind', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', approach: 'behind' }, ...CART_491 },
   { name: '491-E cart at the shut far end', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', 'iris gate': 'incoming' }, ...CART_491 },
+  {
+    name: '491-D boat rowed at the shut iris',
+    values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', vehicle: 'boat', rider: 'Probe' },
+    expect: "FAIL:the cart's front never crossed the iris face",
+    known: '#491 D: a boat its rider rows at a shut drawn iris is let 2.1 blocks past the face (to z -129.1 from a face at -127) before it is put back; unchanged by the fix at 7ebc95f4 and 41aaaabf',
+  },
   { name: '491-F control: iris open', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'open' }, expect: 'PASS' },
+  {
+    name: '491-H control: Horizontal, iris shut',
+    values: { traveller: 'cart at iris', shape: 'Horizontal', 'own iris': 'shut', approach: 'behind' },
+    expect: 'PASS',
+    regressedBy: '491',
+    regression: 'FAIL:and never sank into the opening',
+    regressionNote: 'the #491 fix (7ebc95f4, 41aaaabf) puts a cart that rolls onto a flat gate\'s shut real-block iris down inside the opening, at y -1 (0.5, -1, -128.5); on main it rolls over',
+  },
+  { name: '491-H control: Horizontal, iris open', values: { traveller: 'cart at iris', shape: 'Horizontal', 'own iris': 'open', approach: 'behind' }, expect: 'PASS' },
 ];
 
 const MATRIX = {
