@@ -458,6 +458,18 @@ class Facility {
         try { ok = Boolean(await c.test()); } catch (err) { ok = false; c.error = err.message; }
         checks.push({ name: c.name, ok, error: c.error });
       }
+      // Shut by command: once its checks are read, a chamber whose purpose is not the shutdown
+      // timeout closes its gates with the plugin's own command rather than leaving them to time
+      // out, and the end state is checked after it (chambers' `shut`, returning more checks).
+      if (ch.shut) {
+        let after;
+        try { after = (await ch.shut(ctx, v)) || []; } catch (err) { after = [{ name: 'its gates were shut by command', test: async () => { throw err; } }]; }
+        for (const c of after) {
+          let ok = false;
+          try { ok = Boolean(await c.test()); } catch (err) { ok = false; c.error = err.message; }
+          checks.push({ name: c.name, ok, error: c.error });
+        }
+      }
       const failed = checks.find((c) => !c.ok);
       result = failed ? { outcome: 'FAIL', reason: failed.name, checks } : { outcome: 'PASS', reason: null, checks };
     } catch (err) {

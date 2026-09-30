@@ -859,6 +859,35 @@ function cartChecks(o, obs) {
   return list;
 }
 
+// ---- shut by command ------------------------------------------------------------------------
+
+/**
+ * Once the checks are read: a trip that opened a wormhole has both ends closed by `force` (the
+ * plugin's own close), rather than left open until timeout-shutdown, and the end state checked:
+ * the plugin says so, and every end Probe can see (in its world, within view) is shown shut.
+ */
+async function shut(ctx, o) {
+  const obs = ctx.observed;
+  if (!/Stargates connected/.test(obs.dial || '') || !obs.geom) return [];
+  const kit = kitOf(ctx);
+  const f = farOf(o);
+  const ends = [{ name: STAND, dim: O, geom: obs.geom }, { name: f.name, dim: f.dim, geom: f.geom }];
+  obs.closed = [];
+  for (const e of ends) obs.closed.push((await kit.force(e.name)).text);
+  const probe = ctx.probe;
+  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const list = [c('closed by command: "<gate> has been closed, darkened, ..."', () => obs.closed.every((t) => /has been closed/.test(t)))];
+  // Only an end whose opening Probe's client has in view is judged: another world's, or one too
+  // far off to be sent, would pass whatever the plugin did.
+  const { Vec3 } = require('vec3');
+  const inView = (g) => g.opening.every((p) => probe.bot.blockAt(new Vec3(p.x, p.y, p.z)) !== null);
+  for (const e of ends) {
+    if (probe.dimension !== e.dim || !inView(e.geom)) continue;
+    list.push(c(`${e.name} shut on command: its opening is no longer drawn`, async () => (await kit.waitShut(probe, e.geom)) === true));
+  }
+  return list;
+}
+
 // ---- reset ------------------------------------------------------------------------------------
 
 async function cleanup(ctx) {
@@ -886,6 +915,7 @@ module.exports = {
   stage,
   run: runTrip,
   checks,
+  shut,
   cleanup,
   reset: 'wx:reset/g1',
   STAND,

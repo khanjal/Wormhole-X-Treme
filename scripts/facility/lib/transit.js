@@ -60,6 +60,22 @@ async function shutAgain(probe, geoms) {
   return trip.until(async () => geoms.every((g) => !drawn(probe, g)), (SHUT_SECONDS + 5) * 1000, 10);
 }
 
+/**
+ * Shut by command: the trip is over, so both ends are closed with `force` (the plugin's own
+ * close) instead of waiting out timeout-shutdown, which the Ops-to-Hall route alone still tests;
+ * then the end the probe stands by must be shown shut within 5 s. Returns a failure line or null.
+ */
+async function shutByCommand(srv, probe, names, seen) {
+  const kit = new GateKit(srv);
+  // Seen open first: a probe that has just arrived is not shown the opening at once.
+  await trip.until(async () => drawn(probe, seen), 3000, 2);
+  const said = [];
+  for (const n of names) said.push((await kit.force(n)).text);
+  if (!said.every((t) => /has been closed/.test(t))) return `closing by command was not answered: ${said.join(' | ')}`;
+  if ((await kit.waitShut(probe, seen)) !== true) return `${names.join(' and ')} were closed by command and still drawn open 5 s later`;
+  return null;
+}
+
 class Transit {
   constructor(fac) {
     this.fac = fac;
@@ -222,10 +238,9 @@ class Transit {
     await p2.teleport({ x: 0.5, y: 0, z: R.gates.Hall.runway.z0 + 0.5, yaw: 180 });
     await p2.walkTo({ x: 0.5, z: hall.opening[0].z - 1.5 }, { within: 0.4, ms: 8000, until: () => flat(p2.position, arrival) < 2 }).catch(() => {});
     if (!(await this.landed(p2, arrival, 5000))) return { ok: false, detail: `Probe2 did not come out at Ops (at ${fmt(p2.position)})` };
-    // Ops is dialled again next; let it shut.
-    const shut = await shutAgain(p2, [ops]);
-    if (!shut) return { ok: false, detail: `Ops was still open ${SHUT_SECONDS + 5} s after the trip` };
-    return { ok: true, detail: `at Ops within ${flat(p2.position, arrival).toFixed(2)}; Ops shut again` };
+    const notShut = await shutByCommand(this.fac.srv, p2, ['Hall', 'Ops'], ops);
+    if (notShut) return { ok: false, detail: notShut };
+    return { ok: true, detail: `at Ops within ${flat(p2.position, arrival).toFixed(2)}; Hall and Ops shut by command` };
   }
 
   /** Ops to a far gate (Range, Annex) by the Ops console's button for it; out in its world. */
@@ -245,9 +260,9 @@ class Transit {
     await p2.settle();
     const facing = yawOff(mcYaw(p2), 0);
     if (facing > 15) return { ok: false, detail: `came out at ${name} facing ${mcYaw(p2).toFixed(0)}°, not south` };
-    const shut = await shutAgain(p2, [far.geom]);
-    if (!shut) return { ok: false, detail: `${name} was still open ${SHUT_SECONDS + 5} s after the trip` };
-    return { ok: true, detail: `at ${name} in ${far.dim.replace('minecraft:', '')} within ${flat(p2.position, arrival).toFixed(2)}, facing south; ${name} shut again` };
+    const notShut = await shutByCommand(this.fac.srv, p2, ['Ops', name], far.geom);
+    if (notShut) return { ok: false, detail: notShut };
+    return { ok: true, detail: `at ${name} in ${far.dim.replace('minecraft:', '')} within ${flat(p2.position, arrival).toFixed(2)}, facing south; Ops and ${name} shut by command` };
   }
 
   /** A far gate home to Ops, by the dial-home button on its console (stage 3.6 decoration). */
@@ -264,9 +279,9 @@ class Transit {
     await p2.teleport({ x: cx, y: g.floorY, z: far.geom.button.z + 6.5, yaw: 180 }, far.dim);
     await p2.walkTo({ x: cx, z: far.geom.opening[0].z - 1.5 }, { within: 0.4, ms: 8000, until: () => p2.dimension === O }).catch(() => {});
     if (!(await this.landed(p2, ops.arrival, 8000))) return { ok: false, detail: `Probe2 did not come out at Ops (in ${p2.dimension} at ${fmt(p2.position)})` };
-    const shut = await shutAgain(p2, [ops]);
-    if (!shut) return { ok: false, detail: `Ops was still open ${SHUT_SECONDS + 5} s after the trip` };
-    return { ok: true, detail: `at Ops within ${flat(p2.position, ops.arrival).toFixed(2)}; Ops shut again` };
+    const notShut = await shutByCommand(this.fac.srv, p2, [name, 'Ops'], ops);
+    if (notShut) return { ok: false, detail: notShut };
+    return { ok: true, detail: `at Ops within ${flat(p2.position, ops.arrival).toFixed(2)}; ${name} and Ops shut by command` };
   }
 
   /**

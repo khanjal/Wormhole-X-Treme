@@ -127,6 +127,23 @@ class GateKit {
     return shown(mid);
   }
 
+  /**
+   * Waits (bounded) until Probe's client is shown air in every opening cell of a gate: shut, its
+   * portal and iris gone. Null if the opening is not in Probe's view at all (another world, or
+   * too far), so a caller only judges a gate it can see.
+   */
+  async waitShut(probe, geom, ms = 5000) {
+    const { Vec3 } = require('vec3');
+    const shown = (p) => { const b = probe.bot.blockAt(new Vec3(p.x, p.y, p.z)); return b ? b.name : null; };
+    if (geom.opening.some((c) => shown(c) === null)) return null;
+    const deadline = Date.now() + ms;
+    for (;;) {
+      if (geom.opening.every((c) => ['air', 'cave_air'].includes(shown(c)))) return true;
+      if (Date.now() > deadline) return false;
+      await ticks(2);
+    }
+  }
+
   /** Right-clicks a gate's iris lever as Probe (who is opped); returns the lever's new state. */
   async toggleIris(probe, geom, dim = campus.OVERWORLD) {
     const l = geom.lever;

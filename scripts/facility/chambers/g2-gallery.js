@@ -83,6 +83,20 @@ module.exports = {
     ];
   },
 
+  /** Shut by command (see facility.runChamber): both ends closed with `force`, then seen shut. */
+  async shut(ctx) {
+    const obs = ctx.observed;
+    if (!/Stargates connected/.test(obs.dial || '')) return [];
+    const kit = new GateKit(ctx.server);
+    obs.closed = [];
+    for (const g of [obs.from, obs.to]) obs.closed.push((await kit.force(g.name)).text);
+    const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+    return [
+      c('closed by command: "<gate> has been closed, ..."', () => obs.closed.every((t) => /has been closed/.test(t))),
+      ...[obs.from, obs.to].map((g) => c(`${g.name} shut on command: its opening is no longer drawn`, async () => (await kit.waitShut(ctx.probe, g.geom)) === true)),
+    ];
+  },
+
   async cleanup(ctx) {
     const kit = new GateKit(ctx.server);
     for (const g of gallery()) await kit.force(g.name);
