@@ -314,6 +314,35 @@ and one transit route per feature, in about 13 minutes. It is the cross-version 
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on.
 
+`--shards N` runs one version's matrix on N servers of that version at once, each on its own port
+and folder with its own campus (`--port`, +2, +4, ...), and merges their reports into one summary
+and one exit code; with `--versions` it is versions x shards servers. Every cell runs exactly as it
+does alone. The split is by measured time, not by count: every self-test writes each cell's
+seconds to `.local-server/cell-times-<version>.json`, and the next split puts the longest cells
+first onto the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world,
+fixtures, resets, empty, settings and faults sections run on every shard, since they guard that
+shard's own world, so a sharded summary has more checks than a single run (705 against 486 at
+N = 4); transit, plates, boards, players and console run once, on the first shard. On this machine
+(32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
+CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
+is the one to use here. `--quick` on two versions at once takes about 13 minutes.
+
+A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
+close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
+it closed them, and every end Probe can see is drawn shut within 5 seconds (a chamber's `shut`,
+run by `runChamber` after `checks`). The transit routes do the same, except Ops to Hall, which
+still waits for `timeout-shutdown` because that is what it tests.
+
+Players in the facility do not go hungry or get hurt: every player is given infinite Saturation
+and Resistance 255 on joining and every five seconds after, and the player damage gamerules (fall,
+fire, drowning, freezing) are off in all three worlds. Mobs are not shielded. The `players`
+section checks a non-op Tester stays at full health and food after a fall and an arrow, and that a
+pig dropped ten blocks still comes down hurt.
+
+A plugin fault that is a known plugin bug is reported as known, with its note, the way a matrix
+cell's known failure is (`KNOWN_FAULTS` in `lib/server.js`): so far the mirror capture that is not
+written when two captures finish at once (`MirrorCapture.save` races on creating its folder).
+
 `--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
 expected to fail by the name of its failing check and is listed at the end of the run as a known
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
