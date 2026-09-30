@@ -114,12 +114,14 @@ async function selftest(fac, {
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
         const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
         const ok = got === want;
+        // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
+        const knownNow = Boolean(cell.known) && want !== 'PASS';
         const secs = ((Date.now() - t0) / 1000).toFixed(1);
         const detail = ok
-          ? `${cell.known ? `KNOWN PLUGIN FAILURE: ${cell.known}; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
-          : `got ${got}${cell.known ? ` (expected the known plugin failure: ${cell.known})` : ''}, ${secs} s`;
+          ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${cell.known}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+          : `got ${got}${knownNow ? ` (expected the known plugin failure: ${cell.known})` : ''}, ${secs} s`;
         check('matrix', `${label} → ${want}`, ok, detail);
-        if (ok && cell.known) known.push({ label, note: cell.known, version: fac.version });
+        if (ok && knownNow) known.push({ label, note: cell.known, version: fac.version });
         if (r.outcome !== 'REFUSED') {
           const reset = await fac.resetChamber(e);
           check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
