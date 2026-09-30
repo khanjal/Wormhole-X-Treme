@@ -755,8 +755,16 @@ function checks(ctx, o) {
   // Items and orbs.
   if (obs.tosses > 1) list.push(c(`every one of the ${obs.tosses} came out of ${dest}`, () => obs.arrival && obs.arrival.count === obs.tosses && obs.leftBehind === 0));
   list.push(c(`it came out of ${dest}`, arrived));
-  list.push(c('as itself (the same entity, tags and all)', () => obs.arrival && obs.arrival.same));
-  if (t !== 'xp') list.push(c('still named and enchanted', () => /Relic of the Stand/.test(obs.arrivalData || '') && /sharpness/.test(obs.arrivalData || '')));
+  if (t === 'xp') {
+    // Summoned with its tags, so it can be judged as an entity: the plugin moves it, not a copy.
+    list.push(c('as itself (the same entity, tags and all)', () => obs.arrival && obs.arrival.same));
+  } else {
+    // A dropped, dispensed or spilled stack is born untagged and is tagged on the next tick; the
+    // plugin's sweep can take it in between, so it is judged as the design says, by its stack:
+    // the one named, enchanted item, not by entity identity.
+    list.push(c('the same stack: one, still named and enchanted', () => /Relic of the Stand/.test(obs.arrivalData || '')
+      && /sharpness/.test(obs.arrivalData || '') && /[Cc]ount: 1[b,}]/.test(obs.arrivalData || '')));
+  }
   return list;
 }
 
