@@ -77,6 +77,10 @@ function pluginJar(args) {
  */
 async function acrossVersions(args) {
   const jar = pluginJar(args);
+  // Each child stops its own server however it ends; a signal to this launcher is passed on to
+  // them (a console Ctrl+C reaches them directly, being in the same console).
+  const children = [];
+  for (const sig of ['SIGTERM', 'SIGHUP']) process.on(sig, () => { for (const c of children) c.kill(sig); });
   const runs = args.versions.map((v, i) => new Promise((resolve) => {
     const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port + 2 * i)];
     if (args.java) child.push('--java', args.java);
@@ -84,20 +88,24 @@ async function acrossVersions(args) {
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
     const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'pipe'] });
+    children.push(p);
     let tail = '';
-    let buf = '';
-    const out = (d) => {
-      buf += d.toString();
-      let n;
-      while ((n = buf.indexOf('\n')) >= 0) {
-        const line = buf.slice(0, n);
-        buf = buf.slice(n + 1);
-        if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${v}] ${line}`);
-        tail = (tail + line + '\n').slice(-4000);
-      }
+    // One buffer per stream: a line split across two reads must not be spliced with the other's.
+    const reader = () => {
+      let buf = '';
+      return (d) => {
+        buf += d.toString();
+        let n;
+        while ((n = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, n);
+          buf = buf.slice(n + 1);
+          if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${v}] ${line}`);
+          tail = (tail + line + '\n').slice(-4000);
+        }
+      };
     };
-    p.stdout.on('data', out);
-    p.stderr.on('data', out);
+    p.stdout.on('data', reader());
+    p.stderr.on('data', reader());
     p.on('exit', (c) => resolve({ v, code: c, tail }));
   }));
   const summary = await Promise.all(runs);
