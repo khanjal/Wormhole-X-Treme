@@ -231,7 +231,8 @@ resets) and takes about 25 minutes on one version; it is the one to iterate on, 
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate and the first
 #491 cell, in about 4½ minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
-`--port`, `--port`+2 and so on.
+`--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
+them all, and if the launcher is killed outright its children stop their servers too.
 
 `--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
 expected to fail by the name of its failing check and is listed at the end of the run as a known

@@ -567,7 +567,8 @@ class Server extends EventEmitter {
 /**
  * Ties a server to this launcher. The first SIGINT, SIGTERM or SIGHUP calls `onSignal`, which
  * ends the run and stops the server; a second one kills the JVM and exits at once, so a stop
- * that hangs can always be cut short. An exit any other way kills a JVM still running.
+ * that hangs can always be cut short. An exit any other way kills a JVM still running. Returns
+ * the handler, for a stop asked for some other way than by a signal.
  */
 function tieToProcess(srv, onSignal) {
   let signals = 0;
@@ -584,6 +585,7 @@ function tieToProcess(srv, onSignal) {
   };
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, handler);
   process.on('exit', () => srv.kill());
+  return handler;
 }
 
 /** WX_ECHO=1 (or true, yes, on) echoes the server's log; unset, 0, false, no or off does not. */
