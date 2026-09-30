@@ -234,6 +234,23 @@ in the opening, where Probe is, what a tick function in the datapack caught at t
 the first tick it was there (position, motion, and whether it is the same entity), and what the
 plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
 
+Each wing is also decorated (stage 3.6), from `wings/decor/<wing>.js`: a floor stripe in the
+department's colour from the entrance to every door, and a wayfinding tab at each fork; in Ops a
+compass rose, the Gate Room's two lit pylons and the Briefing Room's window; over G1's west
+gallery an observation deck whose control room shows the G1 board; under R3's glass gallery the
+Shaft Window, a light well open to the shaft; distance markers in the range tunnel; the
+transporter bay and dispatch office; the Yard's lanterns, hay and depot roof; and runways,
+dial-home consoles and blast walls or pillars at the far sites. The Transit tab in the console
+(`!transit`) dials the Ops gate, beams you to either pad, and prints the routes' last results.
+
+Decoration can never get in a test's way: `validateLayout` checks every block a `decorate`
+function writes against every cell's clear volume, floor and footprint, the far and transit
+gates (with their buttons, pits and aprons), every ring and beam pad outside a cell, the lanes,
+the plates, the walk-in lines, the stage 4 mirror spots and every structural anchor, and refuses
+to write the pack if one overlaps, naming both. It also refuses any block 1.20.4 does not know
+(read from `minecraft-data`), so a newer name fails at compile time rather than as a function
+that silently fails to load on the older server. `WX_PLAIN=1` builds without the decoration.
+
 The ring chambers (stage 3) pair two circles of slabs by the console form `ring build` (public)
 or as Probe with `ring create` in each (private, Probe's), and send one traveller: Probe on foot,
 Probe and Probe2 swapping ends in one instant, Probe on a horse, or a zombie, an item or a cart
