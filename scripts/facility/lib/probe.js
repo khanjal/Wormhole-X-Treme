@@ -235,7 +235,7 @@ class Probe {
     const swing = this.bot.swingArm;
     this.bot.swingArm = () => {};
     try {
-      await this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c);
+      await this.alive(this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c), `right-clicking ${block.name} at ${x} ${y} ${z}`, 5000);
     } finally {
       this.bot.swingArm = swing;
     }
@@ -271,7 +271,7 @@ class Probe {
   async press({ x, y, z }) {
     const block = await this.blockSeen({ x, y, z });
     await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
-    await this.bot.activateBlock(block);
+    await this.alive(this.bot.activateBlock(block), `pressing ${block.name} at ${x} ${y} ${z}`, 5000);
   }
 
   /** Walks onto a plate and waits to be teleported off it; returns where it landed. */
