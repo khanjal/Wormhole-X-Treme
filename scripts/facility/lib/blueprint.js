@@ -228,10 +228,6 @@ function cellShell(bp, ch, colour) {
     const w = walls[side];
     bp.fill({ ...w, y0: top, y1: top }, `minecraft:${colour}_concrete`);
   }
-  for (const [i, d] of L.door.blocks.entries()) {
-    bp.fill(box3(d.x, b.y0, d.z, d.x, b.y0 + L.door.height - 1, d.z), 'minecraft:air');
-    bp.set(d.x, b.y0 - 1, d.z, i % 2 ? P.hazardB : P.hazardA);
-  }
   if (ch.shaft) {
     const s = box3(b.x0 - 1, b.y0 - ch.shaft, b.z0 - 1, b.x1 + 1, b.y0 - 1, b.z1 + 1);
     bp.fill(s, 'minecraft:air');
@@ -241,6 +237,11 @@ function cellShell(bp, ch, colour) {
     }
     // A glass cap until the chamber has logic, so nobody walks into a 60-block drop.
     bp.fill(box3(b.x0 - 1, b.y0 - 1, b.z0 - 1, b.x1 + 1, b.y0 - 1, b.z1 + 1), 'minecraft:glass');
+  }
+  // The doorway and its hazard threshold last, so a shaft's glass cap does not cover the threshold.
+  for (const [i, d] of L.door.blocks.entries()) {
+    bp.fill(box3(d.x, b.y0, d.z, d.x, b.y0 + L.door.height - 1, d.z), 'minecraft:air');
+    bp.set(d.x, b.y0 - 1, d.z, i % 2 ? P.hazardB : P.hazardA);
   }
   bp.anchor(walls.n.x0, b.y0 + 1, walls.n.z0, glassSide === 'n' ? P.cellGlass : P.cellWall, `${ch.id} north wall`);
 }

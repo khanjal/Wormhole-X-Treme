@@ -62,7 +62,13 @@ class Facility {
     }
     for (const f of campus.FORCELOAD) {
       const y = f.dim === campus.OVERWORLD ? 0 : 64;
-      await this.srv.waitLoaded(f.dim, [[f.from[0], y, f.from[1]], [f.to[0], y, f.to[1]], [f.from[0], y, f.to[1]], [f.to[0], y, f.from[1]]], 120000);
+      // Every chunk of the rectangle, not only its corners: a build writing into a chunk still
+      // loading fails silently.
+      const points = [];
+      for (let cx = Math.floor(f.from[0] / 16); cx <= Math.floor(f.to[0] / 16); cx++) {
+        for (let cz = Math.floor(f.from[1] / 16); cz <= Math.floor(f.to[1] / 16); cz++) points.push([cx * 16 + 8, y, cz * 16 + 8]);
+      }
+      await this.srv.waitLoaded(f.dim, points, 120000);
     }
     this.loadMs = Date.now() - t0;
     await this.watch.prepare();
@@ -318,7 +324,7 @@ class Facility {
     const def = e.def;
     return {
       server: this.srv, probe: this.probe, config: this.config, board: this.boards, version: this.version,
-      tag: `wx_run_${def.id}`, observed: {}, layout: blueprint.layoutOf(def), step: () => {},
+      tag: `wx_run_${def.id}`, observed: {}, layout: blueprint.layoutOf(def), step: () => {}, owner: def.id,
       menagerie: this.menagerie, watch: this.watch, facility: this,
     };
   }
@@ -343,11 +349,13 @@ class Facility {
     let mark = Date.now();
     const lap = (phase) => { timing[phase] = Date.now() - mark; mark = Date.now(); };
     const bar = new RunBar(this.srv, this.version, e.def.id, `${e.def.id.toUpperCase()} ${e.def.title}`, 6);
+    this.bars = this.bars.filter((b) => !b.closed);
     this.bars.push(bar);
     ctx.step = (name) => bar.advance(name);
     await bar.open();
     await this.setStatus(e, 'running', mode === 'stage' ? 'staging' : 'running');
     let result;
+    let staged = false;
     try {
       await bar.advance('resetting the cell');
       if (ch.cleanup) await ch.cleanup(ctx);
@@ -358,12 +366,13 @@ class Facility {
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
       await bar.advance('applying settings');
       const needs = ch.needs ? ch.needs(v) : {};
-      await this.config.apply(needs.config || {});
+      await this.config.apply(needs.config || {}, e.def.id);
       try {
         await ch.stage(ctx, v);
       } catch (err) { err.phase = 'fixture'; throw err; }
       lap('stage');
       if (mode === 'stage') {
+        staged = true;
         this.held.add(e.def.id);
         await this.setStatus(e, 'staged', 'yours: Reset when done');
         await bar.finish(true, 'staged', holdMs);
@@ -385,7 +394,9 @@ class Facility {
     } catch (err) {
       result = { outcome: 'FAIL', reason: `${err.phase === 'fixture' ? 'fixture failed' : 'trip failed'}: ${err.message}`, checks: [] };
     } finally {
-      if (mode !== 'stage') await this.config.restore();
+      // A stage that got as far as being staged holds its settings until its Reset; anything
+      // else, a failed stage included, puts them back now.
+      if (!staged) await this.config.restore(e.def.id);
     }
     lap('checks');
     result.timing = timing;
@@ -413,7 +424,7 @@ class Facility {
     const r = await this.runFunction(f);
     if (!r.ok) problems.push(r.detail);
     await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
-    if (this.held.delete(e.def.id)) await this.config.restore();
+    if (this.held.delete(e.def.id)) await this.config.restore(e.def.id);
     if (e.chamber && e.chamber.fixture) {
       // A fixture's cell is not left empty: put the fixture back and let it say it is whole.
       try { await e.chamber.fixture(this.makeCtx(e)); } catch (err) { problems.push(`fixture: ${err.message}`); }

@@ -328,7 +328,7 @@ async function main() {
 
   console.log(`facility spike: Paper ${version} on Java ${javaMajor}, port ${args.port}, ${folder}`);
   const srv = new server.Server({ jar, java: args.java, folder, version });
-  if (process.env.WX_ECHO) srv.on('line', (l) => console.log(`  | ${l}`));
+  if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const bots = [];
   try {
     const t0 = Date.now();
