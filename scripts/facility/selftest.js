@@ -25,7 +25,9 @@ const { join, waitEvent } = require('./lib/probe');
  */
 const { MATRIX, defaultsOf, expectation } = require('./matrix');
 
-async function selftest(fac, { buildReport, fixtures = [], only = null, fixed = [], log = console.log }) {
+async function selftest(fac, {
+  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log,
+}) {
   const results = [];
   const known = [];
   const check = (section, name, ok, detail) => {
@@ -106,6 +108,7 @@ async function selftest(fac, { buildReport, fixtures = [], only = null, fixed = 
       for (const cell of cells) {
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
+        if (quick && !cell.quick) continue;
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });

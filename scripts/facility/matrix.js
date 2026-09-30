@@ -110,4 +110,17 @@ const MATRIX = {
   ],
 };
 
-module.exports = { MATRIX, defaultsOf, expectation };
+/**
+ * The --quick profile: one of each kind of thing, for a check across versions in a few minutes
+ * (text formats, entity ids, boats, the teleport quirk) rather than the whole matrix.
+ */
+const QUICK = new Set([
+  'g1 walk Standard by console', 'g1 minecart', 'g1 horse', 'g1 wolf', 'g1 arrow', 'g1 snowball',
+  'g1 arrow from a dispenser', 'g1 dropped item', 'g1 dial itself', '491-A cart from the front',
+  'g2 Standard to its neighbour',
+]);
+for (const [id, cells] of Object.entries(MATRIX)) {
+  for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;
+}
+
+module.exports = { MATRIX, QUICK, defaultsOf, expectation };

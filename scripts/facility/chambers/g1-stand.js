@@ -376,10 +376,14 @@ async function sendTraveller(ctx, o, geom, f) {
     }
     await ctx.watch.arm(O, front(geom, 30), { ...dest.itemArrival, dim: f.dim }, { freeze: false });
     await launched(t);
-    const animal = await ctx.probe.entityByTag(ctx.tag);
-    // Beside it, not behind: a camel is nearly two blocks long.
-    await probe.teleport({ x: animal.x + geom.right.x * 1.6, y: 0, z: animal.z + geom.right.z * 1.6, yaw: 90 }, O);
+    // Its AI is on, so it has wandered since it was staged: bring it back to the lane first.
+    const lane = front(geom, 6);
+    await run(ctx, `execute in ${O} run tp @e[tag=${ctx.tag},tag=wx_kind_${t},limit=1] ${lane.x} ${lane.y} ${lane.z} ${lane.yaw} 0`);
+    // Board it from the side, not from behind: a camel is nearly two blocks long.
+    await probe.teleport({ x: lane.x + geom.right.x * 1.6, y: 0, z: lane.z + geom.right.z * 1.6, yaw: 90 }, O);
     await probe.mount(ctx.tag, 5000, 3);
+    // Back onto the line through the middle of the opening, then straight in.
+    await probe.drive(front(geom, 4), { speed: 0.25, ms: 8000 }).catch(() => {});
     await probe.drive(beyond, { speed: 0.25, ms: 15000 }).catch((e) => { obs.driveError = e.message; });
     const a = await arrival(6000);
     await ticks(10);
@@ -454,6 +458,11 @@ async function sweep(ctx, o, geom, f) {
     const items = `Items:[${itemNbt(version, relic, ',Slot:0b')}]`;
     await ctx.menagerie.summon('hopper_minecart', { ...inOpening, y: bottom.y }, ctx.tag, items);
     await run(ctx, `kill @e[tag=${ctx.tag},tag=wx_kind_hopper_minecart]`);
+    // Breaking the cart drops the cart too (as a hopper minecart, or a minecart and a hopper);
+    // only the spilled contents are the traveller.
+    for (const part of ['hopper_minecart', 'minecart', 'hopper']) {
+      await ctx.server.run(`kill @e[type=minecraft:item,distance=..4,x=${inOpening.x},y=${bottom.y},z=${inOpening.z},nbt={Item:{id:"minecraft:${part}"}}]`);
+    }
   } else if (t === 'xp') {
     await ctx.menagerie.summon('experience_orb', { ...inOpening, y: bottom.y + 0.2 }, ctx.tag, 'Value:7s');
     await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_experience_orb] add wx_launched`);

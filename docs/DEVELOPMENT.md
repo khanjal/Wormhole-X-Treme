@@ -221,6 +221,31 @@ expected to fail by the name of its failing check and is listed at the end of th
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
 expects those cells to pass instead.
 
+Known plugin failures (stage 2), each expected by name in `matrix.js`:
+
+- A tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
+  the far end and does not copy the arrow's potion.
+- An item tossed (Q) or dispensed into an upright opening flies through its one block between
+  two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate. Only an item lying
+  in the opening when a sweep runs is sent.
+- #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
+  plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on
+  fix/491-cart-shut-iris, where they pass with `--fixed 491`).
+
+What stage 2 found about the harness itself:
+
+- Before 1.21, `spawn-animals=false` in server.properties discards a summoned animal at once, and
+  peaceful discards a summoned monster; the facility runs on easy with natural spawning off by
+  gamerule instead.
+- The plugin re-makes a projectile at the far gate as a new entity, so it carries no tag; the
+  datapack's tick function catches anything new that appears at the far exit, and says whether it
+  is the same entity.
+- The portal and the iris are drawn to each client over air. A shut iris is solid to the client,
+  so a player walking into it is stopped in front, not told "Iris is locked!".
+- Mineflayer 4.39 misses a dismount (the server empties the vehicle's passenger list, which it does
+  not read) and stops its physics ticks while riding; the probe handles both.
+- An empty boat on land stops within two blocks of a push, so the boat cell starts close.
+
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
 every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
 after each run, a non-op tester's path through the console, every reset, that the plugin holds

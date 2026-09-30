@@ -3,7 +3,7 @@
 //
 //   node scripts/facility/run-facility.js [version]            build the campus and hold for a tester
 //   node scripts/facility/run-facility.js [version] --selftest run the self-test, exit 1 on any FAIL
-//   node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.2
+//   node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   (in parallel)
 //
 // Options:
 //   --java <path>        java for the server (default: a JDK of the version's major, found by
@@ -13,6 +13,7 @@
 //   --jdk17 <path>       java for the Maven build (default: a JDK 17 found the same way)
 //   --port <n>           server port (default 25590)
 //   --keep-world         keep the world from the last run instead of starting fresh
+//   --quick              self-test with the short matrix (the cells marked quick): a few minutes
 //   --cells <regex>      self-test only the matrix cells whose names match
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
@@ -47,6 +48,7 @@ function parseArgs(argv) {
     else if (x === '--versions') a.versions = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (x === '--keep-world') a.keepWorld = true;
     else if (x === '--cells') a.cells = argv[++i];
+    else if (x === '--quick') a.quick = true;
     else if (x === '--fixed') a.fixed = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
@@ -67,30 +69,43 @@ function pluginJar(args) {
   return server.buildPlugin(REPO, jdk);
 }
 
-/** --versions: one child process per version, so each gets a clean process; returns the exit code. */
+/**
+ * --versions: one child process per version, all at once, each on its own port (--port, +2,
+ * +4, ...) and in its own server folder; every line is prefixed with its version. Returns the
+ * exit code: 0 only if every version passed.
+ */
 async function acrossVersions(args) {
   const jar = pluginJar(args);
-  const summary = [];
-  for (const v of args.versions) {
-    const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port)];
+  const runs = args.versions.map((v, i) => new Promise((resolve) => {
+    const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port + 2 * i)];
     if (args.java) child.push('--java', args.java);
     if (args.cells) child.push('--cells', args.cells);
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
-    console.log(`\n=== ${v} ===`);
-    const code = await new Promise((resolve) => {
-      const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'inherit'] });
-      let tail = '';
-      p.stdout.on('data', (d) => { process.stdout.write(d); tail = (tail + d.toString()).slice(-4000); });
-      p.on('exit', (c) => { summary.push({ v, code: c, tail }); resolve(c); });
-    });
-    if (code === null) break;
-  }
+    if (args.quick) child.push('--quick');
+    const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let tail = '';
+    let buf = '';
+    const out = (d) => {
+      buf += d.toString();
+      let n;
+      while ((n = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, n);
+        buf = buf.slice(n + 1);
+        if (!/DEP0040|trace-deprecation/.test(line)) console.log(`[${v}] ${line}`);
+        tail = (tail + line + '\n').slice(-4000);
+      }
+    };
+    p.stdout.on('data', out);
+    p.stderr.on('data', out);
+    p.on('exit', (c) => resolve({ v, code: c, tail }));
+  }));
+  const summary = await Promise.all(runs);
   console.log('\nfacility self-test across versions:');
   for (const s of summary) {
     const line = /self-test on \S+: (.*)/.exec(s.tail);
     console.log(`  ${s.code === 0 ? 'PASS' : 'FAIL'}  ${s.v}${line ? `  ${line[1]}` : ''}`);
   }
-  return summary.every((s) => s.code === 0) && summary.length === args.versions.length ? 0 : 1;
+  return summary.every((s) => s.code === 0) ? 0 : 1;
 }
 
 async function main() {
@@ -141,7 +156,9 @@ async function main() {
 
     if (args.selftest) {
       const ts = Date.now();
-      const results = await selftest(fac, { buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [] });
+      const results = await selftest(fac, {
+        buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick),
+      });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
       const sections = [...new Set(results.map((r) => r.section))];
