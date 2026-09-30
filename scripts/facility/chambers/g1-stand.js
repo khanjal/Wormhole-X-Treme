@@ -535,9 +535,13 @@ async function shoot(ctx, o, geom, f) {
   const dest = f.geom;
   const p = o.projectile;
   const version = ctx.version;
-  const aim = { x: geom.centre.x, y: geom.flat ? geom.centre.y - 0.5 : geom.centre.y, z: Math.floor(geom.opening[0].z) + 0.5 };
+  // The middle of the opening: of its plane for an upright gate, of its floor for a flat one.
+  const aim = geom.flat
+    ? { x: geom.centre.x, y: geom.centre.y - 0.5, z: geom.centre.z }
+    : { x: geom.centre.x, y: geom.centre.y, z: Math.floor(geom.opening[0].z) + 0.5 };
   let from;
-  if (o.angle === 'above') from = { x: aim.x, y: 6, z: aim.z };
+  // From above, but off to the front: straight down, the shot would hit the block Probe stands on.
+  if (o.angle === 'above') from = { x: aim.x, y: 6, z: aim.z + geom.normal.z * 4 };
   else if (o.angle === 'point-blank') from = front(geom, 1.6);
   else if (o.angle === 'glancing') from = front(geom, 10 * Math.cos(Math.PI / 6), 10 * Math.sin(Math.PI / 6));
   // A thrown potion is slow and falls short from ten blocks; it is thrown from four.
@@ -591,6 +595,7 @@ async function shoot(ctx, o, geom, f) {
   await ticks(6);
   obs.arrival = await ctx.watch.arrival();
   obs.leftBehind = await ctx.watch.leftBehind();
+  obs.strayAt = (await ctx.server.run('data get entity @e[tag=wx_launched,tag=!wx_arrived,limit=1] Pos')).lines.join(' ');
   obs.arrivalData = (await ctx.server.run(`execute in ${f.dim} run data get entity @e[tag=wx_arrived,limit=1]`)).lines.join(' ');
   if (p === 'pearl') {
     // It flies on out of the far gate and lands a few blocks on; Probe goes where it lands.
