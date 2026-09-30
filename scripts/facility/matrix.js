@@ -116,6 +116,44 @@ const G1 = [
   { name: '491-H control: Horizontal, iris open', values: { traveller: 'cart at iris', shape: 'Horizontal', 'own iris': 'open', approach: 'behind' }, expect: 'PASS' },
 ];
 
+const R1 = [
+  { name: 'r1 walk ODD by console', values: {}, expect: 'PASS' },
+  { name: 'r1 walk EVEN', values: { pattern: 'EVEN' }, expect: 'PASS' },
+  ...['oak_slab', 'stone_brick_slab', 'andesite_slab', 'prismarine_slab', 'cut_copper_slab']
+    .map((slab) => ({ name: `r1 walk ${slab}`, values: { slab }, expect: 'PASS' })),
+  { name: 'r1 walk 40 apart', values: { distance: '40' }, expect: 'PASS' },
+  { name: 'r1 built by Probe', values: { built: 'player' }, expect: 'PASS' },
+  { name: 'r1 swap', values: { traveller: 'swap' }, expect: 'PASS' },
+  { name: 'r1 horse', values: { traveller: 'horse' }, expect: 'PASS' },
+  { name: 'r1 zombie', values: { traveller: 'zombie' }, expect: 'PASS' },
+  { name: 'r1 item', values: { traveller: 'item' }, expect: 'PASS' },
+  { name: 'r1 minecart', values: { traveller: 'minecart' }, expect: 'PASS' },
+  { name: 'r1 stranger refused', values: { built: 'player', access: 'stranger' }, expect: 'PASS' },
+  { name: 'r1 allowed', values: { built: 'player', access: 'allowed' }, expect: 'PASS' },
+  { name: 'r1 slow style', values: { timing: 'slow' }, expect: 'PASS' },
+  { name: 'r1 quick countdown', values: { timing: 'quick' }, expect: 'PASS' },
+  { name: 'r1 access on a console pair', values: { access: 'stranger' }, expect: 'REFUSED:the access rows are about a private pair, which a player builds' },
+];
+
+const B1 = [
+  { name: 'b1 N public', values: {}, expect: 'PASS' },
+  { name: 'b1 E own place', values: { destination: 'E', kind: 'own place' }, expect: 'PASS' },
+  { name: 'b1 S another\'s place', values: { destination: 'S', kind: 'another\'s place' }, expect: 'PASS' },
+  { name: 'b1 W by go', values: { destination: 'W', kind: 'go' }, expect: 'PASS' },
+  { name: 'b1 Trap', values: { destination: 'Trap' }, expect: 'PASS' },
+  { name: 'b1 Blocked', values: { destination: 'Blocked' }, expect: 'PASS' },
+  { name: 'b1 Far (nether)', values: { destination: 'Far' }, expect: 'PASS' },
+  { name: 'b1 End', values: { destination: 'End' }, expect: 'PASS' },
+  { name: 'b1 op', values: { traveller: 'op' }, expect: 'PASS' },
+  { name: 'b1 horse', values: { traveller: 'horse' }, expect: 'PASS' },
+  { name: 'b1 wolf', values: { destination: 'E', traveller: 'wolf' }, expect: 'PASS' },
+  { name: 'b1 long', values: { timing: 'long' }, expect: 'PASS' },
+  { name: 'b1 late teleport', values: { timing: 'late teleport' }, expect: 'PASS' },
+  { name: 'b1 clamped teleport', values: { timing: 'clamped' }, expect: 'PASS' },
+  { name: 'b1 clamped vanish', values: { timing: 'clamped vanish' }, expect: 'PASS' },
+  { name: 'b1 another\'s place as op', values: { kind: 'another\'s place', traveller: 'op' }, expect: 'REFUSED:another\'s place is asked for by Probe2 (the player)' },
+];
+
 const MATRIX = {
   c0: [
     { values: { target: 'gold_block', control: 'lever' }, expect: 'PASS' },
@@ -128,6 +166,26 @@ const MATRIX = {
     ...['Massive', 'Grand', 'Large', 'Standard', 'Minimal', 'Horizontal'].map((g) => ({ name: `g2 ${g} to its neighbour`, values: { gate: g }, expect: 'PASS' })),
     { name: 'g2 validate', values: { check: 'validate' }, expect: 'REFUSED:validate arrives in stage 5 with the upkeep and protection tests' },
   ],
+  r1: R1,
+  r2: [
+    ...['6', '10'].map((drop) => ({ name: `r2 ceiling ${drop} up`, values: { drop }, expect: 'PASS' })),
+    { name: 'r2 ceiling 6 up, EVEN', values: { drop: '6', pattern: 'EVEN' }, expect: 'PASS' },
+    { name: 'r2 ceiling 11 up refused', values: { drop: '11' }, expect: 'PASS' },
+    { name: 'r2 ceiling 2 up refused', values: { drop: '2' }, expect: 'PASS' },
+  ],
+  r3: [
+    ...['20', '40', '60'].map((depth) => ({ name: `r3 shaft ${depth} down`, values: { depth }, expect: 'PASS' })),
+    { name: 'r3 20 down, reach 30', values: { depth: '20', 'max height': '30' }, expect: 'PASS' },
+    { name: 'r3 40 down, reach 30: refused', values: { depth: '40', 'max height': '30' }, expect: 'PASS' },
+  ],
+  r4: ['pair', 'cancel', 'mixed slabs', 'mixed halves', 'double slab', 'filled disc', 'low ceiling', 'built inside', 'hole in floor']
+    .map((c) => ({ name: `r4 ${c}`, values: { case: c }, expect: 'PASS' })),
+  r5: ['name', 'light', 'private', 'allow', 'deny', 'owner'].map((edit) => ({ name: `r5 ${edit}`, values: { edit }, expect: 'PASS' })),
+  tunnel: ['64', '128', '250', '257'].map((d) => ({ name: `tunnel ${d} apart${d === '257' ? ': refused' : ''}`, values: { distance: d }, expect: 'PASS' })),
+  b1: B1,
+  b2: ['send to public', 'send to player', 'send to coordinates', 'send to nobody', 'goto as op', 'goto as player', 'set as player',
+    'own place', 'another\'s place', 'go to a gate as op', 'go to a gate as player', 'cooldown', 'op skips cooldown']
+    .map((action) => ({ name: `b2 ${action}`, values: { action }, expect: 'PASS' })),
 };
 
 /**
@@ -138,6 +196,8 @@ const QUICK = new Set([
   'g1 walk Standard by console', 'g1 minecart', 'g1 horse', 'g1 wolf', 'g1 arrow', 'g1 snowball',
   'g1 arrow from a dispenser', 'g1 dropped item', 'g1 dial itself', '491-A cart from the front',
   'g2 Standard to its neighbour',
+  'r1 walk ODD by console', 'r1 swap', 'r2 ceiling 11 up refused', 'r3 shaft 20 down', 'r4 mixed slabs', 'r5 name',
+  'tunnel 257 apart: refused', 'b1 N public', 'b1 Trap', 'b2 send to public', 'b2 cooldown',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;

@@ -122,10 +122,11 @@ async function selftest(fac, {
   await guard('matrix', async () => {
     for (const [id, cells] of Object.entries(MATRIX)) {
       const e = fac.entries.find((x) => x.def.id === id);
-      const needs = e.chamber.needs ? Object.keys((e.chamber.needs({}) || {}).config || {}) : [];
-      for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
       const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
+        // Every setting any cell needs is read before its first run, and checked at the end.
+        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
