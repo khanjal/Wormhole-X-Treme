@@ -20,6 +20,13 @@ public interface MapProvider
     String name();
 
     /**
+     * Whether the map is up and can be drawn on. While it is not, nothing is looked at or drawn.
+     *
+     * @return true once the map plugin has handed over what drawing needs
+     */
+    boolean ready();
+
+    /**
      * Makes the map show this picture, and nothing else of this plugin's.
      *
      * <p>Must be safe to call again with the same picture, and cheap when nothing changed.

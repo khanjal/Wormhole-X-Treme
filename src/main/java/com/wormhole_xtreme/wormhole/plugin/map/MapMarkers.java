@@ -42,6 +42,9 @@ public final class MapMarkers
     /** How many times a dialling gate is checked before the periodic look is left to it. */
     static final int FORMING_CHECKS = 20;
 
+    /** Dynmap's plugin name, as its plugin.yml gives it. */
+    private static final String DYNMAP_PLUGIN = "dynmap";
+
     /** A class only Dynmap provides. */
     private static final String DYNMAP_CLASS = "org.dynmap.DynmapCommonAPIListener";
 
@@ -141,8 +144,9 @@ public final class MapMarkers
                     "dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.");
                 return;
             }
+            warnIfInstalledButNotRunning(plugin);
             // Only reached with Dynmap on the classpath, which is what makes naming its provider safe.
-            final DynmapMapProvider dynmap = new DynmapMapProvider(layers, MapMarkers::requestDraw);
+            final DynmapMapProvider dynmap = new DynmapMapProvider(layers, MapMarkers::providerReady);
             chosen = dynmap;
             hook = dynmap::register;
             undo = dynmap::unregister;
@@ -171,8 +175,27 @@ public final class MapMarkers
             disable();
             throw e;
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-            "Showing gates, rings, beam destinations and mirrors on " + chosen.name() + ".");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Waiting for " + chosen.name() + " to be ready.");
+    }
+
+    /**
+     * Says so once if Dynmap is installed but did not start, which it reports in its own log.
+     *
+     * <p>Dynmap is a soft dependency, so it has enabled, or failed to, before this plugin
+     * enables. The hook is still registered: if Dynmap does start later, the map starts then.
+     *
+     * @param plugin
+     *            this plugin, for its server
+     */
+    private static void warnIfInstalledButNotRunning(final Plugin plugin)
+    {
+        final Plugin dynmap = plugin.getServer().getPluginManager().getPlugin(DYNMAP_PLUGIN);
+        if ((dynmap != null) && !dynmap.isEnabled())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "dynmap-enabled is set, but Dynmap is installed and not running (see its own startup"
+                    + " errors). Nothing is shown until it starts.");
+        }
     }
 
     /**
@@ -254,6 +277,17 @@ public final class MapMarkers
     }
 
     /**
+     * Whether there is a map up to draw on.
+     *
+     * @return true while running and the provider is ready
+     */
+    private static boolean isReady()
+    {
+        final MapProvider map = provider;
+        return running && (map != null) && map.ready();
+    }
+
+    /**
      * Books the next check on a dialling gate.
      *
      * @param gate
@@ -264,7 +298,7 @@ public final class MapMarkers
     private static void scheduleFormingCheck(final Stargate gate, final int left)
     {
         final Plugin plugin = owner;
-        if (running && (plugin != null) && (left > 0))
+        if (isReady() && (plugin != null) && (left > 0))
         {
             WormholeXTreme.getScheduler().runTaskLater(plugin, () -> checkForming(gate, left - 1),
                 FORMING_CHECK_TICKS);
@@ -293,23 +327,30 @@ public final class MapMarkers
     }
 
     /**
-     * Has the newest picture drawn again, for a map that has just come up and shows nothing.
+     * The map has come up: says so, and has the whole picture drawn on the next tick, changed
+     * or not, since a map that has just come up shows nothing of ours.
      *
      * <p>Called by a provider, from whatever thread its map plugin tells it on.
      */
-    static void requestDraw()
+    static void providerReady()
     {
-        if (running && (latest.get() != null))
+        final MapProvider map = provider;
+        if (!running || (map == null))
         {
-            queueDraw();
+            return;
         }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+            "Showing gates, rings, beam destinations and mirrors on " + map.name() + ".");
+        redraw.set(true);
+        requestRefresh();
     }
 
     /** Looks at the plugin's state, and hands on the picture if it changed. Main thread only. */
     static void tick()
     {
         lookQueued.set(false);
-        if (!running)
+        // Nothing to draw on, so nothing to look at: the map coming up asks for a full look.
+        if (!isReady())
         {
             return;
         }
