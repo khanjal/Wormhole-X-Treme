@@ -523,9 +523,9 @@ async function sweep(ctx, o, geom, f) {
   } else if (t === 'xp') {
     await ctx.menagerie.summon('experience_orb', { ...inOpening, y: bottom.y + 0.2 }, ctx.tag, 'Value:7s', ['wx_launched']);
   } else if (t === 'armour stand') {
-    await ctx.menagerie.summon('armor_stand', { ...inOpening, y: bottom.y }, ctx.tag);
+    await ctx.menagerie.summon('armor_stand', { ...inOpening, y: bottom.y }, ctx.tag, '', ['wx_launched', 'wx_seen']);
   } else if (t === 'zombie') {
-    await ctx.menagerie.summon('zombie', { ...inOpening, y: bottom.y }, ctx.tag, 'NoAI:1b,PersistenceRequired:1b,Silent:1b');
+    await ctx.menagerie.summon('zombie', { ...inOpening, y: bottom.y }, ctx.tag, 'NoAI:1b,PersistenceRequired:1b,Silent:1b', ['wx_launched', 'wx_seen']);
   } else if (t === 'llama') {
     await ctx.menagerie.animal('llama', { ...inOpening, y: bottom.y }, ctx.tag, {});
     await run(ctx, `data merge entity @e[tag=${ctx.tag},tag=wx_kind_llama,limit=1] {NoAI:1b}`);
@@ -546,8 +546,11 @@ async function sweep(ctx, o, geom, f) {
   }
   const scan = 20; // entity-scan-interval-ticks, the default
   if (['armour stand', 'zombie', 'llama'].includes(t)) {
-    const kind = t === 'armour stand' ? 'armor_stand' : t;
-    for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_${kind}] add ${tagName}`);
+    // A summoned mob is tagged in its summon, as a lying item is: the sweep may take it before a
+    // later command. The llama comes from the pen, so it is tagged after.
+    if (t === 'llama') {
+      for (const tagName of ['wx_launched', 'wx_seen']) await run(ctx, `tag @e[tag=${ctx.tag},tag=wx_kind_llama] add ${tagName}`);
+    }
     await ctx.watch.waitArrival((scan + 60) * 50);
     const a = await ctx.watch.arrival();
     obs.mobArrived = a.count > 0 && a.same;
