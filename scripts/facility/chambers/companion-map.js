@@ -125,15 +125,21 @@ async function hangMirror(ctx, name) {
 async function watchDial(ctx, reader, from, to, geomFrom, ms = 20000) {
   const { Vec3 } = require('vec3');
   const probe = ctx.facility.probe;
-  const drawn = () => geomFrom.opening.every((c) => { const b = probe.bot.blockAt(new Vec3(c.x, c.y, c.z)); return b && !['air', 'cave_air'].includes(b.name); });
+  const shown = (c) => { const b = probe.bot.blockAt(new Vec3(c.x, c.y, c.z)); return b && !['air', 'cave_air'].includes(b.name); };
   const samples = [];
   const end = Date.now() + ms;
+  let firstDrawn = null;
   while (Date.now() < end) {
     const g = await reader.points(SETS.gates) || {};
-    samples.push({ a: g[from] && g[from].icon, b: g[to] && g[to].icon, drawnA: drawn() });
+    const t = Date.now();
+    if (firstDrawn === null && geomFrom.opening.some(shown)) firstDrawn = t;
+    samples.push({ t, a: g[from] && g[from].icon, b: g[to] && g[to].icon, drawnA: geomFrom.opening.every(shown) });
     if (samples[samples.length - 1].drawnA) break;
     await ticks(10);
   }
+  // The kawoosh and the redraw it asks for reach Probe's client and Dynmap in either order, so
+  // only a read more than a second before any of the opening was drawn is one while locking.
+  samples.locking = firstDrawn === null ? [] : samples.filter((x) => x.t < firstDrawn - 1000);
   return samples;
 }
 
@@ -401,12 +407,12 @@ function checks(ctx, o) {
     }
     case 'dial':
     case 'remove': {
-      const lockSamples = (obs.samples || []).filter((x) => !x.drawnA);
+      const lockSamples = (obs.samples && obs.samples.locking) || [];
       const line = obs.open && obs.open.snap.gateLines && obs.open.snap.gateLines['mapa|mapb'];
       const list = [built,
         c('both idle before the dial', () => obs.before && obs.before.gates.mapa.icon === IDLE && obs.before.gates.mapb.icon === IDLE),
         c('the dial connected', () => /Stargates connected/.test(obs.dial || '')),
-        c('while the chevrons locked (read before the kawoosh drew the opening), neither was drawn open', () => lockSamples.length > 0 && lockSamples.every((x) => x.a !== OPEN && x.b !== OPEN)),
+        c('while the chevrons locked (read over a second before the kawoosh), neither was drawn open', () => lockSamples.length > 0 && lockSamples.every((x) => x.a !== OPEN && x.b !== OPEN)),
         c('the kawoosh drew the opening', () => (obs.samples || []).some((x) => x.drawnA)),
         c('then both open', () => obs.open && obs.open.ok),
         c('with a cyan line between them: "MapA to MapB"', () => line && line.label === 'MapA to MapB' && line.color === '37b0d8')];
