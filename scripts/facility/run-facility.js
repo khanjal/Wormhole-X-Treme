@@ -17,9 +17,11 @@
 //   --cells <regex>      self-test only the matrix cells whose names match
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
+//   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
+//   --tied               (set by --versions for its children) stop when stdin closes
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
-// press Ctrl+C to shut it down.
+// press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
 
 const fs = require('fs');
 const path = require('path');
@@ -30,6 +32,7 @@ const generate = require('./lib/generate');
 const wings = require('./wings');
 const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
+const { Config } = require('./lib/config');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -51,6 +54,11 @@ function parseArgs(argv) {
     else if (x === '--cells') a.cells = argv[++i];
     else if (x === '--quick') a.quick = true;
     else if (x === '--fixed') a.fixed = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
+    else if (x === '--tied') a.tied = true;
+    else if (x === '--paper-build') {
+      a.paperBuild = Number(argv[++i]);
+      if (!Number.isInteger(a.paperBuild) || a.paperBuild <= 0) throw new Error(`--paper-build takes a build number, not ${argv[i]}`);
+    }
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -77,17 +85,31 @@ function pluginJar(args) {
  */
 async function acrossVersions(args) {
   const jar = pluginJar(args);
-  // Each child stops its own server however it ends; a signal to this launcher is passed on to
-  // them (a console Ctrl+C reaches them directly, being in the same console).
+  // Each child stops its own server however it ends, and watches its JVM with a watchdog of its
+  // own. It is --tied: it holds a pipe from this launcher and stops when that closes, so a
+  // launcher killed outright takes its children with it. A signal here closes the pipes, which
+  // stops them as a first signal does; a second kills them, leaving their watchdogs to kill
+  // their JVMs. A console Ctrl+C reaches the children directly as well.
   const children = [];
-  for (const sig of ['SIGTERM', 'SIGHUP']) process.on(sig, () => { for (const c of children) c.kill(sig); });
+  let signals = 0;
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+    process.on(sig, () => {
+      signals++;
+      for (const c of children) {
+        if (signals === 1) c.stdin.end();
+        else c.kill('SIGKILL');
+      }
+    });
+  }
   const runs = args.versions.map((v, i) => new Promise((resolve) => {
-    const child = [__filename, v, '--selftest', '--plugin', jar, '--port', String(args.port + 2 * i)];
+    const child = [__filename, v, '--selftest', '--tied', '--plugin', jar, '--port', String(args.port + 2 * i)];
     if (args.java) child.push('--java', args.java);
     if (args.cells) child.push('--cells', args.cells);
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
-    const p = spawn(process.execPath, child, { stdio: ['ignore', 'pipe', 'pipe'] });
+    if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
+    const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
+    p.stdin.on('error', () => {});
     children.push(p);
     let tail = '';
     // One buffer per stream: a line split across two reads must not be spliced with the other's.
@@ -124,13 +146,17 @@ async function main() {
   const java = args.java || server.findJava(server.requiredJava(version));
   if (!java) throw new Error(`no Java ${server.requiredJava(version)} found for ${version}; pass --java`);
   const javaMajor = server.checkJava(java, version);
-  const jar = await server.ensurePaperJar(LOCAL, version);
+  const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
   const plugin = pluginJar(args);
   // One folder per version and port, so runs side by side (--versions, or two terminals) never
   // share a world: a fresh run deletes the worlds of the folder it uses.
   const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
 
-  if (!args.keepWorld) server.freshWorlds(folder, { pluginData: true });
+  // The settings journal describes the plugin's config file, so it goes when that does.
+  if (!args.keepWorld) {
+    server.freshWorlds(folder, { pluginData: true });
+    fs.rmSync(path.join(folder, Config.JOURNAL), { force: true });
+  }
   // Survival by default: a tester is put in adventure by the welcome, and the self-test's check
   // of that would pass without it if the server's default were adventure already.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10, mobs: true });
@@ -142,20 +168,30 @@ async function main() {
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port });
-  // However the launcher goes, the server goes with it: a signal stops it cleanly (and ends hold
-  // mode), and a launcher that exits any other way kills a JVM still running, so no server is
-  // left holding the port and the world folder.
+  // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
+  // stops the server, a second one kills it, and an exit any other way kills a JVM still
+  // running, so no server is left holding the port and the world folder.
   let holding = null;
   let stopping = false;
-  const onSignal = (sig) => {
+  const shutDown = async () => {
+    stopping = true;
+    // Bounded: its bossbar removals queue behind whatever run is in flight.
+    await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
+    await srv.stop();
+  };
+  const stopFor = server.tieToProcess(srv, () => {
     if (holding) { holding(); return; }
     if (stopping) return;
-    stopping = true;
-    console.error(`facility: ${sig}: stopping the server`);
-    Promise.resolve(fac.close()).catch(() => {}).then(() => srv.stop()).catch(() => {}).then(() => process.exit(130));
-  };
-  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => onSignal(sig));
-  process.on('exit', () => srv.kill());
+    shutDown().catch(() => {}).then(() => process.exit(130));
+  });
+  if (args.tied) {
+    // A --versions launcher's child: the end of its pipe is a stop, like a first signal, and a
+    // launcher that has gone reads nothing this one writes.
+    for (const s of [process.stdout, process.stderr]) s.on('error', () => {});
+    process.stdin.on('end', () => { if (!stopping) stopFor('the parent launcher closed the pipe'); });
+    process.stdin.on('error', () => { if (!stopping) stopFor('the parent launcher went'); });
+    process.stdin.resume();
+  }
   let exit = 0;
   // A stray rejection is a bug in the facility: log it, fail the run, and still stop the server.
   const stray = [];
@@ -208,9 +244,13 @@ async function main() {
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;
-        fac.probe.bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-        // Without Probe nobody hears "stop": say so and end rather than hang.
-        fac.probe.bot.once('end', (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); });
+        const bot = fac.probe.bot;
+        bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
+        // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
+        // now or before the hold began.
+        const gone = (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
+        if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        if (srv.exited !== null) resolve();
         srv.once('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
       });
       holding = null;
@@ -219,8 +259,7 @@ async function main() {
     console.error(`facility: ${e.stack || e}`);
     exit = 1;
   } finally {
-    await fac.close().catch(() => {});
-    await srv.stop();
+    await shutDown();
   }
   return exit;
 }
