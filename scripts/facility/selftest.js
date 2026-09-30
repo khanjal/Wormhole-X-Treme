@@ -183,7 +183,7 @@ async function selftest(fac, {
       const routes = await click(transitTab, '[Routes]', (m) => /gate Ops→Hall: /.test(m.toString()), 'the routes’ results');
       check('console', 'Routes prints each route’s last result', /gate Ops→Hall: (PASS|FAIL|not walked)/.test(routes.toString()), routes.toString().trim());
       const listing = await click(tabs, 'Operations', (m) => clickOn(m, 'Calibration Cell'), 'the Ops chambers');
-      check('console', 'the Ops tab lists the calibration cell with its state', /C0 Calibration Cell {2}(idle · never run|\w+)/.test(listing.toString()), listing.toString().trim());
+      check('console', 'the Ops tab lists the calibration cell with its state', /C0 Calibration Cell\s+(idle · never run|pass|fail|refused|running|staged|idle)\b/.test(listing.toString()), listing.toString().trim());
       const opts = await click(listing, 'Calibration Cell', (m) => clickOn(m, 'button'), 'the calibration menu');
       check('console', 'the chamber menu offers its options, the first current', /control\s+\[lever\] button/.test(opts.toString()), opts.toString().trim());
       const chosen = await click(opts, 'button', (m) => /\[button\]/.test(m.toString()), 'the menu with button chosen');
