@@ -2,10 +2,11 @@
 // Stage 0 of the Wormhole Research Facility: proves on one server version that the four
 // vanilla mechanisms the facility rests on work there, and says exactly what failed if not.
 //
-//   node scripts/facility/spike.js <version> --java <path to java> [--port 25590] [--hold]
+//   node scripts/facility/spike.js <version> --java <path to java> [--port 25590] [--hold] [--paper-build <n>]
 //
 // --hold keeps the server up after the checks so a person can join and click the menu: the one
-// thing a bot cannot do. Say "stop" in chat, or press Ctrl+C, to end it.
+// thing a bot cannot do. Say "stop" in chat, or press Ctrl+C, to end it. Ctrl+C at any point
+// stops the server, and again kills it.
 //
 // Mechanisms: a datapack function that builds a box; a /trigger console whose menu reaches a
 // non-op player and whose code reaches the bot; a text display that reads back as written;
@@ -31,6 +32,10 @@ function parseArgs(argv) {
     if (a === '--java') args.java = argv[++i];
     else if (a === '--port') args.port = Number(argv[++i]);
     else if (a === '--hold') args.hold = true;
+    else if (a === '--paper-build') {
+      args.paperBuild = Number(argv[++i]);
+      if (!Number.isInteger(args.paperBuild) || args.paperBuild <= 0) throw new Error(`--paper-build takes a build number, not ${argv[i]}`);
+    }
     else if (!a.startsWith('--') && !args.version) args.version = a;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -276,6 +281,9 @@ async function checkBossbar(srv, version, probe) {
   check(M, 'removed', removed.errors.length === 0 && d !== null, removed.lines.join(' ') + (d ? '' : '; Probe saw no removal'));
 }
 
+/** Ends hold mode; set while holding. */
+let holding = null;
+
 /** Keeps the server up for a person to click the menu; prints every code Probe reads. */
 async function hold(srv, version, probe, port) {
   const events = wxConsole.listen(probe);
@@ -303,9 +311,11 @@ async function hold(srv, version, probe, port) {
   console.log(`\nholding: join localhost:${port} with Minecraft ${version} (not opped) and click a word in the menu.`);
   console.log('Say "stop" in chat, or press Ctrl+C, to end it.');
   await new Promise((resolve) => {
+    holding = resolve;
     probe.on('chat', (username, message) => { if (username !== 'Probe' && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-    process.once('SIGINT', resolve);
+    if (probe.ended) resolve(); else probe.once('end', resolve);
   });
+  holding = null;
 }
 
 // ---- the run ------------------------------------------------------------------------------
@@ -315,7 +325,7 @@ async function main() {
   const { version } = args;
   const javaMajor = server.checkJava(args.java, version);
   const folder = path.join(LOCAL, `facility-${version}`);
-  const jar = await server.ensurePaperJar(LOCAL, version);
+  const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
 
   // A fresh world every run, so nothing a check looks for can be left over from the last one.
   for (const d of fs.existsSync(folder) ? fs.readdirSync(folder) : []) {
@@ -330,6 +340,12 @@ async function main() {
   const srv = new server.Server({ jar, java: args.java, folder, version });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const bots = [];
+  // The same folder and port as the facility's: a server left behind would fail the next run.
+  server.tieToProcess(srv, () => {
+    if (holding) { holding(); return; }
+    for (const b of bots) b.quit();
+    srv.stop().catch(() => {}).then(() => process.exit(130));
+  });
   try {
     const t0 = Date.now();
     await srv.start();
