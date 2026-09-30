@@ -76,8 +76,15 @@ module.exports = {
     ctx.observed.dial = (await kit.dial(from.name, to.name)).text;
     ctx.observed.drawn = await kit.waitOpen(probe, g).catch((e) => { ctx.observed.openError = e.message; return null; });
     if (!ctx.observed.drawn) return;
-    const target = g.flat ? { x: g.centre.x, z: g.centre.z } : { x: g.centre.x, z: Math.floor(g.opening[0].z) + 0.5 - g.normal.z * 2.5 };
-    await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.distanceTo(to.geom.arrival) < 3 }).catch(() => {});
+    if (g.flat) {
+      // A flat gate is stepped into, as G1 does it: Probe is put just above the middle of the
+      // opening and falls. (Walked to, it stops at the rim of the hole; it only ever passed on a
+      // gallery the pre-run reset had floored over.)
+      await probe.teleport({ x: g.centre.x, y: G.floorY + 0.2, z: g.centre.z }, O).catch(() => {});
+    } else {
+      const target = { x: g.centre.x, z: Math.floor(g.opening[0].z) + 0.5 - g.normal.z * 2.5 };
+      await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.distanceTo(to.geom.arrival) < 3 }).catch(() => {});
+    }
     const end = Date.now() + 4000;
     while (Date.now() < end && probe.distanceTo(to.geom.arrival) >= 1.5) await ticks(5);
     await probe.settle();
@@ -100,15 +107,17 @@ module.exports = {
     const obs = ctx.observed;
     if (!/Stargates connected/.test(obs.dial || '')) return [];
     const kit = new GateKit(ctx.server);
-    // Each end seen drawn open before the close, or an opening never drawn would read as shut.
+    // Each end the plugin draws to Probe (within 64: Horizontal's neighbour Massive is 99 off), seen
+    // drawn open before the close, or an opening never drawn would read as shut.
+    const judged = [obs.from, obs.to].filter((g) => GateKit.drawnTo(ctx.probe, g.geom, O));
     const seen = [];
-    for (const g of [obs.from, obs.to]) seen.push((await kit.waitDrawn(ctx.probe, g.geom)) === true);
+    for (const g of judged) seen.push((await kit.waitDrawn(ctx.probe, g.geom)) === true);
     obs.closed = [];
     for (const g of [obs.from, obs.to]) obs.closed.push((await kit.force(g.name)).text);
     const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
     return [
       c('closed by command: "<gate> has been closed, ..."', () => obs.closed.every((t) => /has been closed/.test(t))),
-      ...[obs.from, obs.to].map((g, i) => c(`${g.name} shut on command: drawn open before, and its opening no longer drawn`,
+      ...judged.map((g, i) => c(`${g.name} shut on command: drawn open before, and its opening no longer drawn`,
         async () => seen[i] && (await kit.waitShut(ctx.probe, g.geom)) === true)),
     ];
   },

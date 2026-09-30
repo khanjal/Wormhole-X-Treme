@@ -942,7 +942,7 @@ async function shut(ctx, o) {
   // the close, or an opening never drawn to Probe would read as shut.
   const { Vec3 } = require('vec3');
   const inView = (g) => g.opening.every((p) => probe.bot.blockAt(new Vec3(p.x, p.y, p.z)) !== null);
-  const judged = ends.filter((e) => probe.dimension === e.dim && inView(e.geom));
+  const judged = ends.filter((e) => GateKit.drawnTo(probe, e.geom, e.dim) && inView(e.geom));
   for (const e of judged) e.seenOpen = (await kit.waitDrawn(probe, e.geom)) === true;
   obs.closed = [];
   for (const e of ends) obs.closed.push((await kit.force(e.name)).text);
