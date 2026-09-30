@@ -204,7 +204,10 @@ session fixture (`lib/transit.js`, positions in `campus.ROUTES`):
   the prompt, or say `/wormhole beam to BeamLab`. A command block cannot beam whoever pressed it:
   `beam to` refuses a sender that is not a player (a command block running `execute as @p`
   included) and `beam admin send` takes a player's exact name, not `@p`. So the button sends the
-  nearest player a chat prompt whose click runs `beam to` as them.
+  nearest player a chat prompt whose click runs `beam to` as them;
+- the mirror `Ops` on the atrium's south wall and `Optics` in the gallery lobby: walk up, right-click
+  (each starts on the other), punch. `Range` and `Annex` hang on piers at the far sites, so every
+  world has a mirror; the Range and the Annex also each have a Dial Ops button by their gate.
 
 The tp plates are the fallback that works with the plugin down: eight in a row in the service
 corridor under the mezzanine, and a plate home two blocks into each wing's corridor. Say "stop"
@@ -277,15 +280,32 @@ cooldown, which Probe2 waits out and an op skips.
 The self-test's `transit` section, after the fixtures and before the matrix, walks every route as
 Probe2: the gate from the Ops console's `Hall` button (and both gates shut again within
 `timeout-shutdown`), back by the Hall DHD and `/dial Ops`, the ring pair both ways (announced by
-name, recharging on the way straight back), the beam out by the button and back typed. Each
-route's last result is on the Ops wall under TRANSIT. `--quick` walks one route per feature.
+name, recharging on the way straight back), the beam out by the button and back typed, the Ops
+gate to the Range and to the Annex and back by their Dial Ops buttons, and the mirror to Optics
+and back. Each route's last result is on the Ops wall under TRANSIT. `--quick` walks one route per
+feature.
+
+The mirror chambers (stage 4) work the network of those four and one of their own. `m1` hangs
+`Round` in its cell and sends Probe2 (or Probe) to each of the others: the approach line above the
+hotbar names it, right-clicks walk the round by name (its `-start` first), the banner gives way and
+the far room is drawn behind the wall, a punch lands the traveller in the far room facing out; with
+the other probe standing by, a second click inside three seconds is held; with
+`mirror-approach-message` off nothing is named; and at `mirror-per-world-limit 1` a second mirror in
+the End is refused. `m2` builds the mirror hall down its west side (a solid wall, a gap one out, a
+gap two out, a standing banner, two banners side by side) and reads `create`'s answer at each, and
+checks a mirror survives an op's punch, `remove`, and the limit. `m3` shows a view is a snapshot: a
+block put in the room after the capture is not drawn until `-capture`, and `-stamp` changes the
+banner. The facility runs with `mirror-per-world-limit 6` (two in the overworld, room for a
+chamber's own), put back at close. A mirror's first capture takes about 13 s at the default view
+depth; the chambers wait on `mirror debug` until it is in memory.
 
 There are two self-test profiles. The full one runs the whole matrix (315 checks counting
-resets) and takes about 48 minutes on one version; it is the one to iterate on, on 1.21.11.
+resets, 368 with stage 4's mirrors and cross-world rows) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
-and two dispatches, and one transit route per feature, in about 9 minutes. It is the cross-version check (text formats, entity ids, boats, the
+and two dispatches, a mirror round and its hold, a wall refusal, a capture, a horse to the Range, a pad in the End,
+and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on.
 
@@ -310,6 +330,23 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
   fix alike. The Horizontal control (`491-H`: a cart rolled onto a flat gate's shut iris, which is
   real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
   expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
+
+What stage 4 found (none of it a plugin fault):
+
+- Mineflayer's `activateBlock` swings the arm after a right-click, and Paper reads a swing at a block
+  the player is facing as a left click: on a mirror, a punch. The probe right-clicks without the
+  swing, as a client does on a banner, and clicks the banner's cloth (against its wall) with the
+  face towards it; Paper ignores a click on a wall banner's top face from a player facing it.
+- Mineflayer only tells the server where the bot looks with its next move, so a bot that turns and
+  stands still is still facing the old way: the probe sends the turn itself (`face`).
+- The design's "setVisibleByDefault absent on plain 1.20" is really `Player.sendBlockUpdate`
+  (`MirrorPackets`), from 1.20.1: below it a mirror's banner stays in front of its view. Every
+  version the facility runs has it; M1 skips the banner check below 1.20.1 and says why.
+- Paper keeps gamerules per world: mob spawning was off only in the overworld, and a ghast in the
+  Range fireballed Probe2. The facility now sets them in all three worlds and clears what spawned.
+- A console-dialled gate is drawn to a probe standing by it about ten seconds after the button
+  (the dial's own lighting and whoosh), and a probe that has just arrived is not shown the opening
+  at once: "not drawn" straight after arrival is not "shut".
 
 What stage 3 found (none of it a plugin fault; the design had some of it wrong):
 
