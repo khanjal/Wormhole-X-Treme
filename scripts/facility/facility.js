@@ -18,6 +18,8 @@ const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
 
 const BOT = 'Probe';
+/** The Config owner of the facility's baseline settings, held for the whole session. */
+const BASELINE_OWNER = 'facility baseline';
 
 function clock() {
   const d = new Date();
@@ -79,13 +81,21 @@ class Facility {
       await this.srv.waitLoaded(f.dim, points, 120000);
     }
     this.loadMs = Date.now() - t0;
+    try {
+      const { restored, refused } = await this.config.recover();
+      if (restored.length) this.log(`  put back settings a killed run left changed: ${restored.join(', ')}`);
+      for (const r of refused) {
+        problems.push(`${Config.JOURNAL} held ${r}; dropped it from the journal, so set that setting by hand if it matters`);
+      }
+    } catch (e) {
+      problems.push(`cannot put back the settings in ${Config.JOURNAL}, kept for the next start: ${e.message}`);
+    }
     await this.watch.prepare();
-    // The facility's baseline settings (campus.BASELINE), put back at close.
-    this.baseline = {};
+    // The facility's baseline settings (campus.BASELINE), journalled like a chamber's and put
+    // back at close, so a killed run's baseline is put back by the next --keep-world start.
     for (const [name, value] of Object.entries(campus.BASELINE)) {
       try {
-        this.baseline[name] = await this.config.get(name);
-        await this.config.write(name, value);
+        await this.config.set(name, value, BASELINE_OWNER);
       } catch (e) { problems.push(`baseline ${name}: ${e.message}`); }
     }
     return problems;
@@ -420,11 +430,16 @@ class Facility {
 
   /**
    * Runs one chamber: refuse, or reset the cell, apply its settings, stage, (run, check), and
-   * put the settings back. `values` are option indices, or option values if `raw`. Returns
+   * put the settings back. `values` are option indices, or option values if `raw`. A Run of a
+   * chamber that is staged is refused until its Reset. Returns
    * { outcome: PASS | FAIL | REFUSED | STAGED, reason, checks }.
    */
   async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
     const ch = e.chamber;
+    // A run would reset the cell and put its settings back under a stage a person is using.
+    if (mode !== 'stage' && this.held.has(e.def.id)) {
+      return { outcome: 'REFUSED', reason: 'staged for a person: Reset it first', checks: [] };
+    }
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
     const refusal = ch.refuses ? ch.refuses(v, this.version) : null;
@@ -559,7 +574,7 @@ class Facility {
   async close() {
     if (this.shieldTimer) clearInterval(this.shieldTimer);
     this.shieldTimer = null;
-    for (const [name, value] of Object.entries(this.baseline || {})) await this.config.write(name, value).catch(() => {});
+    await this.config.restore(BASELINE_OWNER).catch(() => {});
     for (const b of this.bars) await b.close().catch(() => {});
     if (this.probe) this.probe.bot.quit();
     if (this.probe2) this.probe2.bot.quit();

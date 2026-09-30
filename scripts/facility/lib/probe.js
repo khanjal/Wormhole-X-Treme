@@ -77,13 +77,30 @@ class Probe {
     return this.position.distanceTo(new Vec3(p.x, p.y, p.z));
   }
 
+  /**
+   * Settles as `p` does, but rejects if the bot leaves the server first or `ms` passes: a bot
+   * that has left gets no more ticks, so a wait on one would otherwise never end.
+   */
+  alive(p, what, ms) {
+    const bot = this.bot;
+    const gone = (reason) => new Error(`${bot.username} left the server (${reason}) while ${what}`);
+    if (bot.ended) { p.catch(() => {}); return Promise.reject(gone(bot.ended)); }
+    return new Promise((resolve, reject) => {
+      const onEnd = (reason) => { done(); reject(gone(reason || 'ended')); };
+      const timer = setTimeout(() => { done(); reject(new Error(`${bot.username} was still ${what} after ${ms} ms`)); }, ms);
+      const done = () => { clearTimeout(timer); bot.off('end', onEnd); };
+      bot.once('end', onEnd);
+      p.then((v) => { done(); resolve(v); }, (e) => { done(); reject(e); });
+    });
+  }
+
   /** Teleports by console and waits until the client has been moved there. */
   async teleport(p, dim = 'minecraft:overworld') {
     const moved = maybeEvent(this.bot, 'forcedMove', () => this.distanceTo(p) < 1.5, 10000);
     const r = await this.srv.run(`execute in ${dim} run tp ${this.name} ${p.x} ${p.y} ${p.z} ${p.yaw || 0} ${p.pitch || 0}`);
     const errors = r.errors.filter((l) => !this.isMoveCheck(l));
     if (errors.length) throw new Error(`tp ${this.name}: ${errors.join(' ')}`);
-    await moved;
+    await this.alive(moved, `being teleported to ${p.x} ${p.y} ${p.z}`, 15000);
     await this.settle();
     if (this.distanceTo(p) >= 1.5) throw new Error(`${this.name} was not moved to ${p.x} ${p.y} ${p.z} (at ${this.position})`);
   }
@@ -106,7 +123,7 @@ class Probe {
     const end = Date.now() + maxMs;
     try {
       while (quiet < quietTicks && Date.now() < end) {
-        await ticks(1);
+        await this.alive(ticks(1), 'settling after a teleport', maxMs + 1000);
         quiet++;
       }
     } finally {
@@ -123,11 +140,14 @@ class Probe {
   walkTo(p, { within = 0.6, ms = 30000, until = null } = {}) {
     const target = new Vec3(p.x, this.position.y, p.z);
     const bot = this.bot;
-    return new Promise((resolve, reject) => {
+    let halt = null;
+    // The deadlines below are checked on ticks; this one ends a walk that gets none.
+    return this.alive(new Promise((resolve, reject) => {
       const started = Date.now();
       let best = Infinity;
       let bestAt = Date.now();
       const stop = (err) => {
+        halt = null;
         bot.off('physicsTick', tick);
         bot.setControlState('forward', false);
         bot.setControlState('sprint', false);
@@ -145,7 +165,11 @@ class Probe {
         bot.setControlState('forward', true);
         return undefined;
       };
+      halt = stop;
       bot.on('physicsTick', tick);
+    }), `walking to ${p.x} ${p.z}`, ms + 2000).catch((e) => {
+      if (halt) halt();
+      throw e;
     });
   }
 
@@ -165,9 +189,17 @@ class Probe {
     const before = block.stateId;
     const changed = waitEvent(this.bot, 'blockUpdate', (_old, b) => b && b.position.equals(at) && b.stateId !== before, ms,
       `a change to ${block.name} at ${x} ${y} ${z} after the click`);
-    await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
-    await this.bot.activateBlock(block);
-    const [, now] = await changed;
+    const press = async () => {
+      await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+      await this.bot.activateBlock(block);
+    };
+    try {
+      await this.alive(press(), `clicking ${block.name} at ${x} ${y} ${z}`, ms);
+    } catch (e) {
+      changed.catch(() => {});
+      throw e;
+    }
+    const [, now] = await this.alive(changed, `waiting for ${block.name} at ${x} ${y} ${z} to change`, ms + 1000);
     return now;
   }
 
@@ -203,7 +235,7 @@ class Probe {
     const swing = this.bot.swingArm;
     this.bot.swingArm = () => {};
     try {
-      await this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c);
+      await this.alive(this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c), `right-clicking ${block.name} at ${x} ${y} ${z}`, 5000);
     } finally {
       this.bot.swingArm = swing;
     }
@@ -239,7 +271,7 @@ class Probe {
   async press({ x, y, z }) {
     const block = await this.blockSeen({ x, y, z });
     await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
-    await this.bot.activateBlock(block);
+    await this.alive(this.bot.activateBlock(block), `pressing ${block.name} at ${x} ${y} ${z}`, 5000);
   }
 
   /** Walks onto a plate and waits to be teleported off it; returns where it landed. */
