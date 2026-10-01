@@ -97,6 +97,26 @@ test('a jar named as a --with companion is refused', () => scratch(({ folder, fr
   assert.strictEqual(fs.readFileSync(path.join(plugins, 'Vault.jar'), 'utf8'), 'pinned');
 }));
 
+test('a folder named like a jar in plugins-extra is refused in words', () => scratch(({ folder, from }) => {
+  fs.mkdirSync(path.join(from, 'Odd.jar'));
+  assert.throws(() => extras.install(folder, from), /is a folder, not a jar/);
+}));
+
+test('a link to nothing named like a jar is refused in words', (t) => scratch(({ folder, from, d }) => {
+  try {
+    fs.symlinkSync(path.join(from, 'gone.jar'), path.join(from, 'Link.jar'));
+  } catch {
+    t.skip('this system will not make a symbolic link here');
+    return;
+  }
+  assert.throws(() => extras.install(folder, from), /is a link to nothing/);
+}));
+
+test('with no drop folder and nothing recorded, no record is written', () => scratch(({ folder, plugins }) => {
+  extras.install(folder, null);
+  assert.strictEqual(fs.existsSync(path.join(plugins, extras.RECORD)), false);
+}));
+
 test('a record naming a path outside plugins/ is not acted on', () => scratch(({ folder, from, plugins }) => {
   fs.mkdirSync(plugins, { recursive: true });
   fs.writeFileSync(path.join(folder, 'precious.jar'), 'keep');

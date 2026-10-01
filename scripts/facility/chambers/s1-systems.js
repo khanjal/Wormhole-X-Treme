@@ -80,8 +80,5 @@ module.exports = {
     }));
   },
   cleanup,
-  async afterRestore(ctx) {
-    for (const g of GROUPS) if (g.mod.afterRestore) await g.mod.afterRestore(ctx);
-  },
   CASES,
 };

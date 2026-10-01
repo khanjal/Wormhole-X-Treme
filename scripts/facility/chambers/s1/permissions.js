@@ -1,9 +1,9 @@
 'use strict';
 // Permission runs with no permissions plugin, by Probe2 (never an op). With none, the plugin
-// falls back to its simple mode at start (permissions-auto-fallback): anyone may use a gate, and
-// building, configuring and removing need op. `permissions-support-disable false` at run time
-// holds a non-op to the nodes and their plugin.yml defaults instead (wormhole.use.* false), and
-// `wormhole-use-is-teleport true` then stops one walking through. The companion Permissions Desk
+// is in its simple mode while `permissions-auto-fallback` is on (the default): anyone may use a
+// gate, and building, configuring and removing need op. `permissions-auto-fallback false`, which
+// it follows at every check, holds a non-op to the nodes and their plugin.yml defaults instead
+// (wormhole.use.* false), and `wormhole-use-is-teleport true` then stops one walking through. The companion Permissions Desk
 // covers the same with LuckPerms; these refuse a run with it installed.
 
 const { GateKit } = require('../../lib/gatekit');
@@ -13,7 +13,7 @@ const { O, GATE, GEOM, NO, v, c, ear, told, atButton, before, buildGate, builtCh
 
 const cases = [
   v('fallback', 'no permissions plugin: the plugin falls back to its simple mode, and a non-op may use a gate but not build, configure or remove'),
-  v('nodes', '`permissions-support-disable false`: a non-op is held to the nodes, and has none of wormhole.use.*, list or compass by default'),
+  v('nodes', '`permissions-auto-fallback false`: a non-op is held to the nodes, and has none of wormhole.use.*, list or compass by default'),
   v('op outranks', 'the same, as an op at a gate it does not own: the DHD answers'),
   v('use is teleport', 'nodes, and `wormhole-use-is-teleport true`: a non-op without wormhole.use cannot walk through an open gate'),
   v('use is not teleport', 'nodes, and `wormhole-use-is-teleport false` (the default): the same non-op walks through'),
@@ -26,7 +26,7 @@ const COMPASS = /Compass set to wormhole|No wormholes to track/;
 
 function needs(o) {
   if (o.case === 'fallback') return {};
-  const config = { 'permissions-support-disable': 'false' };
+  const config = { 'permissions-auto-fallback': 'false' };
   if (o.case === 'use is teleport') config['wormhole-use-is-teleport'] = 'true';
   if (o.case === 'use is not teleport') config['wormhole-use-is-teleport'] = 'false';
   return config;
@@ -43,7 +43,7 @@ async function run(ctx, o) {
   const kit = new GateKit(ctx.server);
   const p2 = await fac.second();
   obs.fallbackLogged = ctx.server.log.slice(ctx.server.startIndex || 0).some((l) => l.includes(FALLBACK));
-  obs.mode = await ctx.config.get('permissions-support-disable');
+  obs.mode = await ctx.config.get('permissions-auto-fallback');
   obs.told = {};
   if (['fallback', 'nodes', 'op outranks'].includes(o.case)) {
     const who = o.case === 'op outranks' ? fac.probe : p2;
@@ -104,12 +104,12 @@ function checks(obs, o) {
     c('no permissions plugin: the plugin said it falls back ("enabling simple permission fallback")', () => obs.fallbackLogged === true),
   ];
   if (o.case === 'fallback') {
-    list.push(c('and so reads permissions-support-disable as true', () => obs.mode === 'true'),
+    list.push(c('permissions-auto-fallback is on (the default)', () => obs.mode === 'true'),
       allowed('dial', ACTIVATED), allowed('list', LISTED), allowed('compass', COMPASS),
       refused('preview', /Previewing/), refused('config', /GATE_SOUND_VOLUME = /), refused('remove', /removed/i), noGo,
       c(`and ${GATE} is still there`, () => obs.stillThere === true));
   } else {
-    list.push(c('permissions-support-disable is false: held to the nodes', () => obs.mode === 'false'));
+    list.push(c('permissions-auto-fallback is false: held to the nodes', () => obs.mode === 'false'));
     if (o.case === 'nodes') {
       list.push(refused('dial', ACTIVATED), refused('list', LISTED), refused('compass', COMPASS),
         refused('preview', /Previewing/), refused('config', /GATE_SOUND_VOLUME = /), refused('remove', /removed/i), noGo);

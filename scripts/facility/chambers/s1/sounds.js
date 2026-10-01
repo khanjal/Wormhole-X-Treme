@@ -72,7 +72,7 @@ async function runGate(ctx) {
   await probe.teleport(before(GEOM, 8), O);
   await ticks(20);
   const rec = sounds.record(probe.bot);
-  await sounds.probeSound(ctx.server, probe.name);
+  await sounds.probeSound(ctx.server, probe.name, GEOM.arrival);
   obs.dial = (await kit.dial(GATE, 'Relay')).text;
   obs.drawn = await kit.waitDrawn(probe, GEOM, 15000);
   // The hum repeats every gate-sound-ambient-ticks (70): five seconds hears at least one.
@@ -93,8 +93,8 @@ async function runRing(ctx) {
   obs.volume = Number(await ctx.config.get('ring-sound-volume'));
   if (!obs.id) return;
   const rec = sounds.record(probe.bot);
-  await sounds.probeSound(ctx.server, probe.name);
   await trip.stepIn(probe, RING_A);
+  await sounds.probeSound(ctx.server, probe.name, { x: RING_A.x + 0.5, y: RING_A.y + 0.5, z: RING_A.z + 0.5 });
   const got = await trip.arrival(probe, obs.arrivals[1], 20000);
   obs.carried = got.ok;
   // The rings go back down and the pads close (hold 20, eleven frames, linger 20) after arrival.
@@ -111,7 +111,7 @@ async function runBeam(ctx) {
   await ticks(10);
   const dest = campus.ROUTES.beams.find((b) => b.name === 'BeamLab');
   const rec = sounds.record(probe.bot);
-  await sounds.probeSound(ctx.server, probe.name);
+  await sounds.probeSound(ctx.server, probe.name, BEAM_FROM);
   probe.bot.chat('/wormhole beam to BeamLab');
   obs.beamed = await until(async () => probe.distanceTo({ x: dest.x + 0.5, y: dest.y, z: dest.z + 0.5 }) < 3, 10000);
   await ticks(40);
@@ -239,7 +239,10 @@ function beamChecks(obs, o) {
   const list = [c('Probe was beamed to BeamLab', () => obs.beamed === true)];
   if (o.case === 'beam sounds off') {
     list.push(listening(obs), c('not one beam sound was heard, by name or by id', () => {
-      const s = (obs.heard || []).filter((x) => Object.values(BEAM_SOUNDS).includes(x.name) || x.name.startsWith('#'));
+      const dest = campus.ROUTES.beams.find((b) => b.name === 'BeamLab');
+      const pads = [BEAM_FROM, { x: dest.x + 0.5, y: dest.y, z: dest.z + 0.5 }];
+      const s = (obs.heard || []).filter((x) => Object.values(BEAM_SOUNDS).includes(x.name)
+        || (x.name.startsWith('#') && pads.some((p) => Math.hypot(x.x - p.x, x.z - p.z) <= 4)));
       if (s.length === 0) return true;
       throw new Error(`heard ${sounds.tally(s)}`);
     }));

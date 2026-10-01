@@ -437,6 +437,9 @@ expects those cells to pass instead.
 #### Systems (S1, stage 6)
 
 `s1`, the Systems console on the mezzanine, audits the plugin's settings, sounds and permissions.
+It is written for the plugin with #550's fixes (same-world-only for every crossing, every setting
+applied at once, sign colours checked): against a jar without them, the cases that depend on them
+fail, loudly.
 It is a desk with no cell, so a case that needs a gate builds `Sys` on G1's Stand position and its
 cleanup runs G1's reset, as the Permissions Desk does; ring cases use the Concourse floor (and R2's
 and the tunnel's, put back by their resets), a beam the transit pads. Each group of cases is a file
@@ -444,26 +447,33 @@ in `chambers/s1/`, and every setting a case changes goes through `Config`, so it
 the run like a chamber's `needs.config`. A false check also prints what it saw (`s1 <case>: false:
 ...`), since the summary names only the check.
 
-- **The console** (`console.js`). Every setting `DefaultSettings.java` declares (94; `lib/settings.js`
-  reads the source, so a new setting is one the audit asks about) answers `wormhole config <name>`,
-  and the plugin lists exactly that many. `gate-sound-volume`, `GATE_SOUND_VOLUME` and
+- **The console** (`console.js`). Every setting the running plugin has, read off its own
+  `config.yml` and counted against what `wormhole config` lists ("...and N more"), answers
+  `wormhole config <name>` in both spellings. The jar's list is compared with this source tree's
+  (`lib/settings.js` reads `DefaultSettings.java`), and a difference, a jar from another commit, is
+  said in the log by name rather than failed on. `gate-sound-volume`, `GATE_SOUND_VOLUME` and
   `Gate-Sound-Volume` are one setting. `ring-sound` and `ring_sound` list exactly the names that
   hold it. A word for a switch, a word or a fraction for a number, and an unknown name for each
-  fixed set (spin, iris animation, log level, ring access, style, slab and block) are each refused
-  in the plugin's own words and change nothing. An unknown setting is named as one, and a change is
+  fixed set (spin, iris animation, log level, ring access, style, slab and block, and the sign
+  colours) are each refused in the plugin's own words and change nothing. An unknown setting is named as one, and a change is
   in `config.yml` at once.
 - **Sounds** (`sounds.js`), as the packets Probe's client is sent (`lib/sounds.js`; a bot cannot
   hear). A dial of `Sys` by console plays the activation once, seven chevrons climbing in pitch
   from 0.8 to 1.5, the lock with the last at 0.8, the kawoosh at 0.7, the hum while open at 0.4 of
   `gate-sound-volume`, the iris shut (0.8) and open (1.0), and the shutdown; `gate-sounds-enabled
   false` silences all of it, `gate-sound-volume 0.5` sets every one, and a renamed sound plays as
-  its new name (`none` plays nothing). A ring trip is heard as the traveller hears it: at the near
+  its new name (`none` plays nothing). Each trip also has the console play a chime where its sound
+  comes from (the gate, a ring end, the beam pad), which the recorder must hear, so a deaf or
+  out-of-range recorder fails rather than reading as silence. A ring trip is heard as the traveller hears it: at the near
   end the open, four rings climbing 0.8 to 1.4 and the flash out at 1.4; at the far end the flash
   in at 1.0, four rings back down and the close (each end plays its own, and sixteen blocks off the
   other is out of hearing). A beam plays charge, depart and arrive once each, depart to arrive 20
   ticks apart. Each `*-sounds-enabled false` leaves the same trip silent. Mirrors play no sound of
   their own, so they have no case.
-- **Gate settings** (`gates.js`): `timeout-activate`, the use cooldown, `same-world-only`, the
+- **Gate settings** (`gates.js`): `timeout-activate`, the use cooldown, `same-world-only` (a dial
+  to another world refused; and set while a wormhole to the Range is open, a walker and a cart's
+  rider each refused and told once, the cart put back at its own gate, against the same cart at
+  the default, which crosses), the
   preview limits and lifetime, the default iris animation and dial spin, the arrival splash,
   `log-level FINE`, and the name sign's colours and glow. Where a change could read as nothing,
   the same thing is done first without it: the default draws the splash, sweeps the iris, rests
@@ -473,14 +483,16 @@ the run like a chamber's `needs.config`. A false check also prints what it saw (
   player, ceiling drop, link distance), the barrier outline a recharging pair shows and how long,
   and the timings of a trip read off its sounds and lights (deploy, settle, flash, hold, linger).
 - **The rest** (`more.js`): the mirror proximity distance, view depth and fog; metrics and
-  CoreProtect with neither installed; and the settings read only at start (placeholders, economy,
-  the entity scan interval, the hum's interval, the permission fallback), set and then put in
-  force by a restart (`Facility.restart`), which the case's cleanup pays again with them put back.
+  CoreProtect with neither installed; and settings that once waited for a restart, now in force at
+  once: the hum's interval (heard), the entity scan interval (an item lying in an open gate waits
+  for the rescheduled sweep, against one sent at the default), and placeholders and economy (each
+  says at once that its plugin is missing; the start before said neither).
 - **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin: the
   plugin falls back to its simple mode at start, so Probe2 may use a gate, `/wormhole list` and the
   compass, but not preview, configure or remove (and `go` to a gate is no gate to it). With
-  `permissions-support-disable false` at run time it is held to the nodes and their `plugin.yml`
-  defaults, so the DHD, the list and the compass are refused too; an op is not. With
+  `permissions-auto-fallback false`, which the plugin follows at every check, it is held to the
+  nodes and their `plugin.yml` defaults, so the DHD, the list and the compass are refused too; an
+  op is not. With
   `wormhole-use-is-teleport true` it cannot walk through an open gate, and with false it can. These
   refuse a run with LuckPerms installed: the Permissions Desk covers that.
 
@@ -492,8 +504,9 @@ pet cell first checks the pet is there and alive, so a dead or missing pet fails
 
 `.local-server/plugins-extra/` (or `--plugins-extra <dir>`) is the design's drop folder: any jar
 in it is copied into the test server's `plugins/` at start and recorded in
-`plugins/.wx-extras.json`, so a later run without it takes it out, and never a jar it did not put
-there (one of the same name that no run copied is refused, not overwritten). It is for what `--with`
+`plugins/.wx-extras.json` with its SHA-256 as written, so a later run without it takes it out,
+while it is still those bytes, and never a jar it did not write (one of the same name that no run
+copied is refused, or left alone if it is the same bytes; a companion's name is refused). It is for what `--with`
 does not pin: an economy plugin for Vault, say. Tried with ViaVersion: copied in and loaded, then
 taken out by the next run without it.
 
@@ -501,10 +514,10 @@ Every setting, and where it is changed and its effect seen:
 
 | Settings | Where |
 |---|---|
-| `log-level`, `coreprotect-enabled`, `metrics-enabled`, `placeholders-enabled`, `economy-enabled`, `permissions-auto-fallback`, `permissions-support-disable`, `wormhole-use-is-teleport` | S1 (`log level`, `coreprotect`, `metrics`, `read at start`, the permission cases) |
+| `log-level`, `coreprotect-enabled`, `metrics-enabled`, `placeholders-enabled`, `economy-enabled`, `permissions-auto-fallback`, `wormhole-use-is-teleport` | S1 (`log level`, `coreprotect`, `metrics`, `integrations at once`, the permission cases) |
 | `pets-follow-owner` | `g1 wolf to the Range, pets-follow-owner false` |
-| `timeout-activate`, `use-cooldown-*`, `same-world-only`, `gate-preview-*`, `gate-arrival-splash-ticks`, `gate-dial-spin`, `gate-iris-animation`, `entity-scan-interval-ticks` | S1 (gate cases; the scan interval in `read at start`) |
-| `gate-sounds-enabled`, `gate-sound-volume`, `gate-sound-kawoosh`, `gate-sound-chevron`, `gate-sound-ambient-ticks`; the other gate sound names heard at their defaults | S1 (sound cases, `read at start`) |
+| `timeout-activate`, `use-cooldown-*`, `same-world-only`, `gate-preview-*`, `gate-arrival-splash-ticks`, `gate-dial-spin`, `gate-iris-animation`, `entity-scan-interval-ticks` | S1 (gate cases; `scan at once`) |
+| `gate-sounds-enabled`, `gate-sound-volume`, `gate-sound-kawoosh`, `gate-sound-chevron`, `gate-sound-ambient-ticks`; the other gate sound names heard at their defaults | S1 (sound cases, `hum at once`) |
 | `sign-glowing-text`, `sign-color-gate-name`, `-network`, `-owner` | S1 `sign colours`, `sign colour bad` |
 | `ring-default-access`, `-style`, `-light`, `-flash`, `ring-min-separation`, `ring-max-pairs-per-player`, `ring-max-ceiling-drop`, `ring-max-link-distance`, `ring-outline-*`, `ring-deploy/settle/flash/hold/lights-linger-ticks`, `ring-sounds-enabled` | S1 (ring cases) |
 | `beam-sounds-enabled` | S1 `beam sounds off` |
@@ -517,13 +530,16 @@ Every setting, and where it is changed and its effect seen:
 
 Not changed by any case, and why:
 
-- `help-support-disable` and `ring-default-material`: nothing in the plugin reads either (no
-  caller of `getHelpSupportDisable`, none of `getRingDefaultMaterial`), so there is no effect to see.
+- `permissions-support-disable`: off by default, and with no permissions plugin the simple mode
+  comes from the fallback anyway; the node cases switch the fallback off instead. #550 retires
+  `help-support-disable` (nothing read it), and makes `ring-default-material` the slab a ring is
+  drawn in when its own is one the server lacks, which no case stages.
 - `economy-use-cost`, `economy-build-cost`, `beam-economy-use-cost`: every cost is 0 without Vault
   and an economy plugin. `plugins-extra` can supply them; no case is written for them, since none
   was available here to prove one against.
-- `gate-iris-horizon-ticks` and `mirror-proximity-ticks`: read only at start; G5's layer cells see
-  the horizon drawn at the default.
+- `gate-iris-horizon-ticks` and `mirror-proximity-ticks`: sweep periods, rescheduled at once like
+  the hum's and the scan's (which are measured); G5's layer cells see the horizon drawn at the
+  default.
 - `gate-material-groups-autodiscover`: the first start adds Lab.shape's Diamond group with the
   default; false matters only for a shape no group claims, and an added group stays in `config.yml`.
 - `sign-color-selected`, `sign-color-neighbour`, `sign-dial-match-material`: only a sign-dial gate
@@ -534,25 +550,23 @@ Not changed by any case, and why:
   which no case stages; the other ring and beam sound names and volumes are heard at their
   defaults.
 
-What stage 6 found (a jar built from main, eb86f209, 1.21.11):
+What stage 6 found, on a jar built from main (eb86f209, 1.21.11); #550 fixes the first three, and
+the cells now expect its behaviour:
 
-- Known: `same-world-only` stops a player walking into a gate to another world ("Cross-world travel
-  is disabled on this server.") but not one riding in: a cart carries Probe to the Range, since
-  only the walking path asks (`WormholeXTremePlayerListener.refusedForCrossWorld`), though the
-  setting says players may only teleport through gates whose destination is in the same world
-  (`s1 same world only`). A dial to another world is not refused either; the walk is.
-- Known: `gate-sound-ambient-ticks` changed by `wormhole config` does nothing until a restart. The
-  hum's timer is scheduled once, at enable, with the period read then, though `wormhole config`
-  says it is now 20 and the guide says a change needs no reload and no restart. After a restart it
-  holds (`s1 ambient ticks at run time`, against `s1 read at start`). By the source the same is so
-  of `entity-scan-interval-ticks`, `gate-iris-horizon-ticks`, `mirror-proximity-ticks`,
-  `permissions-auto-fallback`, `placeholders-enabled` and `economy-enabled`; only the hum's was
-  measured.
-- Known: the sign colours are not checked: `wormhole config sign-color-gate-name PINK` answers
-  "SIGN_COLOR_GATE_NAME is now PINK." and a sign written after shows the name in its default colour,
-  though every other setting with a fixed set of values refuses a bad one and names the options
+- `same-world-only` stopped a player walking into a gate to another world but not one riding in:
+  a cart carried Probe to the Range, and a dial to another world was not refused at all. With
+  #550 the dial is refused, and a wormhole open when the setting is turned on refuses every
+  crossing, the cart put back at its own gate (`s1 same world dial`, `s1 same world while open`).
+- Settings changed by `wormhole config` that waited for a restart, though the guide says a change
+  needs no reload and no restart: the hum's interval was measured unchanged (one hum in five
+  seconds at 20 ticks); by the source the same was so of the entity scan, the iris horizon, the
+  mirror sweep, the permission fallback, placeholders and economy. With #550 each applies at once
+  (`s1 hum at once`, `s1 scan at once`, `s1 integrations at once`, the node permission cases).
+- The sign colours were not checked: `sign-color-gate-name PINK` was "now PINK", and a sign
+  written after showed its default colour. With #550 it is refused, naming the sixteen colours
   (`s1 sign colour bad`).
-- `help-support-disable` and `ring-default-material` are read by nothing (above).
+- `help-support-disable` and `ring-default-material` were read by nothing; #550 retires the one and
+  puts the other to use.
 - By the source, not seen in game: `log-level` sets the level of the server's own logger, not the
   plugin's (`WormholeXTreme.applyLogLevel`).
 - `use-cooldown` has no op bypass: Probe, an op, is refused too, as the source has it.

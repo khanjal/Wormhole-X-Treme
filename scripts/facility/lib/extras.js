@@ -48,7 +48,15 @@ function install(folder, from) {
   fs.mkdirSync(dir, { recursive: true });
   const had = readRecord(dir);
   const companions = companionFiles(dir);
-  const jars = from && fs.existsSync(from) ? fs.readdirSync(from).filter((f) => f.endsWith('.jar')).sort() : [];
+  const there = Boolean(from) && fs.existsSync(from);
+  const jars = there ? fs.readdirSync(from).filter((f) => f.endsWith('.jar')).sort() : [];
+  for (const f of jars) {
+    // A folder, or a link to nothing, by a jar's name: say what it is rather than fail reading it.
+    let st;
+    try { st = fs.statSync(path.join(from, f)); } catch { st = null; }
+    if (!st) throw new Error(`${path.join(from, f)} is a link to nothing: remove it or point it at a jar`);
+    if (!st.isFile()) throw new Error(`${path.join(from, f)} is a folder, not a jar: move it out of ${from}`);
+  }
   for (const f of jars) {
     if (companions.includes(f)) throw new Error(`${f} in ${from} has the name of a --with companion installed in ${dir}: rename it or run without that companion`);
     const to = path.join(dir, f);
@@ -80,6 +88,8 @@ function install(folder, from) {
     record[f] = want;
     copied.push(f);
   }
+  // With no drop folder and nothing of ours left to account for, plugins/ is left as it was.
+  if (!there && Object.keys(had).length === 0) return { copied, removed, kept };
   fs.writeFileSync(path.join(dir, RECORD), `${JSON.stringify({
     note: 'Written by scripts/facility/run-facility.js: the jars it copied here from plugins-extra, each with its SHA-256 as written. '
       + 'A run without one takes it out, if it is still those bytes.',

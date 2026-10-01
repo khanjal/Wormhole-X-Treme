@@ -47,10 +47,13 @@ function tally(heard) {
   return [...counts.entries()].map(([n, c]) => `${n} x${c}`).join(', ') || 'nothing';
 }
 
-/** Plays a sound to `player` from the console: a recorder that misses it is not listening. */
+/**
+ * Plays a sound to `player` from the console at `at` (where the sound under test comes from),
+ * at volume 1 (heard within 16 blocks): a recorder that misses it is not listening, or too far.
+ */
 const PROBE_SOUND = 'block.note_block.chime';
-async function probeSound(srv, player) {
-  await srv.run(`execute as ${player} at @s run playsound minecraft:${PROBE_SOUND} master @s ~ ~ ~ 1 1`);
+async function probeSound(srv, player, at, dim = 'minecraft:overworld') {
+  await srv.run(`execute in ${dim} run playsound minecraft:${PROBE_SOUND} master ${player} ${at.x} ${at.y} ${at.z} 1 1`);
 }
 
 module.exports = { record, named, tally, bare, probeSound, PROBE_SOUND };

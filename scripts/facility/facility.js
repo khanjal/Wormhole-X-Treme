@@ -592,12 +592,7 @@ class Facility {
     } finally {
       // A stage that got as far as being staged holds its settings until its Reset; anything
       // else, a failed stage included, puts them back now.
-      if (!staged) {
-        await this.config.restore(e.def.id);
-        // What a chamber owes once its settings are back (a restart, so a setting read only at
-        // start is not left in force for whatever runs next).
-        if (ch.afterRestore) await ch.afterRestore(ctx).catch((err) => this.log(`  ${e.def.id} after its settings were put back: ${err.message}`));
-      }
+      if (!staged) await this.config.restore(e.def.id);
     }
     lap('checks');
     result.timing = timing;

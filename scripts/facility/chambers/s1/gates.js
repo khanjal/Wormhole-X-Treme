@@ -20,11 +20,8 @@ const IRIS_BLOCK = 'stone';
 const cases = [
   v('timeout-activate', '`timeout-activate 3`: a gate lit at its DHD and never dialled goes dark after three seconds, and says so'),
   v('use cooldown', '`use-cooldown-enabled true`, 30 s: one trip, then the gate refuses Probe (an op too) until it is over'),
-  {
-    ...v('same world only', '`same-world-only true`: a dial to the Range still connects; walking in is refused; riding a cart in should be too'),
-    expect: 'FAIL:riding a cart in, Probe stayed in the overworld too',
-    known: 'same-world-only stops a player walking into a gate to another world but not one riding into it: a cart carries Probe to the Range, since only the walking path asks (WormholeXTremePlayerListener.refusedForCrossWorld; WormholeXTremeVehicleListener does not), though the setting says players may only teleport through gates whose destination is in the same world',
-  },
+  v('same world dial', '`same-world-only true`: a dial to the Range is refused, "Cross-world travel is disabled on this server.", and nothing opens'),
+  v('same world while open', 'dialled to the Range at the default, then `same-world-only true` with the wormhole open: walking in and riding a cart in are both refused, the rider told once, the cart put back at its own gate'),
   {
     ...v('cart to another world', 'the control: with same-world-only at its default, the same cart carries Probe to the Range'),
   },
@@ -35,11 +32,7 @@ const cases = [
   v('arrival splash', '`gate-arrival-splash-ticks 0`: no water over the eyes on arrival, where the default shows it'),
   v('log level', '`log-level FINE`: a DHD press is logged as [FINE], and not at INFO'),
   v('sign colours', 'sign-color-gate-name RED, -network GOLD, -owner BLUE and sign-glowing-text true: the name sign a gate is built with is written so'),
-  {
-    ...v('sign colour bad', '`sign-color-gate-name PINK`: like every other setting with a fixed set of values, refused, naming them'),
-    expect: 'FAIL:refused, and the setting unchanged',
-    known: 'the sign colours are not checked: `wormhole config sign-color-gate-name PINK` answers "SIGN_COLOR_GATE_NAME is now PINK." and the sign quietly falls back to its default colour (SignStyle.resolveColor), though every other setting with a fixed set of values refuses a bad one and names the options, as the guide says (docs/guide/SERVER.md); ParsedSetting.readText accepts any text for them',
-  },
+  v('sign colour bad', '`sign-color-gate-name PINK`: like every other setting with a fixed set of values, refused, naming the sixteen colours'),
 ];
 
 function needs(o) {
@@ -47,7 +40,7 @@ function needs(o) {
     'sign colours': { 'sign-color-gate-name': 'RED', 'sign-color-network': 'GOLD', 'sign-color-owner': 'BLUE', 'sign-glowing-text': 'true' },
     'timeout-activate': { 'timeout-activate': '3' },
     'use cooldown': { 'use-cooldown-enabled': 'true', 'use-cooldown-seconds': '30' },
-    'same world only': { 'same-world-only': 'true' },
+    'same world dial': { 'same-world-only': 'true' },
     'preview minutes': { 'gate-preview-minutes': '1' },
   }[o.case] || {};
 }
@@ -56,7 +49,7 @@ async function stage(ctx, o) {
   const obs = ctx.observed;
   if (o.case === 'preview limits' || o.case === 'preview minutes') return;
   Object.assign(obs, await buildGate(ctx, { idc: o.case === 'iris animation' ? '3333' : null, net: o.case === 'sign colours' ? 'SysNet' : null }));
-  if (o.case === 'same world only' || o.case === 'cart to another world') {
+  if (o.case === 'same world while open' || o.case === 'cart to another world') {
     // A rail line into the opening, as G1 lays one for a cart.
     const start = before(GEOM, 8);
     await ctx.server.run(`fill ${Math.floor(start.x)} 0 ${Math.floor(GEOM.opening[0].z) + 1} ${Math.floor(start.x)} 0 ${Math.floor(start.z)} minecraft:rail[shape=north_south]`);
@@ -64,30 +57,36 @@ async function stage(ctx, o) {
 }
 
 /**
- * Probe rides a cart down the rails into Sys's opening: { reached, rodeTo, cartTold }. Reached is
- * the cart at the opening's plane or through it, or the plugin's word that it was turned back.
+ * Probe rides a cart down the rails into Sys's opening: { reached, rodeTo, cartTold, putBack }.
+ * Reached is Probe, in the cart, inside the opening's block (past its front face) at some tick,
+ * or through to another world. putBack: the cart is in front of Sys afterwards.
  */
 async function rideCart(ctx) {
   const probe = ctx.facility.probe;
   const at = before(GEOM, 6);
-  const plane = GEOM.opening[0].z + 0.5;
+  // The opening's front face: a south-facing gate's opening block spans z .. z + 1.
+  const plane = GEOM.opening[0].z + (GEOM.normal.z > 0 ? 1 : 0);
   await ctx.menagerie.summon('minecart', { ...at, y: 0.1 }, ctx.tag);
   await probe.teleport({ x: at.x + GEOM.right.x * 1.5, y: 0, z: at.z + GEOM.right.z * 1.5, yaw: 90 }, O);
   await probe.mount(ctx.tag, 5000, 3);
   const t0 = Date.now();
   let reached = false;
+  let closest = Infinity;
   await ctx.server.run(`data merge entity @e[tag=${ctx.tag},tag=wx_kind_minecart,limit=1] {Motion:[0.0d,0.0d,${(-GEOM.normal.z * 0.6).toFixed(1)}d]}`);
   await until(async () => {
-    if (probe.dimension !== O || Math.abs(probe.position.z - plane) <= 1) reached = true;
+    if (probe.dimension === O) closest = Math.min(closest, (probe.position.z - plane) * GEOM.normal.z);
+    if (probe.dimension !== O || closest < 0) reached = true;
     return probe.dimension !== O;
   }, 8000, 1);
+  await ticks(20);
   const cartTold = toldSince(probe, t0);
-  if (/Cross-world travel is disabled/.test(cartTold)) reached = true;
   const rodeTo = probe.dimension;
+  const front = before(GEOM, 2);
+  const putBack = rodeTo === O && (await ctx.server.run(`execute in ${O} positioned ${front.x} 0 ${front.z} if entity @e[tag=${ctx.tag},tag=wx_kind_minecart,distance=..4]`)).lines.some((l) => /Test passed/.test(l));
   // A passenger is not teleported across worlds: the cart goes first.
   await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
   await ticks(10);
-  return { reached, rodeTo, cartTold };
+  return { reached, closest, rodeTo, cartTold, putBack };
 }
 
 /** Dials Sys to `to` by console with Probe watching from in front; returns { dial, drawn }. */
@@ -136,8 +135,15 @@ async function run(ctx, o) {
     obs.second = await walkThrough(probe);
     obs.told = toldSince(probe, t0);
     await shut(ctx);
-  } else if (o.case === 'same world only') {
+  } else if (o.case === 'same world dial') {
+    await probe.teleport(before(GEOM, 8), O);
+    await ticks(20);
+    obs.dial = (await kit.dial(GATE, 'Range')).text;
+    obs.drawn = await kit.waitDrawn(probe, GEOM, 3000);
+    await shut(ctx, 'Range');
+  } else if (o.case === 'same world while open') {
     Object.assign(obs, await open(ctx, 'Range'));
+    await ctx.config.set('same-world-only', 'true', 's1');
     const t0 = Date.now();
     const rangeArrival = { x: RANGE.cx + 0.5, y: RANGE.floorY, z: RANGE.openingAt + 2 };
     obs.walked = await walkThrough(probe, GEOM, rangeArrival);
@@ -311,15 +317,30 @@ function checks(obs, o) {
         return m && Number(m[1]) > 0 && Number(m[1]) <= 30;
       }),
       c('and did not carry it', () => obs.second === false));
-  } else if (o.case === 'same world only') {
-    list.push(c(`${GATE} dialled the Range (a dial is not refused) and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
-      c('walking in: "Cross-world travel is disabled on this server."', () => /Cross-world travel is disabled on this server\./.test(obs.told || '')),
+  } else if (o.case === 'same world dial') {
+    list.push(c('the dial to the Range: "Cross-world travel is disabled on this server."', () => {
+      if (/Cross-world travel is disabled on this server\./.test(obs.dial || '') && !/Stargates connected/.test(obs.dial || '')) return true;
+      throw new Error(`told: ${obs.dial}`);
+    }), c(`and ${GATE}'s opening was not drawn`, () => obs.drawn === false));
+  } else if (o.case === 'same world while open') {
+    const once = (t) => ((t || '').match(/Cross-world travel is disabled on this server\./g) || []).length;
+    list.push(c(`${GATE} dialled the Range at the default and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
+      c('walking in once it was set: "Cross-world travel is disabled on this server.", once', () => {
+        if (once(obs.told) === 1) return true;
+        throw new Error(`told: ${obs.told}`);
+      }),
       c('and Probe stayed in the overworld', () => obs.walked === false && obs.walkedTo === O),
-      c('a cart, Probe in it, rolled to the opening', () => obs.reached === true),
-      c('riding a cart in, Probe stayed in the overworld too', () => {
+      // Turned back as it meets the opening, it never enters it: up to the face (the cart, a block
+      // long, then has its front at it), and the plugin's word to the rider that it was.
+      c('a cart, Probe in it, rolled up to the opening\'s face, and the rider was told once: "Cross-world travel is disabled on this server."', () => {
+        if (obs.closest <= 2 && once(obs.cartTold) === 1) return true;
+        throw new Error(`Probe came no nearer than ${obs.closest && obs.closest.toFixed(2)} to the face; told: ${obs.cartTold}`);
+      }),
+      c('and stayed in the overworld', () => {
         if (obs.rodeTo === O) return true;
         throw new Error(`the cart took Probe to ${obs.rodeTo}`);
-      }));
+      }),
+      c('the cart was put back out in front of its own gate', () => obs.putBack === true));
   } else if (o.case === 'cart to another world') {
     list.push(c(`${GATE} dialled the Range and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
       c('a cart, Probe in it, rolled to the opening', () => obs.reached === true),
@@ -365,8 +386,8 @@ function checks(obs, o) {
       if (/Now owned by: Probe/.test(obs.rewritten || '') && coloured(`-${GATE}-`, 'dark_aqua')) return true;
       throw new Error(obs.sign);
     }));
-    list.push(c('refused, and the setting unchanged', () => {
-      if (!/is now PINK/.test(obs.said || '') && obs.after === obs.before) return true;
+    list.push(c('refused, naming the sixteen colours, and the setting unchanged', () => {
+      if (/SIGN_COLOR_GATE_NAME is BLACK, [A-Z_, ]+WHITE, not "PINK"\./.test(obs.said || '') && obs.after === obs.before) return true;
       throw new Error(`told: ${obs.said}; ${obs.before} -> ${obs.after}`);
     }));
   } else if (o.case === 'log level') {

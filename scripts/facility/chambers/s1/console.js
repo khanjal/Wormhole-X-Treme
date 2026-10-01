@@ -4,6 +4,38 @@
 const settings = require('../../lib/settings');
 const { v, c, said, configFile } = require('./common');
 
+/**
+ * The settings the running plugin has, by its own word: each top-level key of the config.yml it
+ * writes that `wormhole config` answers as a setting ({ key, name, answer }), and how many it
+ * lists in all ("...and N more").
+ */
+async function pluginSettings(ctx) {
+  const keys = configFile(ctx).split(/\r?\n/).map((l) => /^([a-z0-9-]+):/.exec(l)).filter(Boolean).map((m) => m[1]);
+  const found = [];
+  for (const name of keys) {
+    const lines = await said(ctx, `wormhole config ${name}`);
+    const m = lines.map((l) => /^([A-Z0-9_]+) = /.exec(l)).find(Boolean);
+    if (m) found.push({ key: m[1], name, answer: lines.find((l) => l.startsWith(`${m[1]} = `)) });
+  }
+  const listing = await said(ctx, 'wormhole config');
+  const more = listing.map((l) => /^\.\.\.and (\d+) more\./.exec(l)).find(Boolean);
+  const listed = more ? 30 + Number(more[1]) : (listing[0] ? listing[0].split(', ').length : 0);
+  return { found, listed, listing };
+}
+
+/** Says, in the log, how the jar's settings differ from this source tree's (a jar from another commit). */
+function compareWithSource(found) {
+  const source = settings.load().map((s) => s.key);
+  const jar = found.map((s) => s.key);
+  const onlyJar = jar.filter((k) => !source.includes(k));
+  const onlySource = source.filter((k) => !jar.includes(k));
+  if (onlyJar.length || onlySource.length) {
+    console.log(`  s1: the plugin jar is not this source tree's: it has ${jar.length} settings, the source ${source.length}`
+      + `${onlyJar.length ? `; only the jar: ${onlyJar.join(', ')}` : ''}${onlySource.length ? `; only the source: ${onlySource.join(', ')}` : ''}`);
+  }
+  return { onlyJar, onlySource };
+}
+
 /** Bad values, one of each kind ParsedSetting refuses, and the words it refuses them with. */
 const REFUSALS = [
   ['gate-sounds-enabled', 'loud', 'GATE_SOUNDS_ENABLED is true or false, not "loud".'],
@@ -29,23 +61,23 @@ const cases = [
 
 async function run(ctx, o) {
   const obs = ctx.observed;
-  const all = settings.load();
-  obs.declared = all.length;
   if (o.case === 'every setting') {
-    obs.answers = {};
-    for (const s of all) {
-      const lines = await said(ctx, `wormhole config ${s.name}`);
-      obs.answers[s.name] = lines.find((l) => l.startsWith(`${s.key} = `)) || lines.join(' | ') || 'nothing';
-    }
-    // Listing everything: the first 30, then "...and N more".
-    obs.listing = await said(ctx, 'wormhole config');
+    // The jar's own list, so the audit is of the plugin under test whatever commit built it; the
+    // source tree's is compared, and any difference said, not failed on.
+    const p = await pluginSettings(ctx);
+    obs.found = p.found;
+    obs.listed = p.listed;
+    obs.listing = p.listing;
+    obs.differs = compareWithSource(p.found);
+    obs.enumAnswers = {};
+    for (const s of p.found) obs.enumAnswers[s.key] = (await said(ctx, `wormhole config ${s.key}`)).some((l) => l.startsWith(`${s.key} = `));
   } else if (o.case === 'both spellings') {
     obs.read = {};
     for (const n of ['gate-sound-volume', 'GATE_SOUND_VOLUME', 'Gate-Sound-Volume']) obs.read[n] = await ctx.config.get(n);
     obs.wrote = await ctx.config.set('gate-sound-volume', '0.7', 's1');
     obs.readBack = await ctx.config.get('GATE_SOUND_VOLUME');
   } else if (o.case === 'search') {
-    obs.want = all.filter((s) => s.key.includes('RING_SOUND')).map((s) => s.key).sort();
+    obs.want = (await pluginSettings(ctx)).found.map((s) => s.key).filter((k) => k.includes('RING_SOUND')).sort();
     obs.kebab = await said(ctx, 'wormhole config ring-sound');
     obs.snake = await said(ctx, 'wormhole config ring_sound');
   } else if (o.case === 'bad values') {
@@ -67,19 +99,16 @@ async function run(ctx, o) {
 
 function checks(obs, o) {
   if (o.case === 'every setting') {
-    const missing = () => Object.entries(obs.answers || {}).filter(([, a]) => !/^[A-Z0-9_]+ = /.test(a));
-    const listed = () => {
-      const m = (obs.listing || []).map((l) => /^\.\.\.and (\d+) more\./.exec(l)).find(Boolean);
-      return m ? 30 + Number(m[1]) : (obs.listing || [])[0] ? obs.listing[0].split(', ').length : 0;
-    };
+    const found = obs.found || [];
     return [
-      c(`each of the ${obs.declared} settings DefaultSettings declares answers \`wormhole config <name>\``, () => {
-        if (obs.declared > 0 && missing().length === 0) return true;
-        throw new Error(missing().slice(0, 3).map(([n, a]) => `${n}: ${a}`).join('; '));
+      c(`the plugin lists ${obs.listed} settings ("...and N more"), and its config.yml holds each, answering \`wormhole config <name>\``, () => {
+        if (found.length > 30 && found.length === obs.listed) return true;
+        throw new Error(`${found.length} in config.yml answer; the plugin lists ${obs.listed}`);
       }),
-      c(`and the plugin lists ${obs.declared} settings in all ("...and N more")`, () => {
-        if (listed() === obs.declared) return true;
-        throw new Error(`lists ${listed()}: ${(obs.listing || []).join(' | ').slice(0, 200)}`);
+      c('each answers in its enum spelling too', () => {
+        const no = found.filter((x) => !obs.enumAnswers[x.key]);
+        if (no.length === 0) return true;
+        throw new Error(no.map((x) => x.key).join(', '));
       }),
     ];
   }
