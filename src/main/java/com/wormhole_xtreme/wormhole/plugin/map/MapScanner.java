@@ -1,9 +1,13 @@
 package com.wormhole_xtreme.wormhole.plugin.map;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -143,25 +147,62 @@ public final class MapScanner
                 marks.put(mark.id(), mark);
             }
         }
-        // Only the gate that dialled holds a target, so the far end's openness is read from it
-        // too; but only from a gate that is shown, or a hidden gate would give itself away.
-        for (final Stargate gate : gates)
-        {
-            final Stargate target = gate.getGateTarget();
-            final GateMark far = ((target == null) || (target.getGateName() == null)) ? null
-                : marks.get(gateId(target.getGateName()));
-            if (gate.isGatePortalOpen() && (far != null) && (gate.getGateName() != null)
-                && marks.containsKey(gateId(gate.getGateName())))
-            {
-                marks.put(far.id(), far.withOpen(true));
-            }
-        }
+        settleOpenness(gates, marks);
         for (final Stargate gate : gates)
         {
             final LineMark link = link(gate, marks);
             if (link != null)
             {
                 links.put(link.id(), link);
+            }
+        }
+    }
+
+    /**
+     * Shows a gate open only when its wormhole's other end is shown too.
+     *
+     * <p>Each end forms its own wormhole, so a gate dialled from, or dialling, a gate hidden
+     * behind its iris would otherwise light up and say somebody hidden is connected to it.
+     * Only the gate that dialled holds a target, so the far end is also lit from a formed
+     * dialler, for the moment before its own wormhole settles.
+     *
+     * @param gates
+     *            every gate
+     * @param marks
+     *            the gates being shown, by id; their openness is corrected in place
+     */
+    private static void settleOpenness(final Collection<Stargate> gates, final Map<String, GateMark> marks)
+    {
+        final Map<String, String> targetOf = new HashMap<>();
+        final Map<String, List<String>> diallersOf = new HashMap<>();
+        final Set<String> formed = new HashSet<>();
+        for (final Stargate gate : gates)
+        {
+            final Stargate target = gate.getGateTarget();
+            if ((gate.getGateName() == null) || !gate.isGateActive() || (target == null)
+                || (target.getGateName() == null))
+            {
+                continue;
+            }
+            final String id = gateId(gate.getGateName());
+            final String to = gateId(target.getGateName());
+            targetOf.put(id, to);
+            diallersOf.computeIfAbsent(to, k -> new ArrayList<>()).add(id);
+            if (gate.isGatePortalOpen())
+            {
+                formed.add(id);
+            }
+        }
+        for (final GateMark mark : List.copyOf(marks.values()))
+        {
+            final List<String> diallers = diallersOf.getOrDefault(mark.id(), List.of());
+            final String target = targetOf.get(mark.id());
+            final boolean partnerHidden = ((target != null) && !marks.containsKey(target))
+                || diallers.stream().anyMatch(d -> !marks.containsKey(d));
+            final boolean open = !partnerHidden && (mark.open() || diallers.stream().anyMatch(formed::contains));
+            if (open != mark.open())
+            {
+                marks.put(mark.id(), mark.withOpen(open));
             }
         }
     }

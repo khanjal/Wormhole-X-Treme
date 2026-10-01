@@ -221,6 +221,62 @@ class MapScannerTest
         assertTrue(shown.gates().get("abydos").open(), "but lit when that gate is shown");
     }
 
+    /** A gate behind an iris dialled to an ordinary one, both ends formed, as a server sees it. */
+    private Stargate[] irisPair(final boolean irisGateDials)
+    {
+        final Stargate hidden = gate("Earth", overworld);
+        final Stargate visible = gate("Abydos", overworld);
+        when(hidden.getGateIrisDeactivationCode()).thenReturn("GDO");
+        formed(hidden);
+        formed(visible);
+        if (irisGateDials)
+        {
+            when(hidden.getGateTarget()).thenReturn(visible);
+        }
+        else
+        {
+            when(visible.getGateTarget()).thenReturn(hidden);
+        }
+        return new Stargate[] {hidden, visible};
+    }
+
+    private static final MapLayers IRIS_HIDDEN = new MapLayers(true, false, true, true, true);
+
+    @Test
+    void aGateDialledFromAHiddenIrisGateStaysIdleThoughItsOwnWormholeFormed()
+    {
+        // Found on a test server: the far end forms its own wormhole, so it lit itself and
+        // told anyone looking that a hidden gate was connected to it.
+        final MapSnapshot snapshot = scan(List.of(irisPair(true)), IRIS_HIDDEN);
+
+        assertEquals(List.of("abydos"), List.copyOf(snapshot.gates().keySet()), "the ordinary gate is still shown");
+        assertFalse(snapshot.gates().get("abydos").open(), "but not as open");
+        assertTrue(snapshot.gateLinks().isEmpty());
+    }
+
+    @Test
+    void aGateDiallingAHiddenIrisGateStaysIdle()
+    {
+        final MapSnapshot snapshot = scan(List.of(irisPair(false)), IRIS_HIDDEN);
+
+        assertEquals(List.of("abydos"), List.copyOf(snapshot.gates().keySet()), "the ordinary gate is still shown");
+        assertFalse(snapshot.gates().get("abydos").open(), "but not as open");
+        assertTrue(snapshot.gateLinks().isEmpty());
+    }
+
+    @Test
+    void withIrisGatesShownBothEndsOfEitherPairAreOpenWithTheirLine()
+    {
+        for (final boolean irisGateDials : new boolean[] {true, false})
+        {
+            final MapSnapshot snapshot = scan(List.of(irisPair(irisGateDials)), MapLayers.ALL);
+
+            assertTrue(snapshot.gates().get("earth").open(), "iris gate dials: " + irisGateDials);
+            assertTrue(snapshot.gates().get("abydos").open(), "iris gate dials: " + irisGateDials);
+            assertEquals(1, snapshot.gateLinks().size(), "iris gate dials: " + irisGateDials);
+        }
+    }
+
     @Test
     void anIdleGateHasNoLineWhateverTargetItRemembers()
     {

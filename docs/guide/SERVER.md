@@ -406,6 +406,11 @@ Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installe
 rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
 viewer can switch on and off.
 
+On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
+CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build
+for Minecraft 26.x yet: there the map stays off, and the log says Dynmap was not found or is not
+running.
+
 | Setting | Default | What it does |
 |---|---|---|
 | `dynmap-enabled` | `false` | The Dynmap switch. Nothing is shown while this is off. |
@@ -418,7 +423,7 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 | `map-show-rings` | `true` | Transport rings. |
 | `map-show-beams` | `true` | Public beam destinations. |
 | `map-show-mirrors` | `true` | Quantum mirrors. |
-| `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. |
+| `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. A gate connected to a hidden one is shown idle, with no line. |
 
 - **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
   in its popup, and its icon lit once a wormhole has formed through it; a line between two
