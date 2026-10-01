@@ -43,8 +43,20 @@ const ACTIVE = new RegExp('^minecraft:(redstone_wire|redstone_torch|redstone_wal
   + '|\\w+_door|\\w+_trapdoor|\\w+_fence_gate|redstone_lamp|(\\w+_)?copper_bulb|note_block|bell|(\\w+_)?lightning_rod|tnt'
   + '|jukebox|lectern|water|lava|fire|soul_fire|bubble_column)$');
 
-// Blocks no design may hold anywhere: they run commands, spawn mobs, hand out loot or place structures.
-const FORBIDDEN = /^minecraft:(command_block|chain_command_block|repeating_command_block|spawner|trial_spawner|vault|structure_block|jigsaw|test_block|test_instance_block)$/;
+// Blocks no design may hold anywhere: they run commands, spawn mobs, hand out loot, place
+// structures or move whoever walks in. dangerReason() adds the ones that are only dangerous
+// loaded: a shrieker that can summon, a hive with bees, a dispenser, dropper or crafter with items.
+const FORBIDDEN = /^minecraft:(command_block|chain_command_block|repeating_command_block|spawner|trial_spawner|vault|structure_block|jigsaw|test_block|test_instance_block|end_portal|end_gateway|nether_portal)$/;
+
+// A block state as WorldEdit and the game write it, and the only form a design palette may use:
+// WorldEdit would default a missing namespace and lower-case a name before placing it, so a
+// non-canonical name could be a forbidden block this file does not recognise, and an entry it
+// cannot parse is pasted as air (fatal where structure void was meant).
+const CANON = /^minecraft:[a-z0-9_]+(?:\[[a-z0-9_]+=[a-z0-9_]+(?:,[a-z0-9_]+=[a-z0-9_]+)*\])?$/;
+/** Minecraft 1.21.11's data version: no design schematic is older, so no data fixer rewrites its text on load. */
+const DESIGN_DATA_VERSION = 4671;
+/** The most a design schematic may unpack to. */
+const MAX_SCHEM_BYTES = 256 * 1024 * 1024;
 
 /** Entities a designer may place (rule 6), outside every protected volume and skin. */
 const ALLOWED_ENTITIES = new Set(['minecraft:item_frame', 'minecraft:glow_item_frame', 'minecraft:armor_stand']);
@@ -57,7 +69,6 @@ const ENTITY_KEYS = new Set(['Pos', 'Rotation', 'Motion', 'Facing', 'Fixed', 'In
   'Silent', 'Glowing', 'OnGround', 'Air', 'Fire', 'fall_distance', 'FallDistance', 'HurtTime', 'DeathTime', 'Health', 'AbsorptionAmount',
   'HurtByTimestamp', 'FallFlying', 'PortalCooldown']);
 const CLICK_KEYS = new Set(['clickEvent', 'click_event']);
-const CLICK_TEXT = /click_?event/i;
 
 const SKIN = 2;
 
@@ -197,16 +208,46 @@ function wingAt(dim, x, z, fallback = '?') {
 
 // ---- untrusted NBT --------------------------------------------------------------------------
 
-/** A text component given as JSON, with its click events taken out; a string that is not JSON is dropped. */
-function scrubJson(s) {
-  if (!CLICK_TEXT.test(s)) return s;
-  const strip = (v) => {
-    if (Array.isArray(v)) return v.map(strip);
-    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).filter(([k]) => !CLICK_KEYS.has(k)).map(([k, x]) => [k, strip(x)]));
-    if (typeof v === 'string' && CLICK_TEXT.test(v)) return scrubJson(v);
-    return v;
-  };
-  try { return JSON.stringify(strip(JSON.parse(s))); } catch { return ''; }
+/**
+ * A JSON value with every click event key taken out, at any depth and inside JSON held in its
+ * strings: [value, how many removed].
+ */
+function stripClicks(v, depth = 0) {
+  if (depth > 64) return [null, 1];
+  if (Array.isArray(v)) {
+    let n = 0;
+    const out = v.map((x) => { const [y, k] = stripClicks(x, depth + 1); n += k; return y; });
+    return [out, n];
+  }
+  if (v && typeof v === 'object') {
+    let n = 0;
+    const out = {};
+    for (const [k, x] of Object.entries(v)) {
+      if (CLICK_KEYS.has(k)) { n++; continue; }
+      const [y, m] = stripClicks(x, depth + 1);
+      n += m;
+      out[k] = y;
+    }
+    return [out, n];
+  }
+  if (typeof v === 'string') {
+    const t = scrubJson(v, depth + 1);
+    return [t, t === v ? 0 : 1];
+  }
+  return [v, 0];
+}
+
+/**
+ * A text component given as JSON, with its click events taken out (parsed, so an escaped key is
+ * found as the game would read it); text that looks like JSON but does not parse and mentions a
+ * click is dropped. Anything else comes back as it was.
+ */
+function scrubJson(s, depth = 0) {
+  if (!/[{[]/.test(s)) return s;
+  let parsed;
+  try { parsed = JSON.parse(s); } catch { return /click/i.test(s) ? '' : s; }
+  const [out, n] = stripClicks(parsed, depth);
+  return n ? JSON.stringify(out) : s;
 }
 
 /** Takes every click event out of a raw NBT value (prismarine-nbt's { type, value }) in place; returns how many. */
@@ -235,8 +276,47 @@ function scrubTag(node) {
   return n;
 }
 
-function hasClick(tag) {
-  return CLICK_TEXT.test(JSON.stringify(tag || {}));
+/** Whether a value (plain or raw NBT) holds a click event anywhere, JSON in its strings parsed and walked. */
+function hasClick(v, depth = 0) {
+  if (depth > 64) return true;
+  if (Array.isArray(v)) return v.some((x) => hasClick(x, depth + 1));
+  if (v && typeof v === 'object') return Object.entries(v).some(([k, x]) => CLICK_KEYS.has(k) || hasClick(x, depth + 1));
+  if (typeof v === 'string' && /[{[]/.test(v)) {
+    try { return hasClick(JSON.parse(v), depth + 1); } catch { return /click/i.test(v); }
+  }
+  return false;
+}
+
+/**
+ * Why a block with this state and block-entity data may not be in a design, or null: a
+ * forbidden block, a shrieker that can summon, a hive with bees, a dispenser, dropper or crafter
+ * with anything in it.
+ */
+function dangerReason(state, data) {
+  const name = state.replace(/\[.*$/, '');
+  if (FORBIDDEN.test(name)) return name;
+  if (name === 'minecraft:sculk_shrieker' && /[[,]can_summon=true[,\]]/.test(state)) return 'a sculk shrieker that can summon';
+  const list = (k) => data && Array.isArray(data[k]) && data[k].length;
+  if (/^minecraft:(beehive|bee_nest)$/.test(name) && (list('bees') || list('Bees'))) return `a ${name.slice(10)} with bees`;
+  if (/^minecraft:(dispenser|dropper|crafter)$/.test(name) && list('Items')) return `a ${name.slice(10)} with something in it`;
+  return null;
+}
+
+/**
+ * The block an entity is in, and why that is in doubt: an item frame hangs at its block_pos
+ * (TileX/Y/Z before 1.21), which must be the block its position is in, so that is the block the
+ * checks look at. Returns { at: [x, y, z], problem }.
+ */
+function entityBlock(e) {
+  const at = e.pos.map(Math.floor);
+  if (!/^minecraft:(glow_)?item_frame$/.test(e.id)) return { at, problem: null };
+  const d = e.data || {};
+  const named = [];
+  if (d.block_pos !== undefined) named.push(Array.isArray(d.block_pos) ? d.block_pos : [NaN, NaN, NaN]);
+  if (d.TileX !== undefined || d.TileY !== undefined || d.TileZ !== undefined) named.push([d.TileX, d.TileY, d.TileZ]);
+  if (!named.length) return { at, problem: 'an item frame with no block_pos' };
+  const off = named.find((b) => b.length !== 3 || b.some((n, k) => n !== at[k]));
+  return { at, problem: off ? `an item frame hung at ${off.join(' ')}, not the block ${at.join(' ')} it is in` : null };
 }
 
 /** An entity's raw compound with only the whitelisted data, click events out; Passengers and the rest dropped. */
@@ -317,6 +397,19 @@ class Grid {
     return this.beIndex.get(i) || '';
   }
 
+  /** A block entity's data at index i, or null. */
+  beData(i) {
+    if (!this.beByIndex) this.beByIndex = new Map(this.blockEntities.map((b) => [b.index, b.data || {}]));
+    return this.beByIndex.get(i) || null;
+  }
+
+  /** Why the block at index i may not be in a design, or null (dangerReason). */
+  danger(i) {
+    if (!this.dangerById || this.dangerById.length !== this.palette.length) this.dangerById = this.palette.map((st) => dangerReason(st, null));
+    const d = this.beData(i);
+    return d ? dangerReason(this.palette[this.ids[i]], d) : this.dangerById[this.ids[i]];
+  }
+
   /** A mask over this grid: 1 where a box of `list` in this grid's dimension covers it. */
   maskOf(list) {
     const m = new Uint8Array(this.volume);
@@ -353,11 +446,12 @@ function varints(bytes, n, size) {
     let b;
     do {
       if (i >= bytes.length) throw new Error('its block data ends early');
+      if (shift > 28) throw new Error('its block data holds a number longer than five bytes');
       b = bytes[i++] & 0xff;
-      v |= (b & 0x7f) << shift;
+      v += (b & 0x7f) * 2 ** shift;
       shift += 7;
-    } while (b & 0x80 && shift < 35);
-    if (v >= size) throw new Error(`its block data names palette entry ${v} of ${size}`);
+    } while (b & 0x80);
+    if (v < 0 || v >= size) throw new Error(`its block data names palette entry ${v} of ${size}`);
     out[k++] = v;
   }
   return out;
@@ -377,6 +471,7 @@ function readPalette(pal, file) {
   const entries = Object.entries(pal);
   const palette = new Array(entries.length);
   for (const [state, k] of entries) {
+    if (!CANON.test(state)) throw new Error(`${path.basename(file)}: its palette holds "${clean(state, 80)}", not a block state as the game writes one (minecraft:name[key=value,...], lower case)`);
     if (!Number.isInteger(k) || k < 0 || k >= entries.length || palette[k] !== undefined) {
       throw new Error(`${path.basename(file)}: its palette gives ${state} the index ${k}, which is missing, repeated or out of range`);
     }
@@ -385,13 +480,24 @@ function readPalette(pal, file) {
   return palette;
 }
 
+/** A schematic file's NBT bytes, unpacked to at most MAX_SCHEM_BYTES. */
+function readCapped(file, max = MAX_SCHEM_BYTES) {
+  const raw = fs.readFileSync(file);
+  if (raw[0] !== 0x1f || raw[1] !== 0x8b) return raw;
+  try {
+    return zlib.gunzipSync(raw, { maxOutputLength: max });
+  } catch (e) {
+    throw new Error(`${path.basename(file)} does not unpack within ${max} bytes (${e.code || e.message})`);
+  }
+}
+
 /**
  * Reads a design schematic (Sponge version 3, origin at its minimum corner, as WorldEdit saves a
  * console copy from pos1 and as writeGrid writes) as a Grid with that corner at `at`. Version 2
  * is refused rather than read without its block entities.
  */
 async function readGrid(file, { dim = campus.OVERWORLD, at }) {
-  const { parsed } = await nbt.parse(fs.readFileSync(file));
+  const { parsed } = await nbt.parse(readCapped(file));
   const top = parsed.value.Schematic ? parsed.value.Schematic.value : parsed.value;
   const v = (name) => (top[name] ? nbt.simplify(top[name]) : undefined);
   const version = v('Version');
@@ -520,8 +626,9 @@ function compareArea({ area, current, baseline, protect, skinList }) {
   const bph = bn.map((n) => PLACEHOLDERS.has(n));
   const active = cn.map((n) => ACTIVE.test(n));
   const bActive = bn.map((n) => ACTIVE.test(n));
-  const forbidden = cn.map((n) => FORBIDDEN.test(n));
   const beAt = new Set(baseline.blockEntities.map((b) => b.index));
+  const curBe = new Set(current.blockEntities.map((b) => b.index));
+  const unchanged = (i) => current.palette[current.ids[i]] === baseline.palette[baseline.ids[i]] && current.blockData(i) === baseline.blockData(i);
   for (let i = 0; i < current.ids.length; i++) {
     const c = current.ids[i];
     const b = baseline.ids[i];
@@ -531,8 +638,8 @@ function compareArea({ area, current, baseline, protect, skinList }) {
       push('inside', i, { block: cn[c], was: bn[b], what: whatAt(protect, x, y, z) });
     } else if (ph[c]) {
       push('stray', i, { block: cn[c], what: 'outside every protected volume' });
-    } else if (forbidden[c] && cn[c] !== bn[b]) {
-      push('forbidden', i, { block: cn[c], was: bn[b], what: 'a block no design may hold' });
+    } else if (current.danger(i) && !unchanged(i)) {
+      push('forbidden', i, { block: cn[c], was: bn[b], what: `${current.danger(i)}: no design may hold one` });
     } else if (skin[i]) {
       // A campus part's state, less what using it changes (a lever pulled, a door opened, a lamp lit).
       const cs = settled(current.palette[c]);
@@ -540,6 +647,7 @@ function compareArea({ area, current, baseline, protect, skinList }) {
       const campusPart = bActive[b] || beAt.has(i);
       let why = null;
       if (active[c] && cs !== bs && !campusPart) why = 'an active part';
+      else if (curBe.has(i) && !campusPart) why = 'a block with data (contents or text)';
       else if (campusPart && (cs !== bs || current.blockData(i) !== baseline.blockData(i))) why = cn[c] === bn[b] ? 'the campus\'s part, changed' : 'the campus\'s part, replaced';
       else if (cn[c] === AIR && bn[b] !== AIR && !bph[b]) why = 'a campus block taken away';
       if (why) {
@@ -555,28 +663,29 @@ function compareArea({ area, current, baseline, protect, skinList }) {
   const before = new Set(baseline.entities.map(blockKey));
   for (const e of current.entities) {
     if (TRANSIENT_ENTITIES.has(e.id) || before.has(blockKey(e))) continue;
-    const [x, y, z] = e.pos.map(Math.floor);
+    const { at: [x, y, z], problem } = entityBlock(e);
     if (!inside(current.box, x, y, z)) continue;
     const i = current.index(x, y, z);
     const at = { dim: current.dim, x, y, z, block: e.id, wing: wingAt(current.dim, x, z, area.name) };
     if (!ALLOWED_ENTITIES.has(e.id)) out.push({ kind: 'entity', ...at, what: 'an entity a design may not hold' });
     else if (prot[i] || skin[i]) out.push({ kind: 'entity-skin', ...at, what: prot[i] ? whatAt(protect, x, y, z) : whatAt(skinList, x, y, z) });
-    else if (entityExtras(e).length || hasClick(e.data)) {
-      out.push({ kind: 'entity-data', ...at, what: `carries ${[...entityExtras(e), ...(hasClick(e.data) ? ['a click event'] : [])].join(', ')} (export removes it)` });
+    else if (problem || entityExtras(e).length || hasClick(e.data)) {
+      out.push({ kind: 'entity-data', ...at, what: `${[problem, ...entityExtras(e), ...(hasClick(e.data) ? ['a click event'] : [])].filter(Boolean).join(', ')} (export removes it)` });
     }
   }
   return out;
 }
 
 /**
- * The export of one area: `current` with structure void at every protected position and at
- * every campus block no design may hold (the campus builds those itself), every placeholder,
- * structure void and designer's forbidden block elsewhere turned to air, the block entities of
- * kept blocks with their click events out, and only the item frames and armour stands the
- * designer added outside the volumes and skins, with whitelisted data. Returns
- * { grid, masked, stripped, scrubbed, entities }.
+ * The export of one area: `current` with structure void at every protected position, at every
+ * campus active part or block with data in a chamber's skin, and at every campus block no
+ * design may hold (the campus builds all of those itself); every placeholder, structure void and
+ * designer's block no design may hold elsewhere turned to air; the block entities of kept blocks
+ * with their click events out; and only the item frames and armour stands the designer added
+ * outside the volumes and skins, in this area by `owns(x, y, z)` (so two overlapping areas do not
+ * both carry one), with whitelisted data. Returns { grid, masked, stripped, scrubbed, entities }.
  */
-function exportArea({ current, baseline, protect, skinList }) {
+function exportArea({ current, baseline, protect, skinList, owns = () => true }) {
   const prot = current.maskOf(protect);
   const skin = current.skinMaskOf(skinList);
   const ids = new Uint32Array(current.ids.length);
@@ -584,15 +693,22 @@ function exportArea({ current, baseline, protect, skinList }) {
   const mask = g.idOf(MASK);
   const air = g.idOf(AIR);
   const strip = current.names.map((n) => PLACEHOLDERS.has(n) || n === MASK);
-  const forbidden = current.names.map((n) => FORBIDDEN.test(n));
-  // A campus block with text that runs a command (none today), untouched: left to the campus too.
-  const campusClick = new Set(baseline.blockEntities.filter((x) => hasClick(x.data)).map((x) => x.index));
-  const untouched = (i) => campusClick.has(i) && current.palette[current.ids[i]] === baseline.palette[baseline.ids[i]] && current.blockData(i) === baseline.blockData(i);
+  const bActive = baseline.names.map((n) => ACTIVE.test(n));
+  const campusBe = new Set(baseline.blockEntities.map((b) => b.index));
+  const unchanged = (i) => current.palette[current.ids[i]] === baseline.palette[baseline.ids[i]] && current.blockData(i) === baseline.blockData(i);
   let masked = 0;
   let stripped = 0;
   for (let i = 0; i < ids.length; i++) {
     const c = current.ids[i];
-    if (prot[i] || (forbidden[c] && current.names[c] === baseline.names[baseline.ids[i]]) || untouched(i)) { ids[i] = mask; masked++; } else if (strip[c] || forbidden[c]) { ids[i] = air; stripped++; } else ids[i] = c;
+    const campusPart = skin[i] && (bActive[baseline.ids[i]] || campusBe.has(i));
+    const danger = current.danger(i);
+    if (prot[i] || campusPart || (danger && unchanged(i)) || ((campusBe.has(i) && hasClick(baseline.beData(i))) && unchanged(i))) {
+      ids[i] = mask;
+      masked++;
+    } else if (strip[c] || danger) {
+      ids[i] = air;
+      stripped++;
+    } else ids[i] = c;
   }
   // Block entities (a chest's contents, a sign's words) only where the block itself was kept.
   let scrubbed = 0;
@@ -604,8 +720,8 @@ function exportArea({ current, baseline, protect, skinList }) {
   const before = new Set(baseline.entities.map(blockKey));
   g.entities = current.entities.filter((e) => {
     if (TRANSIENT_ENTITIES.has(e.id) || before.has(blockKey(e)) || !ALLOWED_ENTITIES.has(e.id)) return false;
-    const [x, y, z] = e.pos.map(Math.floor);
-    if (!inside(current.box, x, y, z)) return false;
+    const { at: [x, y, z], problem } = entityBlock(e);
+    if (problem || !inside(current.box, x, y, z) || !owns(x, y, z)) return false;
     const i = current.index(x, y, z);
     return !prot[i] && !skin[i];
   }).map((e) => {
@@ -616,46 +732,72 @@ function exportArea({ current, baseline, protect, skinList }) {
 }
 
 /**
- * Whether a design grid may be pasted on a version whose protected boxes are `protect`: structure
- * void at every protected position, no placeholder and no block a design may not hold anywhere,
- * no click event in any block entity or entity, and no entity but an item frame or armour stand
- * with whitelisted data outside the volumes and skins. Returns sentences, none if it may.
+ * Whether a design grid may be pasted on a version whose protected boxes are `protect`. Nothing
+ * of it is trusted: it must be no older than 1.21.11 (so no data fixer rewrites it on load), hold
+ * the exact state minecraft:structure_void at every protected position and at every skin
+ * position that would otherwise get an active part or a block entity, no placeholder and no
+ * block a design may not hold anywhere, no click event in any block entity or entity, and no
+ * entity but an item frame (hung in the block it is in) or armour stand with whitelisted data
+ * outside the volumes and skins. Returns sentences, none if it may be pasted.
  */
 function pasteProblems(grid, protect, skinList, label) {
   const problems = [];
+  if (!(grid.dataVersion >= DESIGN_DATA_VERSION)) problems.push(`${label} is from data version ${grid.dataVersion}, older than Minecraft 1.21.11's ${DESIGN_DATA_VERSION}: a design is saved on 1.21.11`);
+  const bad = grid.palette.find((st) => !CANON.test(st));
+  if (bad !== undefined) problems.push(`${label} holds "${clean(bad, 80)}", not a block state as the game writes one`);
   const prot = grid.maskOf(protect);
+  const skin = grid.skinMaskOf(skinList);
   const maskIds = new Set();
-  grid.names.forEach((n, k) => { if (n === MASK) maskIds.add(k); });
-  let bad = 0;
-  let first = null;
+  grid.palette.forEach((st, k) => { if (st === MASK) maskIds.add(k); });
+  const activeIds = new Set();
+  grid.names.forEach((n, k) => { if (ACTIVE.test(n)) activeIds.add(k); });
+  const beAt = new Set(grid.blockEntities.map((b) => b.index));
+  const tally = (what) => {
+    const t = { what, n: 0, first: null };
+    return { t, add: (i) => { t.n++; if (!t.first) t.first = grid.at(i); } };
+  };
+  const inProt = tally('into protected volumes');
+  const inSkin = tally('active parts or blocks with data into chambers\' skins');
+  const dangers = new Map();
   for (let i = 0; i < prot.length; i++) {
-    if (prot[i] && !maskIds.has(grid.ids[i])) {
-      bad++;
-      if (!first) first = grid.at(i);
-    }
+    const id = grid.ids[i];
+    if (prot[i]) { if (!maskIds.has(id)) inProt.add(i); continue; }
+    if (skin[i] && !maskIds.has(id) && (activeIds.has(id) || beAt.has(i))) inSkin.add(i);
+    const why = grid.danger(i);
+    if (why && !dangers.has(why)) dangers.set(why, grid.at(i));
   }
-  if (bad) {
-    const [x, y, z] = first;
-    const k = protect.find((p) => p.dim === grid.dim && inside(p.box, x, y, z));
-    problems.push(`${label} would paste ${bad} block(s) into protected volumes, first ${grid.name(x, y, z)} at ${x} ${y} ${z} in ${k ? k.what : '?'}`);
+  for (const { t } of [inProt, inSkin]) {
+    if (!t.n) continue;
+    const [x, y, z] = t.first;
+    const k = protect.find((p) => p.dim === grid.dim && inside(p.box, x, y, z)) || skinList.find((p) => p.dim === grid.dim && inside(p.outer, x, y, z));
+    problems.push(`${label} would paste ${t.n} block(s) ${t.what}, first ${grid.state(x, y, z)} at ${x} ${y} ${z} in ${k ? k.what : '?'}`);
   }
   const usedIds = new Set(grid.ids);
-  const usedNames = [...new Set(grid.names.filter((n, k) => usedIds.has(k)))];
-  const ph = usedNames.filter((n) => PLACEHOLDERS.has(n));
+  const ph = [...new Set(grid.names.filter((n, k) => usedIds.has(k) && PLACEHOLDERS.has(n)))];
   if (ph.length) problems.push(`${label} holds design-mode placeholder blocks (${ph.join(', ')})`);
-  const fb = usedNames.filter((n) => FORBIDDEN.test(n));
-  if (fb.length) problems.push(`${label} holds blocks no design may hold (${fb.join(', ')})`);
+  for (const [why, [x, y, z]] of dangers) problems.push(`${label} holds blocks no design may hold: ${why}, first at ${x} ${y} ${z}`);
   const clicks = grid.blockEntities.filter((b) => hasClick(b.data)).length;
   if (clicks) problems.push(`${label} holds ${clicks} block entit${clicks === 1 ? 'y' : 'ies'} with click events`);
-  const skin = grid.skinMaskOf(skinList);
   for (const e of grid.entities) {
-    const [x, y, z] = e.pos.map(Math.floor);
+    const { at: [x, y, z], problem } = entityBlock(e);
     const i = inside(grid.box, x, y, z) ? grid.index(x, y, z) : -1;
-    if (!ALLOWED_ENTITIES.has(e.id)) problems.push(`${label} holds a ${e.id} at ${x} ${y} ${z}: a design holds only item frames and armour stands`);
+    if (!ALLOWED_ENTITIES.has(e.id)) problems.push(`${label} holds a ${clean(e.id, 60)} at ${x} ${y} ${z}: a design holds only item frames and armour stands`);
+    else if (problem) problems.push(`${label} holds ${problem}`);
     else if (i < 0 || prot[i] || skin[i]) problems.push(`${label} holds a ${e.id} at ${x} ${y} ${z}, outside it, in a protected volume or in a chamber's skin`);
-    else if (entityExtras(e).length || hasClick(e.data)) problems.push(`${label} holds a ${e.id} at ${x} ${y} ${z} with data a design may not carry (${[...entityExtras(e), ...(hasClick(e.data) ? ['a click event'] : [])].join(', ')})`);
+    else if (entityExtras(e).length || hasClick(e.data)) problems.push(`${label} holds a ${e.id} at ${x} ${y} ${z} with data a design may not carry (${[...entityExtras(e), ...(hasClick(e.data) ? ['a click event'] : [])].map((k) => clean(k, 40)).join(', ')})`);
   }
   return problems;
+}
+
+/**
+ * The problem count a check report (check.txt) states, or null if it states none: what an
+ * import is refused on unless told otherwise.
+ */
+function reportProblems(text) {
+  const line = String(text || '').split(/\r?\n/)[1] || '';
+  if (/^No problems/.test(line)) return 0;
+  const m = /^(\d+) problem\(s\) to fix/.exec(line);
+  return m ? Number(m[1]) : null;
 }
 
 // ---- reports, placements, manifest ----------------------------------------------------------
@@ -726,9 +868,10 @@ function manifestFor({ commit, generatedFrom = null, designer, date = new Date()
   };
 }
 
-/** A string from an untrusted file, safe to print: no control characters, at most `max` long. */
+/** A string from an untrusted file, safe to print: no control or bidirectional characters, at most `max` long. */
+const UNPRINTABLE = new RegExp(`[\\x00-\\x1f\\x7f-\\x9f${String.fromCharCode(0x2028, 0x2029)}${String.fromCharCode(0x202a)}-${String.fromCharCode(0x202e)}${String.fromCharCode(0x2066)}-${String.fromCharCode(0x2069)}]`, 'g');
 function clean(s, max = 120) {
-  return String(s === undefined || s === null ? '' : s).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, '?').slice(0, max);
+  return String(s === undefined || s === null ? '' : s).replace(UNPRINTABLE, '?').slice(0, max);
 }
 
 /** A local yyyy-mm-dd for the export's name. */
@@ -738,9 +881,9 @@ function dateStamp(d = new Date()) {
 }
 
 module.exports = {
-  VERSION, APPLIES_FROM, PLACEHOLDER, PLACEHOLDERS, MASK, ACTIVE, FORBIDDEN, ALLOWED_ENTITIES, TRANSIENT_ENTITIES, ENTITY_KEYS, SKIN, MARGIN,
+  VERSION, APPLIES_FROM, PLACEHOLDER, PLACEHOLDERS, MASK, ACTIVE, FORBIDDEN, CANON, DESIGN_DATA_VERSION, MAX_SCHEM_BYTES, ALLOWED_ENTITIES, TRANSIENT_ENTITIES, ENTITY_KEYS, SKIN, MARGIN,
   areas, boardBoxes, protectedBoxes, maskVersions, protectedFor, skins, placeholderFills, fillCommand, grow, contains, inside, clip, wingAt,
-  scrubJson, scrubTag, hasClick, sanitizeEntity, readPalette,
+  varints, scrubJson, scrubTag, hasClick, dangerReason, entityBlock, sanitizeEntity, readPalette, readCapped, reportProblems,
   Grid, readGrid, writeGrid, compareArea, exportArea, pasteProblems, formatReport, chatSummary, itemLine,
   placementsFor, manifestFor, clean, dateStamp,
 };

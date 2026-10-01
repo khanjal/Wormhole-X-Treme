@@ -160,8 +160,10 @@ test('export masks every protected position, strips every placeholder and struct
     const name = g.names[g.ids[i]];
     assert.ok(!design.PLACEHOLDERS.has(name), `a placeholder left at ${g.at(i)}`);
     if (prot[i] && name !== design.MASK) notMasked++;
-    if (!prot[i]) assert.notStrictEqual(name, design.MASK, `structure void outside the volumes at ${g.at(i)}`);
+    // Outside the volumes only the campus's own lever in C0's skin is left to the campus.
+    if (!prot[i] && g.at(i).join() !== CAMPUS_LEVER.join()) assert.notStrictEqual(name, design.MASK, `structure void outside the volumes at ${g.at(i)}`);
   }
+  assert.strictEqual(g.name(...CAMPUS_LEVER), design.MASK, 'the campus lever in the skin is not left to the campus');
   assert.strictEqual(notMasked, 0);
   assert.strictEqual(g.name(22, 0, 22), 'minecraft:copper_bulb');
   assert.strictEqual(g.name(25, 0, 22), 'minecraft:air');
@@ -394,7 +396,8 @@ test('a command block or spawner of the designer\'s is reported, left out of the
   assert.deepStrictEqual(design.pasteProblems(out, PROTECT, SKINS, 'x'), []);
   const raw = copyOf(current);
   for (let i = 0; i < raw.ids.length; i++) if (out.names[out.ids[i]] === design.MASK) raw.ids[i] = raw.idOf(design.MASK);
-  assert.ok(design.pasteProblems(raw, PROTECT, SKINS, 'x').some((p) => /blocks no design may hold \(minecraft:command_block, minecraft:spawner\)/.test(p)));
+  const said = design.pasteProblems(raw, PROTECT, SKINS, 'x');
+  assert.ok(said.some((p) => /blocks no design may hold: minecraft:command_block/.test(p)) && said.some((p) => /blocks no design may hold: minecraft:spawner/.test(p)), said.join('\n'));
 });
 
 test('a sign whose text runs a command is reported, exported without its click event, and refused by --schematics with it', async () => {
@@ -425,7 +428,12 @@ test('a sign whose text runs a command is reported, exported without its click e
 test('click events come out of JSON text, SNBT-style compounds and nested items alike', () => {
   assert.deepStrictEqual(JSON.parse(design.scrubJson(CLICKY)), { text: 'press' });
   assert.deepStrictEqual(JSON.parse(design.scrubJson('{"text":"","extra":[{"text":"a","click_event":{"action":"run_command","command":"/stop"}}]}')), { text: '', extra: [{ text: 'a' }] });
-  assert.strictEqual(design.scrubJson('not json clickEvent'), '');
+  assert.strictEqual(design.scrubJson('plain words about a clickEvent'), 'plain words about a clickEvent', 'plain text is not a component');
+  assert.strictEqual(design.scrubJson('{"text":"broken, clickEvent'), '', 'broken JSON mentioning a click is dropped');
+  // An escaped key is the same key once the game parses the JSON.
+  const escaped = '{"text":"x","\\u0063lickEvent":{"action":"run_command","value":"/stop"}}';
+  assert.ok(design.hasClick(escaped));
+  assert.deepStrictEqual(JSON.parse(design.scrubJson(escaped)), { text: 'x' });
   const tag = { type: 'compound', value: { Item: { type: 'compound', value: { components: { type: 'compound', value: { pages: { type: 'list', value: { type: 'compound', value: [{ text: { type: 'string', value: 'p' }, click_event: { type: 'compound', value: {} } }] } } } } } } } };
   assert.strictEqual(design.scrubTag(tag), 1);
   assert.ok(!design.hasClick(tag));
@@ -543,6 +551,196 @@ test('design chat: only an op is heard, one check at a time, stop ends it, and a
     assert.ok(srv.sent.includes('gamemode creative Builder') && !srv.sent.includes('gamemode creative Visitor'));
     off();
     assert.strictEqual(srv.listenerCount('line'), 0);
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+// ---- hostile imports: each through --schematics' guardrail, as --design-import runs it ----------
+
+/** A clean export of the C0 test area, then `spoil(grid)`, written with placements; returns the guardrail's problems. */
+async function importProblems(spoil, { guarded = true, minVersion = '1.21.11' } = {}) {
+  const baseline = c0Baseline();
+  const current = copyOf(baseline);
+  current.set(22, 0, 22, 'minecraft:copper_bulb[lit=true,powered=false]');
+  const g = design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS }).grid;
+  spoil(g);
+  const d = scratch();
+  try {
+    design.writeGrid(g, path.join(d, 'c0.schem'));
+    const p = { file: 'c0.schem', at: { x: C0_AREA.box.x0, y: C0_AREA.box.y0, z: C0_AREA.box.z0 }, dim: O };
+    if (guarded !== null) p.guarded = guarded;
+    if (minVersion !== null) p.minVersion = minVersion;
+    fs.writeFileSync(path.join(d, 'placements.json'), JSON.stringify([p]));
+    const unguarded = sch.designPlacementProblems(d);
+    if (unguarded) return [unguarded];
+    return (await sch.check(sch.placements(d), '1.21.11')).problems;
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+}
+
+/** Puts `state` at x y z of g by renaming a palette entry of its own (as a hand-edited file would). */
+function plant(g, at, state) {
+  g.palette.push(state);
+  g.names.push(state.replace(/\[.*$/, ''));
+  g.ids[g.index(...at)] = g.palette.length - 1;
+}
+
+test('import: a clean design export passes the guardrail', async () => {
+  assert.deepStrictEqual(await importProblems(() => {}), []);
+});
+
+for (const [what, state, re] of [
+  ['a namespace-less command block', 'command_block[conditional=false,facing=up]', /not a block state as the game writes one/],
+  ['an upper-case spawner', 'minecraft:Spawner', /not a block state as the game writes one/],
+  ['a canonical end gateway', 'minecraft:end_gateway', /no design may hold: minecraft:end_gateway/],
+  ['a shrieker that can summon', 'minecraft:sculk_shrieker[can_summon=true,shrieking=false,waterlogged=false]', /a sculk shrieker that can summon/],
+]) {
+  test(`import refuses ${what}`, async () => {
+    const problems = await importProblems((g) => plant(g, FAR, state));
+    assert.ok(problems.some((p) => re.test(p)), problems.join('\n'));
+  });
+}
+
+test('import refuses structure void with a state at a protected position: WorldEdit would paste it as air', async () => {
+  const problems = await importProblems((g) => {
+    const k = g.palette.indexOf(design.MASK);
+    g.palette[k] = 'minecraft:structure_void[waterlogged=false]';
+  });
+  assert.ok(problems.some((p) => /would paste \d+ block\(s\) into protected volumes/.test(p)), problems.join('\n'));
+});
+
+test('import refuses a placement that is not guarded, or has no minVersion', async () => {
+  assert.match((await importProblems(() => {}, { guarded: null }))[0], /not "guarded": true/);
+  assert.match((await importProblems(() => {}, { minVersion: null }))[0], /with a "minVersion"/);
+});
+
+test('import refuses an item frame hung inside a test volume from a position outside it', async () => {
+  const nbtLib = require('prismarine-nbt');
+  const frame = (blockPos) => (g) => {
+    const tag = {
+      Id: { type: 'string', value: 'minecraft:item_frame' },
+      Pos: { type: 'list', value: { type: 'double', value: [26.5 - g.box.x0, 0.5 - g.box.y0, 22.5 - g.box.z0] } },
+      Data: { type: 'compound', value: { Facing: { type: 'byte', value: 1 }, block_pos: { type: 'intArray', value: blockPos } } },
+    };
+    g.entities = [{ id: 'minecraft:item_frame', pos: [26.5, 0.5, 22.5], tag, data: nbtLib.simplify({ type: 'compound', value: tag }).Data }];
+  };
+  assert.deepStrictEqual(await importProblems(frame([26, 0, 22])), [], 'a frame hung where it is');
+  const problems = await importProblems(frame([...PLANT]));
+  assert.ok(problems.some((p) => /an item frame hung at 14 1 10, not the block 26 0 22/.test(p)), problems.join('\n'));
+});
+
+test('import refuses an escaped click key and a design older than 1.21.11', async () => {
+  const escaped = await importProblems((g) => {
+    plant(g, FAR, 'minecraft:oak_sign[rotation=0,waterlogged=false]');
+    g.blockEntities.push(signAt(g, FAR, '{"text":"x","\\u0063lickEvent":{"action":"run_command","value":"/op Mallory"}}'));
+  });
+  assert.ok(escaped.some((p) => /click events/.test(p)), escaped.join('\n'));
+  const old = await importProblems((g) => { g.dataVersion = 3700; });
+  assert.ok(old.some((p) => /data version 3700, older than Minecraft 1.21.11's 4671/.test(p)), old.join('\n'));
+});
+
+test('import refuses an active part or a block with data in a chamber\'s skin, and the campus\'s own part there is masked', async () => {
+  const lever = await importProblems((g) => plant(g, SKIN_LEVER, 'minecraft:lever[face=wall,facing=east,powered=false]'));
+  assert.ok(lever.some((p) => /active parts or blocks with data into chambers' skins, first minecraft:lever/.test(p)), lever.join('\n'));
+  const chest = await importProblems((g) => {
+    plant(g, SKIN_LEVER, 'minecraft:chest[facing=east,type=single,waterlogged=false]');
+    g.blockEntities.push({ ...signAt(g, SKIN_LEVER, '""'), tag: { ...signAt(g, SKIN_LEVER, '""').tag, Id: { type: 'string', value: 'minecraft:chest' } } });
+  });
+  assert.ok(chest.some((p) => /into chambers' skins/.test(p)), chest.join('\n'));
+});
+
+test('import refuses a loaded dispenser and a hive with bees', async () => {
+  const nbtLib = require('prismarine-nbt');
+  const loaded = (state, key, items) => (g) => {
+    plant(g, FAR, state);
+    const tag = {
+      Pos: { type: 'intArray', value: [FAR[0] - g.box.x0, FAR[1] - g.box.y0, FAR[2] - g.box.z0] },
+      Id: { type: 'string', value: 'minecraft:x' },
+      Data: { type: 'compound', value: { [key]: { type: 'list', value: { type: 'compound', value: items } } } },
+    };
+    g.blockEntities.push({ index: g.index(...FAR), tag, data: nbtLib.simplify({ type: 'compound', value: tag }).Data });
+  };
+  const egg = [{ id: { type: 'string', value: 'minecraft:zombie_spawn_egg' }, count: { type: 'int', value: 1 }, Slot: { type: 'byte', value: 0 } }];
+  const d = await importProblems(loaded('minecraft:dispenser[facing=up,triggered=false]', 'Items', egg));
+  assert.ok(d.some((p) => /a dispenser with something in it/.test(p)), d.join('\n'));
+  const b = await importProblems(loaded('minecraft:beehive[facing=north,honey_level=0]', 'bees', [{ ticks_in_hive: { type: 'int', value: 0 } }]));
+  assert.ok(b.some((p) => /a beehive with bees/.test(p)), b.join('\n'));
+});
+
+test('an import is refused on its check report unless it says there are no problems', () => {
+  assert.strictEqual(design.reportProblems('Facility design check, x\nNo problems: every protected volume and skin is as the campus built it.\n'), 0);
+  assert.strictEqual(design.reportProblems('Facility design check, x\n3 problem(s) to fix\n'), 3);
+  assert.strictEqual(design.reportProblems(''), null);
+  assert.strictEqual(design.reportProblems('No problems\n'), null, 'the claim must be on its own line, second');
+});
+
+test('an entity in two overlapping areas is exported by one of them only', () => {
+  const baseline = c0Baseline();
+  const current = copyOf(baseline);
+  current.entities = [{ id: 'minecraft:armor_stand', pos: [26.5, 0, 22.5] }];
+  assert.strictEqual(design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS, owns: () => false }).entities, 0);
+  assert.strictEqual(design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS, owns: () => true }).entities, 1);
+  const { DesignMode } = require('../lib/designmode');
+  const dm = new DesignMode({ srv: { on() {} }, folder: os.tmpdir(), repo: '.', local: '.', log: () => {} });
+  const lanes = [60, 0, -96]; // the Motor Pool lanes, where the gates and menagerie areas overlap
+  const holders = dm.areas.filter((a) => a.dim === O && design.inside(a.box, ...lanes));
+  assert.ok(holders.length >= 2, 'the test point is not in two areas');
+  assert.strictEqual(dm.owner(O, ...lanes), holders[0]);
+});
+
+test('still: the players come back from spectator even when the save fails, and the scan does not run', async () => {
+  const EventEmitter = require('events');
+  const { DesignMode } = require('../lib/designmode');
+  const srv = new EventEmitter();
+  srv.sent = [];
+  srv.run = async (c) => { srv.sent.push(c); if (/^save-all/.test(c)) throw new Error('the save failed'); return { lines: [], errors: [] }; };
+  const dm = new DesignMode({ srv, folder: os.tmpdir(), repo: '.', local: '.', log: () => {} });
+  let ran = false;
+  await assert.rejects(dm.still(async () => { ran = true; }), /the save failed/);
+  assert.strictEqual(ran, false);
+  const at = (re) => srv.sent.findIndex((c) => re.test(c));
+  assert.ok(at(/^gamemode spectator @a$/) >= 0 && at(/^gamemode creative @a\[tag=wx_design_creative\]$/) > at(/^save-all/), srv.sent.join('\n'));
+  assert.ok(at(/^tag @a remove wx_design_creative$/) > 0);
+});
+
+test('design chat: whoever joins during a check is a spectator, tagged to get creative back', async () => {
+  const EventEmitter = require('events');
+  const { DesignMode } = require('../lib/designmode');
+  const d = scratch();
+  try {
+    fs.writeFileSync(path.join(d, 'ops.json'), JSON.stringify([{ name: 'Builder', level: 4 }]));
+    const srv = new EventEmitter();
+    srv.sent = [];
+    srv.run = async (c) => { srv.sent.push(c); return { lines: [], errors: [] }; };
+    const dm = new DesignMode({ srv, folder: d, repo: d, local: d, log: () => {} });
+    dm.listen({ onStop: () => {} });
+    dm.busy = 'check';
+    srv.emit('line', '[12:00:00 INFO]: Builder joined the game');
+    assert.ok(srv.sent.includes('tag Builder add wx_design_creative') && srv.sent.includes('gamemode spectator Builder'), srv.sent.join('\n'));
+    assert.ok(!srv.sent.includes('gamemode creative Builder'));
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('block data and schematics past their limits are refused: a six-byte number, an index past the palette, a gzip that unpacks too far', () => {
+  assert.throws(() => design.varints([0xff, 0xff, 0xff, 0xff, 0xff, 0x01], 1, 4), /longer than five bytes/);
+  assert.throws(() => design.varints([0xff, 0xff, 0xff, 0xff, 0x0f], 1, 4), /names palette entry 4294967295 of 4/);
+  assert.deepStrictEqual([...design.varints([0x83, 0x01], 1, 200)], [131]);
+  const d = scratch();
+  try {
+    fs.writeFileSync(path.join(d, 'big.schem'), require('zlib').gzipSync(Buffer.alloc(100000)));
+    assert.throws(() => design.readCapped(path.join(d, 'big.schem'), 1000), /does not unpack within 1000 bytes/);
+    // A zip whose directory says an entry is longer than the zip.
+    const file = path.join(d, 'short.zip');
+    zip.writeZip(file, [{ name: 'a.txt', data: Buffer.from('hello hello hello') }]);
+    const buf = fs.readFileSync(file);
+    const at = buf.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    buf.writeUInt32LE(0x7ffffff0, at + 20);
+    fs.writeFileSync(file, buf);
+    assert.throws(() => zip.extractZip(file, path.join(d, 'x')), /runs past the end of the zip/);
   } finally {
     fs.rmSync(d, { recursive: true, force: true });
   }

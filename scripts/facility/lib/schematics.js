@@ -26,7 +26,7 @@ const WORLDS = { [campus.OVERWORLD]: 'world', [campus.NETHER]: 'world_nether', [
  * puts at the placement): { version, size: [w, h, l], min: [x, y, z] }. Versions 2 and 3.
  */
 async function readSchem(file) {
-  const { parsed } = await nbt.parse(fs.readFileSync(file));
+  const { parsed } = await nbt.parse(require('./design').readCapped(file));
   let root = nbt.simplify(parsed);
   if (root.Schematic) root = root.Schematic; // version 3 nests it
   const version = root.Version;
@@ -93,6 +93,18 @@ function placements(folder) {
     if (p.minVersion !== undefined && !/^\d+(\.\d+)*$/.test(String(p.minVersion))) throw new Error(`${what}: minVersion is a version such as 1.21.11`);
     return { file: p.file, path: file, at: p.at, rotation, dim, guarded: Boolean(p.guarded), minVersion: p.minVersion ? String(p.minVersion) : null };
   });
+}
+
+/**
+ * Why a design export's placements.json may not be used, or null: every placement in it must be
+ * guarded and say which version it starts at, since an unguarded one would be pasted plainly,
+ * with nothing in it checked but its box.
+ */
+function designPlacementProblems(folder) {
+  const list = JSON.parse(fs.readFileSync(path.join(folder, 'placements.json'), 'utf8'));
+  if (!Array.isArray(list) || !list.length) return 'its placements.json is not a list of placements';
+  const bad = list.findIndex((p) => !p || p.guarded !== true || typeof p.minVersion !== 'string');
+  return bad < 0 ? null : `placement ${bad + 1} in its placements.json is not "guarded": true with a "minVersion": a design export pastes only guarded placements`;
 }
 
 /** The placements applied on `version`, and those left out (a newer minVersion): { use, skipped }. */
@@ -318,4 +330,4 @@ function writeSchem(file, { size, blocks, dataVersion }) {
   fs.writeFileSync(file, zlib.gzipSync(nbt.writeUncompressed(root)));
 }
 
-module.exports = { escapeRegExp, readSchem, placedBox, placements, forVersion, check, install, paste, writeSchem, turn, nextLine, WorldEdit, WORLDS, GUARD_MASK };
+module.exports = { escapeRegExp, readSchem, placedBox, placements, forVersion, designPlacementProblems, check, install, paste, writeSchem, turn, nextLine, WorldEdit, WORLDS, GUARD_MASK };

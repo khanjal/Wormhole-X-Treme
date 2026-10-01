@@ -134,10 +134,10 @@ class DesignMode {
    */
   async still(fn) {
     const run = (c) => this.srv.run(c).catch(() => {});
-    for (const m of MODES) await run(`tag @a[gamemode=${m}] add wx_design_${m}`);
-    await run('gamemode spectator @a');
-    await this.srv.run('save-all flush', 300000);
     try {
+      for (const m of MODES) await run(`tag @a[gamemode=${m}] add wx_design_${m}`);
+      await run('gamemode spectator @a');
+      await this.srv.run('save-all flush', 300000);
       return await fn();
     } finally {
       for (const m of MODES) {
@@ -145,6 +145,11 @@ class DesignMode {
         await run(`tag @a remove wx_design_${m}`);
       }
     }
+  }
+
+  /** The area that carries an entity at x y z in `dim`: the first that holds it, so overlapping areas never both do. */
+  owner(dim, x, y, z) {
+    return this.areas.find((a) => a.dim === dim && design.inside(a.box, x, y, z));
   }
 
   /**
@@ -174,7 +179,7 @@ class DesignMode {
             if (!seen.has(key)) { seen.add(key); items.push(p); }
           }
           if (stage) {
-            const out = design.exportArea({ current, baseline, protect: this.protect, skinList: this.skinList });
+            const out = design.exportArea({ current, baseline, protect: this.protect, skinList: this.skinList, owns: (x, y, z) => this.owner(a.dim, x, y, z) === a });
             const file = `${a.name}.schem`;
             design.writeGrid(out.grid, path.join(stage, file));
             files.push({ ...a, file, masked: out.masked, stripped: out.stripped, scrubbed: out.scrubbed, entities: out.entities });
@@ -259,6 +264,13 @@ class DesignMode {
   listen({ onStop, plugin = null }) {
     const on = (line) => {
       const j = JOINED.exec(line);
+      if (j && this.busy) {
+        // Mid-scan, anyone who joins watches until it is done, then gets creative like the rest.
+        this.srv.run(`tag ${j[1]} add wx_design_creative`).catch(() => {});
+        this.srv.run(`gamemode spectator ${j[1]}`).catch(() => {});
+        this.tell(j[1], `Design mode is busy with ${this.busy}; you are a spectator until it is done.`, 'gray');
+        return;
+      }
       if (j && this.isOp(j[1])) {
         this.srv.run(`gamemode creative ${j[1]}`).catch(() => {});
         this.tell(j[1], 'Design mode: say check, export (export full for your worlds too) or stop in chat.', 'gray');

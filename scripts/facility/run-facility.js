@@ -57,7 +57,8 @@
 //   --design-open        design mode listens on every address, not only 127.0.0.1 (online-mode is
 //                        off, so anyone who can reach the port can join under any name, an op's too)
 //   --design-import <zip> a design export: unpacked into .local-server/imports/<name>/ and pasted as
-//                        --schematics with WorldEdit, on 1.21.11 and later (1.20.4 runs without it)
+//                        --schematics with WorldEdit, on 1.21.11 and later (1.20.4 runs without it);
+//                        refused if its check.txt reports problems, unless --accept-check-problems
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
@@ -148,6 +149,7 @@ function parseArgs(argv) {
     else if (x === '--design-export') { a.design = true; a.designExport = true; }
     else if (x === '--design-import') a.designImport = path.resolve(value(i++));
     else if (x === '--full') a.full = true;
+    else if (x === '--accept-check-problems') a.acceptCheckProblems = true;
     else if (x === '--design-open') a.designOpen = true;
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
@@ -165,6 +167,7 @@ function parseArgs(argv) {
     a.version = design.VERSION;
   }
   if (a.full && !a.designExport) throw new Error('--full goes with --design-export');
+  if (a.acceptCheckProblems && !a.designImport) throw new Error('--accept-check-problems goes with --design-import');
   if (a.designOpen && !a.design) throw new Error('--design-open goes with --design');
   a.version = a.version || DEFAULT_VERSION;
   return a;
@@ -207,7 +210,7 @@ function designPlugin(args, folder) {
  * Unpacks a design export (--design-import) into .local-server/imports/<name>/, fresh, and says
  * what it is; returns that folder for --schematics.
  */
-function unpackDesign(zipFile) {
+function unpackDesign(zipFile, { acceptCheckProblems = false } = {}) {
   const design = require('./lib/design');
   if (!fs.existsSync(zipFile)) throw new Error(`--design-import ${zipFile} is not there`);
   const name = path.basename(zipFile).replace(/\.zip$/i, '');
@@ -219,6 +222,15 @@ function unpackDesign(zipFile) {
   require('./lib/zip').extractZip(zipFile, dir, wanted);
   const manifest = path.join(dir, 'manifest.json');
   if (!fs.existsSync(manifest) || !fs.existsSync(path.join(dir, 'placements.json'))) throw new Error(`${zipFile} is not a design export: no manifest.json and placements.json`);
+  // A hand-edited zip could add an unguarded placement, pasted plainly: refused outright.
+  const unguarded = schematicsLib().designPlacementProblems(dir);
+  if (unguarded) throw new Error(`${zipFile}: ${unguarded}`);
+  // The import's own guardrail (--schematics) is the real gate; the export's check report, which a
+  // hand can also edit, is a second one the maintainer may override.
+  const reported = design.reportProblems(fs.existsSync(path.join(dir, 'check.txt')) ? fs.readFileSync(path.join(dir, 'check.txt'), 'utf8') : '');
+  if (reported !== 0 && !acceptCheckProblems) {
+    throw new Error(`${zipFile}: its check.txt ${reported === null ? 'says nothing readable' : `reports ${reported} problem(s)`}; send it back to the designer, or pass --accept-check-problems to try it anyway`);
+  }
   const m = JSON.parse(fs.readFileSync(manifest, 'utf8'));
   const c = design.clean;
   const commit = m.facility && typeof m.facility === 'object' ? c(m.facility.commit, 60) : '?';
@@ -535,7 +547,7 @@ async function main() {
     args.with = [...new Set([...(args.with || []), 'worldedit'])];
   }
   if (args.designImport) {
-    args.schematics = unpackDesign(args.designImport);
+    args.schematics = unpackDesign(args.designImport, { acceptCheckProblems: Boolean(args.acceptCheckProblems) });
     const wanted = schematicsLib().forVersion(schematicsLib().placements(args.schematics), version).use;
     if (wanted.length) args.with = [...new Set([...(args.with || []), 'worldedit'])];
   }

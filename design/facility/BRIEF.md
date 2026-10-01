@@ -95,7 +95,8 @@ server stopped. It writes one file, small enough to attach to the job's issue, t
 
 Blocks, with their contents (chests, signs, banners), and your item frames and armour stands are
 carried; other entities are not. Text that runs a command when clicked loses its command, and
-the blocks rule 8 forbids are left out.
+the blocks rule 8 forbids are left out. Our runs check the export again before using it, and
+refuse one whose `check.txt` reports problems: run `check` until it reports none first.
 
 `export full` in chat, or `-Export -Full` (`lab.sh -d -e -f`), adds your three worlds (Overworld,
 Nether and End, placeholders and all) for reference: a much bigger file, to send only when the
@@ -116,8 +117,9 @@ Send the zip to the maintainer, or attach it to the job's issue. We load it, run
 3. **Keep a 2-block skin around every test volume free of active parts.** No redstone of any
    kind (lamps, copper bulbs, note blocks, targets, observers and the rest), rails, signs,
    buttons, levers, pressure plates, doors, trapdoors, fence gates, bells, lightning rods, TNT,
-   jukeboxes, lecterns, item frames, banners, hoppers, pistons, water, lava or fire within 2
-   blocks of a chamber, and leave the campus's own parts there as they are. The plugin and the
+   jukeboxes, lecterns, item frames, banners, hoppers, pistons, water, lava or fire, and no
+   block with contents or text (a chest, a barrel, a sign), within 2 blocks of a chamber; leave
+   the campus's own parts there as they are (the export keeps the campus's version of them). The plugin and the
    tests react to many of these, and the tests would pick up your props. Decorative versions
    belong in corridors and offices.
 4. **Chamber walls are at least 1 block thick and solid,** with door and gallery openings where
@@ -129,8 +131,11 @@ Send the zip to the maintainer, or attach it to the job's issue. We load it, run
    bot counts entities in its tests.
 7. **No third-party schematics** unless the author has given written permission to include them
    in an open-source project. [INSPIRATION.md](INSPIRATION.md) lists references for ideas only.
-8. **Nothing that runs commands or spawns.** No command blocks, spawners, trial spawners,
-   vaults, structure or jigsaw blocks anywhere, and no clickable text that runs a command.
+8. **Nothing that runs commands, spawns or carries you off.** Anywhere in your build: no command
+   blocks, spawners, trial spawners, vaults, structure or jigsaw blocks, end portals, end
+   gateways or nether portals; no sculk shrieker that can summon a warden; no beehive or bee nest
+   with bees in it; no dispenser, dropper or crafter with anything in it; and no clickable text
+   that runs a command. Our runs refuse a design that holds any of these.
 
 ## Massing
 

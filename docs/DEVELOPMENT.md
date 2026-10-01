@@ -796,6 +796,23 @@ each area at its corner, `"guarded": true, "minVersion": "1.21.11"`; `manifest.j
 `check.txt`. That is a few MB. `export full` (`--full`, `-Full`, `lab.sh -d -e -f`) adds the three
 worlds under `worlds/`, read with saving off.
 
+A hand-edited zip is treated as hostile (review of PR #551). Every palette entry must be a
+canonical state (`minecraft:name[key=value,...]`, lower case: WorldEdit would default a missing
+namespace and lower-case a name, so `command_block` or `minecraft:Spawner` would otherwise slip
+past a name check, and an entry it cannot parse is pasted as air); the mask must be exactly
+`minecraft:structure_void`, since `minecraft:structure_void[waterlogged=false]` would be parsed as
+air and wipe the volume; the DataVersion must be 1.21.11's (4671) or newer, so no data fixer
+rewrites text on load; clicks are found by parsing every JSON string and walking its keys, so an
+escaped `\u0063lickEvent` is found; an item frame must hang (`block_pos`, or `TileX/Y/Z`) in the
+block its position is in, and that block is the one checked; end portals, end gateways, nether
+portals, shriekers that can summon, hives with bees and loaded dispensers, droppers and crafters
+are refused like command blocks; and at every skin position an active block or a block entity
+must be structure void (export masks the campus's own there). `--design-import` refuses a
+placements.json with any placement that is not `"guarded": true` with a `minVersion`, and a zip
+whose `check.txt` does not say "No problems" unless `--accept-check-problems`. A gzip that unpacks
+past 256 MB, an entry running past the zip's end, and a block-data number past five bytes or the
+palette are refused. An entity in two overlapping areas is exported by the first area only.
+
 A guarded placement is how a whole wing's box can be pasted when it holds cells, pads and gates:
 the guardrail refuses an ordinary box that touches one, since a plain paste replaces everything in
 it. A guarded one is pasted `//paste -e -m !minecraft:structure_void`, so WorldEdit leaves every

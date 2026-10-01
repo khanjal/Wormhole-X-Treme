@@ -182,7 +182,7 @@ function openZip(file) {
       if (ent.raw > MAX_ENTRY) throw new Error(`${file}: an entry says it unpacks to ${ent.raw} bytes, over the ${MAX_ENTRY} allowed`);
       entries.push(ent);
     }
-    return { fd, entries, close: () => fs.closeSync(fd) };
+    return { fd, entries, length, close: () => fs.closeSync(fd) };
   } catch (err) {
     fs.closeSync(fd);
     throw err;
@@ -191,9 +191,12 @@ function openZip(file) {
 
 /** One entry's bytes: read from the open zip, inflated to at most its declared size, checked. */
 function readEntry(z, ent) {
+  if (ent.at + 30 + ent.size > z.length) throw new Error(`${ent.name}: runs past the end of the zip`);
   const head = readAt(z.fd, ent.at, 30);
   if (head.readUInt32LE(0) !== 0x04034b50) throw new Error(`${ent.name}: no local header where the directory says`);
-  const body = readAt(z.fd, ent.at + 30 + head.readUInt16LE(26) + head.readUInt16LE(28), ent.size);
+  const start = ent.at + 30 + head.readUInt16LE(26) + head.readUInt16LE(28);
+  if (start + ent.size > z.length) throw new Error(`${ent.name}: runs past the end of the zip`);
+  const body = readAt(z.fd, start, ent.size);
   let data;
   if (ent.method === 0) data = body;
   else if (ent.method === 8) {
