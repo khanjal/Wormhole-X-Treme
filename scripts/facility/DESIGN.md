@@ -1112,3 +1112,19 @@ tested on 1.20 and no check may depend on the decoration. Design mode (`lab.ps1 
 `check` and `export`) runs 1.21.11 and is built after the world viewer lands, on its template and
 guardrail. Older clients joining through ViaVersion see the decoration with newer blocks mapped to
 older ones.
+
+## Addendum: design mode built (2026-10-01)
+
+Built as planned above, with one design decision: how a whole wing goes back into a test world.
+A wing's box holds cells, pads and gates, and a plain paste replaces everything in its box, so the
+guardrail must refuse it; cutting each wing into pieces that miss every protected box would mean
+hundreds of schematics. Instead the export writes structure void at every protected position, and
+a `guarded` placement is pasted with WorldEdit's source mask (`//paste -e -m
+!minecraft:structure_void`, checked in game on 7.4.5), so those positions keep what the campus
+built. The guardrail reads the whole schematic before the server starts and refuses one that
+holds anything but structure void where it protects, any placeholder, or an entity a design may
+not have. Placeholders (pink glass in test volumes, green round fixtures) live only in the design
+folder's world; a check compares each area with a baseline saved after generation, so "expected"
+is whatever the campus put there. Export areas are the forceload rectangles grown by 16. Design
+exports carry `minVersion` 1.21.11, so 1.20.4 runs the plain campus. Details in
+docs/DEVELOPMENT.md, "Design mode".

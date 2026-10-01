@@ -290,3 +290,19 @@ test('the chat and join lines design mode listens for, as Paper 1.21.11 logs the
   assert.strictEqual(CHAT.exec('[12:00:01 INFO]: Builder issued server command: /check'), null);
   assert.deepStrictEqual(JOINED.exec('[12:00:01 INFO]: Builder joined the game').slice(1), ['Builder']);
 });
+
+test('a save waits for WorldEdit\'s "<name> saved." said later, and takes no other file\'s', async () => {
+  const EventEmitter = require('events');
+  const make = (later) => {
+    const srv = new EventEmitter();
+    srv.run = async () => {
+      setTimeout(() => { for (const l of later) srv.emit('line', l); }, 5);
+      return { lines: [], errors: [] };
+    };
+    return srv;
+  };
+  const we = new sch.WorldEdit(make(['[14:30:56 INFO]: CONSOLE saved C:/x/wx_a.schem', '[14:30:56 INFO]: wx_a saved.']));
+  assert.match(await we.save('wx_a', 2000), /wx_a saved\./);
+  const other = new sch.WorldEdit(make(['[14:30:56 INFO]: xwx_a saved.', '[14:30:56 INFO]: wx_ab saved.']));
+  await assert.rejects(other.save('wx_a', 300), /no answer/);
+});

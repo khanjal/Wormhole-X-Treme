@@ -252,12 +252,14 @@ async function designSession({ args, fac, srv, folder, plugin, hold }) {
   }
   console.log(`\nready: join localhost:${args.port} with Minecraft ${design.VERSION}${args.op ? ` as ${args.op.join(' or ')}` : ' (op yourself with --op)'}.`);
   console.log('Ops are in creative with WorldEdit. Say check, export or stop in chat; Ctrl+C here stops it too.');
+  let over = false;
   await new Promise((resolve) => {
     hold(resolve);
     const off = dm.listen({ onStop: (who) => { console.log(`design: ${who} said stop`); off(); resolve(); }, plugin: path.basename(plugin) });
     if (srv.exited !== null) resolve();
-    srv.on('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
+    srv.on('exit', (code) => { if (!over) console.error(`facility: the server exited (${code})`); resolve(); });
   });
+  over = true;
   // An export or check still running finishes before the server stops.
   while (dm.busy) await new Promise((resolve) => { setTimeout(resolve, 500); });
   return 0;
@@ -527,6 +529,8 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
+  if (args.design) fs.appendFileSync(path.join(folder, 'server.properties'), 'broadcast-console-to-ops=false\n');
   if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.

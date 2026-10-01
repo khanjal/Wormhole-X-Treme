@@ -228,13 +228,13 @@ class WorldEdit {
     // WorldEdit's refusals of a file it found but cannot read name no file ("Unknown schematic
     // format: sponge.3.", "This schematic version is currently not supported. Version: 3."), so
     // while this load is the one waiting they are taken as its answer.
-    const done = new RegExp(`${escapeRegExp(name)} loaded\. Paste it`, 'i');
+    const done = new RegExp(String.raw`${escapeRegExp(name)} loaded\. Paste it`, 'i');
     return this.fileCommand(`/schem load ${name}`, name, done, 'Unknown schematic format|schematic version is currently not supported', ms);
   }
 
   /** Saves the clipboard as plugins/WorldEdit/schematics/<name>.schem, over one already there. */
   save(name, ms = 300000) {
-    const done = new RegExp(`(^|[\s:])${escapeRegExp(name)} saved\.`, 'i');
+    const done = new RegExp(String.raw`(^|[\s:])${escapeRegExp(name)} saved\.`, 'i');
     return this.fileCommand(`/schem save -f ${name}`, name, done, 'already exists|Unknown schematic format|could not be saved', ms);
   }
 }
