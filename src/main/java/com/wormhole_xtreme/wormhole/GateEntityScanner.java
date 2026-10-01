@@ -4,6 +4,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -321,23 +323,38 @@ public final class GateEntityScanner implements Runnable
             }
 
             copyProjectileState(projectile, spawned);
-            projectile.remove();
             if (spawned instanceof Projectile shot)
             {
                 ProjectileGateTracker.track(shot, projectile, exitGate);
             }
+            // Last, so a failure before it leaves the original to be teleported rather than lost.
+            projectile.remove();
             return spawned;
         }
         catch (final RuntimeException e)
         {
             // The original is about to be teleported instead, so the replacement must not stay as a second shot.
-            if (spawned != null)
-            {
-                spawned.remove();
-            }
+            removeQuietly(spawned);
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not respawn projectile through gate, falling back to teleport", e);
             return null;
+        }
+    }
+
+    /** Takes back a replacement that will not be used, without letting that fail the fallback too. */
+    private static void removeQuietly(final Entity spawned)
+    {
+        if (spawned == null)
+        {
+            return;
+        }
+        try
+        {
+            spawned.remove();
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not remove an unused projectile replacement", e);
         }
     }
 
@@ -376,6 +393,8 @@ public final class GateEntityScanner implements Runnable
             // The entity reads these off its item only when it is made, so the item alone is not enough.
             copy(GET_LOYALTY, SET_LOYALTY, a, b);
             copy(HAS_GLINT, SET_GLINT, a, b);
+            // One already on its way home keeps going home, rather than being thrown on from the far gate.
+            copy(HAS_DEALT_DAMAGE, SET_HAS_DEALT_DAMAGE, a, b);
         }
         if ((from instanceof Firework a) && (to instanceof Firework b))
         {
@@ -392,9 +411,35 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final RuntimeException | LinkageError e)
         {
+            copyFailed(what, e);
+        }
+    }
+
+    /** What has already failed to copy on this server, each said once at WARNING and after that at FINE. */
+    private static final Set<String> FAILED_COPIES = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Logs a part of a projectile that would not copy: once loudly, so a server that stops
+     * carrying something over shows it, and quietly after that rather than once a shot.
+     */
+    private static void copyFailed(final String what, final Throwable e)
+    {
+        if (FAILED_COPIES.add(what))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not copy a projectile's " + what
+                + " to its replacement through a gate; further failures are logged at FINE", e);
+        }
+        else
+        {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not copy a projectile's " + what + " to its replacement", e);
         }
+    }
+
+    /** Forgets which copies have failed, so a test sees its own first failure. */
+    static void forgetFailedCopies()
+    {
+        FAILED_COPIES.clear();
     }
 
     /**
@@ -506,6 +551,12 @@ public final class GateEntityScanner implements Runnable
     /** Paper's {@code Firework.setTicksFlown(int)}, or null on Spigot. */
     private static final Method SET_TICKS_FLOWN = method(Firework.class, "setTicksFlown", int.class);
 
+    /** Paper's {@code Trident.hasDealtDamage()}, or null on Spigot. */
+    private static final Method HAS_DEALT_DAMAGE = method(Trident.class, "hasDealtDamage");
+
+    /** Paper's {@code Trident.setHasDealtDamage(boolean)}, or null on Spigot. */
+    private static final Method SET_HAS_DEALT_DAMAGE = method(Trident.class, "setHasDealtDamage", boolean.class);
+
     /** {@code AbstractArrow.getWeapon()}, from 1.21, or null. */
     private static final Method GET_WEAPON = method(AbstractArrow.class, "getWeapon");
 
@@ -536,10 +587,11 @@ public final class GateEntityScanner implements Runnable
         return (GET_ARROW_ITEM != null) && (SET_ARROW_ITEM != null);
     }
 
-    /** @return true if this server lets a trident's loyalty be set, which only Paper does */
-    static boolean tridentLoyaltyIsSettable()
+    /** @return true if this server lets a trident's loyalty and return be set, which only Paper does */
+    static boolean tridentReturnIsSettable()
     {
-        return (GET_LOYALTY != null) && (SET_LOYALTY != null) && (HAS_GLINT != null) && (SET_GLINT != null);
+        return (GET_LOYALTY != null) && (SET_LOYALTY != null) && (HAS_GLINT != null) && (SET_GLINT != null)
+            && (HAS_DEALT_DAMAGE != null) && (SET_HAS_DEALT_DAMAGE != null);
     }
 
     /** @return true if this server lets a firework's flight be set, which only Paper does */
@@ -584,8 +636,7 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not copy " + getter.getName() + " to a projectile's replacement", e);
+            copyFailed(getter.getName(), e);
         }
         return true;
     }

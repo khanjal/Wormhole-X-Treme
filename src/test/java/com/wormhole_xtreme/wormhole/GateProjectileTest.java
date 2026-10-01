@@ -4,12 +4,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -63,6 +66,7 @@ import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
  */
 class GateProjectileTest
 {
+    private WormholeXTreme plugin;
     private World world;
     private Stargate origin;
     private Arrow arrow;
@@ -74,7 +78,8 @@ class GateProjectileTest
     void setUp() throws Exception
     {
         GateSpatialIndex.clear();
-        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        GateEntityScanner.forgetFailedCopies();
+        plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -358,10 +363,11 @@ class GateProjectileTest
         when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
         final ItemStack enchanted = mock(ItemStack.class);
         when(trident.getItem()).thenReturn(enchanted);
-        if (GateEntityScanner.tridentLoyaltyIsSettable())
+        if (GateEntityScanner.tridentReturnIsSettable())
         {
             when(Trident.class.getMethod("getLoyaltyLevel").invoke(trident)).thenReturn(3);
             when(Trident.class.getMethod("hasGlint").invoke(trident)).thenReturn(true);
+            when(Trident.class.getMethod("hasDealtDamage").invoke(trident)).thenReturn(true);
         }
 
         assertDoesNotThrow(() -> GateEntityScanner.sendProjectileThrough(trident, origin));
@@ -370,10 +376,12 @@ class GateProjectileTest
         verify(replacement).setItem(enchanted);
         verify(replacement).setShooter(shooter);
         verify(replacement).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
-        if (GateEntityScanner.tridentLoyaltyIsSettable())
+        if (GateEntityScanner.tridentReturnIsSettable())
         {
             Trident.class.getMethod("setLoyaltyLevel", int.class).invoke(verify(replacement), 3);
             Trident.class.getMethod("setGlint", boolean.class).invoke(verify(replacement), true);
+            // One already heading home keeps heading home, not thrown on from the far gate.
+            Trident.class.getMethod("setHasDealtDamage", boolean.class).invoke(verify(replacement), true);
         }
     }
 
@@ -382,7 +390,7 @@ class GateProjectileTest
     @EnabledIfSystemProperty(named = "server.api", matches = "paper")
     void papersTridentAndFireworkMethodsAreFound()
     {
-        assertTrue(GateEntityScanner.tridentLoyaltyIsSettable(),
+        assertTrue(GateEntityScanner.tridentReturnIsSettable(),
             "a Loyalty trident would stop coming back through a gate on Paper");
         assertTrue(GateEntityScanner.fireworkFlightIsSettable(),
             "a firework would start its flight over again at the far gate on Paper");
@@ -424,6 +432,51 @@ class GateProjectileTest
         verify(spawned).remove();
         verify(arrow, never()).remove();
         verify(arrow).teleport(any(Location.class));
+    }
+
+    /** And if the replacement will not even be removed, the original still goes. */
+    @Test
+    void aReplacementThatWillNotBeRemovedStillLetsTheOriginalGo()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setShooter(any());
+        doThrow(new IllegalStateException("gone")).when(spawned).remove();
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /**
+     * A replacement that cannot be tracked is taken back while the original is still there to send.
+     *
+     * <p>The original used to be removed before the tracking, so a failure there left nothing to teleport.
+     */
+    @Test
+    void anOriginalIsOnlyRemovedOnceItsReplacementIsReady()
+    {
+        when(spawned.getLocation()).thenThrow(new IllegalStateException("not in a world"));
+
+        sendArrowThroughGate();
+
+        verify(spawned).remove();
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /**
+     * A part that will not copy is said once at WARNING, so a server that quietly stops carrying an
+     * arrow's pickup or a trident's item over shows up in the log, and not once a shot.
+     */
+    @Test
+    void aCopyThatFailsIsWarnedAboutOnce()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setPickupStatus(any());
+
+        sendArrowThroughGate();
+        sendArrowThroughGate();
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("arrow state"), any(Throwable.class));
+        verify(plugin, times(1)).prettyLog(eq(Level.FINE), contains("arrow state"), any(Throwable.class));
     }
 
     /** A spectral arrow's glow lasts as long as the bow gave it, not the default. */
@@ -486,7 +539,7 @@ class GateProjectileTest
             final InOrder order = inOrder(replacement);
             order.verify(replacement).setFireworkMeta(meta);
             Firework.class.getMethod("setTicksToDetonate", int.class).invoke(order.verify(replacement), 31);
-            Firework.class.getMethod("setTicksFlown", int.class).invoke(verify(replacement), 12);
+            Firework.class.getMethod("setTicksFlown", int.class).invoke(order.verify(replacement), 12);
         }
     }
 
