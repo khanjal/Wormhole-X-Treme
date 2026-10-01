@@ -20,6 +20,7 @@ import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -538,6 +539,13 @@ class StargateDialManager
         if (gate.getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
+        }
+        // Not lifted by force: a server rule, not a gate's state.
+        if (StargateRestrictions.isCrossWorldRefused(gate.getGateWorld(), target.getGateWorld()))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Dial prevented: target '" + target.getGateName() + "' is in another world, and same-world-only is on.");
+            return false;
         }
         final String refusal = force ? null : whyNotDialable(gate, target);
         if (refusal != null)

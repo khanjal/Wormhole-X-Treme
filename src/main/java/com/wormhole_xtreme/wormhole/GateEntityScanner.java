@@ -33,6 +33,7 @@ import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 
 /**
@@ -152,7 +153,7 @@ public final class GateEntityScanner implements Runnable
         final Stargate target = gate.getGateTarget();
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
-        if (arrival == null)
+        if ((arrival == null) || StargateRestrictions.isCrossWorldRefused(world, arrival))
         {
             return;
         }
@@ -667,7 +668,7 @@ public final class GateEntityScanner implements Runnable
         }
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
-        if (arrival == null)
+        if ((arrival == null) || StargateRestrictions.isCrossWorldRefused(projectile.getWorld(), arrival))
         {
             return false;
         }
@@ -701,7 +702,7 @@ public final class GateEntityScanner implements Runnable
         }
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
-        return (arrival != null)
+        return (arrival != null) && !StargateRestrictions.isCrossWorldRefused(item.getWorld(), arrival)
             && sendThrough(item, arrival, gate.getGateFacing(), target.getGateFacing(), target);
     }
 

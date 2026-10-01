@@ -682,8 +682,7 @@ class WormholeXTremePlayerListener implements Listener
         final World targetWorld = (target != null) ? target.getWorld() : null;
         if ((targetWorld != null) && !gateBlockFinal.getWorld().equals(targetWorld))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Cross-world travel is disabled on this server.");
+            player.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
             player.setNoDamageTicks(5);
             return true;
         }

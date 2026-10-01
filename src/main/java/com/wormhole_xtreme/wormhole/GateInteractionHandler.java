@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -581,6 +582,11 @@ public final class GateInteractionHandler
         if (target == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            return false;
+        }
+        if (StargateRestrictions.isCrossWorldRefused(stargate.getGateWorld(), target.getGateWorld()))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
             return false;
         }
 

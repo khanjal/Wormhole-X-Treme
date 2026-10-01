@@ -532,6 +532,12 @@ A projectile is re-fired out of the far gate with the same speed, shooter, damag
 kill through a gate is credited correctly. **An ender pearl thrown through a gate teleports its
 owner across**, skipping the permission and cooldown checks a player walking through would face.
 
+**`same-world-only: true` keeps everything in its own world.** A gate in another world cannot be
+dialled, by DHD, sign, `/dial` or redstone, and nothing on this list crosses a wormhole to another
+world that was already open when the setting was turned on. A player is told why, and a cart is
+sent back the way it came. Rings never leave their world, and beams and mirrors are not gates, so
+the setting does not touch them.
+
 ## Commands
 
 **Building**

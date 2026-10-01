@@ -100,7 +100,7 @@ class DefaultSettings
             new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.", SECTION),
             new Setting(ConfigKeys.USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between gate trips, when the cooldown above is enabled.", SECTION),
             new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "Whether wormhole.use is needed to travel at all. False lets anyone travel but only permitted players activate a gate; true limits travel too.", SECTION),
-            new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, players may only teleport through gates whose destination is in the same world.", SECTION),
+            new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, a gate cannot dial a gate in another world, and nothing -- a player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.", SECTION),
             new Setting(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, "Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.", SECTION),
             new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION),
             new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),

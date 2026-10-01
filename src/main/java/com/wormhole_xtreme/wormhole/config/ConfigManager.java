@@ -268,6 +268,9 @@ public class ConfigManager
         /** The target is active. */
         TARGET_IS_ACTIVE(ERROR_HEADER + "Target gate is currently active."),
 
+        /** The far gate is in another world, and same-world-only is on. */
+        CROSS_WORLD_DISABLED(ERROR_HEADER + "Cross-world travel is disabled on this server."),
+
         /** The gate not active. */
         GATE_NOT_ACTIVE(ERROR_HEADER + "No gate activated to dial."),
 

@@ -615,6 +615,11 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
+        if (StargateRestrictions.isCrossWorldRefused(l.getWorld(), target))
+        {
+            refuseCrossWorld(veh, v, passengers);
+            return false;
+        }
         if (!everyRiderMayTravel(st, passengers))
         {
             return false;
@@ -660,6 +665,24 @@ class WormholeXTremeVehicleListener implements Listener
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not turn back a refused vehicle", e);
         }
+    }
+
+    /**
+     * Turns a vehicle back from a gate to another world, telling any player aboard why.
+     *
+     * @param v
+     *            its velocity on the way in
+     */
+    private static void refuseCrossWorld(final Vehicle veh, final Vector v, final List<Entity> passengers)
+    {
+        for (final Entity psg : passengers)
+        {
+            if (psg instanceof Player rider)
+            {
+                rider.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+            }
+        }
+        turnBack(veh, v, passengers);
     }
 
     /** A concurrent set will not look up a null, which a half-built entity can answer. */

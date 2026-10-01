@@ -696,7 +696,9 @@ has moved until the last step.
 8. **Can they afford the fare?** Checked here so the refusal comes in the right order; the money
    does not move until the trip is certain.
 9. **Is the far iris closed?** They are pushed back to their own arrival point.
-10. **Same-world only**, if configured.
+10. **Same-world only**, if configured. The dial refuses a gate in another world first, so this
+    only stops a trip through a wormhole opened before the setting was turned on. Carts, the entity
+    sweep, items and projectiles ask the same question.
 11. **Find a safe landing spot** at the far end.
 12. **`StargatePlayerTravelEvent`.** Every check has passed and nothing has moved, which is the
     only honest point to let another plugin object.
