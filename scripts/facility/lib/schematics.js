@@ -6,7 +6,8 @@
 // checked against the decoration guardrail (wings/decor/guard.js) before the server starts,
 // and refused if it reaches into a cell, a footprint, a pad, a lane or anything else it guards.
 // That is what the tests use, not the campus's walls, corridors and doorways: a box over those
-// passes, and the paste replaces them.
+// passes, and the paste replaces them. A design export's placements are `guarded` instead (see
+// check() and lib/design.js) and carry a `minVersion`: an older version leaves them out.
 // WorldEdit pastes them from the console: //world, //pos1 x,y,z, /schem load, //rotate,
 // //paste. No WorldEdit API, no player.
 
@@ -85,23 +86,46 @@ function placements(folder) {
     if (!WORLDS[dim]) throw new Error(`${what}: no dimension ${dim}`);
     const file = path.join(folder, p.file);
     if (!fs.existsSync(file)) throw new Error(`${what}: there is no ${file}`);
-    return { file: p.file, path: file, at: p.at, rotation, dim };
+    // A design export's placements (lib/design.js): pasted around the protected volumes, and only
+    // on the versions its blocks exist in.
+    if (p.guarded !== undefined && typeof p.guarded !== 'boolean') throw new Error(`${what}: guarded is true or false`);
+    if (p.guarded && rotation !== 0) throw new Error(`${what}: a guarded placement is not turned`);
+    if (p.minVersion !== undefined && !/^\d+(\.\d+)*$/.test(String(p.minVersion))) throw new Error(`${what}: minVersion is a version such as 1.21.11`);
+    return { file: p.file, path: file, at: p.at, rotation, dim, guarded: Boolean(p.guarded), minVersion: p.minVersion ? String(p.minVersion) : null };
   });
 }
 
+/** The placements applied on `version`, and those left out (a newer minVersion): { use, skipped }. */
+function forVersion(list, version) {
+  const { atLeast } = require('./version');
+  const use = list.filter((p) => !p.minVersion || atLeast(version, p.minVersion));
+  return { use, skipped: list.filter((p) => !use.includes(p)) };
+}
+
+/** The mask block a guarded placement holds at every protected position, and is pasted around. */
+const GUARD_MASK = 'minecraft:structure_void';
+
 /**
  * Reads each placement's schematic and checks its box against the guardrail; returns
- * { placed: [{ ...placement, box }], problems: [sentences] }.
+ * { placed: [{ ...placement, box }], problems: [sentences] }. A guarded placement's box may
+ * cover protected volumes, so long as it holds structure void at every protected position (it
+ * is pasted around them), no design-mode placeholder, and no entity a design may not hold.
  */
 async function check(list, version) {
   const guard = require('../wings/decor/guard');
   const { allBlueprints } = require('../wings');
+  const design = require('./design');
   const bad = guard.forbidden(allBlueprints(version).builds);
   const placed = [];
   const problems = [];
   for (const p of list) {
     const box = placedBox(await readSchem(p.path), p.at, p.rotation);
     placed.push({ ...p, box });
+    if (p.guarded) {
+      const grid = await design.readGrid(p.path, { dim: p.dim, at: p.at });
+      problems.push(...design.pasteProblems(grid, design.protectedBoxes(version), design.skins(), `${p.file} at ${fmt(box)}`));
+      continue;
+    }
     for (const k of bad) {
       if (k.dim === p.dim && bp.overlaps(box, k.box)) problems.push(`${p.file} at ${fmt(box)} reaches into ${k.what} (${fmt(k.box)})`);
     }
@@ -144,68 +168,107 @@ function nextLine(srv, re, ms, what) {
 }
 
 /**
+ * WorldEdit's console, one world override at a time: `world(w)` sets it (//world on Paper 1.21.11,
+ * whose console drops one leading slash, /world on 1.20.4: whichever it knows is used from then
+ * on, as `we`), `say` runs a command and wants WorldEdit's own success words back, `load` and
+ * `save` wait for the file's answer said later, and `reset` puts the override back to none.
+ */
+class WorldEdit {
+  constructor(srv) {
+    this.srv = srv;
+    this.we = null;
+  }
+
+  async say(cmd, ok, ms = 60000) {
+    const r = await this.srv.run(cmd, ms);
+    const words = r.lines.join(' ');
+    if (!ok.test(words)) throw new Error(`${cmd}: ${words || 'no answer'}`);
+    return words;
+  }
+
+  async world(w) {
+    for (const prefix of this.we ? [this.we] : ['//', '/']) {
+      const r = await this.srv.run(`${prefix}world ${w}`, 60000);
+      const words = r.lines.join(' ');
+      if (/world override/i.test(words)) { this.we = prefix; return; }
+      if (!/Unknown command/i.test(words)) throw new Error(`${prefix}world ${w}: ${words || 'no answer'}`);
+    }
+    throw new Error(`WorldEdit's world command is not there (${this.we || '// or /'}world ${w}: unknown)`);
+  }
+
+  /** The console's world override, back to none. */
+  async reset() {
+    if (this.we) await this.srv.run(`${this.we}world`, 15000).catch(() => {});
+  }
+
+  /**
+   * Runs `cmd` (a /schem load or save of `name`) and waits for WorldEdit's answer about that
+   * file, said with the command or later from another thread: `done` is success, `refused`
+   * names failures that do not name the file. Returns the answer; throws on a refusal.
+   */
+  async fileCommand(cmd, name, done, refused, ms) {
+    const esc = escapeRegExp(name);
+    const answer = nextLine(this.srv, new RegExp(`${done.source}|${esc}.*(could not|not supported|unknown|does not exist)|${refused}`, 'i'), ms, `answer from WorldEdit to ${cmd}`);
+    let line;
+    try {
+      const r = await this.srv.run(cmd, 60000);
+      const now = r.lines.join(' ');
+      // Refused at once (a bad name), done already, or answered later.
+      if (now.trim() && !/loading|saving/i.test(now) && !done.test(now)) throw new Error(`${cmd}: ${now}`);
+      line = done.test(now) ? now : await answer.line;
+    } finally {
+      answer.cancel();
+    }
+    if (!done.test(line)) throw new Error(`${cmd}: ${line}`);
+    return line;
+  }
+
+  /** Loads plugins/WorldEdit/schematics/<name> into the clipboard. */
+  load(name, ms = 120000) {
+    // WorldEdit's refusals of a file it found but cannot read name no file ("Unknown schematic
+    // format: sponge.3.", "This schematic version is currently not supported. Version: 3."), so
+    // while this load is the one waiting they are taken as its answer.
+    const done = new RegExp(`${escapeRegExp(name)} loaded\. Paste it`, 'i');
+    return this.fileCommand(`/schem load ${name}`, name, done, 'Unknown schematic format|schematic version is currently not supported', ms);
+  }
+
+  /** Saves the clipboard as plugins/WorldEdit/schematics/<name>.schem, over one already there. */
+  save(name, ms = 300000) {
+    const done = new RegExp(`(^|[\s:])${escapeRegExp(name)} saved\.`, 'i');
+    return this.fileCommand(`/schem save -f ${name}`, name, done, 'already exists|Unknown schematic format|could not be saved', ms);
+  }
+}
+
+/**
  * Pastes each placement by WorldEdit's console commands; returns [{ file, ok, detail }]. A
  * command WorldEdit answers with anything but its own success line is a failure, with its words.
  * The console has no position, so //paste puts the clipboard's origin at pos #1 (WorldEdit
  * 7.4.5's //toggleplace refuses the console: "Cannot toggle placing in this context"). A plain
  * //paste, never -a: the schematic's air is pasted too, so everything in its box is replaced,
- * which is why the guardrail checks the whole box.
+ * which is why the guardrail checks the whole box. A guarded placement (a design export, see
+ * lib/design.js) is pasted with its entities and the source mask !structure_void, so the
+ * protected positions it holds as structure void are left as the campus built them.
  */
-async function paste(srv, placed, { loadMs = 120000 } = {}) {
+async function paste(srv, placed, { loadMs = 120000, pasteMs = 300000 } = {}) {
   const out = [];
-  const say = async (cmd, ok) => {
-    const r = await srv.run(cmd, 60000);
-    const words = r.lines.join(' ');
-    if (!ok.test(words)) throw new Error(`${cmd}: ${words || 'no answer'}`);
-    return words;
-  };
-  // Paper 1.21.11's console drops one leading slash and 1.20.4's does not, so WorldEdit's //world
-  // is typed //world on one and /world on the other: whichever it knows is used from then on.
-  let we = null;
-  const world = async (w) => {
-    for (const prefix of we ? [we] : ['//', '/']) {
-      const r = await srv.run(`${prefix}world ${w}`, 60000);
-      const words = r.lines.join(' ');
-      if (/world override/i.test(words)) { we = prefix; return; }
-      if (!/Unknown command/i.test(words)) throw new Error(`${prefix}world ${w}: ${words || 'no answer'}`);
-    }
-    throw new Error(`WorldEdit's world command is not there (${we || '// or /'}world ${w}: unknown)`);
-  };
+  const we = new WorldEdit(srv);
   try {
     for (const p of placed) {
       try {
         const name = `wx_${p.file}`;
-        await world(WORLDS[p.dim]);
-        await say(`${we}pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
-        // /schem load reads the file off the main thread and says so later: wait for that line,
-        // this file's own, loaded or refused.
-        const esc = escapeRegExp(name);
-        const done = new RegExp(`${esc} loaded\\. Paste it`, 'i');
-        // WorldEdit's refusals of a file it found but cannot read name no file ("Unknown schematic
-        // format: sponge.3.", "This schematic version is currently not supported. Version: 3."), so
-        // while this load is the one waiting they are taken as its answer.
-        const refused = 'Unknown schematic format|schematic version is currently not supported';
-        const answer = nextLine(srv, new RegExp(`${done.source}|${esc}.*(could not|not supported|unknown|does not exist)|${refused}`, 'i'), loadMs, `answer from WorldEdit to /schem load ${name}`);
-        let line;
-        try {
-          const r = await srv.run(`/schem load ${name}`, 60000);
-          const now = r.lines.join(' ');
-          // Refused at once (a bad name), loaded already, or answered later.
-          if (now.trim() && !/loading/i.test(now) && !done.test(now)) throw new Error(`/schem load ${name}: ${now}`);
-          line = done.test(now) ? now : await answer.line;
-        } finally {
-          answer.cancel();
-        }
-        if (!done.test(line)) throw new Error(`/schem load ${name}: ${line}`);
-        if (p.rotation) await say(`${we}rotate ${p.rotation}`, /rotated/i);
-        const words = await say(`${we}paste`, /pasted/i);
+        await we.world(WORLDS[p.dim]);
+        await we.say(`${we.we}pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
+        await we.load(name, loadMs);
+        if (p.rotation) await we.say(`${we.we}rotate ${p.rotation}`, /rotated/i);
+        const flags = p.guarded ? ` -e -m !${GUARD_MASK}` : '';
+        const words = await we.say(`${we.we}paste${flags}`, /pasted/i, pasteMs);
         out.push({ file: p.file, ok: true, detail: `${fmt(p.box)} (${words})` });
       } catch (e) {
         out.push({ file: p.file, ok: false, detail: e.message });
       }
     }
   } finally {
-    if (we) await srv.run(`${we}world`, 15000).catch(() => {}); // the console's world override, back to none
+    await we.reset();
   }
   return out;
 }
@@ -249,4 +312,4 @@ function writeSchem(file, { size, blocks, dataVersion }) {
   fs.writeFileSync(file, zlib.gzipSync(nbt.writeUncompressed(root)));
 }
 
-module.exports = { escapeRegExp, readSchem, placedBox, placements, check, install, paste, writeSchem, turn, WORLDS };
+module.exports = { escapeRegExp, readSchem, placedBox, placements, forVersion, check, install, paste, writeSchem, turn, nextLine, WorldEdit, WORLDS, GUARD_MASK };

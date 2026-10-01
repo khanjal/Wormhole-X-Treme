@@ -43,7 +43,18 @@
 //                        else the end
 //   --schematics <dir>   paste the WorldEdit schematics campus.SCHEMATICS and <dir>/placements.json
 //                        place, from <dir>, after the build; each box checked by the decoration
-//                        guardrail first (lib/schematics.js). Needs --with worldedit
+//                        guardrail first (lib/schematics.js). Needs --with worldedit; a placement
+//                        with a minVersion newer than the version is left out
+//   --design             design mode (design/facility/BRIEF.md): 1.21.11 with WorldEdit, the world
+//                        in .local-server/design-1.21.11/ kept between sessions, ops in creative, no
+//                        tests; the campus and its placeholders are made in the first session only.
+//                        An op says check, export or stop in chat (lib/designmode.js)
+//   --design-check       design mode's check from here: start the design world, check, stop
+//                        (exit 1 if it found a problem); the report is in wx-design/check.txt
+//   --design-export      design mode's export from here: start, export, stop; the zip is in
+//                        .local-server/exports/
+//   --design-import <zip> a design export: unpacked into .local-server/imports/<name>/ and pasted as
+//                        --schematics with WorldEdit, on 1.21.11 and later (1.20.4 runs without it)
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
@@ -129,13 +140,31 @@ function parseArgs(argv) {
       require('./lib/shots').select(a.shots); // a name it does not know is refused here
     }
     else if (x === '--schematics') a.schematics = path.resolve(value(i++));
+    else if (x === '--design') a.design = true;
+    else if (x === '--design-check') { a.design = true; a.designCheck = true; }
+    else if (x === '--design-export') { a.design = true; a.designExport = true; }
+    else if (x === '--design-import') a.designImport = path.resolve(value(i++));
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
   if (a.versions && !a.versions.length) throw new Error('--versions names no version');
-  if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics)) throw new Error('--viewer, --shots and --schematics take one version and one server');
+  if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics || a.designImport)) throw new Error('--viewer, --shots, --schematics and --design-import take one version and one server');
+  if (a.designImport && a.schematics) throw new Error('--design-import is a --schematics of its own: give one of them');
+  if (a.design) {
+    const design = require('./lib/design');
+    if (a.version && a.version !== design.VERSION) throw new Error(`design mode runs Minecraft ${design.VERSION} only, not ${a.version}`);
+    const clash = [['--selftest', a.selftest], ['--versions', a.versions], ['--shards', a.shards], ['--viewer', a.viewer], ['--shots', a.shots],
+      ['--schematics', a.schematics], ['--design-import', a.designImport], ['--keep-world', a.keepWorld]].filter(([, on]) => on).map(([n]) => n);
+    if (clash.length) throw new Error(`design mode runs no tests and keeps its own world: not with ${clash.join(', ')}`);
+    if (a.designCheck && a.designExport) throw new Error('--design-check or --design-export, one at a time');
+    a.version = design.VERSION;
+  }
   a.version = a.version || DEFAULT_VERSION;
   return a;
+}
+
+function schematicsLib() {
+  return require('./lib/schematics');
 }
 
 function pluginJar(args) {
@@ -148,6 +177,90 @@ function pluginJar(args) {
   const jdk = args.jdk17 || server.findJava(17);
   console.log(`building the plugin with Maven on ${jdk || 'the default JDK'}`);
   return server.buildPlugin(REPO, jdk);
+}
+
+/**
+ * Design mode's plugin jar: --plugin, else the one the design folder already has (a designer
+ * passes -Plugin once), else a Maven build; without Maven, says where a jar comes from.
+ */
+function designPlugin(args, folder) {
+  if (args.plugin) return path.resolve(args.plugin);
+  const kept = path.join(folder, 'plugins', 'WormholeXTreme.jar');
+  if (fs.existsSync(kept)) return kept;
+  try {
+    return pluginJar(args);
+  } catch (e) {
+    throw new Error(`${e.message}\n\nDesign mode needs the plugin's jar. Without Maven and a JDK 17, download WormholeXTreme.jar `
+      + 'from https://github.com/khanjal/Wormhole-X-Treme/releases and pass it: lab.ps1 -Design -Plugin <jar>, lab.sh -d -p <jar>, '
+      + 'or --plugin <jar>. Later sessions keep using it.');
+  }
+}
+
+/**
+ * Unpacks a design export (--design-import) into .local-server/imports/<name>/, fresh, and says
+ * what it is; returns that folder for --schematics.
+ */
+function unpackDesign(zipFile) {
+  if (!fs.existsSync(zipFile)) throw new Error(`--design-import ${zipFile} is not there`);
+  const dir = path.join(LOCAL, 'imports', path.basename(zipFile).replace(/\.zip$/i, ''));
+  fs.rmSync(dir, { recursive: true, force: true });
+  require('./lib/zip').extractZip(zipFile, dir);
+  const manifest = path.join(dir, 'manifest.json');
+  if (!fs.existsSync(manifest) || !fs.existsSync(path.join(dir, 'placements.json'))) throw new Error(`${zipFile} is not a design export: no manifest.json and placements.json`);
+  const m = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  console.log(`design export by ${m.designer} on ${m.date} (Minecraft ${m.minecraft}, facility ${m.facility && m.facility.commit}): `
+    + `${(m.areas || []).length} areas, ${m.checkProblems} check problem(s) when exported; unpacked in ${dir}`);
+  return dir;
+}
+
+/**
+ * Design mode after the server is up: the first session generates the campus, its fixtures and
+ * placeholders; then a check or an export from the command line, or a hold for the designer.
+ * Returns the exit code.
+ */
+async function designSession({ args, fac, srv, folder, plugin, hold }) {
+  const { DesignMode, facilityCommit } = require('./lib/designmode');
+  const design = require('./lib/design');
+  const dm = new DesignMode({ srv, folder, repo: REPO, local: LOCAL });
+  if (DesignMode.generated(folder)) {
+    console.log(`design: the world generated ${dm.state().generated} is kept as it is`);
+  } else {
+    console.log('design: generating the campus (the first session only)');
+    const report = await fac.build();
+    const failed = report.filter((r) => !r.ok);
+    if (failed.length) throw new Error(`the campus did not build: ${failed.map((r) => `${r.fn}: ${r.detail}`).join('; ')}`);
+    await fac.connectProbe();
+    const fixtures = await fac.fixtures({ stock: false });
+    for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
+    await fac.dismissProbe();
+    await dm.finishGeneration({
+      commit: facilityCommit(REPO), version: design.VERSION, plugin: path.basename(plugin),
+      fixtureProblems: fixtures.filter((f) => !f.ok).map((f) => `${f.id}: ${f.detail}`),
+    });
+  }
+  const designer = (args.op && args.op[0]) || 'designer';
+  if (args.designCheck) {
+    const r = await dm.check('the console');
+    console.log(`\n${r.report}\nthe report: ${r.file}`);
+    return r.items.some((p) => p.kind !== 'stray') ? 1 : 0;
+  }
+  if (args.designExport) {
+    const r = await dm.export(designer, { plugin: path.basename(plugin) });
+    console.log(`\nexported ${(r.bytes / 1024 / 1024).toFixed(1)} MB to ${r.file}`);
+    for (const l of design.chatSummary(r.items, 20)) console.log(`  ${l}`);
+    return 0;
+  }
+  console.log(`\nready: join localhost:${args.port} with Minecraft ${design.VERSION}${args.op ? ` as ${args.op.join(' or ')}` : ' (op yourself with --op)'}.`);
+  console.log('Ops are in creative with WorldEdit. Say check, export or stop in chat; Ctrl+C here stops it too.');
+  await new Promise((resolve) => {
+    hold(resolve);
+    const off = dm.listen({ onStop: (who) => { console.log(`design: ${who} said stop`); off(); resolve(); }, plugin: path.basename(plugin) });
+    if (srv.exited !== null) resolve();
+    srv.on('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
+  });
+  // An export or check still running finishes before the server stops.
+  while (dm.busy) await new Promise((resolve) => { setTimeout(resolve, 500); });
+  return 0;
 }
 
 /** The companion jars for a version (lib/companions.js): from the plugin cache, or downloaded once into .local-server/companions/. */
@@ -360,8 +473,26 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.versions || (args.shards > 1 && !args.shard)) return fanOut(args);
   const { version } = args;
+  // One folder per version and port, so runs side by side (--versions, or two terminals) never
+  // share a world: a fresh run deletes the worlds of the folder it uses. Design mode has its own,
+  // which no test run uses, so its placeholders never reach one.
+  const folder = path.join(LOCAL, `${args.design ? 'design' : 'facility'}-${version}${args.port === DEFAULT_PORT ? '' : `-${args.port}`}`);
+  if (args.design) {
+    const { DesignMode, STATE_DIR } = require('./lib/designmode');
+    const made = DesignMode.generated(folder);
+    if ((args.designCheck || args.designExport) && !made) throw new Error(`there is no design world in ${folder} yet: start design mode first (--design)`);
+    // The first session starts from nothing; every later one keeps the designer's world.
+    args.keepWorld = made;
+    if (!made) fs.rmSync(path.join(folder, STATE_DIR), { recursive: true, force: true });
+    args.with = [...new Set([...(args.with || []), 'worldedit'])];
+  }
+  if (args.designImport) {
+    args.schematics = unpackDesign(args.designImport);
+    const wanted = schematicsLib().forVersion(schematicsLib().placements(args.schematics), version).use;
+    if (wanted.length) args.with = [...new Set([...(args.with || []), 'worldedit'])];
+  }
   const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
-  const plugin = pluginJar(args);
+  const plugin = args.design ? designPlugin(args, folder) : pluginJar(args);
   // Companions before Java: the JDK is the highest any jar here needs, Paper's own included.
   const withNames = args.with ? companions.expand(args.with) : null;
   const extras = withNames ? await companionsFor(args, version, withNames) : [];
@@ -374,21 +505,19 @@ async function main() {
   if (viewer) viewer.assetVersion(version);
   const webPort = viewer ? args.viewerPort || viewer.viewerPort(args.port) : null;
   if (args.shots && !require('./lib/shots').findBrowser()) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
-  const schematics = require('./lib/schematics');
+  const schematics = schematicsLib();
   let placed = [];
   if (args.schematics) {
     if (!fs.existsSync(args.schematics)) throw new Error(`--schematics ${args.schematics} is not there`);
-    const list = schematics.placements(args.schematics);
+    const { use: list, skipped } = schematics.forVersion(schematics.placements(args.schematics), version);
+    // A design's blocks may be newer than this version: it runs on the plain campus instead.
+    if (skipped.length) console.log(`schematics: ${skipped.length} left out on ${version} (they need ${[...new Set(skipped.map((p) => p.minVersion))].join(', ')} or later): ${skipped.map((p) => p.file).join(', ')}`);
     if (list.length && !(withNames || []).includes('worldedit')) throw new Error('--schematics pastes with WorldEdit: add --with worldedit');
     const checked = await schematics.check(list, version);
     if (checked.problems.length) throw new Error(`the decoration guardrail refuses what --schematics would paste:\n  ${checked.problems.join('\n  ')}`);
     placed = checked.placed;
     console.log(`schematics: ${placed.length} to paste from ${args.schematics}, each clear of the guardrail`);
   }
-  // One folder per version and port, so runs side by side (--versions, or two terminals) never
-  // share a world: a fresh run deletes the worlds of the folder it uses.
-  const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
-
   // The settings journal describes the plugin's config file, so it goes when that does.
   if (!args.keepWorld) {
     server.freshWorlds(folder, { pluginData: true });
@@ -396,8 +525,9 @@ async function main() {
   }
   // Survival by default: a tester is put in adventure by the welcome, and the self-test's check
   // of that would pass without it if the server's default were adventure already.
-  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10, mobs: true });
-  server.installPlugin(folder, plugin);
+  // Design mode: creative and peaceful, nothing stocked.
+  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.
   const switches = Object.assign({}, ...extras.map((c) => companions.SWITCHES[c.name] || {}));
@@ -457,6 +587,11 @@ async function main() {
     for (const name of args.op || []) {
       const r = await srv.run(`op ${name}`);
       console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
+    }
+    if (args.design) {
+      for (const p of setup) console.log(`  setup problem: ${p}`);
+      exit = await designSession({ args, fac, srv, folder, plugin, hold: (resolve) => { holding = resolve; } });
+      return exit;
     }
     if (mapPort) {
       const web = await fac.mapWebUp();

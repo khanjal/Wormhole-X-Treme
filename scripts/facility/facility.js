@@ -223,8 +223,9 @@ class Facility {
   /**
    * After the build: stock the Menagerie, then let each chamber with a `fixture` set up what it
    * keeps for the whole session (the Relay gate, the shape gallery). Returns [{ id, ok, detail }].
+   * Design mode builds them unstocked (`stock: false`): no animals in a designer's world.
    */
-  async fixtures() {
+  async fixtures({ stock = true } = {}) {
     const out = [];
     // Whatever the far worlds spawned before their mob spawning was turned off.
     for (const [dim, types] of [[campus.NETHER, ['ghast', 'blaze', 'magma_cube', 'zombified_piglin', 'piglin', 'piglin_brute', 'hoglin', 'wither_skeleton', 'skeleton', 'enderman', 'strider']],
@@ -242,10 +243,12 @@ class Facility {
       else if (r.lines.some((l) => /^Killed /.test(l))) strays++;
     }
     out.push({ id: 'strays', ok: true, detail: `${strays} animals from chunk generation killed` });
-    try {
-      await this.menagerie.stock();
-      out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
-    } catch (e) { out.push({ id: 'menagerie', ok: false, detail: e.message }); }
+    if (stock) {
+      try {
+        await this.menagerie.stock();
+        out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
+      } catch (e) { out.push({ id: 'menagerie', ok: false, detail: e.message }); }
+    }
     for (const e of this.entries.filter((x) => x.chamber && x.chamber.fixture)) {
       try {
         const detail = await e.chamber.fixture(this.makeCtx(e));
@@ -299,6 +302,14 @@ class Facility {
     this.startShielding();
     await this.probe.teleport(campus.TRANSIT.home);
     return this.probe;
+  }
+
+  /** Probe leaves and is deopped, its shield stopped: design mode, once the fixtures are built. */
+  async dismissProbe() {
+    if (this.shieldTimer) { clearInterval(this.shieldTimer); this.shieldTimer = null; }
+    if (this.probe) { this.probe.gone = 'dismissed'; this.probe.bot.quit(); }
+    this.probe = null;
+    await this.srv.run(`deop ${BOT}`);
   }
 
   /**
