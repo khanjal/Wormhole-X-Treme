@@ -11,15 +11,22 @@ import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.ThrownPotion;
+import org.bukkit.entity.SizedFireball;
+import org.bukkit.entity.SpectralArrow;
+import org.bukkit.entity.ThrowableProjectile;
+import org.bukkit.entity.Trident;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionType;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -276,7 +283,8 @@ public final class GateEntityScanner implements Runnable
      *
      * <p>Everything that makes the projectile behave and score correctly is carried over:
      * its shooter, so kills are still credited and an ender pearl still teleports the
-     * player who threw it, plus the arrow properties that affect damage and pickup.
+     * player who threw it, plus the arrow properties that affect damage and pickup, and the
+     * item it carries, which is where a tipped arrow's effect and a trident's enchantments live.
      *
      * @param projectile
      *            the projectile arriving at the gate
@@ -344,45 +352,134 @@ public final class GateEntityScanner implements Runnable
             // Kill credit, and for an ender pearl, who gets teleported when it lands.
             shot.setShooter(from.getShooter());
         }
-        if ((from instanceof ThrownPotion thrown)
-            && (to instanceof ThrownPotion replacement))
-        {
-            // Without this the potion still splashes but has no effect.
-            replacement.setItem(thrown.getItem());
-        }
+        copyItem(from, to);
         if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
         {
-            b.setDamage(a.getDamage());
-            b.setCritical(a.isCritical());
-            b.setPierceLevel(a.getPierceLevel());
-            b.setPickupStatus(a.getPickupStatus());
-            // A Punch bow's knockback and a crossbow shot's identity: from 1.21 both come from the
-            // weapon the arrow remembers, and the old setters are marked for removal.
-            if (!copy(GET_WEAPON, SET_WEAPON, a, b))
-            {
-                copy(GET_KNOCKBACK, SET_KNOCKBACK, a, b);
-                copy(IS_CROSSBOW, SET_CROSSBOW, a, b);
-            }
+            copyArrowState(a, b);
+        }
+        if ((from instanceof Arrow a) && (to instanceof Arrow b))
+        {
+            copyPotion(a, b);
+        }
+        if ((from instanceof SpectralArrow a) && (to instanceof SpectralArrow b))
+        {
+            b.setGlowingTicks(a.getGlowingTicks());
+        }
+        if ((from instanceof Trident a) && (to instanceof Trident b))
+        {
+            // The entity reads these off its item only when it is made, so the item alone is not enough.
+            copy(GET_LOYALTY, SET_LOYALTY, a, b);
+            copy(HAS_GLINT, SET_GLINT, a, b);
+        }
+        if ((from instanceof Firework a) && (to instanceof Firework b))
+        {
+            b.setFireworkMeta(a.getFireworkMeta());
+            b.setShotAtAngle(a.isShotAtAngle());
         }
     }
 
+    /**
+     * Copies the item a projectile carries: a potion's contents, a trident's enchantments, a
+     * tipped arrow's effect, a pearl's or snowball's look.
+     */
+    private static void copyItem(final Projectile from, final Entity to)
+    {
+        if ((from instanceof ThrowableProjectile thrown) && (to instanceof ThrowableProjectile replacement))
+        {
+            // Tridents included: they are throwable as well as arrows, on every version.
+            replacement.setItem(thrown.getItem());
+        }
+        else if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
+        {
+            copy(GET_ARROW_ITEM, SET_ARROW_ITEM, a, b);
+        }
+        else if ((from instanceof SizedFireball a) && (to instanceof SizedFireball b))
+        {
+            b.setDisplayItem(a.getDisplayItem());
+        }
+    }
+
+    /** Damage, pickup, and what the bow or crossbow gave the arrow. */
+    private static void copyArrowState(final AbstractArrow a, final AbstractArrow b)
+    {
+        b.setDamage(a.getDamage());
+        b.setCritical(a.isCritical());
+        b.setPierceLevel(a.getPierceLevel());
+        b.setPickupStatus(a.getPickupStatus());
+        // A Punch bow's knockback and a crossbow shot's identity: from 1.21 both come from the
+        // weapon the arrow remembers, and the old setters are marked for removal.
+        if (!copy(GET_WEAPON, SET_WEAPON, a, b))
+        {
+            copy(GET_KNOCKBACK, SET_KNOCKBACK, a, b);
+            copy(IS_CROSSBOW, SET_CROSSBOW, a, b);
+        }
+    }
+
+    /**
+     * A tipped arrow's effect, set on the arrow itself: before 1.20.4 there is no item to copy, on
+     * 1.20.4 the arrow keeps its effect apart from its item, and on Paper setting the item leaves
+     * the arrow's colour behind.
+     */
+    private static void copyPotion(final Arrow a, final Arrow b)
+    {
+        if (!copy(GET_POTION_TYPE, SET_POTION_TYPE, a, b))
+        {
+            copy(GET_POTION_DATA, SET_POTION_DATA, a, b);
+        }
+        for (final PotionEffect effect : a.getCustomEffects())
+        {
+            b.addCustomEffect(effect, true);
+        }
+    }
+
+    /** {@code AbstractArrow.getItem()}, from 1.20.4, or null. */
+    private static final Method GET_ARROW_ITEM = method(AbstractArrow.class, "getItem");
+
+    /** {@code AbstractArrow.setItem(ItemStack)}, from 1.20.4, or null. */
+    private static final Method SET_ARROW_ITEM = method(AbstractArrow.class, "setItem", ItemStack.class);
+
+    /** {@code Arrow.getBasePotionType()}, from 1.20.2, or null. */
+    private static final Method GET_POTION_TYPE = method(Arrow.class, "getBasePotionType");
+
+    /** {@code Arrow.setBasePotionType(PotionType)}, from 1.20.2, or null. */
+    private static final Method SET_POTION_TYPE = method(Arrow.class, "setBasePotionType", PotionType.class);
+
+    /** {@code Arrow.getBasePotionData()}, deprecated, for 1.20 and 1.20.1. */
+    private static final Method GET_POTION_DATA = method(Arrow.class, "getBasePotionData");
+
+    /** {@code Arrow.setBasePotionData(PotionData)}, deprecated, for 1.20 and 1.20.1; found by its getter's type. */
+    private static final Method SET_POTION_DATA = (GET_POTION_DATA == null) ? null
+        : method(Arrow.class, "setBasePotionData", GET_POTION_DATA.getReturnType());
+
+    /** Paper's {@code Trident.getLoyaltyLevel()}, or null on Spigot. */
+    private static final Method GET_LOYALTY = method(Trident.class, "getLoyaltyLevel");
+
+    /** Paper's {@code Trident.setLoyaltyLevel(int)}, or null on Spigot. */
+    private static final Method SET_LOYALTY = method(Trident.class, "setLoyaltyLevel", int.class);
+
+    /** Paper's {@code Trident.hasGlint()}, or null on Spigot. */
+    private static final Method HAS_GLINT = method(Trident.class, "hasGlint");
+
+    /** Paper's {@code Trident.setGlint(boolean)}, or null on Spigot. */
+    private static final Method SET_GLINT = method(Trident.class, "setGlint", boolean.class);
+
     /** {@code AbstractArrow.getWeapon()}, from 1.21, or null. */
-    private static final Method GET_WEAPON = arrowMethod("getWeapon");
+    private static final Method GET_WEAPON = method(AbstractArrow.class, "getWeapon");
 
     /** {@code AbstractArrow.setWeapon(ItemStack)}, from 1.21, or null. */
-    private static final Method SET_WEAPON = arrowMethod("setWeapon", ItemStack.class);
+    private static final Method SET_WEAPON = method(AbstractArrow.class, "setWeapon", ItemStack.class);
 
     /** {@code AbstractArrow.getKnockbackStrength()}, marked for removal from 1.21, or null once gone. */
-    private static final Method GET_KNOCKBACK = arrowMethod("getKnockbackStrength");
+    private static final Method GET_KNOCKBACK = method(AbstractArrow.class, "getKnockbackStrength");
 
     /** {@code AbstractArrow.setKnockbackStrength(int)}, marked for removal from 1.21, or null once gone. */
-    private static final Method SET_KNOCKBACK = arrowMethod("setKnockbackStrength", int.class);
+    private static final Method SET_KNOCKBACK = method(AbstractArrow.class, "setKnockbackStrength", int.class);
 
     /** {@code AbstractArrow.isShotFromCrossbow()}, or null once gone. */
-    private static final Method IS_CROSSBOW = arrowMethod("isShotFromCrossbow");
+    private static final Method IS_CROSSBOW = method(AbstractArrow.class, "isShotFromCrossbow");
 
     /** {@code AbstractArrow.setShotFromCrossbow(boolean)}, marked for removal from 1.21, or null once gone. */
-    private static final Method SET_CROSSBOW = arrowMethod("setShotFromCrossbow", boolean.class);
+    private static final Method SET_CROSSBOW = method(AbstractArrow.class, "setShotFromCrossbow", boolean.class);
 
     /** @return true if arrows on this server carry the weapon that fired them */
     static boolean carriesWeapon()
@@ -390,12 +487,24 @@ public final class GateEntityScanner implements Runnable
         return (GET_WEAPON != null) && (SET_WEAPON != null);
     }
 
-    /** Looks an arrow method up once, by name, so none is linked against directly. */
-    private static Method arrowMethod(final String name, final Class<?>... parameters)
+    /** @return true if arrows on this server carry the item they are picked up as */
+    static boolean arrowsCarryItems()
+    {
+        return (GET_ARROW_ITEM != null) && (SET_ARROW_ITEM != null);
+    }
+
+    /** @return true if this server lets a trident's loyalty be set, which only Paper does */
+    static boolean tridentLoyaltyIsSettable()
+    {
+        return (GET_LOYALTY != null) && (SET_LOYALTY != null) && (HAS_GLINT != null) && (SET_GLINT != null);
+    }
+
+    /** Looks a method up once, by name, so none is linked against directly. */
+    private static Method method(final Class<?> owner, final String name, final Class<?>... parameters)
     {
         try
         {
-            return AbstractArrow.class.getMethod(name, parameters);
+            return owner.getMethod(name, parameters);
         }
         catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
         {
@@ -404,12 +513,12 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
-     * Copies one property from arrow to arrow through a getter and setter found by name.
+     * Copies one property from projectile to projectile through a getter and setter found by name.
      *
      * @return true if this server has both, whether or not there was anything to copy
      */
-    private static boolean copy(final Method getter, final Method setter, final AbstractArrow from,
-        final AbstractArrow to)
+    private static boolean copy(final Method getter, final Method setter, final Projectile from,
+        final Projectile to)
     {
         if ((getter == null) || (setter == null))
         {

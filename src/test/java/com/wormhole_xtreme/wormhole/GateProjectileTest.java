@@ -22,21 +22,27 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Fireball;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Snowball;
+import org.bukkit.entity.SpectralArrow;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Trident;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -250,6 +256,199 @@ class GateProjectileTest
     private static Method arrowMethod(final String name, final Class<?>... parameters) throws NoSuchMethodException
     {
         return AbstractArrow.class.getMethod(name, parameters);
+    }
+
+    /**
+     * Issue #536: a slowness arrow came out of the far gate as a plain arrow.
+     *
+     * <p>The effect is set on the replacement itself, which every version supports, whether or not
+     * this one also carries it in the arrow's item. By name, because getBasePotionType is from 1.20.2
+     * and the matrix builds 1.20.
+     */
+    @Test
+    void aTippedArrowKeepsItsPotion() throws Exception
+    {
+        final PotionEffect custom = mock(PotionEffect.class);
+        when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
+        // Before 1.20.2 the base potion is a PotionData, found by its getter's type.
+        final boolean byType = potionMethod("getBasePotionType") != null;
+        final Method getter = byType ? potionMethod("getBasePotionType") : potionMethod("getBasePotionData");
+        final Method setter = potionMethod(byType ? "setBasePotionType" : "setBasePotionData",
+            getter.getReturnType());
+        final Object base = byType ? PotionType.SLOWNESS : mock(getter.getReturnType());
+        when(getter.invoke(arrow)).thenReturn(base);
+
+        sendArrowThroughGate();
+
+        setter.invoke(verify(spawned), base);
+        verify(spawned).addCustomEffect(custom, true);
+    }
+
+    /**
+     * The arrow's own item comes too, which from 1.20.5 is where its effect, name and colour live.
+     * Absent before 1.20.4, where the arrow still crosses with its effect set directly.
+     */
+    @Test
+    void aTippedArrowKeepsItsItem() throws Exception
+    {
+        final ItemStack tipped = mock(ItemStack.class);
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            when(arrowMethod("getItem").invoke(arrow)).thenReturn(tipped);
+        }
+
+        sendArrowThroughGate();
+
+        verify(arrow).remove();
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            arrowMethod("setItem", ItemStack.class).invoke(verify(spawned), tipped);
+        }
+    }
+
+    /** An item that will not copy costs the item, not the potion or the crossing. */
+    @Test
+    void anArrowWhoseItemWillNotCopyStillCrossesWithItsPotion() throws Exception
+    {
+        final PotionEffect custom = mock(PotionEffect.class);
+        when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            when(arrowMethod("getItem").invoke(arrow)).thenReturn(mock(ItemStack.class));
+            arrowMethod("setItem", ItemStack.class)
+                .invoke(doThrow(new IllegalArgumentException("refused")).when(spawned), any(ItemStack.class));
+        }
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).remove();
+        verify(spawned).addCustomEffect(custom, true);
+    }
+
+    private static Method potionMethod(final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return Arrow.class.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException absent)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * A Loyalty trident came out of the far gate as a plain trident, stuck there, and never came back.
+     *
+     * <p>Its item is copied on every version, since a trident is a throwable as well as an arrow. Its
+     * loyalty and glint are read off the item only when the entity is made, so on Paper they are set
+     * as well; Spigot has no way to, and the trident keeps its enchantments but not its return.
+     */
+    @Test
+    void aTridentKeepsItsEnchantedItemAndComesBack() throws Exception
+    {
+        final Trident trident = flying(Trident.class);
+        final Trident replacement = mock(Trident.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        final Player shooter = mock(Player.class);
+        when(trident.getShooter()).thenReturn(shooter);
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+        final ItemStack enchanted = mock(ItemStack.class);
+        when(trident.getItem()).thenReturn(enchanted);
+        if (GateEntityScanner.tridentLoyaltyIsSettable())
+        {
+            when(Trident.class.getMethod("getLoyaltyLevel").invoke(trident)).thenReturn(3);
+            when(Trident.class.getMethod("hasGlint").invoke(trident)).thenReturn(true);
+        }
+
+        assertDoesNotThrow(() -> GateEntityScanner.sendProjectileThrough(trident, origin));
+
+        verify(trident).remove();
+        verify(replacement).setItem(enchanted);
+        verify(replacement).setShooter(shooter);
+        verify(replacement).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+        if (GateEntityScanner.tridentLoyaltyIsSettable())
+        {
+            Trident.class.getMethod("setLoyaltyLevel", int.class).invoke(verify(replacement), 3);
+            Trident.class.getMethod("setGlint", boolean.class).invoke(verify(replacement), true);
+        }
+    }
+
+    /** Only Paper has them, so only the Paper legs can prove the names are right. */
+    @Test
+    @EnabledIfSystemProperty(named = "server.api", matches = "paper")
+    void papersTridentLoyaltyIsFound()
+    {
+        assertTrue(GateEntityScanner.tridentLoyaltyIsSettable(),
+            "a Loyalty trident would stop coming back through a gate on Paper");
+    }
+
+    /** A spectral arrow's glow lasts as long as the bow gave it, not the default. */
+    @Test
+    void aSpectralArrowKeepsItsGlow()
+    {
+        final SpectralArrow spectral = flying(SpectralArrow.class);
+        final SpectralArrow replacement = mock(SpectralArrow.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        when(spectral.getGlowingTicks()).thenReturn(37);
+
+        GateEntityScanner.sendProjectileThrough(spectral, origin);
+
+        verify(replacement).setGlowingTicks(37);
+    }
+
+    /** Without its item a splash potion still splashes, with no effect. */
+    @Test
+    void aThrownPotionKeepsItsPotion()
+    {
+        final ThrownPotion potion = flying(ThrownPotion.class);
+        final ThrownPotion replacement = mock(ThrownPotion.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final ItemStack item = mock(ItemStack.class);
+        when(potion.getItem()).thenReturn(item);
+
+        GateEntityScanner.sendProjectileThrough(potion, origin);
+
+        verify(replacement).setItem(item);
+    }
+
+    /** A crossbow's firework keeps its stars and its angle, rather than arriving as a blank rocket. */
+    @Test
+    void aFireworkKeepsItsExplosion()
+    {
+        final Firework firework = flying(Firework.class);
+        final Firework replacement = mock(Firework.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final FireworkMeta meta = mock(FireworkMeta.class);
+        when(firework.getFireworkMeta()).thenReturn(meta);
+        when(firework.isShotAtAngle()).thenReturn(true);
+
+        GateEntityScanner.sendProjectileThrough(firework, origin);
+
+        verify(replacement).setFireworkMeta(meta);
+        verify(replacement).setShotAtAngle(true);
+    }
+
+    /**
+     * A projectile of this kind, in flight in the origin gate.
+     *
+     * <p>Its EntityType is found by class, because several were renamed in 1.20.5.
+     */
+    private <T extends Projectile> T flying(final Class<T> kind)
+    {
+        final EntityType type = Arrays.stream(EntityType.values())
+            .filter(t -> (t.getEntityClass() != null) && kind.isAssignableFrom(t.getEntityClass()))
+            .findFirst().orElseThrow();
+        final T shot = mock(kind);
+        when(shot.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(shot.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        when(shot.getPassengers()).thenReturn(Collections.<Entity>emptyList());
+        when(shot.isValid()).thenReturn(true);
+        when(shot.getVelocity()).thenReturn(new Vector(0, 0, -2.4));
+        when(shot.getType()).thenReturn(type);
+        return shot;
     }
 
     @Test
