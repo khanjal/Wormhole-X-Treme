@@ -25,7 +25,7 @@ const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
 // Lines another thread may print into any command's output: Paper's update banner arrives
 // asynchronously a few seconds after start, and the tick loop's lag warning whenever a build
 // has just taken a few seconds. They are not the command's, so run() drops them.
-const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?/;
+const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?|^\[PaperVersionFetcher\] |Error obtaining version information/;
 
 /** Gamerule names: camelCase before 1.21.11, snake_case from it. Only one form is ever sent. */
 const GAMERULES = {
@@ -367,7 +367,8 @@ const KNOWN_FAULTS = [
     // MirrorCapture.save: `!parent.isDirectory() && !parent.mkdirs()` then throw. Two captures
     // finishing together (the transit mirrors, at fixture time) each find the folder missing; the
     // one whose mkdirs loses the race throws "could not create ...\\captures", and that capture
-    // is never written (it stays in memory). Fixed on main by #540; `--fixed 540` counts it.
+    // is never written (it stays in memory). Fixed on main by #540, so a jar built since cannot
+    // print this line; only an older jar's run meets it. `--fixed 540` counts it.
     // Known only with that cause: the trace names it, from MirrorCapture.save, and the folder is
     // there now (the other capture made it). A folder that is still missing is a real failure.
     note: '#540: a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',

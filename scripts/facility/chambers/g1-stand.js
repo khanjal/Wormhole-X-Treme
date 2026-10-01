@@ -5,15 +5,20 @@
 // run: where Probe is, what its client was shown, what the tick function caught at the far
 // exit, what the plugin said. A check never passes because nothing threw.
 //
-// Also here: the cart-at-a-shut-iris cells for issue #491 (traveller "cart at iris").
+// Also here: the cart-at-a-shut-iris cells for issue #491 (traveller "cart at iris"); the Stand
+// built as a player builds one (by preview, or every block by hand: lib/gatebuild.js), which
+// makes the sign-dial shapes and the Lab.shape test asset buildable, and their sign and redstone
+// dials; and the chevron light order (G8): every dial with chevrons is watched from Probe's
+// client, and the chevrons must lock in the order of the shape's :L#n cells.
 
 const campus = require('../lib/campus');
 const { GateKit, WORLDS } = require('../lib/gatekit');
 const shapes = require('../lib/shapes');
 const { cellLayout } = require('../lib/blueprint');
-const { ARMOURY, itemNbt, offlineUuidInts, exists } = require('../lib/menagerie');
+const { ARMOURY, itemNbt, offlineUuidInts, exists, hangingAt } = require('../lib/menagerie');
 const { atLeast } = require('../lib/version');
 const { ticks } = require('../lib/probe');
+const { GateBuilder } = require('../lib/gatebuild');
 const relay = require('./relay');
 
 const def = campus.chamber('g1');
@@ -30,15 +35,19 @@ const OPTIONS = {
     v('Standard', 'the 7x7 ring'), v('Large', '10x10'), v('Grand', '22x22, three layers deep'), v('Massive', '23x23, the widest'),
     v('Minimal', 'a 1x2 opening'), v('Horizontal', 'flat in the floor: you drop into it'),
     v('StandardSignDial', 'dials by sign; the console cannot build it'), v('MinimalSignDial', 'dials by sign'),
-    v('HorizontalSignDial', 'flat, dials by sign'), v('custom', 'Lab.shape with [C], [S:C] and [RS] cells (stage 5)'),
+    v('HorizontalSignDial', 'flat, dials by sign'),
+    v('custom', 'Lab.shape (scripts/facility/assets): [C], [S:C] and [RS] cells, a diamond frame, dials by sign'),
   ],
   group: [v('default', 'the first group in config.yml (Standard, obsidian)'), v('Atlantis', 'lapis; drawn by `edit group`'),
-    v('Universe', 'polished blackstone'), v('MilkyWay', 'deepslate'), v('Diamond', 'autodiscovered from Lab.shape (stage 5)')],
+    v('Universe', 'polished blackstone'), v('MilkyWay', 'deepslate'), v('Diamond', 'the group the plugin derives from Lab.shape\'s diamond frame')],
   chevrons: [v('frame', 'chevrons built of the frame block'), v('lamp', 'chevron cells replaced by redstone lamps'),
     v('copper bulb', 'copper bulbs (1.21+)')],
-  built: [v('console', '`gate build ... x y z facing`'), v('preview', 'preview place as a player (stage 5)'), v('hand', 'every block by hand (stage 5)')],
-  dial: [v('console', '`gate dial Stand <to>`'), v('dhd', 'press the DHD button, then /dial'), v('sign right', 'sign dial forward'),
-    v('sign left', 'sign dial back'), v('redstone', 'a lever on [RD]')],
+  built: [v('console', '`gate build ... x y z facing`'), v('preview', 'as a player: `gate build <shape>`, `gate preview place`, `gate complete`'),
+    v('hand', 'as a player: every block `gate preview needs` lists, the button, `gate complete`')],
+  dial: [v('console', '`gate dial Stand <to>`'), v('dhd', 'press the DHD button, then /dial'),
+    v('sign right', 'right-click the dial sign on to the destination, then press the DHD'),
+    v('sign left', 'left-click the dial sign back to the destination, then press the DHD'),
+    v('redstone', 'set the sign (Lab.shape: by pulses on [RS]), then pull a lever by [RD]')],
   spin: [v('default', 'the group\'s pattern'), ...['top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 'overshoot', 'none'].map((p) => v(p, `\`edit spin ${p}\``))],
   destination: [v('Relay', 'across the hall'), v('Range', 'the nether'), v('Annex', 'the End'),
     v('busy', 'Relay already dialled elsewhere: refused'), v('self', 'dial the Stand itself: refused')],
@@ -82,6 +91,24 @@ const MOUNTS = ['horse', 'camel', 'pig', 'donkey', 'strider'];
 const TOSSES = 5;
 const PETS = { wolf: 'wolf', cat: 'cat', parrot: 'parrot', 'sitting wolf': 'wolf' };
 const SIGN_SHAPES = ['StandardSignDial', 'MinimalSignDial', 'HorizontalSignDial'];
+// The shapes a person lays by hand in a minute or two; Large and up take hundreds of blocks.
+const TOO_BIG_FOR_HANDS = ['Large', 'Grand', 'Massive'];
+
+/** The plugin's name of the shape an option value stands for: `custom` is the Lab.shape asset. */
+function shapeOf(o) {
+  return o.shape === 'custom' ? 'Lab' : o.shape;
+}
+
+/** Whether the shape dials by sign (a :D block): the three SignDial shapes and Lab.shape. */
+function signDial(o) {
+  return SIGN_SHAPES.includes(o.shape) || o.shape === 'custom';
+}
+
+/** The group a player builds in: the option's, or Lab.shape's own Diamond; null for the default. */
+function buildGroup(o) {
+  if (o.group !== 'default') return o.group;
+  return o.shape === 'custom' ? 'Diamond' : null;
+}
 const EXPECTED_REFUSAL = {
   self: /Can't dial own gate without solar flare/,
   busy: /Target gate is currently active\./,
@@ -90,12 +117,16 @@ const EXPECTED_REFUSAL = {
 
 /** What a combination cannot be, with the reason; the self-test expects REFUSED:<reason>. */
 function refuses(o, version = '26.1.2') {
-  const flat = !['custom'].includes(o.shape) && shapes.isFlat(o.shape);
-  if (o.shape === 'custom') return 'the custom Lab.shape arrives in stage 5';
-  if (o.group === 'Diamond') return 'the Diamond group is autodiscovered from Lab.shape (stage 5)';
-  if (o.built !== 'console') return 'building by preview or by hand arrives in stage 5';
+  const flat = shapes.isFlat(shapeOf(o));
+  if (o.built === 'hand' && TOO_BIG_FOR_HANDS.includes(o.shape)) return 'by hand only the small shapes: Large, Grand and Massive take hundreds of blocks';
   if (o.chevrons === 'copper bulb' && !atLeast(version, '1.21')) return 'there are no copper bulbs before 1.21';
-  if (['sign right', 'sign left', 'redstone'].includes(o.dial) && !SIGN_SHAPES.includes(o.shape)) return `${o.shape} has no dial sign or [RD] block`;
+  if (['sign right', 'sign left', 'redstone'].includes(o.dial) && !signDial(o)) return `${o.shape} has no dial sign or [RD] block`;
+  if (signDial(o) && o.built !== 'console') {
+    if (o.dial === 'dhd') return 'a sign-dial gate\'s DHD dials what its sign shows: the sign rows are that';
+    if (o.destination === 'self') return 'a dial sign never offers its own gate';
+    if (['busy'].includes(o.destination) && o.dial !== 'console') return 'a busy Relay is refused the same by any dial: the console row is it';
+    if (o.shape === 'custom' && (o['own iris'] === 'shut' || o.traveller === 'cart at iris')) return 'Lab.shape has no iris lever';
+  }
   if (['busy', 'self'].includes(o.destination) && o['far iris'] !== 'open') return 'the dial is refused anyway; nothing for an iris to stop';
   const t = o.traveller;
   if (t === 'cart at iris') {
@@ -152,6 +183,85 @@ function front(geom, d, side = 0) {
   };
 }
 
+/** The plain text of a sign's front as the server holds it (every version's form: » « survive). */
+async function signText(ctx, at) {
+  const r = await ctx.server.run(`data get block ${at.x} ${at.y} ${at.z} front_text.messages`);
+  return r.lines.join(' ').replace(/§./g, '');
+}
+
+/** The destination a dial sign shows (its »Target« line), or null. */
+function signShows(text) {
+  const m = /»([^«]+)«/.exec(text || '');
+  return m ? m[1] : null;
+}
+
+/**
+ * A spot for a lever by a redstone marker: air on a solid floor within the block round `at` the
+ * plugin listens to, off the gate's own cells, and as far as it can be from `awayFrom` (the other
+ * marker, whose block round it must not reach).
+ */
+async function leverSpot(ctx, geom, at, awayFrom = null) {
+  const taken = new Set([...geom.frame, ...geom.opening, geom.button, ...(geom.sign ? [geom.sign] : []),
+    ...Object.values(geom.redstone)].map((c) => `${c.x},${c.y},${c.z}`));
+  const spots = [];
+  for (const dx of [-1, 0, 1]) {
+    for (const dz of [-1, 0, 1]) {
+      for (const dy of [-1, 0, 1]) {
+        const p = { x: at.x + dx, y: at.y + dy, z: at.z + dz };
+        if (taken.has(`${p.x},${p.y},${p.z}`)) continue;
+        if (awayFrom && Math.max(Math.abs(p.x - awayFrom.x), Math.abs(p.y - awayFrom.y), Math.abs(p.z - awayFrom.z)) <= 1) continue;
+        // Air on a full block (a lever on the floor needs one: not on dust or a button), as Probe's client sees it.
+        const { Vec3 } = require('vec3');
+        const here = ctx.probe.bot.blockAt(new Vec3(p.x, p.y, p.z));
+        const below = ctx.probe.bot.blockAt(new Vec3(p.x, p.y - 1, p.z));
+        if (here && here.name === 'air' && below && below.boundingBox === 'block') spots.push(p);
+      }
+    }
+  }
+  if (!spots.length) throw new Error(`no room for a lever by ${at.x} ${at.y} ${at.z}`);
+  const far = (p) => (awayFrom ? Math.abs(p.x - awayFrom.x) + Math.abs(p.z - awayFrom.z) : 0);
+  return spots.sort((a, b) => far(b) - far(a))[0];
+}
+
+/**
+ * Watches the Stand's :L cells on Probe's client from now on; `stop()` returns, per light wave
+ * (L#n), the time its cells were last shown turning lit, and whether they were lit at the end.
+ */
+function watchLights(ctx, geom) {
+  const { Vec3 } = require('vec3');
+  const bot = ctx.probe.bot;
+  const base = new Map();
+  for (const l of geom.lights) {
+    const b = bot.blockAt(new Vec3(l.x, l.y, l.z));
+    base.set(`${l.x},${l.y},${l.z}`, b ? b.stateId : null);
+  }
+  const litAt = new Map();
+  const isLit = (key, b) => b && b.stateId !== base.get(key);
+  const onUpdate = (old, b) => {
+    if (!b) return;
+    const key = `${b.position.x},${b.position.y},${b.position.z}`;
+    if (!base.has(key)) return;
+    const was = old ? isLit(key, old) : false;
+    if (isLit(key, b) && !was) litAt.set(key, Date.now());
+  };
+  bot.on('blockUpdate', onUpdate);
+  return {
+    stop() {
+      bot.off('blockUpdate', onUpdate);
+      const waves = {};
+      for (const l of geom.lights) {
+        const key = `${l.x},${l.y},${l.z}`;
+        const b = bot.blockAt(new Vec3(l.x, l.y, l.z));
+        const w = waves[l.order] || (waves[l.order] = { order: l.order, at: 0, cells: 0, lit: 0 });
+        w.cells++;
+        if (isLit(key, b)) w.lit++;
+        w.at = Math.max(w.at, litAt.get(key) || 0);
+      }
+      return Object.values(waves).sort((a, b) => a.order - b.order);
+    },
+  };
+}
+
 /** Is an entity with this selector-body within `r` of a point in `dim`? */
 async function near(ctx, dim, at, body, r = 4) {
   const q = await ctx.server.run(`execute in ${dim} positioned ${at.x} ${at.y} ${at.z} if entity @e[${body},distance=..${r}]`);
@@ -201,19 +311,32 @@ async function stage(ctx, o) {
   }
   if (await kit.exists(STAND)) await kit.remove(STAND);
 
-  const geom = kit.place(o.shape, PLACE.facing, PLACE);
+  const geom = kit.place(shapeOf(o), PLACE.facing, PLACE);
   obs.geom = geom;
   const needsIdc = o['own iris'] === 'shut' || o.traveller === 'cart at iris';
-  try {
-    const built = await kit.build(STAND, geom, { dim: O, idc: needsIdc ? IDC_NEAR : null, floorY: PLACE.floorY });
-    obs.build = built.text;
-  } catch (err) {
-    obs.build = err.message;
-    obs.buildRefused = true;
-    if (SIGN_SHAPES.includes(o.shape)) return; // the plugin's own refusal: judged by the checks
-    throw err;
+  if (o.built === 'console') {
+    try {
+      const built = await kit.build(STAND, geom, { dim: O, idc: needsIdc ? IDC_NEAR : null, floorY: PLACE.floorY });
+      obs.build = built.text;
+    } catch (err) {
+      obs.build = err.message;
+      obs.buildRefused = true;
+      if (signDial(o)) return; // the plugin's own refusal: judged by the checks
+      throw err;
+    }
+    if (o.group !== 'default') obs.group = (await kit.edit(STAND, 'group', o.group)).text;
+  } else {
+    // As a player: in the group chosen (the preview is dressed in it), so no `edit group`.
+    const builder = new GateBuilder(ctx.server, ctx.probe);
+    const how = { group: buildGroup(o), idc: needsIdc ? IDC_NEAR : null, dim: O, floorY: PLACE.floorY };
+    const r = o.built === 'hand'
+      ? await builder.byHand(STAND, geom, { ...how, group: how.group || 'Standard' })
+      : await builder.byPreview(STAND, geom, how);
+    obs.built = { said: r.said, laid: r.laid || null, needs: r.needs || null, retries: builder.retries || 0 };
+    obs.build = r.said.complete || '';
+    if (!r.ok) { obs.buildFailed = true; return; }
+    if (geom.sign) obs.signAfterBuild = await signText(ctx, geom.sign);
   }
-  if (o.group !== 'default') obs.group = (await kit.edit(STAND, 'group', o.group)).text;
   if (o.spin !== 'default') obs.spin = (await kit.edit(STAND, 'spin', o.spin)).text;
   if (o.portal !== 'group') {
     await kit.edit(STAND, 'custom', 'true');
@@ -329,7 +452,11 @@ async function runTrip(ctx, o) {
   const idc = o['far iris'] === 'shut with code' ? IDC_FAR : null;
   await ctx.step(`dialling ${target} (${o.dial})`);
   const mark = obs.chat.length;
-  if (o.dial === 'dhd') {
+  // The chevrons, watched while they light (a sign gate opens at once: nothing to order).
+  const lights = !signDial(o) ? watchLights(ctx, geom) : null;
+  if (signDial(o) && o.dial !== 'console') {
+    await dialBySign(ctx, o, geom, target);
+  } else if (o.dial === 'dhd') {
     await probe.teleport({ ...front(geom, 0, 0), x: geom.button.x + 0.5 + geom.normal.x * 1.5, z: geom.button.z + 0.5 + geom.normal.z * 1.5 }, O);
     await probe.press(geom.button);
     await until(async () => /Gate successfully activated/.test(chatSince(ctx, mark)), 3000);
@@ -347,6 +474,7 @@ async function runTrip(ctx, o) {
   }
   await ctx.step('waiting for the kawoosh');
   obs.drawn = await kit.waitOpen(probe, geom).catch((e) => { obs.openError = e.message; return null; });
+  if (lights) obs.lightWaves = lights.stop();
   if (!obs.drawn) return undefined;
   if (o['far iris'] === 'shut after dial') {
     obs.farIrisShut = await kit.toggleIris(probe, f.geom, f.dim);
@@ -358,6 +486,58 @@ async function runTrip(ctx, o) {
   }
   await ctx.step(`sending: ${o.traveller}`);
   return sendTraveller(ctx, o, geom, f);
+}
+
+/**
+ * Dials a sign gate as a player does: the sign turned to the destination (right-clicks on,
+ * left-clicks back; on Lab.shape's redstone row, pulses on [RS]), then the DHD pressed, or a
+ * lever by [RD] pulled.
+ */
+async function dialBySign(ctx, o, geom, target) {
+  const probe = ctx.probe;
+  const obs = ctx.observed;
+  const sign = geom.sign;
+  const facing = { x: geom.button.x + 0.5 + geom.normal.x * 2, y: PLACE.floorY, z: geom.button.z + 0.5 + geom.normal.z * 2, yaw: (geom.yaw + 180) % 360 };
+  await probe.teleport(facing, O);
+  obs.signSteps = [];
+  const byRs = o.dial === 'redstone' && geom.redstone.RS;
+  let lever = null;
+  if (byRs) {
+    lever = await leverSpot(ctx, geom, geom.redstone.RS, geom.redstone.RD);
+    await run(ctx, `setblock ${lever.x} ${lever.y} ${lever.z} minecraft:lever[face=floor]`);
+    obs.rsLever = lever;
+  }
+  for (let i = 0; i < 8 && signShows(await signText(ctx, sign)) !== target; i++) {
+    const mark = obs.chat.length;
+    if (byRs) {
+      // A pulse: on (the rising edge turns the sign), then off again.
+      await probe.click(lever);
+      await ticks(6);
+      await probe.click(lever);
+      await ticks(6);
+      obs.signSteps.push(signShows(await signText(ctx, sign)));
+    } else {
+      // The sign's front: a left click is a punch at that face (block_dig's face: 2 north, 3 south, 4 west, 5 east).
+      const face = { '0,-1': 2, '0,1': 3, '-1,0': 4, '1,0': 5 }[`${geom.normal.x},${geom.normal.z}`];
+      if (o.dial === 'sign left') await probe.punch(sign, face); else await probe.rightClick(sign, { dir: new (require('vec3').Vec3)(geom.normal.x, 0, geom.normal.z) });
+      await until(async () => /Dialer set to: |No available target/.test(chatSince(ctx, mark)), 2000, 2);
+      obs.signSteps.push((/Dialer set to: (\S+)/.exec(chatSince(ctx, mark)) || [])[1] || chatSince(ctx, mark));
+    }
+  }
+  obs.signShows = signShows(await signText(ctx, sign));
+  const mark = obs.chat.length;
+  if (o.dial === 'redstone') {
+    const rd = await leverSpot(ctx, geom, geom.redstone.RD, geom.redstone.RS || null);
+    await run(ctx, `setblock ${rd.x} ${rd.y} ${rd.z} minecraft:lever[face=floor]`);
+    obs.rdLever = rd;
+    await probe.click(rd);
+    obs.dial = 'a lever by [RD] pulled';
+  } else {
+    await probe.press(geom.button);
+    await until(async () => /Stargates connected|Invalid gate target|remotely activated|lack the permissions/.test(chatSince(ctx, mark)), 4000);
+    obs.dial = chatSince(ctx, mark);
+  }
+  await probe.teleport(front(geom, 8), O);
 }
 
 async function openingShown(ctx, geom) {
@@ -561,7 +741,7 @@ async function sweep(ctx, o, geom, f) {
     const hang = geom.normal.z !== 0 ? { x: side.x + inward, y: side.y, z: side.z } : { x: side.x, y: side.y, z: side.z + inwardZ };
     const facing = geom.normal.z !== 0 ? (inward > 0 ? 5 : 4) : (inwardZ > 0 ? 3 : 2);
     obs.framePlace = hang;
-    await ctx.menagerie.summon('item_frame', { x: hang.x, y: hang.y, z: hang.z }, ctx.tag, `Facing:${facing}b`);
+    await ctx.menagerie.summon('item_frame', { x: hang.x, y: hang.y, z: hang.z }, ctx.tag, `${hangingAt(hang.x, hang.y, hang.z)},Facing:${facing}b`);
   }
   const scan = 20; // entity-scan-interval-ticks, the default
   if (['armour stand', 'zombie', 'llama'].includes(t)) {
@@ -617,7 +797,9 @@ async function shoot(ctx, o, geom, f) {
   // Arrows, pearls and tridents are left to fly on (a pearl must land, a trident come back).
   const freeze = !['pearl', 'trident'].includes(p);
   const eye = { x: from.x, y: from.y + 1.62, z: from.z };
-  await ctx.watch.arm(O, o.launcher === 'dispenser' ? { x: from.x, y: aim.y, z: from.z } : eye, { ...dest.itemArrival, dim: f.dim }, { freeze });
+  // A dispenser's shot leaves its front: at the opening's height, or under it when it fires down.
+  const muzzle = { x: from.x, y: o.angle === 'above' ? 5.5 : aim.y, z: from.z };
+  await ctx.watch.arm(O, o.launcher === 'dispenser' ? muzzle : eye, { ...dest.itemArrival, dim: f.dim }, { freeze });
   const mark = obs.chat.length;
   if (o.launcher === 'dispenser') {
     const bx = Math.floor(from.x);
@@ -755,12 +937,13 @@ function checks(ctx, o) {
   const obs = ctx.observed;
   const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
   const list = [];
-  if (SIGN_SHAPES.includes(o.shape)) {
+  if (signDial(o) && o.built === 'console') {
     list.push(c('the plugin refused a console build of a sign-dial gate', () => obs.buildRefused && /dials by sign/.test(obs.build)));
     return list;
   }
-  list.push(c('the Stand was built', () => /Built Stand/.test(obs.build || '')));
-  if (o.group !== 'default') list.push(c(`the Stand draws the ${o.group} group`, () => new RegExp(`is now on group ${o.group}`).test(obs.group || '')));
+  if (o.built === 'console') list.push(c('the Stand was built', () => /Built Stand/.test(obs.build || '')));
+  else list.push(...buildChecks(o, obs));
+  if (o.group !== 'default' && o.built === 'console') list.push(c(`the Stand draws the ${o.group} group`, () => new RegExp(`is now on group ${o.group}`).test(obs.group || '')));
   if (o.spin !== 'default') list.push(c(`the Stand dials with ${o.spin}`, () => new RegExp(`now dials with ${o.spin}`).test(obs.spin || '')));
   if (o.portal !== 'group') list.push(c(`the portal is set to ${o.portal}`, () => new RegExp(`portal material set to: ${o.portal}`).test(obs.portal || '')));
   const t = o.traveller;
@@ -776,8 +959,18 @@ function checks(ctx, o) {
     return list;
   }
   if (o.dial === 'dhd') list.push(c('the DHD button lit the gate', () => /Gate successfully activated/.test(obs.dial || '')));
-  list.push(c('the dial connected', () => /Stargates connected/.test(obs.dial || '')));
+  if (signDial(o) && o.dial !== 'console') {
+    list.push(c(`the dial sign was turned to ${destOf(o)} (»${destOf(o)}«)`, () => obs.signShows === destOf(o)));
+    if (o.dial === 'sign right' || o.dial === 'sign left') {
+      list.push(c(`each click answered "Dialer set to: <gate>"`, () => obs.signSteps.length > 0 && obs.signSteps.every((s) => /^[A-Za-z]+$/.test(s))));
+    }
+    if (o.dial === 'redstone' && o.shape === 'custom') list.push(c('pulses on [RS] turned the sign', () => obs.signSteps.length > 0));
+    if (o.dial !== 'redstone') list.push(c('the DHD dialled what the sign showed: "Stargates connected!"', () => /Stargates connected!/.test(obs.dial || '')));
+  } else {
+    list.push(c('the dial connected', () => /Stargates connected/.test(obs.dial || '')));
+  }
   list.push(c('the opening was drawn', () => Boolean(obs.drawn)));
+  if (!signDial(o) || o.built === 'console') list.push(...lightChecks(o, obs));
   if (o.portal !== 'group') list.push(c(`the opening is drawn as ${o.portal}`, () => (obs.drawn || '').toUpperCase() === o.portal));
   const dest = destOf(o);
   const stopped = o['far iris'] === 'shut after dial';
@@ -883,6 +1076,59 @@ function checks(ctx, o) {
 }
 
 /**
+ * G8: the chevrons locked in the shape's :L#n order. A dial lights waves 1 to 7 (8 into another
+ * world); each wave's lock is the last time Probe's client was shown its cells turning lit
+ * before the kawoosh (a spin's travelling light passes over the chevrons first), and they must
+ * come in order, all lit.
+ */
+function lightChecks(o, obs) {
+  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const last = ['Range', 'Annex'].includes(o.destination) ? 8 : 7;
+  const waves = () => (obs.lightWaves || []).filter((w) => w.order <= last);
+  return [
+    c(`every chevron wave up to ${last} was shown lit`, () => waves().length > 0 && waves().every((w) => w.lit === w.cells)),
+    // A Universe ring carries its locked chevrons round and puts them all back when the last
+    // locks (StargateAnimator), so their own cells light together and show no order.
+    o.spin === 'universe' ? c('Universe: every chevron cell lit together as the last locked', () => {
+      const w = waves();
+      return w.length > 1 && w.every((x) => x.at > 0) && w[w.length - 1].at - w[0].at < 100;
+    })
+    // Each wave in a later tick than the one before (at least 1, so a client reading two ticks
+    // in one go is allowed for), and the whole order spread over the ticks it takes: waves drawn
+    // all at once, in any order, fail.
+    : c('the chevrons locked in the order of the shape\'s :L#n cells, one after another', () => {
+      const w = waves();
+      return w.length > 0 && w.every((x, i) => i === 0 || x.at > w[i - 1].at) && w.every((x) => x.at > 0)
+        && w[w.length - 1].at - w[0].at >= (w.length - 1) * 25;
+    }),
+  ];
+}
+
+/** A player's build: by preview it was placed and offered; by hand every block needs listed was laid. */
+function buildChecks(o, obs) {
+  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const b = obs.built || { said: {} };
+  const s = b.said || {};
+  const shape = shapeOf(o);
+  const group = buildGroup(o) || 'Standard';
+  const list = [c(`the preview stood in the group: "Previewing ${shape} in ${group}."`, () => new RegExp(`Previewing ${shape} in ${group}\\.`).test(s.build || ''))];
+  if (o.built === 'preview') {
+    list.push(c(`\`gate preview place\` laid it: "Placed ${shape}."`, () => new RegExp(`Placed ${shape}\\.`).test(s.place || '')));
+  } else {
+    const blocks = () => (b.needs || []).filter((n) => !/button|sign/.test(n.material)).reduce((a, n) => a + n.count, 0);
+    const laid = () => Object.entries(b.laid || {}).filter(([k]) => !['button', 'sign'].includes(k)).reduce((a, [, n]) => a + n, 0);
+    list.push(c('Probe laid every block `needs` listed, one for one', () => blocks() > 0 && blocks() === laid()));
+    list.push(c('and the button (and a sign-dial shape\'s sign)', () => (b.laid || {}).button === 1 && (!signDial(o) || (b.laid || {}).sign === 1)));
+    list.push(c(`the guide said "${shape} is built! Press its button to check it."`, () => new RegExp(`${shape} is built!`).test(s.built || '')));
+  }
+  const offer = signDial(o) && o.built === 'hand' ? /Valid Sign Nav Stargate Design!/ : /Valid Stargate Design!/;
+  list.push(c(`its button offered it: "${offer.source.replace(/\\/g, '')}"`, () => offer.test(s.offer || '')));
+  list.push(c('`gate complete Stand` made it: "Gate successfully constructed."', () => /Gate successfully constructed/.test(s.complete || '')));
+  if (signDial(o)) list.push(c('its dial sign is live, showing a destination (»...«)', () => Boolean(signShows(obs.signAfterBuild))));
+  return list;
+}
+
+/**
  * #491 (from the fix's checklist): the cart's front, its centre plus half its 0.98 width along
  * the run, must end flush with the iris face (within 0.05, never past it at any tick) and at
  * rest; a rider stays seated; with the iris open (the control) the cart passes through.
@@ -932,7 +1178,7 @@ function cartChecks(o, obs) {
  */
 async function shut(ctx, o) {
   const obs = ctx.observed;
-  if (!/Stargates connected/.test(obs.dial || '') || !obs.geom) return [];
+  if (!(obs.drawn || /Stargates connected/.test(obs.dial || '')) || !obs.geom) return [];
   const kit = kitOf(ctx);
   const f = farOf(o);
   const ends = [{ name: STAND, dim: O, geom: obs.geom }, { name: f.name, dim: f.dim, geom: f.geom }];
@@ -942,12 +1188,20 @@ async function shut(ctx, o) {
   // the close, or an opening never drawn to Probe would read as shut.
   const { Vec3 } = require('vec3');
   const inView = (g) => g.opening.every((p) => probe.bot.blockAt(new Vec3(p.x, p.y, p.z)) !== null);
-  const judged = ends.filter((e) => GateKit.drawnTo(probe, e.geom, e.dim) && inView(e.geom));
+  let judged = ends.filter((e) => GateKit.drawnTo(probe, e.geom, e.dim) && inView(e.geom));
+  if (!judged.length) {
+    // Neither end in view (a trip that ended out of the Stand's world and away from the far end):
+    // go back to the Stand, so one end is always judged rather than none.
+    await probe.teleport(front(obs.geom, 8), O).catch(() => {});
+    await ticks(20);
+    judged = ends.filter((e) => e.name === STAND && GateKit.drawnTo(probe, e.geom, e.dim) && inView(e.geom));
+  }
   for (const e of judged) e.seenOpen = (await kit.waitDrawn(probe, e.geom)) === true;
   obs.closed = [];
   for (const e of ends) obs.closed.push((await kit.force(e.name)).text);
   const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
   const list = [c('closed by command: "<gate> has been closed, darkened, ..."', () => obs.closed.every((t) => /has been closed/.test(t)))];
+  list.push(c('an end was in view to be judged shut', () => judged.length > 0));
   for (const e of judged) {
     list.push(c(`${e.name} shut on command: drawn open before, and its opening no longer drawn`,
       async () => e.seenOpen && (await kit.waitShut(probe, e.geom)) === true));
@@ -964,6 +1218,8 @@ async function cleanup(ctx) {
   await ctx.watch.untrack();
   if (await kit.exists(STAND)) await kit.remove(STAND);
   for (const g of Object.values(relay.farGates())) { await kit.force(g.name); await kit.edit(g.name, 'idc', '-clear'); }
+  // A preview a failed build left standing (block displays only Probe sees).
+  await new GateBuilder(ctx.server, ctx.probe).clearPreviews().catch(() => {});
   await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
   await ctx.server.run('kill @e[tag=wx_spit]');
   await ctx.server.run(`clear ${ctx.probe.name}`);

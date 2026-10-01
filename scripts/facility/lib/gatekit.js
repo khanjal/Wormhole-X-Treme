@@ -55,28 +55,56 @@ class GateKit {
    * Returns { geom, text } or throws with the plugin's refusal.
    */
   async build(name, geom, { dim = campus.OVERWORLD, net = null, idc = null, floorY = 0 } = {}) {
-    // The grid, and the DHD button one out in front of it (below the floor too, for a gate
-    // whose holder sits under it).
-    const k = geom.button;
-    const g = geom.bounds;
-    const b = {
-      x0: Math.min(g.x0, k.x), x1: Math.max(g.x1, k.x), y0: Math.min(g.y0, k.y), y1: Math.max(g.y1, k.y),
-      z0: Math.min(g.z0, k.z), z1: Math.max(g.z1, k.z),
-    };
-    const floor = FLOORS[dim];
-    const pit = `${b.x0} ${Math.min(b.y0, floorY - 1)} ${b.z0} ${b.x1} ${floorY - 1} ${b.z1}`;
-    await this.srv.run(`execute in ${dim} run fill ${pit} minecraft:air`);
+    await this.clearSite(geom, { dim, floorY });
     const h = geom.holder;
     const opts = [net ? `net=${net}` : '', idc ? `idc=${idc}` : ''].filter(Boolean).join(' ');
     const r = await this.say(`wormhole gate build ${geom.name} ${name} ${WORLDS[dim]} ${h.x} ${h.y} ${h.z} ${geom.facing} ${opts}`.trim());
-    // Put the floor back under and around it: stone below the top layer, the floor block on top.
-    await this.srv.run(`execute in ${dim} run fill ${b.x0} ${Math.min(b.y0, floorY - 2)} ${b.z0} ${b.x1} ${floorY - 2} ${b.z1} minecraft:stone replace minecraft:air`);
-    await this.srv.run(`execute in ${dim} run fill ${b.x0} ${floorY - 1} ${b.z0} ${b.x1} ${floorY - 1} ${b.z1} ${floor} replace minecraft:air`);
-    for (const c of geom.opening.filter((p) => p.y < floorY)) await this.srv.run(`execute in ${dim} run setblock ${c.x} ${c.y} ${c.z} minecraft:air`);
-    if (geom.lever && geom.lever.y < floorY) await this.srv.run(`execute in ${dim} run setblock ${geom.lever.x} ${geom.lever.y} ${geom.lever.z} minecraft:air`);
+    await this.restoreSite(geom, { dim, floorY });
     if (!/Built /.test(r.text)) throw new Error(`gate build ${name}: ${r.text || 'no answer'}`);
     if (idc) await this.say(`wormhole gate edit ${name} idc ${idc}`);
     return { geom, text: r.text };
+  }
+
+  /** The grid, the DHD button one out in front of it, and any `extra` points, as one box. */
+  siteBox(geom, extra = []) {
+    const g = geom.bounds;
+    const pts = [geom.button, ...extra];
+    return {
+      x0: Math.min(g.x0, ...pts.map((p) => p.x)), x1: Math.max(g.x1, ...pts.map((p) => p.x)),
+      y0: Math.min(g.y0, ...pts.map((p) => p.y)), y1: Math.max(g.y1, ...pts.map((p) => p.y)),
+      z0: Math.min(g.z0, ...pts.map((p) => p.z)), z1: Math.max(g.z1, ...pts.map((p) => p.z)),
+    };
+  }
+
+  /**
+   * Makes room for a gate flush with the floor: air through the floor under its grid and button
+   * (a gate whose holder sits under the floor has its bottom row there). `extra` points are
+   * cleared too (where a builder stands).
+   */
+  async clearSite(geom, { dim = campus.OVERWORLD, floorY = 0, extra = [], cellsOnly = false } = {}) {
+    if (cellsOnly) {
+      // Only the gate's own cells (and `extra`): a builder by hand needs the floor round them to
+      // place against, as a player building in a trench has.
+      // The redstone markers too: the plugin lays its wire and lever only in air.
+      const cells = [...geom.frame, ...geom.opening, geom.button, ...(geom.sign ? [geom.sign] : []), ...Object.values(geom.redstone || {}), ...extra];
+      for (const c of cells.filter((p) => p.y < floorY)) await this.srv.run(`execute in ${dim} run setblock ${c.x} ${c.y} ${c.z} minecraft:air`);
+      return;
+    }
+    const b = this.siteBox(geom, extra);
+    await this.srv.run(`execute in ${dim} run fill ${b.x0} ${Math.min(b.y0, floorY - 1)} ${b.z0} ${b.x1} ${floorY - 1} ${b.z1} minecraft:air`);
+  }
+
+  /**
+   * Puts the floor back under and around a gate: stone below the top layer, the floor block on
+   * top, wherever the gate did not take; a flat gate's opening and a lever under the floor stay
+   * open.
+   */
+  async restoreSite(geom, { dim = campus.OVERWORLD, floorY = 0, extra = [] } = {}) {
+    const b = this.siteBox(geom, extra);
+    await this.srv.run(`execute in ${dim} run fill ${b.x0} ${Math.min(b.y0, floorY - 2)} ${b.z0} ${b.x1} ${floorY - 2} ${b.z1} minecraft:stone replace minecraft:air`);
+    await this.srv.run(`execute in ${dim} run fill ${b.x0} ${floorY - 1} ${b.z0} ${b.x1} ${floorY - 1} ${b.z1} ${FLOORS[dim]} replace minecraft:air`);
+    for (const c of geom.opening.filter((p) => p.y < floorY)) await this.srv.run(`execute in ${dim} run setblock ${c.x} ${c.y} ${c.z} minecraft:air`);
+    if (geom.lever && geom.lever.y < floorY) await this.srv.run(`execute in ${dim} run setblock ${geom.lever.x} ${geom.lever.y} ${geom.lever.z} minecraft:air`);
   }
 
   async exists(name) {
@@ -129,11 +157,12 @@ class GateKit {
 
   /**
    * Whether the plugin draws this gate's opening to the probe at all: same world, within its
-   * VISUAL_RADIUS (64, StargateBlockSetup) with a margin. Beyond it an end is never drawn, open or
-   * shut, so there is nothing to judge.
+   * VISUAL_RADIUS (64, StargateBlockSetup), measured as it does, from the feet to the corner of the
+   * opening's first portal cell, with a margin. Beyond it an end is never drawn, open or shut, so
+   * there is nothing to judge.
    */
   static drawnTo(probe, geom, dim) {
-    const c = geom.centre;
+    const c = geom.opening[0];
     return probe.dimension === dim && Math.hypot(probe.position.x - c.x, probe.position.y - c.y, probe.position.z - c.z) <= 60;
   }
 

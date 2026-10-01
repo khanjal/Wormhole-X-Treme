@@ -150,11 +150,11 @@ const CHAMBERS = [
     box: { x0: 30, x1: 50, z0: -140, z1: -120, y0: 0, h: 24 }, door: 's', gallery: 'e' },
   { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2, logic: 'g2-gallery',
     box: { x0: -66, x1: 66, z0: -168, z1: -150, y0: 0, h: 30 }, door: 'w', gallery: 's' },
-  { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5,
+  { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5, logic: 'g3-automation',
     box: { x0: 40, x1: 66, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'w', gallery: 's' },
-  { id: 'g4', wing: 'gates', title: 'Build Bench', kind: 'cell', stage: 5, creative: true,
+  { id: 'g4', wing: 'gates', title: 'Build Bench', kind: 'cell', stage: 5, creative: true, logic: 'g4-bench',
     box: { x0: -66, x1: -40, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'e', gallery: 's' },
-  { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5,
+  { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5, logic: 'g5-iris',
     box: { x0: -66, x1: -34, z0: -140, z1: -110, y0: 0, h: 16 }, door: 'e', gallery: 's' },
   // Ring Transit
   { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3, logic: 'r1-pair',
@@ -261,12 +261,13 @@ const ROUTES = {
   ],
   // One in each world beside Ops and the gallery (so the default per-world limit of 1 is kept in
   // the nether and the End). `wall: 'room'` hangs on a room's wall, `'pier'` on a free-standing
-  // pier the decoration builds; `floorY` is where a traveller's feet land.
+  // pier the decoration builds; `floorY` is where a traveller's feet land. A banner hangs at
+  // floorY + 1, where a standing player's head is, as a player builds one.
   mirrors: [
-    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 2, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
-    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 2, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
-    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 66, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
-    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 62, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
+    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 1, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
+    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 1, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
+    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 65, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
+    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 61, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
   ],
 };
 

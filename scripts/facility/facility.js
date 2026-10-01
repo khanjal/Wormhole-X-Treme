@@ -16,6 +16,7 @@ const wings = require('./wings');
 const { Menagerie } = require('./lib/menagerie');
 const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
+const { Logbook } = require('./lib/logbook');
 const { companionFault } = require('./lib/companions');
 const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
 const { httpText } = require('./lib/http');
@@ -51,6 +52,8 @@ class Facility {
     this.watch = new Watch(srv);
     this.transit = new Transit(this);
     this.keepRings = new Set(); // the transit pair: permanent, never taken down by a chamber
+    this.logbook = new Logbook(this);
+    this.fixed = fixed; // the issues this plugin jar carries fixes for (--fixed): the Logbook's KNOWN
   }
 
   // ---- world -------------------------------------------------------------------------------
@@ -266,13 +269,21 @@ class Facility {
 
   /**
    * Players in the facility do not go hungry or get hurt: infinite Saturation and Resistance 255,
-   * particles hidden (`infinite` is from 1.19.4). Given on join, and again every five seconds to
-   * everyone (a death or a bucket of milk clears them, and a respawn or a world change would
-   * otherwise go unnoticed). Mobs are not given it: a cell's mob still takes damage.
+   * particles hidden (`infinite` is from 1.19.4). Given on join, and every five seconds to anyone
+   * missing either (a death or a bucket of milk clears them, and a respawn or a world change
+   * would otherwise go unnoticed): only to them, since giving an effect a player already has
+   * logs "Unable to apply this effect" (the predicates are the datapack's, lib/generate.js).
+   * Mobs are not given it: a cell's mob still takes damage.
    */
   async shield(who = '@a') {
-    await this.srv.run(`effect give ${who} minecraft:saturation infinite 255 true`);
-    await this.srv.run(`effect give ${who} minecraft:resistance infinite 255 true`);
+    const sel = who === '@a' ? '@a[' : `@a[name=${who},`;
+    for (const [p, effect] of [['saturated', 'saturation'], ['resistant', 'resistance']]) {
+      const r = await this.srv.run(`execute as ${sel}predicate=!wx:${p}] run effect give @s minecraft:${effect} infinite 255 true`);
+      if (!r.errors.length) continue;
+      // Without the facility's predicates (a datapack not loaded), give it to everyone named, as before them.
+      const plain = await this.srv.run(`effect give ${who} minecraft:${effect} infinite 255 true`);
+      if (plain.errors.length) throw new Error(`the players' shield: ${r.errors.join(' ')} / ${plain.errors.join(' ')}`);
+    }
   }
 
   startShielding() {
@@ -321,9 +332,10 @@ class Facility {
       status: (id) => this.status[id],
       handlers: {
         run: (player, e, action) => this.request(player, e, action),
-        watch: (player, e) => this.watch(player, e),
+        watch: (player, e) => this.seat(player, e),
         go: (player, w) => this.go(player, w),
         transit: (player, action) => this.transitAction(player, action),
+        book: (player) => this.giveBook(player),
         group: (player, group) => this.joinGroup(player, group),
       },
       groups: this.has('luckperms') ? [...Object.entries(GROUPS).map(([id, g]) => ({ id, why: g.why })),
@@ -356,6 +368,13 @@ class Facility {
     await this.shield(player);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
+    await this.logbook.give(player);
+  }
+
+  /** `!book` and the console's Logbook button: a fresh copy, in its slot or a free one. */
+  async giveBook(player) {
+    const slot = await this.logbook.give(player);
+    if (slot !== null) await this.console.tell(player, [{ text: 'Your Logbook is up to date.', color: 'gray' }]);
   }
 
   /** A Transit tab action for `player`: the console forms the Gate Room's buttons run. */
@@ -381,7 +400,8 @@ class Facility {
     await this.srv.run(`execute in ${w.dim} run tp ${player} ${e.x} ${e.y} ${e.z} ${e.yaw} 0`);
   }
 
-  async watch(player, e) {
+  /** Takes a player to a chamber's gallery seat (the console's Watch; not `this.watch`, the Watch helper). */
+  async seat(player, e) {
     const L = blueprint.layoutOf(e.def);
     const s = L.seat;
     const dim = campus.wing(e.def.wing).dim;
@@ -448,7 +468,7 @@ class Facility {
         return;
       }
       const values = action === 'again' && this.last[e.def.id] ? this.last[e.def.id] : { ...e.values };
-      const r = await this.runChamber(e, { values, mode: action === 'stage' ? 'stage' : 'run' });
+      const r = await this.runChamber(e, { values, mode: action === 'stage' ? 'stage' : 'run', by: player });
       await this.console.tell(player, [{ text: `${e.def.id.toUpperCase()} ${e.def.title}: `, color: 'white' },
         { text: `${r.outcome}${r.reason ? ` · ${r.reason}` : ''}`, color: { PASS: 'green', FAIL: 'red', REFUSED: 'gold', STAGED: 'aqua' }[r.outcome] }]);
     });
@@ -478,7 +498,15 @@ class Facility {
    * chamber that is staged is refused until its Reset. Returns
    * { outcome: PASS | FAIL | REFUSED | STAGED, reason, checks }.
    */
-  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
+  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, by = null } = {}) {
+    const result = await this.runChamberOnce(e, { values, raw, mode, holdMs });
+    // In the Logbook, and every holder's copy replaced with one that has it.
+    this.logbook.record(e, raw ? values : this.valuesOf(e, values), result, by);
+    await this.logbook.refresh();
+    return result;
+  }
+
+  async runChamberOnce(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
     const ch = e.chamber;
     // A run would reset the cell and put its settings back under a stage a person is using.
     if (mode !== 'stage' && this.held.has(e.def.id)) {

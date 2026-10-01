@@ -17,14 +17,17 @@ const def = campus.chamber('m2');
 const O = campus.OVERWORLD;
 const WALL = 'minecraft:polished_deepslate';
 
-// Walls stand in two rows (x -34 and x -24), banners on their east faces.
+// Walls stand in two rows (x -34 and x -24), banners on their east faces at head height (y 1,
+// feet on the floor at y 0), so each opening is the banner's block and the one under it.
 const NICHES = {
-  solid: { x: -34, z0: 76, z1: 80, y1: 4, banner: [-33, 2, 78] },
-  'gap one out': { x: -34, z0: 82, z1: 84, y1: 3, banner: [-33, 2, 83], hole: [-34, 3, 84] },
-  'gap two out': { x: -24, z0: 76, z1: 80, y1: 4, banner: [-23, 2, 78], hole: [-24, 2, 80] },
+  solid: { x: -34, z0: 76, z1: 80, y1: 4, banner: [-33, 1, 78] },
+  'gap one out': { x: -34, z0: 82, z1: 84, y1: 3, banner: [-33, 1, 83], hole: [-34, 2, 84] },
+  'gap two out': { x: -24, z0: 76, z1: 80, y1: 4, banner: [-23, 1, 78], hole: [-24, 1, 80] },
   'on a post': { post: [-24, 0, 84], banner: [-24, 1, 84], standing: true },
-  'two wide': { x: -16, z0: 76, z1: 81, y1: 4, banner: [-15, 2, 78], partner: [-15, 2, 79] },
+  'two wide': { x: -16, z0: 76, z1: 81, y1: 4, banner: [-15, 1, 78], partner: [-15, 1, 79] },
 };
+// A wall block of the protected case's niche in the ring a block out, above and beside the banner.
+const PROTECTED_WALL = (n) => [n.x, n.banner[1] + 1, n.banner[2] - 1];
 
 const CASES = {
   solid: 'a wall solid two blocks round: made, with no warning',
@@ -95,13 +98,13 @@ module.exports = {
       await ctx.probe.punch({ x: control[0], y: control[1], z: control[2] }, 2);
       await ticks(10);
       obs.controlBroke = !(await still(control, WALL));
-      for (const at of [n.banner, [n.x, 3, n.banner[2] - 1]]) {
+      for (const at of [n.banner, PROTECTED_WALL(n)]) {
         await ctx.probe.punch({ x: at[0], y: at[1], z: at[2] }, 5);
         await ticks(10);
       }
       await ticks(20);
       obs.bannerStays = await still(n.banner, '#minecraft:banners');
-      obs.wallStays = await still([n.x, 3, n.banner[2] - 1], WALL);
+      obs.wallStays = await still(PROTECTED_WALL(n), WALL);
     }
     if (o.case === 'remove') {
       obs.removed = await kit.remove(name);
@@ -122,11 +125,15 @@ module.exports = {
     switch (o.case) {
       case 'solid':
         return [c('made', made), c('and no thin-wall warning', () => made() && !warned.test(obs.made))];
-      case 'gap one out':
-        return [c('refused: "A mirror needs solid wall a block out on every side of its opening, and the block at -34 3 84 is not."',
-          () => /A mirror needs solid wall a block out on every side of its opening, and the block at -34 3 84 is not\./.test(obs.made || '')), c('and not made', () => !made())];
-      case 'gap two out':
-        return [c('made', made), c('with the warning naming the block two out: -24 2 80', () => (warned.exec(obs.made || '') || [])[1] === '-24 2 80')];
+      case 'gap one out': {
+        const hole = NICHES['gap one out'].hole.join(' ');
+        return [c(`refused: "A mirror needs solid wall a block out on every side of its opening, and the block at ${hole} is not."`,
+          () => (obs.made || '').includes(`A mirror needs solid wall a block out on every side of its opening, and the block at ${hole} is not.`)), c('and not made', () => !made())];
+      }
+      case 'gap two out': {
+        const hole = NICHES['gap two out'].hole.join(' ');
+        return [c('made', made), c(`with the warning naming the block two out: ${hole}`, () => (warned.exec(obs.made || '') || [])[1] === hole)];
+      }
       case 'on a post':
         return [c('refused: "A mirror hangs on a wall. On a post in the open its world shows past its edges."',
           () => /A mirror hangs on a wall\. On a post in the open its world shows past its edges\./.test(obs.made || ''))];

@@ -36,8 +36,14 @@ function writeFacilityPack(worldFolder, version) {
     });
   }
   Object.assign(functions, observe.functions());
-  const root = datapack.writePack(worldFolder, version, functions, observe.tags(version));
+  const root = datapack.writePack(worldFolder, version, functions, observe.tags(version), SHIELD_PREDICATES);
   return { root: path.resolve(root), functions: manifest };
 }
 
-module.exports = { writeFacilityPack, sentinelAt };
+/** Whether a player already has each effect of the players' shield (facility.js shield()). */
+const SHIELD_PREDICATES = {
+  saturated: { condition: 'minecraft:entity_properties', entity: 'this', predicate: { effects: { 'minecraft:saturation': {} } } },
+  resistant: { condition: 'minecraft:entity_properties', entity: 'this', predicate: { effects: { 'minecraft:resistance': {} } } },
+};
+
+module.exports = { writeFacilityPack, sentinelAt, SHIELD_PREDICATES };

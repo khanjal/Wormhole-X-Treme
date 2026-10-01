@@ -17,9 +17,9 @@ const { ticks } = require('../lib/probe');
 const def = campus.chamber('m1');
 const O = campus.OVERWORLD;
 // On the inside of the cell's north wall (z 49), well clear of its door (x 0..1).
-const ROUND = { name: 'Round', dim: O, x: -20, y: 2, z: 50, facing: 'south', floorY: 0 };
+const ROUND = { name: 'Round', dim: O, x: -20, y: 1, z: 50, facing: 'south', floorY: 0 };
 // Where the one-per-world refusal is tried: the Annex pier's other face.
-const END_SPARE = { name: 'Spare', dim: campus.END, x: 1012, y: 62, z: 1018, facing: 'south', floorY: 60 };
+const END_SPARE = { name: 'Spare', dim: campus.END, x: 1012, y: 61, z: 1018, facing: 'south', floorY: 60 };
 // Player.sendBlockUpdate, which puts a banner back in front of a view, arrived in 1.20.1.
 const SEND_BLOCK_UPDATE = '1.20.1';
 

@@ -136,6 +136,18 @@ function penOf(kind) {
   return null;
 }
 
+/**
+ * The NBT that says which block a hanging entity (an item frame) occupies. Without it Paper logs
+ * "Block-attached entity at invalid position: null" as an ERROR (the summon still works). The
+ * server classes name one key each: TileX/Y/Z on 1.20.4, `block_pos` on 1.21.11 and 26.1.2;
+ * where between them it changed is not checked, so both go, each ignored where it is unknown.
+ * Either is refused unless near the entity's position as its NBT is read (a summon places it
+ * only after), so `Pos` goes with them.
+ */
+function hangingAt(x, y, z) {
+  return `Pos:[${x + 0.5}d,${y + 0.5}d,${z + 0.5}d],TileX:${x},TileY:${y},TileZ:${z},block_pos:[I;${x},${y},${z}]`;
+}
+
 class Menagerie {
   constructor(srv, version) {
     this.srv = srv;
@@ -144,11 +156,7 @@ class Menagerie {
 
   async must(command) {
     const r = await this.srv.run(command);
-    // Summoning a hanging entity logs "Block-attached entity at invalid position: null" as its
-    // NBT is read, before its position is set; the summon itself succeeds and says so.
-    const errors = r.lines.some((l) => /^Summoned new /.test(l))
-      ? r.errors.filter((l) => !/^Block-attached entity at invalid position: null$/.test(l)) : r.errors;
-    if (errors.length) throw new Error(`${command}: ${errors.join(' ')}`);
+    if (r.errors.length) throw new Error(`${command}: ${r.errors.join(' ')}`);
     return r;
   }
 
@@ -161,7 +169,8 @@ class Menagerie {
     const a = campus.MENAGERIE.armoury;
     await this.srv.run('kill @e[type=minecraft:glow_item_frame,tag=wx_decor]');
     for (const [i, id] of ['bow', 'crossbow', 'trident', 'spectral_arrow', 'firework_rocket', 'snowball'].entries()) {
-      await this.must(`summon minecraft:glow_item_frame ${a.x1 - 1} 1 ${a.z0 + 2 + i} {Facing:4b,Fixed:1b,Invulnerable:1b,Tags:["wx_decor"],Item:${itemNbt(this.version, { id })}}`);
+      const at = [a.x1 - 1, 1, a.z0 + 2 + i];
+      await this.must(`summon minecraft:glow_item_frame ${at.join(' ')} {${hangingAt(...at)},Facing:4b,Fixed:1b,Invulnerable:1b,Tags:["wx_decor"],Item:${itemNbt(this.version, { id })}}`);
     }
     for (const kind of [...MOUNTS, ...PETS]) {
       const at = penOf(kind);
@@ -222,5 +231,5 @@ class Menagerie {
 }
 
 module.exports = {
-  Menagerie, entityId, exists, offlineUuidInts, uuidNbt, itemArg, itemNbt, ARMOURY, MOUNTS, PETS, saddleNbt, penOf,
+  Menagerie, entityId, exists, offlineUuidInts, uuidNbt, itemArg, itemNbt, hangingAt, ARMOURY, MOUNTS, PETS, saddleNbt, penOf,
 };

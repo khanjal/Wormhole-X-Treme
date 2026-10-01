@@ -11,7 +11,9 @@ function decorate(out, w, version) {
   for (const [x, z] of [[993, 1005], [1007, 1005], [993, 1011], [1007, 1011]]) {
     bp.pillar(out, x, z, y, 3, { body: 'minecraft:purpur_pillar', cap: 'minecraft:end_rod' });
   }
-  out.fill(bp.box3(1010, y, 1017, 1014, y + 4, 1017), 'minecraft:end_stone_bricks');
+  // The mirror pier (banners at y + 1 on both faces), down through the platform: solid two blocks
+  // round each opening below as well as above.
+  out.fill(bp.box3(1010, y - 2, 1017, 1014, y + 4, 1017), 'minecraft:end_stone_bricks');
   out.cmd(bp.plaque(version, { id: 'observatory', wing: 'annex', at: { x: 1000.5, y: y + 5.5, z: 1008.5 }, text: 'THE OBSERVATORY', colour: 'light_purple', sub: 'the Annex · press the button to dial home' }));
 }
 

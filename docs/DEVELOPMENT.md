@@ -227,8 +227,9 @@ into a datapack function per wing and a reset per chamber, and refuses to build 
 parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
 its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
 adding a file to `chambers/` against the contract written at the top of `chambers/index.js`.
-So far `c0` (the calibration cell in Ops), `g1` (the Test Stand), `g2` (the Shape Gallery), the
-five ring chambers and the range tunnel, and the two beam chambers have them; the far gates
+So far `c0` (the calibration cell in Ops), the five gate chambers `g1` to `g5`, the five ring
+chambers and the range tunnel, the two beam chambers and the three mirror chambers have them; the
+far gates
 (Relay across the hall, Range in the nether, Annex in the End), the gallery's six gates and the
 transit routes are built once a session as fixtures, and the Menagerie is stocked. A fixture is
 permanent: a chamber's reset and cleanup leave it alone (`Facility.keepRings` spares the transit
@@ -315,16 +316,64 @@ checks a mirror survives an op's punch, `remove`, and the limit. `m3` shows a vi
 block put in the room after the capture is not drawn until `-capture`, and `-stamp` changes the
 banner. The facility runs with `mirror-per-world-limit 6` (two in the overworld, room for a
 chamber's own), put back at close. A mirror's first capture takes about 13 s at the default view
-depth; the chambers wait on `mirror debug` until it is in memory.
+depth; the chambers wait on `mirror debug` until it is in memory. Every mirror banner hangs at head
+height, feet + 1, as a player builds one (stage 5 moved them all down a block).
 
-There are two self-test profiles. The full one runs the whole matrix (315 checks counting
-resets, 368 with stage 4's mirrors and cross-world rows) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+Stage 5 is the deep gate work. `assets/Lab.shape` is a test shape, never shipped: the launcher
+copies it into the test server's `shapes/gate/`. It has the cells no shipped shape carries (`[C]`,
+`[S:C]`, `[RS]`), dials by sign, and frames in diamond, which no configured group claims, so the
+plugin derives a `Diamond` group from it at startup (`gate-material-groups-autodiscover`).
+`lib/gatebuild.js` builds a gate as a player does: Probe stands where `gate build <shape> [group]`
+puts the preview on the site, then `gate preview place`, or lays every block `gate preview needs`
+lists (with a wool scaffold where a block has nothing to go against), hangs a dial sign, presses
+the button and runs `gate complete`. With it G1's `built preview` and `built hand` are real, which
+makes the sign-dial shapes and Lab.shape buildable and their dials testable: the sign right-clicked
+on and left-clicked back, a lever by `[RD]`, and Lab.shape's sign turned by pulses on `[RS]`. Every
+G1 dial with chevrons is watched from Probe's client, and the chevrons must lock in the order of the
+shape's `:L#n` cells (G8): each wave's last turn to lit before the kawoosh, in order, all lit.
+
+`g3`, the Automation Bay, is a StandardSignDial gate built by preview with one peer, dialled by a
+lever, a button, a pressure plate, a detector rail, a line of repeaters and a comparator by its
+DHD; a lamp by the lever the plugin puts at `[RA]` must light while it is open and go out when it
+shuts. `timeout-shutdown 0` keeps it open until somebody goes through (a dropped signal changes
+nothing; the design's "the signal drop shuts it" is not what the plugin does or documents), and
+presses every 2 s hold it open past a 5 s shutdown and never past `max-open-seconds`. A command
+block runs each console form with `~` (`gate build`, `ring build`, `ring fire`, `mirror create`)
+and without (`gate dial`, `gate force`, `beam admin send`), judged by its `LastOutput` and the
+world. `g4`, the Build Bench, works through the preview actions one a run (layer, chevrons, dhd,
+material, iris, activate, share to Probe2, place, a preview on a standing gate's DHD that fills a
+knocked-out block, clear) and builds by hand, judged by what Probe is told, what `needs` lists and
+the block displays its client (and Probe2's) is shown. `g5`, the Iris Chamber, has two gates twenty
+apart, IrisA (Atlantis, a yellow glass iris) and IrisS (Standard, stone). Its checks are on the
+block-change packets a watcher is sent in the opening: closing and opening must come in the
+plugin's steps for each style (`lib/iris.js` works them out the way `IrisSweep` does), cell for
+cell, a step every `gate-iris-step-ticks`, merged to `max(2, gate-iris-sweep-max-ticks / step)`
+bands; on an open gate with its iris shut, the front is shown the iris in the plane and the horizon
+(water, or ice behind a glass iris) a block behind it, behind is shown the water in the plane and
+the iris a block toward the DHD, and the side the iris alone; an arrow at a shut iris is taken
+away; a block put into the shut opening is refused.
+
+The Facility Logbook (`lib/logbook.js`) is a written book every player is given on joining: page 1
+its contents, each entry turning to its page; Your runs, Bot runs (each run PASS, FAIL or KNOWN,
+the detail in its hover), a page per wing with a Go for the wing and each chamber (`/trigger`, so a
+non-op can), Transit, and how to use the facility. A written book cannot change, so after every run
+each holder's copy is put back in the slot they keep it in, never added to and never dropped. A
+player who no longer holds one is not given another unasked: `!book` and the console's [Logbook]
+replace the copy they hold, or give one in the first free slot if they hold none (or say there is
+no room). Each section runs to as many pages as it needs, at most 14 lines of about 18 characters
+to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
+`written_book_content` component from it, and SNBT pages with snake_case click keys from 1.21.5
+(`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
+
+There are two self-test profiles. The full one runs the whole matrix (635 checks on one server
+at stage 5, 508 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
 and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
 banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
-and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
+a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
+share, three G5 iris cells, and one transit route per feature, in about 15 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
 them all, and if the launcher is killed outright its children and their servers go with it.
@@ -337,11 +386,11 @@ not by count: every self-test writes each cell's seconds to
 `.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
 the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
 resets, empty, settings and faults sections run on every shard, since they guard that
-shard's own world, so a sharded summary has more checks than a single run (722 at N = 4, with
-the checks added in stage 4.5's review, which took 18.1 minutes); transit, plates, boards, players and console run once, on the first shard. On this machine
+shard's own world, so a sharded summary has more checks than a single run (846 at N = 4 with
+stage 5's chambers and the Logbook, which took 20.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
 CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
-is the one to use here. `--quick` on two versions at once takes about 13 minutes.
+is the one to use here. `--quick` on two versions at once takes about 15 minutes (15.5 at stage 5, peak 3.7 GB).
 
 A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
 close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
@@ -371,7 +420,9 @@ not written when two captures finish at once (`MirrorCapture.save` races on crea
 fixed on main). It is known only with that cause: the stack trace printed after the line must be
 the "could not create ...captures" from `MirrorCapture.save`, and the folder must be there now; the
 same words with another cause (a full disk, a folder that cannot be made) are a fault. `--fixed 540`
-counts it as a fault as well.
+counts it as a fault as well. A jar built from main since #540 (97741c8e) cannot print that line
+at all, since the losing capture now finds the folder made and carries on, so the known entry only
+matters for an older jar; give such a jar's run `--fixed 540`, and a return of the race is a fault.
 
 `--cells <names>` runs only the matching matrix cells: names separated by `|`, each matched
 anywhere in a cell's name, or at its start with `^` and its end with `$` (`--cells '^491'`,
@@ -484,16 +535,34 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
   an unknown `rg flag`) from another thread, after the command's fence: the desks wait for the
   answer line in the log instead.
 
-Known plugin failures (stage 2), each expected by name in `matrix.js`:
+Known plugin failures, each expected by name in `matrix.js` (stage 5's first):
+
+- Not yet filed: the build guide takes a lenient `[S:C]` chevron for a strict `[C]`. `needs` asks
+  for the chevron block there and the guide marks the frame block wrong (`BuildGuide.accepts`,
+  CHEVRON), though detection takes either (`StargateHelper.cellMatches`): a gate built with the
+  frame block there completes, and the guide never says it is built (`g4 lenient`).
+- Not yet filed: the player who pulls an iris lever never sees the sweep. Their arm swing near a
+  drawn iris redraws it whole a tick later (`onPlayerAnimation`, `redrawPortalVisualsSoon`,
+  `sendIrisTo`, which does not ask `StargateIrisAnimator.isSweeping`); another player sees the
+  steps (`g5 the puller watches the sweep`).
+- Not yet filed: a detector rail by the DHD never dials on Paper 1.21.11. Paper raises its
+  `BlockRedstoneEvent` with the old current 15 as well as the new (`DetectorRailBlock.checkPressed`
+  passes the new state twice; 1.20.4 and 26.1.2 report 0 then 15), and the listener takes only a
+  rise from 0 (`isActionableRisingEdge`), so the rail the plugin documents as a trigger is dropped
+  there (`g3 detector rail`).
+
+Stage 2's (#536 and #537 are fixed on main by #542 and #543, so their cells now expect a pass:
+the self-test is set for a jar built from current main, and an older jar fails them):
 
 - #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
   the far end and does not copy the arrow's potion. The arrow is checked to leave the bow as a
   tipped arrow of slowness (`item: tipped_arrow` with `potion_contents` slowness on 1.21.11) and
   arrives as `item: arrow` with none.
-- Not yet filed, the same family: a Loyalty trident comes out of the far gate as a plain trident
-  (its `item` has no enchantments; only its `weapon` still has Loyalty III), sticks where it lands
-  and never comes back. Thrown in survival away from any gate, the same trident is back in about a
-  second. (While Probe threw in creative, "it came back" passed without it.)
+- #536 too: a Loyalty trident comes out of the far gate as a plain trident (its `item` has no
+  enchantments; only its `weapon` still has Loyalty III), sticks where it lands and never comes
+  back. Thrown in survival away from any gate, the same trident is back in about a second. (While
+  Probe threw in creative, "it came back" passed without it.) #542 brings it back on Paper; on
+  Spigot, which has no loyalty API, it keeps its enchantments but cannot return.
 - #537: an item tossed (Q) or dispensed into an upright opening mostly flies through its one block
   between two of the plugin's entity sweeps (every 20 ticks) and lands two to four blocks behind the
   gate. With the harness checked first (all five left Probe's hand or the dispenser, which is empty
@@ -508,7 +577,7 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
   at the iris, is let about two blocks past the face before it is put back, on main and on the
   fix alike. The Horizontal control (`491-H`: a cart rolled onto a flat gate's shut iris, which is
   real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
-  expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
+  expects that cell to fail and says why.
 
 What stage 4 found (none of it a plugin fault):
 
@@ -558,9 +627,10 @@ What stage 2 found about the harness itself:
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
 the transit routes, every plate, the Ops boards as Probe's client sees them, the matrix with a
 reset after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
-tester's path through the console, every reset, that the plugin holds nothing the facility did
-not make (its fixture gates, the transit ring pair and beam destinations, no beam places, no
-mirrors), that each setting any cell changed is back, and that the plugin logged no fault.
+tester's path through the console, the Logbook, every reset, that the plugin holds nothing the
+facility did not make (its fixture gates, the transit ring pair and beam destinations, no beam
+places, no mirrors), that each setting any cell changed is back, and that the plugin logged no
+fault.
 Known-benign plugin lines are listed one by one in `lib/server.js`.
 
 The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
