@@ -1,0 +1,37 @@
+# The Wormhole Research Facility's test shape (scripts/facility/assets). Never shipped: the
+# launcher copies it into the test server's plugins/WormholeXTreme/shapes/gate/ before the
+# server starts. It carries the cells no shipped shape has:
+#   [C]    a strict chevron: must be built from the chevron material (a redstone lamp)
+#   [S:C]  a lenient chevron: the chevron material or the frame material
+#   [RS]   a redstone input that turns the dial sign on one destination per pulse
+# and it frames in diamond, a material no configured group claims, so the plugin derives a
+# material group from it at startup (gate-material-groups-autodiscover): "Diamond".
+Name=Lab
+Version=2
+
+GateShape=
+
+Layer#1=
+[I][S][C:L#4][S][I]
+[S:L#3][P][P][P][S:L#5]
+[S:C][P][P][P][S:C]
+[S:L#2][P][P][P][S:L#6]
+[I][S:L#1][S:EP][S:L#7][I]
+
+Layer#2=
+[I][I][I][I][I]
+[I][I:W#1][I:W#1][I:W#1][I]
+[I][I:W#1][I:W#1][I:W#1][I]
+[RS][I:W#1][I:W#1][I:W#1][RD]
+[S][I][I:EM][S:D][S:A]
+
+WOOSH_TICKS = 3;
+LIGHT_TICKS = 4;
+
+STARGATE_MATERIAL=DIAMOND_BLOCK
+CHEVRON_MATERIAL=REDSTONE_LAMP
+ACTIVE_MATERIAL=SEA_LANTERN
+IRIS_MATERIAL=AMETHYST_BLOCK
+PORTAL_MATERIAL=WATER
+
+REDSTONE_ACTIVATED=TRUE

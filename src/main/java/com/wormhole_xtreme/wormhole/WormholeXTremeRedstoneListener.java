@@ -1,14 +1,23 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
@@ -49,6 +58,9 @@ class WormholeXTremeRedstoneListener implements Listener
     private static final Map<String, Long> lastTrigger =
         new ConcurrentHashMap<String, Long>();
 
+    /** Detector rails seen pressed and not yet released, by world and position. */
+    private static final Set<String> pressedRails = ConcurrentHashMap.newKeySet();
+
     /**
      * Whether a trigger arriving now is a repeat of one already acted on.
      *
@@ -81,6 +93,104 @@ class WormholeXTremeRedstoneListener implements Listener
     static void clearTriggerHistory()
     {
         lastTrigger.clear();
+        pressedRails.clear();
+    }
+
+    /**
+     * Whether a change of current is a rising edge.
+     *
+     * <p>A detector rail is also read by whether it has been seen pressed: Paper 1.21.11 reports
+     * a press as 15 to 15, with both currents taken from the new state, and a release as 0 to 0.
+     * A rail not yet seen pressed going high is a press whatever its old current says, and one
+     * already seen pressed is not pressed again until it has been seen released.
+     *
+     * @param block
+     *            the block whose current changed
+     * @param oldCurrent
+     *            the current reported before
+     * @param newCurrent
+     *            the current reported after
+     * @return true if this is a rising edge
+     */
+    static boolean isRisingEdge(final Block block, final int oldCurrent, final int newCurrent)
+    {
+        final boolean reportedRise = (oldCurrent == 0) && (newCurrent > 0);
+        // A rail only ever reports 0 or 15, so any other current is answered without a block lookup.
+        if (!isRailCurrent(oldCurrent) || !isRailCurrent(newCurrent) || (block == null)
+            || (block.getType() != Material.DETECTOR_RAIL))
+        {
+            return reportedRise;
+        }
+        final String rail = railKey(block);
+        if (newCurrent <= 0)
+        {
+            pressedRails.remove(rail);
+            return false;
+        }
+        return pressedRails.add(rail) || reportedRise;
+    }
+
+    private static boolean isRailCurrent(final int current)
+    {
+        return (current == 0) || (current == 15);
+    }
+
+    /**
+     * Forgets a detector rail taken away while pressed, so one put back there is pressed afresh.
+     *
+     * <p>Broken, placed, blown up or pushed; a rail that drops because its support went, or that
+     * WorldEdit replaces, raises none of these and is remembered until it is next released.
+     *
+     * @param block
+     *            the block broken, placed, blown up or moved
+     */
+    static void forgetRail(final Block block)
+    {
+        if ((block != null) && (block.getType() == Material.DETECTOR_RAIL))
+        {
+            pressedRails.remove(railKey(block));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockBreak(final BlockBreakEvent event)
+    {
+        forgetRail(event.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPlace(final BlockPlaceEvent event)
+    {
+        forgetRail(event.getBlockPlaced());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityExplode(final EntityExplodeEvent event)
+    {
+        event.blockList().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockExplode(final BlockExplodeEvent event)
+    {
+        event.blockList().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonExtend(final BlockPistonExtendEvent event)
+    {
+        event.getBlocks().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonRetract(final BlockPistonRetractEvent event)
+    {
+        event.getBlocks().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    private static String railKey(final Block block)
+    {
+        return block.getWorld().getName() + ',' + block.getX() + ',' + block.getY() + ',' + block.getZ();
     }
 
     /**
@@ -124,20 +234,14 @@ class WormholeXTremeRedstoneListener implements Listener
      */
     private static boolean isActionableRisingEdge(final BlockRedstoneEvent event)
     {
-        if (event == null)
-        {
-            return false;
-        }
         // A gate opening switches its own levers, and Bukkit reports those writes back here
         // as ordinary redstone changes. They are not a player's circuit and must not act as
         // one -- doing so dialled a sign gate a second time in the middle of its first dial.
-        if (GateRedstoneWrite.inProgress())
+        if ((event == null) || GateRedstoneWrite.inProgress())
         {
             return false;
         }
-        // A rising edge is by definition a change, so this subsumes the old "did anything
-        // actually change" check rather than dropping it.
-        return (event.getOldCurrent() == 0) && (event.getNewCurrent() > 0);
+        return isRisingEdge(event.getBlock(), event.getOldCurrent(), event.getNewCurrent());
     }
 
     /**

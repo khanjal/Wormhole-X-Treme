@@ -13,6 +13,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
 
+### Stargates
+
+**Fixed**
+
+- **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
+  between two entity sweeps and landed behind the ring; a shut iris destroys them as before.
+- **The build guide takes the frame block in an `[S:C]` chevron, as detection does.** A gate built
+  that way was detected but never shown as built, `gate preview needs` named only the chevron
+  block, and `gate regen -fill` refused to fill a gate with one.
+- **The player who pulls an iris lever sees the iris sweep in, as everyone else does.** Their own
+  arm swing redrew the whole iris a tick later, over the sweep.
+- **A detector rail wired to a gate dials it on Paper 1.21.11.** Paper reports a rail's press as
+  a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
@@ -22,6 +36,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Fixed**
 
+- **A tipped arrow keeps its effect through a gate, and on Paper a Loyalty trident comes back.** The
+  arrow arrived plain, and the trident unenchanted, stuck at the far side. A spectral arrow keeps how long
+  it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
+  Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
+  flight over at the far gate.
 - **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
   to roll half into the iris before it was put back, still with its front inside.
 
@@ -31,6 +50,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A mirror in a wall more than a block wide keeps its wide far part between wall readings.**
   For four seconds in five it fell back to a half-block one, and `mirror debug` said "wall 0".
+- **Two mirrors made at once on a new server both keep their view after a restart.** One of them
+  logged "Could not write mirror capture", and after a restart showed its banner until the view
+  was taken again.
+
+### Internals
+
+- **A test fails if Spigot-only API is used outside the classes that isolate it.** CraftBukkit
+  has no `spigot()`, `net.md_5` or `org.spigotmc`, and no CI job builds against it.
 
 ## 1.8.1 (2026-09-28)
 
