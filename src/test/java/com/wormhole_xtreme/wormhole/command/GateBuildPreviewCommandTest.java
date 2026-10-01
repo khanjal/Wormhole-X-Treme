@@ -45,6 +45,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
@@ -629,5 +630,21 @@ class GateBuildPreviewCommandTest
             run("gate", "preview", "place");
             previews.verify(() -> GatePreviews.place(player, true));
         }
+    }
+
+    /** A preview a region refuses to have built is answered with the region's reason, and nothing placed. */
+    @Test
+    void placeRefusedByARegionSaysSoAndThatNothingWasPlaced()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        when(player.hasPermission("wormhole.build.preview.place")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.place(eq(player), anyBoolean())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_ALLOWED_HERE, List.of(), null, null));
+
+            run("gate", "preview", "place");
+        }
+        verify(player).sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
     }
 }

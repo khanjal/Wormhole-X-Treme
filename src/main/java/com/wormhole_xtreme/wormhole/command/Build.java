@@ -26,6 +26,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.GateInteractionHandler;
 import com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
@@ -391,6 +392,7 @@ public class Build implements CommandExecutor
                 + "would not be found. Nothing placed.");
             case NOT_LOADED -> player.sendMessage(error + "Part of it is in an unloaded chunk. Move closer. Nothing placed.");
             case OUTSIDE_BORDER -> player.sendMessage(error + "Part of it is outside the world border. Nothing placed.");
+            case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
             case IN_THE_WAY -> player.sendMessage(error + "Nothing placed. In the way: "
                 + bad(String.join(", ", placed.inTheWay())) + ". " + hint(GUIDE) + " marks them.");
             case NOT_FOUND -> player.sendMessage(error + "Placed, but no gate was found in it. " + hint(GUIDE)

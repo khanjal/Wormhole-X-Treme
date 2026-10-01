@@ -71,6 +71,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -3049,5 +3050,36 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
+
+    /**
+     * A preview with one block in a region refusing its owner gate building places nothing at all.
+     *
+     * <p>Asked before the first block goes down: a frame half-built up to a region's edge is what the
+     * region owner denied, and the owner of the preview could not take it back down there either.
+     */
+    @Test
+    void aRegionRefusingOneBlockOfThePreviewPlacesNothing()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        final Cell denied = cells.get(cells.size() / 2);
+        RegionFlags.setCheckForTest((who, where, action) -> (where.getBlockX() != denied.x())
+            || (where.getBlockY() != denied.y()) || (where.getBlockZ() != denied.z()));
+        try
+        {
+            assertEquals(GatePreviews.Outcome.NOT_ALLOWED_HERE, GatePreviews.place(owner).outcome());
+            assertTrue(written.isEmpty(), "nothing may be placed once a region refuses");
+            assertTrue(detected.isEmpty());
+
+            RegionFlags.setCheckForTest((who, where, action) -> true);
+            assertEquals(GatePreviews.Outcome.PLACED, GatePreviews.place(owner).outcome());
+        }
+        finally
+        {
+            RegionFlags.setCheckForTest(null);
+        }
     }
 }
