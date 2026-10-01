@@ -366,15 +366,17 @@ to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
 tested version takes that path), and SNBT pages with snake_case click keys from 1.21.5
 (`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
 
-There are two self-test profiles. The full one runs the whole matrix (635 checks on one server
-at stage 5, 508 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+There are two self-test profiles. The full one runs the whole matrix (over 700 checks on one
+server at stage 6, 600 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
 and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
 banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
 a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
-share, three G5 iris cells, and one transit route per feature, in about 15 minutes. It is the cross-version check (text formats, entity ids, boats, the
+share, three G5 iris cells, seven of S1's (the setting audit, bad values, gate and beam sounds,
+the permission fallback and nodes, a ring's defaults), and one transit route per feature, in about
+17 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
 them all, and if the launcher is killed outright its children and their servers go with it.
@@ -387,11 +389,11 @@ not by count: every self-test writes each cell's seconds to
 `.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
 the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
 resets, empty, settings and faults sections run on every shard, since they guard that
-shard's own world, so a sharded summary has more checks than a single run (846 at N = 4 with
-stage 5's chambers and the Logbook, which took 20.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
+shard's own world, so a sharded summary has more checks than a single run (981 at N = 4 with
+stage 6's Systems console, which took 24.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
 CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
-is the one to use here. `--quick` on two versions at once takes about 15 minutes (15.5 at stage 5, peak 3.7 GB).
+is the one to use here. `--quick` on two versions at once takes about 17 minutes (17.0 at stage 6, peak 3.7 GB).
 
 A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
 close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
