@@ -34,6 +34,16 @@
 //   --op <names>         op these players (comma-separated) once the server is up
 //   --tied              (set by --versions and --shards for their children) stop when stdin
 //                        closes
+//   --viewer             serve prismarine-viewer on Probe at http://127.0.0.1:<3007 + port - 25590>/
+//                        (orbit) and .../first/ (Probe's eyes); not on 26.x, which it cannot draw
+//   --viewer-port <n>    the viewer's web port instead
+//   --shots [names|all]  fly Probe to campus.SHOTS's vantage points and save a PNG of each to
+//                        .local-server/shots/<version>/<name>.png (needs Chrome or Edge, or
+//                        WX_BROWSER); then the self-test with --selftest, the hold with --viewer,
+//                        else the end
+//   --schematics <dir>   paste the WorldEdit schematics campus.SCHEMATICS and <dir>/placements.json
+//                        place, from <dir>, after the build; each box checked by the decoration
+//                        guardrail first (lib/schematics.js). Needs --with worldedit
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
@@ -110,10 +120,20 @@ function parseArgs(argv) {
       const bad = a.op.find((p) => !/^\w{1,16}$/.test(p));
       if (bad !== undefined) throw new Error(`--op takes player names, not ${bad}`);
     }
+    else if (x === '--viewer') a.viewer = true;
+    else if (x === '--viewer-port') a.viewerPort = whole('--viewer-port', value(i++), 1024);
+    else if (x === '--shots') {
+      // The list is optional: a bare --shots (or one followed by an option or the version) is all.
+      const next = argv[i + 1];
+      a.shots = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : 'all';
+      require('./lib/shots').select(a.shots); // a name it does not know is refused here
+    }
+    else if (x === '--schematics') a.schematics = path.resolve(value(i++));
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
   if (a.versions && !a.versions.length) throw new Error('--versions names no version');
+  if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics)) throw new Error('--viewer, --shots and --schematics take one version and one server');
   a.version = a.version || DEFAULT_VERSION;
   return a;
 }
@@ -349,6 +369,22 @@ async function main() {
   const java = args.java || companions.findJavaAtLeast(need.major);
   if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
   const javaMajor = server.checkJava(java, version, need.major, need.why.join('; '));
+  // The viewer and the schematics are refused here, before a server is started for nothing.
+  const viewer = args.viewer || args.shots ? require('./lib/viewer') : null;
+  if (viewer) viewer.assetVersion(version);
+  const webPort = viewer ? args.viewerPort || viewer.viewerPort(args.port) : null;
+  if (args.shots && !require('./lib/shots').findBrowser()) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
+  const schematics = require('./lib/schematics');
+  let placed = [];
+  if (args.schematics) {
+    if (!fs.existsSync(args.schematics)) throw new Error(`--schematics ${args.schematics} is not there`);
+    const list = schematics.placements(args.schematics);
+    if (list.length && !(withNames || []).includes('worldedit')) throw new Error('--schematics pastes with WorldEdit: add --with worldedit');
+    const checked = await schematics.check(list, version);
+    if (checked.problems.length) throw new Error(`the decoration guardrail refuses ${checked.problems.length === 1 ? 'a schematic' : 'schematics'}:\n  ${checked.problems.join('\n  ')}`);
+    placed = checked.placed;
+    console.log(`schematics: ${placed.length} to paste from ${args.schematics}, each clear of the guardrail`);
+  }
   // One folder per version and port, so runs side by side (--versions, or two terminals) never
   // share a world: a fresh run deletes the worlds of the folder it uses.
   const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
@@ -372,6 +408,7 @@ async function main() {
   if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
   // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
   shapes.installTestShapes(folder);
+  if (placed.length) schematics.install(folder, placed);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 
@@ -387,8 +424,10 @@ async function main() {
   // running, so no server is left holding the port and the world folder.
   let holding = null;
   let stopping = false;
+  let web = null;
   const shutDown = async () => {
     stopping = true;
+    if (web) await web.close().catch(() => {});
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
     await srv.stop();
@@ -432,15 +471,43 @@ async function main() {
     const total = Object.values(chunks).reduce((a, b) => a + b, 0);
     console.log(`generation: ${report.length} wings, ${blocks} blocks in ${buildMs} ms after ${fac.loadMs} ms of chunk loading; `
       + `forceloaded ${total} chunks (${Object.entries(chunks).map(([d, n]) => `${d.replace('minecraft:', '')} ${n}`).join(', ')})`);
+    if (placed.length) {
+      for (const r of await schematics.paste(srv, placed)) {
+        console.log(`  ${r.ok ? 'pasted' : 'PASTE FAILED'} ${r.file}: ${r.detail}`);
+        if (!r.ok) setup.push(`schematic ${r.file}: ${r.detail}`);
+      }
+    }
     await fac.connectProbe();
+    if (viewer) {
+      web = await viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log });
+      if (args.viewer) console.log(`  viewer (prismarine-viewer ${viewer.PV_VERSION}, ${web.assets} assets): ${web.url} orbits Probe, ${web.url}first/ is through its eyes`);
+      // A restart (a Map or Region Desk cell) brings a new Probe: serve that one, on the same port.
+      fac.afterRestart.push(() => {
+        const old = web;
+        if (!old) return; // still coming back from the last restart
+        web = null;
+        old.close().then(() => viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log })).then((w) => { web = w; })
+          .catch((e) => console.error(`facility: the viewer did not come back after the restart: ${e.message}`));
+      });
+    }
     await fac.openConsole();
     const tf = Date.now();
     const fixtures = await fac.fixtures();
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
     console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
+    let shotsBad = 0;
+    if (args.shots) {
+      const dir = path.join(LOCAL, 'shots', version);
+      const shots = await require('./lib/shots').takeShots(fac, web, require('./lib/shots').select(args.shots), dir);
+      shotsBad = shots.filter((x) => !x.ok).length;
+      console.log(`\nshots on ${version}: ${shots.length - shotsBad} of ${shots.length} drawn, in ${dir}`);
+      for (const x of shots) if (x.file) console.log(`  ${x.file}`);
+    }
 
-    if (args.selftest) {
+    if (args.shots && !args.selftest && !args.viewer) {
+      exit = shotsBad || setup.length || stray.length ? 1 : 0;
+    } else if (args.selftest) {
       const ts = Date.now();
       let shard = null;
       if (args.shard) {
@@ -480,6 +547,7 @@ async function main() {
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
+      if (args.viewer) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;
