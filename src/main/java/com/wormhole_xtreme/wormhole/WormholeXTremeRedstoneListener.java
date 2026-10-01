@@ -13,8 +13,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
@@ -112,7 +116,9 @@ class WormholeXTremeRedstoneListener implements Listener
     static boolean isRisingEdge(final Block block, final int oldCurrent, final int newCurrent)
     {
         final boolean reportedRise = (oldCurrent == 0) && (newCurrent > 0);
-        if ((block == null) || (block.getType() != Material.DETECTOR_RAIL))
+        // A rail only ever reports 0 or 15, so any other current is answered without a block lookup.
+        if (!isRailCurrent(oldCurrent) || !isRailCurrent(newCurrent) || (block == null)
+            || (block.getType() != Material.DETECTOR_RAIL))
         {
             return reportedRise;
         }
@@ -125,11 +131,19 @@ class WormholeXTremeRedstoneListener implements Listener
         return pressedRails.add(rail) || reportedRise;
     }
 
+    private static boolean isRailCurrent(final int current)
+    {
+        return (current == 0) || (current == 15);
+    }
+
     /**
      * Forgets a detector rail taken away while pressed, so one put back there is pressed afresh.
      *
+     * <p>Broken, placed, blown up or pushed; a rail that drops because its support went, or that
+     * WorldEdit replaces, raises none of these and is remembered until it is next released.
+     *
      * @param block
-     *            the block broken or placed
+     *            the block broken, placed, blown up or moved
      */
     static void forgetRail(final Block block)
     {
@@ -149,6 +163,30 @@ class WormholeXTremeRedstoneListener implements Listener
     public void onBlockPlace(final BlockPlaceEvent event)
     {
         forgetRail(event.getBlockPlaced());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityExplode(final EntityExplodeEvent event)
+    {
+        event.blockList().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockExplode(final BlockExplodeEvent event)
+    {
+        event.blockList().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonExtend(final BlockPistonExtendEvent event)
+    {
+        event.getBlocks().forEach(WormholeXTremeRedstoneListener::forgetRail);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonRetract(final BlockPistonRetractEvent event)
+    {
+        event.getBlocks().forEach(WormholeXTremeRedstoneListener::forgetRail);
     }
 
     private static String railKey(final Block block)
@@ -199,16 +237,14 @@ class WormholeXTremeRedstoneListener implements Listener
      */
     private static boolean isActionableRisingEdge(final BlockRedstoneEvent event)
     {
-        if (event == null)
-        {
-            return false;
-        }
-        // Asked first, so a rail's press or release is seen even inside a gate's own write.
-        final boolean rising = isRisingEdge(event.getBlock(), event.getOldCurrent(), event.getNewCurrent());
         // A gate opening switches its own levers, and Bukkit reports those writes back here
         // as ordinary redstone changes. They are not a player's circuit and must not act as
         // one -- doing so dialled a sign gate a second time in the middle of its first dial.
-        return rising && !GateRedstoneWrite.inProgress();
+        if ((event == null) || GateRedstoneWrite.inProgress())
+        {
+            return false;
+        }
+        return isRisingEdge(event.getBlock(), event.getOldCurrent(), event.getNewCurrent());
     }
 
     /**

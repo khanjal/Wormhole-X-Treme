@@ -4,6 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -13,8 +16,12 @@ import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -368,6 +375,67 @@ class WormholeXTremeRedstoneListenerTest
         new WormholeXTremeRedstoneListener().onBlockPlace(placed);
 
         assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again once placed");
+    }
+
+    /**
+     * A rail blown up while pressed, by a creeper or by a bed, is pressed afresh once replaced.
+     *
+     * <p>Mocked: EntityExplodeEvent's constructor is not the same across the supported versions.
+     */
+    @Test
+    void aRailBlownUpWhilePressedIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final EntityExplodeEvent creeper = mock(EntityExplodeEvent.class);
+        when(creeper.blockList()).thenReturn(new ArrayList<>(List.of(rail)));
+
+        new WormholeXTremeRedstoneListener().onEntityExplode(creeper);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the creeper");
+        final BlockExplodeEvent bed = mock(BlockExplodeEvent.class);
+        when(bed.blockList()).thenReturn(new ArrayList<>(List.of(rail)));
+
+        new WormholeXTremeRedstoneListener().onBlockExplode(bed);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the bed");
+    }
+
+    /** A rail pushed or pulled away by a piston while pressed is pressed afresh where it stood. */
+    @Test
+    void aRailMovedByAPistonWhilePressedIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final BlockPistonExtendEvent push = mock(BlockPistonExtendEvent.class);
+        when(push.getBlocks()).thenReturn(List.of(rail));
+
+        new WormholeXTremeRedstoneListener().onPistonExtend(push);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the push");
+        final BlockPistonRetractEvent pull = mock(BlockPistonRetractEvent.class);
+        when(pull.getBlocks()).thenReturn(List.of(rail));
+
+        new WormholeXTremeRedstoneListener().onPistonRetract(pull);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the pull");
+    }
+
+    /**
+     * A current no rail reports is answered without reading the block.
+     *
+     * <p>Every dust block along every circuit raises this event, so the block lookup the rail rule
+     * needs is kept to the 0 and 15 a rail can report.
+     */
+    @Test
+    void dustFallingFromFifteenToFourteenNeverReadsTheBlock()
+    {
+        final Block dust = mock(Block.class);
+
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 15, 14));
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(dust, 0, 14), "a rise to 14 is still a rise");
+
+        verify(dust, never()).getType();
     }
 
     /** Breaking anything else beside a pressed rail leaves the rail remembered. */
