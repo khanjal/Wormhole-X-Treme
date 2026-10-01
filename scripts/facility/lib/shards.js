@@ -20,6 +20,29 @@ function labelOf(id, cell) {
   return cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
 }
 
+/**
+ * What --cells selects: names separated by |, each matched anywhere in a cell's label, or at its
+ * start with a leading ^ and its end with a trailing $. A plain matcher, not a regular expression,
+ * so nothing typed on the command line becomes one.
+ */
+function cellMatcher(spec) {
+  const parts = String(spec).split('|').map((p) => p.trim()).filter(Boolean).map((p) => {
+    const start = p.startsWith('^');
+    const end = p.endsWith('$') && p.length > (start ? 1 : 0);
+    const text = p.slice(start ? 1 : 0, end ? -1 : undefined);
+    return { start, end, text };
+  });
+  if (parts.length === 0 || parts.some((p) => p.text === '')) throw new Error(`no cell names in "${spec}"`);
+  return {
+    test(label) {
+      return parts.some(({ start, end, text }) => (start && end ? label === text
+        : start ? label.startsWith(text)
+          : end ? label.endsWith(text)
+            : label.includes(text)));
+    },
+  };
+}
+
 /** The labels of the matrix cells a run would take, in matrix order, with --quick and --cells applied. */
 function labels({ quick = false, only = null } = {}) {
   const out = [];
@@ -74,4 +97,4 @@ function plan(names, times, n) {
   };
 }
 
-module.exports = { labelOf, labels, loadTimes, saveTimes, plan, DEFAULTS };
+module.exports = { labelOf, labels, cellMatcher, loadTimes, saveTimes, plan, DEFAULTS };

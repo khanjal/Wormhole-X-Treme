@@ -46,7 +46,7 @@ module.exports = {
     const depth = Number(o.depth);
     if (o['max height'] === '30' && depth > 30) {
       const text = `Those two rings are ${depth} blocks apart in height, and rings reach 30.`;
-      return trip.checks(ctx, o, { refusal: new RegExp(text.replace(/\./g, '\\.')), label: text });
+      return trip.checks(ctx, o, { refusal: new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), label: text });
     }
     return trip.checks(ctx, { ...o, timing: 'default' }).filter((x) => !/recharging|ring list/.test(x.name));
   },
