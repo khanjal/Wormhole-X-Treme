@@ -380,6 +380,110 @@ expected to fail by the name of its failing check and is listed at the end of th
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
 expects those cells to pass instead.
 
+#### Companion plugins (`--with`)
+
+`--with <list>` installs companion plugins beside Wormhole: `viaversion`, `viabackwards`,
+`dynmap`, `worldedit`, `worldguard`, `luckperms`, `vault`, or the sets `via`, `regions`
+(WorldEdit and WorldGuard) and `permissions` (LuckPerms and Vault); what one needs comes with it.
+Each is pinned by version and SHA-256 in `scripts/facility/companions.json`, per Minecraft
+version. The launcher reads the plugin cache first (`--plugin-cache <dir>`, else
+`WX_PLUGIN_CACHE`, else the nearest `.wx-plugins` folder beside the repository or a folder above
+it: its `<version>` folder, then `any`), then what an earlier run downloaded
+(`.local-server/companions/`), and only then downloads from the pinned official source: Modrinth,
+GitHub releases, or for Dynmap 3.8 the Dynmap project's own build server (Modrinth has 3.8 only for
+Forge and Fabric; SpigotMC is never used, since its downloads are not scriptable). A cached jar
+under the pinned name that is not the pinned build is refused, not replaced. Each run prints every
+companion's file, SHA-256, Java and where it came from, and records what it installed in
+`plugins/.wx-companions.json`; a run without a companion takes out the jar an earlier run put
+there (and never one it did not), and a fresh run also clears the data folders of the ones it
+manages. A jar of the same name already in `plugins/` that no run installed and that is not the
+pinned build is somebody's own: the run is refused rather than overwrite it (one byte for byte the
+pinned build is adopted, and taken out by a later run without it). Only bare names in
+the record are acted on, so an edited record cannot reach outside `plugins/`. A companion that cannot run on a version is refused by name before the server starts:
+no Dynmap build supports 26.x (its newest version helper is 1.21.11), so Dynmap runs on 1.20.4
+(3.7-beta-8) and 1.21.11 (3.8).
+
+The JDK is the highest any jar needs, read from the newest class file in each (not the main
+class: WorldEdit 7.4.5's main class is Java 21 and most of the rest Java 25, and WorldGuard 7.0.17,
+Java 21 itself, needs it), Paper's own floor included. On Java 21, Paper refuses WorldEdit 7.4.5
+and Wormhole only says WorldGuard is not installed; the facility counts a companion that failed to
+load as a fault. Wormhole's switch for each integration (`worldguard-enabled`, `dynmap-enabled`)
+is written into its `config.yml` before the start, since both are read only at enable, keeping the
+file's line endings. The value it replaced is kept in the record, and a later run without that
+companion puts it back, so a `--keep-world` run without `--with` is not left with an integration
+switched on. The install owns these two switches, not the settings journal: a cell that changed one
+and was killed before putting it back leaves it journalled, and the next start takes it out of the
+journal (as the value to go back to) before `recover()` could turn it against what is installed.
+`npm test --prefix scripts/facility` runs those rules without a server.
+
+Dynmap's web map gets its own port, `8123 + (port - 25590)`, on 127.0.0.1 only, written into its
+`configuration.txt` (from the jar's own template on a fresh run) and printed; the setup fails if
+Dynmap does not say its web server started there and answer, and a failed bind is a fault. A hand
+lab started by other means keeps its own configuration. `--op <names>` ops testers once the
+server is up.
+
+`scripts/facility/lab.ps1` opens a lab in its own window from a fresh clone (it installs the Node
+modules the first time): 26.1.2 by default, its world kept unless `-Fresh`, with `-Version`,
+`-Port`, `-Plugin <jar>`, `-Op`, `-With` and `-PluginCache`. `lab.sh` does the same in the current
+terminal (`-v -P -p -o -w -c -f`).
+
+Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
+companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
+companion named is installed) or `without` (a paired run: only with `--with`, and none of those
+installed), so a self-test without `--with` runs none of them. Two runs cover them all on 1.21.11:
+
+```bash
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with dynmap --cells "^map |^regions |^perms "
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with regions,permissions --cells "^map |^regions |^perms "
+```
+
+- The **Map Desk** (#236) reads Wormhole's Dynmap markers back with Dynmap's own console commands
+  (`dmarker listsets`, `list`, `listareas`, `listlines`, `getdesc`; `lib/dynmap.js`), waiting up to
+  8 s after each change: a gate's point, area and popup; a dial (idle while the chevrons lock, open
+  with a cyan line once the wormhole forms, idle again once shut); a pair across worlds; a name and
+  a network of `<b>x</b>` escaped in Dynmap and in the web map's marker file; ring ends, their line
+  and an end's name; a public beam destination drawn and a player's own place never; a mirror, and
+  a new name at the same banner; removal; a restart (every marker the plugin holds drawn once, a gate
+  removed before the stop not among them); `map-show-rings false`; `dynmap-enabled false` (no
+  layers, nothing logged); and the paired `absent` cell, `dynmap-enabled true` without Dynmap (one
+  startup warning, on `KNOWN_BENIGN`, and gates work). A cell whose setting is read at enable
+  restarts the server in place (`Facility.restart`: the same world, Probe back, the console
+  listening again) and its cleanup restarts once more with the setting put back. The checklist's
+  `/dynmap reload` is refused: Dynmap 3.7 and 3.8 have no reload subcommand. The icons at normal
+  zoom and the popup's rendering are for the tester, at the web map.
+- The **Region Desk** (#240) runs the checklist in G1's cell: `Guarded` on the Stand position inside
+  region `gatetest`, the Relay as the gate with no region, and an empty region `buildtest` where
+  Probe2 lays a Standard frame by hand (the blocks set from the console, the DHD pressed by Probe2)
+  and stands a preview. Regions are written to WorldGuard's region file and loaded (`rg define`
+  needs a player's WorldEdit selection); flags and members then change by `rg flag` and
+  `rg addmember`. Probe2, never an op, is in the tester group `builder`. Cases 1 to 15 each a cell;
+  `switched off` is P1 (`worldguard-enabled false` and a restart: WorldGuard calls `wormhole-use`
+  an unknown flag and nothing is refused), and the paired `absent` cell P2 (`worldguard-enabled
+  true` without WorldGuard: the plugin says so once, loads clean, and a gate works).
+- The **Permissions Desk** puts Probe2 in each tester group (`lib/groups.js`: `visitor` uses gates,
+  rings, beams and mirrors; `builder` also builds, by hand and by preview; `operator` also configures
+  and manages, without being a server op) and tries a DHD on a gate Probe owns, a preview, a
+  setting and a public beam destination: each allowed or refused ("You lack the permissions to do
+  this.") exactly as the group says. With LuckPerms installed the console's Operations tab offers
+  `Your tester group: [visitor] [builder] [operator] [default]` (or `!group <name>`), and the
+  `console` cell checks that switch as Probe2.
+
+What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.21.11):
+
+- #236: a visible gate dialled from a hidden iris gate (`map-show-iris-gates false`) is drawn
+  open, not idle, so the map shows it connected to something it does not show. `map iris hidden`
+  expects this as a known failure.
+- The #236 checklist's gate rename has nothing to run: `gate edit` has no `name` field, so a gate
+  cannot be renamed (`map rename`, a known failure). Rings (`ring edit name`) and mirrors (made
+  again at the same banner) do relabel.
+- With a permissions plugin, a player holds only the nodes given, and a mirror is used under a
+  gate's use check (`wormhole.use.sign` or `wormhole.use.dialer`, both `default: false`), where
+  rings and beams have nodes that default to true: Probe2 with no group could not choose a mirror
+  on the transit route. So Probe2 joins as a `visitor` whenever LuckPerms is installed.
+- LuckPerms and WorldGuard answer several console commands (`lp ...`, `rg load`, `rg addmember`,
+  an unknown `rg flag`) from another thread, after the command's fence: the desks wait for the
+  answer line in the log instead.
+
 Known plugin failures (stage 2), each expected by name in `matrix.js`:
 
 - #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at

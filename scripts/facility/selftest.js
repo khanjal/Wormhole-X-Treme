@@ -29,10 +29,10 @@ const { RingKit } = require('./lib/rings');
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
  * result like any other: `REFUSED:<the chamber's reason>`.
  */
-const { MATRIX, defaultsOf, expectation } = require('./matrix');
+const { MATRIX, defaultsOf, expectation, applies } = require('./matrix');
 
 async function selftest(fac, {
-  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null,
+  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null, companions = null,
 }) {
   const results = [];
   const known = [];
@@ -137,13 +137,16 @@ async function selftest(fac, {
       const e = fac.entries.find((x) => x.def.id === id);
       const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
-        // Every setting any cell needs is read before its first run, and checked at the end.
-        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
-        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
+        // Only the cells this run takes: a companion cell's settings may not exist in a jar tested
+        // without its companion, and a cell --cells, --quick or the shard leaves out reads nothing.
+        if (!applies(cell, companions)) continue;
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
         if (!inShard(label)) continue;
+        // Every setting a cell needs is read before the first run that needs it, and checked at the end.
+        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });

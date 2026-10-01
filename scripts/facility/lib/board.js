@@ -92,10 +92,12 @@ class RunBar {
  * Counts plugin faults in the server's output (server.pluginFault decides what is one) from the
  * moment it is attached, and shows the count on the Ops fault board: green at zero, red with
  * the first fault's line after that. Attach it before the server starts to see enable faults.
+ * `extra(line)` names more faults (a companion plugin that failed to load, a map that could
+ * not bind its port), or null.
  */
 class FaultCounter {
   /** `fixed`: issues the plugin jar carries the fix for (--fixed); their known faults are faults. */
-  constructor(srv, { fixed = [] } = {}) {
+  constructor(srv, { fixed = [], extra = null } = {}) {
     this.srv = srv;
     this.fixed = fixed;
     this.faults = [];
@@ -109,7 +111,7 @@ class FaultCounter {
       const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
       if (this.pending && !logLine) { this.pending.trace.push(line); return; }
       if (logLine) this.settle();
-      const f = server.pluginFault(line);
+      const f = server.pluginFault(line) || (extra && extra(line));
       if (!f) return;
       const k = server.knownFault(f);
       if (k && !(k.issue && fixed.includes(k.issue))) this.pending = { line: f, k, trace: [] };

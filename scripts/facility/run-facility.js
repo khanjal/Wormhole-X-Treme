@@ -6,7 +6,8 @@
 //   node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   (in parallel)
 //
 // Options:
-//   --java <path>        java for the server (default: a JDK of the version's major, found by
+//   --java <path>        java for the server (default: a JDK of the highest major the version and
+//                        the newest class file in every plugin jar need, found by
 //                        JAVA<major>_HOME or in the usual install folders)
 //   --plugin <jar>       use this plugin jar instead of building one
 //   --no-build           use target/WormholeXTreme.jar as it is
@@ -21,7 +22,17 @@
 //                        own port and folder, run at once, with one merged report (lib/shards.js);
 //                        with --versions, versions x shards servers
 //   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
-//   --tied               (set by --versions and --shards for their children) stop when stdin
+//   --with <list>        install companion plugins, pinned in companions.json: viaversion,
+//                        viabackwards, dynmap, worldedit, worldguard, luckperms, vault, or the
+//                        sets via, regions, permissions (what one needs comes with it). Read from
+//                        the plugin cache, else downloaded from an official source and checked;
+//                        a run without one takes out the jar an earlier run installed. The
+//                        self-test's companion cells run only with --with (lib/companions.js)
+//   --plugin-cache <dir> read companion jars from <dir>/<version>/ then <dir>/any/ first
+//                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
+//                        the repository or a folder above it)
+//   --op <names>         op these players (comma-separated) once the server is up
+//   --tied              (set by --versions and --shards for their children) stop when stdin
 //                        closes
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
@@ -38,6 +49,7 @@ const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
 const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
+const companions = require('./lib/companions');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -86,6 +98,17 @@ function parseArgs(argv) {
     else if (x === '--report') a.report = value(i++);
     else if (x === '--tied') a.tied = true;
     else if (x === '--paper-build') a.paperBuild = whole('--paper-build', value(i++), 1);
+    // `--with none` is a run with --with and no companion: the paired cells' run without any.
+    else if (x === '--with') {
+      a.with = list(value(i++)).filter((s) => s !== 'none');
+      companions.expand(a.with); // a name it does not know is refused here, before anything starts
+    }
+    else if (x === '--plugin-cache') a.pluginCache = value(i++);
+    else if (x === '--op') {
+      a.op = list(value(i++));
+      const bad = a.op.find((p) => !/^\w{1,16}$/.test(p));
+      if (bad !== undefined) throw new Error(`--op takes player names, not ${bad}`);
+    }
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -104,6 +127,13 @@ function pluginJar(args) {
   const jdk = args.jdk17 || server.findJava(17);
   console.log(`building the plugin with Maven on ${jdk || 'the default JDK'}`);
   return server.buildPlugin(REPO, jdk);
+}
+
+/** The companion jars for a version (lib/companions.js): from the plugin cache, or downloaded once into .local-server/companions/. */
+function companionsFor(args, version, names) {
+  const cache = args.pluginCache ? path.resolve(args.pluginCache) : companions.defaultCache(REPO);
+  if (args.pluginCache && !fs.existsSync(cache)) throw new Error(`--plugin-cache ${cache} is not there`);
+  return companions.resolve(names, version, { cache, store: path.join(LOCAL, 'companions') });
 }
 
 /**
@@ -185,22 +215,28 @@ async function fanOut(args) {
     await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
     if (signals) return 130;
   }
+  // Companions likewise (and a companion a version cannot have is refused here, before any start).
+  const withNames = args.with ? companions.expand(args.with) : null;
+  for (const v of versions) {
+    if (withNames) await companionsFor(args, v, withNames);
+    if (signals) return 130;
+  }
   fs.mkdirSync(LOCAL, { recursive: true });
   const work = fs.mkdtempSync(path.join(LOCAL, 'run-'));
   try {
-    return await fanOutIn(work, { args, jar, versions, n, children, stopped: () => signals > 0 });
+    return await fanOutIn(work, { args, jar, versions, n, children, withNames, stopped: () => signals > 0 });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
 }
 
 /** fanOut's children, in the work folder `work` (removed by fanOut however this ends). */
-async function fanOutIn(work, { args, jar, versions, n, children, stopped }) {
+async function fanOutIn(work, { args, jar, versions, n, children, withNames, stopped }) {
   const jobs = [];
   for (const [vi, v] of versions.entries()) {
     let planFile = null;
     if (n > 1) {
-      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null });
+      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null, companions: withNames });
       const p = shards.plan(names, shards.loadTimes(LOCAL, v), n);
       planFile = path.join(work, `plan-${v}.json`);
       fs.writeFileSync(planFile, JSON.stringify(p));
@@ -222,6 +258,8 @@ async function fanOutIn(work, { args, jar, versions, n, children, stopped }) {
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
     if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
+    if (withNames) child.push('--with', withNames.join(',') || 'none');
+    if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
     const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
     p.stdin.on('error', () => {});
     children.push(p);
@@ -300,11 +338,15 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.versions || (args.shards > 1 && !args.shard)) return fanOut(args);
   const { version } = args;
-  const java = args.java || server.findJava(server.requiredJava(version));
-  if (!java) throw new Error(`no Java ${server.requiredJava(version)} found for ${version}; pass --java`);
-  const javaMajor = server.checkJava(java, version);
   const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
   const plugin = pluginJar(args);
+  // Companions before Java: the JDK is the highest any jar here needs, Paper's own included.
+  const withNames = args.with ? companions.expand(args.with) : null;
+  const extras = withNames ? await companionsFor(args, version, withNames) : [];
+  const need = companions.javaNeeded(version, [{ name: 'WormholeXTreme', java: companions.classJava(plugin) }, ...extras]);
+  const java = args.java || companions.findJavaAtLeast(need.major);
+  if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
+  const javaMajor = server.checkJava(java, version, need.major, need.why.join('; '));
   // One folder per version and port, so runs side by side (--versions, or two terminals) never
   // share a world: a fresh run deletes the worlds of the folder it uses.
   const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
@@ -318,13 +360,24 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10, mobs: true });
   server.installPlugin(folder, plugin);
+  // Always, with or without --with: a run without a companion takes out what an earlier one put
+  // in, jars and the Wormhole settings switched on for them.
+  const switches = Object.assign({}, ...extras.map((c) => companions.SWITCHES[c.name] || {}));
+  const { removed, unseeded } = companions.install(folder, extras, { fresh: !args.keepWorld, switches });
+  if (removed.length) console.log(`companions taken out (installed by an earlier run, not wanted by this one): ${removed.join(', ')}`);
+  if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
+  const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
+  if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 
-  console.log(`facility: Paper ${version} on Java ${javaMajor}, port ${args.port}, ${folder}`);
+  console.log(`facility: Paper ${version} on Java ${javaMajor} (${need.why.join('; ')}), port ${args.port}, ${folder}`);
+  for (const c of extras) console.log(`  companion ${c.plugin} ${c.version}: ${c.file}, SHA-256 ${c.sha256}, Java ${c.java || '?'}, from ${c.from}`);
+  if (Object.keys(switches).length) console.log(`  Wormhole settings for them: ${Object.entries(switches).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
+  if (mapPort) console.log(`  Dynmap web map: http://localhost:${mapPort}/`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
-  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [] });
+  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPort });
   // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
   // stops the server, a second one kills it, and an exit any other way kills a JVM still
   // running, so no server is left holding the port and the world folder.
@@ -358,6 +411,15 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
+    for (const name of args.op || []) {
+      const r = await srv.run(`op ${name}`);
+      console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
+    }
+    if (mapPort) {
+      const web = await fac.mapWebUp();
+      if (!web.ok) setup.push(`Dynmap's web map: ${web.detail}`);
+      console.log(`  Dynmap web map: ${web.detail}`);
+    }
     for (const p of setup) console.log(`  setup problem: ${p}`);
     const tb = Date.now();
     const report = await fac.build();
@@ -384,6 +446,7 @@ async function main() {
       }
       const results = await selftest(fac, {
         buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
+        companions: withNames,
       });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
@@ -412,17 +475,23 @@ async function main() {
       }
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
+      if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;
-        const bot = fac.probe.bot;
-        bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-        // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
-        // now or before the hold began.
-        const gone = (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
-        if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        // Probe again after a restart (a Map or Region Desk cell restarts the server): the old
+        // one leaving then is not the end of the hold.
+        const listen = (bot) => {
+          bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
+          // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
+          // now or before the hold began.
+          const gone = (reason) => { if (fac.restarting) return; console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
+          if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        };
+        listen(fac.probe.bot);
+        fac.afterRestart.push(() => listen(fac.probe.bot));
         if (srv.exited !== null) resolve();
-        srv.once('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
+        srv.on('exit', (code) => { if (srv.restarting) return; console.error(`facility: the server exited (${code})`); resolve(); });
       });
       holding = null;
     }

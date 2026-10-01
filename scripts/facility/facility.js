@@ -16,6 +16,9 @@ const wings = require('./wings');
 const { Menagerie } = require('./lib/menagerie');
 const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
+const { companionFault } = require('./lib/companions');
+const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
+const { httpText } = require('./lib/http');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
@@ -28,11 +31,16 @@ function clock() {
 
 class Facility {
   /** `srv` is a started Server; `manifest` is what lib/generate.js wrote. */
-  constructor({ srv, version, manifest, port, log = console.log, fixed = [] }) {
-    Object.assign(this, { srv, version, manifest, port, log });
+  constructor({ srv, version, manifest, port, log = console.log, fixed = [], companions = null, mapPort = null }) {
+    Object.assign(this, { srv, version, manifest, port, log, mapPort });
+    // The companion plugins installed (--with), or null for a run without --with at all.
+    this.companions = companions;
+    const plugins = (companions || []).map((c) => c.plugin);
     this.boards = new Boards(srv, version);
     this.config = new Config(srv);
-    this.faults = new FaultCounter(srv, { fixed });
+    this.faults = new FaultCounter(srv, { fixed, extra: plugins.length ? (line) => companionFault(line, plugins) : null });
+    this.afterRestart = [];
+    this.restarting = false;
     this.entries = chambers.entries();
     this.status = {};
     this.last = {};
@@ -70,16 +78,7 @@ class Facility {
       const r = await this.srv.run(`execute in ${f.dim} run forceload add ${f.from[0]} ${f.from[1]} ${f.to[0]} ${f.to[1]}`);
       if (r.errors.length) problems.push(`forceload ${f.why}: ${r.errors.join(' ')}`);
     }
-    for (const f of campus.FORCELOAD) {
-      const y = f.dim === campus.OVERWORLD ? 0 : 64;
-      // Every chunk of the rectangle, not only its corners: a build writing into a chunk still
-      // loading fails silently.
-      const points = [];
-      for (let cx = Math.floor(f.from[0] / 16); cx <= Math.floor(f.to[0] / 16); cx++) {
-        for (let cz = Math.floor(f.from[1] / 16); cz <= Math.floor(f.to[1] / 16); cz++) points.push([cx * 16 + 8, y, cz * 16 + 8]);
-      }
-      await this.srv.waitLoaded(f.dim, points, 120000);
-    }
+    await this.waitForceloaded();
     this.loadMs = Date.now() - t0;
     try {
       const { restored, refused } = await this.config.recover();
@@ -99,6 +98,20 @@ class Facility {
       } catch (e) { problems.push(`baseline ${name}: ${e.message}`); }
     }
     return problems;
+  }
+
+  /** Waits until every forceloaded chunk is loaded (forceload is asynchronous, and kept by a restart). */
+  async waitForceloaded() {
+    for (const f of campus.FORCELOAD) {
+      const y = f.dim === campus.OVERWORLD ? 0 : 64;
+      // Every chunk of the rectangle, not only its corners: a build writing into a chunk still
+      // loading fails silently.
+      const points = [];
+      for (let cx = Math.floor(f.from[0] / 16); cx <= Math.floor(f.to[0] / 16); cx++) {
+        for (let cz = Math.floor(f.from[1] / 16); cz <= Math.floor(f.to[1] / 16); cz++) points.push([cx * 16 + 8, y, cz * 16 + 8]);
+      }
+      await this.srv.waitLoaded(f.dim, points, 120000);
+    }
   }
 
   /** True if the block at `at` in `dim` is `block`. */
@@ -292,6 +305,9 @@ class Facility {
     bot.on('end', (reason) => { p2.gone = p2.gone || `disconnected: ${reason}`; });
     await this.srv.run('deop Probe2');
     await this.srv.run('gamemode adventure Probe2');
+    // With a permissions plugin, a player holds only the nodes given: Probe2 is a visitor, the
+    // player the rest of the facility means (a mirror, for one, needs a gate's use nodes).
+    if (this.has('luckperms')) await this.joinGroup('Probe2', BASELINE_GROUP, { quiet: true });
     await this.shield('Probe2');
     await this.probe2.teleport(campus.TRANSIT.home);
     return this.probe2;
@@ -308,13 +324,30 @@ class Facility {
         watch: (player, e) => this.watch(player, e),
         go: (player, w) => this.go(player, w),
         transit: (player, action) => this.transitAction(player, action),
+        group: (player, group) => this.joinGroup(player, group),
       },
+      groups: this.has('luckperms') ? [...Object.entries(GROUPS).map(([id, g]) => ({ id, why: g.why })),
+        { id: 'default', why: 'none of them: only what every player has' }] : null,
     });
     await this.console.start();
+    // Once: a restart makes a new console (it reads the new Probe's packets) but the log is the same.
+    if (this.greeting) return;
+    this.greeting = true;
     this.srv.on('line', (line) => {
       const m = /: (\w+) joined the game/.exec(line);
       if (m && m[1] !== BOT && m[1] !== 'Probe2') this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
     });
+  }
+
+  /** Puts a player in a tester group (lib/groups.js), making the groups the first time. */
+  async joinGroup(player, group, { quiet = false } = {}) {
+    const groups = new Groups(this.srv);
+    if (!this.groupsReady) { await groups.ensure(); this.groupsReady = true; }
+    await groups.put(player, group);
+    if (quiet) return;
+    const why = GROUPS[group] ? GROUPS[group].why : 'none of the tester groups';
+    await this.console.tell(player, [{ text: `You are in ${group} now: `, color: 'white' }, { text: why, color: 'gray' },
+      { text: '. An op passes every Wormhole check whatever the group.', color: 'dark_gray' }]);
   }
 
   async welcome(player) {
@@ -453,7 +486,7 @@ class Facility {
     }
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
-    const refusal = ch.refuses ? ch.refuses(v, this.version) : null;
+    const refusal = ch.refuses ? ch.refuses(v, this.version, this) : null;
     if (refusal) {
       await this.setStatus(e, 'refused', refusal);
       return { outcome: 'REFUSED', reason: refusal, checks: [] };
@@ -586,6 +619,73 @@ class Facility {
     }
     if (e.chamber) await this.setStatus(e, 'idle', problems.length ? 'reset NOT clean' : 'reset');
     return { ok: problems.length === 0, problems };
+  }
+
+  // ---- companions ------------------------------------------------------------------------------
+
+  /** True if the run installed this companion (--with); false in a run without it, or without --with. */
+  has(name) {
+    return Boolean(this.companions && this.companions.some((c) => c.name === name));
+  }
+
+  /**
+   * Restarts the server on the same world, for a setting the plugin reads only at enable (a
+   * companion's switch, a map layer). Probe and Probe2 leave with it and Probe comes back; the
+   * chunks are waited for again and the console listens through the new Probe. The plugin's
+   * gates, rings, beams and mirrors are its own saved state, and the facility's settings journal
+   * and baseline carry on as they were. Chambers read `ctx.facility.probe` after one, not
+   * `ctx.probe`. Returns the index in the server's log where the new start begins.
+   */
+  async restart(why = 'a restart') {
+    this.restarting = true;
+    let from;
+    try {
+      if (this.shieldTimer) { clearInterval(this.shieldTimer); this.shieldTimer = null; }
+      for (const p of [this.probe, this.probe2]) {
+        if (p) { p.gone = why; p.bot.quit(); }
+      }
+      this.probe2 = null;
+      const t0 = Date.now();
+      await this.srv.restart();
+      from = this.srv.startIndex;
+      await this.srv.prepareFence();
+      await this.waitForceloaded();
+      await this.connectProbe();
+      await this.openConsole();
+      this.log(`  restarted the server for ${why} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    } finally {
+      this.restarting = false;
+    }
+    for (const f of this.afterRestart) f();
+    return from;
+  }
+
+  /**
+   * Whether Dynmap's web map came up on this server's own port (8123 + port - 25590): its log
+   * says the web server started there, not that it failed to bind, and it answers. Looks at the
+   * log from `from` (a restart's start). Returns { ok, detail }.
+   */
+  async mapWebUp({ from = 0, ms = 120000 } = {}) {
+    const port = this.mapPort;
+    // "[dynmap] Web server started on address 0.0.0.0:8193": the port compared as text, not as a pattern.
+    const started = { test: (l) => /\[dynmap\] .*[Ww]eb ?server started on /.test(l) && l.trim().endsWith(`:${port}`) };
+    const failed = /\[dynmap\].*(Failed to start|Address already in use|BindException|Error starting)/i;
+    const seen = () => this.srv.log.slice(from).find((l) => started.test(l) || failed.test(l));
+    const deadline = Date.now() + ms;
+    let line = seen();
+    while (!line && Date.now() < deadline) {
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
+      line = seen();
+    }
+    if (!line) return { ok: false, detail: `Dynmap never said its web server started on port ${port}` };
+    if (failed.test(line)) return { ok: false, detail: line };
+    try {
+      const body = await httpText(`http://127.0.0.1:${port}/up/configuration`);
+      if (!/"worlds"/.test(body)) return { ok: false, detail: `http://127.0.0.1:${port}/up/configuration answered without Dynmap's configuration` };
+    } catch (e) {
+      return { ok: false, detail: `http://127.0.0.1:${port}/ does not answer: ${e.message}` };
+    }
+    return { ok: true, detail: `http://localhost:${port}/ (${line.replace(/^\[[^\]]*\]: /, '')})` };
   }
 
   async close() {
