@@ -14,6 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * Storage is where a mistake is permanent, so it is worth exercising off a live server.
@@ -207,6 +209,44 @@ class RingYamlManagerTest
         assertEquals(1, RingYamlManager.loadAll(directory, REACH));
         assertNotNull(RingManager.getPair("good0001"));
         assertNull(RingManager.getPair("broken01"));
+    }
+
+    /**
+     * A ring whose slab this server does not have is drawn in ring-default-material, not dropped.
+     *
+     * <p>A pair saved on a newer Minecraft can name a slab an older server lacks. It used to be
+     * skipped as unreadable and lost at the next save, while the setting that says it is "used only
+     * when the slab a ring was built from cannot be read" was read by nothing.
+     */
+    @Test
+    void aRingInASlabThisServerLacksIsDrawnInTheDefaultMaterial() throws IOException
+    {
+        final String yaml = """
+            World: world
+            Pairs:
+              future01:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: FUTURE_STONE_SLAB, Light: GLOWSTONE}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+            """;
+        Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL, "QUARTZ_SLAB");
+        try
+        {
+            assertEquals(1, RingYamlManager.loadAll(directory, REACH), "the pair loads");
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        final RingPair loaded = RingManager.getPair("future01");
+        assertEquals(Material.QUARTZ_SLAB, loaded.getEndA().getRingMaterial(),
+            "the configured fallback, not the smooth stone it defaults to");
+        assertEquals(Material.STONE_SLAB, loaded.getEndB().getRingMaterial(), "the other end keeps its own");
     }
 
     @Test

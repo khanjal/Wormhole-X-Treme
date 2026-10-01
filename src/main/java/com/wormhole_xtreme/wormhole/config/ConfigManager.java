@@ -65,9 +65,6 @@ public class ConfigManager
         /** Seconds a player waits between gate trips, when the cooldown above is enabled. */
         USE_COOLDOWN_SECONDS,
 
-        /** The HELP SUPPORT DISABLE. */
-        HELP_SUPPORT_DISABLE,
-
         /** Restrict teleportation to same-world gates only. */
         SAME_WORLD_ONLY,
 
@@ -362,24 +359,6 @@ public class ConfigManager
     protected static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations()
     {
         return configurations;
-    }
-
-    /**
-     * Gets the Help plugin support status.
-     * 
-     * @return true, if Help plugin support is disabled.
-     */
-    public static boolean getHelpSupportDisable()
-    {
-        Setting hsd;
-        if ((hsd = ConfigManager.getConfigurations().get(ConfigKeys.HELP_SUPPORT_DISABLE)) != null)
-        {
-            return hsd.getBooleanValue();
-        }
-        else
-        {
-            return false;
-        }
     }
 
     /**
@@ -763,14 +742,15 @@ public class ConfigManager
     /**
      * Fallback material for the travelling rings.
      *
-     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when
-     * the template could not say.
+     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when a
+     * stored ring names a material that is not a slab on this server.
      *
-     * @return the fallback slab material
+     * @return the fallback slab material, smooth stone when the setting is not a slab
      */
     public static Material getRingDefaultMaterial()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
+        final Material configured = materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
+        return Ring.isUsableAsRing(configured) ? configured : Material.SMOOTH_STONE_SLAB;
     }
 
     /**

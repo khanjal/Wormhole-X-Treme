@@ -188,7 +188,6 @@ Worth knowing:
   carry it. A block left there is not part of the gate, so anyone can break it back out.
 - One use cooldown applies to everyone: `use-cooldown-seconds`, switched on by
   `use-cooldown-enabled`.
-- With the `Help` plugin present, the nodes are registered with it.
 
 ### Permission backend and fallback
 

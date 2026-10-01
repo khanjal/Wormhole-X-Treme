@@ -105,7 +105,7 @@ In `config.yml`, under its `# --- Transport rings ---` heading. Every key is fla
 | `ring-default-style` | `CONCURRENT` | How the stack deploys. |
 | `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as. |
 | `ring-default-flash` | `GLOWSTONE` | What a ring turns to as the light passes. |
-| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
+| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only: what a ring is drawn in when the slab it was saved with is not one this server has. Normally it is the slab you laid. |
 | `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `ring-outline-ticks` | 40 | How long that outline stays up. |
 

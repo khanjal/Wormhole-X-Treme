@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 import org.yaml.snakeyaml.Yaml;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
@@ -270,7 +271,7 @@ public final class RingYamlManager
         final int z = ((Number) map.get("Z")).intValue();
         final RingPattern pattern = RingPattern.valueOf(String.valueOf(map.get("Pattern")));
         final RingOrientation orientation = RingOrientation.valueOf(String.valueOf(map.get("Orientation")));
-        final Material ring = Material.valueOf(String.valueOf(map.get("Ring")));
+        final Material ring = ringMaterial(map.get("Ring"));
         final Material light = Material.valueOf(String.valueOf(map.get("Light")));
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
         built.setStyle(map.containsKey(STYLE_KEY) ? readStyle(map.get(STYLE_KEY)) : fallback);
@@ -285,6 +286,29 @@ public final class RingYamlManager
         final Material laid = Material.matchMaterial(String.valueOf(map.getOrDefault("Built", "")));
         built.setBuiltMaterial(laid == null ? ring : laid);
         return built;
+    }
+
+    /**
+     * The slab a stored ring is drawn in, or {@code ring-default-material} when that is not a slab on
+     * this server -- a ring saved on a newer Minecraft can name one an older server lacks.
+     *
+     * <p>Without it the whole pair was skipped as unreadable, and lost at the next save.
+     *
+     * @param stored
+     *            the stored name
+     * @return a slab to draw the ring in
+     */
+    static Material ringMaterial(final Object stored)
+    {
+        final Material named = Material.matchMaterial(String.valueOf(stored));
+        if (Ring.isUsableAsRing(named))
+        {
+            return named;
+        }
+        final Material fallback = ConfigManager.getRingDefaultMaterial();
+        log(Level.WARNING, "Ring material " + stored + " is not a slab on this server; drawing the ring in "
+            + fallback + ", ring-default-material.");
+        return fallback;
     }
 
     /**

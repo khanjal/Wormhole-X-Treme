@@ -27,10 +27,9 @@ final class LegacySettingsNotice
     /**
      * Names this file shares with a setting that is not the same setting now. In 2012 disabling
      * permissions support meant not attaching to the old Permissions plugin; now it means ignoring
-     * LuckPerms and Vault. Nothing reads the Help plugin setting any more.
+     * LuckPerms and Vault.
      */
-    private static final Set<String> NOT_THE_SAME_SETTING =
-        Set.of("PERMISSIONS_SUPPORT_DISABLE", "HELP_SUPPORT_DISABLE");
+    private static final Set<String> NOT_THE_SAME_SETTING = Set.of("PERMISSIONS_SUPPORT_DISABLE");
 
     private LegacySettingsNotice()
     {

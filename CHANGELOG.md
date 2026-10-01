@@ -23,6 +23,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `config.yml`.** A server that ran once without one stayed in simple mode after LuckPerms was
   installed. One already written that way keeps it; set it back to `false`.
 
+**Removed**
+
+- **`help-support-disable`**, which nothing read: the Help plugin it turned off is long gone. A line
+  for it in `config.yml` is ignored and left where it is.
+
 ### Stargates
 
 **Fixed**
@@ -41,6 +46,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   gate in another world cannot be dialled, and `/dial` and the dial sign say why.
 - **`/wormhole config` refuses a sign colour that is not one**, and names the sixteen there are.
   `sign-color-gate-name PINK` was accepted, and every sign written after it came out dark aqua.
+
+### Transport rings
+
+**Fixed**
+
+- **A ring pair whose slab this server does not have loads, drawn in `ring-default-material`.** It
+  was skipped as unreadable and lost at the next save, and the setting was read by nothing.
 
 ### Performance
 
