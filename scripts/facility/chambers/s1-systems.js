@@ -18,11 +18,7 @@ const { deskLayout } = require('../lib/blueprint');
 const { GateKit } = require('../lib/gatekit');
 
 const def = campus.chamber('s1');
-const GROUP_NAMES = ['console', 'sounds', 'gates', 'rings', 'more', 'permissions'];
-const fs = require('fs');
-const path = require('path');
-const GROUPS = GROUP_NAMES.filter((n) => fs.existsSync(path.join(__dirname, 's1', `${n}.js`)))
-  .map((name) => ({ name, mod: require(`./s1/${name}`) }));
+const GROUPS = ['console', 'sounds', 'gates', 'rings', 'more', 'permissions'].map((name) => ({ name, mod: require(`./s1/${name}`) }));
 
 const CASES = GROUPS.flatMap((g) => g.mod.cases.map((x) => ({ ...x, group: g.name })));
 
