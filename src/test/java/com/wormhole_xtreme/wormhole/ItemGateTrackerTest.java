@@ -218,6 +218,22 @@ class ItemGateTrackerTest
         verify(item).teleport(any(Location.class));
     }
 
+    /**
+     * A dispenser facing the gate puts its item a fifth of a block inside the opening, and the item
+     * is out of the back of it by the next tick: where it spawned has to count as part of its path.
+     */
+    @Test
+    void anItemSpawnedJustInsideTheOpeningAndOutOfItByTheNextTickIsSent()
+    {
+        itemAt(BX + 0.5, BY, BZ + 0.2);
+        new ItemGateTracker().onItemSpawn(new ItemSpawnEvent(item));
+
+        itemAt(BX + 0.5, BY, BZ - 0.1);
+        ticker.run();
+
+        verify(item).teleport(any(Location.class));
+    }
+
     /** An item that comes into the world lying still is the sweep's, as it always was. */
     @Test
     void anItemSpawningStillIsLeftToTheSweep()
