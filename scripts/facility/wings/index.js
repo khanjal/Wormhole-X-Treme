@@ -5,6 +5,20 @@
 
 const campus = require('../lib/campus');
 const bp = require('../lib/blueprint');
+const transit = require('./transit');
+const guard = require('./decor/guard');
+
+// Each wing's decoration (stage 3.6), run inside `decorate` so the guardrail sees every block.
+const DECOR = {
+  ops: require('./decor/ops'),
+  gates: require('./decor/gates'),
+  rings: require('./decor/rings'),
+  beams: require('./decor/beams'),
+  mirrors: require('./decor/mirrors'),
+  menagerie: require('./decor/menagerie'),
+  range: require('./decor/range'),
+  annex: require('./decor/annex'),
+};
 
 const EXTRAS = {
   ops: require('./ops'),
@@ -31,8 +45,9 @@ function roomWalls(r) {
   ];
 }
 
-/** Where the plate home to Ops sits in a wing: two blocks to the right of its entrance. */
+/** Where the plate home to Ops sits in a wing: its own, or two blocks to the right of its entrance. */
 function homePlate(w) {
+  if (w.homePlate) return w.homePlate;
   const e = w.entrance;
   const facingZ = Math.abs(Math.sin((e.yaw * Math.PI) / 180)) < 0.5;
   const x = Math.floor(e.x) + (facingZ ? 2 : 0);
@@ -44,7 +59,10 @@ function chambersOf(wingId) {
   return campus.CHAMBERS.filter((c) => c.wing === wingId);
 }
 
-/** The blueprint for `build/<wing>`. `version` picks the text form for boards. */
+/**
+ * The blueprint for `build/<wing>`. `version` picks the text form for boards. The decoration is
+ * always built: some of it carries tests (the far sites' mirror piers, their Dial Ops consoles).
+ */
 function buildWing(wingId, version) {
   const w = campus.wing(wingId);
   const out = new bp.Blueprint(`wx:build/${wingId}`, w.dim);
@@ -65,6 +83,7 @@ function buildWing(wingId, version) {
     }
   }
   if (extra.structures) extra.structures(out, w, version);
+  transit.structures(out, wingId, version);
 
   // Systems is the mezzanine over Ops, so Ops builds its desk.
   const chambers = wingId === 'ops' ? [...chambersOf('ops'), ...chambersOf('systems')] : chambersOf(wingId);
@@ -79,7 +98,7 @@ function buildWing(wingId, version) {
       bp.room(out, ch.box, { wall: 'minecraft:glass', roof: 'minecraft:glass', skirting: null });
       const b = ch.box;
       const mz = Math.floor((b.z0 + b.z1) / 2);
-      out.fill(bp.box3(b.x0 - 1, b.y0, mz - 2, b.x0 - 1, b.y0 + 3, mz + 2), 'minecraft:air');
+      out.fill(bp.box3(b.x0 - 1, b.y0, b.z0, b.x0 - 1, b.y0 + b.h - 2, b.z1), 'minecraft:air');
       out.fill(bp.box3(b.x0, b.y0 - 1, mz, b.x1, b.y0 - 1, mz), campus.PALETTE.guide);
       out.mustBeClear(ch.id, bp.interior(b));
     }
@@ -97,9 +116,10 @@ function buildWing(wingId, version) {
     const e = w.entrance;
     out.cmd(bp.summonBoard(version, {
       id: `sign_${wingId}`, wing: wingId, at: { x: e.x, y: e.y + 3.2, z: e.z }, scale: 1.5,
-      spec: [{ text: w.title.toUpperCase(), color: w.text, bold: true }],
+      spec: [{ text: w.title.toUpperCase(), color: w.text, bold: true }, ...(w.nick ? ['\n', { text: w.nick, color: 'gray' }] : [])],
     }));
   }
+  if (DECOR[wingId]) out.decorate(() => DECOR[wingId].decorate(out, w, version));
   return out;
 }
 
@@ -110,6 +130,13 @@ function resetChamber(ch) {
   out.cmd(`kill @e[tag=wx_run_${ch.id}]`);
   if (ch.kind === 'cell') {
     for (const b of bp.cellClear(ch)) out.fill(b, 'minecraft:air');
+    if (w.dim === campus.OVERWORLD && !ch.shaft) {
+      // A run may dig into the floor (a gate built flush, a lane of ice): lay it back, the
+      // flat world's stone under its quartz, four deep.
+      const b = ch.box;
+      out.fill(bp.box3(b.x0, b.y0 - 4, b.z0, b.x1, b.y0 - 2, b.z1), 'minecraft:stone');
+      out.fill(bp.box3(b.x0, b.y0 - 1, b.z0, b.x1, b.y0 - 1, b.z1), campus.PALETTE.floor);
+    }
     bp.cellShell(out, ch, w.colour);
   } else if (ch.kind === 'tunnel') {
     out.fill(bp.interior(ch.box), 'minecraft:air');
@@ -160,6 +187,7 @@ function validateLayout(version = '1.21.11') {
     const p = w.id === 'systems' ? { x: 3, y: 6, z: -17 } : homePlate(w);
     items.push({ what: `plate home from ${w.id}`, dim: w.dim, box: bp.box3(p.x, p.y - 1, p.z, p.x, p.y + 1, p.z) });
   }
+  for (const t of transit.footprints()) items.push({ what: t.what, dim: campus.wing(t.wing).dim, box: t.box });
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
       const a = items[i];
@@ -174,6 +202,16 @@ function validateLayout(version = '1.21.11') {
     && chunk(box.x0) >= chunk(f.from[0]) && chunk(box.x1) <= chunk(f.to[0])
     && chunk(box.z0) >= chunk(f.from[1]) && chunk(box.z1) <= chunk(f.to[1]));
   const { builds, resets } = allBlueprints(version);
+  problems.push(...guard.check(builds));
+  // Every block is one 1.20.4 knows (the facility's floor): a newer name is refused here, not
+  // by a function that fails to load on the older server.
+  const known = require('minecraft-data')('1.20.4').blocksByName;
+  for (const f of [...builds, ...resets]) {
+    for (const o of f.bp.ops.filter((x) => x.kind !== 'cmd')) {
+      const name = o.block.replace(/^minecraft:/, '').replace(/[[{].*$/, '');
+      if (!known[name]) problems.push(`${f.fn}: ${o.block.replace(/\{.*$/, '')} is not a block on 1.20.4`);
+    }
+  }
   for (const f of [...builds, ...resets]) {
     for (const b of f.bp.boxes()) {
       // A box may span two forceload rectangles; check it piece by piece along x.
