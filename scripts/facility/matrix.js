@@ -275,7 +275,8 @@ const MATRIX = {
     { name: 'g5 side row off the layers check', values: { check: 'arrow', side: 'behind' }, expect: 'REFUSED:the side row is the layers check' },
   ],
   // S1, the Systems console: the settings and permissions audits (chambers/s1-systems.js).
-  s1: require('./chambers/s1-systems').CASES.map((c) => ({ name: `s1 ${c.value}`, values: { case: c.value }, expect: 'PASS' })),
+  // A case may carry its own expectation and known failure (chambers/s1/*.js).
+  s1: require('./chambers/s1-systems').CASES.map((c) => ({ name: `s1 ${c.value}`, values: { case: c.value }, expect: c.expect || 'PASS', ...(c.known ? { known: c.known } : {}) })),
 };
 
 /**

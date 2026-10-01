@@ -117,8 +117,9 @@ async function walkThrough(probe, geom = GEOM, arrival = relayArrival()) {
 }
 
 /**
- * Watches a gate's chevron cells on a probe's client: `stop()` returns, per light wave, the time
- * its cells were first shown lit, as ms from the start.
+ * Watches a gate's chevron cells on a probe's client: `stop()` returns, per light wave, the last
+ * time its cells were shown turning lit (a spin's travelling light passes over them before they
+ * lock), as ms from the start.
  */
 function watchLights(probe, geom = GEOM) {
   const bot = probe.bot;
@@ -134,7 +135,8 @@ function watchLights(probe, geom = GEOM) {
     if (!b) return;
     const key = `${b.position.x},${b.position.y},${b.position.z}`;
     if (!base.has(key)) return;
-    if (b.stateId !== base.get(key)) { if (!litAt.has(key)) litAt.set(key, Date.now() - t0); } else if (litAt.has(key)) outAt.set(key, Date.now() - t0);
+    const was = _old ? _old.stateId !== base.get(key) : false;
+    if (b.stateId !== base.get(key)) { if (!was) litAt.set(key, Date.now() - t0); } else if (litAt.has(key)) outAt.set(key, Date.now() - t0);
   };
   bot.on('blockUpdate', on);
   return {
@@ -145,7 +147,7 @@ function watchLights(probe, geom = GEOM) {
         const key = `${l.x},${l.y},${l.z}`;
         const w = waves[l.order] || (waves[l.order] = { order: l.order, at: null, out: null });
         const t = litAt.get(key);
-        if (t !== undefined && (w.at === null || t < w.at)) w.at = t;
+        if (t !== undefined && (w.at === null || t > w.at)) w.at = t;
         const o = outAt.get(key);
         if (o !== undefined && (w.out === null || o > w.out)) w.out = o;
       }
