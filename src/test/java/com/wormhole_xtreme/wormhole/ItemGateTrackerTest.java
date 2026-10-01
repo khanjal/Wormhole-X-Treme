@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -11,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,6 +25,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +49,7 @@ import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 class ItemGateTrackerTest
 {
     private World world;
+    private WormholeXTreme plugin;
     private Stargate origin;
     private Stargate destination;
     private Item item;
@@ -67,7 +72,7 @@ class ItemGateTrackerTest
         GateSpatialIndex.clear();
         ItemGateTracker.clear();
 
-        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -272,10 +277,103 @@ class ItemGateTrackerTest
         assertEquals(1, ItemGateTracker.trackedCount(), "followed while in the air");
 
         when(item.isOnGround()).thenReturn(Boolean.TRUE);
+        when(item.getVelocity()).thenReturn(new Vector(0, 0, 0));
         itemAt(BX + 0.5, BY, BZ + 2.5);
         ticker.run();
 
-        assertEquals(0, ItemGateTracker.trackedCount(), "a landed item is the sweep's again");
+        assertEquals(0, ItemGateTracker.trackedCount(), "a landed item at rest is the sweep's again");
+    }
+
+    /**
+     * An item that lands short of the opening and slides on into it still goes through.
+     *
+     * <p>Items slide a block or two after landing. Dropped on its landing tick, one that came down
+     * just short was left to the once-a-second sweep, which could miss it sliding across.
+     */
+    @Test
+    void anItemThatLandsShortAndSlidesInIsSent()
+    {
+        toss();
+        ticker.run();
+
+        when(item.isOnGround()).thenReturn(Boolean.TRUE);
+        when(item.getVelocity()).thenReturn(new Vector(0, 0, -0.3));
+        itemAt(BX + 0.5, BY, BZ + 2.5);
+        ticker.run();
+        assertEquals(1, ItemGateTracker.trackedCount(), "still followed while it slides");
+
+        itemAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(item).teleport(any(Location.class));
+    }
+
+    /** A gate that shuts while an item is in the air is no way through, and the item just lands. */
+    @Test
+    void anItemReachingAGateThatShutMidFlightIsNotSent()
+    {
+        toss();
+        ticker.run();
+
+        origin.setGatePortalOpen(false);
+        itemAt(BX + 0.5, BY, BZ - 2.5);
+        ticker.run();
+        verify(item, never()).teleport(any(Location.class));
+        assertEquals(1, ItemGateTracker.trackedCount(), "still followed: it has not landed");
+
+        when(item.isOnGround()).thenReturn(Boolean.TRUE);
+        when(item.getVelocity()).thenReturn(new Vector(0, 0, 0));
+        ticker.run();
+
+        assertEquals(0, ItemGateTracker.trackedCount());
+        verify(item, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * An item the sweep sends is not sent a second time from where the tracker last saw it.
+     *
+     * <p>The sweep can find a followed item in the opening between two of the tracker's ticks. The
+     * tracker's next path then runs from in front of the gate to the far end, across the opening,
+     * and would send the item on again from wherever it had arrived.
+     */
+    @Test
+    void anItemTheSweepSentIsNotSentAgainFromWhereTheTrackerLastSawIt()
+    {
+        destination.setGateFacing(BlockFace.NORTH);
+        destination.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 2.5));
+        when(item.teleport(any(Location.class))).thenAnswer(inv ->
+        {
+            itemAt = inv.getArgument(0, Location.class);
+            return Boolean.TRUE;
+        });
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.of(item));
+        toss();
+        ticker.run();
+
+        itemAt(BX + 0.5, BY, BZ + 0.5);
+        GateEntityScanner.create().run();
+        verify(item, times(1)).teleport(any(Location.class));
+        assertTrue(itemAt.distance(new Location(world, BX + 0.5, BY, BZ + 3.5)) < 8,
+            "close enough to the tracker's last point that its path is walked, across the opening");
+
+        ticker.run();
+
+        verify(item, times(1)).teleport(any(Location.class));
+    }
+
+    /** A drawn iris stops an item even in the second after it came out of another gate. */
+    @Test
+    void anItemJustSentElsewhereIsStillStoppedByAShutIris()
+    {
+        origin.setGateActive(false);
+        origin.setGateIrisActive(true);
+        WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(item.getUniqueId());
+        toss();
+
+        itemAt(BX + 0.5, BY, BZ - 2.5);
+        ticker.run();
+
+        verify(item).remove();
     }
 
     /** An item landing in the opening on the tick it got there still goes through then. */
@@ -309,14 +407,18 @@ class ItemGateTrackerTest
     }
 
     @Test
-    void anItemPickedUpIsForgotten()
+    void anItemGoneBeforeItsFirstTickIsForgottenUnmoved()
     {
-        toss();
+        // Merged into another stack, or picked up, between spawning in the opening and the next tick.
+        itemAt(BX + 0.5, BY, BZ + 0.5);
+        new ItemGateTracker().onItemSpawn(new ItemSpawnEvent(item));
+        assertEquals(1, ItemGateTracker.trackedCount(), "followed from its spawn");
         itemValid = false;
 
         ticker.run();
 
         assertEquals(0, ItemGateTracker.trackedCount());
+        verify(item, never()).teleport(any(Location.class));
     }
 
     /** An item farm beside a gate cannot grow the followed set without end. */
@@ -331,6 +433,20 @@ class ItemGateTrackerTest
         }
 
         assertEquals(ItemGateTracker.MOST_TRACKED, ItemGateTracker.trackedCount());
+    }
+
+    /** Items turned away at the limit are said so in the log, once rather than once each. */
+    @Test
+    void aFullFollowedSetIsLoggedOnce()
+    {
+        for (int i = 0; i < (ItemGateTracker.MOST_TRACKED + 3); i++)
+        {
+            final Item another = mock(Item.class);
+            when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 3.5));
+            new ItemGateTracker().onPlayerDropItem(new PlayerDropItemEvent(mock(Player.class), another));
+        }
+
+        verify(plugin, times(1)).prettyLog(eq(Level.FINE), contains("Already following"));
     }
 
     /**

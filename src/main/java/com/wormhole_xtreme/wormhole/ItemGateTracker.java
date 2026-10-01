@@ -57,6 +57,18 @@ class ItemGateTracker implements Listener
     /** Squared speed below which a spawned item is lying still, the sweep's to find. */
     private static final double MOVING_SQUARED = 0.01;
 
+    /**
+     * Squared speed along the ground below which a landed item has stopped sliding. One that lands
+     * short of the opening still slides on into it, so it is followed until it settles.
+     */
+    private static final double SETTLED_SQUARED = 0.0001;
+
+    /** Ticks between two log lines saying the followed set is full. */
+    private static final int FULL_LOG_TICKS = 200;
+
+    /** The tick the followed set was last said to be full. */
+    private static int fullLoggedAt = -FULL_LOG_TICKS;
+
     /** What is known about an item being followed. */
     private static final class Tracked
     {
@@ -103,8 +115,18 @@ class ItemGateTracker implements Listener
     /** Starts following an item, if it is near a gate it could cross and there is room. */
     private static void follow(final Item item)
     {
-        if ((item == null) || (tracked.size() >= MOST_TRACKED))
+        if (item == null)
         {
+            return;
+        }
+        if (tracked.size() >= MOST_TRACKED)
+        {
+            if ((tick - fullLoggedAt) >= FULL_LOG_TICKS)
+            {
+                fullLoggedAt = tick;
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                    "Already following " + MOST_TRACKED + " items near gates; more are left to the sweep");
+            }
             return;
         }
         final Location at = item.getLocation();
@@ -143,11 +165,12 @@ class ItemGateTracker implements Listener
     {
         final World world = gate.getGateWorld();
         final BoundingBox box = gate.getGatePortalBounds();
+        // The registry last: it normalises the name, where the rest are a few comparisons.
         return (world != null) && (box != null) && world.equals(at.getWorld())
-            && StargateManager.isRegistered(gate)
             && (at.getX() >= (box.getMinX() - REACH)) && (at.getX() <= (box.getMaxX() + REACH))
             && (at.getY() >= (box.getMinY() - REACH)) && (at.getY() <= (box.getMaxY() + REACH))
-            && (at.getZ() >= (box.getMinZ() - REACH)) && (at.getZ() <= (box.getMaxZ() + REACH));
+            && (at.getZ() >= (box.getMinZ() - REACH)) && (at.getZ() <= (box.getMaxZ() + REACH))
+            && StargateManager.isRegistered(gate);
     }
 
     /**
@@ -206,13 +229,20 @@ class ItemGateTracker implements Listener
                 state.previous = item.getLocation();
                 return false;
             }
-            return item.isOnGround();
+            return item.isOnGround() && settled(item.getVelocity());
         }
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Item gate tracking failed", e);
             return true;
         }
+    }
+
+    /** Whether a landed item has stopped sliding along the ground. */
+    private static boolean settled(final Vector velocity)
+    {
+        return (velocity == null)
+            || (((velocity.getX() * velocity.getX()) + (velocity.getZ() * velocity.getZ())) < SETTLED_SQUARED);
     }
 
     /**
@@ -240,6 +270,7 @@ class ItemGateTracker implements Listener
         final double dx = (to.getX() - from.getX()) / steps;
         final double dy = (to.getY() - from.getY()) / steps;
         final double dz = (to.getZ() - from.getZ()) / steps;
+        // From the start point: where an item spawned, or came out of a gate, was never itself checked.
         for (int i = 0; i <= steps; i++)
         {
             final Location point = new Location(to.getWorld(),
@@ -283,6 +314,7 @@ class ItemGateTracker implements Listener
     static void clear()
     {
         tracked.clear();
+        fullLoggedAt = tick - FULL_LOG_TICKS;
     }
 
     /**
