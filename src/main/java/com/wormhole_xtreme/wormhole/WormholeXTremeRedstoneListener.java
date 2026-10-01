@@ -10,7 +10,10 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
@@ -120,6 +123,32 @@ class WormholeXTremeRedstoneListener implements Listener
             return false;
         }
         return pressedRails.add(rail) || reportedRise;
+    }
+
+    /**
+     * Forgets a detector rail taken away while pressed, so one put back there is pressed afresh.
+     *
+     * @param block
+     *            the block broken or placed
+     */
+    static void forgetRail(final Block block)
+    {
+        if ((block != null) && (block.getType() == Material.DETECTOR_RAIL))
+        {
+            pressedRails.remove(railKey(block));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockBreak(final BlockBreakEvent event)
+    {
+        forgetRail(event.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPlace(final BlockPlaceEvent event)
+    {
+        forgetRail(event.getBlockPlaced());
     }
 
     private static String railKey(final Block block)

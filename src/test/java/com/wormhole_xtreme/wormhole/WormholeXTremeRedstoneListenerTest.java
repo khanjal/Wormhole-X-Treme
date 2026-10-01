@@ -11,6 +11,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
@@ -334,6 +337,51 @@ class WormholeXTremeRedstoneListenerTest
         assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "still pressed");
         assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 0), "released");
         assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the release");
+    }
+
+    /**
+     * A rail broken while pressed, and one put back in its place, is pressed afresh.
+     *
+     * <p>Broken with a cart on it, the rail never reports its release, so it stayed remembered as
+     * pressed and a rail put back there missed its first press on Paper 1.21.11.
+     */
+    @Test
+    void aRailBrokenWhilePressedIsPressedAfreshOnceReplaced()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+
+        new WormholeXTremeRedstoneListener().onBlockBreak(new BlockBreakEvent(rail, mock(Player.class)));
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again once broken");
+    }
+
+    /** The same for a rail placed where a remembered one stood, as from a world edit or a piston. */
+    @Test
+    void aRailPlacedOverARememberedOneIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final BlockPlaceEvent placed = mock(BlockPlaceEvent.class);
+        when(placed.getBlockPlaced()).thenReturn(rail);
+
+        new WormholeXTremeRedstoneListener().onBlockPlace(placed);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again once placed");
+    }
+
+    /** Breaking anything else beside a pressed rail leaves the rail remembered. */
+    @Test
+    void breakingAnotherBlockLeavesAPressedRailRemembered()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final Block stone = rail();
+        when(stone.getType()).thenReturn(Material.STONE);
+
+        new WormholeXTremeRedstoneListener().onBlockBreak(new BlockBreakEvent(stone, mock(Player.class)));
+
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "still held, so not a second press");
     }
 
     /** Where the currents are reported as they were, a press is still one press and a release none. */
