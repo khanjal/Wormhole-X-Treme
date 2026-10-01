@@ -1829,6 +1829,33 @@ class StargateBlockSetup
     }
 
     /**
+     * Draws a shut iris whole for everybody near, once its closing sweep has finished.
+     *
+     * <p>A redraw asked for mid-sweep leaves the iris alone, so anybody who arrived, or knocked a
+     * cell out of their picture, while it swept is owed the whole of it now. Over a wormhole that
+     * is the layers; on an idle or dialling gate, the iris itself.
+     */
+    static void settleShutIris(final Stargate gate)
+    {
+        if (isLayered(gate))
+        {
+            sendLayered(gate);
+            return;
+        }
+        if (!gate.isGateIrisActive() || (gate.getGateWorld() == null))
+        {
+            return;
+        }
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                sendIrisTo(player, gate);
+            }
+        }
+    }
+
+    /**
      * Sends a layered gate to everybody near enough to see it, each from their own side.
      */
     static void sendLayered(final Stargate gate)

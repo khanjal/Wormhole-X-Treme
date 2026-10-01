@@ -308,17 +308,18 @@ class StargateLifecycle
             // A drawn iris over a wormhole is then restacked for each viewer, so anybody behind
             // the gate sees the horizon in the ring and the iris beyond it. After the sweep, not
             // before: the sweep draws the ring cell by cell and would paint over it.
-            final Runnable layer = () -> StargateBlockSetup.sendLayered(gate);
             if (sweep)
             {
                 // Iris first, sweep second: on a horizontal gate that puts the barrier there
                 // before it looks it, and on a vertical one it settles what the sweep spends
                 // the next second uncovering.
-                StargateIrisAnimator.sweepClosed(gate, uncovered, layer);
+                // Settled whole at the end, wormhole or not: a redraw asked for mid-sweep left the
+                // iris to the sweep, which drew nothing for anybody who arrived after it began.
+                StargateIrisAnimator.sweepClosed(gate, uncovered, () -> StargateBlockSetup.settleShutIris(gate));
             }
             else
             {
-                layer.run();
+                StargateBlockSetup.sendLayered(gate);
             }
             return;
         }
