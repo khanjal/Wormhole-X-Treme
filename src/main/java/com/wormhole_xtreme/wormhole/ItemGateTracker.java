@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -30,6 +31,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * is walked in sub-block steps, and it crosses if any point lies in an open portal. It stops being
  * followed when it lands, is picked up, despawns, or has been followed long enough; an item lying
  * still is left to the sweep, as before. Cost scales with the items in flight near a gate.
+ *
+ * <p>Ordinary drops count as moving too: a broken block, a killed mob or a harvested crop spawns
+ * its items with a little speed, so those within reach of a gate are followed until they settle.
+ * Hence the cap on how many are followed at once.
  */
 class ItemGateTracker implements Listener
 {
@@ -72,20 +77,25 @@ class ItemGateTracker implements Listener
     /** What is known about an item being followed. */
     private static final class Tracked
     {
+        private final Item item;
         private final int expiresAtTick;
         private int crossings;
         private Stargate cameOutOf;
         private Location previous;
 
-        Tracked(final int expiresAtTick, final Location previous)
+        Tracked(final Item item, final int expiresAtTick, final Location previous)
         {
+            this.item = item;
             this.expiresAtTick = expiresAtTick;
             this.previous = previous;
         }
     }
 
-    /** Items in flight near a gate. */
-    private static final Map<Item, Tracked> tracked = new ConcurrentHashMap<>();
+    /**
+     * Items in flight near a gate, by id: a wrapper may hash by something a cross-world teleport
+     * changes, and its entry would then never be found again.
+     */
+    private static final Map<UUID, Tracked> tracked = new ConcurrentHashMap<>();
 
     /** Ticks since the tracker started, used only to expire entries. */
     private static int tick = 0;
@@ -119,6 +129,12 @@ class ItemGateTracker implements Listener
         {
             return;
         }
+        // Near a gate first: an item nowhere near one is not being turned away by a full set.
+        final Location at = item.getLocation();
+        if ((at == null) || !nearAGate(at))
+        {
+            return;
+        }
         if (tracked.size() >= MOST_TRACKED)
         {
             if ((tick - fullLoggedAt) >= FULL_LOG_TICKS)
@@ -129,11 +145,7 @@ class ItemGateTracker implements Listener
             }
             return;
         }
-        final Location at = item.getLocation();
-        if ((at != null) && nearAGate(at))
-        {
-            tracked.putIfAbsent(item, new Tracked(tick + TRACK_TICKS, at));
-        }
+        tracked.putIfAbsent(item.getUniqueId(), new Tracked(item, tick + TRACK_TICKS, at));
     }
 
     /**
@@ -187,11 +199,11 @@ class ItemGateTracker implements Listener
             {
                 return;
             }
-            final Iterator<Map.Entry<Item, Tracked>> it = tracked.entrySet().iterator();
+            final Iterator<Tracked> it = tracked.values().iterator();
             while (it.hasNext())
             {
-                final Map.Entry<Item, Tracked> entry = it.next();
-                if (finishedWith(entry.getKey(), entry.getValue()))
+                final Tracked state = it.next();
+                if (finishedWith(state.item, state))
                 {
                     it.remove();
                 }

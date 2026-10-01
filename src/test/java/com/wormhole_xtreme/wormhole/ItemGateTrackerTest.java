@@ -392,12 +392,17 @@ class ItemGateTrackerTest
         verify(item).remove();
     }
 
-    /** An item landing in the opening on the tick it got there still goes through then. */
+    /**
+     * An item landing in the opening on the tick it got there still goes through then.
+     *
+     * <p>At rest on landing, so it would be let go that tick: the path has to be walked first.
+     */
     @Test
     void anItemThatLandsInTheOpeningIsSentOnThatTick()
     {
         toss();
         when(item.isOnGround()).thenReturn(Boolean.TRUE);
+        when(item.getVelocity()).thenReturn(new Vector(0, 0, 0));
         itemAt(BX + 0.5, BY, BZ + 0.5);
 
         ticker.run();
@@ -444,11 +449,54 @@ class ItemGateTrackerTest
         for (int i = 0; i <= ItemGateTracker.MOST_TRACKED; i++)
         {
             final Item another = mock(Item.class);
+            when(another.getUniqueId()).thenReturn(UUID.randomUUID());
             when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 3.5));
             new ItemGateTracker().onPlayerDropItem(new PlayerDropItemEvent(mock(Player.class), another));
         }
 
         assertEquals(ItemGateTracker.MOST_TRACKED, ItemGateTracker.trackedCount());
+    }
+
+    /**
+     * A full followed set is not reported for an item nowhere near a gate, which would not have
+     * been followed anyway: the line would otherwise blame the limit for every drop on the server.
+     */
+    @Test
+    void aFullFollowedSetIsNotReportedForAnItemFarFromAnyGate()
+    {
+        for (int i = 0; i < ItemGateTracker.MOST_TRACKED; i++)
+        {
+            final Item another = mock(Item.class);
+            when(another.getUniqueId()).thenReturn(UUID.randomUUID());
+            when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 3.5));
+            new ItemGateTracker().onPlayerDropItem(new PlayerDropItemEvent(mock(Player.class), another));
+        }
+        verify(plugin, never()).prettyLog(eq(Level.FINE), contains("Already following"));
+
+        itemAt(BX + 30.5, BY, BZ + 3.5);
+        toss();
+
+        verify(plugin, never()).prettyLog(eq(Level.FINE), contains("Already following"));
+    }
+
+    /**
+     * An item is followed once by its id, whichever wrapper the server hands over for it.
+     *
+     * <p>A wrapper keyed by its own hash could leave an entry behind when the entity behind it is
+     * replaced, as on a teleport between worlds.
+     */
+    @Test
+    void anItemIsFollowedOnceByItsIdWhateverWrapperCarriesIt()
+    {
+        final UUID id = item.getUniqueId();
+        final Item sameItem = mock(Item.class);
+        when(sameItem.getUniqueId()).thenReturn(id);
+        when(sameItem.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 3.5));
+
+        toss();
+        new ItemGateTracker().onPlayerDropItem(new PlayerDropItemEvent(mock(Player.class), sameItem));
+
+        assertEquals(1, ItemGateTracker.trackedCount());
     }
 
     /** Items turned away at the limit are said so in the log, once rather than once each. */
@@ -458,6 +506,7 @@ class ItemGateTrackerTest
         for (int i = 0; i < (ItemGateTracker.MOST_TRACKED + 3); i++)
         {
             final Item another = mock(Item.class);
+            when(another.getUniqueId()).thenReturn(UUID.randomUUID());
             when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 3.5));
             new ItemGateTracker().onPlayerDropItem(new PlayerDropItemEvent(mock(Player.class), another));
         }
