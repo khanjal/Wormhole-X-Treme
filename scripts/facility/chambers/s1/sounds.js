@@ -72,6 +72,7 @@ async function runGate(ctx) {
   await probe.teleport(before(GEOM, 8), O);
   await ticks(20);
   const rec = sounds.record(probe.bot);
+  await sounds.probeSound(ctx.server, probe.name);
   obs.dial = (await kit.dial(GATE, 'Relay')).text;
   obs.drawn = await kit.waitDrawn(probe, GEOM, 15000);
   // The hum repeats every gate-sound-ambient-ticks (70): five seconds hears at least one.
@@ -92,6 +93,7 @@ async function runRing(ctx) {
   obs.volume = Number(await ctx.config.get('ring-sound-volume'));
   if (!obs.id) return;
   const rec = sounds.record(probe.bot);
+  await sounds.probeSound(ctx.server, probe.name);
   await trip.stepIn(probe, RING_A);
   const got = await trip.arrival(probe, obs.arrivals[1], 20000);
   obs.carried = got.ok;
@@ -109,6 +111,7 @@ async function runBeam(ctx) {
   await ticks(10);
   const dest = campus.ROUTES.beams.find((b) => b.name === 'BeamLab');
   const rec = sounds.record(probe.bot);
+  await sounds.probeSound(ctx.server, probe.name);
   probe.bot.chat('/wormhole beam to BeamLab');
   obs.beamed = await until(async () => probe.distanceTo({ x: dest.x + 0.5, y: dest.y, z: dest.z + 0.5 }) < 3, 10000);
   await ticks(40);
@@ -127,6 +130,16 @@ async function run(ctx, o) {
 const near = (s, p, r = 3) => Math.hypot(s.x - p.x, s.y - p.y, s.z - p.z) <= r;
 const r2 = (x) => Math.round(x * 100) / 100;
 
+/** The console's chime was heard: the recorder was listening for this trip. */
+function listening(obs) {
+  return c(`the recorder heard the console's ${sounds.PROBE_SOUND}, played to Probe in the same trip`, () => sounds.named(obs.heard || [], sounds.PROBE_SOUND).length >= 1);
+}
+
+/** A sound only an id names (unknown to the client's registry) from near `at`. */
+function unnamedNear(obs, at, r = 4) {
+  return (obs.heard || []).filter((s) => s.name.startsWith('#') && Math.hypot(s.x - at.x, s.z - at.z) <= r);
+}
+
 function gateChecks(obs, o) {
   const at = { x: GEOM.arrival ? GEOM.arrival.x : GEOM.centre.x, y: GEOM.arrival ? GEOM.arrival.y : 1, z: GEOM.arrival ? GEOM.arrival.z : GEOM.centre.z };
   const mine = () => (obs.heard || []).filter((s) => near(s, at, 4));
@@ -139,8 +152,8 @@ function gateChecks(obs, o) {
     c(`and it was shut down: "${GATE} has been closed"`, () => /has been closed/.test(obs.closed || '')),
   ];
   if (o.case === 'gate sounds off') {
-    list.push(c('not one gate sound was heard from it', () => {
-      if (ours().length === 0) return true;
+    list.push(listening(obs), c('not one gate sound was heard from it, by name or by id', () => {
+      if (ours().length === 0 && unnamedNear(obs, at).length === 0) return true;
       throw new Error(`heard ${sounds.tally(ours())}`);
     }));
     return list;
@@ -194,8 +207,8 @@ function ringChecks(obs, o) {
     c('Probe was carried from one end to the other', () => obs.carried === true),
   ];
   if (o.case === 'ring sounds off') {
-    list.push(c('not one ring sound was heard', () => {
-      const s = (obs.heard || []).filter((x) => Object.values(RING_SOUNDS).includes(x.name));
+    list.push(listening(obs), c('not one ring sound was heard, by name or by id', () => {
+      const s = [...(obs.heard || []).filter((x) => Object.values(RING_SOUNDS).includes(x.name)), ...ends.flatMap((e) => unnamedNear(obs, e, 2))];
       if (s.length === 0) return true;
       throw new Error(`heard ${sounds.tally(s)}`);
     }));
@@ -225,8 +238,8 @@ function beamChecks(obs, o) {
   const of = (key) => sounds.named(obs.heard || [], BEAM_SOUNDS[key]);
   const list = [c('Probe was beamed to BeamLab', () => obs.beamed === true)];
   if (o.case === 'beam sounds off') {
-    list.push(c('not one beam sound was heard', () => {
-      const s = (obs.heard || []).filter((x) => Object.values(BEAM_SOUNDS).includes(x.name));
+    list.push(listening(obs), c('not one beam sound was heard, by name or by id', () => {
+      const s = (obs.heard || []).filter((x) => Object.values(BEAM_SOUNDS).includes(x.name) || x.name.startsWith('#'));
       if (s.length === 0) return true;
       throw new Error(`heard ${sounds.tally(s)}`);
     }));

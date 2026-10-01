@@ -138,7 +138,7 @@ async function run(ctx, o) {
     await ticks(10);
     obs.stopped = logSince(ctx, mark).some((l) => l.includes('Stopped sending usage counts to bStats.'));
     mark = logMark(ctx);
-    await ctx.config.write('metrics-enabled', 'true');
+    await ctx.config.set('metrics-enabled', 'true', 's1');
     await ticks(10);
     obs.started = logSince(ctx, mark).some((l) => l.includes('Sending anonymous usage counts to bStats; metrics-enabled: false stops it.'));
   } else if (o.case === 'coreprotect') {
@@ -155,7 +155,11 @@ async function run(ctx, o) {
       nodes: since.some((l) => l.includes(NODES_AT_START)),
       fallback: since.some((l) => l.includes(FALLBACK)),
     };
-    obs.firstScan = ctx.server.log.slice(0, obs.restartFrom || 0).some((l) => l.includes('Non-player entity gate scan interval: 20 ticks'));
+    const before = ctx.server.log.slice(0, obs.restartFrom || 0);
+    obs.firstScan = before.some((l) => l.includes('Non-player entity gate scan interval: 20 ticks'));
+    // With the integrations off, a start says neither; so KNOWN_BENIGN, which lets them pass for
+    // this case, hides nothing on any other start.
+    obs.firstQuiet = !before.some((l) => l.includes(PLACEHOLDERS) || l.includes(NO_VAULT));
     obs.mode = await ctx.config.get('permissions-support-disable');
     obs.hum = await hum(ctx);
   } else if (o.case === 'ambient ticks at run time') {
@@ -214,6 +218,7 @@ function checks(obs, o) {
     const l = (k) => obs.lines && obs.lines[k];
     return [
       c('the first start logged a scan interval of 20 ticks', () => obs.firstScan === true),
+      c('and said nothing of PlaceholderAPI or Vault, with both off', () => obs.firstQuiet === true),
       c(`after the restart: "${PLACEHOLDERS}"`, () => l('placeholders')),
       c(`"${NO_VAULT}"`, () => l('economy')),
       c('"Non-player entity gate scan interval: 40 ticks"', () => l('scan')),
@@ -226,11 +231,11 @@ function checks(obs, o) {
   return [];
 }
 
-async function cleanup(ctx) {
-  if (state.restartOwed) {
-    state.restartOwed = false;
-    await ctx.facility.restart('the settings read at start put back (S1)');
-  }
+/** The restart a start-time case owes once its settings are put back; owed until one succeeds. */
+async function payRestart(ctx) {
+  if (!state.restartOwed) return;
+  await ctx.facility.restart('the settings read at start put back (S1)');
+  state.restartOwed = false;
 }
 
-module.exports = { cases, needs, stage, run, checks, cleanup };
+module.exports = { cases, needs, stage, run, checks, cleanup: payRestart, afterRestore: payRestart };

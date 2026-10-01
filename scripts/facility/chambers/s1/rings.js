@@ -58,6 +58,9 @@ async function lay(ctx, ends, half = []) {
 }
 
 async function stage(ctx, o) {
+  // First, so the borrowed floor's reset runs whatever fails after.
+  if (o.case === 'ring ceiling drop') state.borrowed.push('reset/r2');
+  if (o.case === 'ring link distance') state.borrowed.push('reset/tunnel');
   await clearAll(ctx);
   if (o.case === 'ring defaults') await trip.stagePair(ctx, { pattern: 'ODD', built: 'player' }, A, B);
   if (['ring outline', 'ring outline off', 'ring timings'].includes(o.case)) await trip.stagePair(ctx, { pattern: 'ODD', built: 'console' }, A, B);
@@ -97,7 +100,6 @@ async function run(ctx, o) {
     obs.handFirst = await kit.ask(`/wormhole ring owner Probe2 ${obs.first.id}`, { until: /Handed|already has|limit|not your/ });
     obs.handSecond = await kit.ask(`/wormhole ring owner Probe2 ${obs.second.id}`, { until: /Handed|already has|limit|not your/ });
   } else if (o.case === 'ring ceiling drop') {
-    state.borrowed.push('reset/r2');
     const once = async () => {
       await lay(ctx, [R2_FLOOR, R2_CEILING], ['bottom', 'top']);
       const r = await kit.build(R2_FLOOR, R2_CEILING);
@@ -108,7 +110,6 @@ async function run(ctx, o) {
     await ctx.config.set('ring-max-ceiling-drop', '12', 's1');
     obs.raised = await once();
   } else if (o.case === 'ring link distance') {
-    state.borrowed.push('reset/tunnel');
     const once = async () => {
       await lay(ctx, [TUNNEL_A, TUNNEL_B]);
       const r = await kit.build(TUNNEL_A, TUNNEL_B);

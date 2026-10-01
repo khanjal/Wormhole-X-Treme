@@ -7,6 +7,7 @@ const { GateKit } = require('../../lib/gatekit');
 const iris = require('../../lib/iris');
 const campus = require('../../lib/campus');
 const { ticks } = require('../../lib/probe');
+const text = require('../../lib/text');
 const {
   O, GATE, GEOM, STAND, v, c, ear, toldSince, until, atButton, before, relayArrival, logMark, logSince,
   buildGate, builtChecks, walkThrough, watchLights,
@@ -23,6 +24,9 @@ const cases = [
     ...v('same world only', '`same-world-only true`: a dial to the Range still connects; walking in is refused; riding a cart in should be too'),
     expect: 'FAIL:riding a cart in, Probe stayed in the overworld too',
     known: 'same-world-only stops a player walking into a gate to another world but not one riding into it: a cart carries Probe to the Range, since only the walking path asks (WormholeXTremePlayerListener.refusedForCrossWorld; WormholeXTremeVehicleListener does not), though the setting says players may only teleport through gates whose destination is in the same world',
+  },
+  {
+    ...v('cart to another world', 'the control: with same-world-only at its default, the same cart carries Probe to the Range'),
   },
   v('preview limits', '`gate-preview-max-blocks`: 10 refuses a preview as too many blocks, 0 says previews are off; the default stands one'),
   v('preview minutes', '`gate-preview-minutes 1`: a preview is gone a minute later, with nobody clearing it'),
@@ -52,11 +56,38 @@ async function stage(ctx, o) {
   const obs = ctx.observed;
   if (o.case === 'preview limits' || o.case === 'preview minutes') return;
   Object.assign(obs, await buildGate(ctx, { idc: o.case === 'iris animation' ? '3333' : null, net: o.case === 'sign colours' ? 'SysNet' : null }));
-  if (o.case === 'same world only') {
+  if (o.case === 'same world only' || o.case === 'cart to another world') {
     // A rail line into the opening, as G1 lays one for a cart.
     const start = before(GEOM, 8);
     await ctx.server.run(`fill ${Math.floor(start.x)} 0 ${Math.floor(GEOM.opening[0].z) + 1} ${Math.floor(start.x)} 0 ${Math.floor(start.z)} minecraft:rail[shape=north_south]`);
   }
+}
+
+/**
+ * Probe rides a cart down the rails into Sys's opening: { reached, rodeTo, cartTold }. Reached is
+ * the cart at the opening's plane or through it, or the plugin's word that it was turned back.
+ */
+async function rideCart(ctx) {
+  const probe = ctx.facility.probe;
+  const at = before(GEOM, 6);
+  const plane = GEOM.opening[0].z + 0.5;
+  await ctx.menagerie.summon('minecart', { ...at, y: 0.1 }, ctx.tag);
+  await probe.teleport({ x: at.x + GEOM.right.x * 1.5, y: 0, z: at.z + GEOM.right.z * 1.5, yaw: 90 }, O);
+  await probe.mount(ctx.tag, 5000, 3);
+  const t0 = Date.now();
+  let reached = false;
+  await ctx.server.run(`data merge entity @e[tag=${ctx.tag},tag=wx_kind_minecart,limit=1] {Motion:[0.0d,0.0d,${(-GEOM.normal.z * 0.6).toFixed(1)}d]}`);
+  await until(async () => {
+    if (probe.dimension !== O || Math.abs(probe.position.z - plane) <= 1) reached = true;
+    return probe.dimension !== O;
+  }, 8000, 1);
+  const cartTold = toldSince(probe, t0);
+  if (/Cross-world travel is disabled/.test(cartTold)) reached = true;
+  const rodeTo = probe.dimension;
+  // A passenger is not teleported across worlds: the cart goes first.
+  await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
+  await ticks(10);
+  return { reached, rodeTo, cartTold };
 }
 
 /** Dials Sys to `to` by console with Probe watching from in front; returns { dial, drawn }. */
@@ -113,18 +144,12 @@ async function run(ctx, o) {
     obs.walkedTo = probe.dimension;
     obs.told = toldSince(probe, t0);
     // Then a cart, Probe in it, rolled into the same opening.
-    if (probe.dimension === O) {
-      const at = before(GEOM, 6);
-      await ctx.menagerie.summon('minecart', { ...at, y: 0.1 }, ctx.tag);
-      await probe.teleport({ x: at.x + GEOM.right.x * 1.5, y: 0, z: at.z + GEOM.right.z * 1.5, yaw: 90 }, O);
-      await probe.mount(ctx.tag, 5000, 3);
-      await ctx.server.run(`data merge entity @e[tag=${ctx.tag},tag=wx_kind_minecart,limit=1] {Motion:[0.0d,0.0d,${(-GEOM.normal.z * 0.6).toFixed(1)}d]}`);
-      await until(async () => probe.dimension !== O, 8000);
-      obs.rodeTo = probe.dimension;
-      // A passenger is not teleported across worlds: the cart goes first.
-      await ctx.server.run(`kill @e[tag=${ctx.tag}]`);
-      await ticks(10);
-    }
+    if (probe.dimension === O) Object.assign(obs, await rideCart(ctx));
+    await probe.teleport(campus.TRANSIT.home, O);
+    await shut(ctx, 'Range');
+  } else if (o.case === 'cart to another world') {
+    Object.assign(obs, await open(ctx, 'Range'));
+    Object.assign(obs, await rideCart(ctx));
     await probe.teleport(campus.TRANSIT.home, O);
     await shut(ctx, 'Range');
   } else if (o.case === 'preview limits') {
@@ -232,6 +257,31 @@ async function run(ctx, o) {
   }
 }
 
+/**
+ * A sign's front text as `data get block ... front_text` prints it, line by line, each line its
+ * text parts with the colour each is drawn in: [[{ text, color }]]. A line is a JSON string
+ * before 1.21.5 and a compound from it; a part takes its parent's colour unless it has its own.
+ */
+function signLines(raw) {
+  const at = (raw || '').indexOf('{');
+  if (at < 0) return [];
+  let nbt;
+  try { nbt = text.parseSnbt(raw.slice(at)); } catch { return []; }
+  const parts = (comp, color, out) => {
+    if (typeof comp === 'string') { out.push({ text: comp, color }); return out; }
+    if (!comp || typeof comp !== 'object') return out;
+    const own = comp.color || color;
+    if (comp.text !== undefined && comp.text !== '') out.push({ text: String(comp.text), color: own });
+    for (const x of comp.extra || []) parts(x, own, out);
+    return out;
+  };
+  return (nbt.messages || []).map((m) => {
+    let comp = m;
+    if (typeof m === 'string') { try { comp = JSON.parse(m); } catch { comp = m; } }
+    return parts(comp, null, []);
+  });
+}
+
 /** The front text of Sys's name sign (the :N block's face), as `data get block` gives it. */
 async function nameSign(ctx) {
   const n = GEOM.blocks.find((b) => b.marks.includes('N'));
@@ -242,7 +292,7 @@ async function nameSign(ctx) {
 function checks(obs, o) {
   const list = (o.case === 'preview limits' || o.case === 'preview minutes') ? [] : [...builtChecks(obs)];
   // The sign's front text as the server holds it: a component per line, its colour beside its text.
-  const coloured = (text, colour) => new RegExp(`color"?\\s*:\\s*"?${colour}"?[^}]*${text}|${text}[^}]*color"?\\s*:\\s*"?${colour}`).test(obs.sign || '');
+  const coloured = (text, colour) => signLines(obs.sign).some((parts) => parts.some((p) => p.text === text && p.color === colour));
   if (o.case === 'timeout-activate') {
     list.push(c('the DHD lit the gate: "Gate successfully activated."', () => /Gate successfully activated\./.test(obs.told || '')),
       c('its chevrons were lit a second later', () => obs.litAt1s > 0),
@@ -265,10 +315,15 @@ function checks(obs, o) {
     list.push(c(`${GATE} dialled the Range (a dial is not refused) and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
       c('walking in: "Cross-world travel is disabled on this server."', () => /Cross-world travel is disabled on this server\./.test(obs.told || '')),
       c('and Probe stayed in the overworld', () => obs.walked === false && obs.walkedTo === O),
+      c('a cart, Probe in it, rolled to the opening', () => obs.reached === true),
       c('riding a cart in, Probe stayed in the overworld too', () => {
         if (obs.rodeTo === O) return true;
         throw new Error(`the cart took Probe to ${obs.rodeTo}`);
       }));
+  } else if (o.case === 'cart to another world') {
+    list.push(c(`${GATE} dialled the Range and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
+      c('a cart, Probe in it, rolled to the opening', () => obs.reached === true),
+      c('and carried Probe to the Range', () => obs.rodeTo === 'minecraft:the_nether'));
   } else if (o.case === 'preview limits') {
     list.push(c('by default Probe stands a preview: "Previewing Standard ..."', () => /Previewing Standard/.test(obs.byDefault || '')),
       c('at 10: "Too many preview blocks on the server. Clear one with /wormhole gate preview clear."', () => /Too many preview blocks on the server\. Clear one with \/wormhole gate preview clear\./.test(obs.atTen || '') && !/Previewing/.test(obs.atTen || '')),
@@ -288,8 +343,8 @@ function checks(obs, o) {
       }));
   } else if (o.case === 'dial spin') {
     list.push(c('both dials connected, each with its seven chevrons seen', () => [obs.top, obs.none].every((x) => x && /Stargates connected/.test(x.dial) && x.waves === 7)),
-      c('with none, the chevrons came at under three quarters of the default\'s pace (its rest on the top chevron gone)', () => {
-        if (obs.top.span && obs.none.span && obs.none.span < obs.top.span * 0.75) return true;
+      c('with none, a chevron in 0.35 to 0.65 of the default\'s time (its rest on the top chevron gone)', () => {
+        if (obs.top.span && obs.none.span && obs.none.span >= obs.top.span * 0.35 && obs.none.span <= obs.top.span * 0.65) return true;
         throw new Error(`${obs.top && Math.round(obs.top.span)} ms a chevron by default, ${obs.none && Math.round(obs.none.span)} with none`);
       }));
   } else if (o.case === 'arrival splash') {
@@ -301,7 +356,10 @@ function checks(obs, o) {
       throw new Error(obs.sign);
     });
     list.push(line('the name', `-${GATE}-`, 'red'), line('the network', 'N:SysNet', 'gold'), line('the owner', 'O:Probe', 'blue'),
-      c('and its text glows', () => /has_glowing_text: ?1b/.test(obs.sign || '')));
+      c('and its text glows', () => {
+        const at = (obs.sign || '').indexOf('{');
+        try { return at >= 0 && Number(text.parseSnbt(obs.sign.slice(at)).has_glowing_text) === 1; } catch { return false; }
+      }));
   } else if (o.case === 'sign colour bad') {
     list.push(c(`the name sign written again shows the name in the default colour, dark_aqua`, () => {
       if (/Now owned by: Probe/.test(obs.rewritten || '') && coloured(`-${GATE}-`, 'dark_aqua')) return true;

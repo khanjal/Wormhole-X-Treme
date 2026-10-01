@@ -22,12 +22,14 @@ function scratch(fn) {
   }
 }
 
+const recorded = (plugins) => Object.keys(JSON.parse(fs.readFileSync(path.join(plugins, extras.RECORD), 'utf8')).files);
+
 test('a jar in plugins-extra is copied in and recorded', () => scratch(({ folder, from, plugins }) => {
   fs.writeFileSync(path.join(from, 'Eco.jar'), 'eco');
   const r = extras.install(folder, from);
   assert.deepStrictEqual(r.copied, ['Eco.jar']);
   assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'eco');
-  assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(plugins, extras.RECORD), 'utf8')).files, ['Eco.jar']);
+  assert.deepStrictEqual(recorded(plugins), ['Eco.jar']);
 }));
 
 test('a jar gone from plugins-extra is taken out by the next run', () => scratch(({ folder, from, plugins }) => {
@@ -54,6 +56,30 @@ test('somebody\'s own jar of the same name is refused, not overwritten', () => s
   assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'theirs');
 }));
 
+test('somebody\'s own jar of the same bytes is not adopted, so a later run never takes it out', () => scratch(({ folder, from, plugins }) => {
+  fs.mkdirSync(plugins, { recursive: true });
+  fs.writeFileSync(path.join(plugins, 'Eco.jar'), 'eco');
+  fs.writeFileSync(path.join(from, 'Eco.jar'), 'eco');
+  extras.install(folder, from);
+  assert.deepStrictEqual(recorded(plugins), []);
+  fs.rmSync(path.join(from, 'Eco.jar'));
+  extras.install(folder, from);
+  assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'eco');
+}));
+
+test('a jar of ours somebody has replaced since is neither overwritten nor taken out', () => scratch(({ folder, from, plugins }) => {
+  fs.writeFileSync(path.join(from, 'Eco.jar'), 'v1');
+  extras.install(folder, from);
+  fs.writeFileSync(path.join(plugins, 'Eco.jar'), 'theirs now');
+  fs.writeFileSync(path.join(from, 'Eco.jar'), 'v2');
+  assert.throws(() => extras.install(folder, from), /replaced since/);
+  assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'theirs now');
+  fs.rmSync(path.join(from, 'Eco.jar'));
+  const r = extras.install(folder, from);
+  assert.deepStrictEqual(r.kept, ['Eco.jar']);
+  assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'theirs now');
+}));
+
 test('a changed jar is copied over the one an earlier run put there', () => scratch(({ folder, from, plugins }) => {
   fs.writeFileSync(path.join(from, 'Eco.jar'), 'v1');
   extras.install(folder, from);
@@ -62,10 +88,19 @@ test('a changed jar is copied over the one an earlier run put there', () => scra
   assert.strictEqual(fs.readFileSync(path.join(plugins, 'Eco.jar'), 'utf8'), 'v2');
 }));
 
+test('a jar named as a --with companion is refused', () => scratch(({ folder, from, plugins }) => {
+  fs.mkdirSync(plugins, { recursive: true });
+  fs.writeFileSync(path.join(plugins, 'Vault.jar'), 'pinned');
+  fs.writeFileSync(path.join(plugins, '.wx-companions.json'), JSON.stringify({ files: ['Vault.jar'] }));
+  fs.writeFileSync(path.join(from, 'Vault.jar'), 'other');
+  assert.throws(() => extras.install(folder, from), /--with companion/);
+  assert.strictEqual(fs.readFileSync(path.join(plugins, 'Vault.jar'), 'utf8'), 'pinned');
+}));
+
 test('a record naming a path outside plugins/ is not acted on', () => scratch(({ folder, from, plugins }) => {
   fs.mkdirSync(plugins, { recursive: true });
   fs.writeFileSync(path.join(folder, 'precious.jar'), 'keep');
-  fs.writeFileSync(path.join(plugins, extras.RECORD), JSON.stringify({ files: ['../precious.jar'] }));
+  fs.writeFileSync(path.join(plugins, extras.RECORD), JSON.stringify({ files: { '../precious.jar': 'x' } }));
   extras.install(folder, from);
   assert.strictEqual(fs.existsSync(path.join(folder, 'precious.jar')), true);
 }));

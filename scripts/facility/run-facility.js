@@ -29,11 +29,11 @@
 //                        a run without one takes out the jar an earlier run installed. The
 //                        self-test's companion cells run only with --with (lib/companions.js)
 //   --plugin-cache <dir> read companion jars from <dir>/<version>/ then <dir>/any/ first
+//                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
+//                        the repository or a folder above it)
 //   --plugins-extra <dir>  copy every jar in <dir> into the server's plugins/ (default:
 //                        .local-server/plugins-extra, if it is there); a later run without one
 //                        takes it out (lib/extras.js)
-//                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
-//                        the repository or a folder above it)
 //   --op <names>         op these players (comma-separated) once the server is up
 //   --tied              (set by --versions and --shards for their children) stop when stdin
 //                        closes
@@ -415,6 +415,7 @@ async function main() {
   const extra = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
   if (extra.copied.length) console.log(`plugins-extra copied in: ${extra.copied.join(', ')}`);
   if (extra.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${extra.removed.join(', ')}`);
+  if (extra.kept.length) console.log(`plugins-extra left alone (copied by an earlier run, replaced since): ${extra.kept.join(', ')}`);
   // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
   shapes.installTestShapes(folder);
   if (placed.length) schematics.install(folder, placed);

@@ -485,9 +485,10 @@ the run like a chamber's `needs.config`. A false check also prints what it saw (
   refuse a run with LuckPerms installed: the Permissions Desk covers that.
 
 A matrix cell may also hold `settings` of its own on top of its chamber's, with `because` saying
-what they are meant to stop: `g1 wolf to the Range, pets-follow-owner false` expects the wolf left
-behind (into the nether, since within one world vanilla brings a following wolf to its owner
-anyway), against `g1 wolf to the Range` that passes.
+what they are meant to stop: `g1 wolf to the Range, pets-follow-owner false` expects the wolf, alive,
+not to come along (into the nether, since within one world vanilla brings a following wolf to its
+owner anyway), against `g1 wolf to the Range`, the same trip at the default, where it does. Every
+pet cell first checks the pet is there and alive, so a dead or missing pet fails as that.
 
 `.local-server/plugins-extra/` (or `--plugins-extra <dir>`) is the design's drop folder: any jar
 in it is copied into the test server's `plugins/` at start and recorded in

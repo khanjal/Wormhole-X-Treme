@@ -404,6 +404,10 @@ async function selftest(fac, {
   });
 
   await guard('settings', async () => {
+    // And whatever a cell set during its run (ctx.config.set), not only what it declared.
+    for (const [n, x] of fac.config.changed) {
+      if (x.owner !== 'facility baseline' && !settings.has(n)) { settings.add(n); before[n] = x.before; }
+    }
     for (const n of settings) {
       const now = await fac.config.get(n);
       check('settings', `${n} restored`, now === before[n], `before ${before[n]}, after ${now}`);

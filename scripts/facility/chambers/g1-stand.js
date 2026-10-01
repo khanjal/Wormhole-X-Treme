@@ -584,6 +584,8 @@ async function sendTraveller(ctx, o, geom, f) {
       const a = await arrival(5000);
       obs.petNear = a.count > 0 && a.same;
       obs.petStayed = await near(ctx, O, front(geom, 7, 1.5), `tag=${ctx.tag},tag=wx_kind_${PETS[t]}`, 3);
+      // Alive, in either world: a pet that died or was never there cannot read as one left behind.
+      obs.petAlive = (await ctx.server.run(`execute if entity @e[tag=${ctx.tag},tag=wx_kind_${PETS[t]}]`)).lines.some((l) => /Test passed/.test(l));
     }
     return undefined;
   }
@@ -990,7 +992,10 @@ function checks(ctx, o) {
     }
     if (PETS[t] && !stopped && o['own iris'] !== 'shut') {
       if (t === 'sitting wolf') list.push(c('the sitting wolf stayed behind', () => obs.petStayed && !obs.petNear));
-      else list.push(c(`the ${t} came along`, () => obs.petNear));
+      else {
+        list.push(c(`the ${t} was there, alive`, () => obs.petAlive === true));
+        list.push(c(`the ${t} came along`, () => obs.petNear));
+      }
     }
     return list;
   }

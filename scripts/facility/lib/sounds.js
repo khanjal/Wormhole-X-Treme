@@ -18,12 +18,17 @@ function record(bot) {
   const on = (name, pos, volume, pitch) => {
     heard.push({ name: bare(name), x: pos.x, y: pos.y, z: pos.z, volume, pitch, t: Date.now() - t0 });
   };
+  // A sound the client's registry could not name arrives by id alone: kept, as "#<id>", so a
+  // packet is never silently missed.
+  const byId = (id, category, pos, volume, pitch) => on(`#${id}`, pos, volume, pitch);
   bot.on('soundEffectHeard', on);
+  bot.on('hardcodedSoundEffectHeard', byId);
   return {
     heard,
     t0,
     stop() {
       bot.off('soundEffectHeard', on);
+      bot.off('hardcodedSoundEffectHeard', byId);
       return heard;
     },
   };
@@ -42,4 +47,10 @@ function tally(heard) {
   return [...counts.entries()].map(([n, c]) => `${n} x${c}`).join(', ') || 'nothing';
 }
 
-module.exports = { record, named, tally, bare };
+/** Plays a sound to `player` from the console: a recorder that misses it is not listening. */
+const PROBE_SOUND = 'block.note_block.chime';
+async function probeSound(srv, player) {
+  await srv.run(`execute as ${player} at @s run playsound minecraft:${PROBE_SOUND} master @s ~ ~ ~ 1 1`);
+}
+
+module.exports = { record, named, tally, bare, probeSound, PROBE_SOUND };

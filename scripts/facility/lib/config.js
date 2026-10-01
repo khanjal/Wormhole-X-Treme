@@ -25,6 +25,9 @@ class Config {
     this.srv = srv;
     this.stacks = new Map();
     this.journal = journal;
+    // Every setting set this session, with its value before the first change and who made it,
+    // so a check at the end can see each put back (a chamber's needs and a change mid-run alike).
+    this.changed = new Map();
   }
 
   /** The journal's { setting: value before the facility changed it }; {} if there is none. */
@@ -113,6 +116,7 @@ class Config {
     }
     if (!this.stacks.has(owner)) this.stacks.set(owner, []);
     this.stacks.get(owner).push({ name, before });
+    if (!this.changed.has(name)) this.changed.set(name, { before, owner });
     return now;
   }
 
