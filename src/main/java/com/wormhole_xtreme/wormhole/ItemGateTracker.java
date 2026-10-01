@@ -262,8 +262,7 @@ class ItemGateTracker implements Listener
     {
         final Stargate gate = StargateManager.getGateFromBlock(
             point.getWorld().getBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()));
-        if ((gate == null) || !gate.isGatePortalBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ())
-            || WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(item.getUniqueId()))
+        if ((gate == null) || !gate.isGatePortalBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()))
         {
             return null;
         }
