@@ -154,8 +154,10 @@ if ($PluginCache) { $arguments += @('--plugin-cache', (Resolve-Path $PluginCache
 
 if ($Export -or $Check)
 {
-    # A job that ends, run here so its result stays in this window.
+    # A job that ends, run here so its result stays in this window. Node's warnings on stderr are
+    # not errors: under 'Stop', Windows PowerShell would end the job at the first one.
     Set-Location $repo
+    $ErrorActionPreference = 'Continue'
     & node (Join-Path $facility 'run-facility.js') @arguments
     exit $LASTEXITCODE
 }
