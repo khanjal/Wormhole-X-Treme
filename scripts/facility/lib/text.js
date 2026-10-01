@@ -226,6 +226,6 @@ function clickCommands(component) {
 }
 
 module.exports = {
-  SNAKE_CASE_EVENTS, toComponent, command, displayNbt, summonDisplay,
+  SNAKE_CASE_EVENTS, toComponent, command, displayNbt, summonDisplay, quoteSingle,
   toSnbt, parseSnbt, readDisplayText, plain, sameComponent, clickCommands,
 };

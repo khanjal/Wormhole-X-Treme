@@ -13,8 +13,13 @@ const { Probe, join } = require('./lib/probe');
 const { FacilityConsole, normaliseOptions } = require('./lib/console');
 const chambers = require('./chambers');
 const wings = require('./wings');
+const { Menagerie } = require('./lib/menagerie');
+const { Watch } = require('./lib/observe');
+const { Transit } = require('./lib/transit');
 
 const BOT = 'Probe';
+/** The Config owner of the facility's baseline settings, held for the whole session. */
+const BASELINE_OWNER = 'facility baseline';
 
 function clock() {
   const d = new Date();
@@ -23,17 +28,21 @@ function clock() {
 
 class Facility {
   /** `srv` is a started Server; `manifest` is what lib/generate.js wrote. */
-  constructor({ srv, version, manifest, port, log = console.log }) {
+  constructor({ srv, version, manifest, port, log = console.log, fixed = [] }) {
     Object.assign(this, { srv, version, manifest, port, log });
     this.boards = new Boards(srv, version);
     this.config = new Config(srv);
-    this.faults = new FaultCounter(srv);
+    this.faults = new FaultCounter(srv, { fixed });
     this.entries = chambers.entries();
     this.status = {};
     this.last = {};
     this.held = new Set(); // chambers whose Stage left settings applied until their Reset
     this.queue = Promise.resolve();
     this.bars = [];
+    this.menagerie = new Menagerie(srv, version);
+    this.watch = new Watch(srv);
+    this.transit = new Transit(this);
+    this.keepRings = new Set(); // the transit pair: permanent, never taken down by a chamber
   }
 
   // ---- world -------------------------------------------------------------------------------
@@ -42,10 +51,15 @@ class Facility {
   async prepare() {
     await this.srv.prepareFence();
     const problems = [];
-    for (const rule of ['daylight', 'weather', 'mobSpawning', 'commandBlockOutput', 'logAdminCommands']) {
-      const cmd = `gamerule ${server.gameruleName(this.version, rule)} false`;
-      const r = await this.srv.run(cmd);
-      if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
+    // Paper keeps gamerules per world: the nether and the End need them too (a ghast spawned in
+    // the Range, with mob spawning off only in the overworld, fireballed Probe2 on a transit trip).
+    for (const dim of [campus.OVERWORLD, campus.NETHER, campus.END]) {
+      for (const rule of ['daylight', 'weather', 'mobSpawning', 'patrols', 'traders', 'commandBlockOutput', 'logAdminCommands',
+        'fallDamage', 'fireDamage', 'drowningDamage', 'freezeDamage']) {
+        const cmd = `execute in ${dim} run gamerule ${server.gameruleName(this.version, rule)} false`;
+        const r = await this.srv.run(cmd);
+        if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
+      }
     }
     for (const c of ['time set 6000', 'weather clear', `setworldspawn ${Math.floor(campus.TRANSIT.home.x)} 0 ${Math.floor(campus.TRANSIT.home.z)}`]) {
       const r = await this.srv.run(c);
@@ -75,6 +89,14 @@ class Facility {
       }
     } catch (e) {
       problems.push(`cannot put back the settings in ${Config.JOURNAL}, kept for the next start: ${e.message}`);
+    }
+    await this.watch.prepare();
+    // The facility's baseline settings (campus.BASELINE), journalled like a chamber's and put
+    // back at close, so a killed run's baseline is put back by the next --keep-world start.
+    for (const [name, value] of Object.entries(campus.BASELINE)) {
+      try {
+        await this.config.set(name, value, BASELINE_OWNER);
+      } catch (e) { problems.push(`baseline ${name}: ${e.message}`); }
     }
     return problems;
   }
@@ -182,14 +204,97 @@ class Facility {
     return n;
   }
 
+  /**
+   * After the build: stock the Menagerie, then let each chamber with a `fixture` set up what it
+   * keeps for the whole session (the Relay gate, the shape gallery). Returns [{ id, ok, detail }].
+   */
+  async fixtures() {
+    const out = [];
+    // Whatever the far worlds spawned before their mob spawning was turned off.
+    for (const [dim, types] of [[campus.NETHER, ['ghast', 'blaze', 'magma_cube', 'zombified_piglin', 'piglin', 'piglin_brute', 'hoglin', 'wither_skeleton', 'skeleton', 'enderman', 'strider']],
+      [campus.END, ['enderman', 'shulker', 'endermite']]]) {
+      for (const t of types) await this.srv.run(`execute in ${dim} run kill @e[type=minecraft:${t}]`);
+    }
+    // And the animals a plains chunk is generated with, which no gamerule stops (spawn-animals
+    // cannot be off: before 1.21 it discards a summoned animal too). Nothing is stocked yet, so
+    // every one is a stray that could wander into a lane.
+    let strays = 0;
+    for (const t of ['sheep', 'pig', 'chicken', 'cow', 'horse', 'donkey', 'rabbit']) {
+      const r = await this.srv.run(`execute in ${campus.OVERWORLD} run kill @e[type=minecraft:${t}]`);
+      const m = r.lines.map((l) => /Killed (\d+)/.exec(l)).find(Boolean);
+      if (m) strays += Number(m[1]);
+      else if (r.lines.some((l) => /^Killed /.test(l))) strays++;
+    }
+    out.push({ id: 'strays', ok: true, detail: `${strays} animals from chunk generation killed` });
+    try {
+      await this.menagerie.stock();
+      out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
+    } catch (e) { out.push({ id: 'menagerie', ok: false, detail: e.message }); }
+    for (const e of this.entries.filter((x) => x.chamber && x.chamber.fixture)) {
+      try {
+        const detail = await e.chamber.fixture(this.makeCtx(e));
+        out.push({ id: e.def.id, ok: true, detail: detail || 'set up' });
+      } catch (err) { out.push({ id: e.def.id, ok: false, detail: err.message }); }
+    }
+    // The transit routes last: the Ops gate's console dials the far gates made above.
+    try {
+      out.push({ id: 'transit', ok: true, detail: await this.transit.build() });
+    } catch (err) { out.push({ id: 'transit', ok: false, detail: err.message }); }
+    return out;
+  }
+
+  /** Whether a chamber's cell holds a fixture that lives for the whole session. */
+  holdsFixture(id) {
+    const e = this.entries.find((x) => x.def.id === id);
+    return Boolean(e && e.chamber && e.chamber.fixture);
+  }
+
   // ---- people --------------------------------------------------------------------------------
+
+  /**
+   * Players in the facility do not go hungry or get hurt: infinite Saturation and Resistance 255,
+   * particles hidden (`infinite` is from 1.19.4). Given on join, and again every five seconds to
+   * everyone (a death or a bucket of milk clears them, and a respawn or a world change would
+   * otherwise go unnoticed). Mobs are not given it: a cell's mob still takes damage.
+   */
+  async shield(who = '@a') {
+    await this.srv.run(`effect give ${who} minecraft:saturation infinite 255 true`);
+    await this.srv.run(`effect give ${who} minecraft:resistance infinite 255 true`);
+  }
+
+  startShielding() {
+    if (this.shieldTimer) return;
+    this.shieldTimer = setInterval(() => { this.shield().catch(() => {}); }, 5000);
+  }
 
   async connectProbe() {
     const bot = await join({ port: this.port, version: this.version, username: BOT });
     this.probe = new Probe(bot, this.srv);
     for (const c of [`op ${BOT}`, `gamemode creative ${BOT}`]) await this.srv.run(c);
+    await this.shield(BOT);
+    this.startShielding();
     await this.probe.teleport(campus.TRANSIT.home);
     return this.probe;
+  }
+
+  /**
+   * A second body for the tests that need two (a ring swap, a private pair, a player's beam
+   * place, a cooldown an op would skip): Probe2, never opped, in adventure mode. Joined on first
+   * use and kept for the session.
+   */
+  async second() {
+    if (this.probe2 && this.probe2.bot.entity && !this.probe2.gone) return this.probe2;
+    if (this.probe2 && this.probe2.gone) this.log(`  Probe2 rejoins (it left: ${this.probe2.gone})`);
+    const bot = await join({ port: this.port, version: this.version, username: 'Probe2' });
+    this.probe2 = new Probe(bot, this.srv);
+    const p2 = this.probe2;
+    bot.on('kicked', (reason) => { p2.gone = `kicked: ${typeof reason === 'string' ? reason : JSON.stringify(reason)}`; });
+    bot.on('end', (reason) => { p2.gone = p2.gone || `disconnected: ${reason}`; });
+    await this.srv.run('deop Probe2');
+    await this.srv.run('gamemode adventure Probe2');
+    await this.shield('Probe2');
+    await this.probe2.teleport(campus.TRANSIT.home);
+    return this.probe2;
   }
 
   /** Starts the console and greets everyone who joins from now on. */
@@ -202,20 +307,40 @@ class Facility {
         run: (player, e, action) => this.request(player, e, action),
         watch: (player, e) => this.watch(player, e),
         go: (player, w) => this.go(player, w),
+        transit: (player, action) => this.transitAction(player, action),
       },
     });
     await this.console.start();
     this.srv.on('line', (line) => {
       const m = /: (\w+) joined the game/.exec(line);
-      if (m && m[1] !== BOT) this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
+      if (m && m[1] !== BOT && m[1] !== 'Probe2') this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
     });
   }
 
   async welcome(player) {
     const h = campus.TRANSIT.home;
     await this.srv.run(`gamemode adventure ${player}`);
+    await this.shield(player);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
+  }
+
+  /** A Transit tab action for `player`: the console forms the Gate Room's buttons run. */
+  async transitAction(player, action) {
+    const say = async (cmd) => (await this.srv.run(cmd)).lines.map((l) => l.replace(/§./g, '')).join(' / ') || 'no answer';
+    let words;
+    if (action.startsWith('dial ')) words = await say(`wormhole gate dial Ops ${action.slice(5)}`);
+    else if (action === 'beam lab') words = await say(`wormhole beam admin send ${player} BeamLab`);
+    else if (action === 'beam home') words = await say(`wormhole beam admin send ${player} Atrium`);
+    else {
+      const lines = this.transit.routes().map((r) => {
+        const s = this.transit.status[r.id];
+        return `${r.id}: ${s ? `${s.ok ? 'PASS' : 'FAIL'} at ${s.time} · ${s.detail}` : 'not walked this session'}`;
+      });
+      for (const l of lines) await this.console.tell(player, [{ text: `  ${l}`, color: 'gray' }]);
+      return;
+    }
+    await this.console.tell(player, [{ text: `${action}: `, color: 'white' }, { text: words, color: 'gray' }]);
   }
 
   async go(player, w) {
@@ -243,7 +368,12 @@ class Facility {
         { text: s ? `${s.state.toUpperCase()}${s.line ? ` · ${s.line}` : ''}` : 'never run', color: colour });
     }
     lines.push('\n', { text: `${later} more chambers built, awaiting their tests`, color: 'dark_gray' });
+    lines.push(...this.transit.wallLines());
     return lines;
+  }
+
+  async refreshOpsWall() {
+    await this.boards.set('opswall', this.opsWallSpec());
   }
 
   chamberSpec(e) {
@@ -269,6 +399,7 @@ class Facility {
     const pylon = { pass: 'pass', fail: 'fail', running: 'running', refused: 'idle', staged: 'running' }[state] || 'idle';
     await this.boards.pylon(L.pylon, pylon, campus.wing(e.def.wing).dim);
     await this.boards.set(e.def.id, this.chamberSpec(e));
+    for (const m of campus.BOARD_MIRRORS[e.def.id] || []) await this.boards.set(m, this.chamberSpec(e)).catch(() => {});
     await this.boards.set('opswall', this.opsWallSpec());
   }
 
@@ -304,6 +435,7 @@ class Facility {
     return {
       server: this.srv, probe: this.probe, config: this.config, board: this.boards, version: this.version,
       tag: `wx_run_${def.id}`, observed: {}, layout: blueprint.layoutOf(def), step: () => {}, owner: def.id,
+      menagerie: this.menagerie, watch: this.watch, facility: this,
     };
   }
 
@@ -321,12 +453,16 @@ class Facility {
     }
     const v = raw ? values : this.valuesOf(e, values);
     if (!raw) this.last[e.def.id] = { ...values };
-    const refusal = ch.refuses ? ch.refuses(v) : null;
+    const refusal = ch.refuses ? ch.refuses(v, this.version) : null;
     if (refusal) {
       await this.setStatus(e, 'refused', refusal);
       return { outcome: 'REFUSED', reason: refusal, checks: [] };
     }
     const ctx = this.makeCtx(e);
+    // Where a run's time goes, for the report: ms per phase.
+    const timing = {};
+    let mark = Date.now();
+    const lap = (phase) => { timing[phase] = Date.now() - mark; mark = Date.now(); };
     const bar = new RunBar(this.srv, this.version, e.def.id, `${e.def.id.toUpperCase()} ${e.def.title}`, 6);
     this.bars = this.bars.filter((b) => !b.closed);
     this.bars.push(bar);
@@ -337,15 +473,26 @@ class Facility {
     let staged = false;
     try {
       await bar.advance('resetting the cell');
-      const reset = await this.runFunction(this.resetFunction(e));
+      if (ch.cleanup) await ch.cleanup(ctx);
+      lap('cleanup');
+      const rf = this.resetFunction(e);
+      const reset = rf ? await this.runFunction(rf) : { ok: true };
+      lap('reset');
       if (!reset.ok) throw Object.assign(new Error(`reset before staging: ${reset.detail}`), { phase: 'fixture' });
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
+      // The reset empties the cell, fixture and all (G2's gallery): put the fixture back, or the
+      // run dials gates whose frames and floor are gone.
+      if (ch.fixture) {
+        try { await ch.fixture(ctx); } catch (err) { err.phase = 'fixture'; throw err; }
+        lap('fixture');
+      }
       await bar.advance('applying settings');
       const needs = ch.needs ? ch.needs(v) : {};
       await this.config.apply(needs.config || {}, e.def.id);
       try {
         await ch.stage(ctx, v);
       } catch (err) { err.phase = 'fixture'; throw err; }
+      lap('stage');
       if (mode === 'stage') {
         staged = true;
         this.held.add(e.def.id);
@@ -356,12 +503,25 @@ class Facility {
       try {
         await ch.run(ctx, v);
       } catch (err) { err.phase = 'trip'; throw err; }
+      lap('run');
       await bar.advance('checking');
       const checks = [];
       for (const c of ch.checks(ctx, v)) {
         let ok = false;
         try { ok = Boolean(await c.test()); } catch (err) { ok = false; c.error = err.message; }
         checks.push({ name: c.name, ok, error: c.error });
+      }
+      // Shut by command: once its checks are read, a chamber whose purpose is not the shutdown
+      // timeout closes its gates with the plugin's own command rather than leaving them to time
+      // out, and the end state is checked after it (chambers' `shut`, returning more checks).
+      if (ch.shut) {
+        let after;
+        try { after = (await ch.shut(ctx, v)) || []; } catch (err) { after = [{ name: 'its gates were shut by command', test: async () => { throw err; } }]; }
+        for (const c of after) {
+          let ok = false;
+          try { ok = Boolean(await c.test()); } catch (err) { ok = false; c.error = err.message; }
+          checks.push({ name: c.name, ok, error: c.error });
+        }
       }
       const failed = checks.find((c) => !c.ok);
       result = failed ? { outcome: 'FAIL', reason: failed.name, checks } : { outcome: 'PASS', reason: null, checks };
@@ -372,6 +532,8 @@ class Facility {
       // else, a failed stage included, puts them back now.
       if (!staged) await this.config.restore(e.def.id);
     }
+    lap('checks');
+    result.timing = timing;
     await this.setStatus(e, result.outcome === 'PASS' ? 'pass' : 'fail', result.reason || 'all checks true');
     await bar.finish(result.outcome === 'PASS', result.outcome === 'PASS' ? 'PASS' : `FAIL · ${result.reason}`, holdMs);
     this.lastCtx = { ctx, v, e };
@@ -389,11 +551,24 @@ class Facility {
   async resetChamber(e) {
     const problems = [];
     const f = this.resetFunction(e);
-    if (!f) return { ok: true, problems };
+    if (e.chamber && e.chamber.cleanup) {
+      try { await e.chamber.cleanup(this.makeCtx(e)); } catch (err) { problems.push(`cleanup: ${err.message}`); }
+    }
+    // A desk has no cell and no reset function: its cleanup is all of its reset.
+    if (!f) {
+      await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
+      if (this.held.delete(e.def.id)) await this.config.restore(e.def.id);
+      return { ok: problems.length === 0, problems };
+    }
     const r = await this.runFunction(f);
     if (!r.ok) problems.push(r.detail);
     await this.srv.run(`kill @e[tag=wx_run_${e.def.id}]`);
     if (this.held.delete(e.def.id)) await this.config.restore(e.def.id);
+    if (e.chamber && e.chamber.fixture) {
+      // A fixture's cell is not left empty: put the fixture back and let it say it is whole.
+      try { await e.chamber.fixture(this.makeCtx(e)); } catch (err) { problems.push(`fixture: ${err.message}`); }
+      return { ok: problems.length === 0, problems };
+    }
     const build = this.manifest.functions.find((x) => x.clear.some((c) => c.id === e.def.id));
     for (const c of build ? build.clear.filter((x) => x.id === e.def.id) : []) {
       const clear = await this.isClear(f.dim, c.box);
@@ -414,8 +589,12 @@ class Facility {
   }
 
   async close() {
+    if (this.shieldTimer) clearInterval(this.shieldTimer);
+    this.shieldTimer = null;
+    await this.config.restore(BASELINE_OWNER).catch(() => {});
     for (const b of this.bars) await b.close().catch(() => {});
     if (this.probe) this.probe.bot.quit();
+    if (this.probe2) this.probe2.bot.quit();
   }
 }
 

@@ -182,7 +182,7 @@ local pre-release check. Before making a release, run `--selftest` locally on al
 npm install --prefix scripts/facility
 node scripts/facility/run-facility.js 26.1.2               # build the campus, hold for a tester
 node scripts/facility/run-facility.js 1.21.11 --selftest   # prove it, exit 1 on any FAIL
-node scripts/facility/run-facility.js --selftest --versions 1.20.4,1.21.11,26.1.2
+node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   # in parallel
 ```
 
 The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
@@ -192,31 +192,270 @@ SHA-256, and fetched again when a newer stable build is out; offline, or when Pa
 stable build, the cached jar is checked against the build recorded with it; `--paper-build <n>`
 picks a build, checked the same way), and starts the server in `.local-server/facility-<version>/`
 on port 25590 (`--port`) with a fresh world (`--keep-world` keeps it, and puts back any plugin
-setting a killed run left changed). It finds the Java a version needs on its own (17 for 1.20.4,
-21 for 1.20.5 to 1.21.x, 25 for 26.x); `--java` names one. `WX_ECHO=1` prints the server's log as
-it runs (`0`, `false`, `no` and `off` do not). However the launcher ends, the server goes with
-it: Ctrl+C stops it, a second Ctrl+C kills it, and a watchdog kills the JVM if the launcher is
-itself killed. The spike does the same.
+setting a killed run left changed); another `--port` gets its own folder,
+`facility-<version>-<port>`, so two runs never share a world. It finds the Java a version needs
+on its own (17 for 1.20.4, 21 for 1.20.5 to 1.21.x, 25 for 26.x); `--java` names one. `WX_ECHO=1`
+prints the server's log as it runs (`0`, `false`, `no` and `off` do not). However the launcher
+ends, the server goes with it: Ctrl+C stops it, a second Ctrl+C kills it, and a watchdog kills
+the JVM if the launcher is itself killed. The spike does the same.
 
 Held, it says when to join. You arrive in the atrium in adventure mode and are sent a Console
-link; `!` does the same. Eight plates round the atrium's centre go to each wing and to the two
-far sites, and each wing has a plate home by its door. Say "stop" in chat, or press Ctrl+C, to
-end it.
+link; `!` does the same. Each wing is reached by the feature it tests, built by the plugin as a
+session fixture (`lib/transit.js`, positions in `campus.ROUTES`):
+
+- the gate `Ops`, north in the atrium, and `Hall` in the Gate hall's lobby: press a button on the
+  dial console beside either (the console form of `gate dial`), or press the DHD and `/dial Hall`;
+  the Ops console also dials Range and Annex;
+- the ring pair `Ops` (east in the atrium) and `Lab` (just inside the Ring lab): step in and stand
+  still; a rim in the floor marks each pad, since a paired ring's slabs are taken up;
+- the beam pads `Atrium` (west in the atrium) and `BeamLab`: press the button by the pad and click
+  the prompt, or say `/wormhole beam to BeamLab`. A command block cannot beam whoever pressed it:
+  `beam to` refuses a sender that is not a player (a command block running `execute as @p`
+  included) and `beam admin send` takes a player's exact name, not `@p`. So the button sends the
+  nearest player a chat prompt whose click runs `beam to` as them;
+- the mirror `Ops` on the atrium's south wall and `Optics` in the gallery lobby: walk up, right-click
+  (each starts on the other), punch. `Range` and `Annex` hang on piers at the far sites, so every
+  world has a mirror; the Range and the Annex also each have a Dial Ops button by their gate.
+
+The tp plates are the fallback that works with the plugin down: eight in a row in the service
+corridor under the mezzanine, and a plate home two blocks into each wing's corridor. Say "stop"
+in chat, or press Ctrl+C, to end it.
 
 Every coordinate is in `lib/campus.js`: wings, corridors, lanes, chambers, plates, forceload
 rectangles. Move a wing or resize a room there and run it again; `wings/` compiles the campus
 into a datapack function per wing and a reset per chamber, and refuses to build a layout whose
 parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
 its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
-adding a file to `chambers/` against the contract written at the top of `chambers/index.js`;
-only `c0`, the calibration cell in Ops, has them so far.
+adding a file to `chambers/` against the contract written at the top of `chambers/index.js`.
+So far `c0` (the calibration cell in Ops), `g1` (the Test Stand), `g2` (the Shape Gallery), the
+five ring chambers and the range tunnel, and the two beam chambers have them; the far gates
+(Relay across the hall, Range in the nether, Annex in the End), the gallery's six gates and the
+transit routes are built once a session as fixtures, and the Menagerie is stocked. A fixture is
+permanent: a chamber's reset and cleanup leave it alone (`Facility.keepRings` spares the transit
+ring pair from the ring chambers' "take down every pair" cleanup).
+
+G1 builds its gate by the console form, flush with the floor, dials a far gate, and sends one
+traveller through: Probe on foot, riding (horse, camel, pig, donkey, strider), in a cart or a
+boat, with a pet following, a projectile from a bow, crossbow, hand, dispenser or you, a dropped
+or dispensed or spilled item, an orb, an armour stand, a zombie, a swept llama, or an item frame
+that must stay put. Its options (shape, group, chevrons, dial, spin, destination, irises, portal
+and the rest) each carry their reason as hover text; the combinations that cannot be run are
+refused with the reason. A check is a fact recorded during the run: what Probe's client was shown
+in the opening, where Probe is, what a tick function in the datapack caught at the far exit on
+the first tick it was there (position, motion, and whether it is the same entity), and what the
+plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
+Probe plays every player traveller in creative mode, except the trident, thrown in survival: a creative player keeps a thrown trident and never picks one up, so
+"it came back" would hold whatever happened. A check that something was stopped is read after a
+check that it was sent: the tick function counts each launch and keeps the first one's data (a
+tipped arrow is checked to be one as it leaves), a shut iris is checked shut at its lever, a
+vehicle at a shut iris must have run at it, and the tossed and dispensed items must all have left
+Probe's hand or the dispenser and be accounted for, arrived or lying on this side, before "every
+one came out" is read.
+
+Each wing is also decorated (stage 3.6), from `wings/decor/<wing>.js`: a floor stripe in the
+department's colour from the entrance to every door, and a wayfinding tab at each fork; in Ops a
+compass rose, the Gate Room's two lit pylons and the Briefing Room's window; over G1's west
+gallery an observation deck whose control room shows the G1 board; under R3's glass gallery the
+Shaft Window, a light well open to the shaft; distance markers in the range tunnel; the
+transporter bay and dispatch office; the Yard's lanterns, hay and depot roof; and runways,
+dial-home consoles and blast walls or pillars at the far sites. The Transit tab in the console
+(`!transit`) dials the Ops gate, beams you to either pad, and prints the routes' last results.
+
+Decoration can never get in a test's way: `validateLayout` checks every block a `decorate`
+function writes against every cell's clear volume, floor and footprint, the far and transit
+gates (with their buttons, pits and aprons), every ring and beam pad outside a cell, the lanes,
+the plates, the walk-in lines, the stage 4 mirror spots (M1's spare in the End too) and every
+structural anchor, and every plaque or label it summons against the cells, gates and pads, where an
+entity is in the way as much as a block; and refuses to write the pack if one overlaps, naming
+both. It also refuses any block 1.20.4 does not know (read from `minecraft-data`), so a newer name
+fails at compile time rather than as a function that silently fails to load on the older server.
+The decoration is always built: the far sites' mirror piers and Dial Ops consoles are part of it
+and carry tests.
+
+The ring chambers (stage 3) pair two circles of slabs by the console form `ring build` (public)
+or as Probe with `ring create` in each (private, Probe's), and send one traveller: Probe on foot,
+Probe and Probe2 swapping ends in one instant, Probe on a horse, or a zombie, an item or a cart
+fired from the console. Probe2 is a second bot, never opped and in adventure mode, for what needs
+a player who is not an op. `r1` is the pair stand (patterns, six slabs, distances, private pairs
+and who may use them, styles, the shortest countdown); `r2` hangs one ring from the ceiling (6
+and 10 up pass, 11 and 2 are refused in the plugin's words) and checks the rings stood on the
+floor; `r3` pairs the top of the 60-deep shaft with 20, 40 or 60 down, and at
+`ring-max-link-height 30` the deeper ones are refused; `r4` lays each faulty circle and reads the
+refusal back; `r5` edits a pair (a name announced on arrival, a pad light drawn, private,
+allow, deny, owner); the range tunnel pairs 64, 128 and 250 apart and refuses 257. Timing: the
+swap comes about 154 ticks after a ring is armed and the pair recharges for 30 s after the cycle.
+
+The beam chambers send a traveller by `beam to`, `go`, `admin send` or `admin goto`. `b1` has
+named pads, each saved facing its letter, a trap with no floor (the landing is one down) and a
+blocked pad (one up), and pads in the Range and the Annex; the traveller is Probe2 (watched by
+Probe, whose client must lose sight of it while it travels), Probe, Probe on a horse, or Probe2
+with its wolf; the timing presets are measured against the plugin's timeline to within 0.25 s.
+`b2` is the dispatch desk: `admin send` to a public destination, a player, coordinates in the
+nether, and nobody; `admin goto` and `admin set` as an op and as Probe2 (refused); a player's own
+place against another's (refused); `go` to a gate as an op and as Probe2 (refused); and the
+cooldown, which Probe2 waits out and an op skips.
+
+The self-test's `transit` section, after the fixtures and before the matrix, walks every route as
+Probe2: the gate from the Ops console's `Hall` button (and both gates shut again within
+`timeout-shutdown`), back by the Hall DHD and `/dial Ops`, the ring pair both ways (announced by
+name, recharging on the way straight back), the beam out by the button and back typed, the Ops
+gate to the Range and to the Annex and back by their Dial Ops buttons, and the mirror to Optics
+and back. Each route's last result is on the Ops wall under TRANSIT. `--quick` walks one route per
+feature.
+
+The mirror chambers (stage 4) work the network of those four and one of their own. `m1` hangs
+`Round` in its cell and sends Probe2 (or Probe) to each of the others: the approach line above the
+hotbar names it, right-clicks walk the round by name (its `-start` first), the banner gives way and
+the far room is drawn behind the wall, a punch lands the traveller in the far room facing out; with
+the other probe standing by, a second click inside three seconds is held; with
+`mirror-approach-message` off nothing is named; and at `mirror-per-world-limit 1` a second mirror in
+the End is refused. `m2` builds the mirror hall down its west side (a solid wall, a gap one out, a
+gap two out, a standing banner, two banners side by side) and reads `create`'s answer at each, and
+checks a mirror survives an op's punch, `remove`, and the limit. `m3` shows a view is a snapshot: a
+block put in the room after the capture is not drawn until `-capture`, and `-stamp` changes the
+banner. The facility runs with `mirror-per-world-limit 6` (two in the overworld, room for a
+chamber's own), put back at close. A mirror's first capture takes about 13 s at the default view
+depth; the chambers wait on `mirror debug` until it is in memory.
+
+There are two self-test profiles. The full one runs the whole matrix (315 checks counting
+resets, 368 with stage 4's mirrors and cross-world rows) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+`--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
+one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
+#491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
+and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
+banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
+and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
+1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
+`--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
+them all, and if the launcher is killed outright its children and their servers go with it.
+
+`--shards N` runs one version's matrix on N servers of that version at once, each on its own port
+and folder with its own campus (`--port`, +2, +4, ...), and merges their reports into one summary
+and one exit code; with `--versions` it is versions x shards servers, each tied to the launcher as
+with `--versions` alone. Every cell runs exactly as it does alone. The split is by measured time,
+not by count: every self-test writes each cell's seconds to
+`.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
+the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
+resets, empty, settings and faults sections run on every shard, since they guard that
+shard's own world, so a sharded summary has more checks than a single run (722 at N = 4, with
+the checks added in stage 4.5's review, which took 18.1 minutes); transit, plates, boards, players and console run once, on the first shard. On this machine
+(32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
+CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
+is the one to use here. `--quick` on two versions at once takes about 13 minutes.
+
+A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
+close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
+it closed them, and every end Probe can see, once seen drawn open (up to 8 s: a probe that has just
+arrived is not shown the opening at once), is drawn shut within 5 seconds (a chamber's `shut`, run
+by `runChamber` after `checks`). An end never seen open fails that check rather than passing as
+"not drawn". The transit routes do the same, except Ops to Hall, which still waits for
+`timeout-shutdown` because that is what it tests.
+
+A cell that holds a session fixture (G2's gallery) has it put back after the reset `runChamber`
+does before each run, and G2 checks both its gates stand whole before the trip. (Before, it dialled
+a gallery the reset had floored over, and `g2 Horizontal` passed only because of it: walked to, a
+flat gate stops Probe at the rim, so Probe is now dropped into it, as in G1.) The plugin draws a
+gate's opening only to players within 64 blocks, so only ends within that are judged shut.
+
+Players in the facility do not go hungry or get hurt: every player is given infinite Saturation
+and Resistance 255 on joining and every five seconds after, and the player damage gamerules (fall,
+fire, drowning, freezing) are off in all three worlds. Mobs are not shielded. The `players`
+section checks a non-op Tester stays at full health and food after a fall and an arrow, that a
+pig dropped ten blocks still comes down hurt, and reads the four gamerules back in each world (the
+shield alone would keep Tester whole). The animals a plains chunk is generated with, which no
+gamerule stops, are killed before the Menagerie is stocked.
+
+A plugin fault that is a known plugin bug is reported as known, with its note, the way a matrix
+cell's known failure is (`KNOWN_FAULTS` in `lib/server.js`): so far #540, the mirror capture that is
+not written when two captures finish at once (`MirrorCapture.save` races on creating its folder;
+fixed on main). It is known only with that cause: the stack trace printed after the line must be
+the "could not create ...captures" from `MirrorCapture.save`, and the folder must be there now; the
+same words with another cause (a full disk, a folder that cannot be made) are a fault. `--fixed 540`
+counts it as a fault as well.
+
+`--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
+expected to fail by the name of its failing check and is listed at the end of the run as a known
+plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
+expects those cells to pass instead.
+
+Known plugin failures (stage 2), each expected by name in `matrix.js`:
+
+- #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
+  the far end and does not copy the arrow's potion. The arrow is checked to leave the bow as a
+  tipped arrow of slowness (`item: tipped_arrow` with `potion_contents` slowness on 1.21.11) and
+  arrives as `item: arrow` with none.
+- Not yet filed, the same family: a Loyalty trident comes out of the far gate as a plain trident
+  (its `item` has no enchantments; only its `weapon` still has Loyalty III), sticks where it lands
+  and never comes back. Thrown in survival away from any gate, the same trident is back in about a
+  second. (While Probe threw in creative, "it came back" passed without it.)
+- #537: an item tossed (Q) or dispensed into an upright opening mostly flies through its one block
+  between two of the plugin's entity sweeps (every 20 ticks) and lands two to four blocks behind the
+  gate. With the harness checked first (all five left Probe's hand or the dispenser, which is empty
+  after five pulses, and all five are accounted for), on 1.21.11 0, 1 and 2 of five tossed came out
+  of Relay and 0, 0 and 3 of five dispensed; on 1.20.4, 2 tossed and 0 dispensed. So "none of the
+  dispensed arrive" is not always so: most do not. Only an item lying in the opening when a sweep
+  runs is sure to be sent (as itself, name and enchantment intact: the lying-item cell passes). A
+  broken hopper cart's drops scatter, so whether they are sent is chance; that cell is left out.
+- #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
+  plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on
+  fix/491-cart-shut-iris, where they pass with `--fixed 491`). Cell `491-D`, a boat its rider rows
+  at the iris, is let about two blocks past the face before it is put back, on main and on the
+  fix alike. The Horizontal control (`491-H`: a cart rolled onto a flat gate's shut iris, which is
+  real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
+  expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
+
+What stage 4 found (none of it a plugin fault):
+
+- Mineflayer's `activateBlock` swings the arm after a right-click, and Paper reads a swing at a block
+  the player is facing as a left click: on a mirror, a punch. The probe right-clicks without the
+  swing, as a client does on a banner, and clicks the banner's cloth (against its wall) with the
+  face towards it; Paper ignores a click on a wall banner's top face from a player facing it.
+- Mineflayer only tells the server where the bot looks with its next move, so a bot that turns and
+  stands still is still facing the old way: the probe sends the turn itself (`face`).
+- The design's "setVisibleByDefault absent on plain 1.20" is really `Player.sendBlockUpdate`
+  (`MirrorPackets`), from 1.20.1: below it a mirror's banner stays in front of its view. Every
+  version the facility runs has it; M1 skips the banner check below 1.20.1 and says why.
+- Paper keeps gamerules per world: mob spawning was off only in the overworld, and a ghast in the
+  Range fireballed Probe2. The facility now sets them in all three worlds and clears what spawned.
+- A console-dialled gate is drawn to a probe standing by it about ten seconds after the button
+  (the dial's own lighting and whoosh), and a probe that has just arrived is not shown the opening
+  at once: "not drawn" straight after arrival is not "shut".
+
+What stage 3 found (none of it a plugin fault; the design had some of it wrong):
+
+- `ring-min-separation` applies between different pairs, not between a pair's own two ends, so a
+  pair 8 apart is not refused.
+- A ring arms on a player's move inside it. A player standing still sends no moves, so after a
+  trip it is carried back only once it moves, not when the cooldown ends. Naming an end means
+  standing in it, which arms the pair; stepping out cancels the countdown.
+- A beam's `beam-rise-ticks` only paces the rising column: the descent starts at the teleport
+  (envelop + teleport-at-step), so the whole beam is envelop + teleport-at-step + descend + fade,
+  52 ticks by default. `beam-descend-ticks` or a later `beam-teleport-at-step` makes it longer.
+- The server kicks a player who is not an op for spam after about ten commands in a burst, so
+  Probe2 sends only what a run needs. Probe2 rejoins if it is kicked, and the log says why.
+- An arrival must match height as well as place: the shaft's two ends share x and z.
+
+What stage 2 found about the harness itself:
+
+- Before 1.21, `spawn-animals=false` in server.properties discards a summoned animal at once, and
+  peaceful discards a summoned monster; the facility runs on easy with natural spawning off by
+  gamerule instead.
+- The plugin re-makes a projectile at the far gate as a new entity, so it carries no tag; the
+  datapack's tick function catches anything new that appears at the far exit, and says whether it
+  is the same entity.
+- The portal and the iris are drawn to each client over air. A shut iris is solid to the client,
+  so a player walking into it is stopped in front, not told "Iris is locked!".
+- Mineflayer 4.39 misses a dismount (the server empties the vehicle's passenger list, which it does
+  not read) and stops its physics ticks while riding; the probe handles both.
+- An empty boat on land stops within two blocks of a push, so the boat cell starts close.
 
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
-every plate, the Ops boards as Probe's client sees them, the calibration matrix with a reset
-after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
-tester's path through the console, every reset, that the plugin holds
-no gates or mirrors, that each setting a chamber changed is back, and that the plugin logged no
-fault. Known-benign plugin lines are listed one by one in `lib/server.js`.
+the transit routes, every plate, the Ops boards as Probe's client sees them, the matrix with a
+reset after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
+tester's path through the console, every reset, that the plugin holds nothing the facility did
+not make (its fixture gates, the transit ring pair and beam destinations, no beam places, no
+mirrors), that each setting any cell changed is back, and that the plugin logged no fault.
+Known-benign plugin lines are listed one by one in `lib/server.js`.
 
 The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
 datapack function that builds a box, a `/trigger` console whose menu reaches a player who is not

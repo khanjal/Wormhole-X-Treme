@@ -34,6 +34,13 @@ const GAMERULES = {
   mobSpawning: ['doMobSpawning', 'spawn_mobs'],
   commandBlockOutput: ['commandBlockOutput', 'command_block_output'],
   logAdminCommands: ['logAdminCommands', 'log_admin_commands'],
+  patrols: ['doPatrolSpawning', 'spawn_patrols'],
+  traders: ['doTraderSpawning', 'spawn_wandering_traders'],
+  // Players only: a mob still falls, burns, drowns and freezes.
+  fallDamage: ['fallDamage', 'fall_damage'],
+  fireDamage: ['fireDamage', 'fire_damage'],
+  drowningDamage: ['drowningDamage', 'drowning_damage'],
+  freezeDamage: ['freezeDamage', 'freeze_damage'],
 };
 
 function gameruleName(version, rule) {
@@ -231,7 +238,9 @@ function vanillaVersionInfo(folder, version) {
  * Writes eula.txt and server.properties for an offline, flat, quiet test server. `layers`
  * sets the flat world's layers (bottom up); without it the server's default flat is used.
  */
-function prepareFolder(folder, { port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6, seed = null }) {
+function prepareFolder(folder, {
+  port, levelName = 'world', layers = null, gamemode = 'creative', viewDistance = 6, seed = null, mobs = false,
+}) {
   fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(path.join(folder, 'eula.txt'), 'eula=true\n');
   const props = {
@@ -242,9 +251,10 @@ function prepareFolder(folder, { port, levelName = 'world', layers = null, gamem
     'level-type': 'minecraft\\:flat',
     'generate-structures': 'false',
     'spawn-protection': '0',
-    'spawn-monsters': 'false',
-    'spawn-animals': 'false',
-    difficulty: 'peaceful',
+    // With mobs, summoned animals and monsters must live: before 1.21 spawn-animals=false and
+    // spawn-monsters=false discard them outright, and peaceful discards monsters. Natural
+    // spawning is off by gamerule instead.
+    ...(mobs ? { difficulty: 'easy' } : { 'spawn-monsters': 'false', 'spawn-animals': 'false', difficulty: 'peaceful' }),
     gamemode,
     'allow-flight': 'true',
     'view-distance': String(viewDistance),
@@ -343,6 +353,34 @@ const KNOWN_BENIGN = [
 ];
 
 /**
+ * Plugin faults that are known plugin bugs: counted and reported as known, the way a matrix cell's
+ * known failure is, never hidden and never benign. Each with its evidence; `issue` once filed.
+ */
+const KNOWN_FAULTS = [
+  {
+    re: /^\[WormholeXTreme\] Could not write mirror capture \S+\.view$/,
+    // MirrorCapture.save: `!parent.isDirectory() && !parent.mkdirs()` then throw. Two captures
+    // finishing together (the transit mirrors, at fixture time) each find the folder missing; the
+    // one whose mkdirs loses the race throws "could not create ...\\captures", and that capture
+    // is never written (it stays in memory). Fixed on main by #540; `--fixed 540` counts it.
+    // Known only with that cause: the trace names it, from MirrorCapture.save, and the folder is
+    // there now (the other capture made it). A folder that is still missing is a real failure.
+    note: '#540: a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',
+    issue: '540',
+    cause(trace, folder) {
+      const made = trace.map((l) => /java\.io\.IOException: could not create (.*[\\/]captures)\s*$/.exec(l)).find(Boolean);
+      const where = trace.some((l) => /^\s+at com\.wormhole_xtreme\.wormhole\.model\.mirror\.MirrorCapture\.save\(/.test(l));
+      return Boolean(made) && where && fs.existsSync(path.resolve(folder || '.', made[1]));
+    },
+  },
+];
+
+/** The known fault a line is, or null. */
+function knownFault(message) {
+  return KNOWN_FAULTS.find((k) => k.re.test(message)) || null;
+}
+
+/**
  * A log line's fault message if it is a plugin fault, else null: a WARN or ERROR from
  * WormholeXTreme, a stack frame in its package, or a failure to load, enable or pass an event
  * to it. Messages on KNOWN_BENIGN are not faults.
@@ -413,7 +451,9 @@ class Server extends EventEmitter {
       this.exited = code === null ? (signal || 'signal') : code;
       this.emit('exit', this.exited);
     });
-    return this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
+    this.starting = this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
+    this.starting.then(() => { this.ready = true; }, () => {});
+    return this.starting;
   }
 
   /**
@@ -547,12 +587,17 @@ class Server extends EventEmitter {
   async stop(ms = 60000) {
     if (!this.proc || this.exited !== null) return this.exited;
     const exit = new Promise((resolve) => this.once('exit', resolve));
-    try {
-      this.send('stop');
-    } catch {
-      this.kill();
-    }
     const timer = setTimeout(() => this.kill(), ms);
+    // A stop sent before the server is up is lost: Paper fails it on its first tick (a console
+    // source with no level), so it waits for Done, within the same bound.
+    if (!this.ready && this.starting) await Promise.race([this.starting.catch(() => {}), exit]);
+    if (this.exited === null) {
+      try {
+        this.send('stop');
+      } catch {
+        this.kill();
+      }
+    }
     const code = await exit;
     clearTimeout(timer);
     return code;
@@ -562,7 +607,8 @@ class Server extends EventEmitter {
 /**
  * Ties a server to this launcher. The first SIGINT, SIGTERM or SIGHUP calls `onSignal`, which
  * ends the run and stops the server; a second one kills the JVM and exits at once, so a stop
- * that hangs can always be cut short. An exit any other way kills a JVM still running.
+ * that hangs can always be cut short. An exit any other way kills a JVM still running. Returns
+ * the handler, for a stop asked for some other way than by a signal.
  */
 function tieToProcess(srv, onSignal) {
   let signals = 0;
@@ -579,6 +625,7 @@ function tieToProcess(srv, onSignal) {
   };
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, handler);
   process.on('exit', () => srv.kill());
+  return handler;
 }
 
 /** WX_ECHO=1 (or true, yes, on) echoes the server's log; unset, 0, false, no or off does not. */
@@ -587,6 +634,6 @@ function echoOn(value) {
 }
 
 module.exports = {
-  echoOn, jdkVersion, Server, tieToProcess, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  echoOn, jdkVersion, Server, tieToProcess, KNOWN_FAULTS, knownFault, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };

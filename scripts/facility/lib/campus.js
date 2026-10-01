@@ -39,56 +39,69 @@ const PALETTE = {
   hazardB: 'minecraft:black_concrete',
   pylonBase: 'minecraft:polished_deepslate',
   sentinel: 'minecraft:lodestone',
+  // Stage 3.6 (creative pass 1.2); every one of them is in 1.20.0.
+  operated: 'minecraft:waxed_cut_copper',
+  deckFloor: 'minecraft:deepslate_tiles',
+  light: 'minecraft:light[level=15]',
 };
+
+/** Boards shown twice: the G1 board is mirrored in the control room over its gallery. */
+const BOARD_MIRRORS = { g1: ['g1_control'] };
 
 /**
  * The wings. `room` is the main hall; `entrance` is where a tp plate or `!go` puts you, inside
  * the wing's door, facing in. `colour` is the concrete/text colour of the department.
+ * `homePlate`, where given, is the plate back to Ops: two blocks into the wing's corridor, out
+ * of its lobby (the rest keep theirs beside the entrance).
  */
 const WINGS = [
   {
-    id: 'ops', title: 'Operations', colour: 'white', text: 'white', dim: OVERWORLD,
+    id: 'ops', title: 'Operations', nick: 'the Gate Room and the Atrium', colour: 'white', text: 'white', dim: OVERWORLD,
     room: { x0: -20, x1: 20, z0: -20, z1: 20, y0: 0, h: 16 },
     entrance: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
   },
   {
-    id: 'gates', title: 'Gate Dynamics', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
+    id: 'gates', title: 'Gate Dynamics', nick: 'the Hangar', colour: 'cyan', text: 'dark_aqua', dim: OVERWORLD,
     room: { x0: -70, x1: 70, z0: -170, z1: -40, y0: 0, h: 36 },
     entrance: { x: 0.5, y: 0, z: -43.5, yaw: 180 },
+    homePlate: { x: 2, y: 0, z: -37 },
   },
   {
-    id: 'rings', title: 'Ring Transit', colour: 'lime', text: 'green', dim: OVERWORLD,
+    id: 'rings', title: 'Ring Transit', nick: 'the Concourse', colour: 'lime', text: 'green', dim: OVERWORLD,
     room: { x0: 40, x1: 110, z0: -30, z1: 30, y0: 0, h: 14 },
     entrance: { x: 43.5, y: 0, z: 0.5, yaw: -90 },
+    homePlate: { x: 36, y: 0, z: 2 },
   },
   {
-    id: 'beams', title: 'Beam Physics', colour: 'light_blue', text: 'aqua', dim: OVERWORLD,
+    id: 'beams', title: 'Beam Physics', nick: 'the Transporter Bay', colour: 'light_blue', text: 'aqua', dim: OVERWORLD,
     room: { x0: -110, x1: -40, z0: -30, z1: 30, y0: 0, h: 12 },
     entrance: { x: -42.5, y: 0, z: 0.5, yaw: 90 },
+    homePlate: { x: -36, y: 0, z: 2 },
   },
   {
-    id: 'mirrors', title: 'Mirror Optics', colour: 'magenta', text: 'light_purple', dim: OVERWORLD,
+    id: 'mirrors', title: 'Mirror Optics', nick: 'the Looking-Glass Gallery', colour: 'magenta', text: 'light_purple', dim: OVERWORLD,
     room: { x0: -40, x1: 40, z0: 40, z1: 90, y0: 0, h: 12 },
     entrance: { x: 0.5, y: 0, z: 43.5, yaw: 0 },
+    homePlate: { x: 2, y: 0, z: 36 },
   },
   {
-    id: 'menagerie', title: 'Menagerie and Motor Pool', colour: 'orange', text: 'gold', dim: OVERWORLD,
+    id: 'menagerie', title: 'Menagerie and Motor Pool', nick: 'the Yard', colour: 'orange', text: 'gold', dim: OVERWORLD,
     room: { x0: 80, x1: 130, z0: -120, z1: -60, y0: 0, h: 10 },
     entrance: { x: 81.5, y: 0, z: -95.5, yaw: -90 },
   },
   {
-    id: 'systems', title: 'Systems', colour: 'yellow', text: 'yellow', dim: OVERWORLD,
+    id: 'systems', title: 'Systems', nick: 'the Briefing Room', colour: 'yellow', text: 'yellow', dim: OVERWORLD,
     // The mezzanine over Ops, not a room of its own: a gallery 6 above the atrium floor.
     room: null,
     entrance: { x: 0.5, y: 6, z: -16.5, yaw: 0 },
   },
   {
-    id: 'range', title: 'The Range', colour: 'red', text: 'red', dim: NETHER,
+    id: 'range', title: 'The Range', nick: 'Forward Base', colour: 'red', text: 'red', dim: NETHER,
     room: { x0: -30, x1: 30, z0: -30, z1: 30, y0: 64, h: 20 }, shell: 'dome',
     entrance: { x: 0.5, y: 64, z: 8.5, yaw: 180 },
   },
   {
-    id: 'annex', title: 'The Annex', colour: 'purple', text: 'dark_purple', dim: END,
+    id: 'annex', title: 'The Annex', nick: 'the Observatory', colour: 'purple', text: 'dark_purple', dim: END,
     room: { x0: 980, x1: 1020, z0: 980, z1: 1020, y0: 60, h: 20 }, shell: 'open',
     entrance: { x: 1000.5, y: 60, z: 1008.5, yaw: 180 },
   },
@@ -127,11 +140,11 @@ const CHAMBERS = [
     box: { x0: 11, x1: 17, z0: 7, z1: 13, y0: 0, h: 4 }, door: 'w', gallery: 's' },
   { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, at: { x: 0, y: 6, z: -19 } },
   // Gate Dynamics
-  { id: 'g1', wing: 'gates', title: 'Test Stand', kind: 'cell', stage: 2,
+  { id: 'g1', wing: 'gates', title: 'Test Stand', kind: 'cell', stage: 2, logic: 'g1-stand',
     box: { x0: -20, x1: 20, z0: -140, z1: -104, y0: 0, h: 30 }, door: 's', gallery: 'w' },
-  { id: 'relay', wing: 'gates', title: 'Relay Gate', kind: 'cell', stage: 2,
+  { id: 'relay', wing: 'gates', title: 'Relay Gate', kind: 'cell', stage: 2, logic: 'relay',
     box: { x0: 30, x1: 50, z0: -140, z1: -120, y0: 0, h: 24 }, door: 's', gallery: 'e' },
-  { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2,
+  { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2, logic: 'g2-gallery',
     box: { x0: -66, x1: 66, z0: -168, z1: -150, y0: 0, h: 30 }, door: 'w', gallery: 's' },
   { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5,
     box: { x0: 40, x1: 66, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'w', gallery: 's' },
@@ -140,27 +153,29 @@ const CHAMBERS = [
   { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5,
     box: { x0: -66, x1: -34, z0: -140, z1: -110, y0: 0, h: 16 }, door: 'e', gallery: 's' },
   // Ring Transit
-  { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3,
+  { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3, logic: 'r1-pair',
     box: { x0: 44, x1: 106, z0: -26, z1: -10, y0: 0, h: 12 }, door: 's', gallery: 'n' },
-  { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3,
+  { id: 'r2', wing: 'rings', title: 'Ceiling Room', kind: 'cell', stage: 3, logic: 'r2-ceiling',
     box: { x0: 44, x1: 58, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'e' },
-  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60,
+  // R3's gallery is glass over a light well (wings/decor/rings.js): the Shaft Window.
+  { id: 'r3', wing: 'rings', title: 'Shaft', kind: 'cell', stage: 3, shaft: 60, logic: 'r3-shaft', galleryFloor: 'minecraft:glass',
     box: { x0: 66, x1: 72, z0: 8, z1: 14, y0: 0, h: 12 }, door: 'n', gallery: 's' },
-  { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true,
+  { id: 'r4', wing: 'rings', title: 'Build Bench', kind: 'cell', stage: 3, creative: true, logic: 'r4-bench',
     box: { x0: 82, x1: 104, z0: 6, z1: 22, y0: 0, h: 12 }, door: 'n', gallery: 'w' },
-  { id: 'r5', wing: 'rings', title: 'Edit Desk', kind: 'desk', stage: 3, at: { x: 100, y: 0, z: -4 } },
-  { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3,
-    box: { x0: 112, x1: 320, z0: -2, z1: 2, y0: 0, h: 5 } },
+  { id: 'r5', wing: 'rings', title: 'Edit Desk', kind: 'desk', stage: 3, logic: 'r5-edit', at: { x: 100, y: 0, z: -4 } },
+  // Nine wide, so a seven-wide ring fits; long enough for a pair 257 apart (one over the limit).
+  { id: 'tunnel', wing: 'rings', title: 'Range Tunnel', kind: 'tunnel', stage: 3, logic: 'r6-range',
+    box: { x0: 112, x1: 380, z0: -4, z1: 4, y0: 0, h: 6 } },
   // Beam Physics
-  { id: 'b1', wing: 'beams', title: 'Pad Array', kind: 'cell', stage: 3,
+  { id: 'b1', wing: 'beams', title: 'Pad Array', kind: 'cell', stage: 3, logic: 'b1-pads',
     box: { x0: -104, x1: -52, z0: -26, z1: 8, y0: 0, h: 10 }, door: 'e', gallery: 's' },
-  { id: 'b2', wing: 'beams', title: 'Dispatch Desk', kind: 'desk', stage: 3, at: { x: -60, y: 0, z: 22 } },
+  { id: 'b2', wing: 'beams', title: 'Dispatch Desk', kind: 'desk', stage: 3, logic: 'b2-dispatch', at: { x: -60, y: 0, z: 22 } },
   // Mirror Optics
-  { id: 'm1', wing: 'mirrors', title: 'Mirror Round', kind: 'cell', stage: 4,
+  { id: 'm1', wing: 'mirrors', title: 'Mirror Round', kind: 'cell', stage: 4, logic: 'm1-round',
     box: { x0: -36, x1: 36, z0: 50, z1: 68, y0: 0, h: 10 }, door: 'n', gallery: 's' },
-  { id: 'm2', wing: 'mirrors', title: 'Wall Bench', kind: 'cell', stage: 4, creative: true,
+  { id: 'm2', wing: 'mirrors', title: 'Wall Bench', kind: 'cell', stage: 4, creative: true, logic: 'm2-wall',
     box: { x0: -36, x1: -8, z0: 76, z1: 88, y0: 0, h: 8 }, door: 'n', gallery: 'e' },
-  { id: 'm3', wing: 'mirrors', title: 'Capture Desk', kind: 'cell', stage: 4,
+  { id: 'm3', wing: 'mirrors', title: 'Capture Desk', kind: 'cell', stage: 4, logic: 'm3-capture',
     box: { x0: 8, x1: 36, z0: 76, z1: 88, y0: 0, h: 8 }, door: 'n', gallery: 'w' },
   // The far sites: fixtures come in stage 4, the places for them now.
   { id: 'range-site', wing: 'range', title: 'Range Fixtures', kind: 'desk', stage: 4, at: { x: 0, y: 64, z: -8 } },
@@ -187,25 +202,93 @@ const MENAGERIE = {
   arrowRange: { x0: 84, x1: 128, z0: -70, z1: -64, target: { x: 128, y: 1, z: -67 } },
 };
 
-/** The transit ring in the atrium: eight plates round the centre, each a command-block tp. */
+/**
+ * The tp plates: the fallback that works with the plugin down, in the service corridor under
+ * the mezzanine (x -20..20, z -20..-15), four apart so `@p[distance=..2]` never picks the wrong
+ * one. `home` is where a plate home and a welcome put you.
+ */
 const TRANSIT = {
-  centre: { x: 0, z: 0 },
+  centre: { x: 0, z: -18 },
   plates: [
-    { dir: 'N', dx: 0, dz: -6, to: 'gates' },
-    { dir: 'NE', dx: 4, dz: -4, to: 'menagerie' },
-    { dir: 'E', dx: 6, dz: 0, to: 'rings' },
-    { dir: 'SE', dx: 4, dz: 4, to: 'systems' },
-    { dir: 'S', dx: 0, dz: 6, to: 'mirrors' },
-    { dir: 'SW', dx: -4, dz: 4, to: 'range' },
-    { dir: 'W', dx: -6, dz: 0, to: 'beams' },
-    { dir: 'NW', dx: -4, dz: -4, to: 'annex' },
+    { dir: 'annex', dx: -16, dz: 0, to: 'annex' },
+    { dir: 'range', dx: -12, dz: 0, to: 'range' },
+    { dir: 'beams', dx: -8, dz: 0, to: 'beams' },
+    { dir: 'mirrors', dx: -4, dz: 0, to: 'mirrors' },
+    { dir: 'gates', dx: 4, dz: 0, to: 'gates' },
+    { dir: 'rings', dx: 8, dz: 0, to: 'rings' },
+    { dir: 'menagerie', dx: 12, dz: 0, to: 'menagerie' },
+    { dir: 'systems', dx: 16, dz: 0, to: 'systems' },
   ],
-  // A plate at each far site, and one in each wing by its entrance, that brings you back to Ops.
-  // Off every plate's line: walking straight on from here, north, crosses no plate.
+  // Where a walk onto a plate starts: south of the corridor's line, walking north onto it.
+  approachZ: -15.5,
   home: { x: -2.5, y: 0, z: 12.5, yaw: 180 },
 };
 
+/**
+ * The transit routes: each wing reached from Ops by the feature it tests, built as session
+ * fixtures the way a server's own staff would (console forms, and Probe where the plugin wants a
+ * player), and walked by the self-test every run.
+ *
+ *  - gates: `Ops` in the atrium and `Hall` in the Gate hall's lobby, Standard, facing south, on
+ *    the default network (a non-op may use an ownerless gate). A dial console of command-block
+ *    buttons by each (the console form of `gate dial`), and the DHD for `/dial`.
+ *  - rings: a public pair, `Ops` in the atrium and `Lab` in the Ring lab, off the door lines;
+ *    the slabs are consumed when paired, so a rim in the floor marks each pad.
+ *  - beams: public destinations `Atrium` and `BeamLab`, each on a pad; a button by each prompts
+ *    whoever is nearest with a click that runs `/wormhole beam to <the other>` as them. A command
+ *    block cannot beam the presser itself: `beam to` refuses a non-player sender (a command block
+ *    running `execute as @p` included), and `beam admin send` takes a player's exact name.
+ *  - mirrors (stage 4): the spots are kept free.
+ */
+const ROUTES = {
+  gates: {
+    Ops: { wing: 'ops', dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 0, openingAt: -13, floorY: 0,
+      runway: { x0: -1, x1: 1, z0: -8, z1: -3 }, console: { x: -5, z: -8, dial: ['Hall', 'Range', 'Annex'] } },
+    Hall: { wing: 'gates', dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 0, openingAt: -53, floorY: 0,
+      runway: { x0: -1, x1: 1, z0: -48, z1: -45 }, console: { x: -3, z: -48, dial: ['Ops'] } },
+  },
+  rings: {
+    pattern: 'ODD', slab: 'polished_deepslate_slab',
+    ends: [{ name: 'Ops', wing: 'ops', x: 13, y: 0, z: -6 }, { name: 'Lab', wing: 'rings', x: 52, y: 0, z: -4 }],
+  },
+  beams: [
+    { name: 'Atrium', wing: 'ops', x: -13, y: 0, z: -6, yaw: 90, button: { x: -17, z: -6 }, to: 'BeamLab' },
+    { name: 'BeamLab', wing: 'beams', x: -46, y: 0, z: 0, yaw: 90, button: { x: -46, z: -4 }, to: 'Atrium' },
+  ],
+  // One in each world beside Ops and the gallery (so the default per-world limit of 1 is kept in
+  // the nether and the End). `wall: 'room'` hangs on a room's wall, `'pier'` on a free-standing
+  // pier the decoration builds; `floorY` is where a traveller's feet land.
+  mirrors: [
+    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 2, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
+    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 2, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
+    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 66, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
+    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 62, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
+  ],
+};
+
+/** The facility's baseline: two mirrors in the overworld, room for the chambers' own. Restored at close. */
+const BASELINE = { 'mirror-per-world-limit': '6' };
+
 /** Ops boards: the Ops wall (one line per chamber), the fault counter and the welcome board. */
+/**
+ * Where gates stand: each opening's centre across it (cx), its plane along the facing
+ * (openingAt), and the floor its arrivals stand on. The Stand is G1's gate under test; the far
+ * gates are fixtures built once a session (chambers/relay.js); the gallery is G2's.
+ */
+const GATES = {
+  stand: { dim: OVERWORLD, facing: 'south', cx: 0, openingAt: -128, floorY: 0 },
+  far: {
+    Relay: { dim: OVERWORLD, shape: 'Standard', facing: 'south', cx: 40, openingAt: -131, floorY: 0 },
+    Range: { dim: NETHER, shape: 'Standard', facing: 'south', cx: 0, openingAt: -20, floorY: 64 },
+    Annex: { dim: END, shape: 'Standard', facing: 'south', cx: 1000, openingAt: 1000, floorY: 60 },
+  },
+  // G2: the six console-buildable shapes in a row along the back wall, west to east.
+  gallery: {
+    dim: OVERWORLD, facing: 'south', openingAt: -166, floorY: 0, net: 'Gallery',
+    row: [['Massive', -52], ['Grand', -22], ['Large', 2], ['Standard', 18], ['Minimal', 31], ['Horizontal', 46]],
+  },
+};
+
 const OPS = {
   mezzanine: { x0: -20, x1: 20, z0: -20, z1: -15, floorY: 5 },
   stair: { x: -19, z0: -14, z1: -9 },
@@ -224,7 +307,7 @@ const FORCELOAD = [
   { dim: OVERWORLD, from: [-42, -38], to: [42, 92], why: 'Ops, Systems, Mirror Optics' },
   { dim: OVERWORLD, from: [38, -32], to: [112, 32], why: 'Ring Transit' },
   { dim: OVERWORLD, from: [71, -122], to: [132, -58], why: 'Menagerie and Motor Pool' },
-  { dim: OVERWORLD, from: [112, -3], to: [322, 3], why: 'the range tunnel' },
+  { dim: OVERWORLD, from: [112, -5], to: [382, 5], why: 'the range tunnel' },
   { dim: NETHER, from: [-31, -31], to: [31, 31], why: 'The Range' },
   { dim: END, from: [978, 978], to: [1022, 1022], why: 'The Annex' },
 ];
@@ -243,5 +326,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, OPS, FORCELOAD, wing, chamber,
+  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, wing, chamber,
 };
