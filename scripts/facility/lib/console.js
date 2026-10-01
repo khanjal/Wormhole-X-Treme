@@ -214,7 +214,7 @@ class FacilityConsole {
     await this.tell(player, this.tabsLine(wingId));
   }
 
-  /** The Systems line that puts whoever clicks in a tester group (LuckPerms installed). */
+  /** The Operations tab's line that puts whoever clicks in a tester group (LuckPerms installed). */
   groupsLine() {
     const parts = [{ text: '  Your tester group: ', color: 'gray' }];
     this.groups.forEach((g, i) => parts.push({ text: `[${g.id}]`, color: 'aqua', click: { run: triggerCommand(GROUP + i) }, hover: g.why }, ' '));

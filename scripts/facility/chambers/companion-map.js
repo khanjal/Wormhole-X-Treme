@@ -29,6 +29,9 @@ const { MapReader, SETS, LABELS } = require('../lib/dynmap');
 const { deskLayout } = require('../lib/blueprint');
 const { ticks } = require('../lib/probe');
 const relay = require('./relay');
+const server = require('../lib/server');
+
+const DYNMAP_ABSENT = 'dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.';
 
 const def = campus.chamber('map');
 const O = campus.OVERWORLD;
@@ -355,7 +358,9 @@ async function runAbsent(ctx, kit) {
   const obs = ctx.observed;
   const fac = ctx.facility;
   const lines = ctx.server.log.slice(obs.restartFrom);
-  obs.warnings = lines.filter((l) => /^\[\d\d:\d\d:\d\d WARN\]: \[WormholeXTreme\]/.test(l));
+  // Wormhole's own warnings since the start, by message. Others may be benign ones of their own
+  // (no Vault or LuckPerms: the permission fallback), which server.KNOWN_BENIGN names.
+  obs.warnings = lines.map((l) => /^\[\d\d:\d\d:\d\d WARN\]: \[WormholeXTreme\] ?(.*)$/.exec(l)).filter(Boolean).map((m) => m[1].trim());
   obs.enabled = lines.some((l) => /\[WormholeXTreme\].*Enable Completed/.test(l));
   obs.faults = fac.faults.faults.filter((f) => lines.some((l) => l.includes(f))).length;
   await ctx.step('MapA dials MapB and Probe walks through');
@@ -502,7 +507,12 @@ function checks(ctx, o) {
     case 'absent':
       return [
         c('one Wormhole warning at startup: "dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map."',
-          () => obs.warnings && obs.warnings.length === 1 && /dynmap-enabled is set but Dynmap was not found\. Nothing is shown on a map\./.test(obs.warnings[0])),
+          () => (obs.warnings || []).filter((w) => w === DYNMAP_ABSENT).length === 1),
+        c('and any other Wormhole warning is a known-benign one', () => {
+          const other = (obs.warnings || []).filter((w) => w !== DYNMAP_ABSENT && !server.KNOWN_BENIGN.includes(w));
+          if (!other.length) return true;
+          throw new Error(other.join(' | '));
+        }),
         c('it enabled, with no Wormhole fault since the restart', () => obs.enabled && obs.faults === 0),
         built,
         c('a gate works: MapA dialled MapB', () => /Stargates connected/.test(obs.dial || '') && Boolean(obs.drawn)),
