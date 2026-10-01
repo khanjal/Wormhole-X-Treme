@@ -100,7 +100,7 @@ async function check(list, version) {
       if (k.dim === p.dim && bp.overlaps(box, k.box)) problems.push(`${p.file} at ${fmt(box)} reaches into ${k.what} (${fmt(k.box)})`);
     }
   }
-  return { placed, problems };
+  return { placed, problems: [...new Set(problems)] };
 }
 
 function fmt(b) {

@@ -381,7 +381,7 @@ async function main() {
     const list = schematics.placements(args.schematics);
     if (list.length && !(withNames || []).includes('worldedit')) throw new Error('--schematics pastes with WorldEdit: add --with worldedit');
     const checked = await schematics.check(list, version);
-    if (checked.problems.length) throw new Error(`the decoration guardrail refuses ${checked.problems.length === 1 ? 'a schematic' : 'schematics'}:\n  ${checked.problems.join('\n  ')}`);
+    if (checked.problems.length) throw new Error(`the decoration guardrail refuses what --schematics would paste:\n  ${checked.problems.join('\n  ')}`);
     placed = checked.placed;
     console.log(`schematics: ${placed.length} to paste from ${args.schematics}, each clear of the guardrail`);
   }
