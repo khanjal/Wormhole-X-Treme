@@ -254,12 +254,7 @@ public final class GateConsoleCommands
     /** Where each of these cells stands in the world. */
     private static List<Location> locationsOf(final World world, final List<GateBlueprint.Cell> cells)
     {
-        final List<Location> out = new ArrayList<>(cells.size());
-        for (final GateBlueprint.Cell cell : cells)
-        {
-            out.add(new Location(world, cell.x(), cell.y(), cell.z()));
-        }
-        return out;
+        return cells.stream().map(cell -> new Location(world, cell.x(), cell.y(), cell.z())).toList();
     }
 
     /** Every block the gate will take: its frame, DHD and opening. */

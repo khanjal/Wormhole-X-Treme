@@ -79,7 +79,8 @@ class RegionAndPermissionOrderTest
     private static Block button()
     {
         final Block button = mock(Block.class);
-        when(button.getWorld()).thenReturn(mock(World.class));
+        final World world = mock(World.class);
+        when(button.getWorld()).thenReturn(world);
         return button;
     }
 
