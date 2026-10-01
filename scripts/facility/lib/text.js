@@ -82,6 +82,7 @@ function bookItem(version, { title, author, pages, marker = null }) {
   if (!atLeast(version, '1.20.5')) {
     return `minecraft:written_book{title:${JSON.stringify(title)},author:${JSON.stringify(author)},pages:[${asJson}]${marker ? `,${marker}:1b` : ''}}`;
   }
+  // 1.20.5 to 1.21.4 take JSON-string pages here: unverified, as no tested version is in that range.
   const list = modern(version) ? comps.map(toSnbt).join(',') : asJson;
   const data = marker ? `,minecraft:custom_data={${marker}:1b}` : '';
   return `minecraft:written_book[minecraft:written_book_content={title:${JSON.stringify(title)},author:${JSON.stringify(author)},pages:[${list}]}${data}]`;

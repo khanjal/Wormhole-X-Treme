@@ -362,7 +362,8 @@ player who no longer holds one is not given another unasked: `!book` and the con
 replace the copy they hold, or give one in the first free slot if they hold none (or say there is
 no room). Each section runs to as many pages as it needs, at most 14 lines of about 18 characters
 to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
-`written_book_content` component from it, and SNBT pages with snake_case click keys from 1.21.5
+`written_book_content` component from it (with JSON-string pages to 1.21.4: unverified, since no
+tested version takes that path), and SNBT pages with snake_case click keys from 1.21.5
 (`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
 
 There are two self-test profiles. The full one runs the whole matrix (635 checks on one server

@@ -219,10 +219,12 @@ module.exports = {
       const list = [
         c(`${o.animation}: the iris set as the gate's ("${g.name}'s iris now crosses as ${o.animation}")`, () => new RegExp(`${g.name}'s iris now crosses as ${o.animation}`).test(obs.style || '')),
         c('the lever shut it and opened it again', () => obs.closeLever === true && obs.openLever === false),
+        // Where it ended first: an iris that never shut must fail as that, not as the steps'
+        // known failure (the puller's, who sees every cell end shut but not the steps).
+        c(`shut, every cell ended ${g.iris}`, () => obs.shutShown.every((x) => x === g.iris)),
+        c('opened again, every cell ended air', () => obs.openShown.every((x) => x === 'air')),
         c(`closing was drawn in the plugin's ${o.animation} steps, cell for cell`, () => iris.sameSteps(obs.close, obs.expectClose)),
-        c(`and every cell ended ${g.iris}`, () => obs.shutShown.every((x) => x === g.iris)),
         c(`opening was drawn in its steps back, cell for cell`, () => iris.sameSteps(obs.open, obs.expectOpen)),
-        c('and every cell ended air', () => obs.openShown.every((x) => x === 'air')),
       ];
       if (o.animation !== 'instant') {
         list.push(c(`a step every ${obs.stepTicks || '?'} ticks, both ways (took ${pace(obs.close)} and ${pace(obs.open)} of it)`, () => n() > 1 && paced(obs.close) && paced(obs.open)));
