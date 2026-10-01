@@ -23,7 +23,7 @@ function select(spec) {
 function findBrowser(env = process.env) {
   if (env.WX_BROWSER) {
     if (!fs.existsSync(env.WX_BROWSER)) throw new Error(`WX_BROWSER is ${env.WX_BROWSER}, which is not there`);
-    return env.WX_BROWSER;
+    return path.resolve(env.WX_BROWSER);
   }
   const win = [env.PROGRAMFILES, env['PROGRAMFILES(X86)'], env.LOCALAPPDATA].filter(Boolean).flatMap((d) => [
     path.join(d, 'Google', 'Chrome', 'Application', 'chrome.exe'),
@@ -32,6 +32,17 @@ function findBrowser(env = process.env) {
   const unix = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge',
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'];
   return (process.platform === 'win32' ? win : unix).find((f) => fs.existsSync(f)) || null;
+}
+
+/**
+ * The browser's environment: this one without __COMPAT_LAYER. Edge started under a Windows
+ * compatibility layer (some launchers set DetectorsAppHealth) starts itself again without it and
+ * exits 0, which puppeteer takes for a failed launch, and the second Edge is left running.
+ */
+function browserEnv(env = process.env) {
+  const out = { ...env };
+  for (const k of Object.keys(out)) if (k.toUpperCase() === '__COMPAT_LAYER') delete out[k];
+  return out;
 }
 
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
@@ -100,6 +111,7 @@ async function takeShots(fac, viewer, shots, outDir, { log = console.log, width 
     executablePath: exe,
     headless: true,
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check', '--mute-audio'],
+    env: browserEnv(),
   });
   const out = [];
   const bot = fac.probe.bot;
@@ -157,4 +169,4 @@ async function takeShots(fac, viewer, shots, outDir, { log = console.log, width 
   return out;
 }
 
-module.exports = { select, findBrowser, takeShots, judge, sceneShare, SKY, MIN_SCENE };
+module.exports = { select, findBrowser, browserEnv, takeShots, judge, sceneShare, SKY, MIN_SCENE };

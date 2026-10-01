@@ -38,3 +38,8 @@ test('a frame taken while chunks still arrive, still changing, or with page erro
   assert.deepStrictEqual(shots.judge({ ...GOOD, still: false }).why, ['still changing']);
   assert.deepStrictEqual(shots.judge({ ...GOOD, errors: ['boom'] }).why, ['page errors: boom']);
 });
+
+test('the browser is started without a Windows compatibility layer, whatever its case', () => {
+  const env = shots.browserEnv({ PATH: 'x', __COMPAT_LAYER: 'DetectorsAppHealth', __compat_layer: 'y' });
+  assert.deepStrictEqual(env, { PATH: 'x' });
+});
