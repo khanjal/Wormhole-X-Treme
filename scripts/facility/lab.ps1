@@ -36,6 +36,10 @@
 .PARAMETER PluginCache
     A folder of companion jars to read first (<folder>\<version>\ then <folder>\any\).
 
+.PARAMETER NoDashboard
+    Do not start the Lab Dashboard (each lab's console and Dynmap, http://127.0.0.1:8200). lab.sh
+    does not start it; run node scripts/facility/dashboard.js there.
+
 .EXAMPLE
     .\scripts\facility\lab.ps1
     .\scripts\facility\lab.ps1 -Version 1.21.11 -Port 25620 -With dynmap,regions -Op YourName
@@ -48,18 +52,13 @@ param(
     [string] $Op = '',
     [switch] $Fresh,
     [string] $With = '',
-    [string] $PluginCache = ''
+    [string] $PluginCache = '',
+    [switch] $NoDashboard
 )
 
 $ErrorActionPreference = 'Stop'
 $facility = $PSScriptRoot
 $repo = (Resolve-Path (Join-Path $facility '..\..')).Path
-
-if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
-{
-    Write-Host "Something is already listening on port $Port (a lab already running?); leaving it alone."
-    exit 0
-}
 
 # Paths as the new window's PowerShell reads them: single-quoted, any quote in them doubled,
 # the typographic ones too (PowerShell reads U+2018 and U+2019 as single quotes as well).
@@ -67,6 +66,33 @@ function Quote([string] $s)
 {
     foreach ($q in "'", [string][char]0x2018, [string][char]0x2019) { $s = $s.Replace($q, $q + $q) }
     "'" + $s + "'"
+}
+
+# The read-only Lab Dashboard, once for all labs; started even when the lab is already running,
+# in case the dashboard was closed. The browser opens only when it starts.
+if (-not $NoDashboard)
+{
+    if (Get-NetTCPConnection -LocalPort 8200 -State Listen -ErrorAction SilentlyContinue)
+    {
+        Write-Host 'Lab Dashboard: http://127.0.0.1:8200'
+    }
+    else
+    {
+        Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit', '-Command',
+            "`$host.UI.RawUI.WindowTitle = 'Lab Dashboard :8200'; node $(Quote (Join-Path $facility 'dashboard.js'))"
+        # Node takes a moment to bind; a browser opened first shows a refused connection.
+        for ($i = 0; $i -lt 20 -and -not (Get-NetTCPConnection -LocalPort 8200 -State Listen -ErrorAction SilentlyContinue); $i++)
+        {
+            Start-Sleep -Milliseconds 250
+        }
+        Start-Process 'http://127.0.0.1:8200'
+    }
+}
+
+if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+{
+    Write-Host "Something is already listening on port $Port (a lab already running?); leaving it alone."
+    exit 0
 }
 
 if (-not (Test-Path (Join-Path $facility 'node_modules')))
@@ -87,4 +113,5 @@ $title = "Wormhole lab $Version :$Port"
 $node = "node $(Quote (Join-Path $facility 'run-facility.js')) $(($arguments | ForEach-Object { Quote "$_" }) -join ' ')"
 $command = "`$host.UI.RawUI.WindowTitle = $(Quote $title); Set-Location $(Quote $repo); $node"
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $command
+
 Write-Host "Opened $title in its own window. Join localhost:$Port with Minecraft $Version once it says ready."
