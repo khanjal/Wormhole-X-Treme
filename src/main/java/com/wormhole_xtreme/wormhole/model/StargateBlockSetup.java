@@ -2027,7 +2027,8 @@ class StargateBlockSetup
         }
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (!isLayered(gate) || !isNearEnoughToRedraw(gate, to))
+            // Not mid-sweep: the sweep draws the iris a ring at a time, and settles everybody at its end.
+            if (!isLayered(gate) || StargateIrisAnimator.isSweeping(gate) || !isNearEnoughToRedraw(gate, to))
             {
                 continue;
             }

@@ -439,6 +439,34 @@ class IrisSweepOrderingTest
             "every cell of the iris, not only the rings drawn after they arrived: " + where.getAllValues());
     }
 
+    /**
+     * A step mid-sweep in front of an open gate does not stack the whole iris over the sweep.
+     *
+     * <p>Every block-changing move restacks a layered gate for whoever made it, and the first such
+     * step had nothing on file to compare with, so it drew the finished iris in one go.
+     */
+    @Test
+    void aStepMidSweepDoesNotStackTheWholeIrisOverTheSweep()
+    {
+        final BlockData glass = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        when(watcher.isOnline()).thenReturn(true);
+        StargateManager.addStargate(gate);
+
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        clearInvocations(watcher);
+        StargateManager.relayerFor(watcher, new Location(world, 0, 64, 4));
+
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(glass));
+
+        finishSweep();
+        clearInvocations(watcher);
+        StargateManager.relayerFor(watcher, new Location(world, 0, 64, -4));
+        verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), eq(glass));
+    }
+
     /** And over a wormhole, where the whole iris arrives stacked with the wormhole behind it. */
     @Test
     void aLateArrivalIsDrawnTheWholeLayeredIrisWhenTheSweepEnds()
