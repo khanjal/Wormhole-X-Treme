@@ -320,7 +320,8 @@ const FORCELOAD = [
 /**
  * The viewer's vantage points (run-facility --shots): where Probe stands (feet; it flies, so a
  * point may be in the air), facing `yaw` (0 south, -90 east, 90 west, 180 north) and `pitch`
- * (down is positive), for a picture of each wing. A cell's are its gallery seat.
+ * (down is positive), for a picture of each wing. A cell's tinted glass is all a seat beside it
+ * shows, so B1 and M1 are seen from inside, high by the gallery wall.
  */
 const SHOTS = [
   { name: 'gate-room', wing: 'ops', dim: OVERWORLD, x: 0.5, y: 2, z: 12.5, yaw: 180, pitch: 5 },
@@ -332,10 +333,10 @@ const SHOTS = [
   { name: 'ring-concourse', wing: 'rings', dim: OVERWORLD, x: 42.5, y: 5, z: 0.5, yaw: -90, pitch: 10 },
   { name: 'shaft-window', wing: 'rings', dim: OVERWORLD, x: 69.5, y: 1, z: 17.5, yaw: 180, pitch: 75 },
   { name: 'beam-lab', wing: 'beams', dim: OVERWORLD, x: -44.5, y: 5, z: 20.5, yaw: 120, pitch: 15 },
-  { name: 'b1-pads', wing: 'beams', dim: OVERWORLD, x: -77.5, y: 1, z: 10.5, yaw: 180, pitch: 10 },
+  { name: 'b1-pads', wing: 'beams', dim: OVERWORLD, x: -77.5, y: 7, z: 6.5, yaw: 180, pitch: 25 },
   { name: 'mirror-hall', wing: 'mirrors', dim: OVERWORLD, x: 0.5, y: 4, z: 41.5, yaw: 0, pitch: 15 },
   { name: 'mirror-optics', wing: 'mirrors', dim: OVERWORLD, x: -9.5, y: 1, z: 46.5, yaw: 180, pitch: 0 },
-  { name: 'm1-round', wing: 'mirrors', dim: OVERWORLD, x: 0.5, y: 1, z: 70.5, yaw: 180, pitch: 10 },
+  { name: 'm1-round', wing: 'mirrors', dim: OVERWORLD, x: 0.5, y: 6, z: 66.5, yaw: 180, pitch: 25 },
   { name: 'menagerie', wing: 'menagerie', dim: OVERWORLD, x: 83.5, y: 6, z: -62.5, yaw: -135, pitch: 20 },
   { name: 'range', wing: 'range', dim: NETHER, x: 0.5, y: 68, z: 22.5, yaw: 180, pitch: 10 },
   { name: 'annex', wing: 'annex', dim: END, x: 1000.5, y: 64, z: 1018.5, yaw: 180, pitch: 10 },

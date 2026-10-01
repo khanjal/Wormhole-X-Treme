@@ -82,9 +82,13 @@ function encode(block, props) {
 }
 
 // Blocks renamed between the assets' version and the server's: the server's name, the assets'.
-const RENAMED = { short_grass: 'grass' };
+// The only two between 1.20.1 and 1.20.4 and between 1.21.4 and 1.21.11.
+const RENAMED = { short_grass: 'grass', iron_chain: 'chain' };
 
-/** State ids of `from` mapped to those of `to`: { map: Int32Array, unknown: [names drawn as stone] }. */
+/**
+ * State ids of `from` mapped to those of `to`: { map: Int32Array, unknown: [names drawn as
+ * stone], stone: the stone state id of `to` }.
+ */
 function stateMap(from, to) {
   const mcData = require('minecraft-data');
   const src = mcData(from);
@@ -100,50 +104,117 @@ function stateMap(from, to) {
       map[id] = b.states && b.states.length ? encode(d, decode(b, id)) : d.defaultState;
     }
   }
-  return { map, unknown };
+  return { map, unknown, stone };
 }
 
 /** The height the page can draw: y 0 to 255. */
 const DRAWN = 256;
 
-/** A copy of a chunk column in the assets' version and numbering, raised so its floor is at 0. */
-function translator(from, to) {
-  const { map, unknown } = stateMap(from, to);
-  const Column = fromViewer('prismarine-chunk')(to);
+/**
+ * Copies of chunk columns in the assets' version and numbering, raised so the column's floor is
+ * at 0. The renderer draws 256 blocks of height, so an overworld column (-64 to 319) loses what
+ * is from y 192 up; `onCut(y)` is called with the lowest such section's world y each time one
+ * with blocks in it is left out.
+ */
+function translator(from, to, { onCut = () => {}, Column = fromViewer('prismarine-chunk')(to) } = {}) {
+  const { map, unknown, stone } = stateMap(from, to);
+  const state = (id) => (id >= 0 && id < map.length ? map[id] : stone);
   const at = new Vec3(0, 0, 0);
+  const into = new Vec3(0, 0, 0);
   const column = (col) => {
     const out = new Column({ minY: 0, worldHeight: DRAWN });
-    const to = new Vec3(0, 0, 0);
     col.sections.forEach((s, i) => {
-      if (!s || s.solidBlockCount === 0 || 16 * i >= DRAWN) return;
+      if (!s || s.solidBlockCount === 0) return; // air throughout: nothing to copy
+      if (16 * i >= DRAWN) { onCut(col.minY + 16 * i); return; }
       const y0 = col.minY + 16 * i;
       for (let y = y0; y < y0 + 16; y++) {
         for (let z = 0; z < 16; z++) {
           for (let x = 0; x < 16; x++) {
             at.set(x, y, z);
             const id = col.getBlockStateId(at);
-            to.set(x, y - col.minY, z);
-            if (id) out.setBlockStateId(to, map[id] === undefined ? map[1] : map[id]);
+            into.set(x, y - col.minY, z);
+            if (id) out.setBlockStateId(into, state(id));
           }
         }
       }
     });
     return out;
   };
-  return { column, state: (id) => (map[id] === undefined ? 0 : map[id]), unknown };
+  return { column, state, unknown };
 }
 
 /**
- * Serves the viewer for `bot` on 127.0.0.1:`port`. Resolves once listening with { url, close() };
- * `url` is the orbit page, `url + 'first/'` the first-person one.
+ * What WorldView sends a page, on its way out: a block update translated and raised by `lift()`,
+ * an entity raised, a loaded chunk counted in `count`; the rest as it is.
  */
-function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
+function relay(socket, tr, lift, count = { chunks: 0 }) {
+  const up = (p) => (p ? { x: p.x, y: p.y + lift(), z: p.z } : p);
+  return {
+    up,
+    count,
+    on: (...a) => socket.on(...a),
+    emit: (evt, data) => {
+      if (evt === 'blockUpdate') socket.emit(evt, { pos: up(data.pos), stateId: tr.state(data.stateId) });
+      else if (evt === 'entity') socket.emit(evt, data.pos ? { ...data, pos: up(data.pos) } : data);
+      else {
+        if (evt === 'loadChunk') count.chunks++;
+        socket.emit(evt, data);
+      }
+    },
+  };
+}
+
+/** True for a host name (Host or Origin) of this machine: a page elsewhere may not drive the viewer. */
+function localHost(value) {
+  if (!value) return false;
+  let host = value;
+  try { if (/^[a-z]+:\/\//i.test(value)) host = new URL(value).host; } catch { return false; }
+  const name = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
+  return name === '127.0.0.1' || name === 'localhost' || name === '::1';
+}
+
+/** Socket.io's allowRequest: Host must be this machine, and so must Origin when a browser sends one. */
+function allowLocal(req, callback) {
+  const h = req.headers || {};
+  callback(null, localHost(h.host) && (h.origin === undefined || localHost(h.origin)));
+}
+
+/** Listens on 127.0.0.1:`port`, retrying for a few seconds while the port is still held (a restart's old viewer). */
+async function listen(srv, port, tries = 10) {
+  for (let i = 1; ; i++) {
+    try {
+      await new Promise((resolve, reject) => {
+        srv.once('error', reject);
+        srv.listen(port, '127.0.0.1', () => { srv.off('error', reject); resolve(); });
+      });
+      return;
+    } catch (e) {
+      if (e.code !== 'EADDRINUSE' || i >= tries) throw new Error(`the viewer cannot listen on 127.0.0.1:${port}: ${e.message}`);
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
+    }
+  }
+}
+
+/**
+ * Serves the viewer for `bot` on 127.0.0.1:`port`. Resolves once listening with { url, assets,
+ * chunks(), close() }; `url` is the orbit page, `url + 'first/'` the first-person one, and
+ * chunks() is how many chunks the newest page has been sent.
+ */
+async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
   const assets = assetVersion(bot.version);
-  const tr = translator(bot.version, assets);
-  if (tr.unknown.length) log(`  viewer: ${tr.unknown.length} blocks of ${bot.version} are not in its ${assets} assets and show as stone`);
+  let cut = false;
+  const tr = translator(bot.version, assets, {
+    onCut: (y) => {
+      if (cut) return;
+      cut = true;
+      log(`  viewer: the renderer draws 256 blocks of height, so blocks from y ${y} up are left out (this is said once)`);
+    },
+  });
+  if (tr.unknown.length) log(`  viewer: ${tr.unknown.length} blocks of ${bot.version} are not in its ${assets} assets and show as stone: ${tr.unknown.join(', ')}`);
   const express = fromViewer('express');
   const socketIo = fromViewer('socket.io');
   const app = express();
+  app.use((req, res, next) => (localHost(req.headers.host) ? next() : res.status(403).end()));
   // Exactly /first: Express matches /first/ to a /first route as well, which would loop.
   app.get(/^\/first$/, (req, res) => res.redirect('/first/'));
   setupRoutes(app, '/first');
@@ -159,24 +230,16 @@ function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
     raycast: (...a) => bot.world.raycast(...a),
   };
   const views = new Set();
+  let newest = { chunks: 0 };
   // How far the page's world is raised: the current dimension's depth below 0.
   const lift = () => -(bot.game.minY || 0);
-  const up = (p) => (p ? { x: p.x, y: p.y + lift(), z: p.z } : p);
   const serve = (io, firstPerson) => io.on('connection', (socket) => {
-    // A block update's state id is translated on its way out, like the chunks, and it and an
-    // entity raised with them.
-    const out = {
-      on: (...a) => socket.on(...a),
-      emit: (evt, data) => {
-        if (evt === 'blockUpdate') socket.emit(evt, { pos: up(data.pos), stateId: tr.state(data.stateId) });
-        else if (evt === 'entity') socket.emit(evt, data.pos ? { ...data, pos: up(data.pos) } : data);
-        else socket.emit(evt, data);
-      },
-    };
+    const out = relay(socket, tr, lift);
+    newest = out.count;
     socket.emit('version', assets);
     const view = new WorldView(world, viewDistance, bot.entity.position, out);
     const position = () => {
-      const p = { pos: up(bot.entity.position), yaw: bot.entity.yaw, addMesh: true };
+      const p = { pos: out.up(bot.entity.position), yaw: bot.entity.yaw, addMesh: true };
       if (firstPerson) p.pitch = bot.entity.pitch;
       socket.emit('position', p);
       view.updatePosition(bot.entity.position);
@@ -207,26 +270,29 @@ function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
   });
   // Two socket.io servers on one HTTP server: neither may close the other's upgrades.
   const ios = [
-    socketIo(srv, { path: '/socket.io', destroyUpgrade: false }),
-    socketIo(srv, { path: '/first/socket.io', destroyUpgrade: false }),
+    socketIo(srv, { path: '/socket.io', destroyUpgrade: false, allowRequest: allowLocal }),
+    socketIo(srv, { path: '/first/socket.io', destroyUpgrade: false, allowRequest: allowLocal }),
   ];
   serve(ios[0], false);
   serve(ios[1], true);
-  return new Promise((resolve, reject) => {
-    srv.once('error', (e) => reject(new Error(`the viewer cannot listen on 127.0.0.1:${port}: ${e.message}`)));
-    srv.listen(port, '127.0.0.1', () => {
-      const url = `http://127.0.0.1:${port}/`;
-      resolve({
-        url,
-        assets,
-        close: () => new Promise((done) => {
-          for (const io of ios) io.close();
-          srv.close(() => done());
-          setTimeout(done, 2000).unref();
-        }),
-      });
-    });
-  });
+  await listen(srv, port);
+  const url = `http://127.0.0.1:${port}/`;
+  return {
+    url,
+    assets,
+    chunks: () => newest.chunks,
+    // Resolves once the port is free again: the pages are dropped, then the HTTP server closed.
+    close: () => new Promise((done) => {
+      for (const io of ios) {
+        io.disconnectSockets(true);
+        io.engine.close();
+      }
+      if (srv.closeAllConnections) srv.closeAllConnections();
+      srv.close(() => done());
+    }),
+  };
 }
 
-module.exports = { viewerPort, assetVersion, stateMap, encode, decode, startViewer, PV_VERSION };
+module.exports = {
+  viewerPort, assetVersion, stateMap, encode, decode, translator, relay, localHost, allowLocal, startViewer, PV_VERSION, RENAMED,
+};

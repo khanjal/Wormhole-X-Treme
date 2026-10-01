@@ -482,11 +482,13 @@ async function main() {
       web = await viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log });
       if (args.viewer) console.log(`  viewer (prismarine-viewer ${viewer.PV_VERSION}, ${web.assets} assets): ${web.url} orbits Probe, ${web.url}first/ is through its eyes`);
       // A restart (a Map or Region Desk cell) brings a new Probe: serve that one, on the same port.
+      // close() resolves once the port is free, and a listen still finding it held retries.
       fac.afterRestart.push(() => {
         const old = web;
-        if (!old) return; // still coming back from the last restart
         web = null;
-        old.close().then(() => viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log })).then((w) => { web = w; })
+        Promise.resolve(old && old.close())
+          .then(() => viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log }))
+          .then((w) => { web = w; })
           .catch((e) => console.error(`facility: the viewer did not come back after the restart: ${e.message}`));
       });
     }
@@ -547,7 +549,7 @@ async function main() {
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
-      if (args.viewer) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
+      if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;

@@ -30,11 +30,15 @@ async function readSchem(file) {
   if (![1, 2, 3].includes(version) || root.Width === undefined) throw new Error(`${path.basename(file)} is not a Sponge schematic (version 1 to 3)`);
   const size = [root.Width, root.Height, root.Length].map((n) => n & 0xffff);
   let min = [0, 0, 0];
+  // Both read as WorldEdit reads them, and checked against files WorldEdit 7.4.5 (version 3) and
+  // 7.2.20 (version 2) saved with the origin at the far corner (test/fixtures/).
   if (version === 3) {
     // Version 3: Offset is the minimum corner relative to the origin.
     if (root.Offset) min = [...root.Offset];
   } else {
-    // Versions 1 and 2: WorldEdit's origin is Offset less its WEOffset, so the corner is WEOffset.
+    // Versions 1 and 2: Offset is the minimum corner in the world it was copied from, and the
+    // origin is Offset less WEOffset, so the corner is WEOffset from the origin. Without a
+    // WEOffset the origin is the corner itself, wherever Offset says it was.
     const m = root.Metadata || {};
     if (m.WEOffsetX !== undefined) min = [m.WEOffsetX, m.WEOffsetY, m.WEOffsetZ];
   }
@@ -116,12 +120,31 @@ function install(serverFolder, list) {
 }
 
 /**
+ * The first log line from now on matching `re`, within `ms`: { line: Promise (rejects at the
+ * deadline), cancel() }. Cancelled, it stops listening and its timer goes.
+ */
+function nextLine(srv, re, ms, what) {
+  let cancel;
+  const line = new Promise((resolve, reject) => {
+    const on = (l) => { if (re.test(l)) { done(); resolve(l); } };
+    const timer = setTimeout(() => { done(); reject(new Error(`no ${what} within ${ms / 1000} s`)); }, ms);
+    const done = () => { clearTimeout(timer); srv.off('line', on); };
+    cancel = done;
+    srv.on('line', on);
+  });
+  line.catch(() => {});
+  return { line, cancel };
+}
+
+/**
  * Pastes each placement by WorldEdit's console commands; returns [{ file, ok, detail }]. A
  * command WorldEdit answers with anything but its own success line is a failure, with its words.
  * The console has no position, so //paste puts the clipboard's origin at pos #1 (WorldEdit
- * 7.4.5's //toggleplace refuses the console: "Cannot toggle placing in this context").
+ * 7.4.5's //toggleplace refuses the console: "Cannot toggle placing in this context"). A plain
+ * //paste, never -a: the schematic's air is pasted too, so everything in its box is replaced,
+ * which is why the guardrail checks the whole box.
  */
-async function paste(srv, placed) {
+async function paste(srv, placed, { loadMs = 120000 } = {}) {
   const out = [];
   const say = async (cmd, ok) => {
     const r = await srv.run(cmd, 60000);
@@ -147,16 +170,22 @@ async function paste(srv, placed) {
         const name = `wx_${p.file}`;
         await world(WORLDS[p.dim]);
         await say(`${we}pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
-        // /schem load reads the file off the main thread and says so later: wait for that line.
+        // /schem load reads the file off the main thread and says so later: wait for that line,
+        // this file's own, loaded or refused.
         const esc = name.replace(/[.]/g, '\\.');
-        const loaded = srv.waitFor(new RegExp(`${esc} loaded\\. Paste it|${esc}.*(could not|not supported|unknown)|does not exist`, 'i'), 120000, `WorldEdit to load ${name}`);
-        loaded.catch(() => {});
-        const r = await srv.run(`/schem load ${name}`, 60000);
-        const now = r.lines.join(' ');
-        // Refused at once (a bad name), or answered later.
-        if (now.trim() && !/loading|loaded\. Paste it/i.test(now)) throw new Error(`/schem load ${name}: ${now}`);
-        const line = /loaded\. Paste it/i.test(now) ? now : await loaded;
-        if (!/loaded\. Paste it/i.test(line)) throw new Error(`/schem load ${name}: ${line}`);
+        const done = new RegExp(`${esc} loaded\\. Paste it`, 'i');
+        const answer = nextLine(srv, new RegExp(`${done.source}|${esc}.*(could not|not supported|unknown|does not exist)`, 'i'), loadMs, `answer from WorldEdit to /schem load ${name}`);
+        let line;
+        try {
+          const r = await srv.run(`/schem load ${name}`, 60000);
+          const now = r.lines.join(' ');
+          // Refused at once (a bad name), loaded already, or answered later.
+          if (now.trim() && !/loading/i.test(now) && !done.test(now)) throw new Error(`/schem load ${name}: ${now}`);
+          line = done.test(now) ? now : await answer.line;
+        } finally {
+          answer.cancel();
+        }
+        if (!done.test(line)) throw new Error(`/schem load ${name}: ${line}`);
         if (p.rotation) await say(`${we}rotate ${p.rotation}`, /rotated/i);
         const words = await say(`${we}paste`, /pasted/i);
         out.push({ file: p.file, ok: true, detail: `${fmt(p.box)} (${words})` });

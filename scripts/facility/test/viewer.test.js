@@ -40,6 +40,87 @@ test('a block state keeps its name and properties across the translation to olde
   assert.strictEqual(map[src.acacia_shelf.defaultState], dst.stone.defaultState);
 });
 
+test('1.21.11\'s iron_chain and 1.20.4\'s short_grass are drawn by their old names, not as stone', () => {
+  for (const [from, to, name, old] of [['1.21.11', '1.21.4', 'iron_chain', 'chain'], ['1.20.4', '1.20.1', 'short_grass', 'grass']]) {
+    const { map, unknown } = viewer.stateMap(from, to);
+    assert.ok(!unknown.includes(name), `${name} is listed as unknown`);
+    const src = mcData(from).blocksByName[name];
+    assert.strictEqual(map[src.defaultState], mcData(to).blocksByName[old].defaultState, name);
+  }
+});
+
+/**
+ * A fake overworld column of 24 sections from y -64: `blocks` is { y: stateId } at x 3, z 5.
+ * Counts its getBlockStateId calls; a section with no block in it reports none solid.
+ */
+function fakeColumn(blocks) {
+  const col = { minY: -64, calls: 0 };
+  col.sections = Array.from({ length: 24 }, (_, i) => ({ solidBlockCount: Object.keys(blocks).filter((y) => Math.floor((Number(y) + 64) / 16) === i).length }));
+  col.getBlockStateId = (p) => { col.calls++; return p.x === 3 && p.z === 5 ? blocks[p.y] || 0 : 0; };
+  return col;
+}
+
+/** A target column that records what was set in it. */
+class Recorded {
+  constructor(o) { this.options = o; this.set = {}; }
+
+  setBlockStateId(p, id) { this.set[`${p.x},${p.y},${p.z}`] = id; }
+}
+
+test('a column is raised by its depth below 0, cut at 256 high, and its empty sections are not read', () => {
+  const src = mcData('1.21.11').blocksByName;
+  const dst = mcData('1.21.4').blocksByName;
+  const cuts = [];
+  const tr = viewer.translator('1.21.11', '1.21.4', { Column: Recorded, onCut: (y) => cuts.push(y) });
+  // Bedrock at the floor, quartz at 0, oak stairs at 191 (the last drawn), stone at 192 (cut).
+  const col = fakeColumn({ '-64': src.bedrock.defaultState, 0: src.smooth_quartz.defaultState, 191: src.oak_stairs.defaultState, 192: src.stone.defaultState });
+  const out = tr.column(col);
+  assert.deepStrictEqual(out.options, { minY: 0, worldHeight: 256 });
+  assert.deepStrictEqual(out.set, {
+    '3,0,5': dst.bedrock.defaultState,
+    '3,64,5': dst.smooth_quartz.defaultState,
+    '3,255,5': dst.oak_stairs.defaultState,
+  });
+  assert.deepStrictEqual(cuts, [192]);
+  // Three sections hold a block below the cut: only they are read, block by block.
+  assert.strictEqual(col.calls, 3 * 4096);
+});
+
+test('a column with nothing above 191 is not reported as cut', () => {
+  const cuts = [];
+  const tr = viewer.translator('1.21.11', '1.21.4', { Column: Recorded, onCut: (y) => cuts.push(y) });
+  tr.column(fakeColumn({ 10: mcData('1.21.11').blocksByName.stone.defaultState }));
+  assert.deepStrictEqual(cuts, []);
+});
+
+test('a block update and an entity reach the page raised with the world, and a loaded chunk is counted', () => {
+  const sent = [];
+  const socket = { emit: (evt, data) => sent.push([evt, data]), on: () => {} };
+  const tr = { state: (id) => id + 1000 };
+  const out = viewer.relay(socket, tr, () => 64);
+  out.emit('blockUpdate', { pos: { x: 1, y: -1, z: 2 }, stateId: 7 });
+  out.emit('entity', { id: 9, pos: { x: 0.5, y: 0, z: 0.5 }, yaw: 1 });
+  out.emit('entity', { id: 9, delete: true });
+  out.emit('loadChunk', { x: 0, z: 16, chunk: {} });
+  assert.deepStrictEqual(sent, [
+    ['blockUpdate', { pos: { x: 1, y: 63, z: 2 }, stateId: 1007 }],
+    ['entity', { id: 9, pos: { x: 0.5, y: 64, z: 0.5 }, yaw: 1 }],
+    ['entity', { id: 9, delete: true }],
+    ['loadChunk', { x: 0, z: 16, chunk: {} }],
+  ]);
+  assert.strictEqual(out.count.chunks, 1);
+});
+
+test('the viewer answers only this machine: Host, and Origin when a browser sends one', () => {
+  const ask = (headers) => { let got; viewer.allowLocal({ headers }, (e, ok) => { got = ok; }); return got; };
+  assert.strictEqual(ask({ host: '127.0.0.1:3007' }), true);
+  assert.strictEqual(ask({ host: 'localhost:3007', origin: 'http://localhost:3007' }), true);
+  assert.strictEqual(ask({ host: '[::1]:3007' }), true);
+  assert.strictEqual(ask({ host: '127.0.0.1:3007', origin: 'https://evil.example' }), false);
+  assert.strictEqual(ask({ host: 'evil.example:3007' }), false, 'a rebound name');
+  assert.strictEqual(ask({}), false);
+});
+
 test('the same version translates to itself, state for state', () => {
   const { map } = viewer.stateMap('1.21.4', '1.21.4');
   const moved = map.findIndex((v, i) => v !== i);
