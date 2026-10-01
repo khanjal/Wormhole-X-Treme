@@ -16,6 +16,8 @@ const { atLeast } = require('./version');
 
 const MANIFEST = path.join(__dirname, '..', 'companions.json');
 const RECORD = '.wx-companions.json';
+/** The settings journal lib/config.js keeps in a server folder. */
+const JOURNAL = 'facility-settings.json';
 /** Dynmap's web port for the default game port; every other server is offset by its port. */
 const DYNMAP_BASE_PORT = 8123;
 const BASE_GAME_PORT = 25590;
@@ -202,7 +204,8 @@ function readRecord(folder) {
  * groups or map tiles from the last one).
  *
  * A jar of the same name already in plugins/ that no earlier run installed, and that is not the
- * pinned build, is somebody's own: refused, never overwritten (and so never deleted later).
+ * pinned build, is somebody's own: refused, never overwritten (and so never deleted later). One
+ * that is byte for byte the pinned build is adopted: recorded, and taken out by a run without it.
  *
  * `switches` are Wormhole settings to turn on for these companions (SWITCHES): written into its
  * config.yml with the value each replaced kept in the record, so a later run without that
@@ -234,18 +237,37 @@ function install(folder, resolved, { fresh = false, switches = {} } = {}) {
     const to = path.join(dir, r.file);
     if (!matches(to, { size: fs.statSync(r.jar).size, sha256: r.sha256 })) fs.copyFileSync(r.jar, to);
   }
+  // The integration switches have one owner, this install, never the settings journal: a cell
+  // that changed one (and restarted for it) and was killed before putting it back left it in the
+  // journal, and recover() replaying that after this would turn the switch against what is
+  // installed. So the journal's value is taken here as the one to go back to (when no record
+  // says otherwise) and the key leaves the journal.
+  const journalled = takeFromJournal(folder, SWITCH_KEYS);
   // Put back what an earlier run switched on and this one does not want (a key it found absent
   // goes back to the plugin's default, false); then switch on this run's, keeping the value from
   // before the first run that switched each on.
+  const current = readSettings(folder, SWITCH_KEYS);
   const seeded = {};
   const back = {};
-  for (const [k, before] of Object.entries(had.seeded)) {
-    if (k in switches) seeded[k] = before;
-    else back[k] = before === null || before === undefined ? 'false' : before;
+  for (const k of SWITCH_KEYS) {
+    const recorded = k in had.seeded ? had.seeded[k] : undefined;
+    if (k in switches) {
+      seeded[k] = recorded !== undefined ? recorded : (k in journalled ? journalled[k] : current[k]);
+    } else if (recorded !== undefined) {
+      back[k] = recorded === null ? 'false' : recorded;
+    } else if (k in journalled) {
+      back[k] = journalled[k];
+    }
   }
+  // The record first, so a failure while writing config.yml leaves the jars accounted for.
+  writeRecord(dir, resolved, want, seeded);
   if (Object.keys(back).length) seedSettings(folder, back);
-  const replaced = Object.keys(switches).length ? seedSettings(folder, switches) : {};
-  for (const [k, before] of Object.entries(replaced)) if (!(k in seeded)) seeded[k] = before;
+  if (Object.keys(switches).length) seedSettings(folder, switches);
+  return { removed, unseeded: Object.entries(back).map(([k, x]) => `${k}: ${x}`) };
+}
+
+/** Writes the install record (see install). */
+function writeRecord(dir, resolved, want, seeded) {
   const record = {
     note: 'Written by scripts/facility/run-facility.js --with: the companion jars it installed here, and the Wormhole settings '
       + 'it switched on for them with the values they replaced. A run without them takes the jars out and puts the settings back.',
@@ -254,8 +276,38 @@ function install(folder, resolved, { fresh = false, switches = {} } = {}) {
     seeded,
     installed: resolved.map((r) => ({ name: r.name, plugin: r.plugin, version: r.version, file: r.file, sha256: r.sha256, from: r.from, java: r.java })),
   };
-  fs.writeFileSync(path.join(dir, RECORD), `${JSON.stringify(record, null, 2)}\n`);
-  return { removed, unseeded: Object.entries(back).map(([k, x]) => `${k}: ${x}`) };
+  const file = path.join(dir, RECORD);
+  fs.writeFileSync(`${file}.tmp`, `${JSON.stringify(record, null, 2)}\n`);
+  fs.renameSync(`${file}.tmp`, file);
+}
+
+/**
+ * Takes `keys` out of the server folder's settings journal (lib/config.js), returning the values
+ * it held for them ({ key: value }); the rest of the journal is left as it was.
+ */
+function takeFromJournal(folder, keys) {
+  const file = path.join(folder, JOURNAL);
+  let j;
+  try { j = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return {};
+  const out = {};
+  for (const k of keys) if (k in j) { out[k] = String(j[k]); delete j[k]; }
+  if (!Object.keys(out).length) return out;
+  if (Object.keys(j).length) fs.writeFileSync(file, `${JSON.stringify(j, null, 2)}\n`);
+  else fs.rmSync(file, { force: true });
+  return out;
+}
+
+/** The values of top-level keys in Wormhole's config.yml ({ key: value }, null where absent). */
+function readSettings(folder, keys) {
+  const file = path.join(folder, 'plugins', 'WormholeXTreme', 'config.yml');
+  const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(/\r?\n/) : [];
+  const out = {};
+  for (const k of keys) {
+    const line = lines.find((l) => l.startsWith(`${k}:`));
+    out[k] = line === undefined ? null : line.slice(k.length + 1).trim();
+  }
+  return out;
 }
 
 /** The Java a server needs: Paper's for the version, raised by any plugin jar's class version. */
@@ -280,7 +332,9 @@ function findJavaAtLeast(major, highest = 30) {
 
 /** Dynmap's web port for a game port: 8123 on 25590, offset one for one with the game port. */
 function dynmapPort(gamePort) {
-  return DYNMAP_BASE_PORT + (gamePort - BASE_GAME_PORT);
+  const port = DYNMAP_BASE_PORT + (gamePort - BASE_GAME_PORT);
+  if (port < 1024) throw new Error(`Dynmap's web port for game port ${gamePort} would be ${port}: run Dynmap on a game port from ${BASE_GAME_PORT - DYNMAP_BASE_PORT + 1024}`);
+  return port;
 }
 
 /**
@@ -304,7 +358,7 @@ function configureDynmap(folder, jar, port) {
   body = body.replace(/^webserver-port:.*$/m, `webserver-port: ${port}`);
   // The template has it commented out (#webserver-bindaddress: 0.0.0.0, every interface).
   if (/^#?\s*webserver-bindaddress:.*$/m.test(body)) body = body.replace(/^#?\s*webserver-bindaddress:.*$/m, 'webserver-bindaddress: 127.0.0.1');
-  else body = body.replace(/^webserver-port:.*$/m, (l) => `webserver-bindaddress: 127.0.0.1\n${l}`);
+  else body = body.replace(/^webserver-port:.*$/m, (l) => `webserver-bindaddress: 127.0.0.1${body.includes('\r\n') ? '\r\n' : '\n'}${l}`);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(file, body);
   return file;
@@ -338,6 +392,7 @@ function seedSettings(folder, settings) {
 
 /** Wormhole's switches for its integrations with each companion: set true when it is installed. */
 const SWITCHES = { worldguard: { 'worldguard-enabled': 'true' }, dynmap: { 'dynmap-enabled': 'true' } };
+const SWITCH_KEYS = Object.values(SWITCHES).flatMap((s) => Object.keys(s));
 
 /**
  * A companion's line that is a fault in a run that installed it: one that failed to load (a

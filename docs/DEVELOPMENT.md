@@ -397,7 +397,8 @@ companion's file, SHA-256, Java and where it came from, and records what it inst
 `plugins/.wx-companions.json`; a run without a companion takes out the jar an earlier run put
 there (and never one it did not), and a fresh run also clears the data folders of the ones it
 manages. A jar of the same name already in `plugins/` that no run installed and that is not the
-pinned build is somebody's own: the run is refused rather than overwrite it. Only bare names in
+pinned build is somebody's own: the run is refused rather than overwrite it (one byte for byte the
+pinned build is adopted, and taken out by a later run without it). Only bare names in
 the record are acted on, so an edited record cannot reach outside `plugins/`. A companion that cannot run on a version is refused by name before the server starts:
 no Dynmap build supports 26.x (its newest version helper is 1.21.11), so Dynmap runs on 1.20.4
 (3.7-beta-8) and 1.21.11 (3.8).
@@ -410,7 +411,10 @@ load as a fault. Wormhole's switch for each integration (`worldguard-enabled`, `
 is written into its `config.yml` before the start, since both are read only at enable, keeping the
 file's line endings. The value it replaced is kept in the record, and a later run without that
 companion puts it back, so a `--keep-world` run without `--with` is not left with an integration
-switched on.
+switched on. The install owns these two switches, not the settings journal: a cell that changed one
+and was killed before putting it back leaves it journalled, and the next start takes it out of the
+journal (as the value to go back to) before `recover()` could turn it against what is installed.
+`npm test --prefix scripts/facility` runs those rules without a server.
 
 Dynmap's web map gets its own port, `8123 + (port - 25590)`, on 127.0.0.1 only, written into its
 `configuration.txt` (from the jar's own template on a fresh run) and printed; the setup fails if

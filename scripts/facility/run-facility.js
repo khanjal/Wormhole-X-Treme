@@ -7,8 +7,8 @@
 //
 // Options:
 //   --java <path>        java for the server (default: a JDK of the highest major the version and
-//                        every plugin jar's main class need, found by JAVA<major>_HOME or in the
-//                        usual install folders)
+//                        the newest class file in every plugin jar need, found by
+//                        JAVA<major>_HOME or in the usual install folders)
 //   --plugin <jar>       use this plugin jar instead of building one
 //   --no-build           use target/WormholeXTreme.jar as it is
 //   --jdk17 <path>       java for the Maven build (default: a JDK 17 found the same way)

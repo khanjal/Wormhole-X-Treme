@@ -137,15 +137,16 @@ async function selftest(fac, {
       const e = fac.entries.find((x) => x.def.id === id);
       const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
-        // First: a companion cell's settings may not exist in a jar tested without its companion.
+        // Only the cells this run takes: a companion cell's settings may not exist in a jar tested
+        // without its companion, and a cell --cells, --quick or the shard leaves out reads nothing.
         if (!applies(cell, companions)) continue;
-        // Every setting any cell needs is read before its first run, and checked at the end.
-        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
-        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
         if (!inShard(label)) continue;
+        // Every setting a cell needs is read before the first run that needs it, and checked at the end.
+        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });

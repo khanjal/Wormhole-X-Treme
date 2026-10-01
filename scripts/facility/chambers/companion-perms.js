@@ -30,6 +30,8 @@ const GEOM = new GateKit(null).place('Standard', STAND.facing, STAND);
 const PREVIEW_AT = { x: -9.5, y: 0, z: -108.5, yaw: 180 };
 const DOCK_AT = { x: -12, y: 0, z: -110, yaw: 180 };
 const NO = /You lack the permissions to do this\./;
+const VAULT_FOUND = '[WormholeXTreme] Vault provider detected; permission checks will use Vault/Bukkit provider.';
+const FALLBACK = 'enabling simple permission fallback';
 
 /** What each trial needs, and the words that say it was allowed. */
 const TRIALS = {
@@ -90,6 +92,11 @@ async function stage(ctx, o) {
 async function run(ctx, o) {
   const obs = ctx.observed;
   const fac = ctx.facility;
+  // Whether Wormhole found LuckPerms through Vault this start: under its own fallback (no
+  // provider) a visitor's run would look the same.
+  const since = ctx.server.log.slice(ctx.server.startIndex || 0);
+  obs.provider = since.some((l) => l.includes(VAULT_FOUND));
+  obs.fallback = since.some((l) => l.includes(FALLBACK));
   const probe2 = await fac.second();
   if (o.case === 'console') {
     await ctx.step('Probe2 says !group builder');
@@ -119,13 +126,14 @@ async function run(ctx, o) {
 function checks(ctx, o) {
   const obs = ctx.observed;
   const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const hooked = c('Wormhole found LuckPerms through Vault ("Vault provider detected"), not its own fallback', () => obs.provider && !obs.fallback);
   if (o.case === 'console') {
-    return [c('Probe2 is told "You are in builder now"', () => /You are in builder now/.test(obs.said || '')),
+    return [hooked, c('Probe2 is told "You are in builder now"', () => /You are in builder now/.test(obs.said || '')),
       c('and holds builder\'s wormhole.build', () => obs.holds && obs.holds['wormhole.build'] === true),
       c('but not an operator\'s wormhole.config', () => obs.holds && obs.holds['wormhole.config'] === false)];
   }
   const holds = new Set(o.case === 'default' ? [] : nodesOf(o.case));
-  const list = [c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.build || '') && /Now owned by: Probe\b/.test(obs.owner || ''))];
+  const list = [hooked, c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.build || '') && /Now owned by: Probe\b/.test(obs.owner || ''))];
   for (const [trial, t] of Object.entries(TRIALS)) {
     const said = () => (obs.told && obs.told[trial]) || '';
     if (holds.has(t.node)) {
