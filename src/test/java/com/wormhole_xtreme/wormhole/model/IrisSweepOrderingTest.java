@@ -18,6 +18,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -384,6 +385,151 @@ class IrisSweepOrderingTest
             .thenReturn(Material.BLUE_ICE);
         materials.when(() -> MaterialUtils.shownBehindGlassAs(Material.WATER, true))
             .thenReturn(Material.PACKED_ICE);
+    }
+
+    /**
+     * A redraw asked for mid-sweep leaves the sweep's picture alone, on an idle gate.
+     *
+     * <p>Pulling the iris lever swings the player's arm, and a swing near a drawn iris asks for a
+     * redraw a tick later. That redraw sent every cell as the iris, so the player who pulled the
+     * lever saw the finished iris at once and the sweep only for everybody else.
+     */
+    @Test
+    void aRedrawMidSweepDoesNotPaintTheWholeIdleIris()
+    {
+        final BlockData glass = drawnIdleIris();
+
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        clearInvocations(watcher);
+        StargateManager.refreshPortalVisuals(watcher);
+
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(glass));
+
+        finishSweep();
+        clearInvocations(watcher);
+        StargateManager.refreshPortalVisuals(watcher);
+        verify(watcher, times(9)).sendBlockChange(any(Location.class), eq(glass));
+    }
+
+    /**
+     * Somebody who arrives mid-sweep on an idle gate is drawn the whole iris once it has finished.
+     *
+     * <p>Their redraw is held back while the sweep runs, and the sweep draws only the rings still to
+     * come. Settling at the end was the layers alone, which an idle gate has none of, so the rings
+     * drawn before they arrived stayed holes until something unrelated redrew the gate.
+     */
+    @Test
+    void aLateArrivalIsDrawnTheWholeIdleIrisWhenTheSweepEnds()
+    {
+        final BlockData glass = drawnIdleIris();
+        when(world.getPlayers()).thenReturn(List.of());
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        pending.values().iterator().next().run();
+        pending.remove(pending.keySet().iterator().next());
+
+        when(world.getPlayers()).thenReturn(List.of(watcher));
+        StargateManager.refreshPortalVisuals(watcher);
+        finishSweep();
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), eq(glass));
+        assertEquals(9, where.getAllValues().stream().map(at -> at.getBlockX() + "," + at.getBlockY()).distinct().count(),
+            "every cell of the iris, not only the rings drawn after they arrived: " + where.getAllValues());
+    }
+
+    /**
+     * A step mid-sweep in front of an open gate does not stack the whole iris over the sweep.
+     *
+     * <p>Every block-changing move restacks a layered gate for whoever made it, and the first such
+     * step had nothing on file to compare with, so it drew the finished iris in one go.
+     */
+    @Test
+    void aStepMidSweepDoesNotStackTheWholeIrisOverTheSweep()
+    {
+        final BlockData glass = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        when(watcher.isOnline()).thenReturn(true);
+        StargateManager.addStargate(gate);
+
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        clearInvocations(watcher);
+        StargateManager.relayerFor(watcher, new Location(world, 0, 64, 4));
+
+        verify(watcher, never()).sendBlockChange(any(Location.class), eq(glass));
+
+        finishSweep();
+        clearInvocations(watcher);
+        StargateManager.relayerFor(watcher, new Location(world, 0, 64, -4));
+        verify(watcher, atLeastOnce()).sendBlockChange(any(Location.class), eq(glass));
+    }
+
+    /** And over a wormhole, where the whole iris arrives stacked with the wormhole behind it. */
+    @Test
+    void aLateArrivalIsDrawnTheWholeLayeredIrisWhenTheSweepEnds()
+    {
+        final BlockData glass = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        when(watcher.isOnline()).thenReturn(true);
+        StargateManager.addStargate(gate);
+        when(world.getPlayers()).thenReturn(List.of());
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        pending.values().iterator().next().run();
+        pending.remove(pending.keySet().iterator().next());
+
+        when(world.getPlayers()).thenReturn(List.of(watcher));
+        StargateManager.refreshPortalVisuals(watcher);
+        finishSweep();
+
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(watcher, atLeastOnce()).sendBlockChange(where.capture(), eq(glass));
+        assertEquals(9, where.getAllValues().stream().filter(at -> at.getBlockZ() == 0)
+            .map(at -> at.getBlockX() + "," + at.getBlockY()).distinct().count(),
+            "every cell of the iris in the ring: " + where.getAllValues());
+    }
+
+    /** The same on a dialled gate, where the iris is stacked with the wormhole behind it. */
+    @Test
+    void aRedrawMidSweepDoesNotStackTheWholeIrisOverAWormhole()
+    {
+        final BlockData glass = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        when(watcher.isOnline()).thenReturn(true);
+        StargateManager.addStargate(gate);
+
+        gate.toggleIrisActive(false);
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running");
+        clearInvocations(watcher);
+        StargateManager.refreshPortalVisuals(watcher);
+
+        verify(watcher, never()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), eq(glass));
+
+        finishSweep();
+        clearInvocations(watcher);
+        StargateManager.refreshPortalVisuals(watcher);
+        verify(watcher, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), eq(glass));
+    }
+
+    /**
+     * The same gate, never dialled, registered so a redraw finds it.
+     *
+     * @return what the iris is drawn as
+     */
+    private BlockData drawnIdleIris()
+    {
+        final BlockData glass = mock(BlockData.class);
+        glassIrisOverAWormhole(mock(BlockData.class));
+        gate.setGateActive(false);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        when(watcher.isOnline()).thenReturn(true);
+        StargateManager.addStargate(gate);
+        return glass;
     }
 
     /** Runs every step the sweep has booked, so the one after it starts from a settled gate. */
