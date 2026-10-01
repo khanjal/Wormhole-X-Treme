@@ -448,6 +448,56 @@ class GateProjectileTest
         verify(arrow).teleport(any(Location.class));
     }
 
+    /** A world that will not make the replacement at all leaves the original to be sent as it is. */
+    @Test
+    void aProjectileThatCannotBeRemadeIsTeleportedInstead()
+    {
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenThrow(new IllegalArgumentException("cannot spawn here"));
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /**
+     * A replacement of another kind than the original takes what the two share, and nothing it
+     * cannot hold is forced on it: no copy fails, so nothing is warned about.
+     */
+    @Test
+    void aReplacementOfAnotherKindTakesOnlyWhatItShares()
+    {
+        final Trident trident = flying(Trident.class);
+        final Player shooter = mock(Player.class);
+        when(trident.getShooter()).thenReturn(shooter);
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+
+        GateEntityScanner.sendProjectileThrough(trident, origin);
+
+        verify(trident).remove();
+        verify(spawned, never()).remove();
+        verify(spawned).setShooter(shooter);
+        verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
+    /** The same the other way round: an arrow's potion is not forced on a replacement that has none. */
+    @Test
+    void aPlainReplacementForATippedArrowTakesOnlyWhatItShares()
+    {
+        final SpectralArrow replacement = mock(SpectralArrow.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+
+        sendArrowThroughGate();
+
+        verify(arrow).remove();
+        verify(replacement, never()).remove();
+        verify(replacement).setDamage(2.5);
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
     /**
      * A replacement that cannot be tracked is taken back while the original is still there to send.
      *
