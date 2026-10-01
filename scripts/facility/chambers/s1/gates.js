@@ -30,10 +30,17 @@ const cases = [
   v('dial spin', '`gate-dial-spin none`: the chevrons lock about twice as fast as with the default top rest'),
   v('arrival splash', '`gate-arrival-splash-ticks 0`: no water over the eyes on arrival, where the default shows it'),
   v('log level', '`log-level FINE`: a DHD press is logged as [FINE], and not at INFO'),
+  v('sign colours', 'sign-color-gate-name RED, -network GOLD, -owner BLUE and sign-glowing-text true: the name sign a gate is built with is written so'),
+  {
+    ...v('sign colour bad', '`sign-color-gate-name PINK`: like every other setting with a fixed set of values, refused, naming them'),
+    expect: 'FAIL:refused, and the setting unchanged',
+    known: 'the sign colours are not checked: `wormhole config sign-color-gate-name PINK` answers "SIGN_COLOR_GATE_NAME is now PINK." and the sign quietly falls back to its default colour (SignStyle.resolveColor), though every other setting with a fixed set of values refuses a bad one and names the options, as the guide says (docs/guide/SERVER.md); ParsedSetting.readText accepts any text for them',
+  },
 ];
 
 function needs(o) {
   return {
+    'sign colours': { 'sign-color-gate-name': 'RED', 'sign-color-network': 'GOLD', 'sign-color-owner': 'BLUE', 'sign-glowing-text': 'true' },
     'timeout-activate': { 'timeout-activate': '3' },
     'use cooldown': { 'use-cooldown-enabled': 'true', 'use-cooldown-seconds': '30' },
     'same world only': { 'same-world-only': 'true' },
@@ -44,7 +51,7 @@ function needs(o) {
 async function stage(ctx, o) {
   const obs = ctx.observed;
   if (o.case === 'preview limits' || o.case === 'preview minutes') return;
-  Object.assign(obs, await buildGate(ctx, { idc: o.case === 'iris animation' ? '3333' : null }));
+  Object.assign(obs, await buildGate(ctx, { idc: o.case === 'iris animation' ? '3333' : null, net: o.case === 'sign colours' ? 'SysNet' : null }));
   if (o.case === 'same world only') {
     // A rail line into the opening, as G1 lays one for a cart.
     const start = before(GEOM, 8);
@@ -199,6 +206,16 @@ async function run(ctx, o) {
     obs.byDefault = await once();
     await ctx.config.set('gate-arrival-splash-ticks', '0', 's1');
     obs.off = await once();
+  } else if (o.case === 'sign colours') {
+    obs.sign = await nameSign(ctx);
+  } else if (o.case === 'sign colour bad') {
+    obs.before = await ctx.config.get('sign-color-gate-name');
+    // Through Config, so an accepted PINK is put back after the run like any setting a case changes.
+    obs.said = await ctx.config.set('sign-color-gate-name', 'PINK', 's1').then((x) => `is now ${x}`, (e) => e.message);
+    obs.after = await ctx.config.get('sign-color-gate-name');
+    // The name sign written again (an owner change rewrites it), under PINK.
+    obs.rewritten = (await kit.edit(GATE, 'owner', probe.name)).text;
+    obs.sign = await nameSign(ctx);
   } else if (o.case === 'log level') {
     const press = async () => {
       await probe.teleport(atButton(), O);
@@ -215,8 +232,17 @@ async function run(ctx, o) {
   }
 }
 
+/** The front text of Sys's name sign (the :N block's face), as `data get block` gives it. */
+async function nameSign(ctx) {
+  const n = GEOM.blocks.find((b) => b.marks.includes('N'));
+  const at = { x: n.x + GEOM.normal.x, y: n.y, z: n.z + GEOM.normal.z };
+  return (await ctx.server.run(`data get block ${at.x} ${at.y} ${at.z} front_text`)).lines.join(' ');
+}
+
 function checks(obs, o) {
   const list = (o.case === 'preview limits' || o.case === 'preview minutes') ? [] : [...builtChecks(obs)];
+  // The sign's front text as the server holds it: a component per line, its colour beside its text.
+  const coloured = (text, colour) => new RegExp(`color"?\\s*:\\s*"?${colour}"?[^}]*${text}|${text}[^}]*color"?\\s*:\\s*"?${colour}`).test(obs.sign || '');
   if (o.case === 'timeout-activate') {
     list.push(c('the DHD lit the gate: "Gate successfully activated."', () => /Gate successfully activated\./.test(obs.told || '')),
       c('its chevrons were lit a second later', () => obs.litAt1s > 0),
@@ -269,6 +295,22 @@ function checks(obs, o) {
   } else if (o.case === 'arrival splash') {
     list.push(c('by default Probe arrived at Relay with water drawn over its eyes', () => obs.byDefault && obs.byDefault.arrived && obs.byDefault.water > 0),
       c('at 0 it arrived with none', () => obs.off && obs.off.arrived && obs.off.water === 0));
+  } else if (o.case === 'sign colours') {
+    const line = (what, text, colour) => c(`${what} in ${colour}: "${text}"`, () => {
+      if (coloured(text, colour)) return true;
+      throw new Error(obs.sign);
+    });
+    list.push(line('the name', `-${GATE}-`, 'red'), line('the network', 'N:SysNet', 'gold'), line('the owner', 'O:Probe', 'blue'),
+      c('and its text glows', () => /has_glowing_text: ?1b/.test(obs.sign || '')));
+  } else if (o.case === 'sign colour bad') {
+    list.push(c(`the name sign written again shows the name in the default colour, dark_aqua`, () => {
+      if (/Now owned by: Probe/.test(obs.rewritten || '') && coloured(`-${GATE}-`, 'dark_aqua')) return true;
+      throw new Error(obs.sign);
+    }));
+    list.push(c('refused, and the setting unchanged', () => {
+      if (!/is now PINK/.test(obs.said || '') && obs.after === obs.before) return true;
+      throw new Error(`told: ${obs.said}; ${obs.before} -> ${obs.after}`);
+    }));
   } else if (o.case === 'log level') {
     list.push(c('at INFO a DHD press logs no [FINE] line', () => obs.atInfo === 0),
       c('at FINE it logs "[WormholeXTreme] [FINE] PlayerInteract: Probe clicked potential activator ..."', () => obs.atFine > 0));

@@ -94,10 +94,10 @@ function logSince(ctx, mark) {
  * Builds Sys on the Stand, owned by Probe (so a non-op's use is never the owner's). An iris code
  * (`idc`) gives it its iris lever.
  */
-async function buildGate(ctx, { idc = null } = {}) {
+async function buildGate(ctx, { idc = null, net = null } = {}) {
   const kit = new GateKit(ctx.server);
   if (await kit.exists(GATE)) await kit.remove(GATE);
-  const built = (await kit.build(GATE, GEOM, { dim: O, floorY: STAND.floorY, idc })).text;
+  const built = (await kit.build(GATE, GEOM, { dim: O, floorY: STAND.floorY, idc, net })).text;
   const owner = (await kit.edit(GATE, 'owner', ctx.facility.probe.name)).text;
   return { built, owner };
 }
