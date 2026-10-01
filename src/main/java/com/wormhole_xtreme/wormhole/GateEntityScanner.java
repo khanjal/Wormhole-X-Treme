@@ -4,6 +4,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -11,15 +13,22 @@ import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.ThrownPotion;
+import org.bukkit.entity.SizedFireball;
+import org.bukkit.entity.SpectralArrow;
+import org.bukkit.entity.ThrowableProjectile;
+import org.bukkit.entity.Trident;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionType;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -276,7 +285,8 @@ public final class GateEntityScanner implements Runnable
      *
      * <p>Everything that makes the projectile behave and score correctly is carried over:
      * its shooter, so kills are still credited and an ender pearl still teleports the
-     * player who threw it, plus the arrow properties that affect damage and pickup.
+     * player who threw it, plus the arrow properties that affect damage and pickup, and the
+     * item it carries, which is where a tipped arrow's effect and a trident's enchantments live.
      *
      * @param projectile
      *            the projectile arriving at the gate
@@ -289,6 +299,7 @@ public final class GateEntityScanner implements Runnable
     private static Entity respawnProjectile(final Projectile projectile, final Location arrival, final Vector exit,
         final Stargate exitGate)
     {
+        Entity spawned = null;
         try
         {
             final Class<? extends Entity> type = projectile.getType().getEntityClass();
@@ -297,7 +308,6 @@ public final class GateEntityScanner implements Runnable
                 return null;
             }
 
-            final Entity spawned;
             if (AbstractArrow.class.isAssignableFrom(type))
             {
                 // spawnArrow creates an arrow already travelling, which a plain spawn does
@@ -313,18 +323,38 @@ public final class GateEntityScanner implements Runnable
             }
 
             copyProjectileState(projectile, spawned);
-            projectile.remove();
             if (spawned instanceof Projectile shot)
             {
                 ProjectileGateTracker.track(shot, projectile, exitGate);
             }
+            // Last, so a failure before it leaves the original to be teleported rather than lost.
+            projectile.remove();
             return spawned;
         }
         catch (final RuntimeException e)
         {
+            // The original is about to be teleported instead, so the replacement must not stay as a second shot.
+            removeQuietly(spawned);
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not respawn projectile through gate, falling back to teleport", e);
             return null;
+        }
+    }
+
+    /** Takes back a replacement that will not be used, without letting that fail the fallback too. */
+    private static void removeQuietly(final Entity spawned)
+    {
+        if (spawned == null)
+        {
+            return;
+        }
+        try
+        {
+            spawned.remove();
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not remove an unused projectile replacement", e);
         }
     }
 
@@ -344,45 +374,206 @@ public final class GateEntityScanner implements Runnable
             // Kill credit, and for an ender pearl, who gets teleported when it lands.
             shot.setShooter(from.getShooter());
         }
-        if ((from instanceof ThrownPotion thrown)
-            && (to instanceof ThrownPotion replacement))
-        {
-            // Without this the potion still splashes but has no effect.
-            replacement.setItem(thrown.getItem());
-        }
+        // Each of the rest costs only itself if this server refuses it, not the crossing.
+        copyQuietly("item", () -> copyItem(from, to));
         if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
         {
-            b.setDamage(a.getDamage());
-            b.setCritical(a.isCritical());
-            b.setPierceLevel(a.getPierceLevel());
-            b.setPickupStatus(a.getPickupStatus());
-            // A Punch bow's knockback and a crossbow shot's identity: from 1.21 both come from the
-            // weapon the arrow remembers, and the old setters are marked for removal.
-            if (!copy(GET_WEAPON, SET_WEAPON, a, b))
-            {
-                copy(GET_KNOCKBACK, SET_KNOCKBACK, a, b);
-                copy(IS_CROSSBOW, SET_CROSSBOW, a, b);
-            }
+            copyQuietly("arrow state", () -> copyArrowState(a, b));
+        }
+        if ((from instanceof Arrow a) && (to instanceof Arrow b))
+        {
+            copyQuietly("potion", () -> copyPotion(a, b));
+        }
+        if ((from instanceof SpectralArrow a) && (to instanceof SpectralArrow b))
+        {
+            copyQuietly("glow", () -> b.setGlowingTicks(a.getGlowingTicks()));
+        }
+        if ((from instanceof Trident a) && (to instanceof Trident b))
+        {
+            // The entity reads these off its item only when it is made, so the item alone is not enough.
+            copy(GET_LOYALTY, SET_LOYALTY, a, b);
+            copy(HAS_GLINT, SET_GLINT, a, b);
+            // One already on its way home keeps going home, rather than being thrown on from the far gate.
+            copy(HAS_DEALT_DAMAGE, SET_HAS_DEALT_DAMAGE, a, b);
+        }
+        if ((from instanceof Firework a) && (to instanceof Firework b))
+        {
+            copyQuietly("firework", () -> copyFirework(a, b));
         }
     }
 
+    /** Runs one part of the copy, logging rather than throwing if this server refuses it. */
+    private static void copyQuietly(final String what, final Runnable copy)
+    {
+        try
+        {
+            copy.run();
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            copyFailed(what, e);
+        }
+    }
+
+    /** What has already failed to copy on this server, each said once at WARNING and after that at FINE. */
+    private static final Set<String> FAILED_COPIES = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Logs a part of a projectile that would not copy: once loudly, so a server that stops
+     * carrying something over shows it, and quietly after that rather than once a shot.
+     */
+    private static void copyFailed(final String what, final Throwable e)
+    {
+        if (FAILED_COPIES.add(what))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not copy a projectile's " + what
+                + " to its replacement through a gate; further failures are logged at FINE", e);
+        }
+        else
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Could not copy a projectile's " + what + " to its replacement", e);
+        }
+    }
+
+    /** Forgets which copies have failed, so a test sees its own first failure. */
+    static void forgetFailedCopies()
+    {
+        FAILED_COPIES.clear();
+    }
+
+    /**
+     * A firework's stars and angle, and on Paper how far into its flight it is: setting the meta
+     * restarts the flight, which on Spigot it then keeps.
+     */
+    private static void copyFirework(final Firework a, final Firework b)
+    {
+        b.setFireworkMeta(a.getFireworkMeta());
+        b.setShotAtAngle(a.isShotAtAngle());
+        copy(GET_TICKS_TO_DETONATE, SET_TICKS_TO_DETONATE, a, b);
+        copy(GET_TICKS_FLOWN, SET_TICKS_FLOWN, a, b);
+    }
+
+    /**
+     * Copies the item a projectile carries: a potion's contents, a trident's enchantments, a
+     * tipped arrow's effect, a pearl's or snowball's look.
+     */
+    private static void copyItem(final Projectile from, final Entity to)
+    {
+        if ((from instanceof ThrowableProjectile thrown) && (to instanceof ThrowableProjectile replacement))
+        {
+            // Tridents included: they are throwable as well as arrows, on every version.
+            replacement.setItem(thrown.getItem());
+        }
+        else if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
+        {
+            copy(GET_ARROW_ITEM, SET_ARROW_ITEM, a, b);
+        }
+        else if ((from instanceof SizedFireball a) && (to instanceof SizedFireball b))
+        {
+            b.setDisplayItem(a.getDisplayItem());
+        }
+    }
+
+    /** Damage, pickup, and what the bow or crossbow gave the arrow. */
+    private static void copyArrowState(final AbstractArrow a, final AbstractArrow b)
+    {
+        b.setDamage(a.getDamage());
+        b.setCritical(a.isCritical());
+        b.setPierceLevel(a.getPierceLevel());
+        b.setPickupStatus(a.getPickupStatus());
+        // A Punch bow's knockback and a crossbow shot's identity: from 1.21 both come from the
+        // weapon the arrow remembers, and the old setters are marked for removal.
+        if (!copy(GET_WEAPON, SET_WEAPON, a, b))
+        {
+            copy(GET_KNOCKBACK, SET_KNOCKBACK, a, b);
+            copy(IS_CROSSBOW, SET_CROSSBOW, a, b);
+        }
+    }
+
+    /**
+     * A tipped arrow's effect, set on the arrow itself: before 1.20.4 there is no item to copy, on
+     * 1.20.4 the arrow keeps its effect apart from its item, and on Paper setting the item leaves
+     * the arrow's colour behind.
+     */
+    private static void copyPotion(final Arrow a, final Arrow b)
+    {
+        if (!copy(GET_POTION_TYPE, SET_POTION_TYPE, a, b))
+        {
+            copy(GET_POTION_DATA, SET_POTION_DATA, a, b);
+        }
+        for (final PotionEffect effect : a.getCustomEffects())
+        {
+            b.addCustomEffect(effect, true);
+        }
+    }
+
+    /** {@code AbstractArrow.getItem()}, from 1.20.4, or null. */
+    private static final Method GET_ARROW_ITEM = method(AbstractArrow.class, "getItem");
+
+    /** {@code AbstractArrow.setItem(ItemStack)}, from 1.20.4, or null. */
+    private static final Method SET_ARROW_ITEM = method(AbstractArrow.class, "setItem", ItemStack.class);
+
+    /** {@code Arrow.getBasePotionType()}, from 1.20.2, or null. */
+    private static final Method GET_POTION_TYPE = method(Arrow.class, "getBasePotionType");
+
+    /** {@code Arrow.setBasePotionType(PotionType)}, from 1.20.2, or null. */
+    private static final Method SET_POTION_TYPE = method(Arrow.class, "setBasePotionType", PotionType.class);
+
+    /** {@code Arrow.getBasePotionData()}, deprecated, for 1.20 and 1.20.1. */
+    private static final Method GET_POTION_DATA = method(Arrow.class, "getBasePotionData");
+
+    /** {@code Arrow.setBasePotionData(PotionData)}, deprecated, for 1.20 and 1.20.1; found by its getter's type. */
+    private static final Method SET_POTION_DATA = (GET_POTION_DATA == null) ? null
+        : method(Arrow.class, "setBasePotionData", GET_POTION_DATA.getReturnType());
+
+    /** Paper's {@code Trident.getLoyaltyLevel()}, or null on Spigot. */
+    private static final Method GET_LOYALTY = method(Trident.class, "getLoyaltyLevel");
+
+    /** Paper's {@code Trident.setLoyaltyLevel(int)}, or null on Spigot. */
+    private static final Method SET_LOYALTY = method(Trident.class, "setLoyaltyLevel", int.class);
+
+    /** Paper's {@code Trident.hasGlint()}, or null on Spigot. */
+    private static final Method HAS_GLINT = method(Trident.class, "hasGlint");
+
+    /** Paper's {@code Trident.setGlint(boolean)}, or null on Spigot. */
+    private static final Method SET_GLINT = method(Trident.class, "setGlint", boolean.class);
+
+    /** Paper's {@code Firework.getTicksToDetonate()}, or null on Spigot. */
+    private static final Method GET_TICKS_TO_DETONATE = method(Firework.class, "getTicksToDetonate");
+
+    /** Paper's {@code Firework.setTicksToDetonate(int)}, or null on Spigot. */
+    private static final Method SET_TICKS_TO_DETONATE = method(Firework.class, "setTicksToDetonate", int.class);
+
+    /** Paper's {@code Firework.getTicksFlown()}, or null on Spigot. */
+    private static final Method GET_TICKS_FLOWN = method(Firework.class, "getTicksFlown");
+
+    /** Paper's {@code Firework.setTicksFlown(int)}, or null on Spigot. */
+    private static final Method SET_TICKS_FLOWN = method(Firework.class, "setTicksFlown", int.class);
+
+    /** Paper's {@code Trident.hasDealtDamage()}, or null on Spigot. */
+    private static final Method HAS_DEALT_DAMAGE = method(Trident.class, "hasDealtDamage");
+
+    /** Paper's {@code Trident.setHasDealtDamage(boolean)}, or null on Spigot. */
+    private static final Method SET_HAS_DEALT_DAMAGE = method(Trident.class, "setHasDealtDamage", boolean.class);
+
     /** {@code AbstractArrow.getWeapon()}, from 1.21, or null. */
-    private static final Method GET_WEAPON = arrowMethod("getWeapon");
+    private static final Method GET_WEAPON = method(AbstractArrow.class, "getWeapon");
 
     /** {@code AbstractArrow.setWeapon(ItemStack)}, from 1.21, or null. */
-    private static final Method SET_WEAPON = arrowMethod("setWeapon", ItemStack.class);
+    private static final Method SET_WEAPON = method(AbstractArrow.class, "setWeapon", ItemStack.class);
 
     /** {@code AbstractArrow.getKnockbackStrength()}, marked for removal from 1.21, or null once gone. */
-    private static final Method GET_KNOCKBACK = arrowMethod("getKnockbackStrength");
+    private static final Method GET_KNOCKBACK = method(AbstractArrow.class, "getKnockbackStrength");
 
     /** {@code AbstractArrow.setKnockbackStrength(int)}, marked for removal from 1.21, or null once gone. */
-    private static final Method SET_KNOCKBACK = arrowMethod("setKnockbackStrength", int.class);
+    private static final Method SET_KNOCKBACK = method(AbstractArrow.class, "setKnockbackStrength", int.class);
 
     /** {@code AbstractArrow.isShotFromCrossbow()}, or null once gone. */
-    private static final Method IS_CROSSBOW = arrowMethod("isShotFromCrossbow");
+    private static final Method IS_CROSSBOW = method(AbstractArrow.class, "isShotFromCrossbow");
 
     /** {@code AbstractArrow.setShotFromCrossbow(boolean)}, marked for removal from 1.21, or null once gone. */
-    private static final Method SET_CROSSBOW = arrowMethod("setShotFromCrossbow", boolean.class);
+    private static final Method SET_CROSSBOW = method(AbstractArrow.class, "setShotFromCrossbow", boolean.class);
 
     /** @return true if arrows on this server carry the weapon that fired them */
     static boolean carriesWeapon()
@@ -390,12 +581,32 @@ public final class GateEntityScanner implements Runnable
         return (GET_WEAPON != null) && (SET_WEAPON != null);
     }
 
-    /** Looks an arrow method up once, by name, so none is linked against directly. */
-    private static Method arrowMethod(final String name, final Class<?>... parameters)
+    /** @return true if arrows on this server carry the item they are picked up as */
+    static boolean arrowsCarryItems()
+    {
+        return (GET_ARROW_ITEM != null) && (SET_ARROW_ITEM != null);
+    }
+
+    /** @return true if this server lets a trident's loyalty and return be set, which only Paper does */
+    static boolean tridentReturnIsSettable()
+    {
+        return (GET_LOYALTY != null) && (SET_LOYALTY != null) && (HAS_GLINT != null) && (SET_GLINT != null)
+            && (HAS_DEALT_DAMAGE != null) && (SET_HAS_DEALT_DAMAGE != null);
+    }
+
+    /** @return true if this server lets a firework's flight be set, which only Paper does */
+    static boolean fireworkFlightIsSettable()
+    {
+        return (GET_TICKS_TO_DETONATE != null) && (SET_TICKS_TO_DETONATE != null)
+            && (GET_TICKS_FLOWN != null) && (SET_TICKS_FLOWN != null);
+    }
+
+    /** Looks a method up once, by name, so none is linked against directly. */
+    private static Method method(final Class<?> owner, final String name, final Class<?>... parameters)
     {
         try
         {
-            return AbstractArrow.class.getMethod(name, parameters);
+            return owner.getMethod(name, parameters);
         }
         catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
         {
@@ -404,12 +615,12 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
-     * Copies one property from arrow to arrow through a getter and setter found by name.
+     * Copies one property from projectile to projectile through a getter and setter found by name.
      *
      * @return true if this server has both, whether or not there was anything to copy
      */
-    private static boolean copy(final Method getter, final Method setter, final AbstractArrow from,
-        final AbstractArrow to)
+    private static boolean copy(final Method getter, final Method setter, final Projectile from,
+        final Projectile to)
     {
         if ((getter == null) || (setter == null))
         {
@@ -425,8 +636,7 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not copy " + getter.getName() + " to a projectile's replacement", e);
+            copyFailed(getter.getName(), e);
         }
         return true;
     }
@@ -463,6 +673,36 @@ public final class GateEntityScanner implements Runnable
         }
         sendThrough(projectile, arrival, gate.getGateFacing(), target.getGateFacing(), target);
         return true;
+    }
+
+    /**
+     * Sends a thrown item through a gate, or destroys it on a shut iris, as the sweep would.
+     *
+     * <p>Called by {@link ItemGateTracker} the tick an item's path reaches a portal: one thrown
+     * through the opening is there for a tick or two, far too briefly for the sweep to see.
+     *
+     * @param item
+     *            the item crossing the gate
+     * @param gate
+     *            the gate it is entering
+     * @return true if it was sent through or destroyed
+     */
+    static boolean sendItemThrough(final Item item, final Stargate gate)
+    {
+        final Stargate target = gate.getGateTarget();
+        if (!shouldSendThrough(item))
+        {
+            return false;
+        }
+        if (gate.isGateIrisActive() || target.isGateIrisActive())
+        {
+            splatOnIris(item);
+            return true;
+        }
+        final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
+            target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
+        return (arrival != null)
+            && sendThrough(item, arrival, gate.getGateFacing(), target.getGateFacing(), target);
     }
 
     /**
@@ -643,8 +883,9 @@ public final class GateEntityScanner implements Runnable
      *            the direction the destination gate faces
      * @param exitGate
      *            the gate it comes out of, or null where that does not matter
+     * @return true if it was moved
      */
-    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
+    private static boolean sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
         final BlockFace exitFacing, final Stargate exitGate)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
@@ -672,7 +913,7 @@ public final class GateEntityScanner implements Runnable
             WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
             if (!RiddenTeleport.move(entity, arrival, parents, children))
             {
-                return;
+                return false;
             }
             moved = entity;
         }
@@ -696,7 +937,7 @@ public final class GateEntityScanner implements Runnable
 
         if (children.isEmpty())
         {
-            return;
+            return true;
         }
         // Marked too, or a rider waiting in the far portal for its seat is swept straight back.
         for (final Entity child : children)
@@ -705,5 +946,6 @@ public final class GateEntityScanner implements Runnable
         }
         // The shared re-seat, whose retries fetch a passenger that did not land beside its mount.
         PassengerReattach.schedule(entity, parents, children, exit, 1L);
+        return true;
     }
 }

@@ -25,10 +25,25 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.
 
+**Fixed**
+
+- **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
+  between two entity sweeps and landed behind the ring; a shut iris destroys them as before.
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
   with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
+
+### Stargates
+
+**Fixed**
+
+- **A tipped arrow keeps its effect through a gate, and on Paper a Loyalty trident comes back.** The
+  arrow arrived plain, and the trident unenchanted, stuck at the far side. A spectral arrow keeps how long
+  it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
+  Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
+  flight over at the far gate.
 
 ### Quantum mirrors
 
