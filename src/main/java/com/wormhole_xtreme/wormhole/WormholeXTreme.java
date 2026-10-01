@@ -82,6 +82,9 @@ public class WormholeXTreme extends JavaPlugin
     /** Follows projectiles in flight so they cross a gate at the moment they reach it. */
     private static final ProjectileGateTracker projectileTracker = new ProjectileGateTracker();
 
+    /** Follows thrown and dispensed items near a gate so they cross it as they fly through. */
+    private static final ItemGateTracker itemTracker = new ItemGateTracker();
+
     /** The Scheduler. */
     private static BukkitScheduler scheduler = null;
 
@@ -148,6 +151,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(vehicleListener, tp);
         pm.registerEvents(entityListener, tp);
         pm.registerEvents(projectileTracker, tp);
+        pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
         registerDismountListener(pm, tp);
@@ -350,6 +354,8 @@ public class WormholeXTreme extends JavaPlugin
             }
             // Bukkit drops the tickets themselves; a reload must not start with stale counts.
             ChunkTickets.clear();
+            // Holding items from the old instance would keep their entities alive across a reload.
+            ItemGateTracker.clear();
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
@@ -727,6 +733,9 @@ public class WormholeXTreme extends JavaPlugin
         // see, so they are followed individually and checked every tick while in flight.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ProjectileGateTracker.createTicker(), 20L, 1L);
+        // A thrown item crosses the opening in a tick or two, so it is followed the same way.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            ItemGateTracker.createTicker(), 20L, 1L);
         // An open wormhole hums. One sweep over the open gates rather than a task per gate:
         // the work is the same and there is nothing per-gate to cancel or leak.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),

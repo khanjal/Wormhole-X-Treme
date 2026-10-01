@@ -4,6 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -11,7 +14,14 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -238,6 +248,13 @@ class WormholeXTremeRedstoneListenerTest
      */
     private Stargate fireRedstoneNextToRdBlock(final Material sourceType, final int offX, final int offY, final int offZ)
     {
+        return fireRedstoneNextToRdBlock(sourceType, offX, offY, offZ, 0, 15);
+    }
+
+    /** The same, with the currents the event reports. */
+    private Stargate fireRedstoneNextToRdBlock(final Material sourceType, final int offX, final int offY, final int offZ,
+        final int oldCurrent, final int newCurrent)
+    {
         final World world = mock(World.class);
         final int dx = 200, dy = 64, dz = 300;
 
@@ -273,9 +290,180 @@ class WormholeXTremeRedstoneListenerTest
         doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
-        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, oldCurrent, newCurrent));
         StargateManager.removeStargate(gate);
         return gate;
+    }
+
+    /**
+     * A detector rail pressed on Paper 1.21.11 dials the gate.
+     *
+     * <p>Paper builds that event with both currents from the new state, so a press reads 15 to 15
+     * and was dropped as no change at all: carts rolled over the rail and the gate never opened.
+     */
+    @Test
+    void aDetectorRailReportingItsPressAsFifteenToFifteenDials()
+    {
+        final Stargate gate = fireRedstoneNextToRdBlock(Material.DETECTOR_RAIL, 1, 0, 0, 15, 15);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /** Dust reporting 15 to 15 is a signal that has not changed, and still dials nothing. */
+    @Test
+    void dustReportingFifteenToFifteenDoesNotDial()
+    {
+        final Stargate gate = fireRedstoneNextToRdBlock(Material.REDSTONE_WIRE, 0, 0, 1, 15, 15);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    private static Block rail()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+        final Block rail = mock(Block.class);
+        when(rail.getWorld()).thenReturn(world);
+        when(rail.getX()).thenReturn(7);
+        when(rail.getY()).thenReturn(64);
+        when(rail.getZ()).thenReturn(-3);
+        when(rail.getType()).thenReturn(Material.DETECTOR_RAIL);
+        return rail;
+    }
+
+    /**
+     * A rail reporting 15 to 15 is pressed once, not again until it has been seen released.
+     *
+     * <p>Without the release in between, every later 15 to 15 on the same rail would be another
+     * press, and a cart parked on a rail would dial for as long as anything re-reported it.
+     */
+    @Test
+    void aRailReportingTheNewCurrentTwiceIsPressedOncePerRelease()
+    {
+        final Block rail = rail();
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "the first press");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "still pressed");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 0), "released");
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the release");
+    }
+
+    /**
+     * A rail broken while pressed, and one put back in its place, is pressed afresh.
+     *
+     * <p>Broken with a cart on it, the rail never reports its release, so it stayed remembered as
+     * pressed and a rail put back there missed its first press on Paper 1.21.11.
+     */
+    @Test
+    void aRailBrokenWhilePressedIsPressedAfreshOnceReplaced()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+
+        new WormholeXTremeRedstoneListener().onBlockBreak(new BlockBreakEvent(rail, mock(Player.class)));
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again once broken");
+    }
+
+    /** The same for a rail placed where a remembered one stood, as from a world edit or a piston. */
+    @Test
+    void aRailPlacedOverARememberedOneIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final BlockPlaceEvent placed = mock(BlockPlaceEvent.class);
+        when(placed.getBlockPlaced()).thenReturn(rail);
+
+        new WormholeXTremeRedstoneListener().onBlockPlace(placed);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again once placed");
+    }
+
+    /**
+     * A rail blown up while pressed, by a creeper or by a bed, is pressed afresh once replaced.
+     *
+     * <p>Mocked: EntityExplodeEvent's constructor is not the same across the supported versions.
+     */
+    @Test
+    void aRailBlownUpWhilePressedIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final EntityExplodeEvent creeper = mock(EntityExplodeEvent.class);
+        when(creeper.blockList()).thenReturn(new ArrayList<>(List.of(rail)));
+
+        new WormholeXTremeRedstoneListener().onEntityExplode(creeper);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the creeper");
+        final BlockExplodeEvent bed = mock(BlockExplodeEvent.class);
+        when(bed.blockList()).thenReturn(new ArrayList<>(List.of(rail)));
+
+        new WormholeXTremeRedstoneListener().onBlockExplode(bed);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the bed");
+    }
+
+    /** A rail pushed or pulled away by a piston while pressed is pressed afresh where it stood. */
+    @Test
+    void aRailMovedByAPistonWhilePressedIsPressedAfresh()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final BlockPistonExtendEvent push = mock(BlockPistonExtendEvent.class);
+        when(push.getBlocks()).thenReturn(List.of(rail));
+
+        new WormholeXTremeRedstoneListener().onPistonExtend(push);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the push");
+        final BlockPistonRetractEvent pull = mock(BlockPistonRetractEvent.class);
+        when(pull.getBlocks()).thenReturn(List.of(rail));
+
+        new WormholeXTremeRedstoneListener().onPistonRetract(pull);
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the pull");
+    }
+
+    /**
+     * A current no rail reports is answered without reading the block.
+     *
+     * <p>Every dust block along every circuit raises this event, so the block lookup the rail rule
+     * needs is kept to the 0 and 15 a rail can report.
+     */
+    @Test
+    void dustFallingFromFifteenToFourteenNeverReadsTheBlock()
+    {
+        final Block dust = mock(Block.class);
+
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 15, 14));
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(dust, 0, 14), "a rise to 14 is still a rise");
+
+        verify(dust, never()).getType();
+    }
+
+    /** Breaking anything else beside a pressed rail leaves the rail remembered. */
+    @Test
+    void breakingAnotherBlockLeavesAPressedRailRemembered()
+    {
+        final Block rail = rail();
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed");
+        final Block stone = rail();
+        when(stone.getType()).thenReturn(Material.STONE);
+
+        new WormholeXTremeRedstoneListener().onBlockBreak(new BlockBreakEvent(stone, mock(Player.class)));
+
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "still held, so not a second press");
+    }
+
+    /** Where the currents are reported as they were, a press is still one press and a release none. */
+    @Test
+    void aRailReportingItsOldCurrentIsPressedOncePerRelease()
+    {
+        final Block rail = rail();
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "the press");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "no second press while held");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 0), "the release");
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "and the next press");
+        // A reported rise is a press even on a rail somehow still remembered as pressed.
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "0 to 15 is always a rise");
     }
 
     @Test

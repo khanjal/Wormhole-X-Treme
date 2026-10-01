@@ -4,12 +4,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,22 +25,30 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Fireball;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SizedFireball;
 import org.bukkit.entity.Snowball;
+import org.bukkit.entity.SpectralArrow;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Trident;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -55,6 +66,7 @@ import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
  */
 class GateProjectileTest
 {
+    private WormholeXTreme plugin;
     private World world;
     private Stargate origin;
     private Arrow arrow;
@@ -66,7 +78,8 @@ class GateProjectileTest
     void setUp() throws Exception
     {
         GateSpatialIndex.clear();
-        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        GateEntityScanner.forgetFailedCopies();
+        plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -250,6 +263,373 @@ class GateProjectileTest
     private static Method arrowMethod(final String name, final Class<?>... parameters) throws NoSuchMethodException
     {
         return AbstractArrow.class.getMethod(name, parameters);
+    }
+
+    /**
+     * Issue #536: a slowness arrow came out of the far gate as a plain arrow.
+     *
+     * <p>The effect is set on the replacement itself, which every version supports, whether or not
+     * this one also carries it in the arrow's item. By name, because getBasePotionType is from 1.20.2
+     * and the matrix builds 1.20.
+     */
+    @Test
+    void aTippedArrowKeepsItsPotion() throws Exception
+    {
+        final PotionEffect custom = mock(PotionEffect.class);
+        when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
+        // Before 1.20.2 the base potion is a PotionData, found by its getter's type.
+        final boolean byType = potionMethod("getBasePotionType") != null;
+        final Method getter = potionMethod(byType ? "getBasePotionType" : "getBasePotionData");
+        final Method setter = potionMethod(byType ? "setBasePotionType" : "setBasePotionData",
+            getter.getReturnType());
+        final Object base = byType ? PotionType.SLOWNESS : mock(getter.getReturnType());
+        when(getter.invoke(arrow)).thenReturn(base);
+
+        sendArrowThroughGate();
+
+        setter.invoke(verify(spawned), base);
+        verify(spawned).addCustomEffect(custom, true);
+    }
+
+    /**
+     * The arrow's own item comes too, which from 1.20.5 is where its effect, name and colour live.
+     * Absent before 1.20.4, where the arrow still crosses with its effect set directly.
+     */
+    @Test
+    void aTippedArrowKeepsItsItem() throws Exception
+    {
+        final ItemStack tipped = mock(ItemStack.class);
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            when(arrowMethod("getItem").invoke(arrow)).thenReturn(tipped);
+        }
+
+        sendArrowThroughGate();
+
+        verify(arrow).remove();
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            arrowMethod("setItem", ItemStack.class).invoke(verify(spawned), tipped);
+        }
+    }
+
+    /** An item that will not copy costs the item, not the potion or the crossing. */
+    @Test
+    void anArrowWhoseItemWillNotCopyStillCrossesWithItsPotion() throws Exception
+    {
+        final PotionEffect custom = mock(PotionEffect.class);
+        when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
+        if (GateEntityScanner.arrowsCarryItems())
+        {
+            final ItemStack item = mock(ItemStack.class);
+            when(arrowMethod("getItem").invoke(arrow)).thenReturn(item);
+            arrowMethod("setItem", ItemStack.class)
+                .invoke(doThrow(new IllegalArgumentException("refused")).when(spawned), any(ItemStack.class));
+        }
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).remove();
+        verify(spawned).addCustomEffect(custom, true);
+    }
+
+    private static Method potionMethod(final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return Arrow.class.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException absent)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * A Loyalty trident came out of the far gate as a plain trident, stuck there, and never came back.
+     *
+     * <p>Its item is copied on every version, since a trident is a throwable as well as an arrow. Its
+     * loyalty and glint are read off the item only when the entity is made, so on Paper they are set
+     * as well; Spigot has no way to, and the trident keeps its enchantments but not its return.
+     */
+    @Test
+    void aTridentKeepsItsEnchantedItemAndComesBack() throws Exception
+    {
+        final Trident trident = flying(Trident.class);
+        final Trident replacement = mock(Trident.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        final Player shooter = mock(Player.class);
+        when(trident.getShooter()).thenReturn(shooter);
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+        final ItemStack enchanted = mock(ItemStack.class);
+        when(trident.getItem()).thenReturn(enchanted);
+        if (GateEntityScanner.tridentReturnIsSettable())
+        {
+            when(Trident.class.getMethod("getLoyaltyLevel").invoke(trident)).thenReturn(3);
+            when(Trident.class.getMethod("hasGlint").invoke(trident)).thenReturn(true);
+            when(Trident.class.getMethod("hasDealtDamage").invoke(trident)).thenReturn(true);
+        }
+
+        assertDoesNotThrow(() -> GateEntityScanner.sendProjectileThrough(trident, origin));
+
+        verify(trident).remove();
+        verify(replacement).setItem(enchanted);
+        verify(replacement).setShooter(shooter);
+        verify(replacement).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+        if (GateEntityScanner.tridentReturnIsSettable())
+        {
+            Trident.class.getMethod("setLoyaltyLevel", int.class).invoke(verify(replacement), 3);
+            Trident.class.getMethod("setGlint", boolean.class).invoke(verify(replacement), true);
+            // One already heading home keeps heading home, not thrown on from the far gate.
+            Trident.class.getMethod("setHasDealtDamage", boolean.class).invoke(verify(replacement), true);
+        }
+    }
+
+    /** Only Paper has them, so only the Paper legs can prove the names are right. */
+    @Test
+    @EnabledIfSystemProperty(named = "server.api", matches = "paper")
+    void papersTridentAndFireworkMethodsAreFound()
+    {
+        assertTrue(GateEntityScanner.tridentReturnIsSettable(),
+            "a Loyalty trident would stop coming back through a gate on Paper");
+        assertTrue(GateEntityScanner.fireworkFlightIsSettable(),
+            "a firework would start its flight over again at the far gate on Paper");
+    }
+
+    /**
+     * A part of the copy this server refuses costs that part, not the crossing.
+     *
+     * <p>The replacement already exists by then. Failing the whole crossing used to teleport the
+     * original as well, so one throw came out of the far gate as two.
+     */
+    @Test
+    void aCopyThatIsRefusedStillSendsOneProjectileNotTwo()
+    {
+        final Trident trident = flying(Trident.class);
+        final Trident replacement = mock(Trident.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        final ItemStack item = mock(ItemStack.class);
+        when(trident.getItem()).thenReturn(item);
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+        doThrow(new IllegalArgumentException("refused")).when(replacement).setItem(any());
+
+        GateEntityScanner.sendProjectileThrough(trident, origin);
+
+        verify(trident).remove();
+        verify(trident, never()).teleport(any(Location.class));
+        verify(replacement, never()).remove();
+        verify(replacement).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
+    /** A replacement that cannot even be given its shooter is taken back, and the original goes instead. */
+    @Test
+    void aReplacementThatCannotBeSetUpIsNotLeftAsASecondShot()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setShooter(any());
+
+        sendArrowThroughGate();
+
+        verify(spawned).remove();
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /** And if the replacement will not even be removed, the original still goes. */
+    @Test
+    void aReplacementThatWillNotBeRemovedStillLetsTheOriginalGo()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setShooter(any());
+        doThrow(new IllegalStateException("gone")).when(spawned).remove();
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /** A world that will not make the replacement at all leaves the original to be sent as it is. */
+    @Test
+    void aProjectileThatCannotBeRemadeIsTeleportedInstead()
+    {
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenThrow(new IllegalArgumentException("cannot spawn here"));
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
+        // There was no replacement, so there is nothing to take back and nothing to fail at it.
+        verify(plugin, never()).prettyLog(any(Level.class), contains("unused projectile replacement"), any(Throwable.class));
+    }
+
+    /**
+     * A replacement of another kind than the original takes what the two share, and nothing it
+     * cannot hold is forced on it: no copy fails, so nothing is warned about.
+     */
+    @Test
+    void aReplacementOfAnotherKindTakesOnlyWhatItShares()
+    {
+        final Trident trident = flying(Trident.class);
+        final Player shooter = mock(Player.class);
+        when(trident.getShooter()).thenReturn(shooter);
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+
+        GateEntityScanner.sendProjectileThrough(trident, origin);
+
+        verify(trident).remove();
+        verify(spawned, never()).remove();
+        verify(spawned).setShooter(shooter);
+        verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
+    /** The same the other way round: an arrow's potion is not forced on a replacement that has none. */
+    @Test
+    void aPlainReplacementForATippedArrowTakesOnlyWhatItShares()
+    {
+        final SpectralArrow replacement = mock(SpectralArrow.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+
+        sendArrowThroughGate();
+
+        verify(arrow).remove();
+        verify(replacement, never()).remove();
+        verify(replacement).setDamage(2.5);
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
+    /**
+     * A replacement that cannot be tracked is taken back while the original is still there to send.
+     *
+     * <p>The original used to be removed before the tracking, so a failure there left nothing to teleport.
+     */
+    @Test
+    void anOriginalIsOnlyRemovedOnceItsReplacementIsReady()
+    {
+        when(spawned.getLocation()).thenThrow(new IllegalStateException("not in a world"));
+
+        sendArrowThroughGate();
+
+        verify(spawned).remove();
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
+    }
+
+    /**
+     * A part that will not copy is said once at WARNING, so a server that quietly stops carrying an
+     * arrow's pickup or a trident's item over shows up in the log, and not once a shot.
+     */
+    @Test
+    void aCopyThatFailsIsWarnedAboutOnce()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setPickupStatus(any());
+
+        sendArrowThroughGate();
+        sendArrowThroughGate();
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("arrow state"), any(Throwable.class));
+        verify(plugin, times(1)).prettyLog(eq(Level.FINE), contains("arrow state"), any(Throwable.class));
+    }
+
+    /** A spectral arrow's glow lasts as long as the bow gave it, not the default. */
+    @Test
+    void aSpectralArrowKeepsItsGlow()
+    {
+        final SpectralArrow spectral = flying(SpectralArrow.class);
+        final SpectralArrow replacement = mock(SpectralArrow.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        when(spectral.getGlowingTicks()).thenReturn(37);
+
+        GateEntityScanner.sendProjectileThrough(spectral, origin);
+
+        verify(replacement).setGlowingTicks(37);
+    }
+
+    /** Without its item a splash potion still splashes, with no effect. */
+    @Test
+    void aThrownPotionKeepsItsPotion()
+    {
+        final ThrownPotion potion = flying(ThrownPotion.class);
+        final ThrownPotion replacement = mock(ThrownPotion.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final ItemStack item = mock(ItemStack.class);
+        when(potion.getItem()).thenReturn(item);
+
+        GateEntityScanner.sendProjectileThrough(potion, origin);
+
+        verify(replacement).setItem(item);
+    }
+
+    /**
+     * A crossbow's firework keeps its stars and its angle, rather than arriving as a blank rocket.
+     *
+     * <p>Setting the meta restarts its flight; on Paper the flight it had left is put back after.
+     */
+    @Test
+    void aFireworkKeepsItsExplosion() throws Exception
+    {
+        final Firework firework = flying(Firework.class);
+        final Firework replacement = mock(Firework.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final FireworkMeta meta = mock(FireworkMeta.class);
+        when(firework.getFireworkMeta()).thenReturn(meta);
+        when(firework.isShotAtAngle()).thenReturn(true);
+        if (GateEntityScanner.fireworkFlightIsSettable())
+        {
+            when(Firework.class.getMethod("getTicksToDetonate").invoke(firework)).thenReturn(31);
+            when(Firework.class.getMethod("getTicksFlown").invoke(firework)).thenReturn(12);
+        }
+
+        GateEntityScanner.sendProjectileThrough(firework, origin);
+
+        verify(replacement).setFireworkMeta(meta);
+        verify(replacement).setShotAtAngle(true);
+        if (GateEntityScanner.fireworkFlightIsSettable())
+        {
+            // After the meta, which would otherwise start the flight over.
+            final InOrder order = inOrder(replacement);
+            order.verify(replacement).setFireworkMeta(meta);
+            Firework.class.getMethod("setTicksToDetonate", int.class).invoke(order.verify(replacement), 31);
+            Firework.class.getMethod("setTicksFlown", int.class).invoke(order.verify(replacement), 12);
+        }
+    }
+
+    /** A fireball given a custom look keeps it. */
+    @Test
+    void aFireballKeepsItsDisplayItem()
+    {
+        final SizedFireball fireball = flying(SizedFireball.class);
+        final SizedFireball replacement = mock(SizedFireball.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final ItemStack look = mock(ItemStack.class);
+        when(fireball.getDisplayItem()).thenReturn(look);
+
+        GateEntityScanner.sendProjectileThrough(fireball, origin);
+
+        verify(replacement).setDisplayItem(look);
+    }
+
+    /**
+     * A projectile of this kind, in flight in the origin gate.
+     *
+     * <p>Its EntityType is found by class, because several were renamed in 1.20.5.
+     */
+    private <T extends Projectile> T flying(final Class<T> kind)
+    {
+        final EntityType type = Arrays.stream(EntityType.values())
+            .filter(t -> (t.getEntityClass() != null) && kind.isAssignableFrom(t.getEntityClass()))
+            .findFirst().orElseThrow();
+        final T shot = mock(kind);
+        when(shot.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(shot.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        when(shot.getPassengers()).thenReturn(Collections.<Entity>emptyList());
+        when(shot.isValid()).thenReturn(true);
+        when(shot.getVelocity()).thenReturn(new Vector(0, 0, -2.4));
+        when(shot.getType()).thenReturn(type);
+        return shot;
     }
 
     @Test
