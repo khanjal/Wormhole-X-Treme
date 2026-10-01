@@ -80,6 +80,11 @@ if (-not $NoDashboard)
     {
         Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit', '-Command',
             "`$host.UI.RawUI.WindowTitle = 'Lab Dashboard :8200'; node $(Quote (Join-Path $facility 'dashboard.js'))"
+        # Node takes a moment to bind; a browser opened first shows a refused connection.
+        for ($i = 0; $i -lt 20 -and -not (Get-NetTCPConnection -LocalPort 8200 -State Listen -ErrorAction SilentlyContinue); $i++)
+        {
+            Start-Sleep -Milliseconds 250
+        }
         Start-Process 'http://127.0.0.1:8200'
     }
 }

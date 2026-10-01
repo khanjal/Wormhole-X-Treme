@@ -41,7 +41,7 @@ its own Node modules the first time.
 # Windows (planned)
 scripts/facility/lab.ps1 -Design -Op YourName
 # macOS / Linux (planned)
-scripts/facility/lab.sh --design --op YourName
+scripts/facility/lab.sh -d -o YourName
 ```
 
 Design mode will generate the campus once on Minecraft 1.21.11, and then leaves it alone:
@@ -101,7 +101,8 @@ Nether and the End.
 
 One idea for Route B, not a requirement, and **not the generated layout**: in the campus you
 dress on Route A, Gate Dynamics is north of Ops, Ring Transit east, Beam Physics west and Mirror
-Optics south, with the tunnel running east. In this mock, Ops is in the middle, each wing reached through its own transport
+Optics south, the tunnel running east, and the Menagerie north-east, with its three lanes
+running west from the Motor Pool into Gate Dynamics. In this mock, Ops is in the middle, each wing reached through its own transport
 (gate north, rings east, beam south-east, mirror west), lanes and the underground tunnel along
 the south edge. Every box is drawn at its real size, north at the top. The Overworld part fits
 in roughly 400 × 420 blocks.
@@ -150,6 +151,31 @@ window; on Route A they are fixed, on Route B keep them too.
 Rows marked "desk" are workstations, not sealed volumes: a 3 × 2 floor area with a console where
 a player stands.
 
+### Fixed fixtures
+
+Besides the chambers, the bot uses a set of transit fixtures every run: the gates, ring pads,
+beam pads and mirrors that carry it from Ops to each wing, and the teleport plates that work when
+the plugin is down. They are built by the facility's scripts, so on Route A they keep their
+positions, and on Route B each needs the same space around it, marked like a chamber. Where a
+fixture stands, **the floor stays at the campus floor level** (y 0 in the tables, y 64 in the
+Nether, y 60 in the End). Coordinates are campus blocks with Ops centred on x 0, z 0; north is −z.
+
+| Fixture | Where | Keep |
+|---|---|---|
+| Ops gate | Opening centred on x 0 at z −13, facing south | The gate itself, its button, the floor 2 blocks down under it, a flat 3-wide runway from z −8 to −3, and the dial console at x −5, z −8 |
+| Gate hall gate | Opening centred on x 0 at z −53, facing south | As the Ops gate: runway z −48 to −45, console at x −3, z −48 |
+| Ops ring pad | x 13, z −6 | A 7 × 7 square centred on it, clear from the floor to 4 blocks above, with nothing standing in it |
+| Ring lab pad | x 52, z −4 | As the Ops pad |
+| Atrium beam pad | x −13, z −6, with its button at x −17 | A 5 × 5 square centred on it, clear from the floor to 3 blocks above |
+| Beam lab pad | x −46, z 0, with its button at z −4 | As the Atrium pad |
+| Ops mirror | On the Ops room's south wall at x −10, z 20, facing north | The wall solid one block out all round the 1 × 2 opening, and the floor in front at y 0 |
+| Optics mirror | x −10, z 40, facing south | As the Ops mirror |
+| Range and Annex mirrors | Nether x −15, z −24; End x 1012, z 1016 | On a free-standing pier the facility builds; leave the pier and the floor in front of it |
+| Teleport plates | A row of eight under the mezzanine, x −16 to 16 every 4 blocks at z −18 | The service corridor x −20 to 20, z −20 to −15, flat and clear |
+| Boards | The Ops wall, the fault counter, the welcome board, and one per wing lobby | Left where they are; design mode will mark them |
+
+Design mode will mark these as it marks the chambers, and the facility's check covers them too.
+
 ### Lanes and the Menagerie
 
 | Space | Size | Notes |
@@ -186,6 +212,10 @@ A working research base in the spirit of a military gate programme: a clean whit
 machined steel around anything dangerous, copper on the parts people operate, and procedure at
 every threshold. Make it your own; [INSPIRATION.md](INSPIRATION.md) has the full survey and
 [CREATIVE.md](CREATIVE.md) the earlier look-and-transit pass.
+
+The moments and systems below are ideas for the look. Where one meets a fixture or a chamber
+(a raised gate plinth, a room set lower, panelling round a mirror), the fixture's rules win: build
+the plinth around the Ops gate's flat runway, not under it.
 
 Moments we want:
 

@@ -19,14 +19,17 @@ function logOf(folder) {
   try { return fs.statSync(path.join(folder, 'logs', 'latest.log')); } catch { return null; }
 }
 
-/** Every lab folder with a log, newest first; its Dynmap URL when Dynmap is installed there. */
+/**
+ * Every lab folder that has a logs folder, in name order so the tabs stay put; its Dynmap URL when
+ * Dynmap is installed there. The logs folder outlives latest.log's rename at a restart.
+ */
 function findLabs() {
   let names = [];
   try { names = fs.readdirSync(SERVERS); } catch { return []; }
   return names
-    .map((n) => ({ n, m: /^facility-(.+?)(?:-(\d+))?$/.exec(n), log: logOf(path.join(SERVERS, n)) }))
-    .filter(({ m, log }) => m && log)
-    .sort((x, y) => y.log.mtimeMs - x.log.mtimeMs)
+    .map((n) => ({ n, m: /^facility-(.+?)(?:-(\d+))?$/.exec(n) }))
+    .filter(({ n, m }) => m && fs.existsSync(path.join(SERVERS, n, 'logs')))
+    .sort((x, y) => x.n.localeCompare(y.n))
     .map(({ n, m }) => {
       const folder = path.join(SERVERS, n);
       let map = null;
@@ -40,6 +43,7 @@ function findLabs() {
 }
 
 const BACKLOG = 400;
+const WINDOW = 256 * 1024;
 const POLL_MS = 500;
 
 const argPort = process.argv.indexOf('--port');
@@ -65,42 +69,52 @@ function stream(lab, res) {
   const file = path.join(lab.folder, 'logs', 'latest.log');
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   const send = (line) => res.write(`data: ${JSON.stringify(line)}\n\n`);
+  const status = (s) => res.write(`event: status\ndata: ${JSON.stringify(s)}\n\n`);
   // A reconnect sends the backlog again, so the page clears what it has first.
   res.write('event: reset\ndata: ""\n\n');
-  let offset = 0;
   let inode = null;
+  let offset = 0;
   let pending = Buffer.alloc(0);
-  /** Sends every complete line from offset to `size`, holding back an unfinished last line. */
-  const advance = (size, keep, dropFirst = false) => {
+  let cutFirst = false; // reading began mid-line: drop everything up to the first newline
+  let keep = BACKLOG; // lines to send from the next read: the backlog once, then all of them
+  let live = false;
+  /** Starts on a (new) log file from its last WINDOW bytes, with a fresh backlog. */
+  const begin = (stat) => {
+    inode = stat.ino;
+    offset = Math.max(0, stat.size - WINDOW);
+    pending = Buffer.alloc(0);
+    cutFirst = offset > 0;
+    keep = BACKLOG;
+  };
+  /** Sends every complete line up to `size`, holding back an unfinished last line. */
+  const advance = (size) => {
     const chunk = readRange(file, offset, size);
     if (!chunk) return;
     offset += chunk.length;
     const all = Buffer.concat([pending, chunk]);
     const cut = all.lastIndexOf(0x0a) + 1;
     pending = all.subarray(cut);
+    if (cut === 0) return;
     const lines = all.subarray(0, cut).toString('utf8').split(/\r?\n/);
-    if (dropFirst) lines.shift();
+    if (cutFirst) { lines.shift(); cutFirst = false; }
     lines.filter((l) => l.length).slice(-keep).forEach(send);
+    keep = Infinity;
+    if (!live) { live = true; status('live'); }
   };
-  const first = logOf(lab.folder);
-  if (first) {
-    inode = first.ino;
-    offset = Math.max(0, first.size - 256 * 1024);
-    advance(first.size, BACKLOG, offset > 0);
-  }
-  res.write(`event: status\ndata: ${JSON.stringify(first ? 'live' : 'no log yet')}\n\n`);
-  const timer = setInterval(() => {
+  const tick = () => {
     const now = logOf(lab.folder);
     if (!now) return;
+    if (inode === null) begin(now);
     // Paper replaces latest.log on a restart: a new file (a new inode), whatever its size.
-    if (now.ino !== inode || now.size < offset) {
-      if (inode !== null) send('— log restarted (server started again) —');
-      inode = now.ino;
-      offset = 0;
-      pending = Buffer.alloc(0);
+    else if (now.ino !== inode || now.size < offset) {
+      send('— log restarted (server started again) —');
+      begin(now);
     }
-    if (now.size > offset) advance(now.size, Infinity);
-  }, POLL_MS);
+    if (now.size > offset) advance(now.size);
+  };
+  tick();
+  if (!live) status(logOf(lab.folder) ? 'live' : 'no log yet');
+  const timer = setInterval(tick, POLL_MS);
   res.on('close', () => clearInterval(timer));
 }
 
@@ -187,8 +201,8 @@ if(!LABS.length)views.innerHTML='<div class="empty">No labs yet. Start one with 
 else{let first='con-'+LABS[0].id;try{first=localStorage.getItem('wxdash.tab')||first}catch{}
 show(document.getElementById(first)?first:'con-'+LABS[0].id);}
 // Reload when a lab appears or goes, so a lab started after this page still shows up.
-const known=LABS.map((l)=>l.id).join();
-setInterval(()=>fetch('/labs').then((r)=>r.json()).then((ids)=>{if(ids.join()!==known)location.reload()}).catch(()=>{}),5000);
+const known=LABS.map((l)=>l.id).sort().join();
+setInterval(()=>fetch('/labs').then((r)=>r.json()).then((ids)=>{if(ids.sort().join()!==known)location.reload()}).catch(()=>{}),5000);
 </script></body></html>`;
 
 /** The labs as JSON that is safe inside an inline script. */
@@ -200,7 +214,8 @@ function labsJson(labs) {
 const server = http.createServer((req, res) => {
   // Only this machine's own names: a page elsewhere that rebinds a hostname to 127.0.0.1 gets nothing.
   if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host || '')) { res.writeHead(403); res.end(); return; }
-  const url = new URL(req.url, 'http://127.0.0.1');
+  let url;
+  try { url = new URL(req.url, 'http://127.0.0.1'); } catch { res.writeHead(400); res.end(); return; }
   if (url.pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(page(findLabs()));

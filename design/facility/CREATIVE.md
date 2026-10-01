@@ -1,6 +1,7 @@
 # Facility creative pass: identity, transit by the plugin's own features, per-wing set pieces
 
-> An internal design pass from 2026-09-29. Its section 5 describes harness changes that were planned
+> An internal design pass from 2026-09-29, written when every block had to exist on 1.20; the
+> brief now allows blocks up to 1.21.11 and supersedes it wherever they differ. Its section 5 describes harness changes that were planned
 > then; check `scripts/facility/` for what exists. The brief for designers is [BRIEF.md](BRIEF.md).
 
 A design, not code. It sits on top of [`scripts/facility/DESIGN.md`](../../scripts/facility/DESIGN.md) (with its addenda) and on what stages 0–3

@@ -15,7 +15,8 @@
 #   -c  a folder of companion jars to read first
 #   -f  a fresh world
 #
-# Say "stop" in the lab's chat, or press Ctrl+C, to end it.
+# Say "stop" in the lab's chat, or press Ctrl+C, to end it. Unlike lab.ps1 it does not start the
+# Lab Dashboard; run `node scripts/facility/dashboard.js` for it (http://127.0.0.1:8200).
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

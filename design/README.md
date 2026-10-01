@@ -22,10 +22,14 @@ references and what comes back all live in this public repository.
 
 ## Rules for every job
 
-- **Rights.** Everything ships in an open-source project that anyone may copy. Work is either
-  work-for-hire, or under a perpetual, irrevocable licence that lets the project include,
-  change and redistribute it under the repository's licence. You keep portfolio rights and get
-  a credit. [TRADEMARK.md](../TRADEMARK.md) has the project's position on its name and mark.
+- **Rights.** Everything ships in a public, open-source project.
+  - **The facility map:** work-for-hire, or a perpetual, irrevocable licence that lets the project
+    include, change and redistribute it under the repository's licence.
+  - **The logo, icon and banner:** work-for-hire or a full assignment of copyright to the
+    project. The mark is not under the repository's licence; [TRADEMARK.md](../TRADEMARK.md) says
+    how it is protected, and a licence that left the designer free to license it elsewhere would
+    undo that. Have the agreement checked before signing.
+  - You keep the right to show the work in your portfolio, and you get a credit.
 - **No Stargate artwork.** The ring, chevron design and glyphs of the TV prop belong to someone
   else. Echo the idea, never reproduce the prop.
 - **Your own work only.** No third-party assets, schematics, fonts or images unless their
