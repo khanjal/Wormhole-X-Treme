@@ -271,21 +271,72 @@ public final class RingYamlManager
         final int z = ((Number) map.get("Z")).intValue();
         final RingPattern pattern = RingPattern.valueOf(String.valueOf(map.get("Pattern")));
         final RingOrientation orientation = RingOrientation.valueOf(String.valueOf(map.get("Orientation")));
-        final Material ring = ringMaterial(map.get("Ring"));
-        final Material light = Material.valueOf(String.valueOf(map.get("Light")));
+        final Object ringName = map.get("Ring");
+        final Material ring = ringMaterial(ringName);
+        final Object lightName = map.get("Light");
+        final Material light = lightMaterial(lightName);
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
         built.setStyle(map.containsKey(STYLE_KEY) ? readStyle(map.get(STYLE_KEY)) : fallback);
         built.setName(String.valueOf(map.getOrDefault("Name", "")));
         // A ring written before the flash was its own material used one for both, so falling
         // back to the light keeps those looking exactly as they did.
-        final Material flash = Material.matchMaterial(String.valueOf(map.getOrDefault("Flash", "")));
+        final Object flashName = map.getOrDefault("Flash", "");
+        final Material flash = Material.matchMaterial(String.valueOf(flashName));
         built.setFlashMaterial(flash == null ? light : flash);
         // A ring written before the built material was recorded has only its current one to
         // offer. That is the best answer available and usually the right one, since most
         // rings are never recoloured at all.
-        final Material laid = Material.matchMaterial(String.valueOf(map.getOrDefault("Built", "")));
+        final Object laidName = map.getOrDefault("Built", "");
+        final Material laid = Material.matchMaterial(String.valueOf(laidName));
         built.setBuiltMaterial(laid == null ? ring : laid);
+        // Last, since setting a material forgets the unknown name it stood in for.
+        keepUnknown(built, Ring.Stored.RING, ringName, ring);
+        keepUnknown(built, Ring.Stored.LIGHT, lightName, light);
+        keepUnknown(built, Ring.Stored.FLASH, flashName, built.getFlashMaterial());
+        keepUnknown(built, Ring.Stored.BUILT, laidName, built.getBuiltMaterial());
         return built;
+    }
+
+    /**
+     * Keeps a stored name the end was given a fallback for, so the next save writes it back.
+     *
+     * @param ring
+     *            the end
+     * @param what
+     *            which material
+     * @param stored
+     *            the name as stored, possibly absent
+     * @param used
+     *            what the end was given
+     */
+    private static void keepUnknown(final Ring ring, final Ring.Stored what, final Object stored, final Material used)
+    {
+        final String name = (stored == null) ? "" : String.valueOf(stored).trim();
+        if (!name.isEmpty() && (Material.matchMaterial(name) != used))
+        {
+            ring.keepUnknownStored(what, name);
+        }
+    }
+
+    /**
+     * The block a stored ring's pad lights up as, or {@code ring-default-light} when this server has
+     * no such block.
+     *
+     * @param stored
+     *            the stored name
+     * @return a material to light the pad with
+     */
+    static Material lightMaterial(final Object stored)
+    {
+        final Material named = Material.matchMaterial(String.valueOf(stored));
+        if (named != null)
+        {
+            return named;
+        }
+        final Material fallback = ConfigManager.getRingDefaultLight();
+        log(Level.WARNING, "Ring light " + stored + " is not a block on this server; lighting the pad with "
+            + fallback + ", ring-default-light.");
+        return fallback;
     }
 
     /**
@@ -436,10 +487,10 @@ public final class RingYamlManager
         out.put("Z", Integer.valueOf(ring.getAnchorZ()));
         out.put("Pattern", ring.getPattern().name());
         out.put("Orientation", ring.getOrientation().name());
-        out.put("Ring", ring.getRingMaterial().name());
-        out.put("Built", ring.getBuiltMaterial().name());
-        out.put("Light", ring.getLightMaterial().name());
-        out.put("Flash", ring.getFlashMaterial().name());
+        out.put("Ring", ring.storedName(Ring.Stored.RING, ring.getRingMaterial()));
+        out.put("Built", ring.storedName(Ring.Stored.BUILT, ring.getBuiltMaterial()));
+        out.put("Light", ring.storedName(Ring.Stored.LIGHT, ring.getLightMaterial()));
+        out.put("Flash", ring.storedName(Ring.Stored.FLASH, ring.getFlashMaterial()));
         out.put(STYLE_KEY, ring.getStyle().name());
         out.put("Name", ring.getName());
         return out;

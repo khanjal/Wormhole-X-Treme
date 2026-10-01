@@ -169,11 +169,7 @@ public final class RingManager
      */
     public static void reindex(final int reach)
     {
-        RingIndex.clear();
-        for (final RingPair pair : pairs.values())
-        {
-            RingIndex.add(pair, reach);
-        }
+        RingIndex.rebuildVolumes(pairs.values(), reach);
     }
 
     /**

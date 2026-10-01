@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -56,6 +58,25 @@ public class Ring
      * animator's arithmetic.
      */
     public static final int STACK_HEIGHT = RingAnimator.STACK_HEIGHT;
+
+    /** A material an end stores, for keeping a name this server does not know. */
+    public enum Stored
+    {
+        /** The travelling slabs. */
+        RING,
+        /** The slab it was laid in. */
+        BUILT,
+        /** The pad's light. */
+        LIGHT,
+        /** What a ring flashes to. */
+        FLASH
+    }
+
+    /**
+     * Stored material names this server does not know, read in place of a fallback and written back
+     * as they were, so a pair saved on a newer Minecraft keeps them through a downgrade.
+     */
+    private final Map<Stored, String> unknownStored = new EnumMap<>(Stored.class);
 
     /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
     private Material ringMaterial;
@@ -174,6 +195,7 @@ public class Ring
      */
     public void setRingMaterial(final Material ringMaterial)
     {
+        unknownStored.remove(Stored.RING);
         this.ringMaterial = ringMaterial;
     }
 
@@ -194,6 +216,7 @@ public class Ring
      */
     public void setBuiltMaterial(final Material builtMaterial)
     {
+        unknownStored.remove(Stored.BUILT);
         this.builtMaterial = builtMaterial;
     }
 
@@ -211,6 +234,7 @@ public class Ring
      */
     public void setLightMaterial(final Material lightMaterial)
     {
+        unknownStored.remove(Stored.LIGHT);
         this.lightMaterial = lightMaterial;
     }
 
@@ -229,7 +253,38 @@ public class Ring
      */
     public void setFlashMaterial(final Material flashMaterial)
     {
+        unknownStored.remove(Stored.FLASH);
         this.flashMaterial = flashMaterial;
+    }
+
+    /**
+     * Keeps a stored name this server did not know, to be written back in place of the fallback
+     * this end was given, until something sets that material.
+     *
+     * @param what
+     *            which material
+     * @param name
+     *            the name as stored
+     */
+    public void keepUnknownStored(final Stored what, final String name)
+    {
+        unknownStored.put(what, name);
+    }
+
+    /**
+     * The name to store for one material: the one read, if this server did not know it and nothing
+     * has set it since, or else the material's own.
+     *
+     * @param what
+     *            which material
+     * @param current
+     *            what the end holds now
+     * @return the name to write
+     */
+    public String storedName(final Stored what, final Material current)
+    {
+        final String kept = unknownStored.get(what);
+        return (kept != null) ? kept : current.name();
     }
 
     /** @return how this end's stack comes out */

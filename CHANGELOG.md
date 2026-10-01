@@ -19,9 +19,6 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   for a restart: `gate-sound-ambient-ticks`, `entity-scan-interval-ticks`, `mirror-proximity-ticks`,
   `gate-iris-horizon-ticks`, `ring-reach`, `ring-max-ceiling-drop`, `economy-enabled`,
   `placeholders-enabled`, `permissions-auto-fallback` and `gate-material-groups-autodiscover`.
-- **Finding no permission provider no longer writes `permissions-support-disable: true` into
-  `config.yml`.** A server that ran once without one stayed in simple mode after LuckPerms was
-  installed. One already written that way keeps it; set it back to `false`.
 
 **Removed**
 
@@ -51,8 +48,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Fixed**
 
-- **A ring pair whose slab this server does not have loads, drawn in `ring-default-material`.** It
-  was skipped as unreadable and lost at the next save, and the setting was read by nothing.
+- **A ring pair whose slab or pad light this server does not have loads**, drawn in
+  `ring-default-material` or lit in `ring-default-light`, and is saved with the name it had. It was
+  skipped as unreadable and lost at the next save, and `ring-default-material` was read by nothing.
 
 ### Performance
 
