@@ -264,12 +264,15 @@ function seedSettings(folder, settings) {
   const dir = path.join(folder, 'plugins', 'WormholeXTreme');
   const file = path.join(dir, 'config.yml');
   fs.mkdirSync(dir, { recursive: true });
-  let body = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split('\n') : [];
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
   for (const [k, v] of Object.entries(settings)) {
-    const line = new RegExp(`^${k.replace(/[-]/g, '\\-')}:.*$`, 'm');
-    body = line.test(body) ? body.replace(line, `${k}: ${v}`) : `${body}${body && !body.endsWith('\n') ? '\n' : ''}${k}: ${v}\n`;
+    // A top-level key starts its line; matched as text, never as a pattern.
+    const at = lines.findIndex((l) => l.startsWith(`${k}:`));
+    if (at >= 0) lines[at] = `${k}: ${v}${lines[at].endsWith('\r') ? '\r' : ''}`;
+    else lines.push(`${k}: ${v}`);
   }
-  fs.writeFileSync(file, body);
+  fs.writeFileSync(file, `${lines.join('\n')}\n`);
 }
 
 /** Wormhole's switches for its integrations with each companion: set true when it is installed. */

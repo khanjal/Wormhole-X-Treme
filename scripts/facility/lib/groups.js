@@ -31,11 +31,13 @@ function nodesOf(group) {
   return [...nodesOf(g.parent), ...g.nodes];
 }
 
-const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** A LuckPerms answer line: "[LP] " then `pattern` (case-insensitive: it lower-cases player names). */
-function lpSaid(pattern) {
-  return new RegExp(`\\[LP\\] ${pattern}`, 'i');
+/**
+ * A matcher for a LuckPerms answer line: "[LP] " and then any of `texts`, compared in lower case
+ * (LuckPerms lower-cases player names). Plain text, never a regular expression built from a name.
+ */
+function lpSaid(...texts) {
+  const want = texts.map((t) => `[lp] ${t}`.toLowerCase());
+  return { test: (line) => { const l = line.toLowerCase(); return want.some((t) => l.includes(t)); } };
 }
 
 class Groups {
@@ -61,13 +63,13 @@ class Groups {
   /** Creates the three groups (again, if they are there) with exactly their nodes. */
   async ensure() {
     for (const [name, g] of Object.entries(GROUPS)) {
-      await this.lp(`lp creategroup ${name}`, lpSaid(`(${name} was successfully created|${name} already exists)`));
-      await this.lp(`lp group ${name} permission clear`, lpSaid(`(${name}'s permissions were cleared|${name} does not have)`));
+      await this.lp(`lp creategroup ${name}`, lpSaid(`${name} was successfully created`, `${name} already exists`));
+      await this.lp(`lp group ${name} permission clear`, lpSaid(`${name}'s permissions were cleared`, `${name} does not have`));
       if (g.parent) {
         await this.lp(`lp group ${name} parent set ${g.parent}`, lpSaid(`${name} had their existing parent groups cleared, and now only inherits ${g.parent} `));
       }
       for (const node of g.nodes) {
-        await this.lp(`lp group ${name} permission set ${node} true`, lpSaid(`Set ${escape(node)} to true for ${name} `));
+        await this.lp(`lp group ${name} permission set ${node} true`, lpSaid(`Set ${node} to true for ${name} `));
       }
     }
   }

@@ -681,7 +681,8 @@ class Facility {
    */
   async mapWebUp({ from = 0, ms = 120000 } = {}) {
     const port = this.mapPort;
-    const started = new RegExp(`\\[dynmap\\] .*[Ww]eb ?server started on .*:${port}\\b`);
+    // "[dynmap] Web server started on address 0.0.0.0:8193": the port compared as text, not as a pattern.
+    const started = { test: (l) => /\[dynmap\] .*[Ww]eb ?server started on /.test(l) && l.trim().endsWith(`:${port}`) };
     const failed = /\[dynmap\].*(Failed to start|Address already in use|BindException|Error starting)/i;
     const seen = () => this.srv.log.slice(from).find((l) => started.test(l) || failed.test(l));
     const deadline = Date.now() + ms;
