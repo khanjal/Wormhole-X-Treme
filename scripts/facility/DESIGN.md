@@ -1128,3 +1128,11 @@ folder's world; a check compares each area with a baseline saved after generatio
 is whatever the campus put there. Export areas are the forceload rectangles grown by 16. Design
 exports carry `minVersion` 1.21.11, so 1.20.4 runs the plain campus. Details in
 docs/DEVELOPMENT.md, "Design mode".
+
+Review round (2026-10-01): a designer's zip is untrusted input. Forbidden blocks (command blocks,
+spawners, vaults, structure and jigsaw blocks), click events and non-whitelisted entity data are
+refused by --schematics and removed by export; the skin's active list covers everything redstone
+or fluids move; campus parts in a skin are compared in full; the masked union is every supported
+version from 1.21.11; the default export is schematics only (`--full` for worlds); design mode
+listens on 127.0.0.1, keeps the whitelist on until generation is done, and deops Probe in a
+`finally`; the zip reader caps inflation and refuses traversal and Zip64.

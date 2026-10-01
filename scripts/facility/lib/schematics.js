@@ -122,7 +122,13 @@ async function check(list, version) {
     const box = placedBox(await readSchem(p.path), p.at, p.rotation);
     placed.push({ ...p, box });
     if (p.guarded) {
-      const grid = await design.readGrid(p.path, { dim: p.dim, at: p.at });
+      let grid;
+      try {
+        grid = await design.readGrid(p.path, { dim: p.dim, at: p.at });
+      } catch (e) {
+        problems.push(`${p.file}: ${e.message}`);
+        continue;
+      }
       problems.push(...design.pasteProblems(grid, design.protectedBoxes(version), design.skins(), `${p.file} at ${fmt(box)}`));
       continue;
     }

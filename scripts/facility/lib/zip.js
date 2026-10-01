@@ -1,11 +1,17 @@
 'use strict';
 // A small zip writer and reader for design exports (lib/designmode.js), so neither the designer
-// nor the maintainer needs a zip tool: deflate or store, no zip64 (an export over 4 GB is
-// refused), one file in memory at a time.
+// nor the maintainer needs a zip tool. Deflate or store, no Zip64: a zip of more than 65535
+// entries or 4 GB is refused before it is written, and one using Zip64 is refused when read.
+// A zip being read is untrusted: it is read a piece at a time, each entry inflated to no more
+// than the size it declares (and never more than MAX_ENTRY), and no name may leave its folder.
 
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+
+const LIMIT = 0xffffffff;
+const MAX_ENTRIES = 0xffff;
+const MAX_ENTRY = 1024 * 1024 * 1024;
 
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -43,25 +49,42 @@ function filesUnder(dir, skip = () => false, rel = '') {
 }
 
 /**
+ * Whether a name is safe to unpack: relative, forward slashes only, no drive letter, no `..` or
+ * empty segment, no control character.
+ */
+function safeName(name) {
+  if (!name || name.length > 512 || /[\\\x00-\x1f]/.test(name) || name.startsWith('/') || /^[A-Za-z]:/.test(name)) return false;
+  const parts = name.replace(/\/$/, '').split('/');
+  return parts.every((p) => p && p !== '.' && p !== '..');
+}
+
+/**
  * Writes a zip at `file` from `entries`: [{ name, from (a file path) | data (a Buffer) }]. Names
  * use forward slashes. Returns { files, bytes }.
  */
 function writeZip(file, entries) {
+  if (entries.length > MAX_ENTRIES) throw new Error(`${file} would hold ${entries.length} entries; this writer does at most ${MAX_ENTRIES}`);
+  for (const e of entries) if (!safeName(e.name)) throw new Error(`${e.name} is not a name a zip should hold`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const fd = fs.openSync(file, 'w');
   const central = [];
+  let centralSize = 0;
   let offset = 0;
   const write = (buf) => { fs.writeSync(fd, buf); offset += buf.length; };
+  let ok = false;
   try {
     for (const e of entries) {
       const data = e.data || fs.readFileSync(e.from);
-      const name = Buffer.from(e.name.replace(/\\/g, '/'), 'utf8');
+      const name = Buffer.from(e.name, 'utf8');
       const deflated = zlib.deflateRawSync(data, { level: 6 });
       const store = deflated.length >= data.length;
       const body = store ? data : deflated;
       const crc = crc32(data);
       const { time, date } = dosTime(e.mtime || new Date());
-      if (offset + body.length + 30 + name.length > 0xfffffffe) throw new Error(`${file} would be over 4 GB, which this writer does not do`);
+      // This entry, every central record so far and its own, and the end record, all under 4 GB.
+      if (data.length >= LIMIT || offset + 30 + name.length + body.length + centralSize + 46 + name.length + 22 > LIMIT) {
+        throw new Error(`${file} would be over 4 GB, which this writer does not do`);
+      }
       const local = Buffer.alloc(30);
       local.writeUInt32LE(0x04034b50, 0);
       local.writeUInt16LE(20, 4);
@@ -79,6 +102,7 @@ function writeZip(file, entries) {
       write(name);
       write(body);
       central.push({ name, crc, size: body.length, raw: data.length, method: store ? 0 : 8, time, date, at });
+      centralSize += 46 + name.length;
     }
     const start = offset;
     for (const c of central) {
@@ -105,62 +129,123 @@ function writeZip(file, entries) {
     end.writeUInt32LE(offset - start, 12);
     end.writeUInt32LE(start, 16);
     write(end);
+    ok = true;
   } finally {
     fs.closeSync(fd);
+    if (!ok) fs.rmSync(file, { force: true });
   }
   return { files: central.length, bytes: offset };
 }
 
-/** The entries of a zip: [{ name, read() -> Buffer }]. */
+function readAt(fd, pos, len) {
+  const buf = Buffer.alloc(len);
+  let got = 0;
+  while (got < len) {
+    const n = fs.readSync(fd, buf, got, len - got, pos + got);
+    if (n === 0) throw new Error('the zip ends early');
+    got += n;
+  }
+  return buf;
+}
+
+/**
+ * Reads a zip's directory: { fd, entries: [{ name, method, crc, size, raw, at }], close() }, the
+ * file held open until close(). Zip64, an entry over MAX_ENTRY and a broken directory are refused.
+ */
+function openZip(file) {
+  const fd = fs.openSync(file, 'r');
+  try {
+    const length = fs.fstatSync(fd).size;
+    const tailLen = Math.min(length, 22 + 0xffff);
+    const tail = readAt(fd, length - tailLen, tailLen);
+    let e = tail.length - 22;
+    while (e >= 0 && tail.readUInt32LE(e) !== 0x06054b50) e--;
+    if (e < 0) throw new Error(`${file} is not a zip`);
+    if (e >= 20 && tail.readUInt32LE(e - 20) === 0x07064b50) throw new Error(`${file} is a Zip64 zip, which is not read here`);
+    const count = tail.readUInt16LE(e + 10);
+    const dirSize = tail.readUInt32LE(e + 12);
+    const dirAt = tail.readUInt32LE(e + 16);
+    if (count === 0xffff || dirSize === LIMIT || dirAt === LIMIT) throw new Error(`${file} is a Zip64 zip, which is not read here`);
+    if (dirAt + dirSize > length) throw new Error(`${file}: its directory runs past its end`);
+    const dir = readAt(fd, dirAt, dirSize);
+    const entries = [];
+    let p = 0;
+    for (let i = 0; i < count; i++) {
+      if (p + 46 > dir.length || dir.readUInt32LE(p) !== 0x02014b50) throw new Error(`${file}: a broken central directory`);
+      const nameLen = dir.readUInt16LE(p + 28);
+      const ent = {
+        method: dir.readUInt16LE(p + 10), crc: dir.readUInt32LE(p + 16), size: dir.readUInt32LE(p + 20), raw: dir.readUInt32LE(p + 24),
+        at: dir.readUInt32LE(p + 42), name: dir.toString('utf8', p + 46, p + 46 + nameLen),
+      };
+      p += 46 + nameLen + dir.readUInt16LE(p + 30) + dir.readUInt16LE(p + 32);
+      if (ent.size === LIMIT || ent.raw === LIMIT || ent.at === LIMIT) throw new Error(`${file}: an entry uses Zip64, which is not read here`);
+      if (ent.raw > MAX_ENTRY) throw new Error(`${file}: an entry says it unpacks to ${ent.raw} bytes, over the ${MAX_ENTRY} allowed`);
+      entries.push(ent);
+    }
+    return { fd, entries, close: () => fs.closeSync(fd) };
+  } catch (err) {
+    fs.closeSync(fd);
+    throw err;
+  }
+}
+
+/** One entry's bytes: read from the open zip, inflated to at most its declared size, checked. */
+function readEntry(z, ent) {
+  const head = readAt(z.fd, ent.at, 30);
+  if (head.readUInt32LE(0) !== 0x04034b50) throw new Error(`${ent.name}: no local header where the directory says`);
+  const body = readAt(z.fd, ent.at + 30 + head.readUInt16LE(26) + head.readUInt16LE(28), ent.size);
+  let data;
+  if (ent.method === 0) data = body;
+  else if (ent.method === 8) {
+    try {
+      data = zlib.inflateRawSync(body, { maxOutputLength: Math.max(ent.raw, 1) });
+    } catch (e) {
+      throw new Error(`${ent.name}: does not unpack to the ${ent.raw} bytes it declares (${e.code || e.message})`);
+    }
+  } else throw new Error(`${ent.name}: compression method ${ent.method} is not read here`);
+  if (data.length !== ent.raw) throw new Error(`${ent.name}: unpacks to ${data.length} bytes, not the ${ent.raw} it declares`);
+  if (crc32(data) !== ent.crc) throw new Error(`${ent.name}: its checksum does not match`);
+  return data;
+}
+
+/** The entries of a zip: [{ name, method, read() -> Buffer }], each read() opening it again. */
 function readZip(file) {
-  const buf = fs.readFileSync(file);
-  let e = buf.length - 22;
-  while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--;
-  if (e < 0) throw new Error(`${file} is not a zip`);
-  const count = buf.readUInt16LE(e + 10);
-  let p = buf.readUInt32LE(e + 16);
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error(`${file}: a broken central directory`);
-    const method = buf.readUInt16LE(p + 10);
-    const crc = buf.readUInt32LE(p + 16);
-    const size = buf.readUInt32LE(p + 20);
-    const nameLen = buf.readUInt16LE(p + 28);
-    const extraLen = buf.readUInt16LE(p + 30);
-    const commentLen = buf.readUInt16LE(p + 32);
-    const at = buf.readUInt32LE(p + 42);
-    const name = buf.toString('utf8', p + 46, p + 46 + nameLen);
-    p += 46 + nameLen + extraLen + commentLen;
-    out.push({
-      name,
-      read() {
-        const start = at + 30 + buf.readUInt16LE(at + 26) + buf.readUInt16LE(at + 28);
-        const body = buf.subarray(start, start + size);
-        let data;
-        if (method === 0) data = Buffer.from(body);
-        else if (method === 8) data = zlib.inflateRawSync(body);
-        else throw new Error(`${name}: compression method ${method} is not read here`);
-        if (crc32(data) !== crc) throw new Error(`${name}: its checksum does not match`);
-        return data;
-      },
-    });
-  }
-  return out;
+  const z = openZip(file);
+  z.close();
+  return z.entries.map((ent) => ({
+    name: ent.name,
+    method: ent.method,
+    read() {
+      const again = openZip(file);
+      try { return readEntry(again, again.entries.find((x) => x.at === ent.at)); } finally { again.close(); }
+    },
+  }));
 }
 
-/** Unpacks a zip into `dir`; refuses a name that would land outside it. Returns the names. */
-function extractZip(file, dir) {
+/**
+ * Unpacks a zip into `dir`, the entries `want(name)` accepts (all by default). Every name must be
+ * a plain relative path, or nothing is written. Returns the names written.
+ */
+function extractZip(file, dir, want = () => true) {
   const root = path.resolve(dir);
-  const names = [];
-  for (const e of readZip(file)) {
-    if (e.name.endsWith('/')) continue;
-    const to = path.resolve(root, e.name);
-    if (!to.startsWith(root + path.sep)) throw new Error(`${file}: ${e.name} would land outside ${root}`);
-    fs.mkdirSync(path.dirname(to), { recursive: true });
-    fs.writeFileSync(to, e.read());
-    names.push(e.name);
+  const z = openZip(file);
+  try {
+    const bad = z.entries.find((e) => !safeName(e.name));
+    if (bad) throw new Error(`${file}: the entry "${bad.name.replace(/[\x00-\x1f]/g, '?')}" is not a plain relative name`);
+    const names = [];
+    for (const e of z.entries) {
+      if (e.name.endsWith('/') || !want(e.name)) continue;
+      const to = path.resolve(root, e.name);
+      if (!to.startsWith(root + path.sep)) throw new Error(`${file}: ${e.name} would land outside ${root}`);
+      const data = readEntry(z, e);
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.writeFileSync(to, data);
+      names.push(e.name);
+    }
+    return names;
+  } finally {
+    z.close();
   }
-  return names;
 }
 
-module.exports = { crc32, filesUnder, writeZip, readZip, extractZip };
+module.exports = { crc32, filesUnder, safeName, writeZip, readZip, extractZip, openZip, MAX_ENTRY };

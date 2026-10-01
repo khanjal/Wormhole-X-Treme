@@ -6,7 +6,7 @@
 # picks the JDK. The world is kept between labs unless -f.
 #
 #   scripts/facility/lab.sh [-v version] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache] [-f]
-#   scripts/facility/lab.sh -d [-e | -k] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache]
+#   scripts/facility/lab.sh -d [-e [-f] | -k] [-O] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache]
 #
 #   -v  Minecraft version (default 26.1.2)
 #   -P  server port (default 25590; Dynmap's web map is at 8123 + port - 25590)
@@ -17,8 +17,11 @@
 #   -f  a fresh world
 #   -d  design mode (design/facility/BRIEF.md): 1.21.11 with WorldEdit, its own world kept between
 #       sessions, ops in creative, no tests; say check, export or stop in chat. -v and -f do not apply
-#   -e  with -d and the lab stopped: write the export zip to .local-server/exports/, then stop
+#   -e  with -d and the lab stopped: write the export zip to .local-server/exports/, then stop;
+#       with -f the zip holds the worlds too
 #   -k  with -d and the lab stopped: run the keep-clear check, then stop
+#   -O  with -d: let other machines join (online-mode is off: anyone who reaches the port can join
+#       under any name, an op's too)
 #
 # Say "stop" in the lab's chat, or press Ctrl+C, to end it. Unlike lab.ps1 it does not start the
 # Lab Dashboard; run `node scripts/facility/dashboard.js` for it (http://127.0.0.1:8200).
@@ -32,7 +35,8 @@ args=()
 fresh=0
 design=
 job=
-while getopts 'v:P:p:o:w:c:fdek' opt; do
+open=
+while getopts 'v:P:p:o:w:c:fdekO' opt; do
   case "$opt" in
     v) version="$OPTARG" ;;
     P) port="$OPTARG" ;;
@@ -42,16 +46,22 @@ while getopts 'v:P:p:o:w:c:fdek' opt; do
     c) args+=(--plugin-cache "$(cd "$OPTARG" && pwd)") ;;
     f) fresh=1 ;;
     d) design=--design ;;
-    e) job=--design-export ;;
-    k) job=--design-check ;;
+    e) [ -z "$job" ] || { echo '-e or -k, one at a time' >&2; exit 2; }; job=--design-export ;;
+    k) [ -z "$job" ] || { echo '-e or -k, one at a time' >&2; exit 2; }; job=--design-check ;;
+    O) open=--design-open ;;
     *) sed -n '2,25p' "$0"; exit 2 ;;
   esac
 done
-if [ -n "$job" ] && [ -z "$design" ]; then echo '-e and -k go with -d' >&2; exit 2; fi
+if { [ -n "$job" ] || [ -n "$open" ]; } && [ -z "$design" ]; then echo '-e, -k and -O go with -d' >&2; exit 2; fi
 if [ -n "$design" ]; then
-  [ "$fresh" = 0 ] || { echo 'Design mode keeps your world: to start over, delete .local-server/design-1.21.11 yourself' >&2; exit 2; }
+  # With -e, -f is a full export (the worlds too); otherwise design mode keeps its world.
+  if [ "$fresh" = 1 ]; then
+    [ "$job" = --design-export ] || { echo 'Design mode keeps your world: to start over, delete .local-server/design-1.21.11 yourself' >&2; exit 2; }
+    args+=(--full)
+  fi
   version=1.21.11
   args+=("${job:-$design}")
+  [ -z "$open" ] || args+=("$open")
 else
   [ "$fresh" = 1 ] || args+=(--keep-world)
 fi

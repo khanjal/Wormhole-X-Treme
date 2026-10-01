@@ -51,8 +51,11 @@
 //                        An op says check, export or stop in chat (lib/designmode.js)
 //   --design-check       design mode's check from here: start the design world, check, stop
 //                        (exit 1 if it found a problem); the report is in wx-design/check.txt
-//   --design-export      design mode's export from here: start, export, stop; the zip is in
-//                        .local-server/exports/
+//   --design-export      design mode's export from here: start, export, stop; the zip (the
+//                        schematics, placements, manifest and check report) is in .local-server/exports/
+//   --full               with --design-export: the zip holds the three worlds as well
+//   --design-open        design mode listens on every address, not only 127.0.0.1 (online-mode is
+//                        off, so anyone who can reach the port can join under any name, an op's too)
 //   --design-import <zip> a design export: unpacked into .local-server/imports/<name>/ and pasted as
 //                        --schematics with WorldEdit, on 1.21.11 and later (1.20.4 runs without it)
 //
@@ -144,6 +147,8 @@ function parseArgs(argv) {
     else if (x === '--design-check') { a.design = true; a.designCheck = true; }
     else if (x === '--design-export') { a.design = true; a.designExport = true; }
     else if (x === '--design-import') a.designImport = path.resolve(value(i++));
+    else if (x === '--full') a.full = true;
+    else if (x === '--design-open') a.designOpen = true;
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
@@ -159,6 +164,8 @@ function parseArgs(argv) {
     if (a.designCheck && a.designExport) throw new Error('--design-check or --design-export, one at a time');
     a.version = design.VERSION;
   }
+  if (a.full && !a.designExport) throw new Error('--full goes with --design-export');
+  if (a.designOpen && !a.design) throw new Error('--design-open goes with --design');
   a.version = a.version || DEFAULT_VERSION;
   return a;
 }
@@ -201,15 +208,25 @@ function designPlugin(args, folder) {
  * what it is; returns that folder for --schematics.
  */
 function unpackDesign(zipFile) {
+  const design = require('./lib/design');
   if (!fs.existsSync(zipFile)) throw new Error(`--design-import ${zipFile} is not there`);
-  const dir = path.join(LOCAL, 'imports', path.basename(zipFile).replace(/\.zip$/i, ''));
+  const name = path.basename(zipFile).replace(/\.zip$/i, '');
+  if (!/^[\w.-]+$/.test(name) || /^\.+$/.test(name)) throw new Error(`--design-import ${zipFile}: name the zip with letters, digits, dots, dashes or underscores`);
+  const dir = path.join(LOCAL, 'imports', name);
   fs.rmSync(dir, { recursive: true, force: true });
-  require('./lib/zip').extractZip(zipFile, dir);
+  // Only what a run reads: never the worlds of a full export, nor anything else in it.
+  const wanted = (n) => ['placements.json', 'manifest.json', 'check.txt'].includes(n) || /^[\w.-]+\.schem$/.test(n);
+  require('./lib/zip').extractZip(zipFile, dir, wanted);
   const manifest = path.join(dir, 'manifest.json');
   if (!fs.existsSync(manifest) || !fs.existsSync(path.join(dir, 'placements.json'))) throw new Error(`${zipFile} is not a design export: no manifest.json and placements.json`);
   const m = JSON.parse(fs.readFileSync(manifest, 'utf8'));
-  console.log(`design export by ${m.designer} on ${m.date} (Minecraft ${m.minecraft}, facility ${m.facility && m.facility.commit}): `
-    + `${(m.areas || []).length} areas, ${m.checkProblems} check problem(s) when exported; unpacked in ${dir}`);
+  const c = design.clean;
+  const commit = m.facility && typeof m.facility === 'object' ? c(m.facility.commit, 60) : '?';
+  console.log(`design export by ${c(m.designer, 40)} on ${c(m.date, 40)} (Minecraft ${c(m.minecraft, 20)}, facility ${commit}): `
+    + `${Array.isArray(m.areas) ? m.areas.length : '?'} areas, ${c(m.checkProblems, 10)} check problem(s) when exported; unpacked in ${dir}`);
+  if (m.minecraft !== design.VERSION) console.log(`  WARNING: made on Minecraft ${c(m.minecraft, 20)}, not ${design.VERSION}, the version design mode runs`);
+  const here = require('./lib/designmode').facilityCommit(REPO).replace(/\+changes$/, '');
+  if (commit.replace(/\+changes$/, '') !== here) console.log(`  WARNING: made with facility ${commit}, and this checkout is ${here}: a protected volume that moved since is refused below if the design reaches it`);
   return dir;
 }
 
@@ -219,39 +236,63 @@ function unpackDesign(zipFile) {
  * Returns the exit code.
  */
 async function designSession({ args, fac, srv, folder, plugin, hold }) {
-  const { DesignMode, facilityCommit } = require('./lib/designmode');
+  const { DesignMode, facilityCommit, opsOf } = require('./lib/designmode');
   const design = require('./lib/design');
   const dm = new DesignMode({ srv, folder, repo: REPO, local: LOCAL });
+  // Probe is opped only while it builds the fixtures; one left over from a session that died then goes now.
+  const deopProbe = async () => {
+    const r = await srv.run(`deop ${BOT}`);
+    const words = r.lines.join(' ');
+    if (!/no longer a server operator|Nothing changed/i.test(words)) throw new Error(`deop ${BOT}: ${words || 'no answer'}`);
+    if (opsOf(folder).includes(BOT)) throw new Error(`${BOT} is still in ops.json after deop`);
+  };
+  if (opsOf(folder).includes(BOT)) { await deopProbe(); console.log(`design: ${BOT}'s op from an earlier session taken away`); }
   if (DesignMode.generated(folder)) {
     console.log(`design: the world generated ${dm.state().generated} is kept as it is`);
   } else {
-    console.log('design: generating the campus (the first session only)');
+    // The whitelist is on (server.properties) and nobody else is opped until this is done.
+    console.log('design: generating the campus (the first session only; nobody can join until it is done)');
     const report = await fac.build();
     const failed = report.filter((r) => !r.ok);
     if (failed.length) throw new Error(`the campus did not build: ${failed.map((r) => `${r.fn}: ${r.detail}`).join('; ')}`);
-    await fac.connectProbe();
-    const fixtures = await fac.fixtures({ stock: false });
+    await srv.run(`whitelist add ${BOT}`);
+    let fixtures;
+    try {
+      await fac.connectProbe();
+      fixtures = await fac.fixtures({ stock: false });
+    } finally {
+      await fac.dismissProbe();
+      await deopProbe();
+      await srv.run(`whitelist remove ${BOT}`);
+    }
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
-    await fac.dismissProbe();
     await dm.finishGeneration({
       commit: facilityCommit(REPO), version: design.VERSION, plugin: path.basename(plugin),
       fixtureProblems: fixtures.filter((f) => !f.ok).map((f) => `${f.id}: ${f.detail}`),
     });
+    await srv.run('whitelist off');
   }
-  const designer = (args.op && args.op[0]) || 'designer';
+  for (const name of args.op || []) {
+    const r = await srv.run(`op ${name}`);
+    console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
+  }
+  // Who made it: --op, else the server's ops; never a made-up name.
+  const designer = (args.op && args.op[0]) || opsOf(folder).filter((n) => n !== BOT).join(', ');
+  if (args.designExport && !designer) throw new Error('say who the designer is: --op <name> (lab.ps1 -Op, lab.sh -o)');
   if (args.designCheck) {
     const r = await dm.check('the console');
     console.log(`\n${r.report}\nthe report: ${r.file}`);
     return r.items.some((p) => p.kind !== 'stray') ? 1 : 0;
   }
   if (args.designExport) {
-    const r = await dm.export(designer, { plugin: path.basename(plugin) });
+    const r = await dm.export(designer, { plugin: path.basename(plugin), full: Boolean(args.full) });
     console.log(`\nexported ${(r.bytes / 1024 / 1024).toFixed(1)} MB to ${r.file}`);
     for (const l of design.chatSummary(r.items, 20)) console.log(`  ${l}`);
     return 0;
   }
   console.log(`\nready: join localhost:${args.port} with Minecraft ${design.VERSION}${args.op ? ` as ${args.op.join(' or ')}` : ' (op yourself with --op)'}.`);
-  console.log('Ops are in creative with WorldEdit. Say check, export or stop in chat; Ctrl+C here stops it too.');
+  console.log('Ops are in creative with WorldEdit. Say check, export (export full for the worlds too) or stop in chat; Ctrl+C here stops it too.');
+  if (!args.designOpen) console.log('The server listens on 127.0.0.1 only (--design-open, lab.ps1 -Open, lab.sh -O to let others in).');
   let over = false;
   await new Promise((resolve) => {
     hold(resolve);
@@ -485,7 +526,12 @@ async function main() {
     if ((args.designCheck || args.designExport) && !made) throw new Error(`there is no design world in ${folder} yet: start design mode first (--design)`);
     // The first session starts from nothing; every later one keeps the designer's world.
     args.keepWorld = made;
-    if (!made) fs.rmSync(path.join(folder, STATE_DIR), { recursive: true, force: true });
+    if (!made) {
+      // A session that died while generating left its state, ops and whitelist: start them over too.
+      fs.rmSync(path.join(folder, STATE_DIR), { recursive: true, force: true });
+      for (const f of ['ops.json', 'whitelist.json']) fs.rmSync(path.join(folder, f), { force: true });
+    }
+    args.designMade = made;
     args.with = [...new Set([...(args.with || []), 'worldedit'])];
   }
   if (args.designImport) {
@@ -530,7 +576,12 @@ async function main() {
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
   // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
-  if (args.design) fs.appendFileSync(path.join(folder, 'server.properties'), 'broadcast-console-to-ops=false\n');
+  // Design mode: on 127.0.0.1 unless --design-open, and nobody joins until the campus is generated.
+  if (args.design) {
+    const extra = ['broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`];
+    if (!args.designOpen) extra.push('server-ip=127.0.0.1');
+    fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  }
   if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.
@@ -588,7 +639,8 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
-    for (const name of args.op || []) {
+    // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
+    for (const name of args.design ? [] : args.op || []) {
       const r = await srv.run(`op ${name}`);
       console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
     }

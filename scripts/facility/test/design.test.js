@@ -76,6 +76,7 @@ function c0Baseline() {
 
 function copyOf(g) {
   const c = new design.Grid({ dim: g.dim, box: g.box, palette: [...g.palette], ids: Uint32Array.from(g.ids), entities: g.entities.map((e) => ({ ...e })) });
+  c.blockEntities = g.blockEntities.map((b) => ({ ...b }));
   return c;
 }
 
@@ -93,7 +94,7 @@ test('check finds a block planted in a test volume and a lever in a skin, and no
   const current = copyOf(baseline);
   current.set(...PLANT, 'minecraft:stone');
   current.set(...SKIN_LEVER, 'minecraft:lever[face=wall,facing=east,powered=true]');
-  // Things that are fine: a placeholder broken to air, decoration well clear, the campus's own lever flipped.
+  // Things that are fine: a placeholder broken to air, decoration well clear, the campus's own lever pulled.
   const ph = PROTECT.find((k) => k.what === 'c0\'s clear volume').box;
   current.set(ph.x1, ph.y1, ph.z1, 'minecraft:air');
   current.set(25, 0, 22, 'minecraft:copper_bulb[lit=true]');
@@ -275,9 +276,9 @@ test('a zip written here reads back byte for byte, and one that would write outs
     assert.deepStrictEqual(zip.extractZip(file, to).sort(), ['manifest.json', 'worlds/world/level.dat', 'worlds/world/region/r.0.0.mca']);
     assert.ok(fs.readFileSync(path.join(to, 'worlds/world/region/r.0.0.mca')).equals(big));
     assert.ok(fs.readFileSync(path.join(to, 'worlds/world/level.dat')).equals(noise));
-    zip.writeZip(path.join(d, 'evil.zip'), [{ name: '../evil.txt', data: Buffer.from('no') }]);
-    assert.throws(() => zip.extractZip(path.join(d, 'evil.zip'), path.join(d, 'y')), /outside/);
-    assert.ok(!fs.existsSync(path.join(d, 'evil.txt')));
+    // Only what is asked for: an import takes the schematics and leaves the worlds.
+    assert.deepStrictEqual(zip.extractZip(file, path.join(d, 'only'), (n) => n === 'manifest.json'), ['manifest.json']);
+    assert.ok(!fs.existsSync(path.join(d, 'only', 'worlds')));
   } finally {
     fs.rmSync(d, { recursive: true, force: true });
   }
@@ -305,4 +306,237 @@ test('a save waits for WorldEdit\'s "<name> saved." said later, and takes no oth
   assert.match(await we.save('wx_a', 2000), /wx_a saved\./);
   const other = new sch.WorldEdit(make(['[14:30:56 INFO]: xwx_a saved.', '[14:30:56 INFO]: wx_ab saved.']));
   await assert.rejects(other.save('wx_a', 300), /no answer/);
+});
+
+/** A zip holding one entry, whose name is then replaced byte for byte by `evil` (the same length). */
+function zipNamed(d, evil, data = Buffer.from('no')) {
+  const safe = 'a'.repeat(Buffer.byteLength(evil));
+  const file = path.join(d, `z${Math.random().toString(36).slice(2)}.zip`);
+  zip.writeZip(file, [{ name: safe, data }]);
+  const buf = fs.readFileSync(file);
+  let k;
+  while ((k = buf.indexOf(safe)) >= 0) Buffer.from(evil).copy(buf, k);
+  fs.writeFileSync(file, buf);
+  return file;
+}
+
+test('a zip entry named outside its folder is refused before anything is written: .., absolute, drive letter, backslash', () => {
+  const d = scratch();
+  try {
+    for (const evil of ['../evil.txt', '/tmp/evil.txt', 'C:/evil.txt', 'C:evil.txt', '..\\evil.txt', 'a/../../e.txt', 'a//b.txt']) {
+      const f = zipNamed(d, evil);
+      assert.throws(() => zip.extractZip(f, path.join(d, 'out')), /not a plain relative name/, evil);
+      assert.ok(!fs.existsSync(path.join(d, 'out')), `${evil} wrote something`);
+      assert.throws(() => zip.writeZip(path.join(d, 'w.zip'), [{ name: evil, data: Buffer.from('x') }]), /not a name/, evil);
+    }
+    assert.ok(zip.safeName('worlds/world/region/r.0.0.mca') && zip.safeName('gates.schem'));
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('an entry that does not compress is stored and reads back; one that inflates past its declared size is refused', () => {
+  const d = scratch();
+  try {
+    const noise = require('crypto').randomBytes(4096);
+    const file = path.join(d, 'stored.zip');
+    zip.writeZip(file, [{ name: 'noise.bin', data: noise }]);
+    const [e] = zip.readZip(file);
+    assert.strictEqual(e.method, 0, 'random bytes were deflated');
+    assert.ok(e.read().equals(noise));
+    // A small declared size over a big deflated body: a zip bomb's shape.
+    const bomb = path.join(d, 'bomb.zip');
+    zip.writeZip(bomb, [{ name: 'big.bin', data: Buffer.alloc(1000000, 0) }]);
+    const buf = fs.readFileSync(bomb);
+    for (const sig of [0x04034b50, 0x02014b50]) {
+      const at = buf.indexOf(Buffer.from([sig & 0xff, (sig >> 8) & 0xff, (sig >> 16) & 0xff, sig >>> 24]));
+      buf.writeUInt32LE(100, at + (sig === 0x04034b50 ? 22 : 24));
+    }
+    fs.writeFileSync(bomb, buf);
+    assert.throws(() => zip.extractZip(bomb, path.join(d, 'b')), /does not unpack to the 100 bytes it declares/);
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+/** A raw block entity tag (prismarine-nbt form) for a sign at x y z of grid g, its front line `json`. */
+function signAt(g, [x, y, z], json) {
+  const tag = {
+    Pos: { type: 'intArray', value: [x - g.box.x0, y - g.box.y0, z - g.box.z0] },
+    Id: { type: 'string', value: 'minecraft:sign' },
+    Data: { type: 'compound', value: { front_text: { type: 'compound', value: { messages: { type: 'list', value: { type: 'string', value: [json, '""', '""', '""'] } } } } } },
+  };
+  return { index: g.index(x, y, z), tag, data: require('prismarine-nbt').simplify({ type: 'compound', value: tag }).Data };
+}
+
+const CLICKY = '{"text":"press","clickEvent":{"action":"run_command","value":"/op Mallory"}}';
+const FAR = [25, 0, 22]; // well clear of C0
+
+test('a command block or spawner of the designer\'s is reported, left out of the export, and refused by --schematics', async () => {
+  const baseline = c0Baseline();
+  baseline.set(24, 0, 20, 'minecraft:command_block[conditional=false,facing=up]'); // the campus's own
+  const current = copyOf(baseline);
+  current.set(...FAR, 'minecraft:command_block[conditional=false,facing=up]');
+  current.set(23, 0, 22, 'minecraft:spawner');
+  const items = design.compareArea({ area: C0_AREA, current, baseline, protect: PROTECT, skinList: SKINS });
+  assert.deepStrictEqual(items.map((p) => [p.kind, p.block]).sort(), [['forbidden', 'minecraft:command_block'], ['forbidden', 'minecraft:spawner']]);
+  const out = design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS }).grid;
+  assert.strictEqual(out.name(...FAR), 'minecraft:air');
+  assert.strictEqual(out.name(23, 0, 22), 'minecraft:air');
+  assert.strictEqual(out.name(24, 0, 20), design.MASK, 'the campus\'s command block is left to the campus');
+  assert.deepStrictEqual(design.pasteProblems(out, PROTECT, SKINS, 'x'), []);
+  const raw = copyOf(current);
+  for (let i = 0; i < raw.ids.length; i++) if (out.names[out.ids[i]] === design.MASK) raw.ids[i] = raw.idOf(design.MASK);
+  assert.ok(design.pasteProblems(raw, PROTECT, SKINS, 'x').some((p) => /blocks no design may hold \(minecraft:command_block, minecraft:spawner\)/.test(p)));
+});
+
+test('a sign whose text runs a command is reported, exported without its click event, and refused by --schematics with it', async () => {
+  const baseline = c0Baseline();
+  const current = copyOf(baseline);
+  current.set(...FAR, 'minecraft:oak_sign[rotation=0,waterlogged=false]');
+  current.blockEntities.push(signAt(current, FAR, CLICKY));
+  const items = design.compareArea({ area: C0_AREA, current, baseline, protect: PROTECT, skinList: SKINS });
+  assert.deepStrictEqual(items.map((p) => [p.kind, p.x, p.y, p.z]), [['click', ...FAR]]);
+  const out = design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS });
+  assert.strictEqual(out.scrubbed, 1);
+  const d = scratch();
+  try {
+    design.writeGrid(out.grid, path.join(d, 's.schem'));
+    const back = await design.readGrid(path.join(d, 's.schem'), { dim: O, at: { x: 0, y: -6, z: 0 } });
+    assert.strictEqual(back.blockEntities.length, 1);
+    assert.deepStrictEqual(JSON.parse(back.blockEntities[0].data.front_text.messages[0]), { text: 'press' }, 'the words stay, the command goes');
+    assert.deepStrictEqual(design.pasteProblems(back, PROTECT, SKINS, 's'), []);
+    const raw = copyOf(current);
+    raw.ids = Uint32Array.from(out.grid.ids.map((k) => raw.idOf(out.grid.palette[k])));
+    raw.blockEntities = current.blockEntities;
+    assert.ok(design.pasteProblems(raw, PROTECT, SKINS, 's').some((p) => /click events/.test(p)));
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('click events come out of JSON text, SNBT-style compounds and nested items alike', () => {
+  assert.deepStrictEqual(JSON.parse(design.scrubJson(CLICKY)), { text: 'press' });
+  assert.deepStrictEqual(JSON.parse(design.scrubJson('{"text":"","extra":[{"text":"a","click_event":{"action":"run_command","command":"/stop"}}]}')), { text: '', extra: [{ text: 'a' }] });
+  assert.strictEqual(design.scrubJson('not json clickEvent'), '');
+  const tag = { type: 'compound', value: { Item: { type: 'compound', value: { components: { type: 'compound', value: { pages: { type: 'list', value: { type: 'compound', value: [{ text: { type: 'string', value: 'p' }, click_event: { type: 'compound', value: {} } }] } } } } } } } };
+  assert.strictEqual(design.scrubTag(tag), 1);
+  assert.ok(!design.hasClick(tag));
+});
+
+test('an armour stand keeps only whitelisted data: no riders, no tags, no click events', () => {
+  const raw = {
+    Id: { type: 'string', value: 'minecraft:armor_stand' },
+    Pos: { type: 'list', value: { type: 'double', value: [1.5, 0, 1.5] } },
+    Data: { type: 'compound', value: {
+      ShowArms: { type: 'byte', value: 1 },
+      Tags: { type: 'list', value: { type: 'string', value: ['wx_board'] } },
+      Passengers: { type: 'list', value: { type: 'compound', value: [{ id: { type: 'string', value: 'minecraft:command_block_minecart' } }] } },
+      CustomName: { type: 'string', value: CLICKY },
+    } },
+  };
+  const out = design.sanitizeEntity(raw);
+  assert.deepStrictEqual(Object.keys(out.Data.value).sort(), ['CustomName', 'ShowArms']);
+  assert.ok(!design.hasClick(out));
+  const nbtLib = require('prismarine-nbt');
+  const g = design.Grid.make({ box: C0_AREA.box });
+  g.entities = [{ id: 'minecraft:armor_stand', pos: [26.5, 0, 22.5], tag: raw, data: nbtLib.simplify({ type: 'compound', value: raw }).Data }];
+  assert.ok(design.pasteProblems(g, PROTECT, SKINS, 'e').some((p) => /Tags, Passengers, a click event/.test(p)), design.pasteProblems(g, PROTECT, SKINS, 'e').join('\n'));
+  const items = design.compareArea({ area: C0_AREA, current: Object.assign(copyOf(c0Baseline()), { entities: g.entities }), baseline: c0Baseline(), protect: PROTECT, skinList: SKINS });
+  assert.deepStrictEqual(items.map((p) => p.kind), ['entity-data']);
+});
+
+test('check: in a skin, a copper bulb, a door, water and fire are active parts; a rotated or retexted campus part and a removed campus block are problems', () => {
+  const baseline = c0Baseline();
+  baseline.set(19, 2, 8, 'minecraft:oak_wall_sign[facing=east,waterlogged=false]');
+  baseline.blockEntities.push(signAt(baseline, [19, 2, 8], '{"text":"C0"}'));
+  baseline.set(19, -1, 12, 'minecraft:smooth_quartz');
+  const current = copyOf(baseline);
+  current.set(19, 0, 10, 'minecraft:copper_bulb[lit=false,powered=false]');
+  current.set(19, 0, 11, 'minecraft:oak_door[facing=east,half=lower,hinge=left,open=false,powered=false]');
+  current.set(19, 0, 12, 'minecraft:water[level=0]');
+  current.set(19, 0, 13, 'minecraft:fire[age=0,east=false,north=false,south=false,up=false,west=false]');
+  current.set(...CAMPUS_LEVER, 'minecraft:lever[face=wall,facing=north,powered=false]'); // turned
+  current.blockEntities = [signAt(current, [19, 2, 8], '{"text":"Gift shop"}')]; // retexted
+  current.set(19, -1, 12, 'minecraft:air'); // the floor under it taken away
+  const items = design.compareArea({ area: C0_AREA, current, baseline, protect: PROTECT, skinList: SKINS });
+  const at = items.map((p) => `${p.kind} ${p.x} ${p.y} ${p.z}`).sort();
+  assert.deepStrictEqual(at, ['skin 19 -1 12', 'skin 19 0 10', 'skin 19 0 11', 'skin 19 0 12', 'skin 19 0 13', 'skin 19 1 8', 'skin 19 2 8'].sort());
+});
+
+test('check and export ignore dropped items and falling blocks', () => {
+  const baseline = c0Baseline();
+  const current = copyOf(baseline);
+  current.entities = [{ id: 'minecraft:item', pos: [26.5, 0, 22.5] }, { id: 'minecraft:falling_block', pos: [SKIN_LEVER[0] + 0.5, 1, SKIN_LEVER[2] + 0.5] }];
+  assert.deepStrictEqual(design.compareArea({ area: C0_AREA, current, baseline, protect: PROTECT, skinList: SKINS }), []);
+  assert.strictEqual(design.exportArea({ current, baseline, protect: PROTECT, skinList: SKINS }).entities, 0);
+});
+
+test('design marks and masks every supported version from 1.21.11 on, the union of their protected boxes', () => {
+  assert.deepStrictEqual(design.maskVersions(), require('../lib/version').SUPPORTED.filter((v) => v !== '1.20.4'));
+  assert.deepStrictEqual(design.maskVersions(['1.20.4', '1.21.11', '1.21.20', '26.1.2']), ['1.21.11', '1.21.20', '26.1.2']);
+  const a = { what: 'a', dim: O, box: bp.box3(0, 0, 0, 1, 1, 1), kind: 'volume' };
+  const b = { what: 'b', dim: O, box: bp.box3(5, 0, 5, 6, 1, 6), kind: 'fixture' };
+  const boxesOf = (v) => (v === '26.1.2' ? [a, b] : [a]);
+  assert.deepStrictEqual(design.protectedFor(['1.21.11', '26.1.2'], boxesOf).map((k) => k.what), ['a', 'b']);
+  // What the export masks: b only exists on 26.1.2, and is masked all the same.
+  const g = design.Grid.make({ box: bp.box3(0, 0, 0, 7, 1, 7), blocks: [{ x: 5, y: 0, z: 5, block: 'minecraft:stone' }] });
+  const out = design.exportArea({ current: g, baseline: g, protect: design.protectedFor(['1.21.11', '26.1.2'], boxesOf), skinList: [] }).grid;
+  assert.strictEqual(out.name(5, 0, 5), design.MASK);
+  const only = design.exportArea({ current: g, baseline: g, protect: design.protectedFor(['1.21.11'], boxesOf), skinList: [] }).grid;
+  assert.strictEqual(only.name(5, 0, 5), 'minecraft:stone');
+});
+
+test('a design schematic is refused if its palette repeats or skips an index, or it is Sponge version 2', async () => {
+  assert.throws(() => design.readPalette({ 'minecraft:air': 0, 'minecraft:stone': 0 }, 'x.schem'), /missing, repeated or out of range/);
+  assert.throws(() => design.readPalette({ 'minecraft:air': 0, 'minecraft:stone': 2 }, 'x.schem'), /missing, repeated or out of range/);
+  assert.deepStrictEqual(design.readPalette({ 'minecraft:stone': 1, 'minecraft:air': 0 }, 'x.schem'), ['minecraft:air', 'minecraft:stone']);
+  const d = scratch();
+  try {
+    sch.writeSchem(path.join(d, 'v2.schem'), { size: [1, 1, 1], dataVersion: 3700, blocks: [] });
+    await assert.rejects(design.readGrid(path.join(d, 'v2.schem'), { at: { x: 0, y: 0, z: 0 } }), /version 2: a design schematic is version 3/);
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('design chat: only an op is heard, one check at a time, stop ends it, and an op who joins is put in creative', async () => {
+  const EventEmitter = require('events');
+  const { DesignMode } = require('../lib/designmode');
+  const d = scratch();
+  try {
+    fs.writeFileSync(path.join(d, 'ops.json'), JSON.stringify([{ name: 'Builder', level: 4 }]));
+    const srv = new EventEmitter();
+    srv.sent = [];
+    srv.run = async (c) => { srv.sent.push(c); return { lines: [], errors: [] }; };
+    const dm = new DesignMode({ srv, folder: d, repo: d, local: d, log: () => {} });
+    let release;
+    const ran = [];
+    dm.run = (what, who) => { ran.push(`${who} ${what}`); return new Promise((r) => { release = r; }); };
+    const stopped = [];
+    const off = dm.listen({ onStop: (who) => stopped.push(who) });
+    const say = (who, words) => srv.emit('line', `[12:00:00 INFO]: [Not Secure] <${who}> ${words}`);
+    say('Visitor', 'check');
+    say('Builder', 'hello');
+    say('Builder', 'Check!');
+    say('Builder', 'export');
+    assert.deepStrictEqual(ran, ['Builder check'], 'a non-op was heard, or a second job started while one ran');
+    assert.ok(srv.sent.some((c) => /tellraw Builder .*Busy with check/.test(c)));
+    release();
+    await dm.running;
+    say('Builder', 'export  full');
+    assert.deepStrictEqual(ran, ['Builder check', 'Builder export full']);
+    release();
+    await dm.running;
+    say('Visitor', 'stop');
+    say('Builder', 'stop');
+    assert.deepStrictEqual(stopped, ['Builder']);
+    srv.emit('line', '[12:00:00 INFO]: Builder joined the game');
+    srv.emit('line', '[12:00:00 INFO]: Visitor joined the game');
+    assert.ok(srv.sent.includes('gamemode creative Builder') && !srv.sent.includes('gamemode creative Visitor'));
+    off();
+    assert.strictEqual(srv.listenerCount('line'), 0);
+  } finally {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
 });

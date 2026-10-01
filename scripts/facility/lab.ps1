@@ -46,7 +46,14 @@
     window (it starts the design world, exports and stops).
 
 .PARAMETER Check
-    With -Design and the lab stopped: the keep-clear check, from this window.
+    With -Design and the lab stopped: the keep-clear check, from this window. Not with -Export.
+
+.PARAMETER Full
+    With -Export: the zip holds your three worlds as well as the schematics (a much bigger file).
+
+.PARAMETER Open
+    With -Design: let other machines join, not only this one. The server does not check names
+    (online-mode is off), so anyone who can reach the port can join as anyone, an op included.
 
 .PARAMETER NoDashboard
     Do not start the Lab Dashboard (each lab's console and Dynmap, http://127.0.0.1:8200). lab.sh
@@ -70,6 +77,8 @@ param(
     [switch] $Design,
     [switch] $Export,
     [switch] $Check,
+    [switch] $Full,
+    [switch] $Open,
     [switch] $NoDashboard
 )
 
@@ -85,7 +94,9 @@ function Quote([string] $s)
     "'" + $s + "'"
 }
 
-if (($Export -or $Check) -and -not $Design) { throw '-Export and -Check go with -Design' }
+if (($Export -or $Check -or $Open) -and -not $Design) { throw '-Export, -Check and -Open go with -Design' }
+if ($Export -and $Check) { throw '-Export or -Check, one at a time' }
+if ($Full -and -not $Export) { throw '-Full goes with -Export' }
 if ($Design -and $Fresh) { throw 'Design mode keeps your world: to start over, delete .local-server\design-1.21.11 yourself' }
 if ($Design -and $PSBoundParameters.ContainsKey('Version') -and $Version -ne '1.21.11') { throw 'Design mode runs Minecraft 1.21.11 only' }
 if ($Design) { $Version = '1.21.11' }
@@ -132,6 +143,8 @@ if ($Design)
     $arguments = @('--design', '--port', $Port)
     if ($Export) { $arguments[0] = '--design-export' }
     if ($Check) { $arguments[0] = '--design-check' }
+    if ($Full) { $arguments += '--full' }
+    if ($Open) { $arguments += '--design-open' }
 }
 elseif (-not $Fresh) { $arguments += '--keep-world' }
 if ($Plugin) { $arguments += @('--plugin', (Resolve-Path $Plugin).Path) }

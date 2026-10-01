@@ -304,12 +304,11 @@ class Facility {
     return this.probe;
   }
 
-  /** Probe leaves and is deopped, its shield stopped: design mode, once the fixtures are built. */
+  /** Probe leaves, its shield stopped: design mode, once the fixtures are built (the caller deops it). */
   async dismissProbe() {
     if (this.shieldTimer) { clearInterval(this.shieldTimer); this.shieldTimer = null; }
     if (this.probe) { this.probe.gone = 'dismissed'; this.probe.bot.quit(); }
     this.probe = null;
-    await this.srv.run(`deop ${BOT}`);
   }
 
   /**

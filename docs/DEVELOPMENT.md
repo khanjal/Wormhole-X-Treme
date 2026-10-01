@@ -742,44 +742,77 @@ yourself"): `lab.ps1 -Design -Op Name -Plugin <jar>` (`lab.sh -d -o Name -p <jar
 ```bash
 node scripts/facility/run-facility.js --design --op YourName --plugin WormholeXTreme.jar
 node scripts/facility/run-facility.js --design-check      # the server stopped: start, check, stop
-node scripts/facility/run-facility.js --design-export     # the server stopped: start, export, stop
+node scripts/facility/run-facility.js --design-export     # the server stopped: start, export, stop (--full: the worlds too)
 node scripts/facility/run-facility.js 1.21.11 --design-import .local-server/exports/facility-design-2026-10-01.zip --selftest --quick
 ```
 
 Design mode runs 1.21.11 only, adds WorldEdit, and keeps its world in
-`.local-server/design-1.21.11/` (`-<port>` on another port), a folder no test run uses. The first
-session builds the campus, then the session fixtures (the menagerie unstocked; Probe joins for
-them and leaves), fills the air of every volume `wings/decor/guard.js` protects, and each board's
-block, with a placeholder (pink stained glass for test volumes, green for the rest), and saves a
-baseline schematic of each export area (each `campus.FORCELOAD` rectangle grown by 16, y −63..95
-in the overworld) in `wx-design/baseline/`. Later sessions start the kept world and touch nothing.
+`.local-server/design-1.21.11/` (`-<port>` on another port), a folder no test run uses. It listens
+on 127.0.0.1 only unless `--design-open` (`-Open`, `-O`); online-mode is off, so an open server
+lets anyone who reaches it join under any name, an op's included. The first session runs with the
+whitelist on and nobody opped: it builds the campus, then the session fixtures (the menagerie
+unstocked; Probe is whitelisted and opped for them, then leaves, and is deopped in a `finally`
+whose result is checked), fills the air of every protected volume and each board's block with a
+placeholder (pink stained glass for test volumes, green for the rest), saves a baseline schematic
+of each export area (each `campus.FORCELOAD` rectangle grown by 16, y −63..95 in the overworld)
+in `wx-design/baseline/`, writes `wx-design/state.json`, and only then turns the whitelist off
+and ops the `--op` players. A start that finds no state starts the folder over (worlds, ops,
+whitelist); one that finds Probe still opped deops it. Later sessions keep the world as it is.
 Ops are put in creative on joining; the server's default is creative and peaceful. The plugin jar
 is `--plugin`, else the one the folder already has, else a Maven build (the launcher cannot fetch
 a release jar).
 
-An op's `check` in chat (or `--design-check`) copies each area with WorldEdit's console (`//copy
--e`, `/schem save`) and compares it with the baseline (`lib/design.js`, `compareArea`): a block that
-differs inside a protected volume (a placeholder, or air where one was, is fine), an active part
-(rule 3's list and the rest of the redstone family) in a chamber's 2-block skin that the campus
-did not put there, a new entity other than an item frame or armour stand, and either of those in
-a volume or skin. Names only, so a lever flipped or a door opened is not a change. The first eight
-go to chat; the whole report to `wx-design/check.txt`. `export` (or `--design-export`) does the
-same pass and writes `.local-server/exports/facility-design-<date>.zip` (`lib/zip.js`, no tool
-needed): per area a schematic with **structure void at every protected position** (on 1.21.11 and
-26.1.2) and every placeholder and structure void elsewhere turned to air, only the block entities
-of kept blocks and only the designer's item frames and armour stands; `placements.json` with each
-area at its corner, `"guarded": true, "minVersion": "1.21.11"`; `manifest.json`; `check.txt`; and
-the three worlds under `worlds/` (saving off while they are read).
+"Protected" here is the union over every supported version from 1.21.11 on
+(`version.SUPPORTED`, `design.maskVersions()`): the boxes of `wings/decor/guard.js` and the boards,
+on each version a design is pasted on. The same union is marked, checked and masked.
+
+An op's `check` in chat (or `--design-check`) saves the world, makes every player a spectator
+(their modes come back after), copies each area with WorldEdit's console (`//copy -e`,
+`/schem save`) and compares it with the baseline (`lib/design.js`, `compareArea`):
+- a block that differs by name inside a protected volume (a placeholder, or air where one was,
+  is fine);
+- in a chamber's 2-block skin: an active part that is not the campus's (rule 3's list: redstone
+  of every kind, rails, signs, buttons, levers, plates, doors, trapdoors, fence gates, bells,
+  lightning rods, TNT, jukeboxes, lecterns, banners, hoppers, pistons, water, lava, fire), a
+  campus active part or block with data changed in its full state or data (what using it changes,
+  `powered`, `open`, `lit` and `triggered`, aside), and a campus block replaced by air; re-cladding
+  the floor with another block is not flagged;
+- anywhere, a block no design may hold that the campus did not put there (command blocks,
+  spawners, trial spawners, vaults, structure, jigsaw and test blocks), and a designer's block
+  entity with a click event in its text;
+- a new entity other than an item frame or armour stand, either of those in a volume or skin, or
+  carrying data outside the whitelist (`design.ENTITY_KEYS`: no Passengers, Tags or UUID). Dropped
+  items, falling blocks and experience orbs are not looked at.
+
+The first eight go to chat; the whole report to `wx-design/check.txt`. `export` (or
+`--design-export`) does the same pass and writes `.local-server/exports/facility-design-<date>.zip`
+(`lib/zip.js`, no tool needed): per area a schematic with **structure void at every protected
+position**, and at every campus block a design may not hold (the campus builds those itself);
+every placeholder, structure void and designer's forbidden block elsewhere turned to air; the
+block entities of kept blocks with every click event taken out of their text (JSON strings and
+compounds alike, books in lecterns and chests included); only the designer's item frames and
+armour stands outside volumes and skins, their data cut to the whitelist; `placements.json` with
+each area at its corner, `"guarded": true, "minVersion": "1.21.11"`; `manifest.json`; and
+`check.txt`. That is a few MB. `export full` (`--full`, `-Full`, `lab.sh -d -e -f`) adds the three
+worlds under `worlds/`, read with saving off.
 
 A guarded placement is how a whole wing's box can be pasted when it holds cells, pads and gates:
 the guardrail refuses an ordinary box that touches one, since a plain paste replaces everything in
 it. A guarded one is pasted `//paste -e -m !minecraft:structure_void`, so WorldEdit leaves every
-protected position as the campus built it, and before the server starts `--schematics` reads the
-whole schematic and refuses it unless every position the guardrail protects on that run's version
-holds structure void, no placeholder is anywhere in it, and every entity is an item frame or
-armour stand outside the volumes and skins. `--design-import <zip>` unpacks an export into
-`.local-server/imports/<name>/` and runs it as `--schematics`, adding WorldEdit on 1.21.11 and
-later; on 1.20.4 every placement is left out and the run is the plain campus.
+protected position as the campus built it. A design zip is untrusted: before the server starts,
+`--schematics` reads each guarded schematic whole (Sponge version 3 only, origin at its minimum
+corner, palette indices each used once and in range) and refuses it unless every position the
+guardrail protects on that run's version holds structure void, and it holds no placeholder, no
+forbidden block, no click event, and no entity but an item frame or armour stand with whitelisted
+data outside the volumes and skins. `--design-import <zip>` unpacks into
+`.local-server/imports/<name>/` (a plain name; never `imports/` itself) only `placements.json`,
+`manifest.json`, `check.txt` and the `.schem` files, never the worlds, reading the zip a piece at a
+time: every entry name must be a plain relative path (no `..`, absolute path, drive letter or
+backslash) or nothing is written, each entry is inflated to no more than the size it declares (at
+most 1 GB), and a Zip64 zip is refused. It prints the manifest's strings cleaned of control
+characters, warns if the Minecraft version or the facility commit differs from this checkout's, and
+runs the export as `--schematics`, adding WorldEdit on 1.21.11 and later; on 1.20.4 every
+placement is left out and the run is the plain campus.
 
 ## Static analysis
 

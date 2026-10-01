@@ -6,8 +6,9 @@
 // that the world is the designer's. `check` and `export` in an op's chat (or --design-check and
 // --design-export from the command line) compare the areas with the baseline and write the export.
 //
-// Every area is read through WorldEdit's console: //copy -e and /schem save, then read here. A
-// check reads what is there now; nothing in the world is changed by a check or an export, so the
+// Every area is read through WorldEdit's console: //copy -e and /schem save, then read here. While
+// it is read, every player is a spectator and the world is saved first, so what is checked and
+// exported is one moment. Nothing in the world is changed by a check or an export, so the
 // placeholders stay where the designer can see them and leave this folder only in its world.
 
 const fs = require('fs');
@@ -22,8 +23,8 @@ const { WorldEdit, WORLDS } = require('./schematics');
 const STATE_DIR = 'wx-design';
 const CHAT = /^\[\d\d:\d\d:\d\d INFO\]: (?:\[Not Secure\] )?<(\w{1,16})> (.+)$/;
 const JOINED = /^\[\d\d:\d\d:\d\d INFO\]: (\w{1,16}) joined the game$/;
-// Later versions an export must also paste on: their protected volumes are masked as well.
-const MASK_VERSIONS = [design.VERSION, '26.1.2'];
+const COMMANDS = ['check', 'export', 'export full', 'stop'];
+const MODES = ['creative', 'survival', 'adventure'];
 
 /** The facility's commit, with "+changes" if scripts/facility differs from it; "unknown" without git. */
 function facilityCommit(repo) {
@@ -33,12 +34,21 @@ function facilityCommit(repo) {
   return `${head.stdout.trim()}${dirty.status === 0 && dirty.stdout.trim() ? '+changes' : ''}`;
 }
 
+/** The ops in a server folder's ops.json, by name; [] if it has none. */
+function opsOf(folder) {
+  try {
+    const ops = JSON.parse(fs.readFileSync(path.join(folder, 'ops.json'), 'utf8'));
+    return Array.isArray(ops) ? ops.map((o) => o && o.name).filter((n) => typeof n === 'string') : [];
+  } catch { return []; }
+}
+
 class DesignMode {
   constructor({ srv, folder, version = design.VERSION, repo, local, log = console.log }) {
     Object.assign(this, { srv, folder, version, repo, local, log });
     this.dir = path.join(folder, STATE_DIR);
     this.areas = design.areas();
-    this.protect = design.protectedBoxes(version);
+    // Every version an export is pasted on: what is marked, checked and masked is the same union.
+    this.protect = design.protectedFor(design.maskVersions());
     this.skinList = design.skins();
     this.busy = null;
   }
@@ -113,10 +123,29 @@ class DesignMode {
     const t0 = Date.now();
     await this.saveBaseline();
     this.log(`  design: baseline of ${this.areas.length} areas saved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-    this.markGenerated({ ...info, placeholders: n });
+    this.markGenerated({ ...info, placeholders: n, maskedFor: design.maskVersions() });
   }
 
   // ---- check and export --------------------------------------------------------------------
+
+  /**
+   * Runs `fn` with the world still: saved to disk, and every player a spectator (put back to the
+   * game mode they had afterwards), so nobody changes an area between two copies.
+   */
+  async still(fn) {
+    const run = (c) => this.srv.run(c).catch(() => {});
+    for (const m of MODES) await run(`tag @a[gamemode=${m}] add wx_design_${m}`);
+    await run('gamemode spectator @a');
+    await this.srv.run('save-all flush', 300000);
+    try {
+      return await fn();
+    } finally {
+      for (const m of MODES) {
+        await run(`gamemode ${m} @a[tag=wx_design_${m}]`);
+        await run(`tag @a remove wx_design_${m}`);
+      }
+    }
+  }
 
   /**
    * Reads every area as it is now and compares it with the baseline; with `stage`, also writes
@@ -126,7 +155,6 @@ class DesignMode {
     const items = [];
     const files = [];
     const seen = new Set();
-    const maskWith = stage ? design.protectedFor(MASK_VERSIONS) : null;
     const we = new WorldEdit(this.srv);
     try {
       for (const a of this.areas) {
@@ -137,7 +165,7 @@ class DesignMode {
         try {
           const current = await design.readGrid(now, { dim: a.dim, at });
           const baseline = await design.readGrid(base, { dim: a.dim, at });
-          if (current.volume !== bp.volume(a.box) || current.box.x0 !== a.box.x0 || current.box.y0 !== a.box.y0 || current.box.z0 !== a.box.z0) {
+          if (current.volume !== bp.volume(a.box) || current.box.x1 !== a.box.x1 || current.box.y1 !== a.box.y1 || current.box.z1 !== a.box.z1) {
             throw new Error(`WorldEdit saved ${a.name} as ${JSON.stringify(current.box)}, not its area ${JSON.stringify(a.box)}`);
           }
           // Areas overlap at their edges: a position two of them hold is reported once.
@@ -146,10 +174,10 @@ class DesignMode {
             if (!seen.has(key)) { seen.add(key); items.push(p); }
           }
           if (stage) {
-            const out = design.exportArea({ current, baseline, protect: maskWith, skinList: this.skinList });
+            const out = design.exportArea({ current, baseline, protect: this.protect, skinList: this.skinList });
             const file = `${a.name}.schem`;
-            design.writeGrid(out.grid, path.join(stage, file), { keepEntities: out.keepEntities });
-            files.push({ ...a, file, masked: out.masked, stripped: out.stripped, entities: out.keepEntities.length });
+            design.writeGrid(out.grid, path.join(stage, file));
+            files.push({ ...a, file, masked: out.masked, stripped: out.stripped, scrubbed: out.scrubbed, entities: out.entities });
           }
         } finally {
           fs.rmSync(now, { force: true });
@@ -163,7 +191,7 @@ class DesignMode {
 
   /** The check: { items, report, file }; the full report is written to wx-design/check.txt. */
   async check(who = null) {
-    const { items } = await this.scan();
+    const { items } = await this.still(() => this.scan());
     const report = design.formatReport(items, { who });
     fs.mkdirSync(this.dir, { recursive: true });
     const file = path.join(this.dir, 'check.txt');
@@ -172,27 +200,29 @@ class DesignMode {
   }
 
   /**
-   * The export: the areas' schematics, placements.json, manifest.json, check.txt and the three
-   * worlds, in .local-server/exports/facility-design-<date>.zip. Saving is off while the worlds
-   * are read, so no region file changes under the zip. Returns { file, bytes, items }.
+   * The export: the areas' schematics, placements.json, manifest.json and check.txt (and, `full`,
+   * the three worlds) in .local-server/exports/facility-design-<date>.zip. Returns
+   * { file, bytes, items, files }.
    */
-  async export(designer, { plugin = null } = {}) {
+  async export(designer, { plugin = null, full = false } = {}) {
     const exports = path.join(this.local, 'exports');
     fs.mkdirSync(exports, { recursive: true });
     const stage = fs.mkdtempSync(path.join(exports, '.stage-'));
     try {
-      const { items, files } = await this.scan({ stage });
+      const { items, files } = await this.still(() => this.scan({ stage }));
       const problems = items.filter((p) => p.kind !== 'stray').length;
       fs.writeFileSync(path.join(stage, 'check.txt'), design.formatReport(items, { who: designer }));
       fs.writeFileSync(path.join(stage, 'placements.json'), `${JSON.stringify(design.placementsFor(files), null, 2)}\n`);
       const manifest = design.manifestFor({
-        commit: facilityCommit(this.repo), generatedFrom: this.state().commit || null, designer, plugin, areaList: files, problems,
+        commit: facilityCommit(this.repo), generatedFrom: this.state().commit || null, designer, plugin, areaList: files, problems, worlds: full,
       });
       fs.writeFileSync(path.join(stage, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-      let name = `facility-design-${design.dateStamp()}.zip`;
-      for (let k = 2; fs.existsSync(path.join(exports, name)); k++) name = `facility-design-${design.dateStamp()}-${k}.zip`;
+      let name = `facility-design-${design.dateStamp()}${full ? '-full' : ''}.zip`;
+      for (let k = 2; fs.existsSync(path.join(exports, name)); k++) name = `facility-design-${design.dateStamp()}${full ? '-full' : ''}-${k}.zip`;
       const file = path.join(exports, name);
       const entries = zip.filesUnder(stage).map((f) => ({ name: f, from: path.join(stage, f) }));
+      if (!full) return { file, ...zip.writeZip(file, entries), items, files };
+      // Saving is off while the worlds are read, so no region file changes under the zip.
       await this.srv.run('save-off');
       try {
         await this.srv.run('save-all flush', 300000);
@@ -201,8 +231,7 @@ class DesignMode {
           if (!fs.existsSync(dir)) continue;
           for (const f of zip.filesUnder(dir, (r) => r === 'session.lock')) entries.push({ name: `worlds/${w}/${f}`, from: path.join(dir, f) });
         }
-        const { bytes } = zip.writeZip(file, entries);
-        return { file, bytes, items, files };
+        return { file, ...zip.writeZip(file, entries), items, files };
       } finally {
         await this.srv.run('save-on').catch(() => {});
       }
@@ -214,10 +243,7 @@ class DesignMode {
   // ---- chat --------------------------------------------------------------------------------
 
   isOp(name) {
-    try {
-      const ops = JSON.parse(fs.readFileSync(path.join(this.folder, 'ops.json'), 'utf8'));
-      return ops.some((o) => o.name && o.name.toLowerCase() === name.toLowerCase());
-    } catch { return false; }
+    return opsOf(this.folder).some((o) => o.toLowerCase() === name.toLowerCase());
   }
 
   async tell(who, words, color = 'white') {
@@ -226,32 +252,33 @@ class DesignMode {
   }
 
   /**
-   * Listens for ops' chat: `check`, `export` and `stop` (`onStop` is called); ops are put in
-   * creative when they join. Returns a function that stops listening.
+   * Listens for ops' chat: `check`, `export`, `export full` and `stop` (`onStop` is called); ops
+   * are put in creative when they join. One check or export at a time. Returns a function that
+   * stops listening.
    */
   listen({ onStop, plugin = null }) {
     const on = (line) => {
       const j = JOINED.exec(line);
       if (j && this.isOp(j[1])) {
         this.srv.run(`gamemode creative ${j[1]}`).catch(() => {});
-        this.tell(j[1], 'Design mode: say check, export or stop in chat.', 'gray');
+        this.tell(j[1], 'Design mode: say check, export (export full for your worlds too) or stop in chat.', 'gray');
         return;
       }
       const m = CHAT.exec(line);
       if (!m) return;
-      const [who, said] = [m[1], m[2].trim().toLowerCase().replace(/[.!]$/, '')];
-      if (!['check', 'export', 'stop'].includes(said) || !this.isOp(who)) return;
+      const [who, said] = [m[1], m[2].trim().toLowerCase().replace(/[.!]$/, '').replace(/\s+/g, ' ')];
+      if (!COMMANDS.includes(said) || !this.isOp(who)) return;
       if (said === 'stop') { onStop(who); return; }
       if (this.busy) { this.tell(who, `Busy with ${this.busy}; try again when it is done.`, 'yellow'); return; }
       this.busy = said;
-      this.run(said, who, plugin).catch((e) => this.tell(who, `${said} failed: ${e.message}`, 'red')).finally(() => { this.busy = null; });
+      this.running = this.run(said, who, plugin).catch((e) => this.tell(who, `${said} failed: ${e.message}`, 'red')).finally(() => { this.busy = null; });
     };
     this.srv.on('line', on);
     return () => this.srv.off('line', on);
   }
 
   async run(what, who, plugin) {
-    await this.tell(who, what === 'check' ? 'Checking every area (a minute or so)...' : 'Exporting (a few minutes)...', 'gray');
+    await this.tell(who, what === 'check' ? 'Checking every area (a minute or so); you are a spectator until it is done.' : 'Exporting (a few minutes); you are a spectator until it is done.', 'gray');
     if (what === 'check') {
       const r = await this.check(who);
       const lines = design.chatSummary(r.items);
@@ -259,7 +286,7 @@ class DesignMode {
       await this.tell(who, `Full report: ${r.file}`, 'gray');
       this.log(`  design check by ${who}: ${lines[0]}; ${r.file}`);
     } else {
-      const r = await this.export(who, { plugin });
+      const r = await this.export(who, { plugin, full: what === 'export full' });
       const lines = design.chatSummary(r.items, 3);
       await this.tell(who, `Exported ${(r.bytes / 1024 / 1024).toFixed(1)} MB to ${r.file}`, 'green');
       for (const l of lines) await this.tell(who, l);
@@ -268,4 +295,4 @@ class DesignMode {
   }
 }
 
-module.exports = { DesignMode, facilityCommit, STATE_DIR, MASK_VERSIONS, CHAT, JOINED };
+module.exports = { DesignMode, facilityCommit, opsOf, STATE_DIR, CHAT, JOINED, COMMANDS };
