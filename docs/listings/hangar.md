@@ -67,7 +67,7 @@ it in front of people who cannot use it, and Hangar's platform filter is how mos
 only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard]` — every one is optional
 and the plugin loads without them. Declaring a required dependency that is not required would
 make Hangar warn operators off installing it, and the listing's strongest line is "no
-dependencies"; four optional rows dilute that for nothing.
+dependencies"; a row for each optional one would dilute that for nothing.
 
 If the integrations are ever wanted discoverable, add them as Optional, never Required.
 
