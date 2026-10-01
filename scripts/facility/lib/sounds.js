@@ -10,7 +10,7 @@ function bare(name) {
 
 /**
  * Starts recording what `bot` hears. `stop()` ends it and returns
- * [{ name, x, y, z, volume, pitch, t }] in the order heard (`t` in ms from the start).
+ * [{ name, x, y, z, volume, pitch, t }] in the order heard (`t` in ms from `t0`, its start).
  */
 function record(bot) {
   const t0 = Date.now();
@@ -21,6 +21,7 @@ function record(bot) {
   bot.on('soundEffectHeard', on);
   return {
     heard,
+    t0,
     stop() {
       bot.off('soundEffectHeard', on);
       return heard;
