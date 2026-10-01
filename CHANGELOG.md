@@ -24,6 +24,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   block, and `gate regen -fill` refused to fill a gate with one.
 - **The player who pulls an iris lever sees the iris sweep in, as everyone else does.** Their own
   arm swing redrew the whole iris a tick later, over the sweep.
+- **A detector rail wired to a gate dials it on Paper 1.21.11.** Paper reports a rail's press as
+  a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
 
 ### Performance
 

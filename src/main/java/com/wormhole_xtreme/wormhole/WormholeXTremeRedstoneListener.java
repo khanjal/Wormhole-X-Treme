@@ -1,9 +1,12 @@
 package com.wormhole_xtreme.wormhole;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,6 +52,9 @@ class WormholeXTremeRedstoneListener implements Listener
     private static final Map<String, Long> lastTrigger =
         new ConcurrentHashMap<String, Long>();
 
+    /** Detector rails seen pressed and not yet released, by world and position. */
+    private static final Set<String> pressedRails = ConcurrentHashMap.newKeySet();
+
     /**
      * Whether a trigger arriving now is a repeat of one already acted on.
      *
@@ -81,6 +87,46 @@ class WormholeXTremeRedstoneListener implements Listener
     static void clearTriggerHistory()
     {
         lastTrigger.clear();
+        pressedRails.clear();
+    }
+
+    /**
+     * Whether a change of current is a rising edge.
+     *
+     * <p>A detector rail is also read by whether it has been seen pressed: Paper 1.21.11 reports
+     * a press as 15 to 15, with both currents taken from the new state, and a release as 0 to 0.
+     * A rail not yet seen pressed going high is a press whatever its old current says, and one
+     * already seen pressed is not pressed again until it has been seen released.
+     *
+     * @param block
+     *            the block whose current changed
+     * @param oldCurrent
+     *            the current reported before
+     * @param newCurrent
+     *            the current reported after
+     * @return true if this is a rising edge
+     */
+    static boolean isRisingEdge(final Block block, final int oldCurrent, final int newCurrent)
+    {
+        final boolean reportedRise = (oldCurrent == 0) && (newCurrent > 0);
+        if ((block == null) || (block.getType() != Material.DETECTOR_RAIL))
+        {
+            return reportedRise;
+        }
+        final String rail = railKey(block);
+        if (newCurrent <= 0)
+        {
+            pressedRails.remove(rail);
+            return false;
+        }
+        return pressedRails.add(rail) || reportedRise;
+    }
+
+    private static String railKey(final Block block)
+    {
+        final World world = block.getWorld();
+        return ((world == null) ? "" : world.getName()) + ',' + block.getX() + ',' + block.getY() + ','
+            + block.getZ();
     }
 
     /**
@@ -128,16 +174,12 @@ class WormholeXTremeRedstoneListener implements Listener
         {
             return false;
         }
+        // Asked first, so a rail's press or release is seen even inside a gate's own write.
+        final boolean rising = isRisingEdge(event.getBlock(), event.getOldCurrent(), event.getNewCurrent());
         // A gate opening switches its own levers, and Bukkit reports those writes back here
         // as ordinary redstone changes. They are not a player's circuit and must not act as
         // one -- doing so dialled a sign gate a second time in the middle of its first dial.
-        if (GateRedstoneWrite.inProgress())
-        {
-            return false;
-        }
-        // A rising edge is by definition a change, so this subsumes the old "did anything
-        // actually change" check rather than dropping it.
-        return (event.getOldCurrent() == 0) && (event.getNewCurrent() > 0);
+        return rising && !GateRedstoneWrite.inProgress();
     }
 
     /**

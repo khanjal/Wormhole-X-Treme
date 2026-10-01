@@ -238,6 +238,13 @@ class WormholeXTremeRedstoneListenerTest
      */
     private Stargate fireRedstoneNextToRdBlock(final Material sourceType, final int offX, final int offY, final int offZ)
     {
+        return fireRedstoneNextToRdBlock(sourceType, offX, offY, offZ, 0, 15);
+    }
+
+    /** The same, with the currents the event reports. */
+    private Stargate fireRedstoneNextToRdBlock(final Material sourceType, final int offX, final int offY, final int offZ,
+        final int oldCurrent, final int newCurrent)
+    {
         final World world = mock(World.class);
         final int dx = 200, dy = 64, dz = 300;
 
@@ -273,9 +280,74 @@ class WormholeXTremeRedstoneListenerTest
         doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
-        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, oldCurrent, newCurrent));
         StargateManager.removeStargate(gate);
         return gate;
+    }
+
+    /**
+     * A detector rail pressed on Paper 1.21.11 dials the gate.
+     *
+     * <p>Paper builds that event with both currents from the new state, so a press reads 15 to 15
+     * and was dropped as no change at all: carts rolled over the rail and the gate never opened.
+     */
+    @Test
+    void aDetectorRailReportingItsPressAsFifteenToFifteenDials()
+    {
+        final Stargate gate = fireRedstoneNextToRdBlock(Material.DETECTOR_RAIL, 1, 0, 0, 15, 15);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /** Dust reporting 15 to 15 is a signal that has not changed, and still dials nothing. */
+    @Test
+    void dustReportingFifteenToFifteenDoesNotDial()
+    {
+        final Stargate gate = fireRedstoneNextToRdBlock(Material.REDSTONE_WIRE, 0, 0, 1, 15, 15);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    private static Block rail()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+        final Block rail = mock(Block.class);
+        when(rail.getWorld()).thenReturn(world);
+        when(rail.getX()).thenReturn(7);
+        when(rail.getY()).thenReturn(64);
+        when(rail.getZ()).thenReturn(-3);
+        when(rail.getType()).thenReturn(Material.DETECTOR_RAIL);
+        return rail;
+    }
+
+    /**
+     * A rail reporting 15 to 15 is pressed once, not again until it has been seen released.
+     *
+     * <p>Without the release in between, every later 15 to 15 on the same rail would be another
+     * press, and a cart parked on a rail would dial for as long as anything re-reported it.
+     */
+    @Test
+    void aRailReportingTheNewCurrentTwiceIsPressedOncePerRelease()
+    {
+        final Block rail = rail();
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "the first press");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "still pressed");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 0), "released");
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "pressed again after the release");
+    }
+
+    /** Where the currents are reported as they were, a press is still one press and a release none. */
+    @Test
+    void aRailReportingItsOldCurrentIsPressedOncePerRelease()
+    {
+        final Block rail = rail();
+
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "the press");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 15), "no second press while held");
+        assertFalse(WormholeXTremeRedstoneListener.isRisingEdge(rail, 15, 0), "the release");
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "and the next press");
+        // A reported rise is a press even on a rail somehow still remembered as pressed.
+        assertTrue(WormholeXTremeRedstoneListener.isRisingEdge(rail, 0, 15), "0 to 15 is always a rise");
     }
 
     @Test
