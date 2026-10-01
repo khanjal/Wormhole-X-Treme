@@ -354,6 +354,13 @@ test('an entry that does not compress is stored and reads back; one that inflate
     }
     fs.writeFileSync(bomb, buf);
     assert.throws(() => zip.extractZip(bomb, path.join(d, 'b')), /does not unpack to the 100 bytes it declares/);
+    // And one that says it is bigger than it is.
+    for (const sig of [0x04034b50, 0x02014b50]) {
+      const at = buf.indexOf(Buffer.from([sig & 0xff, (sig >> 8) & 0xff, (sig >> 16) & 0xff, sig >>> 24]));
+      buf.writeUInt32LE(2000000, at + (sig === 0x04034b50 ? 22 : 24));
+    }
+    fs.writeFileSync(bomb, buf);
+    assert.throws(() => zip.extractZip(bomb, path.join(d, 'b')), /unpacks to 1000000 bytes, not the 2000000 it declares/);
   } finally {
     fs.rmSync(d, { recursive: true, force: true });
   }
