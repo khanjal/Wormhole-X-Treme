@@ -138,7 +138,7 @@ async function check(list, version) {
       try {
         grid = await design.readGrid(p.path, { dim: p.dim, at: p.at });
       } catch (e) {
-        problems.push(`${p.file}: ${e.message}`);
+        problems.push(e.message.startsWith(p.path) || e.message.startsWith(p.file) ? e.message : `${p.file}: ${e.message}`);
         continue;
       }
       problems.push(...design.pasteProblems(grid, design.protectedBoxes(version), design.skins(), `${p.file} at ${fmt(box)}`));
