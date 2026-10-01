@@ -45,12 +45,42 @@ class Blueprint {
     this.ops = [];
     this.anchors = []; // { at, block, what }: blocks the self-test reads back
     this.clear = []; // { id, box }: volumes that must be air once built
+    this.keep = []; // { id, box }: volumes no decoration may touch (see wings/decor/guard.js)
+    this.decorating = false;
   }
 
-  fill(b, block) { this.ops.push({ kind: 'fill', box: b, block }); return this; }
-  set(x, y, z, block) { this.ops.push({ kind: 'set', at: [x, y, z], block }); return this; }
-  cmd(line) { this.ops.push({ kind: 'cmd', line }); return this; }
-  anchor(x, y, z, block, what) { this.anchors.push({ at: [x, y, z], block, what }); return this; }
+  fill(b, block) { this.ops.push({ kind: 'fill', box: b, block, decor: this.decorating }); return this; }
+  set(x, y, z, block) { this.ops.push({ kind: 'set', at: [x, y, z], block, decor: this.decorating }); return this; }
+
+  /** Runs `fn` with every block op it emits marked as decoration, for the guardrail. */
+  decorate(fn) {
+    this.decorating = true;
+    try { fn(); } finally { this.decorating = false; }
+    return this;
+  }
+
+  keepClear(id, b) { this.keep.push({ id, box: b }); return this; }
+
+  /**
+   * The block volumes the decoration wrote, and the block each thing it summoned stands in (a
+   * plaque or a console's label): an entity in a cell is in a test's way as much as a block.
+   */
+  decorBoxes() {
+    const out = [];
+    for (const o of this.ops.filter((x) => x.decor)) {
+      if (o.kind === 'fill') out.push({ box: o.box, block: o.block });
+      else if (o.kind === 'set') out.push({ box: box3(...o.at, ...o.at), block: o.block });
+      else {
+        const m = /^summon (\S+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)/.exec(o.line);
+        if (!m) throw new Error(`${this.name}: a decoration command the guardrail cannot place: ${o.line.slice(0, 80)}`);
+        const [x, y, z] = m.slice(2).map((s) => Math.floor(Number(s)));
+        out.push({ box: box3(x, y, z, x, y, z), block: m[1], entity: true });
+      }
+    }
+    return out;
+  }
+  cmd(line) { this.ops.push({ kind: 'cmd', line, decor: this.decorating }); return this; }
+  anchor(x, y, z, block, what) { this.anchors.push({ at: [x, y, z], block, what, decor: this.decorating }); return this; }
   mustBeClear(id, b) { this.clear.push({ id, box: b }); return this; }
 
   /** Every block volume this blueprint writes, for the forceload and overlap checks. */
@@ -250,7 +280,7 @@ function cellShell(bp, ch, colour) {
 function cellSurrounds(bp, ch) {
   const L = cellLayout(ch);
   const g = L.gallery;
-  bp.fill(g, P.gallery);
+  bp.fill(g, ch.galleryFloor || P.gallery);
   const outer = SIDES[ch.gallery].axis === 'z'
     ? box3(g.x0, g.y0 + 1, ch.gallery === 'n' ? g.z0 : g.z1, g.x1, g.y0 + 1, ch.gallery === 'n' ? g.z0 : g.z1)
     : box3(ch.gallery === 'w' ? g.x0 : g.x1, g.y0 + 1, g.z0, ch.gallery === 'w' ? g.x0 : g.x1, g.y0 + 1, g.z1);
@@ -326,7 +356,127 @@ function chamberBoardSpec(ch) {
   return [{ text: `${ch.id.toUpperCase()} `, color: w.text, bold: true }, { text: ch.title, color: 'white', bold: true }, '\n', status];
 }
 
+// ---- decoration vocabulary (stage 3.6) --------------------------------------------------------
+//
+// Pure functions over a Blueprint, used inside `decorate`, so the guardrail sees every block they
+// write. Nothing here may reach a cell, a gate or ring or pad footprint, a lane or a keep-clear box.
+
+/** One-wide floor lines between consecutive [x, z] points, axis-aligned; throws on a diagonal. */
+function stripe(bp, points, colour, y = -1) {
+  const block = colour.includes(':') ? colour : `minecraft:${colour}_concrete`;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, az] = points[i - 1];
+    const [bx, bz] = points[i];
+    if (ax !== bx && az !== bz) throw new Error(`stripe ${JSON.stringify(points)}: ${ax},${az} to ${bx},${bz} is diagonal`);
+    bp.fill(box3(ax, y, az, bx, y, bz), block);
+  }
+}
+
+/** A floor pattern: `cells` are [dx, dz, block] from (x, z) at height y. */
+function inlay(bp, { x, z, y = -1 }, cells) {
+  for (const [dx, dz, block] of cells) bp.set(x + dx, y, z + dz, block);
+}
+
+/** A column `h` high from y0, and its cap on top (an anchor, so the self-test reads it back). */
+function pillar(bp, x, z, y0, h, { body = P.console, cap = P.guide } = {}) {
+  if (h > 0) bp.fill(box3(x, y0, z, x, y0 + h - 1, z), body);
+  if (cap) {
+    bp.set(x, y0 + h, z, cap);
+    bp.anchor(x, y0 + h, z, cap, `pillar cap at ${x} ${y0 + h} ${z}`);
+  }
+}
+
+/**
+ * A console along `axis` ('x' or 'z') from (x, y, z): one block per button, each a command block
+ * with a stone button on top that runs its command, and a small display over it. `plain` entries
+ * (no command) are copper blocks.
+ */
+function controlConsole(bp, version, { x, y, z, wing }, axis, buttons) {
+  buttons.forEach((b, i) => {
+    const bx = axis === 'x' ? x + i : x;
+    const bz = axis === 'z' ? z + i : z;
+    if (!b.command) {
+      bp.set(bx, y, bz, P.console);
+    } else {
+      bp.set(bx, y, bz, `minecraft:command_block{Command:${text.quoteSingle(b.command)},TrackOutput:0b}`);
+      bp.set(bx, y + 1, bz, 'minecraft:stone_button[face=floor,facing=south]');
+    }
+    if (b.label) bp.cmd(summonBoard(version, { id: `console_${bx}_${bz}`, wing, at: { x: bx + 0.5, y: y + 1.9, z: bz + 0.5 }, spec: [{ text: b.label, color: b.color || 'aqua', bold: true }] }));
+  });
+}
+
+/**
+ * A runway on the arrival side of a gate: `length` rows, `half` either side of the opening's
+ * centre, starting one row past the DHD button so it never touches the gate's own blocks.
+ */
+function runway(bp, geom, length, { block = 'minecraft:deepslate_bricks', half = 1, floorY = 0 } = {}) {
+  const n = geom.normal;
+  const along = n.x !== 0 ? 'x' : 'z';
+  const sign = n.x !== 0 ? n.x : n.z;
+  const start = geom.button[along] + sign;
+  const end = start + sign * (length - 1);
+  const c = Math.floor(along === 'z' ? geom.centre.x : geom.centre.z);
+  const b = along === 'z' ? box3(c - half, floorY - 1, start, c + half, floorY - 1, end) : box3(start, floorY - 1, c - half, end, floorY - 1, c + half);
+  bp.fill(b, block);
+  return b;
+}
+
+/**
+ * A deck: a floor at y over `box` (x0..x1, z0..z1), iron-bar railing one up on `rail` sides,
+ * `light` blocks in its underside every four, and optionally a stair { x0, x1, z, dir } rising
+ * towards the deck along z.
+ */
+function deck(bp, box, y, { rail = [], stair = null, floor = 'minecraft:deepslate_tiles' } = {}) {
+  bp.fill(box3(box.x0, y, box.z0, box.x1, y, box.z1), floor);
+  const edge = {
+    n: box3(box.x0, y + 1, box.z0, box.x1, y + 1, box.z0), s: box3(box.x0, y + 1, box.z1, box.x1, y + 1, box.z1),
+    w: box3(box.x0, y + 1, box.z0, box.x0, y + 1, box.z1), e: box3(box.x1, y + 1, box.z0, box.x1, y + 1, box.z1),
+  };
+  for (const side of rail) bp.fill(edge[side], P.rail);
+  for (let x = box.x0 + 1; x < box.x1; x += 4) {
+    for (let z = box.z0 + 1; z < box.z1; z += 4) bp.set(x, y - 1, z, 'minecraft:light[level=15]');
+  }
+  if (stair) {
+    // Rising north (towards smaller z) from the ground to the deck: one step per row.
+    for (let k = 0; k < y; k++) {
+      const z = stair.z - k;
+      bp.fill(box3(stair.x0, k, z, stair.x1, k, z), 'minecraft:deepslate_tile_stairs[facing=north]');
+      if (k > 0) bp.fill(box3(stair.x0, 0, z, stair.x1, k - 1, z), P.gallery);
+    }
+  }
+}
+
+/** A small display: sugar over summonBoard. */
+function plaque(version, { id, wing, at, text: words, colour = 'white', scale = 0.8, sub = null }) {
+  const spec = [{ text: words, color: colour, bold: true }];
+  if (sub) spec.push('\n', { text: sub, color: 'gray' });
+  return summonBoard(version, { id: `plaque_${id}`, wing, at, spec, scale });
+}
+
+/**
+ * A wall banner (stage 4's mirrors) with the wall rule checked against this blueprint's own ops:
+ * the block behind it and the border one out must be written solid here.
+ */
+function banner(bp, x, y, z, facing, colour = 'white') {
+  const back = { north: [0, 1], south: [0, -1], west: [1, 0], east: [-1, 0] }[facing];
+  // The last op to write the block decides it: a fill of air after a solid one leaves air.
+  const solid = (bx, by, bz) => {
+    const last = [...bp.ops].reverse().find((o) => (o.kind === 'fill'
+      && bx >= o.box.x0 && bx <= o.box.x1 && by >= o.box.y0 && by <= o.box.y1 && bz >= o.box.z0 && bz <= o.box.z1)
+      || (o.kind === 'set' && o.at[0] === bx && o.at[1] === by && o.at[2] === bz));
+    return Boolean(last) && !/^minecraft:(cave_|void_)?air$/.test(last.block);
+  };
+  const wx = x + back[0];
+  const wz = z + back[1];
+  for (const dy of [-1, 0, 1]) {
+    if (!solid(wx, y + dy, wz)) throw new Error(`banner at ${x} ${y} ${z}: no solid wall at ${wx} ${y + dy} ${wz}`);
+  }
+  bp.set(x, y, z, `minecraft:${colour}_wall_banner[facing=${facing}]`);
+  bp.anchor(x, y, z, `minecraft:${colour}_wall_banner`, `banner at ${x} ${y} ${z}`);
+}
+
 module.exports = {
   FILL_LIMIT, box3, volume, split, overlaps, interior, Blueprint, room, corridor, corridorDoorways, cellLayout, cellClear,
   cellShell, cellSurrounds, desk, deskLayout, layoutOf, plate, summonBoard, boardTags, chamberBoardSpec, SIDES,
+  stripe, inlay, pillar, console: controlConsole, runway, deck, plaque, banner,
 };
