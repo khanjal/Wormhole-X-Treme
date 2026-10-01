@@ -20,18 +20,21 @@ const { GateKit } = require('../../lib/gatekit');
 
 const O = campus.OVERWORLD;
 
+// `entities`: an entity a decoration summons (a plaque, a console's label) is in the way here too,
+// not only a block: a ring swaps everything inside it, a gate sweeps its opening, a pad beams, and
+// a cell's tests select the entities in it.
 function ring(what, dim, x, y, z, r = 3) {
-  return { what, dim, box: bp.box3(x - r, y - 1, z - r, x + r, y + 4, z + r) };
+  return { what, dim, box: bp.box3(x - r, y - 1, z - r, x + r, y + 4, z + r), entities: true };
 }
 
 function pad(what, dim, x, y, z, r = 2) {
-  return { what, dim, box: bp.box3(x - r, y - 1, z - r, x + r, y + 3, z + r) };
+  return { what, dim, box: bp.box3(x - r, y - 1, z - r, x + r, y + 3, z + r), entities: true };
 }
 
 function gate(what, dim, geom, floorY) {
   const b = geom.bounds;
   const k = geom.button;
-  return { what, dim, box: bp.box3(Math.min(b.x0, k.x), Math.min(b.y0, floorY - 2), Math.min(b.z0, k.z), Math.max(b.x1, k.x), b.y1, Math.max(b.z1, k.z)) };
+  return { what, dim, box: bp.box3(Math.min(b.x0, k.x), Math.min(b.y0, floorY - 2), Math.min(b.z0, k.z), Math.max(b.x1, k.x), b.y1, Math.max(b.z1, k.z)), entities: true };
 }
 
 /** Everything decoration may not touch, as [{ what, dim, box }]. */
@@ -46,7 +49,7 @@ function forbidden(builds) {
     }
     for (const b of bp.layoutOf(ch).footprint) out.push({ what: `${ch.id}'s footprint`, dim, box: b });
     if (ch.kind === 'cell') {
-      for (const b of bp.cellClear(ch)) out.push({ what: `${ch.id}'s clear volume`, dim, box: b });
+      for (const b of bp.cellClear(ch)) out.push({ what: `${ch.id}'s clear volume`, dim, box: b, entities: true });
       const b = ch.box;
       out.push({ what: `${ch.id}'s floor`, dim, box: bp.box3(b.x0, b.y0 - 4, b.z0, b.x1, b.y0 - 1, b.z1) });
     }
@@ -110,16 +113,24 @@ function forbidden(builds) {
     if (m.wall === 'room') out.push({ what: `the ${m.name} mirror's wall`, dim: m.dim, box: bp.box3(m.x - 1, f, m.z - s, m.x + 1, m.y + 1, m.z - s) });
     out.push({ what: `the air in front of the ${m.name} mirror`, dim: m.dim, box: bp.box3(m.x - 1, f, m.z, m.x + 1, m.y + 1, m.z + 3 * s) });
   }
+  // M1's one-per-world refusal is tried on the Annex pier's other face: the air in front of it.
+  const spare = require('../../chambers/m1-round').END_SPARE;
+  const ss = spare.facing === 'north' ? -1 : 1;
+  out.push({ what: 'the air in front of M1\'s spare banner in the End', dim: spare.dim, box: bp.box3(spare.x - 1, spare.floorY, spare.z, spare.x + 1, spare.y + 1, spare.z + 3 * ss) });
   return out;
 }
 
-/** The guardrail: every decoration box against every forbidden box in its dimension. */
+/**
+ * The guardrail: every decoration box against every forbidden box in its dimension; a summoned
+ * decoration only against the boxes an entity can be in the way in.
+ */
 function check(builds) {
   const problems = [];
   const bad = forbidden(builds);
   for (const f of builds) {
     for (const d of f.bp.decorBoxes()) {
       for (const k of bad) {
+        if (d.entity && !k.entities) continue;
         if (k.dim === f.dim && bp.overlaps(d.box, k.box)) {
           problems.push(`${f.fn}: decoration ${d.block.replace(/\{.*$/, '')} at ${fmt(d.box)} reaches into ${k.what} (${fmt(k.box)})`);
         }

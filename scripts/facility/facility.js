@@ -45,14 +45,14 @@ function clock() {
 
 class Facility {
   /** `srv` is a started Server; `manifest` is what lib/generate.js wrote. */
-  constructor({ srv, version, manifest, port, log = console.log, companions = null, mapPort = null }) {
+  constructor({ srv, version, manifest, port, log = console.log, fixed = [], companions = null, mapPort = null }) {
     Object.assign(this, { srv, version, manifest, port, log, mapPort });
     // The companion plugins installed (--with), or null for a run without --with at all.
     this.companions = companions;
     const plugins = (companions || []).map((c) => c.plugin);
     this.boards = new Boards(srv, version);
     this.config = new Config(srv);
-    this.faults = new FaultCounter(srv, { extra: plugins.length ? (line) => companionFault(line, plugins) : null });
+    this.faults = new FaultCounter(srv, { fixed, extra: plugins.length ? (line) => companionFault(line, plugins) : null });
     this.afterRestart = [];
     this.restarting = false;
     this.entries = chambers.entries();
@@ -242,6 +242,17 @@ class Facility {
       [campus.END, ['enderman', 'shulker', 'endermite']]]) {
       for (const t of types) await this.srv.run(`execute in ${dim} run kill @e[type=minecraft:${t}]`);
     }
+    // And the animals a plains chunk is generated with, which no gamerule stops (spawn-animals
+    // cannot be off: before 1.21 it discards a summoned animal too). Nothing is stocked yet, so
+    // every one is a stray that could wander into a lane.
+    let strays = 0;
+    for (const t of ['sheep', 'pig', 'chicken', 'cow', 'horse', 'donkey', 'rabbit']) {
+      const r = await this.srv.run(`execute in ${campus.OVERWORLD} run kill @e[type=minecraft:${t}]`);
+      const m = r.lines.map((l) => /Killed (\d+)/.exec(l)).find(Boolean);
+      if (m) strays += Number(m[1]);
+      else if (r.lines.some((l) => /^Killed /.test(l))) strays++;
+    }
+    out.push({ id: 'strays', ok: true, detail: `${strays} animals from chunk generation killed` });
     try {
       await this.menagerie.stock();
       out.push({ id: 'menagerie', ok: true, detail: 'stocked' });
@@ -516,6 +527,12 @@ class Facility {
       lap('reset');
       if (!reset.ok) throw Object.assign(new Error(`reset before staging: ${reset.detail}`), { phase: 'fixture' });
       await this.srv.run(`kill @e[tag=${ctx.tag}]`);
+      // The reset empties the cell, fixture and all (G2's gallery): put the fixture back, or the
+      // run dials gates whose frames and floor are gone.
+      if (ch.fixture) {
+        try { await ch.fixture(ctx); } catch (err) { err.phase = 'fixture'; throw err; }
+        lap('fixture');
+      }
       await bar.advance('applying settings');
       const needs = ch.needs ? ch.needs(v) : {};
       await this.config.apply(needs.config || {}, e.def.id);

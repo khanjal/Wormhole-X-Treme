@@ -206,7 +206,8 @@ module.exports = {
       await kit.drop(ctx.probe, 'place', name);
     }
     if (p2 && !p2.gone) {
-      const listed = (/Your places: (.*)$/.exec(await kit.places(p2)) || [null, ''])[1];
+      // Up to the next message: what Probe2 was told is joined with " / ", and a name has no "/".
+      const listed = (/Your places: ([^/]*?)(?: \/ |$)/.exec(await kit.places(p2)) || [null, ''])[1];
       for (const name of listed.split(', ').filter((n) => /^Pad-/.test(n))) await kit.drop(p2, 'place', name);
     }
     await ctx.server.run(`kill @e[tag=${ctx.tag}]`);

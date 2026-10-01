@@ -244,6 +244,13 @@ refused with the reason. A check is a fact recorded during the run: what Probe's
 in the opening, where Probe is, what a tick function in the datapack caught at the far exit on
 the first tick it was there (position, motion, and whether it is the same entity), and what the
 plugin said. The cells named `491-*` run a cart at a shut iris and track its front every tick.
+Probe plays every player traveller in creative mode, except the trident, thrown in survival: a creative player keeps a thrown trident and never picks one up, so
+"it came back" would hold whatever happened. A check that something was stopped is read after a
+check that it was sent: the tick function counts each launch and keeps the first one's data (a
+tipped arrow is checked to be one as it leaves), a shut iris is checked shut at its lever, a
+vehicle at a shut iris must have run at it, and the tossed and dispensed items must all have left
+Probe's hand or the dispenser and be accounted for, arrived or lying on this side, before "every
+one came out" is read.
 
 Each wing is also decorated (stage 3.6), from `wings/decor/<wing>.js`: a floor stripe in the
 department's colour from the entrance to every door, and a wayfinding tab at each fork; in Ops a
@@ -257,10 +264,13 @@ dial-home consoles and blast walls or pillars at the far sites. The Transit tab 
 Decoration can never get in a test's way: `validateLayout` checks every block a `decorate`
 function writes against every cell's clear volume, floor and footprint, the far and transit
 gates (with their buttons, pits and aprons), every ring and beam pad outside a cell, the lanes,
-the plates, the walk-in lines, the stage 4 mirror spots and every structural anchor, and refuses
-to write the pack if one overlaps, naming both. It also refuses any block 1.20.4 does not know
-(read from `minecraft-data`), so a newer name fails at compile time rather than as a function
-that silently fails to load on the older server. `WX_PLAIN=1` builds without the decoration.
+the plates, the walk-in lines, the stage 4 mirror spots (M1's spare in the End too) and every
+structural anchor, and every plaque or label it summons against the cells, gates and pads, where an
+entity is in the way as much as a block; and refuses to write the pack if one overlaps, naming
+both. It also refuses any block 1.20.4 does not know (read from `minecraft-data`), so a newer name
+fails at compile time rather than as a function that silently fails to load on the older server.
+The decoration is always built: the far sites' mirror piers and Dial Ops consoles are part of it
+and carry tests.
 
 The ring chambers (stage 3) pair two circles of slabs by the console form `ring build` (public)
 or as Probe with `ring create` in each (private, Probe's), and send one traveller: Probe on foot,
@@ -312,7 +322,8 @@ resets, 368 with stage 4's mirrors and cross-world rows) and takes about an hour
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
-and two dispatches, a mirror round and its hold, a wall refusal, a capture, a horse to the Range, a pad in the End,
+and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
+banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
 and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
@@ -326,27 +337,41 @@ not by count: every self-test writes each cell's seconds to
 `.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
 the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
 resets, empty, settings and faults sections run on every shard, since they guard that
-shard's own world, so a sharded summary has more checks than a single run (705 against 486 at
-N = 4); transit, plates, boards, players and console run once, on the first shard. On this machine
+shard's own world, so a sharded summary has more checks than a single run (722 at N = 4, with
+the checks added in stage 4.5's review, which took 18.1 minutes); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
 CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
 is the one to use here. `--quick` on two versions at once takes about 13 minutes.
 
 A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
 close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
-it closed them, and every end Probe can see is drawn shut within 5 seconds (a chamber's `shut`,
-run by `runChamber` after `checks`). The transit routes do the same, except Ops to Hall, which
-still waits for `timeout-shutdown` because that is what it tests.
+it closed them, and every end Probe can see, once seen drawn open (up to 8 s: a probe that has just
+arrived is not shown the opening at once), is drawn shut within 5 seconds (a chamber's `shut`, run
+by `runChamber` after `checks`). An end never seen open fails that check rather than passing as
+"not drawn". The transit routes do the same, except Ops to Hall, which still waits for
+`timeout-shutdown` because that is what it tests.
+
+A cell that holds a session fixture (G2's gallery) has it put back after the reset `runChamber`
+does before each run, and G2 checks both its gates stand whole before the trip. (Before, it dialled
+a gallery the reset had floored over, and `g2 Horizontal` passed only because of it: walked to, a
+flat gate stops Probe at the rim, so Probe is now dropped into it, as in G1.) The plugin draws a
+gate's opening only to players within 64 blocks, so only ends within that are judged shut.
 
 Players in the facility do not go hungry or get hurt: every player is given infinite Saturation
 and Resistance 255 on joining and every five seconds after, and the player damage gamerules (fall,
 fire, drowning, freezing) are off in all three worlds. Mobs are not shielded. The `players`
-section checks a non-op Tester stays at full health and food after a fall and an arrow, and that a
-pig dropped ten blocks still comes down hurt.
+section checks a non-op Tester stays at full health and food after a fall and an arrow, that a
+pig dropped ten blocks still comes down hurt, and reads the four gamerules back in each world (the
+shield alone would keep Tester whole). The animals a plains chunk is generated with, which no
+gamerule stops, are killed before the Menagerie is stocked.
 
 A plugin fault that is a known plugin bug is reported as known, with its note, the way a matrix
-cell's known failure is (`KNOWN_FAULTS` in `lib/server.js`): so far the mirror capture that is not
-written when two captures finish at once (`MirrorCapture.save` races on creating its folder).
+cell's known failure is (`KNOWN_FAULTS` in `lib/server.js`): so far #540, the mirror capture that is
+not written when two captures finish at once (`MirrorCapture.save` races on creating its folder;
+fixed on main). It is known only with that cause: the stack trace printed after the line must be
+the "could not create ...captures" from `MirrorCapture.save`, and the folder must be there now; the
+same words with another cause (a full disk, a folder that cannot be made) are a fault. `--fixed 540`
+counts it as a fault as well.
 
 `--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
 expected to fail by the name of its failing check and is listed at the end of the run as a known
@@ -451,11 +476,20 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
 Known plugin failures (stage 2), each expected by name in `matrix.js`:
 
 - #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
-  the far end and does not copy the arrow's potion.
+  the far end and does not copy the arrow's potion. The arrow is checked to leave the bow as a
+  tipped arrow of slowness (`item: tipped_arrow` with `potion_contents` slowness on 1.21.11) and
+  arrives as `item: arrow` with none.
+- Not yet filed, the same family: a Loyalty trident comes out of the far gate as a plain trident
+  (its `item` has no enchantments; only its `weapon` still has Loyalty III), sticks where it lands
+  and never comes back. Thrown in survival away from any gate, the same trident is back in about a
+  second. (While Probe threw in creative, "it came back" passed without it.)
 - #537: an item tossed (Q) or dispensed into an upright opening mostly flies through its one block
-  between two of the plugin's entity sweeps (every 20 ticks) and lands behind the gate; of five
-  tossed, one came out of Relay, and of five dispensed, none. Only an item lying in the opening when
-  a sweep runs is sent (as itself, name and enchantment intact: the lying-item cell passes). A
+  between two of the plugin's entity sweeps (every 20 ticks) and lands two to four blocks behind the
+  gate. With the harness checked first (all five left Probe's hand or the dispenser, which is empty
+  after five pulses, and all five are accounted for), on 1.21.11 0, 1 and 2 of five tossed came out
+  of Relay and 0, 0 and 3 of five dispensed; on 1.20.4, 2 tossed and 0 dispensed. So "none of the
+  dispensed arrive" is not always so: most do not. Only an item lying in the opening when a sweep
+  runs is sure to be sent (as itself, name and enchantment intact: the lying-item cell passes). A
   broken hopper cart's drops scatter, so whether they are sent is chance; that cell is left out.
 - #491: a cart run at a shut iris is stopped with half of it inside the drawn iris, because the
   plugin checks only the block the cart's centre is in (`491-A`, `-B`, `-C`, `-E`; fixed on

@@ -50,7 +50,9 @@ module.exports = {
     if (o.edit === 'allow' || o.edit === 'deny') obs.allow = await kit.ask(`/wormhole ring allow Probe2 ${obs.id}`, { until: /may now use|could already/ });
     if (o.edit === 'deny') obs.deny = await kit.ask(`/wormhole ring deny Probe2 ${obs.id}`, { until: /may no longer use|was not on the list/ });
     if (o.edit === 'owner') {
-      await ctx.facility.second();
+      // Probe2's own list before the hand-over, so "it now finds it" is a change, not a pair a
+      // non-op is shown anyway.
+      obs.listedBefore = await new RingKit(ctx.server, await ctx.facility.second()).list();
       obs.edit = await kit.ask(`/wormhole ring owner Probe2 ${obs.id}`, { until: /Handed|already owns|not your ring pair|limit/ });
     }
   },
@@ -110,6 +112,8 @@ module.exports = {
       list.push(c('Probe came out at the other end', () => obs.arrivals && arrived(obs.probeArrived, obs.arrivals[1])));
     } else if (o.edit === 'owner') {
       list.push(c('"Handed <id> to Probe2."', () => new RegExp(`Handed ${obs.id} to Probe2\\.`).test(obs.edit || '')));
+      list.push(c('Probe2 (not an op) did not find it in its own ring list before', () => obs.listedBefore && /You have no transport rings|—/.test(obs.listedBefore.text)
+        && !obs.listedBefore.text.includes(obs.id)));
       list.push(c('Probe2 (not an op) now finds it in its own ring list', () => obs.listed && obs.listed.text.includes(obs.id)));
     } else {
       list.push(c('"Access set to PRIVATE."', () => /Access set to PRIVATE\./.test(obs.edit || '')));

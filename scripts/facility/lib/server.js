@@ -367,10 +367,16 @@ const KNOWN_FAULTS = [
     // MirrorCapture.save: `!parent.isDirectory() && !parent.mkdirs()` then throw. Two captures
     // finishing together (the transit mirrors, at fixture time) each find the folder missing; the
     // one whose mkdirs loses the race throws "could not create ...\\captures", and that capture
-    // is never written (it stays in memory). Seen on 1.21.11 in a sharded run and in three servers
-    // started together.
-    note: 'a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',
-    issue: null,
+    // is never written (it stays in memory). Fixed on main by #540; `--fixed 540` counts it.
+    // Known only with that cause: the trace names it, from MirrorCapture.save, and the folder is
+    // there now (the other capture made it). A folder that is still missing is a real failure.
+    note: '#540: a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',
+    issue: '540',
+    cause(trace, folder) {
+      const made = trace.map((l) => /java\.io\.IOException: could not create (.*[\\/]captures)\s*$/.exec(l)).find(Boolean);
+      const where = trace.some((l) => /^\s+at com\.wormhole_xtreme\.wormhole\.model\.mirror\.MirrorCapture\.save\(/.test(l));
+      return Boolean(made) && where && fs.existsSync(path.resolve(folder || '.', made[1]));
+    },
   },
 ];
 

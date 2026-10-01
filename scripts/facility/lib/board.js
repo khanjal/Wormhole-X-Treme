@@ -96,26 +96,46 @@ class RunBar {
  * not bind its port), or null.
  */
 class FaultCounter {
-  constructor(srv, { extra = null } = {}) {
+  /** `fixed`: issues the plugin jar carries the fix for (--fixed); their known faults are faults. */
+  constructor(srv, { fixed = [], extra = null } = {}) {
     this.srv = srv;
+    this.fixed = fixed;
     this.faults = [];
-    // Known plugin bugs (server.KNOWN_FAULTS): reported, not counted as new faults. The stack
-    // trace a known fault prints belongs to it.
+    // Known plugin bugs (server.KNOWN_FAULTS): reported, not counted as new faults. A line that
+    // reads like one is held with the stack trace printed after it, and is known only if the
+    // trace shows the bug's cause; anything else with the same words is a fault like any other.
     this.known = [];
+    this.pending = null;
     this.onChange = null;
-    let inKnownTrace = false;
     srv.on('line', (line) => {
-      const f = server.pluginFault(line) || (extra && extra(line));
       const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
-      if (logLine) inKnownTrace = false;
+      if (this.pending && !logLine) { this.pending.trace.push(line); return; }
+      if (logLine) this.settle();
+      const f = server.pluginFault(line) || (extra && extra(line));
       if (!f) return;
       const k = server.knownFault(f);
-      if (k) { this.known.push({ line: f, note: k.note, issue: k.issue }); inKnownTrace = true; } else if (!inKnownTrace) this.faults.push(f);
+      if (k && !(k.issue && fixed.includes(k.issue))) this.pending = { line: f, k, trace: [] };
+      else this.faults.push(f);
       if (this.onChange) this.onChange(this);
     });
   }
 
+  /** Decides a held line: known if its trace shows the known cause, else a fault with its frames. */
+  settle() {
+    const p = this.pending;
+    if (!p) return;
+    this.pending = null;
+    if (p.k.cause(p.trace, this.srv.folder)) {
+      this.known.push({ line: p.line, note: p.k.note, issue: p.k.issue });
+    } else {
+      const cause = p.trace.find((l) => /Exception|Error/.test(l));
+      this.faults.push(`${p.line}${cause ? ` (${cause.trim()})` : ''}`, ...p.trace.map((l) => server.pluginFault(l)).filter(Boolean));
+    }
+    if (this.onChange) this.onChange(this);
+  }
+
   get count() {
+    this.settle();
     return this.faults.length;
   }
 

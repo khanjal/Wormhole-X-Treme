@@ -128,6 +128,35 @@ class GateKit {
   }
 
   /**
+   * Whether the plugin draws this gate's opening to the probe at all: same world, within its
+   * VISUAL_RADIUS (64, StargateBlockSetup) with a margin. Beyond it an end is never drawn, open or
+   * shut, so there is nothing to judge.
+   */
+  static drawnTo(probe, geom, dim) {
+    const c = geom.centre;
+    return probe.dimension === dim && Math.hypot(probe.position.x - c.x, probe.position.y - c.y, probe.position.z - c.z) <= 60;
+  }
+
+  /**
+   * Waits (bounded) until Probe's client is shown something other than air in the middle of a
+   * gate's opening: drawn open (portal or iris). "Shut" is only judged of a gate seen open first,
+   * or an opening never drawn at all would pass. A probe that has just arrived is not shown the
+   * opening at once. Null if the opening is not in Probe's view at all.
+   */
+  async waitDrawn(probe, geom, ms = 8000) {
+    const { Vec3 } = require('vec3');
+    const mid = geom.opening[Math.floor(geom.opening.length / 2)];
+    const shown = () => { const b = probe.bot.blockAt(new Vec3(mid.x, mid.y, mid.z)); return b ? b.name : null; };
+    if (shown() === null) return null;
+    const deadline = Date.now() + ms;
+    for (;;) {
+      if (!['air', 'cave_air'].includes(shown())) return true;
+      if (Date.now() > deadline) return false;
+      await ticks(2);
+    }
+  }
+
+  /**
    * Waits (bounded) until Probe's client is shown air in every opening cell of a gate: shut, its
    * portal and iris gone. Null if the opening is not in Probe's view at all (another world, or
    * too far), so a caller only judges a gate it can see.

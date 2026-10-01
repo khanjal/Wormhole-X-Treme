@@ -266,6 +266,16 @@ async function selftest(fac, {
       check('players', 'and is not hungry', tester.food === 20, `food ${tester.food}`);
       check('players', 'a pig dropped ten blocks still takes damage', Number.isFinite(hp) && hp < 10, mobHealth);
       await srv.run(`kill @e[tag=${mob}]`);
+      // The shield alone keeps Tester whole, so the gamerules are read back: off in every world.
+      const { gameruleName } = require('./lib/server');
+      const on = [];
+      for (const dim of [campus.OVERWORLD, campus.NETHER, campus.END]) {
+        for (const rule of ['fallDamage', 'fireDamage', 'drowningDamage', 'freezeDamage']) {
+          const r = await srv.run(`execute in ${dim} run gamerule ${gameruleName(fac.version, rule)}`);
+          if (!r.lines.some((l) => /(set to|is currently)[^\n]*\bfalse\b/i.test(l))) on.push(`${rule} in ${dim.replace('minecraft:', '')}: ${r.lines.join(' ') || r.errors.join(' ')}`);
+        }
+      }
+      check('players', 'the player damage gamerules are off in all three worlds', on.length === 0, on.join('; ') || '12 of 12 read back false');
     } finally {
       tester.quit();
     }
@@ -292,7 +302,7 @@ async function selftest(fac, {
     const keep = [...fac.keepRings];
     check('empty', 'only the transit ring pair', JSON.stringify(listing.rings) === JSON.stringify(keep), `listed ${listing.ringText || 'none'}; kept ${keep.join(', ') || 'none'}`);
     const beams = campus.ROUTES.beams.map((b) => b.name).sort();
-    const listedBeams = (/Beam destinations: (.*)$/.exec(listing.beams) || [null, ''])[1].split(', ').filter(Boolean).sort();
+    const listedBeams = (/Beam destinations: ([^/]*?)(?: \/ |$)/.exec(listing.beams) || [null, ''])[1].split(', ').filter(Boolean).sort();
     check('empty', 'only the transit beam destinations', JSON.stringify(listedBeams) === JSON.stringify(beams), listing.beams);
     const { BeamKit } = require('./lib/beams');
     const bk = new BeamKit(srv);

@@ -53,6 +53,17 @@ module.exports = {
     for (const g of gallery()) await kit.force(g.name);
     ctx.observed.from = gallery().find((g) => g.name === o.gate);
     ctx.observed.to = gallery().find((g) => g.name === neighbour(o.gate));
+    // Both gates stand whole as the trip starts: the cell's reset wipes the gallery, and dialling
+    // gates whose frames are gone proves little.
+    ctx.observed.gaps = [];
+    for (const g of [ctx.observed.from, ctx.observed.to]) {
+      // Forty spread over the frame is plenty: a wipe takes every block, and Massive has 460.
+      const step = Math.ceil(g.geom.frame.length / 40);
+      for (const p of g.geom.frame.filter((_, i) => i % step === 0)) {
+        const r = await ctx.server.run(`execute if block ${p.x} ${p.y} ${p.z} minecraft:air`);
+        if (r.lines.some((l) => /Test passed/.test(l))) ctx.observed.gaps.push(`${g.name} ${p.x} ${p.y} ${p.z}`);
+      }
+    }
   },
 
   async run(ctx) {
@@ -65,8 +76,15 @@ module.exports = {
     ctx.observed.dial = (await kit.dial(from.name, to.name)).text;
     ctx.observed.drawn = await kit.waitOpen(probe, g).catch((e) => { ctx.observed.openError = e.message; return null; });
     if (!ctx.observed.drawn) return;
-    const target = g.flat ? { x: g.centre.x, z: g.centre.z } : { x: g.centre.x, z: Math.floor(g.opening[0].z) + 0.5 - g.normal.z * 2.5 };
-    await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.distanceTo(to.geom.arrival) < 3 }).catch(() => {});
+    if (g.flat) {
+      // A flat gate is stepped into, as G1 does it: Probe is put just above the middle of the
+      // opening and falls. (Walked to, it stops at the rim of the hole; it only ever passed on a
+      // gallery the pre-run reset had floored over.)
+      await probe.teleport({ x: g.centre.x, y: G.floorY + 0.2, z: g.centre.z }, O).catch(() => {});
+    } else {
+      const target = { x: g.centre.x, z: Math.floor(g.opening[0].z) + 0.5 - g.normal.z * 2.5 };
+      await probe.walkTo(target, { within: 0.4, ms: 15000, until: () => probe.distanceTo(to.geom.arrival) < 3 }).catch(() => {});
+    }
     const end = Date.now() + 4000;
     while (Date.now() < end && probe.distanceTo(to.geom.arrival) >= 1.5) await ticks(5);
     await probe.settle();
@@ -77,6 +95,7 @@ module.exports = {
     const obs = ctx.observed;
     const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
     return [
+      c(`${obs.from ? obs.from.name : 'the gate'} and ${obs.to ? obs.to.name : 'its neighbour'} stood whole (no frame block missing)`, () => obs.gaps && obs.gaps.length === 0),
       c('the dial connected', () => /Stargates connected/.test(obs.dial || '')),
       c('the opening was drawn', () => Boolean(obs.drawn)),
       c(`Probe came out of ${obs.to ? obs.to.name : 'the neighbour'}`, () => obs.landed !== undefined && obs.landed < 1.5),
@@ -88,12 +107,18 @@ module.exports = {
     const obs = ctx.observed;
     if (!/Stargates connected/.test(obs.dial || '')) return [];
     const kit = new GateKit(ctx.server);
+    // Each end the plugin draws to Probe (within 64: Horizontal's neighbour Massive is 99 off), seen
+    // drawn open before the close, or an opening never drawn would read as shut.
+    const judged = [obs.from, obs.to].filter((g) => GateKit.drawnTo(ctx.probe, g.geom, O));
+    const seen = [];
+    for (const g of judged) seen.push((await kit.waitDrawn(ctx.probe, g.geom)) === true);
     obs.closed = [];
     for (const g of [obs.from, obs.to]) obs.closed.push((await kit.force(g.name)).text);
     const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
     return [
       c('closed by command: "<gate> has been closed, ..."', () => obs.closed.every((t) => /has been closed/.test(t))),
-      ...[obs.from, obs.to].map((g) => c(`${g.name} shut on command: its opening is no longer drawn`, async () => (await kit.waitShut(ctx.probe, g.geom)) === true)),
+      ...judged.map((g, i) => c(`${g.name} shut on command: drawn open before, and its opening no longer drawn`,
+        async () => seen[i] && (await kit.waitShut(ctx.probe, g.geom)) === true)),
     ];
   },
 
