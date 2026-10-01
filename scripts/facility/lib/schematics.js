@@ -121,6 +121,11 @@ function install(serverFolder, list) {
   for (const p of list) fs.copyFileSync(p.path, path.join(dir, `wx_${p.file}`));
 }
 
+/** `s` as a regular expression that matches it and nothing else. */
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * The first log line from now on matching `re`, within `ms`: { line: Promise (rejects at the
  * deadline), cancel() }. Cancelled, it stops listening and its timer goes.
@@ -174,7 +179,7 @@ async function paste(srv, placed, { loadMs = 120000 } = {}) {
         await say(`${we}pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
         // /schem load reads the file off the main thread and says so later: wait for that line,
         // this file's own, loaded or refused.
-        const esc = name.replace(/[.]/g, '\\.');
+        const esc = escapeRegExp(name);
         const done = new RegExp(`${esc} loaded\\. Paste it`, 'i');
         // WorldEdit's refusals of a file it found but cannot read name no file ("Unknown schematic
         // format: sponge.3.", "This schematic version is currently not supported. Version: 3."), so
@@ -244,4 +249,4 @@ function writeSchem(file, { size, blocks, dataVersion }) {
   fs.writeFileSync(file, zlib.gzipSync(nbt.writeUncompressed(root)));
 }
 
-module.exports = { readSchem, placedBox, placements, check, install, paste, writeSchem, turn, WORLDS };
+module.exports = { escapeRegExp, readSchem, placedBox, placements, check, install, paste, writeSchem, turn, WORLDS };

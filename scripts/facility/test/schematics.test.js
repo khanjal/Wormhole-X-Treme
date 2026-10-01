@@ -145,3 +145,17 @@ for (const refusal of ['Unknown schematic format: sponge.3.', 'This schematic ve
     assert.ok(!srv.sent.includes('/paste'));
   });
 }
+
+test('a file name with regular-expression characters waits for its own "loaded" line, not a look-alike', async () => {
+  // placements() allows only [\w.-] names; paste() must not lean on that. As a pattern, a+b would
+  // match wx_aab and (c) would match wx_c: each look-alike is said first, then the real one.
+  for (const [file, lookAlike] of [['a+b.schem', 'wx_aab.schem'], ['(c).schem', 'wx_c.schem'], ['d.e.schem', 'wx_dxe.schem']]) {
+    const srv = fakeServer([[/^\/schem load/, () => ({ lines: [], later: [`[INFO]: ${lookAlike} loaded. Paste it with //paste`] })], ...OK]);
+    const out = await sch.paste(srv, [place(file, 1)], { loadMs: 300 });
+    assert.strictEqual(out[0].ok, false, `${file} took ${lookAlike}'s line for its own`);
+    assert.ok(!srv.sent.includes('/paste'), file);
+    const own = fakeServer([[/^\/schem load/, () => ({ lines: [], later: [`[INFO]: ${lookAlike} loaded. Paste it with //paste`, `[INFO]: wx_${file} loaded. Paste it with //paste`] })], ...OK]);
+    const ok = await sch.paste(own, [place(file, 1)], { loadMs: 2000 });
+    assert.strictEqual(ok[0].ok, true, `${file}: ${ok[0].detail}`);
+  }
+});
