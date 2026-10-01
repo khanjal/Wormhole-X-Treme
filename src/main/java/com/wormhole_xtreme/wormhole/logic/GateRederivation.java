@@ -797,14 +797,15 @@ public final class GateRederivation
     /**
      * Whether detection takes this block in this cell, by the rule {@code StargateHelper} applies: a
      * frame cell takes the frame material, or the chevron material where it lights; a {@code [C]} cell
-     * takes only the chevron material, or the frame material when the gate has none.
+     * takes only the chevron material, or the frame material when the gate has none; an {@code [S:C]}
+     * cell takes either.
      */
     private static boolean detectionTakes(final GateBlueprint.Cell cell, final Material found,
         final Material frame, final Material chevron)
     {
         if (cell.part() == GateBlueprint.Part.CHEVRON)
         {
-            return found == ((chevron != null) ? chevron : frame);
+            return (found == ((chevron != null) ? chevron : frame)) || (cell.lenient() && (found == frame));
         }
         return (found == frame) || ((chevron != null) && (found == chevron) && (cell.wave() > 0));
     }

@@ -31,7 +31,10 @@ public final class GateBlueprint
     {
         /** A frame block, or a chevron that may be built from the frame material. */
         FRAME,
-        /** A {@code [C]} cell, which must be the chevron material when the gate has one. */
+        /**
+         * A {@code [C]} cell, which must be the chevron material when the gate has one, or an
+         * {@code [S:C]} cell, which takes the frame material too.
+         */
         CHEVRON,
         /** The button on the DHD, in front of its activation block. */
         BUTTON,
@@ -58,9 +61,18 @@ public final class GateBlueprint
      *            whether it belongs to the DHD rather than the ring
      * @param layer
      *            the shape layer it is built in, from 1, or 0 where that is not known
+     * @param lenient
+     *            whether a {@code [S:C]} chevron, which takes the frame material too
      */
-    public record Cell(int x, int y, int z, Part part, int wave, boolean dhd, int layer)
+    public record Cell(int x, int y, int z, Part part, int wave, boolean dhd, int layer, boolean lenient)
     {
+        /** A cell that is not a lenient chevron. */
+        public Cell(final int x, final int y, final int z, final Part part, final int wave, final boolean dhd,
+            final int layer)
+        {
+            this(x, y, z, part, wave, dhd, layer, false);
+        }
+
         /** A cell of the ring, in no particular layer. */
         public Cell(final int x, final int y, final int z, final Part part, final int wave)
         {
@@ -272,7 +284,7 @@ public final class GateBlueprint
             final boolean dhdLayer = waves.isEmpty() && layer.getLayerPortalPositions().isEmpty()
                 && !edgesOpening(layer, layers.get(layerIdx - 1));
             addAll(cells, grid, layerIdx, layer.getLayerBlockPositions(), Part.FRAME, waves, dhdLayer);
-            addAll(cells, grid, layerIdx, layer.getLayerChevronPositions(), Part.CHEVRON, waves, dhdLayer);
+            addChevrons(cells, grid, layerIdx, layer, waves, dhdLayer);
             if (layerIdx == shape.getShapeActivationLayer())
             {
                 addInFront(fronts, grid, layerIdx, layer.getLayerActivationPosition(), Part.BUTTON);
@@ -414,6 +426,25 @@ public final class GateBlueprint
             final int col = pos[2].intValue();
             cells.add(new Cell(grid.x(layerIdx, col), grid.y(row), grid.z(layerIdx, col), part,
                 waves.getOrDefault(StargateHelper.cellKey(pos), 0), dhd, layerIdx));
+        }
+    }
+
+    /** A layer's chevron cells, each marked lenient where the shape wrote {@code [S:C]}. */
+    private static void addChevrons(final List<Cell> cells, final GateGrid grid, final int layerIdx,
+        final StargateShapeLayer layer, final Map<Long, Integer> waves, final boolean dhd)
+    {
+        final Set<Long> lenient = new HashSet<>();
+        for (final Integer[] pos : layer.getLayerLenientChevronPositions())
+        {
+            lenient.add(StargateHelper.cellKey(pos));
+        }
+        for (final Integer[] pos : layer.getLayerChevronPositions())
+        {
+            final int row = pos[1].intValue();
+            final int col = pos[2].intValue();
+            final long key = StargateHelper.cellKey(pos);
+            cells.add(new Cell(grid.x(layerIdx, col), grid.y(row), grid.z(layerIdx, col), Part.CHEVRON,
+                waves.getOrDefault(key, 0), dhd, layerIdx, lenient.contains(key)));
         }
     }
 

@@ -19,6 +19,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
   between two entity sweeps and landed behind the ring; a shut iris destroys them as before.
+- **The build guide takes the frame block in an `[S:C]` chevron, as detection does.** A gate built
+  that way was detected but never shown as built, `gate preview needs` named only the chevron
+  block, and `gate regen -fill` refused to fill a gate with one.
 
 ### Performance
 
