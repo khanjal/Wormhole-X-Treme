@@ -1247,8 +1247,12 @@ class StargateBlockSetup
         }
         else if (isLayered(gate))
         {
-            // Iris and horizon, stacked from whichever side this player is on.
-            sendLayeredTo(player, gate);
+            // Iris and horizon, stacked from whichever side this player is on. Not mid-sweep:
+            // the sweep draws both a ring at a time, and stacks the gate itself when it ends.
+            if (!StargateIrisAnimator.isSweeping(gate))
+            {
+                sendLayeredTo(player, gate);
+            }
         }
         else if (gate.isGateIrisActive())
         {
@@ -1378,13 +1382,18 @@ class StargateBlockSetup
         // the moment an older world's built iris can be taken out. It matches nothing once it
         // has run, so it costs a type check per cell after that.
         BuiltIrisUpgrade.clearLeftover(gate);
-        final BlockData irisData =
-            MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
-        for (final Location bc : gate.getGatePortalBlocks())
+        // Mid-sweep the sweep is drawing the iris a ring at a time; the whole of it sent now
+        // would show the player who pulled the lever the finished iris before it had arrived.
+        if (!StargateIrisAnimator.isSweeping(gate))
         {
-            player.sendBlockChange(
-                new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
-                irisData);
+            final BlockData irisData =
+                MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
+            for (final Location bc : gate.getGatePortalBlocks())
+            {
+                player.sendBlockChange(
+                    new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                    irisData);
+            }
         }
         // Chevrons stay lit behind a shut iris on an open gate, and a player who arrives after
         // it shut is owed those too -- the portal path sends them, and this one skips it.

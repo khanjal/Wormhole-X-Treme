@@ -22,6 +22,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **The build guide takes the frame block in an `[S:C]` chevron, as detection does.** A gate built
   that way was detected but never shown as built, `gate preview needs` named only the chevron
   block, and `gate regen -fill` refused to fill a gate with one.
+- **The player who pulls an iris lever sees the iris sweep in, as everyone else does.** Their own
+  arm swing redrew the whole iris a tick later, over the sweep.
 
 ### Performance
 
