@@ -230,4 +230,19 @@ for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;
 }
 
-module.exports = { MATRIX, QUICK, defaultsOf, expectation };
+// The companion desks' cells (companion-matrix.js), each marked `with` or `without`.
+Object.assign(MATRIX, require('./companion-matrix').CELLS);
+
+/**
+ * Whether a cell belongs in this run: one marked `with` only when every companion it names is
+ * installed; one marked `without` (the paired run: the plugin must do without that companion)
+ * only when --with was given and none it names is. `companions` is the --with list, or null for
+ * a run without --with, which runs neither kind: the default self-test is what it always was.
+ */
+function applies(cell, companions) {
+  if (cell.with) return Boolean(companions) && cell.with.every((c) => companions.includes(c));
+  if (cell.without) return Boolean(companions) && !cell.without.some((c) => companions.includes(c));
+  return true;
+}
+
+module.exports = { MATRIX, QUICK, defaultsOf, expectation, applies };

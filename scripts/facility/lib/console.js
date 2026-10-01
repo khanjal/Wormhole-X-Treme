@@ -91,6 +91,7 @@ function listen(bot) {
 //   2            the Transit tab;  3 + t: transit action t (TRANSIT_ACTIONS)
 //   10 + w       wing tab w (index into the wing list)
 //   30 + w       go to wing w
+//   50 + g       put me in tester group g (only with LuckPerms: `groups`)
 //   N*10000 + o*100 + v    chamber N (1-based): option o (0..98) set to its value v,
 //   N*10000 + 9900 + a     or action a on it (ACTIONS below)
 
@@ -109,6 +110,8 @@ const TRANSIT_ACTIONS = [
 ];
 const TAB = 10;
 const GO = 30;
+// 50 + g: put me in tester group g (with LuckPerms installed: lib/groups.js).
+const GROUP = 50;
 const ACTION_OPTION = 99;
 const ACTIONS = ['show', 'run', 'stage', 'reset', 'watch', 'again'];
 const ACTION_WORDS = { run: '▶ Run', stage: '◇ Stage', reset: '↺ Reset', watch: '⌖ Watch', again: '⟳ Again' };
@@ -135,12 +138,13 @@ function normaliseOptions(options = {}) {
  *   run(player, entry, action)       action is run | stage | reset | again
  *   watch(player, entry)             to the gallery seat
  *   go(player, wing)                 to a wing's entrance
+ *   group(player, group)             into a tester group (with `groups`: [{ id, why }], or null)
  * `entries` are the chambers in console order: { number, def (campus entry), chamber (module or
  * null), values: { option: index } }.
  */
 class FacilityConsole {
-  constructor({ srv, version, bot, wings, entries, handlers, status }) {
-    Object.assign(this, { srv, version, bot, wings, entries, handlers, status });
+  constructor({ srv, version, bot, wings, entries, handlers, status, groups = null }) {
+    Object.assign(this, { srv, version, bot, wings, entries, handlers, status, groups });
     this.events = listen(bot);
   }
 
@@ -206,7 +210,15 @@ class FacilityConsole {
         { text: `  ${this.statusWords(e)}`, color: 'gray' },
       ]);
     }
+    if (wingId === 'ops' && this.groups) await this.tell(player, this.groupsLine());
     await this.tell(player, this.tabsLine(wingId));
+  }
+
+  /** The Systems line that puts whoever clicks in a tester group (LuckPerms installed). */
+  groupsLine() {
+    const parts = [{ text: '  Your tester group: ', color: 'gray' }];
+    this.groups.forEach((g, i) => parts.push({ text: `[${g.id}]`, color: 'aqua', click: { run: triggerCommand(GROUP + i) }, hover: g.why }, ' '));
+    return parts;
   }
 
   statusWords(e) {
@@ -250,6 +262,7 @@ class FacilityConsole {
     if (code >= TRANSIT_ACTION && code < TRANSIT_ACTION + TRANSIT_ACTIONS.length) return this.handlers.transit(player, TRANSIT_ACTIONS[code - TRANSIT_ACTION].id);
     if (code >= TAB && code < TAB + this.wings.length) return this.tab(player, this.wings[code - TAB].id);
     if (code >= GO && code < GO + this.wings.length) return this.handlers.go(player, this.wings[code - GO]);
+    if (this.groups && code >= GROUP && code < GROUP + this.groups.length) return this.handlers.group(player, this.groups[code - GROUP].id);
     const d = decode(code);
     const e = this.entries.find((x) => x.number === d.chamber);
     if (!e) return this.tell(player, [{ text: `unknown code ${code}`, color: 'red' }]);
@@ -274,7 +287,7 @@ class FacilityConsole {
 
   /**
    * The typed form: `!` (home), `!<wing>`, `!go <wing>`, `!<chamber>`, `!<chamber> <option>
-   * <value>`, and `!run|stage|reset|watch|again <chamber>`.
+   * <value>`, `!run|stage|reset|watch|again <chamber>`, and `!group <visitor|builder|operator|default>`.
    */
   async onTyped({ player, line }) {
     const words = line.split(/\s+/).filter(Boolean).map((w) => w.toLowerCase());
@@ -283,6 +296,10 @@ class FacilityConsole {
     const entryOf = (word) => this.entries.find((x) => x.def.id === word);
     const [first, second, third] = words;
     if (first === 'transit') return this.transitTab(player);
+    if (first === 'group' && this.groups) {
+      const g = this.groups.find((x) => x.id === second);
+      return g ? this.handlers.group(player, g.id) : this.tell(player, this.groupsLine());
+    }
     if (first === 'go' && second) {
       const w = wingOf(second);
       return w ? this.handlers.go(player, w) : this.tell(player, [{ text: `no wing ${second}`, color: 'red' }]);
@@ -308,5 +325,5 @@ class FacilityConsole {
 
 module.exports = {
   OBJECTIVE, HIDDEN_SLOT, encode, decode, setupCommands, rearmCommands, triggerCommand, menu, listen,
-  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, ACTION_OPTION, TRANSIT_TAB, TRANSIT_ACTION, TRANSIT_ACTIONS,
+  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, GROUP, ACTION_OPTION, TRANSIT_TAB, TRANSIT_ACTION, TRANSIT_ACTIONS,
 };
