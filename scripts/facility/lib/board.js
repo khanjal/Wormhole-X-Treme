@@ -94,24 +94,52 @@ class RunBar {
  * the first fault's line after that. Attach it before the server starts to see enable faults.
  */
 class FaultCounter {
-  constructor(srv) {
+  /** `fixed`: issues the plugin jar carries the fix for (--fixed); their known faults are faults. */
+  constructor(srv, { fixed = [] } = {}) {
     this.srv = srv;
+    this.fixed = fixed;
     this.faults = [];
+    // Known plugin bugs (server.KNOWN_FAULTS): reported, not counted as new faults. A line that
+    // reads like one is held with the stack trace printed after it, and is known only if the
+    // trace shows the bug's cause; anything else with the same words is a fault like any other.
+    this.known = [];
+    this.pending = null;
     this.onChange = null;
     srv.on('line', (line) => {
+      const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
+      if (this.pending && !logLine) { this.pending.trace.push(line); return; }
+      if (logLine) this.settle();
       const f = server.pluginFault(line);
       if (!f) return;
-      this.faults.push(f);
+      const k = server.knownFault(f);
+      if (k && !(k.issue && fixed.includes(k.issue))) this.pending = { line: f, k, trace: [] };
+      else this.faults.push(f);
       if (this.onChange) this.onChange(this);
     });
   }
 
+  /** Decides a held line: known if its trace shows the known cause, else a fault with its frames. */
+  settle() {
+    const p = this.pending;
+    if (!p) return;
+    this.pending = null;
+    if (p.k.cause(p.trace, this.srv.folder)) {
+      this.known.push({ line: p.line, note: p.k.note, issue: p.k.issue });
+    } else {
+      const cause = p.trace.find((l) => /Exception|Error/.test(l));
+      this.faults.push(`${p.line}${cause ? ` (${cause.trim()})` : ''}`, ...p.trace.map((l) => server.pluginFault(l)).filter(Boolean));
+    }
+    if (this.onChange) this.onChange(this);
+  }
+
   get count() {
+    this.settle();
     return this.faults.length;
   }
 
   spec() {
-    if (!this.faults.length) return [{ text: 'Plugin log: ', color: 'white' }, { text: '0 faults', color: 'green', bold: true }];
+    const known = this.known.length ? [{ text: ` (${this.known.length} known)`, color: 'gold' }] : [];
+    if (!this.faults.length) return [{ text: 'Plugin log: ', color: 'white' }, { text: '0 faults', color: 'green', bold: true }, ...known];
     const first = this.faults[0];
     return [{ text: 'Plugin log: ', color: 'white' }, { text: `${this.count} fault${this.count > 1 ? 's' : ''}`, color: 'red', bold: true },
       '\n', { text: first.length > 80 ? `${first.slice(0, 77)}...` : first, color: 'red' }];

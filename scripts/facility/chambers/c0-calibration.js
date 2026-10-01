@@ -43,7 +43,7 @@ module.exports = {
   refuses: (v) => (v.target === 'glass' ? 'a lever or button needs a solid block to hang on' : null),
 
   async stage(ctx, v) {
-    ctx.step('hanging the lamp');
+    await ctx.step('hanging the lamp');
     for (const cmd of [
       `setblock ${at(LAMP)} minecraft:redstone_lamp`,
       `setblock ${at(TARGET)} minecraft:${v.target}`,
@@ -55,12 +55,12 @@ module.exports = {
   },
 
   async run(ctx) {
-    ctx.step('walking in');
+    await ctx.step('walking in');
     const out = layout.door.outside;
     const inside = layout.door.inside;
     await ctx.probe.teleport({ x: out.x + 0.5, y: b.y0, z: out.z + 0.5, yaw: -90 });
     await ctx.probe.walk([{ x: inside.x + 0.5, z: inside.z + 0.5 }, { x: CONTROL.x - 0.5, z: CONTROL.z + 0.5 }]);
-    ctx.step('pressing it');
+    await ctx.step('pressing it');
     const lit = new Promise((resolve) => {
       const on = (_old, blk) => {
         if (blk && blk.position.x === LAMP.x && blk.position.y === LAMP.y && blk.position.z === LAMP.z

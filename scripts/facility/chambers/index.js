@@ -15,9 +15,10 @@
 //     needs: (values) => ({ config: { 'gate-sound-volume': '0.5' } }),
 //                               settings to hold during the run; applied before stage and put
 //                               back after the checks (after reset, for a Stage)
-//     refuses: (values) => null | 'reason',
-//                               a combination the chamber will not run; the self-test expects
-//                               REFUSED:<reason> for it, and nothing in the world changes
+//     refuses: (values, version) => null | 'reason',
+//                               a combination the chamber will not run (or cannot on this
+//                               version); the self-test expects REFUSED:<reason>, and nothing
+//                               in the world changes
 //     stage: async (ctx, values) => {},   fixture only
 //     run: async (ctx, values) => {},     the trip; returns nothing; throws only if it could not
 //                                         make the trip at all
@@ -28,6 +29,12 @@
 //                               (default false: nothing of the run is left); null skips one.
 //     reset: 'wx:reset/g1',     the mcfunction that puts the cell back (generated from the
 //                               campus); the runner also kills every entity tagged ctx.tag
+//     cleanup: async (ctx) => {},   optional: the plugin's side of a reset (remove the gate,
+//                               force the far end, clear an iris code); runs before the reset
+//                               function, and before every run
+//     fixture: async (ctx) => 'what', optional: something the chamber keeps for the whole
+//                               session (the Relay, the gallery); built once after the build,
+//                               and again after a reset of its cell, which is judged by it
 //   }
 //
 // ctx (built by facility.js for one run):
@@ -38,7 +45,11 @@
 //   version  the server's Minecraft version
 //   tag      the run's entity tag (wx_run_<id>): give it to everything you summon
 //   observed an object run() may record packet-level observations in, for checks to read
-//   step(name)  advances the bossbar ("G1 · 3/7 · dialling Relay")
+//   step(name)  advances the bossbar ("G1 · 3/7 · dialling Relay"); await it, or its output
+//               lands in the middle of the next command's
+//   menagerie   lib/menagerie.js: animals, pets, vehicles and armoury items by version
+//   watch       lib/observe.js: tick-exact launches, arrivals and per-tick tracking
+//   facility    the Facility itself, for what the rest does not cover
 //   layout   the cell's derived positions (door, seat, board, pylon; lib/blueprint.js)
 //
 // Nothing in a chamber sends a console command except through ctx.server.run, so every command
@@ -49,7 +60,7 @@ const campus = require('../lib/campus');
 
 /** The console's entries: every campus chamber in order, with its logic module if it has one. */
 function entries() {
-  return campus.CHAMBERS.filter((c) => c.kind !== 'tunnel').map((def, i) => ({
+  return campus.CHAMBERS.filter((c) => c.kind !== 'tunnel' || c.logic).map((def, i) => ({
     number: i + 1,
     def,
     chamber: def.logic ? require(`./${def.logic}`) : null,

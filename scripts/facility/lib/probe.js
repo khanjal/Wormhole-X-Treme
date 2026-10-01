@@ -18,6 +18,11 @@ function waitEvent(emitter, event, test, ms, what) {
   });
 }
 
+/** Waits n game ticks by the clock: Mineflayer stops its physics ticks while riding. */
+function ticks(n) {
+  return new Promise((resolve) => { setTimeout(resolve, n * 50); });
+}
+
 /** Like waitEvent but resolves null at the deadline instead of rejecting. */
 function maybeEvent(emitter, event, test, ms) {
   return waitEvent(emitter, event, test, ms, event).catch(() => null);
@@ -45,6 +50,17 @@ class Probe {
   constructor(bot, srv) {
     this.bot = bot;
     this.srv = srv;
+    // Mineflayer 4.39 notices a dismount only from a passenger packet naming the rider with no
+    // vehicle; a server empties the vehicle's passenger list instead, so bot.vehicle would stay
+    // set for ever. Watch the vehicle's own list and let go of it here.
+    bot._client.on('set_passengers', ({ entityId, passengers }) => {
+      const v = bot.vehicle;
+      if (!v || v.id !== entityId || passengers.includes(bot.entity.id)) return;
+      v.passengers = v.passengers.filter((e) => e !== bot.entity);
+      bot.vehicle = null;
+      bot.entity.vehicle = null;
+      bot.emit('dismount', v);
+    });
   }
 
   get name() { return this.bot.username; }
@@ -107,7 +123,7 @@ class Probe {
     const end = Date.now() + maxMs;
     try {
       while (quiet < quietTicks && Date.now() < end) {
-        await this.alive(this.bot.waitForTicks(1), 'settling after a teleport', maxMs + 1000);
+        await this.alive(ticks(1), 'settling after a teleport', maxMs + 1000);
         quiet++;
       }
     } finally {
@@ -187,6 +203,77 @@ class Probe {
     return now;
   }
 
+  /**
+   * Turns to face a point and tells the server at once. Mineflayer only sends a turn with its
+   * next move, so a bot that turns and stands still is, to the server, still facing the old way
+   * (which is what the mirror approach line, a ray from the eye, reads).
+   */
+  async face(p) {
+    const bot = this.bot;
+    await bot.lookAt(new Vec3(p.x, p.y, p.z), true);
+    const eye = bot.entity.position.offset(0, bot.entity.height * 0.9, 0);
+    const dx = p.x - eye.x;
+    const dy = p.y - eye.y;
+    const dz = p.z - eye.z;
+    const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+    const pitch = -Math.atan2(dy, Math.hypot(dx, dz)) * (180 / Math.PI);
+    bot._client.write('look', { yaw, pitch, onGround: true, flags: { onGround: true } });
+  }
+
+  /**
+   * Right-clicks a block as a client does when the click does nothing client-side (a banner):
+   * no arm swing. Mineflayer's activateBlock always swings, and Paper reads a swing at a block
+   * the player is facing as a left click on it: a punch, which sends a mirror's viewer through.
+   */
+  async rightClick({ x, y, z }, { dir = null, cursor = null } = {}) {
+    const block = this.bot.blockAt(new Vec3(x, y, z));
+    if (!block) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+    // The click lands where the eye's ray meets the block's shape: a wall banner's cloth hangs
+    // against its wall, and Paper ignores a click whose point is outside it.
+    const c = cursor || new Vec3(0.5, 0.5, 0.5);
+    await this.face({ x: x + c.x, y: y + c.y, z: z + c.z });
+    const swing = this.bot.swingArm;
+    this.bot.swingArm = () => {};
+    try {
+      await this.alive(this.bot.activateBlock(block, dir || new Vec3(0, 1, 0), c), `right-clicking ${block.name} at ${x} ${y} ${z}`, 5000);
+    } finally {
+      this.bot.swingArm = swing;
+    }
+  }
+
+  /** Left-clicks a block as a punch: starts digging it, swings, and stops. */
+  async punch({ x, y, z }, face = 1) {
+    const at = new Vec3(x, y, z);
+    await this.face({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+    this.bot._client.write('block_dig', { status: 0, location: at, face, sequence: 0 });
+    this.bot.swingArm();
+    await ticks(2);
+    this.bot._client.write('block_dig', { status: 1, location: at, face, sequence: 0 });
+  }
+
+  /**
+   * The block at a point as this client knows it, waiting (bounded) for its chunk: a bot just
+   * teleported into another world is sent the chunks round it over the next ticks, and on
+   * 1.20.4 a button two blocks away was not there yet when the press came.
+   */
+  async blockSeen({ x, y, z }, ms = 10000) {
+    const at = new Vec3(x, y, z);
+    const end = Date.now() + ms;
+    for (;;) {
+      const block = this.bot.blockAt(at);
+      if (block) return block;
+      if (Date.now() > end) throw new Error(`${this.name} cannot see a block at ${x} ${y} ${z}`);
+      await ticks(2);
+    }
+  }
+
+  /** Right-clicks a block without waiting for it to change (a button the plugin may consume). */
+  async press({ x, y, z }) {
+    const block = await this.blockSeen({ x, y, z });
+    await this.look({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+    await this.alive(this.bot.activateBlock(block), `pressing ${block.name} at ${x} ${y} ${z}`, 5000);
+  }
+
   /** Walks onto a plate and waits to be teleported off it; returns where it landed. */
   async standOn({ x, y, z }, ms = 10000) {
     let teleported = false;
@@ -207,6 +294,148 @@ class Probe {
     if (!line) return null;
     const pos = text.parseSnbt(line.slice(line.indexOf('has the following entity data: ') + 31));
     return { x: pos[0], y: pos[1], z: pos[2] };
+  }
+
+  // ---- hands --------------------------------------------------------------------------------
+
+  /** Puts the first stack of an item id in the hand (or the off hand); throws if none is held. */
+  async hold(id, hand = 'hand') {
+    const name = id.replace(/^minecraft:/, '');
+    const item = this.bot.inventory.items().find((i) => i.name === name);
+    if (!item) throw new Error(`${this.name} has no ${name} to hold`);
+    await this.bot.equip(item, hand);
+  }
+
+  /** Waits (bounded) until the inventory holds an item, e.g. after a console `give`. */
+  async waitForItem(id, ms = 5000) {
+    const name = id.replace(/^minecraft:/, '');
+    const deadline = Date.now() + ms;
+    while (!this.bot.inventory.items().some((i) => i.name === name)) {
+      if (Date.now() > deadline) throw new Error(`${this.name} was never given ${name}`);
+      await ticks(1);
+    }
+  }
+
+  /** Right-clicks with what is in hand once: throws a snowball, egg, pearl, potion or charge. */
+  async use() {
+    this.bot.activateItem();
+    await ticks(1);
+  }
+
+  /**
+   * Draws and looses: a bow (or trident) held for `hold` ticks, then released. A crossbow is loaded
+   * the same way and then fired with a second use.
+   */
+  async drawAndLoose(hold = 25, { crossbow = false } = {}) {
+    this.bot.activateItem();
+    await ticks(hold);
+    this.bot.deactivateItem();
+    if (crossbow) {
+      await ticks(2);
+      this.bot.activateItem();
+      await ticks(1);
+      this.bot.deactivateItem();
+    }
+  }
+
+  /** Drops one of the held stack (Q), as a player drops an item into a gate. */
+  async dropOne() {
+    await this.bot.toss(this.bot.heldItem.type, null, 1);
+  }
+
+  // ---- saddles --------------------------------------------------------------------------------
+
+  /** The client's copy of the entity nearest a server-tagged entity (tags stay server-side). */
+  async clientEntity(tag, within = 2) {
+    const p = await this.entityByTag(tag);
+    if (!p) return null;
+    let best = null;
+    for (const e of Object.values(this.bot.entities)) {
+      if (e === this.bot.entity) continue;
+      const d = e.position.distanceTo(new Vec3(p.x, p.y, p.z));
+      if (d <= within && (!best || d < best.d)) best = { e, d };
+    }
+    return best ? best.e : null;
+  }
+
+  /** Right-clicks an entity to get on it, as a player mounts; resolves once seated. An animal with
+   * its AI on can step away between the look and the click, so a few tries are allowed. */
+  async mount(tag, ms = 5000, tries = 1) {
+    for (let i = 1; ; i++) {
+      try {
+        return await this.mountOnce(tag, ms);
+      } catch (err) {
+        if (i >= tries) throw err;
+        await ticks(10);
+      }
+    }
+  }
+
+  async mountOnce(tag, ms) {
+    const target = await this.clientEntity(tag);
+    if (!target) {
+      const p = await this.entityByTag(tag);
+      const seen = Object.values(this.bot.entities).filter((e) => e !== this.bot.entity && p && e.position.distanceTo(new Vec3(p.x, p.y, p.z)) < 8)
+        .map((e) => `${e.name}@${e.position.distanceTo(new Vec3(p.x, p.y, p.z)).toFixed(1)}`);
+      throw new Error(`${this.name} cannot see ${tag} to mount (server has it at ${p ? `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}` : 'nowhere'}; near it: ${seen.join(', ') || 'nothing'})`);
+    }
+    const seated = waitEvent(this.bot, 'mount', () => true, ms, `a seat on ${target.name}`);
+    await this.look({ x: target.position.x, y: target.position.y + 1, z: target.position.z });
+    this.bot.mount(target);
+    await seated;
+    return target;
+  }
+
+  /** Gets off by console (`ride ... dismount`, 1.19.4+): Mineflayer's own dismount jumps from 1.21.2. */
+  async dismount() {
+    if (!this.bot.vehicle) return;
+    const off = maybeEvent(this.bot, 'dismount', () => true, 5000);
+    const r = await this.srv.run(`ride ${this.name} dismount`);
+    if (r.errors.length) throw new Error(`ride ${this.name} dismount: ${r.errors.join(' ')}`);
+    await off;
+  }
+
+  /**
+   * Steers the ridden entity or boat in a straight line, as a client does: a vehicle_move each
+   * tick, `speed` blocks per tick, until within 0.3 of the point, or until the server moves the
+   * vehicle itself (a gate), which ends the drive. Returns 'arrived' or 'moved'.
+   */
+  async drive(point, { speed = 0.25, ms = 20000 } = {}) {
+    const bot = this.bot;
+    const vehicle = bot.vehicle;
+    if (!vehicle) throw new Error(`${this.name} is not riding anything`);
+    const pos = vehicle.position.clone();
+    const target = new Vec3(point.x, pos.y, point.z);
+    const yaw = Math.atan2(-(target.x - pos.x), target.z - pos.z) * (180 / Math.PI);
+    let moved = false;
+    const onServerMove = () => { moved = true; };
+    bot._client.on('vehicle_move', onServerMove);
+    const onEntityMove = (e) => { if (e === vehicle && e.position.distanceTo(pos) > 2) moved = true; };
+    bot.on('entityMoved', onEntityMove);
+    const wasPhysics = bot.physicsEnabled;
+    bot.physicsEnabled = false;
+    const end = Date.now() + ms;
+    try {
+      while (!moved && Date.now() < end) {
+        const d = target.minus(pos);
+        const flat = Math.hypot(d.x, d.z);
+        if (flat <= 0.3) return 'arrived';
+        const step = Math.min(speed, flat);
+        pos.x += (d.x / flat) * step;
+        pos.z += (d.z / flat) * step;
+        const packet = { x: pos.x, y: pos.y, z: pos.z, yaw, pitch: 0, onGround: true };
+        bot._client.write('vehicle_move', packet);
+        bot._client.write('look', { yaw, pitch: 0, onGround: false, flags: { onGround: false } });
+        // Physics is off while driving, so ticks are counted by the clock (one packet per 50 ms).
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
+      }
+      if (!moved) throw new Error(`${this.name} did not reach ${point.x} ${point.z} riding ${vehicle.name}`);
+      return 'moved';
+    } finally {
+      bot._client.off('vehicle_move', onServerMove);
+      bot.off('entityMoved', onEntityMove);
+      bot.physicsEnabled = wasPhysics;
+    }
   }
 
   /** The plain text of every text display the client knows of within `range` of a point. */
@@ -232,4 +461,4 @@ function shownText(entity) {
   return out;
 }
 
-module.exports = { Probe, join, waitEvent, maybeEvent, shownText };
+module.exports = { Probe, join, waitEvent, maybeEvent, shownText, ticks };
