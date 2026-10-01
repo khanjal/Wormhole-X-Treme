@@ -11,14 +11,19 @@ import java.util.stream.Stream;
 
 import org.bukkit.Material;
 
+import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 
 
 /**
@@ -1811,18 +1816,68 @@ public class ConfigManager
             return parsed.getRefusal();
         }
         setting.setValue(parsed.getValue());
-        if (setting.getName() == ConfigKeys.LOG_LEVEL)
-        {
-            // Read once at startup otherwise, so the change would wait for a restart.
-            WormholeXTreme.applyLogLevel(getLogLevel());
-        }
-        else if (setting.getName() == ConfigKeys.METRICS_ENABLED)
-        {
-            // Likewise read once at startup: start or stop bStats now.
-            followMetrics();
-        }
         Configuration.persistCurrentConfiguration(SECTION);
+        follow(setting.getName());
         return setting.getName().name() + " is now " + parsed.getValue() + ".";
+    }
+
+    /**
+     * Applies a setting that something read once rather than where it is used, so a change takes
+     * effect now rather than at the next restart.
+     *
+     * @param key
+     *            the setting just changed
+     */
+    private static void follow(final ConfigKeys key)
+    {
+        switch (key)
+        {
+            case LOG_LEVEL -> WormholeXTreme.applyLogLevel(getLogLevel());
+            case METRICS_ENABLED -> followMetrics();
+            case ECONOMY_ENABLED -> followEconomy();
+            case PLACEHOLDERS_ENABLED -> followPlaceholders();
+            // Every ring's trigger volume is indexed at load, as deep as these two said then.
+            case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
+            case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
+            default -> RepeatingSweeps.follow(key);
+        }
+    }
+
+    /** Attaches to or lets go of Vault's economy to match {@code economy-enabled}. */
+    private static void followEconomy()
+    {
+        try
+        {
+            if (isEconomyEnabled())
+            {
+                EconomySupport.enableEconomy();
+            }
+            else
+            {
+                EconomySupport.disableEconomy();
+            }
+        }
+        catch (final Exception | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not follow economy-enabled", e);
+        }
+    }
+
+    /** Registers the PlaceholderAPI expansion when turned on; turned off, it answers nothing. */
+    private static void followPlaceholders()
+    {
+        if (!isPlaceholdersEnabled())
+        {
+            return;
+        }
+        try
+        {
+            PlaceholderSupport.enablePlaceholders();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not follow placeholders-enabled", e);
+        }
     }
 
     /** Starts or stops bStats to match {@code metrics-enabled}; a failure costs only a log line. */

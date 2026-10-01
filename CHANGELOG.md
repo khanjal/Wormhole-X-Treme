@@ -13,6 +13,16 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
 
+**Fixed**
+
+- **Every setting changed with `/wormhole config` applies at once, as the guide says.** Ten waited
+  for a restart: `gate-sound-ambient-ticks`, `entity-scan-interval-ticks`, `mirror-proximity-ticks`,
+  `gate-iris-horizon-ticks`, `ring-reach`, `ring-max-ceiling-drop`, `economy-enabled`,
+  `placeholders-enabled`, `permissions-auto-fallback` and `gate-material-groups-autodiscover`.
+- **Finding no permission provider no longer writes `permissions-support-disable: true` into
+  `config.yml`.** A server that ran once without one stayed in simple mode after LuckPerms was
+  installed. One already written that way keeps it; set it back to `false`.
+
 ### Stargates
 
 **Fixed**

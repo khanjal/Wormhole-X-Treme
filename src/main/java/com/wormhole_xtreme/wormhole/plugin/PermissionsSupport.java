@@ -18,9 +18,38 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 public class PermissionsSupport
 {
+    /** Whether startup looked for a permission provider and found none. */
+    private static volatile boolean noProvider = false;
+
     /** Static helpers only; never instantiated. */
     private PermissionsSupport()
     {
+    }
+
+    /**
+     * Whether permissions run in simple mode: anyone may use, dial and travel, and the rest is
+     * for operators and gate owners.
+     *
+     * <p>Asked at every check, so {@code permissions-auto-fallback} changed in-game applies at
+     * once. Only whether a provider exists is settled at startup.
+     *
+     * @return true if permission nodes are not consulted
+     */
+    public static boolean isSimpleMode()
+    {
+        return ConfigManager.getPermissionsSupportDisable()
+            || (noProvider && ConfigManager.getPermissionsAutoFallback());
+    }
+
+    /**
+     * Records whether a provider was found, for a test standing in for startup.
+     *
+     * @param missing
+     *            true if none was
+     */
+    static void setNoProvider(final boolean missing)
+    {
+        noProvider = missing;
     }
 
 
@@ -44,11 +73,13 @@ public class PermissionsSupport
                 }
             } catch (final Exception | LinkageError ignore) { /* best effort */ }
 
+            // Remembered rather than written into permissions-support-disable, which would then be
+            // saved to config.yml and outlive the server finding a provider.
+            noProvider = !providerFound;
             if (!providerFound)
             {
                 if (ConfigManager.getPermissionsAutoFallback())
                 {
-                    ConfigManager.setPermissionsSupportDisable(true);
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set PERMISSIONS_AUTO_FALLBACK=false.");
                 }
                 else
