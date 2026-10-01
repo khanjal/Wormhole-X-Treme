@@ -796,10 +796,43 @@ class VehicleGateEntryTest
      * minecart took the same player straight through, because only the walking path asked.
      */
     @Test
-    void aCartIsTurnedBackFromAnotherWorldWhenSameWorldOnlyIsOn()
+    void aCartIsPutBackFromAnotherWorldWhenSameWorldOnlyIsOn()
     {
         final Player rider = putARiderAboard();
+        final World nether = mock(World.class);
+        dst.setGatePlayerTeleportLocation(new Location(nether, 100.5, 70.0, 200.5));
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            rollIn();
+            // Still where the server would have it on the next move, had it only been reversed.
+            rollIn();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        verify(rider, times(1)).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
+        assertEquals(world, whereItLanded().getWorld(), "put back on this side, never sent to the far world");
+        assertEquals(6.5, whereItLanded().getZ(), 1.0e-9, "at the gate it came from");
+        assertTrue(WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(cart.getUniqueId()),
+            "and marked, so it does not read as a fresh entry");
+    }
+
+    /**
+     * Another world is asked before the far iris, so a rider is not told of an iris on a trip that
+     * could never happen, and is not bounced twice.
+     */
+    @Test
+    void aCartBoundForAnotherWorldIsToldThatRatherThanOfTheFarIris()
+    {
+        final Player rider = putARiderAboard();
+        when(rider.isOp()).thenReturn(true);
         dst.setGatePlayerTeleportLocation(new Location(mock(World.class), 100.5, 70.0, 200.5));
+        dst.setGateIrisActive(true);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
         ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
         try
         {
@@ -810,9 +843,8 @@ class VehicleGateEntryTest
             ConfigTestSupport.clear();
         }
 
-        verify(cart, never()).teleport(any(Location.class));
         verify(rider).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
-        verify(cart).setVelocity(new Vector(-1.0, 0.0, 0.0));
+        verify(rider, never()).sendMessage(ArgumentMatchers.contains("Remote Iris"));
     }
 
     /** The rule is about crossing worlds: a cart in one world goes on as ever with it on. */

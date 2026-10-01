@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+import org.bukkit.scheduler.BukkitScheduler;
 
 /**
  * When one gate refuses to dial another.
@@ -349,6 +350,35 @@ class DialRefusalTest
         finally
         {
             ConfigTestSupport.clear();
+        }
+    }
+
+    /**
+     * A dial refused for crossing worlds leaves a lit gate's activation timer running.
+     *
+     * <p>Cancelled first, a lit gate refused here by anything reaching the public dialStargate
+     * stayed lit with nothing left to put it out.
+     */
+    @Test
+    void aDialRefusedForCrossingWorldsLeavesTheActivationTimer() throws Exception
+    {
+        final Stargate target = dialableTarget();
+        when(gate.getGateWorld()).thenReturn(mock(World.class));
+        when(target.getGateWorld()).thenReturn(mock(World.class));
+        when(gate.getGateActivateTaskId()).thenReturn(7);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        ConfigTestSupport.set(ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            assertFalse(StargateDialManager.dialStargate(gate, target, false));
+
+            verify(scheduler, never()).cancelTask(7);
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+            PluginTestSupport.scheduler(null);
         }
     }
 }

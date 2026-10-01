@@ -536,16 +536,17 @@ class StargateDialManager
         {
             return false;
         }
-        if (gate.getGateActivateTaskId() > 0)
-        {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
-        }
-        // Not lifted by force: a server rule, not a gate's state.
+        // Not lifted by force: a server rule, not a gate's state. Before the activation timer is
+        // cancelled, so a lit gate refused here still times out.
         if (StargateRestrictions.isCrossWorldRefused(gate.getGateWorld(), target.getGateWorld()))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Dial prevented: target '" + target.getGateName() + "' is in another world, and same-world-only is on.");
             return false;
+        }
+        if (gate.getGateActivateTaskId() > 0)
+        {
+            WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
         }
         final String refusal = force ? null : whyNotDialable(gate, target);
         if (refusal != null)

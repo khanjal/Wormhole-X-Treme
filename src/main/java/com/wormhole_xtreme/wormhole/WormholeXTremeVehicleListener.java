@@ -606,7 +606,7 @@ class WormholeXTremeVehicleListener implements Listener
         final List<Entity> passengers = new ArrayList<>(veh.getPassengers());
         // Riders whose cooldown and arrival mark are owed once the trip actually happens.
         final List<Player> pendingRestrictions = new ArrayList<>();
-        if (!admitVehiclePassengers(st, veh, passengers, pendingRestrictions, gatenetwork))
+        if (!admitVehiclePassengers(st, veh, l.getWorld(), target, passengers, pendingRestrictions, gatenetwork))
         {
             return false;
         }
@@ -616,7 +616,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
-        if (!mayCross(st, veh, v, l.getWorld(), target, passengers))
+        if (!everyRiderMayTravel(st, passengers))
         {
             return false;
         }
@@ -664,34 +664,25 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
     /**
-     * Whether the server and every listener let this vehicle go; a vehicle bound for a world it
-     * may not reach is turned back here.
+     * Puts a vehicle bound for another world back out of the portal, under same-world-only, and
+     * tells any player aboard why.
+     *
+     * <p>Put back and marked as a far iris bounces one. Only reversed, it was still in the opening
+     * on its next move, which read as a fresh entry: refused, and its rider told, again.
      *
      * @param here
      *            the world it is in
      * @param target
      *            where it would arrive
-     * @return true if it may go
+     * @return true if it was refused
      */
-    private static boolean mayCross(final Stargate st, final Vehicle veh, final Vector v, final World here,
-                                    final Location target, final List<Entity> passengers)
+    private static boolean refusedCrossWorld(final Stargate st, final Vehicle veh, final World here,
+                                             final Location target, final List<Entity> passengers)
     {
-        if (StargateRestrictions.isCrossWorldRefused(here, target))
+        if (!StargateRestrictions.isCrossWorldRefused(here, target))
         {
-            refuseCrossWorld(veh, v, passengers);
             return false;
         }
-        return everyRiderMayTravel(st, passengers);
-    }
-
-    /**
-     * Turns a vehicle back from a gate to another world, telling any player aboard why.
-     *
-     * @param v
-     *            its velocity on the way in
-     */
-    private static void refuseCrossWorld(final Vehicle veh, final Vector v, final List<Entity> passengers)
-    {
         for (final Entity psg : passengers)
         {
             if (psg instanceof Player rider)
@@ -699,7 +690,8 @@ class WormholeXTremeVehicleListener implements Listener
                 rider.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
             }
         }
-        turnBack(veh, v, passengers);
+        putBackOutOfPortal(st, veh);
+        return true;
     }
 
     /** A concurrent set will not look up a null, which a half-built entity can answer. */
@@ -800,10 +792,15 @@ class WormholeXTremeVehicleListener implements Listener
      * happened is not something the rider can argue with.
      *
      * <p>A locked iris bounces the vehicle rather than simply refusing, which is why this
-     * needs the vehicle and not just its passengers.
+     * needs the vehicle and not just its passengers. Another world under same-world-only is asked
+     * first, so nobody is told of an iris or a cooldown on a trip that could never happen.
      *
      * @param st
      *            the gate being entered
+     * @param here
+     *            the world the vehicle is in
+     * @param target
+     *            where it would arrive, null if nowhere
      * @param passengers
      *            who is aboard, possibly nobody
      * @param pendingRestrictions
@@ -812,11 +809,15 @@ class WormholeXTremeVehicleListener implements Listener
      *            the gate's network name, for the diagnostic
      * @return true if the trip may go on being considered
      */
-    private static boolean admitVehiclePassengers(final Stargate st, final Vehicle veh,
-                                                  final List<Entity> passengers,
+    private static boolean admitVehiclePassengers(final Stargate st, final Vehicle veh, final World here,
+                                                  final Location target, final List<Entity> passengers,
                                                   final List<Player> pendingRestrictions,
                                                   final String gatenetwork)
     {
+        if (refusedCrossWorld(st, veh, here, target, passengers))
+        {
+            return false;
+        }
         if (passengers.isEmpty() || !(passengers.get(0) instanceof Player p))
         {
             if (!st.getGateTarget().isGateIrisActive())
@@ -854,19 +855,30 @@ class WormholeXTremeVehicleListener implements Listener
      */
     private static void bounceOffClosedIris(final Stargate st, final Vehicle veh)
     {
-        final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-            ? st.getGateMinecartTeleportLocation()
-            : st.getGatePlayerTeleportLocation();
-        // With no arrival point of its own there is nowhere to put it back; it stays stopped.
-        if (irisTarget != null)
-        {
-            // Marked before the move so it does not read as another trip through the gate.
-            markVehicleRecentlyTeleported(veh.getUniqueId());
-            putBack(veh, forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
-        }
+        putBackOutOfPortal(st, veh);
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
             st.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
+        }
+    }
+
+    /**
+     * Puts a refused vehicle down at the gate it came from, a block out along its facing.
+     *
+     * @param st
+     *            the gate it entered
+     */
+    private static void putBackOutOfPortal(final Stargate st, final Vehicle veh)
+    {
+        final Location back = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+        // With no arrival point of its own there is nowhere to put it back; it stays stopped.
+        if (back != null)
+        {
+            // Marked before the move so it does not read as another trip through the gate.
+            markVehicleRecentlyTeleported(veh.getUniqueId());
+            putBack(veh, forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
         }
     }
 
