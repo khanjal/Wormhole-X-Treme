@@ -129,15 +129,27 @@ async function paste(srv, placed) {
     if (!ok.test(words)) throw new Error(`${cmd}: ${words || 'no answer'}`);
     return words;
   };
+  // Paper 1.21.11's console drops one leading slash and 1.20.4's does not, so WorldEdit's //world
+  // is typed //world on one and /world on the other: whichever it knows is used from then on.
+  let we = null;
+  const world = async (w) => {
+    for (const prefix of we ? [we] : ['//', '/']) {
+      const r = await srv.run(`${prefix}world ${w}`, 60000);
+      const words = r.lines.join(' ');
+      if (/world override/i.test(words)) { we = prefix; return; }
+      if (!/Unknown command/i.test(words)) throw new Error(`${prefix}world ${w}: ${words || 'no answer'}`);
+    }
+    throw new Error(`WorldEdit's world command is not there (${we || '// or /'}world ${w}: unknown)`);
+  };
   try {
     for (const p of placed) {
       try {
         const name = `wx_${p.file}`;
-        await say(`//world ${WORLDS[p.dim]}`, /world override/i);
-        await say(`//pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
-        // //schem load reads the file off the main thread and says so later: wait for that line.
-        const esc = name.replace(/[.]/g, '\.');
-        const loaded = srv.waitFor(new RegExp(`${esc} loaded\. Paste it|${esc}.*(could not|not supported|unknown)|does not exist`, 'i'), 120000, `WorldEdit to load ${name}`);
+        await world(WORLDS[p.dim]);
+        await say(`${we}pos1 ${p.at.x},${p.at.y},${p.at.z}`, /First position set/i);
+        // /schem load reads the file off the main thread and says so later: wait for that line.
+        const esc = name.replace(/[.]/g, '\\.');
+        const loaded = srv.waitFor(new RegExp(`${esc} loaded\\. Paste it|${esc}.*(could not|not supported|unknown)|does not exist`, 'i'), 120000, `WorldEdit to load ${name}`);
         loaded.catch(() => {});
         const r = await srv.run(`/schem load ${name}`, 60000);
         const now = r.lines.join(' ');
@@ -145,15 +157,15 @@ async function paste(srv, placed) {
         if (now.trim() && !/loading|loaded\. Paste it/i.test(now)) throw new Error(`/schem load ${name}: ${now}`);
         const line = /loaded\. Paste it/i.test(now) ? now : await loaded;
         if (!/loaded\. Paste it/i.test(line)) throw new Error(`/schem load ${name}: ${line}`);
-        if (p.rotation) await say(`//rotate ${p.rotation}`, /rotated/i);
-        const words = await say('//paste', /pasted/i);
+        if (p.rotation) await say(`${we}rotate ${p.rotation}`, /rotated/i);
+        const words = await say(`${we}paste`, /pasted/i);
         out.push({ file: p.file, ok: true, detail: `${fmt(p.box)} (${words})` });
       } catch (e) {
         out.push({ file: p.file, ok: false, detail: e.message });
       }
     }
   } finally {
-    await srv.run('//world', 15000).catch(() => {}); // the console's world override, back to none
+    if (we) await srv.run(`${we}world`, 15000).catch(() => {}); // the console's world override, back to none
   }
   return out;
 }

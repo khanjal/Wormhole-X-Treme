@@ -705,7 +705,8 @@ the decoration guardrail (`wings/decor/guard.js`: cells and their clear volumes,
 rings, gates, lanes, plates, walk-in lines, mirror spots), and a box reaching into any of them is
 refused with what it reaches into, so a set piece cannot break a test. WorldEdit pastes them from
 the console, with no player and no API: `//world <world>`, `//pos1 x,y,z`, `/schem load`,
-`//rotate`, `//paste`. The console has no position, so the paste puts the schematic's origin (where
+`//rotate`, `//paste` (one slash fewer on 1.20.4, whose console keeps the slash 1.21.11's
+drops; the launcher tries `//world`, then `/world`). The console has no position, so the paste puts the schematic's origin (where
 its maker stood for `//copy`) at pos #1; WorldEdit 7.4.5's `//toggleplace` refuses the console
 outright. `/schem load` reads the file off the main thread and says so later, so the launcher
 waits for its "loaded" line. A paste that fails is a setup problem, and fails a `--selftest`.
