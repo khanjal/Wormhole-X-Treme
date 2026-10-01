@@ -13,6 +13,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
 
+### Stargates
+
+**Fixed**
+
+- **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
+  between two entity sweeps and landed behind the ring; a shut iris destroys them as before.
+
 ### Performance
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
