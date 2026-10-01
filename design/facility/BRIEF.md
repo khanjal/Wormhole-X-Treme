@@ -1,0 +1,213 @@
+# Research Facility map
+
+Wormhole X-Treme is a Bukkit/Paper plugin for stargates, transport rings, beam pads and
+quantum mirrors. The **Research Facility** is a world its test scripts generate from scratch: a
+bot joins, travels between wings using the plugin's own gates, rings, beams and mirrors, builds
+test machines in sealed chambers, and checks that each one behaves. Human testers walk the same
+campus.
+
+The campus works, but it is plain white boxes. This job is the look, the sense of place and the
+wayfinding. The bot still has to find every chamber at the size and position it expects, so
+the space rules below are firm.
+
+Target: **Minecraft Java 1.20.4** (Paper). Sizes are interior air volumes in blocks,
+width (x) × depth (z) × height (y).
+
+## Two ways to work
+
+**Route A, recommended: dress the generated campus.** You run the facility in design mode (below).
+Every test volume is a marked placeholder you must not touch; you build around it: walls,
+facades, corridors, lighting, props, exteriors. Positions are already fixed, so nothing you build
+can move a test. The footprints below stay where they are.
+
+**Route B: build a whole map from scratch.** You design the floor plan. Every required space in
+the tables below must exist somewhere, at no less than its minimum size, and you mark each one
+(see *Marking your spaces*). Full freedom over layout, scale and story. On our side the scripts
+need a marker reader before they can run on your map; allow about a week after your massing
+milestone for that.
+
+## Run it yourself
+
+> **Status:** design mode and the export are being built. Until they land, ask the maintainer
+> for a world download of the template.
+
+You need Windows, macOS or Linux, Java 21 or newer, Node.js 20 or newer, and a clone of this
+repository. Nothing else: the script downloads Paper and the plugin's latest release, and
+installs its own Node modules the first time.
+
+```bash
+# Windows
+scripts/facility/lab.ps1 -Design -Op YourName
+# macOS / Linux
+scripts/facility/lab.sh --design --op YourName
+```
+
+Design mode generates the campus once on Minecraft 1.20.4, so only 1.20 blocks are available,
+and then leaves it alone:
+
+- You are in creative mode with WorldEdit, and the bot does not run.
+- Test volumes are filled with a marked placeholder block, so you can see them. They go back to
+  air when the tests run.
+- Your world is kept between sessions. Say `stop` in chat to save and shut down; run the same
+  command to carry on.
+- Say `check` in chat at any time. It lists every block of yours inside a test volume or its
+  2-block skin, with coordinates and the wing it belongs to.
+
+### Sending your work back
+
+Say `export` in chat, or run `scripts/facility/lab.ps1 -Design -Export` with the server stopped.
+It writes one file to `.local-server/exports/facility-design-<date>.zip` holding:
+
+- your world (Overworld, Nether and End),
+- `manifest.json`: the facility version it was generated from, the Minecraft version, your name,
+- `check.txt`: the `check` report at the time of export.
+
+Send the zip to the maintainer, or attach it to the job's issue if it is under GitHub's size
+limit. We load it, run the full self-test on it, and send back screenshots and results.
+
+## Hard rules
+
+1. **Blocks from Minecraft 1.20 only.** No copper bulbs, tuff bricks, crafters, trial-chamber
+   blocks or anything newer. No mods or resource packs. Design mode enforces this by running
+   1.20.4.
+2. **Test volumes stay empty air.** Nothing of yours goes inside one, including light blocks,
+   barriers, carpet or water.
+3. **Keep a 2-block skin around every test volume free of active parts.** No redstone, rails,
+   signs, buttons, levers, pressure plates, item frames, banners, hoppers, pistons, observers or
+   command blocks within 2 blocks of a chamber. The plugin reacts to many of these, and the
+   tests would pick up your props. Decorative versions belong in corridors and offices.
+4. **Chamber walls are at least 1 block thick and solid,** with door and gallery openings where
+   the table says. A gallery is a viewing window into the chamber: glass or glass panes, at least
+   5 wide and 3 high, centred on that wall.
+5. **Mirror walls stay at player height.** Facility mirrors sit with their bottom edge at floor
+   level and are 2 blocks tall. Do not raise the floor in front of them.
+6. **No mobs or entities,** except item frames and armour stands outside the 2-block skin. The
+   bot counts entities in its tests.
+7. **No third-party schematics** unless the author has given written permission to include them
+   in an open-source project. [INSPIRATION.md](INSPIRATION.md) lists references for ideas only.
+
+## Massing
+
+![Wing footprints, to scale](images/wing-footprints.svg)
+
+Width × depth of each wing's interior, to one scale. Dashed outlines are the far sites in the
+Nether and the End.
+
+### A mock campus plan
+
+One idea, not a requirement: Ops in the middle, each wing reached through its own transport
+(gate north, rings east, beam south-east, mirror west), lanes and the underground tunnel along
+the south edge. Every box is drawn at its real size, north at the top. The Overworld part fits
+in roughly 400 × 420 blocks.
+
+![Mock campus plan](images/campus-mock.svg)
+
+## Required spaces
+
+Every row is a minimum interior air volume. A room may be bigger, but a chamber's test volume is
+exact: build its walls on the line. A wing must hold its chambers plus walkways at least 3 wide
+and 4 high between them.
+
+| ID | Space | Interior W × D × H | Notes |
+|---|---|---|---|
+| **ops** | **Operations** | **41 × 41 × 16** | The hub. One arrival point per wing (gate, ring pad, beam pad, mirror) and the Systems mezzanine. |
+| c0 | Calibration Cell | 7 × 7 × 4 | Door west, gallery south. |
+| systems | Systems mezzanine | desks | 6 blocks above the Ops floor along one wall: the settings, map, regions and permissions desks. |
+| **gates** | **Gate Dynamics** | **141 × 131 × 36** | The biggest wing. Stargates are built and dialled here. |
+| g1 | Test Stand | 41 × 37 × 30 | Door south, gallery west. The tallest chamber. |
+| relay | Relay | 21 × 21 × 24 | Holds the far end of dialled gates. |
+| g2 | Shape Gallery | 133 × 19 × 30 | One long hall of gate shapes side by side. |
+| g3 | Automation Bay | 27 × 31 × 16 | Redstone inputs; the 2-block skin matters most here. |
+| g4 | Build Bench | 27 × 31 × 16 | |
+| g5 | Iris Chamber | 33 × 31 × 16 | |
+| **rings** | **Ring Transit** | **71 × 61 × 14** | |
+| r1 | Pair Stand | 63 × 17 × 12 | Two ring platforms far apart. |
+| r2 | Ceiling Room | 15 × 17 × 12 | Tests rings under a low ceiling; keep the ceiling as given. |
+| r3 | Shaft | 7 × 7 × 12 | Plus a 7 × 7 shaft 60 deep below it. A window onto it is welcome. |
+| r4 | Build Bench | 23 × 17 × 12 | |
+| tunnel | Tunnel | 269 × 9 × 6 | Straight and enclosed; can run underground. |
+| r5 | Ring desk | desk | |
+| **beams** | **Beam Physics** | **71 × 61 × 12** | |
+| b1 | Pad Array | 53 × 35 × 10 | A grid of beam pads. |
+| b2 | Dispatch desk | desk | Ideally overlooks the pad array. |
+| **mirrors** | **Mirror Optics** | **81 × 51 × 12** | |
+| m1 | Mirror Round | 73 × 19 × 10 | A hall of mirrors at player height. |
+| m2 | Wall Bench | 29 × 13 × 8 | |
+| m3 | Capture Desk | 29 × 13 × 8 | |
+| **menagerie** | **Menagerie and Motor Pool** | **51 × 61 × 10** | Animals, vehicles and projectiles through gates. |
+| **range** | **The Range** | **61 × 61 × 20** | In the Nether, on solid ground, away from lava lakes. |
+| **annex** | **The Annex** | **41 × 41 × 20** | In the End; off the main island is fine, reachable on foot from its gate. |
+
+"Desk" rows are workstations, not sealed volumes: a 3 × 2 floor area with a console where a
+player stands.
+
+### Lanes and the Menagerie
+
+| Space | Size | Notes |
+|---|---|---|
+| Canal | 119 long | Water lane for boats, ending at a gate. Straight. |
+| Rail line | 119 long | Minecarts into a gate. Straight, level, nothing on the track bed. |
+| Run-up stripe | 79 long | A clear straight run for players and mobs at speed. |
+| Lava trough | 27 wide | Enclosed, with a viewing window. |
+| Boathouse | 10 × 6 | |
+| Rail loop | 29 × 11 | Closed loop. |
+| Armoury | 11 × 11 × 4 | Arrows, tridents, snowballs and fire charges are handed out here. |
+| Arrow range | 45 × 7 | Projectiles fired down it into a gate; nothing in the flight path. |
+
+## Marking your spaces (Route B)
+
+Place one structure block in **Data** mode at the bottom north-west corner of each space, one
+block outside the interior (inside the wall, under the floor line), with its ID and sides in the
+custom data string. Wings get one at their bottom north-west corner, lanes one at each end, desks
+one under the spot where a player stands.
+
+```
+wx:g1 door=s gallery=w
+wx:r3 shaft=60
+wx:canal end=a        wx:canal end=b
+wx:wing=gates
+wx:desk=b2 facing=n
+```
+
+Sides are n, e, s or w. Where the table names a side, keep it; elsewhere choose, and say so in
+the marker.
+
+## Direction
+
+A working research base in the spirit of a military gate programme: a clean white shell, dark
+machined steel around anything dangerous, copper on the parts people operate, and procedure at
+every threshold. Make it your own; [INSPIRATION.md](INSPIRATION.md) has the full survey and
+[CREATIVE.md](CREATIVE.md) the earlier look-and-transit pass.
+
+Moments we want:
+
+- The gate in Ops on a raised plinth with a dark ramp up the centreline; the rest of the room
+  sits lower.
+- A control room one floor up, facing the gate through a long window, with a parked shutter.
+- Opposing blast doors with hazard bands, and the same door detail at every lab entrance.
+- The 60-deep ring shaft banded light and dark every 4 blocks, so the fall is countable.
+- The End Annex as a contrast: oxidised copper, purpur, obsidian spines, a geometric
+  stained-glass window behind the gate.
+- The Nether Range as a repaired fortress outpost lit only by soul fire.
+
+Systems we want:
+
+- One corridor module repeated everywhere: a recessed band at eye height, a dark rib with a
+  vent every 6 blocks, a light channel in the ceiling.
+- A floor line in each wing's colour leading from Ops to that wing.
+- Hidden light sources; visible lamps only as props, in four colours: cool white for labs, warm
+  for workshops, blue for the wormhole, red for alarms.
+- Three wall tones by zone, so you know roughly where you are without a sign.
+
+## Milestones
+
+1. **Massing.** Blocked-out walls and floors for every wing, no detail. Route B: markers placed.
+   Export it; we run the checks and send back what fails.
+2. **One wing finished.** Ops is the best first choice. The palette and corridor module are
+   agreed on it before you repeat them.
+3. **Everything finished.** All wings and both far sites.
+4. **Fixes.** One round for anything the tests catch.
+
+A milestone passes when `check` reports nothing, and the bot's full self-test passes on your
+world at the same count as on the plain campus. Rights and credit are in the
+[design README](../README.md).

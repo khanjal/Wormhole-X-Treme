@@ -36,6 +36,9 @@
 .PARAMETER PluginCache
     A folder of companion jars to read first (<folder>\<version>\ then <folder>\any\).
 
+.PARAMETER NoDashboard
+    Do not start the Lab Dashboard (each lab's console and Dynmap, http://127.0.0.1:8200).
+
 .EXAMPLE
     .\scripts\facility\lab.ps1
     .\scripts\facility\lab.ps1 -Version 1.21.11 -Port 25620 -With dynmap,regions -Op YourName
@@ -48,7 +51,8 @@ param(
     [string] $Op = '',
     [switch] $Fresh,
     [string] $With = '',
-    [string] $PluginCache = ''
+    [string] $PluginCache = '',
+    [switch] $NoDashboard
 )
 
 $ErrorActionPreference = 'Stop'
@@ -87,4 +91,15 @@ $title = "Wormhole lab $Version :$Port"
 $node = "node $(Quote (Join-Path $facility 'run-facility.js')) $(($arguments | ForEach-Object { Quote "$_" }) -join ' ')"
 $command = "`$host.UI.RawUI.WindowTitle = $(Quote $title); Set-Location $(Quote $repo); $node"
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $command
+
+# The read-only Lab Dashboard, once for all labs.
+if (-not $NoDashboard)
+{
+    if (-not (Get-NetTCPConnection -LocalPort 8200 -State Listen -ErrorAction SilentlyContinue))
+    {
+        Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit', '-Command',
+            "`$host.UI.RawUI.WindowTitle = 'Lab Dashboard :8200'; node $(Quote (Join-Path $facility 'dashboard.js'))"
+    }
+    Start-Process 'http://127.0.0.1:8200'
+}
 Write-Host "Opened $title in its own window. Join localhost:$Port with Minecraft $Version once it says ready."
