@@ -459,6 +459,8 @@ class GateProjectileTest
 
         verify(arrow, never()).remove();
         verify(arrow).teleport(any(Location.class));
+        // There was no replacement, so there is nothing to take back and nothing to fail at it.
+        verify(plugin, never()).prettyLog(any(Level.class), contains("unused projectile replacement"), any(Throwable.class));
     }
 
     /**
