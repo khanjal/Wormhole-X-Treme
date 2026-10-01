@@ -307,8 +307,10 @@ class DialRefusalTest
     void aForcedDialIntoAnotherWorldIsRefusedWhenSameWorldOnlyIsOn()
     {
         final Stargate target = dialableTarget();
-        when(gate.getGateWorld()).thenReturn(mock(World.class));
-        when(target.getGateWorld()).thenReturn(mock(World.class));
+        final World here = mock(World.class);
+        final World there = mock(World.class);
+        when(gate.getGateWorld()).thenReturn(here);
+        when(target.getGateWorld()).thenReturn(there);
 
         try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
              MockedStatic<WorldUtils> world = mockStatic(WorldUtils.class))
@@ -363,8 +365,10 @@ class DialRefusalTest
     void aDialRefusedForCrossingWorldsLeavesTheActivationTimer() throws Exception
     {
         final Stargate target = dialableTarget();
-        when(gate.getGateWorld()).thenReturn(mock(World.class));
-        when(target.getGateWorld()).thenReturn(mock(World.class));
+        final World here = mock(World.class);
+        final World there = mock(World.class);
+        when(gate.getGateWorld()).thenReturn(here);
+        when(target.getGateWorld()).thenReturn(there);
         when(gate.getGateActivateTaskId()).thenReturn(7);
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);

@@ -88,14 +88,7 @@ public final class RepeatingSweeps
      */
     public static boolean follow(final ConfigKeys key)
     {
-        final List<Sweep> timed = new ArrayList<>();
-        for (final Sweep sweep : sweeps)
-        {
-            if (sweep.key == key)
-            {
-                timed.add(sweep);
-            }
-        }
+        final List<Sweep> timed = sweeps.stream().filter(sweep -> sweep.key == key).toList();
         // Every replacement is started before any old task stops, so a scheduler that refuses
         // leaves the sweeps running as they were rather than not at all.
         final List<BukkitTask> started = new ArrayList<>();
@@ -136,15 +129,7 @@ public final class RepeatingSweeps
      */
     static List<ConfigKeys> runningKeys()
     {
-        final List<ConfigKeys> keys = new ArrayList<>();
-        for (final Sweep sweep : sweeps)
-        {
-            if (sweep.task != null)
-            {
-                keys.add(sweep.key);
-            }
-        }
-        return keys;
+        return sweeps.stream().filter(sweep -> sweep.task != null).map(sweep -> sweep.key).toList();
     }
 
     /**

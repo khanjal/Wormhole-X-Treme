@@ -1,6 +1,6 @@
 package com.wormhole_xtreme.wormhole.utils;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -78,15 +78,7 @@ public final class SignStyle
      */
     public static List<String> colorNames()
     {
-        final List<String> names = new ArrayList<>();
-        for (final ChatColor colour : ChatColor.values())
-        {
-            if (colour.isColor())
-            {
-                names.add(colour.name());
-            }
-        }
-        return names;
+        return Arrays.stream(ChatColor.values()).filter(ChatColor::isColor).map(ChatColor::name).toList();
     }
 
     /**
