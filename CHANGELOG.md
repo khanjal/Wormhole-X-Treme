@@ -40,7 +40,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
 - **`same-world-only` keeps everything in its own world, not only players on foot.** A minecart
   carried its rider through to the Nether, and a mob, an item or an arrow went too. With it on, a
-  gate in another world cannot be dialled, and `/dial` and the dial sign say why.
+  gate in another world cannot be dialled, and `/dial` and the dial sign say why. A player walking
+  in is told that before any cooldown or iris, and once, not at every block.
 - **`/wormhole config` refuses a sign colour that is not one**, and names the sixteen there are.
   `sign-color-gate-name PINK` was accepted, and every sign written after it came out dark aqua.
 

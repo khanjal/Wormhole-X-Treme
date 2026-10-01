@@ -69,8 +69,14 @@ public final class RepeatingSweeps
             ConfigManager::getGateIrisHorizonTicks));
         for (final Sweep sweep : sweeps)
         {
-            schedule(sweep, sweep.firstDelay);
+            sweep.task = start(sweep, sweep.firstDelay);
         }
+    }
+
+    /** Forgets every sweep, for a test that started them against a mock scheduler. */
+    static void clear()
+    {
+        sweeps.clear();
     }
 
     /**
@@ -82,21 +88,45 @@ public final class RepeatingSweeps
      */
     public static boolean follow(final ConfigKeys key)
     {
-        boolean times = false;
+        final List<Sweep> timed = new ArrayList<>();
         for (final Sweep sweep : sweeps)
         {
             if (sweep.key == key)
             {
-                times = true;
-                if (sweep.task != null)
-                {
-                    sweep.task.cancel();
-                    sweep.task = null;
-                }
-                schedule(sweep, sweep.period.getAsLong());
+                timed.add(sweep);
             }
         }
-        return times;
+        // Every replacement is started before any old task stops, so a scheduler that refuses
+        // leaves the sweeps running as they were rather than not at all.
+        final List<BukkitTask> started = new ArrayList<>();
+        try
+        {
+            for (final Sweep sweep : timed)
+            {
+                started.add(start(sweep, sweep.period.getAsLong()));
+            }
+        }
+        catch (final RuntimeException refused)
+        {
+            for (final BukkitTask task : started)
+            {
+                if (task != null)
+                {
+                    task.cancel();
+                }
+            }
+            throw refused;
+        }
+        for (int i = 0; i < timed.size(); i++)
+        {
+            final Sweep sweep = timed.get(i);
+            if (sweep.task != null)
+            {
+                sweep.task.cancel();
+            }
+            sweep.task = started.get(i);
+        }
+        return !timed.isEmpty();
     }
 
     /**
@@ -117,15 +147,19 @@ public final class RepeatingSweeps
         return keys;
     }
 
-    /** Schedules one sweep, unless its period says it is off. */
-    private static void schedule(final Sweep sweep, final long delay)
+    /**
+     * Schedules one sweep, unless its period says it is off.
+     *
+     * @return the task, or null when the sweep is off
+     */
+    private static BukkitTask start(final Sweep sweep, final long delay)
     {
         final long period = sweep.period.getAsLong();
         if (period <= 0L)
         {
-            return;
+            return null;
         }
-        sweep.task = WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), sweep.work,
+        return WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), sweep.work,
             Math.max(1L, delay), period);
     }
 }

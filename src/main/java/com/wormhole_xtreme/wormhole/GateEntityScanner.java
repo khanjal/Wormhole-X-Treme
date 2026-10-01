@@ -153,7 +153,7 @@ public final class GateEntityScanner implements Runnable
         final Stargate target = gate.getGateTarget();
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
-        if ((arrival == null) || StargateRestrictions.isCrossWorldRefused(world, arrival))
+        if (arrival == null)
         {
             return;
         }
@@ -163,6 +163,11 @@ public final class GateEntityScanner implements Runnable
         // asked at all, which is how items and mobs went on arriving at a gate that had shut
         // its iris after the wormhole opened.
         final boolean irisShut = gate.isGateIrisActive() || target.isGateIrisActive();
+        // A shut iris still splats, as it does a thrown item; only the trip itself is refused.
+        if (!irisShut && StargateRestrictions.isCrossWorldRefused(world, arrival))
+        {
+            return;
+        }
 
         for (final Entity entity : candidates)
         {

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import java.util.Collections;
 
 /**
  * A sweep's period changed with {@code /wormhole config} takes effect at once.
@@ -73,6 +74,7 @@ class RepeatingSweepsTest
     @AfterEach
     void tearDown() throws Exception
     {
+        RepeatingSweeps.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
@@ -172,5 +174,38 @@ class RepeatingSweepsTest
         {
             verify(s.task(), never()).cancel();
         }
+    }
+
+    /**
+     * A scheduler that refuses the new period leaves the sweeps running at the old one.
+     *
+     * <p>Cancelling first left a refused change with no sweep at all until a restart, while the
+     * reply said the change would wait for one. Both mirror sweeps move together or not at all.
+     */
+    @Test
+    void aRefusedRescheduleLeavesBothMirrorSweepsRunning()
+    {
+        final List<BukkitTask> mirrors = startedAt(25L);
+        final int[] calls = { 0 };
+        final List<BukkitTask> replacements = new ArrayList<>();
+        when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
+            .thenAnswer(inv -> {
+                if (++calls[0] == 2)
+                {
+                    throw new IllegalStateException("scheduler refused");
+                }
+                final BukkitTask task = mock(BukkitTask.class);
+                replacements.add(task);
+                return task;
+            });
+
+        final String said = ConfigManager.applySetting("mirror-proximity-ticks", "30");
+
+        assertTrue(said.contains("could not be applied now"), said);
+        verify(mirrors.get(0), never()).cancel();
+        verify(mirrors.get(1), never()).cancel();
+        verify(replacements.get(0)).cancel();
+        assertEquals(2, Collections.frequency(RepeatingSweeps.runningKeys(), ConfigKeys.MIRROR_PROXIMITY_TICKS),
+            "both still running");
     }
 }

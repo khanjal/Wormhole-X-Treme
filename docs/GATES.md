@@ -689,16 +689,18 @@ has moved until the last step.
 4. **Does the gate hold a target?** A gate with none is either the far end of somebody else's
    wormhole or one that was lit and walked away from. The first is an exit, and walking into it
    from outside is refused, so a wormhole cannot be used as a door in both directions.
-5. **Permission**, if `wormhole-use-is-teleport` is on.
-6. **Did they just arrive from this gate?** Refused, so a traveller does not bounce straight back.
+5. **Same-world only**, if configured. Asked first, so nobody is told of a cooldown or an iris on
+   a trip that could never happen; someone stepping in is held out and told once, not at every
+   block. The dial refuses a gate in another world before this, so it only stops a trip through a
+   wormhole opened before the setting was turned on. Carts, the entity sweep, items and
+   projectiles ask the same question.
+6. **Permission**, if `wormhole-use-is-teleport` is on.
+7. **Did they just arrive from this gate?** Refused, so a traveller does not bounce straight back.
    The chat line is throttled to once every two seconds per gate.
-7. **Per-player cooldown**, if enabled — checked here, *applied* only once the traveller has gone.
-8. **Can they afford the fare?** Checked here so the refusal comes in the right order; the money
+8. **Per-player cooldown**, if enabled — checked here, *applied* only once the traveller has gone.
+9. **Can they afford the fare?** Checked here so the refusal comes in the right order; the money
    does not move until the trip is certain.
-9. **Is the far iris closed?** They are pushed back to their own arrival point.
-10. **Same-world only**, if configured. The dial refuses a gate in another world first, so this
-    only stops a trip through a wormhole opened before the setting was turned on. Carts, the entity
-    sweep, items and projectiles ask the same question.
+10. **Is the far iris closed?** They are pushed back to their own arrival point.
 11. **Find a safe landing spot** at the far end.
 12. **`StargatePlayerTravelEvent`.** Every check has passed and nothing has moved, which is the
     only honest point to let another plugin object.

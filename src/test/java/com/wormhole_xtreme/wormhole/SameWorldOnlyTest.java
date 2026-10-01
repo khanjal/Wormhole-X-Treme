@@ -254,4 +254,21 @@ class SameWorldOnlyTest
         assertFalse(StargateRestrictions.isCrossWorldRefused(here, (World) null));
         assertFalse(StargateRestrictions.isCrossWorldRefused(here, (Location) null));
     }
+
+    /**
+     * An item lying in a wormhole to another world is still destroyed by a shut iris, as a thrown one
+     * is: the iris is asked before the trip is refused.
+     */
+    @Test
+    void theSweepStillSplatsAnItemAtAShutIrisToAnotherWorld()
+    {
+        final Item item = itemInTheOpening();
+        when(here.getNearbyEntities(any(BoundingBox.class))).thenReturn(Collections.<Entity>singletonList(item));
+        destination.setGateIrisActive(true);
+        sameWorldOnly(true);
+
+        GateEntityScanner.create().run();
+
+        verify(item).remove();
+    }
 }

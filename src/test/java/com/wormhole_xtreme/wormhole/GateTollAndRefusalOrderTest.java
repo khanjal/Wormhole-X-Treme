@@ -37,6 +37,9 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.times;
 
 /**
  * What a gate refuses you, in what order, and when it takes your money.
@@ -458,5 +461,79 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker, atLeastOnce()).setNoDamageTicks(anyInt());
+    }
+
+    /** One step into the portal from the given z, returning the event so its outcome can be read. */
+    private PlayerMoveEvent stepFrom(final double fromZ)
+    {
+        final PlayerMoveEvent step = new PlayerMoveEvent(walker,
+            new Location(world, BX + 0.5, BY, fromZ), new Location(world, BX + 0.5, BY, BZ + 0.5));
+        new WormholeXTremePlayerListener().onPlayerMove(step);
+        return step;
+    }
+
+    /** A gate to another world, with same-world-only on. */
+    private void aGateToAnotherWorld()
+    {
+        config.when(ConfigManager::isSameWorldOnly).thenReturn(Boolean.TRUE);
+        dst.setGatePlayerTeleportLocation(new Location(farWorld, 100.5, 70.0, 200.5));
+    }
+
+    /**
+     * Another world is asked before the far iris, so a walker is told why the trip cannot happen
+     * and not bounced off an iris it would never have reached.
+     */
+    @Test
+    void anotherWorldIsAskedBeforeTheFarIris()
+    {
+        aGateToAnotherWorld();
+        dst.setGateIrisActive(true);
+
+        walkIn();
+
+        verify(walker).sendMessage(contains("Cross-world travel is disabled"));
+        verify(walker, never()).sendMessage(contains("Remote Iris"));
+        verify(walker, never()).teleport(any(Location.class));
+    }
+
+    /** And before the cooldown, which a trip that cannot happen has no reason to mention. */
+    @Test
+    void anotherWorldIsAskedBeforeTheCooldown()
+    {
+        aGateToAnotherWorld();
+        config.when(ConfigManager::isUseCooldownEnabled).thenReturn(Boolean.TRUE);
+        restrictions.when(() -> StargateRestrictions.isPlayerUseCooldown(walker)).thenReturn(Boolean.TRUE);
+
+        walkIn();
+
+        verify(walker).sendMessage(contains("Cross-world travel is disabled"));
+        verify(walker, never()).sendMessage(contains("You must wait longer"));
+    }
+
+    /**
+     * Someone stepping in is held out and told once, not at every block they cross.
+     *
+     * <p>Not cancelled, the move let them on into the portal, where each block crossed asked again
+     * and said so again.
+     */
+    @Test
+    void aWalkerRefusedForAnotherWorldIsHeldOutAndToldOnce()
+    {
+        aGateToAnotherWorld();
+
+        final PlayerMoveEvent first = stepFrom(BZ - 0.5);
+        final PlayerMoveEvent second = stepFrom(BZ - 0.5);
+
+        assertTrue(first.isCancelled() && second.isCancelled(), "held out of the portal each time");
+        verify(walker, times(1)).sendMessage(contains("Cross-world travel is disabled"));
+    }
+
+    /** Someone already standing in the portal is let walk out, or every move would hold them in it. */
+    @Test
+    void aWalkerAlreadyInThePortalIsNotHeldThere()
+    {
+        aGateToAnotherWorld();
+
+        assertFalse(stepFrom(BZ + 0.2).isCancelled());
     }
 }
