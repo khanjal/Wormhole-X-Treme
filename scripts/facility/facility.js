@@ -18,25 +18,11 @@ const { Watch } = require('./lib/observe');
 const { Transit } = require('./lib/transit');
 const { companionFault } = require('./lib/companions');
 const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
+const { httpText } = require('./lib/http');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
 const BASELINE_OWNER = 'facility baseline';
-
-/** GETs a local URL's body as text (Dynmap's web map), within `ms`. */
-function httpText(url, ms = 10000) {
-  return new Promise((resolve, reject) => {
-    const req = require('http').get(url, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (d) => { body += d; });
-      res.on('end', () => (res.statusCode === 200 ? resolve(body) : reject(new Error(`HTTP ${res.statusCode}`))));
-      res.on('error', reject);
-    });
-    req.on('error', reject);
-    req.setTimeout(ms, () => req.destroy(new Error(`no answer in ${ms} ms`)));
-  });
-}
 
 function clock() {
   const d = new Date();

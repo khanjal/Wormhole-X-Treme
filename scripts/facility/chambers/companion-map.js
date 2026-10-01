@@ -29,6 +29,7 @@ const { MapReader, SETS, LABELS } = require('../lib/dynmap');
 const { deskLayout } = require('../lib/blueprint');
 const { ticks } = require('../lib/probe');
 const relay = require('./relay');
+const { httpText } = require('../lib/http');
 const server = require('../lib/server');
 
 const DYNMAP_ABSENT = 'dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.';
@@ -144,21 +145,6 @@ async function watchDial(ctx, reader, from, to, geomFrom, ms = 20000) {
   // only a read more than a second before any of the opening was drawn is one while locking.
   samples.locking = firstDrawn === null ? [] : samples.filter((x) => x.t < firstDrawn - 1000);
   return samples;
-}
-
-/** GETs a local URL's body as text, within `ms`. */
-function httpText(url, ms = 10000) {
-  return new Promise((resolve, reject) => {
-    const req = require('http').get(url, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (d) => { body += d; });
-      res.on('end', () => (res.statusCode === 200 ? resolve(body) : reject(new Error(`HTTP ${res.statusCode}`))));
-      res.on('error', reject);
-    });
-    req.on('error', reject);
-    req.setTimeout(ms, () => req.destroy(new Error(`no answer in ${ms} ms`)));
-  });
 }
 
 /** Reads the markers for `ms` more, every half second: what `pick` makes of each read. */
