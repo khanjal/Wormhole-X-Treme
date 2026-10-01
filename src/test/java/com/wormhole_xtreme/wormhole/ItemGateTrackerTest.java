@@ -373,6 +373,24 @@ class ItemGateTrackerTest
         assertEquals(0, ItemGateTracker.trackedCount(), "and then it is let fall");
     }
 
+    /**
+     * An item just sent is not sent again while the one-second guard holds, as the sweep's are not:
+     * otherwise one arriving in a facing gate's opening crosses every tick.
+     */
+    @Test
+    void anItemJustSentIsNotSentAgainWithinTheSecond()
+    {
+        itemAt(BX + 0.5, BY, BZ + 0.5);
+        toss();
+
+        for (int i = 0; i < 5; i++)
+        {
+            ticker.run();
+        }
+
+        verify(item, times(1)).teleport(any(Location.class));
+    }
+
     /** An item coming out of a gate is not sent straight back into it. */
     @Test
     void anItemIsNotSentBackIntoTheGateItCameOutOf()
