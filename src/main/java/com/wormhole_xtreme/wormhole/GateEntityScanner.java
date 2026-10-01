@@ -466,6 +466,36 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
+     * Sends a thrown item through a gate, or destroys it on a shut iris, as the sweep would.
+     *
+     * <p>Called by {@link ItemGateTracker} the tick an item's path reaches a portal: one thrown
+     * through the opening is there for a tick or two, far too briefly for the sweep to see.
+     *
+     * @param item
+     *            the item crossing the gate
+     * @param gate
+     *            the gate it is entering
+     * @return true if it was sent through or destroyed
+     */
+    static boolean sendItemThrough(final Item item, final Stargate gate)
+    {
+        final Stargate target = gate.getGateTarget();
+        if (!shouldSendThrough(item))
+        {
+            return false;
+        }
+        if (gate.isGateIrisActive() || target.isGateIrisActive())
+        {
+            splatOnIris(item);
+            return true;
+        }
+        final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
+            target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
+        return (arrival != null)
+            && sendThrough(item, arrival, gate.getGateFacing(), target.getGateFacing(), target);
+    }
+
+    /**
      * Speed given to a projectile that reaches a gate with no momentum left. Roughly a
      * fully drawn bow.
      */
@@ -643,8 +673,9 @@ public final class GateEntityScanner implements Runnable
      *            the direction the destination gate faces
      * @param exitGate
      *            the gate it comes out of, or null where that does not matter
+     * @return true if it was moved
      */
-    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
+    private static boolean sendThrough(final Entity entity, final Location arrival, final BlockFace entryFacing,
         final BlockFace exitFacing, final Stargate exitGate)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
@@ -672,7 +703,7 @@ public final class GateEntityScanner implements Runnable
             WormholeXTremeVehicleListener.collectPassengerPairs(entity, parents, children);
             if (!RiddenTeleport.move(entity, arrival, parents, children))
             {
-                return;
+                return false;
             }
             moved = entity;
         }
@@ -696,7 +727,7 @@ public final class GateEntityScanner implements Runnable
 
         if (children.isEmpty())
         {
-            return;
+            return true;
         }
         // Marked too, or a rider waiting in the far portal for its seat is swept straight back.
         for (final Entity child : children)
@@ -705,5 +736,6 @@ public final class GateEntityScanner implements Runnable
         }
         // The shared re-seat, whose retries fetch a passenger that did not land beside its mount.
         PassengerReattach.schedule(entity, parents, children, exit, 1L);
+        return true;
     }
 }
