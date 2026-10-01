@@ -279,7 +279,7 @@ class GateProjectileTest
         when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
         // Before 1.20.2 the base potion is a PotionData, found by its getter's type.
         final boolean byType = potionMethod("getBasePotionType") != null;
-        final Method getter = byType ? potionMethod("getBasePotionType") : potionMethod("getBasePotionData");
+        final Method getter = potionMethod(byType ? "getBasePotionType" : "getBasePotionData");
         final Method setter = potionMethod(byType ? "setBasePotionType" : "setBasePotionData",
             getter.getReturnType());
         final Object base = byType ? PotionType.SLOWNESS : mock(getter.getReturnType());
@@ -321,7 +321,8 @@ class GateProjectileTest
         when(arrow.getCustomEffects()).thenReturn(Collections.singletonList(custom));
         if (GateEntityScanner.arrowsCarryItems())
         {
-            when(arrowMethod("getItem").invoke(arrow)).thenReturn(mock(ItemStack.class));
+            final ItemStack item = mock(ItemStack.class);
+            when(arrowMethod("getItem").invoke(arrow)).thenReturn(item);
             arrowMethod("setItem", ItemStack.class)
                 .invoke(doThrow(new IllegalArgumentException("refused")).when(spawned), any(ItemStack.class));
         }
@@ -409,7 +410,8 @@ class GateProjectileTest
         final Trident replacement = mock(Trident.class);
         when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
             .thenReturn(replacement);
-        when(trident.getItem()).thenReturn(mock(ItemStack.class));
+        final ItemStack item = mock(ItemStack.class);
+        when(trident.getItem()).thenReturn(item);
         when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
         doThrow(new IllegalArgumentException("refused")).when(replacement).setItem(any());
 
