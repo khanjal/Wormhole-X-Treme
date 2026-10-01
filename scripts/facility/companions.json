@@ -1,0 +1,111 @@
+{
+  "about": "Companion plugins for run-facility.js --with, pinned by version and SHA-256. Each is read from the plugin cache first (--plugin-cache: its <minecraft version> folder, then any/), then from .local-server/companions/, and only then downloaded from `url`, an official release source (Modrinth, GitHub releases, and for Dynmap 3.8 dynmap.us, the Dynmap project's own build server). Never SpigotMC: its downloads are not scriptable. A build with no url would be cache-only and say where it comes from. `versions` lists the Minecraft versions a build is pinned for, or * for every one.",
+  "sets": {
+    "permissions": ["luckperms", "vault"],
+    "regions": ["worldedit", "worldguard"],
+    "via": ["viaversion", "viabackwards"]
+  },
+  "companions": {
+    "viaversion": {
+      "plugin": "ViaVersion",
+      "why": "join from other client versions",
+      "builds": [
+        {
+          "versions": "*", "version": "5.12.0", "file": "ViaVersion-5.12.0.jar", "size": 6503775,
+          "sha256": "c4d512fa9760fa41d17abaedde12aa1f4c9bde920d0a992fe0fc016962f126be",
+          "source": "Modrinth (viaversion)", "url": "https://cdn.modrinth.com/data/P1OZGk5p/versions/FaishMnD/ViaVersion-5.12.0.jar"
+        }
+      ]
+    },
+    "viabackwards": {
+      "plugin": "ViaBackwards",
+      "requires": ["viaversion"],
+      "why": "join from older client versions",
+      "builds": [
+        {
+          "versions": "*", "version": "5.12.0", "file": "ViaBackwards-5.12.0.jar", "size": 1430897,
+          "sha256": "f902f7da7eb99e8bfaf461f80283c4e2750b7d9727e6b508ea4bb9163f55b1db",
+          "source": "Modrinth (viabackwards)", "url": "https://cdn.modrinth.com/data/NpvuJQoq/versions/SxGhdsPK/ViaBackwards-5.12.0.jar"
+        }
+      ]
+    },
+    "dynmap": {
+      "plugin": "dynmap",
+      "why": "the web map the #236 markers are drawn on",
+      "builds": [
+        {
+          "versions": "1.20.4", "version": "3.7-beta-8", "file": "Dynmap-3.7-beta-8-spigot.jar", "size": 11659463,
+          "sha256": "87c6035c2cb73bf22fc34ca738cb21a2db89ab5f30bd1071cd8090802a1c78bc",
+          "source": "Modrinth (dynmap)", "url": "https://cdn.modrinth.com/data/fRQREgAc/versions/ImNNT17B/Dynmap-3.7-beta-8-spigot.jar"
+        },
+        {
+          "versions": "1.21.11", "version": "3.8", "file": "Dynmap-3.8-spigot.jar", "size": 11819070,
+          "sha256": "4771dbe8cbb3ec6a3ee080141361de6d822eac55b55aad7c9e5de031423a6dd7",
+          "source": "dynmap.us, the Dynmap project's own build server (the same bytes as CurseForge file 7460127; Modrinth has 3.8 for Forge and Fabric only, Dynmap's GitHub releases stop at 3.3, and SpigotMC resource 274 is not scriptable)",
+          "url": "https://dynmap.us/builds/dynmap/Dynmap-3.8-spigot.jar"
+        }
+      ],
+      "unsupported": [
+        {
+          "from": "26", "why": "no Dynmap build supports 26.x: its newest version helper is 1.21.11, and on 26.1.2 it disables itself (bukkit version incompatible). Run the Dynmap cells on 1.21.11."
+        }
+      ]
+    },
+    "worldedit": {
+      "plugin": "WorldEdit",
+      "why": "WorldGuard needs it",
+      "builds": [
+        {
+          "versions": "1.20.4", "version": "7.2.20", "file": "worldedit-bukkit-7.2.20.jar", "size": 6428667,
+          "sha256": "9638d0b618a7d0171fc9ad5b5716a22ddd251d49c04c411b0d5488081914efb2",
+          "source": "Modrinth (worldedit)", "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/DfjpjdP5/worldedit-bukkit-7.2.20.jar"
+        },
+        {
+          "versions": "1.21.11,26.1.2", "version": "7.4.5", "file": "worldedit-bukkit-7.4.5.jar", "size": 7708742,
+          "sha256": "e5696a6d064b9969437a8888be91b0941148a28e0c3736de1554a00254a5d142",
+          "source": "Modrinth (worldedit)", "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/F5ea2ov3/worldedit-bukkit-7.4.5.jar"
+        }
+      ]
+    },
+    "worldguard": {
+      "plugin": "WorldGuard",
+      "requires": ["worldedit"],
+      "why": "the #240 region flags wormhole-build and wormhole-use",
+      "builds": [
+        {
+          "versions": "1.20.4", "version": "7.0.9", "file": "worldguard-bukkit-7.0.9-dist.jar", "size": 1167465,
+          "sha256": "0c04d30c0c98c21e820dec6f7e380993416a293d7e2646849f6dcd4efdc24287",
+          "source": "Modrinth (worldguard)", "url": "https://cdn.modrinth.com/data/DKY9btbd/versions/NpagB1YQ/worldguard-bukkit-7.0.9-dist.jar"
+        },
+        {
+          "versions": "1.21.11,26.1.2", "version": "7.0.17", "file": "worldguard-bukkit-7.0.17.jar", "size": 1177934,
+          "sha256": "3f14562509bf01e7680571b6f56932239157ff938f257c3226df3b4088ae54f2",
+          "source": "Modrinth (worldguard)", "url": "https://cdn.modrinth.com/data/DKY9btbd/versions/pI4UHLJL/worldguard-bukkit-7.0.17.jar"
+        }
+      ]
+    },
+    "luckperms": {
+      "plugin": "LuckPerms",
+      "requires": ["vault"],
+      "why": "node-based permissions: the tester groups visitor, builder and operator",
+      "builds": [
+        {
+          "versions": "*", "version": "5.5.71", "file": "LuckPerms-Bukkit-5.5.71.jar", "size": 1501521,
+          "sha256": "49cecb66fa1fd22a133039a490e9c1e5095a238e7cd66eb9d2a16fe6c897550d",
+          "source": "Modrinth (luckperms)", "url": "https://cdn.modrinth.com/data/Vebnzrzj/versions/b0mk8uS6/LuckPerms-Bukkit-5.5.71.jar"
+        }
+      ]
+    },
+    "vault": {
+      "plugin": "Vault",
+      "why": "how Wormhole finds a permission (and economy) provider",
+      "builds": [
+        {
+          "versions": "*", "version": "1.7.3", "file": "Vault.jar", "size": 272259,
+          "sha256": "a6b5ed97f43a5cf5bbaf00a7c8cd23c5afc9bd003f849875af8b36e6cf77d01d",
+          "source": "GitHub releases (MilkBowl/Vault 1.7.3)", "url": "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar"
+        }
+      ]
+    }
+  }
+}

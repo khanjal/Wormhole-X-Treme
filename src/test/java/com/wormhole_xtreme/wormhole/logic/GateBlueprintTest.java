@@ -274,6 +274,31 @@ class GateBlueprintTest
         assertEquals(Material.OBSIDIAN, without.materialOf(new Cell(0, 0, 0, Part.CHEVRON, 0)));
     }
 
+    /**
+     * An {@code [S:C]} chevron reaches the blueprint marked lenient, and a {@code [C]} one does not.
+     *
+     * <p>Both land in the shape's chevron list, so without the mark the build guide held an
+     * {@code [S:C]} cell to the strict rule: a gate built with the frame material there was
+     * detected, but the guide never called it built.
+     */
+    @Test
+    void aLenientChevronReachesTheBlueprintMarkedSo() throws Exception
+    {
+        final List<String> lines = new ArrayList<>();
+        for (final String line : Files.readAllLines(SHAPE_DIR.resolve("Standard.shape")))
+        {
+            lines.add(line.trim().startsWith("#") ? line
+                : line.replace("[S:L#1]", "[S:C:L#1]").replace("[S:L#2]", "[C:L#2]"));
+        }
+        final Stargate3DShape s = new Stargate3DShape(lines.toArray(new String[0]));
+        final List<Cell> chevrons = GateBlueprint.of(s, GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.NORTH))
+            .stream().filter(c -> c.part() == Part.CHEVRON).toList();
+
+        assertEquals(2, chevrons.size(), "one [S:C] and one [C]: " + chevrons);
+        assertTrue(chevrons.stream().anyMatch(c -> (c.wave() == 1) && c.lenient()), "the [S:C] cell is lenient");
+        assertTrue(chevrons.stream().anyMatch(c -> (c.wave() == 2) && !c.lenient()), "the [C] cell stays strict");
+    }
+
     /** The nearest cardinal direction to a yaw, as Minecraft counts it: 0 is south, 90 west. */
     @Test
     void aYawIsReadAsTheNearestCardinalDirection()
