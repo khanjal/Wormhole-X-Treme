@@ -45,6 +45,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -481,7 +482,10 @@ class GateProjectileTest
         verify(replacement).setShotAtAngle(true);
         if (GateEntityScanner.fireworkFlightIsSettable())
         {
-            Firework.class.getMethod("setTicksToDetonate", int.class).invoke(verify(replacement), 31);
+            // After the meta, which would otherwise start the flight over.
+            final InOrder order = inOrder(replacement);
+            order.verify(replacement).setFireworkMeta(meta);
+            Firework.class.getMethod("setTicksToDetonate", int.class).invoke(order.verify(replacement), 31);
             Firework.class.getMethod("setTicksFlown", int.class).invoke(verify(replacement), 12);
         }
     }
