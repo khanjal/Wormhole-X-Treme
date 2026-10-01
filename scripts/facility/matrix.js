@@ -274,6 +274,8 @@ const MATRIX = {
     { name: 'g5 block in the shut opening, IrisA', values: { check: 'place', gate: 'Atlantis' }, expect: 'PASS' },
     { name: 'g5 side row off the layers check', values: { check: 'arrow', side: 'behind' }, expect: 'REFUSED:the side row is the layers check' },
   ],
+  // S1, the Systems console: the settings and permissions audits (chambers/s1-systems.js).
+  s1: require('./chambers/s1-systems').CASES.map((c) => ({ name: `s1 ${c.value}`, values: { case: c.value }, expect: 'PASS' })),
 };
 
 /**

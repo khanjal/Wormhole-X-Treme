@@ -138,7 +138,7 @@ const CHAMBERS = [
   // Ops
   { id: 'c0', wing: 'ops', title: 'Calibration Cell', kind: 'cell', logic: 'c0-calibration',
     box: { x0: 11, x1: 17, z0: 7, z1: 13, y0: 0, h: 4 }, door: 'w', gallery: 's' },
-  { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, at: { x: 0, y: 6, z: -19 } },
+  { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, logic: 's1-systems', at: { x: 0, y: 6, z: -19 } },
   // The companion desks (run-facility --with): each refuses a run without its companion plugins.
   { id: 'map', wing: 'systems', title: 'Map Desk', kind: 'desk', stage: 6, logic: 'companion-map', at: { x: 6, y: 6, z: -19 } },
   { id: 'regions', wing: 'systems', title: 'Region Desk', kind: 'desk', stage: 6, logic: 'companion-regions', at: { x: -8, y: 6, z: -19 } },
