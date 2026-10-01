@@ -11,7 +11,7 @@ function decorate(out, w, version) {
   bp.stripe(out, [[-1, 46], [-38, 46], [-38, 73], [-23, 73]], 'magenta'); // M2
   bp.stripe(out, [[1, 46], [38, 46], [38, 73], [23, 73]], 'magenta'); // M3
 
-  // The frame for stage 4's Optics mirror at (-10, 2, 40), on the north wall z 39.
+  // The frame for the Optics mirror at (-10, 1, 40), on the north wall z 39.
   const wallZ = w.room.z0 - 1;
   out.fill(bp.box3(-12, 0, wallZ, -12, 4, wallZ), 'minecraft:amethyst_block');
   out.fill(bp.box3(-8, 0, wallZ, -8, 4, wallZ), 'minecraft:amethyst_block');

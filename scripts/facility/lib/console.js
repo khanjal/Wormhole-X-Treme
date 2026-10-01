@@ -89,6 +89,7 @@ function listen(bot) {
 // Code space (a trigger score is one integer; 0 is what `enable` writes, so it means nothing):
 //   1            the console home
 //   2            the Transit tab;  3 + t: transit action t (TRANSIT_ACTIONS)
+//   9            a fresh Logbook (lib/logbook.js)
 //   10 + w       wing tab w (index into the wing list)
 //   30 + w       go to wing w
 //   50 + g       put me in tester group g (only with LuckPerms: `groups`)
@@ -98,6 +99,7 @@ function listen(bot) {
 const HOME = 1;
 const TRANSIT_TAB = 2;
 const TRANSIT_ACTION = 3;
+const LOGBOOK = 9;
 // The Transit tab: each runs the console form for the player who clicked (what the buttons in the
 // Gate Room and by the pads run), or prints the smoke test's last word on each route.
 const TRANSIT_ACTIONS = [
@@ -113,6 +115,8 @@ const GO = 30;
 // 50 + g: put me in tester group g (with LuckPerms installed: lib/groups.js).
 const GROUP = 50;
 const ACTION_OPTION = 99;
+// The fixed codes must not overlap: the Transit actions end before the Logbook's 9.
+if (TRANSIT_ACTION + TRANSIT_ACTIONS.length > LOGBOOK || LOGBOOK >= TAB) throw new Error('console codes overlap: Transit actions, Logbook, wing tabs');
 const ACTIONS = ['show', 'run', 'stage', 'reset', 'watch', 'again'];
 const ACTION_WORDS = { run: '▶ Run', stage: '◇ Stage', reset: '↺ Reset', watch: '⌖ Watch', again: '⟳ Again' };
 const ACTION_WHY = {
@@ -145,6 +149,9 @@ function normaliseOptions(options = {}) {
 class FacilityConsole {
   constructor({ srv, version, bot, wings, entries, handlers, status, groups = null }) {
     Object.assign(this, { srv, version, bot, wings, entries, handlers, status, groups });
+    // Wing tabs, wing Go and tester groups each have a band of codes; a list that outgrows it would
+    // answer with another band's action.
+    if (wings.length > GO - TAB || wings.length > GROUP - GO || (groups || []).length > 10000 - GROUP) throw new Error('console codes overlap: too many wings or groups');
     this.events = listen(bot);
   }
 
@@ -188,7 +195,8 @@ class FacilityConsole {
   }
 
   async home(player) {
-    await this.tell(player, [{ text: '── WORMHOLE RESEARCH FACILITY ── ', color: 'aqua', bold: true }, { text: 'pick a wing', color: 'gray' }]);
+    await this.tell(player, [{ text: '── WORMHOLE RESEARCH FACILITY ── ', color: 'aqua', bold: true }, { text: 'pick a wing', color: 'gray' },
+      { text: '  [Logbook]', color: 'gold', click: { run: triggerCommand(LOGBOOK) }, hover: 'a fresh Logbook: your runs, the bot\'s, every wing with a Go' }]);
     await this.tell(player, this.tabsLine(null));
   }
 
@@ -258,6 +266,7 @@ class FacilityConsole {
     if (!code || player === this.bot.username) return;
     for (const c of rearmCommands(player)) await this.srv.run(c);
     if (code === HOME) return this.home(player);
+    if (code === LOGBOOK) return this.handlers.book(player);
     if (code === TRANSIT_TAB) return this.transitTab(player);
     if (code >= TRANSIT_ACTION && code < TRANSIT_ACTION + TRANSIT_ACTIONS.length) return this.handlers.transit(player, TRANSIT_ACTIONS[code - TRANSIT_ACTION].id);
     if (code >= TAB && code < TAB + this.wings.length) return this.tab(player, this.wings[code - TAB].id);
@@ -296,6 +305,7 @@ class FacilityConsole {
     const entryOf = (word) => this.entries.find((x) => x.def.id === word);
     const [first, second, third] = words;
     if (first === 'transit') return this.transitTab(player);
+    if (first === 'book' || first === 'logbook') return this.handlers.book(player);
     if (first === 'group' && this.groups) {
       const g = this.groups.find((x) => x.id === second);
       return g ? this.handlers.group(player, g.id) : this.tell(player, this.groupsLine());
@@ -325,5 +335,5 @@ class FacilityConsole {
 
 module.exports = {
   OBJECTIVE, HIDDEN_SLOT, encode, decode, setupCommands, rearmCommands, triggerCommand, menu, listen,
-  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, GROUP, ACTION_OPTION, TRANSIT_TAB, TRANSIT_ACTION, TRANSIT_ACTIONS,
+  FacilityConsole, normaliseOptions, ACTIONS, HOME, TAB, GO, GROUP, ACTION_OPTION, TRANSIT_TAB, TRANSIT_ACTION, TRANSIT_ACTIONS, LOGBOOK,
 };

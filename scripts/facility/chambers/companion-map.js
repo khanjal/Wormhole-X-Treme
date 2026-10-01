@@ -45,7 +45,8 @@ const GATES = {
 };
 const RING_ENDS = [{ x: -12, y: 0, z: -112 }, { x: 12, y: 0, z: -112 }];
 const RING_SLAB = 'polished_andesite_slab';
-const MIRROR = { dim: O, x: 0, y: 2, z: -136, facing: 'south' };
+// At head height, as every facility mirror is (campus.MIRRORS).
+const MIRROR = { dim: O, x: 0, y: 1, z: -136, facing: 'south' };
 const WALL = { x0: -3, x1: 3, y0: 0, y1: 4, z: -137 };
 // Block positions: BeamKit.save stands a player on the block's centre.
 const BEAM_AT = { x: 0, y: 0, z: -111, yaw: 180 };

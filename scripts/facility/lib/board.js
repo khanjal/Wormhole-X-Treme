@@ -109,12 +109,12 @@ class FaultCounter {
     this.onChange = null;
     srv.on('line', (line) => {
       const logLine = /^\[\d\d:\d\d:\d\d /.test(line);
-      if (this.pending && !logLine) { this.pending.trace.push(line); return; }
+      if (this.pending && !logLine) { this.pending.trace.push(line); this.pending.last = Date.now(); return; }
       if (logLine) this.settle();
       const f = server.pluginFault(line) || (extra && extra(line));
       if (!f) return;
       const k = server.knownFault(f);
-      if (k && !(k.issue && fixed.includes(k.issue))) this.pending = { line: f, k, trace: [] };
+      if (k && !(k.issue && fixed.includes(k.issue))) this.pending = { line: f, k, trace: [], last: Date.now() };
       else this.faults.push(f);
       if (this.onChange) this.onChange(this);
     });
@@ -137,6 +137,18 @@ class FaultCounter {
   get count() {
     this.settle();
     return this.faults.length;
+  }
+
+  /**
+   * Waits (up to 5 s) until a held line's stack trace has stopped arriving (a second with no more),
+   * then decides it: read before then, a known fault whose trace is cut short counts as a fault.
+   */
+  async settled(ms = 5000) {
+    const end = Date.now() + ms;
+    while (this.pending && Date.now() - this.pending.last < 1000 && Date.now() < end) {
+      await new Promise((resolve) => { setTimeout(resolve, 100); });
+    }
+    this.settle();
   }
 
   spec() {

@@ -49,6 +49,7 @@ const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
 const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
+const shapes = require('./lib/shapes');
 const companions = require('./lib/companions');
 
 const DEFAULT_VERSION = '26.1.2';
@@ -258,6 +259,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
     if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
+    if (args.keepWorld) child.push('--keep-world');
     if (withNames) child.push('--with', withNames.join(',') || 'none');
     if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
     const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
@@ -368,6 +370,8 @@ async function main() {
   if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
   const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
   if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
+  // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
+  shapes.installTestShapes(folder);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 

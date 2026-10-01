@@ -9,7 +9,9 @@
 //    Sending the new form to 1.20.4 is not an error: the display silently reads "".
 //
 // A spec is a string, an array of specs, or
-//   { text, color, bold, italic, underlined, click: { run } | { suggest }, hover: spec, extra: [spec] }
+//   { text, color, bold, italic, underlined, click: { run } | { suggest } | { page }, hover: spec, extra: [spec] }
+// (`page` turns a written book's page: change_page, whose target is `page` from 1.21.5 and a
+// string `value` before.)
 
 const { atLeast } = require('./version');
 
@@ -27,11 +29,14 @@ function toComponent(version, spec) {
   if (Array.isArray(spec)) return { text: '', extra: spec.map((s) => toComponent(version, s)) };
   const out = { text: spec.text === undefined ? '' : String(spec.text) };
   for (const key of STYLE_KEYS) if (spec[key] !== undefined) out[key] = spec[key];
-  if (spec.click) {
+  if (spec.click && spec.click.page !== undefined) {
+    if (modern(version)) out.click_event = { action: 'change_page', page: Number(spec.click.page) };
+    else out.clickEvent = { action: 'change_page', value: String(spec.click.page) };
+  } else if (spec.click) {
     const [action, target] = spec.click.run !== undefined
       ? ['run_command', spec.click.run]
       : ['suggest_command', spec.click.suggest];
-    if (target === undefined) throw new Error(`click needs run or suggest: ${JSON.stringify(spec.click)}`);
+    if (target === undefined) throw new Error(`click needs run, suggest or page: ${JSON.stringify(spec.click)}`);
     if (modern(version)) out.click_event = { action, command: target };
     else out.clickEvent = { action, value: target };
   }
@@ -63,6 +68,24 @@ function toSnbt(value) {
 /** An SNBT single-quoted string holding `s`. */
 function quoteSingle(s) {
   return `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+}
+
+/**
+ * A written book as an item argument (for `item replace`), marked with `marker` so it can be found
+ * again. Three forms: NBT with its pages as JSON strings before 1.20.5; the written_book_content
+ * component with JSON-string pages from 1.20.5; SNBT component pages (snake_case click and hover
+ * keys) from 1.21.5. The marker is a root tag before 1.20.5 and custom_data from it.
+ */
+function bookItem(version, { title, author, pages, marker = null }) {
+  const comps = pages.map((p) => toComponent(version, p));
+  const asJson = comps.map((c) => quoteSingle(JSON.stringify(c))).join(',');
+  if (!atLeast(version, '1.20.5')) {
+    return `minecraft:written_book{title:${JSON.stringify(title)},author:${JSON.stringify(author)},pages:[${asJson}]${marker ? `,${marker}:1b` : ''}}`;
+  }
+  // 1.20.5 to 1.21.4 take JSON-string pages here: unverified, as no tested version is in that range.
+  const list = modern(version) ? comps.map(toSnbt).join(',') : asJson;
+  const data = marker ? `,minecraft:custom_data={${marker}:1b}` : '';
+  return `minecraft:written_book[minecraft:written_book_content={title:${JSON.stringify(title)},author:${JSON.stringify(author)},pages:[${list}]}${data}]`;
 }
 
 /** The component argument for tellraw, bossbar add/set name, title: JSON before 1.21.5, SNBT from it. */
@@ -226,6 +249,6 @@ function clickCommands(component) {
 }
 
 module.exports = {
-  SNAKE_CASE_EVENTS, toComponent, command, displayNbt, summonDisplay, quoteSingle,
+  SNAKE_CASE_EVENTS, toComponent, command, displayNbt, summonDisplay, quoteSingle, bookItem,
   toSnbt, parseSnbt, readDisplayText, plain, sameComponent, clickCommands,
 };
