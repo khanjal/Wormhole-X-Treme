@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,11 +28,19 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 class PermissionsFallbackTest
 {
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        // A node check logs what it asked, through the plugin.
+        PluginTestSupport.install();
+    }
+
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         PermissionsSupport.setNoProvider(false);
         ConfigTestSupport.clear();
+        PluginTestSupport.remove();
     }
 
     /** No provider and the fallback on: simple mode. Turned off in-game: nodes again, at once. */
