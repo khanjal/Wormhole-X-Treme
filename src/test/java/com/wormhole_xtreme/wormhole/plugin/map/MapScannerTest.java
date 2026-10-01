@@ -265,6 +265,22 @@ class MapScannerTest
     }
 
     @Test
+    void aShutHiddenGateRememberingATargetDoesNotDarkenIt()
+    {
+        // A gate keeps its last target after it shuts. That is no wormhole, so the gate it
+        // names, open to somewhere else, must still show open.
+        final Stargate earth = gate("Earth", overworld);
+        final Stargate abydos = gate("Abydos", overworld);
+        when(earth.getGateIrisDeactivationCode()).thenReturn("GDO");
+        when(earth.getGateTarget()).thenReturn(abydos);
+        formed(abydos);
+
+        final MapSnapshot snapshot = scan(List.of(earth, abydos), IRIS_HIDDEN);
+
+        assertTrue(snapshot.gates().get("abydos").open());
+    }
+
+    @Test
     void withIrisGatesShownBothEndsOfEitherPairAreOpenWithTheirLine()
     {
         for (final boolean irisGateDials : new boolean[] {true, false})
