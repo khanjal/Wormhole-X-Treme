@@ -29,6 +29,9 @@
 //                        a run without one takes out the jar an earlier run installed. The
 //                        self-test's companion cells run only with --with (lib/companions.js)
 //   --plugin-cache <dir> read companion jars from <dir>/<version>/ then <dir>/any/ first
+//   --plugins-extra <dir>  copy every jar in <dir> into the server's plugins/ (default:
+//                        .local-server/plugins-extra, if it is there); a later run without one
+//                        takes it out (lib/extras.js)
 //                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
 //                        the repository or a folder above it)
 //   --op <names>         op these players (comma-separated) once the server is up
@@ -51,6 +54,7 @@ const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
 const shapes = require('./lib/shapes');
 const companions = require('./lib/companions');
+const pluginsExtra = require('./lib/extras');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -105,6 +109,7 @@ function parseArgs(argv) {
       companions.expand(a.with); // a name it does not know is refused here, before anything starts
     }
     else if (x === '--plugin-cache') a.pluginCache = value(i++);
+    else if (x === '--plugins-extra') a.pluginsExtra = value(i++);
     else if (x === '--op') {
       a.op = list(value(i++));
       const bad = a.op.find((p) => !/^\w{1,16}$/.test(p));
@@ -262,6 +267,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
     if (args.keepWorld) child.push('--keep-world');
     if (withNames) child.push('--with', withNames.join(',') || 'none');
     if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
+    if (args.pluginsExtra) child.push('--plugins-extra', args.pluginsExtra);
     const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
     p.stdin.on('error', () => {});
     children.push(p);
@@ -370,6 +376,9 @@ async function main() {
   if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
   const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
   if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
+  const extra = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
+  if (extra.copied.length) console.log(`plugins-extra copied in: ${extra.copied.join(', ')}`);
+  if (extra.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${extra.removed.join(', ')}`);
   // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
   shapes.installTestShapes(folder);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
