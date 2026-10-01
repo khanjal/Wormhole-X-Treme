@@ -306,7 +306,10 @@ The selection is coloured *and* wrapped in `»` `«`, so it still reads for a co
 | `sign-glowing-text` | `false` | Glowing text — reads worse except in a very dark room |
 | `sign-dial-match-material` | `true` | Convert a player's dial sign to the gate's sign material, keeping its text |
 
-Colours are Bukkit names such as `AQUA` or `GOLD`; an unrecognised one falls back to the default.
+Colours are the sixteen chat colours: `BLACK`, `DARK_BLUE`, `DARK_GREEN`, `DARK_AQUA`, `DARK_RED`,
+`DARK_PURPLE`, `GOLD`, `GRAY`, `DARK_GRAY`, `BLUE`, `GREEN`, `AQUA`, `RED`, `LIGHT_PURPLE`, `YELLOW`
+and `WHITE`. `/wormhole config` refuses anything else; one edited into `config.yml` by hand that
+is not a colour falls back to the default.
 Signs repaint when next written — a dial sign on the next click, a name sign on
 `/wormhole gate regen <gate>`.
 

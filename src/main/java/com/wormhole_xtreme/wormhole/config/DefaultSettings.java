@@ -129,7 +129,7 @@ class DefaultSettings
         group("Gate signs", "",
             new Setting(ConfigKeys.SIGN_GLOWING_TEXT, false, "Whether the plugin's own sign text glows. Off, because glow outlines every character and fights the colours below; true is more legible from a distance.", SECTION),
             new Setting(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL, true, "Whether a player-placed dial sign is converted to the gate's own sign material, keeping its text and facing. False leaves the sign exactly as placed.", SECTION),
-            new Setting(ConfigKeys.SIGN_COLOR_GATE_NAME, "DARK_AQUA", "Colour of a gate's own name, on both its name sign and its dial sign. Any Bukkit colour name.", SECTION),
+            new Setting(ConfigKeys.SIGN_COLOR_GATE_NAME, "DARK_AQUA", "Colour of a gate's own name, on both its name sign and its dial sign. One of the sixteen chat colours, such as AQUA, GOLD or LIGHT_PURPLE.", SECTION),
             new Setting(ConfigKeys.SIGN_COLOR_NETWORK, "GRAY", "Colour of the network line on a gate's name sign.", SECTION),
             new Setting(ConfigKeys.SIGN_COLOR_OWNER, "GRAY", "Colour of the owner line on a gate's name sign.", SECTION),
             new Setting(ConfigKeys.SIGN_COLOR_SELECTED, "DARK_GREEN", "Colour of the destination currently selected on a dial sign. Keep it distinct from the neighbours either side.", SECTION),

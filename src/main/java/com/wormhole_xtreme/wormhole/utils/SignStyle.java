@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.ChatColor;
@@ -41,19 +43,50 @@ public final class SignStyle
      */
     public static ChatColor resolveColor(final String name, final ChatColor fallback)
     {
+        final ChatColor found = colorNamed(name);
+        return (found != null) ? found : fallback;
+    }
+
+    /**
+     * The colour a name means, the same way {@link #resolveColor} reads it.
+     *
+     * @param name
+     *            the name, case-insensitive, may be null
+     * @return the colour, or null when the name is empty, unknown, or a format rather than a colour
+     */
+    public static ChatColor colorNamed(final String name)
+    {
         if ((name == null) || name.trim().isEmpty())
         {
-            return fallback;
+            return null;
         }
         try
         {
             final ChatColor found = ChatColor.valueOf(name.trim().toUpperCase(Locale.ROOT));
-            return found.isColor() ? found : fallback;
+            return found.isColor() ? found : null;
         }
         catch (final IllegalArgumentException notAColorName)
         {
-            return fallback;
+            return null;
         }
+    }
+
+    /**
+     * Every name {@link #colorNamed} accepts, in Minecraft's own order.
+     *
+     * @return the colour names
+     */
+    public static List<String> colorNames()
+    {
+        final List<String> names = new ArrayList<>();
+        for (final ChatColor colour : ChatColor.values())
+        {
+            if (colour.isColor())
+            {
+                names.add(colour.name());
+            }
+        }
+        return names;
     }
 
     /**
