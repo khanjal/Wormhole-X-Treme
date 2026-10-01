@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -191,9 +190,7 @@ class WormholeXTremeRedstoneListener implements Listener
 
     private static String railKey(final Block block)
     {
-        final World world = block.getWorld();
-        return ((world == null) ? "" : world.getName()) + ',' + block.getX() + ',' + block.getY() + ','
-            + block.getZ();
+        return block.getWorld().getName() + ',' + block.getX() + ',' + block.getY() + ',' + block.getZ();
     }
 
     /**

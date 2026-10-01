@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -433,11 +434,8 @@ public final class GateBlueprint
     private static void addChevrons(final List<Cell> cells, final GateGrid grid, final int layerIdx,
         final StargateShapeLayer layer, final Map<Long, Integer> waves, final boolean dhd)
     {
-        final Set<Long> lenient = new HashSet<>();
-        for (final Integer[] pos : layer.getLayerLenientChevronPositions())
-        {
-            lenient.add(StargateHelper.cellKey(pos));
-        }
+        final Set<Long> lenient = layer.getLayerLenientChevronPositions().stream()
+            .map(StargateHelper::cellKey).collect(Collectors.toSet());
         for (final Integer[] pos : layer.getLayerChevronPositions())
         {
             final int row = pos[1].intValue();
