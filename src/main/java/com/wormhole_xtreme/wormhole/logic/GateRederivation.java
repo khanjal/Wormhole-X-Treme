@@ -663,7 +663,10 @@ public final class GateRederivation
         return restored;
     }
 
-    /** What a frame or chevron cell of this gate is built from. */
+    /**
+     * What a frame or chevron cell of this gate is built from: the chevron block for an
+     * {@code [S:C]} cell too, though detection takes either there.
+     */
     private static Material builtMaterial(final Stargate gate, final GateBlueprint.Cell cell)
     {
         final Material chevron = gate.getEffectiveChevronMaterial();
