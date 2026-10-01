@@ -18,6 +18,15 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
   with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
 
+### Stargates
+
+**Fixed**
+
+- **A tipped arrow keeps its effect through a gate, and a Loyalty trident comes back.** The arrow
+  arrived plain, and the trident unenchanted, stuck at the far side. Spectral arrows, potions and
+  crossbow fireworks keep theirs too. On Spigot the trident keeps its enchantments but still does
+  not come back.
+
 ### Quantum mirrors
 
 **Fixed**
