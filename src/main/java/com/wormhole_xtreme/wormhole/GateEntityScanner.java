@@ -297,6 +297,7 @@ public final class GateEntityScanner implements Runnable
     private static Entity respawnProjectile(final Projectile projectile, final Location arrival, final Vector exit,
         final Stargate exitGate)
     {
+        Entity spawned = null;
         try
         {
             final Class<? extends Entity> type = projectile.getType().getEntityClass();
@@ -305,7 +306,6 @@ public final class GateEntityScanner implements Runnable
                 return null;
             }
 
-            final Entity spawned;
             if (AbstractArrow.class.isAssignableFrom(type))
             {
                 // spawnArrow creates an arrow already travelling, which a plain spawn does
@@ -330,6 +330,11 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final RuntimeException e)
         {
+            // The original is about to be teleported instead, so the replacement must not stay as a second shot.
+            if (spawned != null)
+            {
+                spawned.remove();
+            }
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not respawn projectile through gate, falling back to teleport", e);
             return null;
@@ -352,18 +357,19 @@ public final class GateEntityScanner implements Runnable
             // Kill credit, and for an ender pearl, who gets teleported when it lands.
             shot.setShooter(from.getShooter());
         }
-        copyItem(from, to);
+        // Each of the rest costs only itself if this server refuses it, not the crossing.
+        copyQuietly("item", () -> copyItem(from, to));
         if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
         {
-            copyArrowState(a, b);
+            copyQuietly("arrow state", () -> copyArrowState(a, b));
         }
         if ((from instanceof Arrow a) && (to instanceof Arrow b))
         {
-            copyPotion(a, b);
+            copyQuietly("potion", () -> copyPotion(a, b));
         }
         if ((from instanceof SpectralArrow a) && (to instanceof SpectralArrow b))
         {
-            b.setGlowingTicks(a.getGlowingTicks());
+            copyQuietly("glow", () -> b.setGlowingTicks(a.getGlowingTicks()));
         }
         if ((from instanceof Trident a) && (to instanceof Trident b))
         {
@@ -373,9 +379,34 @@ public final class GateEntityScanner implements Runnable
         }
         if ((from instanceof Firework a) && (to instanceof Firework b))
         {
-            b.setFireworkMeta(a.getFireworkMeta());
-            b.setShotAtAngle(a.isShotAtAngle());
+            copyQuietly("firework", () -> copyFirework(a, b));
         }
+    }
+
+    /** Runs one part of the copy, logging rather than throwing if this server refuses it. */
+    private static void copyQuietly(final String what, final Runnable copy)
+    {
+        try
+        {
+            copy.run();
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Could not copy a projectile's " + what + " to its replacement", e);
+        }
+    }
+
+    /**
+     * A firework's stars and angle, and on Paper how far into its flight it is: setting the meta
+     * restarts the flight, which on Spigot it then keeps.
+     */
+    private static void copyFirework(final Firework a, final Firework b)
+    {
+        b.setFireworkMeta(a.getFireworkMeta());
+        b.setShotAtAngle(a.isShotAtAngle());
+        copy(GET_TICKS_TO_DETONATE, SET_TICKS_TO_DETONATE, a, b);
+        copy(GET_TICKS_FLOWN, SET_TICKS_FLOWN, a, b);
     }
 
     /**
@@ -463,6 +494,18 @@ public final class GateEntityScanner implements Runnable
     /** Paper's {@code Trident.setGlint(boolean)}, or null on Spigot. */
     private static final Method SET_GLINT = method(Trident.class, "setGlint", boolean.class);
 
+    /** Paper's {@code Firework.getTicksToDetonate()}, or null on Spigot. */
+    private static final Method GET_TICKS_TO_DETONATE = method(Firework.class, "getTicksToDetonate");
+
+    /** Paper's {@code Firework.setTicksToDetonate(int)}, or null on Spigot. */
+    private static final Method SET_TICKS_TO_DETONATE = method(Firework.class, "setTicksToDetonate", int.class);
+
+    /** Paper's {@code Firework.getTicksFlown()}, or null on Spigot. */
+    private static final Method GET_TICKS_FLOWN = method(Firework.class, "getTicksFlown");
+
+    /** Paper's {@code Firework.setTicksFlown(int)}, or null on Spigot. */
+    private static final Method SET_TICKS_FLOWN = method(Firework.class, "setTicksFlown", int.class);
+
     /** {@code AbstractArrow.getWeapon()}, from 1.21, or null. */
     private static final Method GET_WEAPON = method(AbstractArrow.class, "getWeapon");
 
@@ -497,6 +540,13 @@ public final class GateEntityScanner implements Runnable
     static boolean tridentLoyaltyIsSettable()
     {
         return (GET_LOYALTY != null) && (SET_LOYALTY != null) && (HAS_GLINT != null) && (SET_GLINT != null);
+    }
+
+    /** @return true if this server lets a firework's flight be set, which only Paper does */
+    static boolean fireworkFlightIsSettable()
+    {
+        return (GET_TICKS_TO_DETONATE != null) && (SET_TICKS_TO_DETONATE != null)
+            && (GET_TICKS_FLOWN != null) && (SET_TICKS_FLOWN != null);
     }
 
     /** Looks a method up once, by name, so none is linked against directly. */

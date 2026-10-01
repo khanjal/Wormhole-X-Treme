@@ -26,6 +26,7 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SizedFireball;
 import org.bukkit.entity.Snowball;
 import org.bukkit.entity.SpectralArrow;
 import org.bukkit.entity.TNTPrimed;
@@ -378,10 +379,50 @@ class GateProjectileTest
     /** Only Paper has them, so only the Paper legs can prove the names are right. */
     @Test
     @EnabledIfSystemProperty(named = "server.api", matches = "paper")
-    void papersTridentLoyaltyIsFound()
+    void papersTridentAndFireworkMethodsAreFound()
     {
         assertTrue(GateEntityScanner.tridentLoyaltyIsSettable(),
             "a Loyalty trident would stop coming back through a gate on Paper");
+        assertTrue(GateEntityScanner.fireworkFlightIsSettable(),
+            "a firework would start its flight over again at the far gate on Paper");
+    }
+
+    /**
+     * A part of the copy this server refuses costs that part, not the crossing.
+     *
+     * <p>The replacement already exists by then. Failing the whole crossing used to teleport the
+     * original as well, so one throw came out of the far gate as two.
+     */
+    @Test
+    void aCopyThatIsRefusedStillSendsOneProjectileNotTwo()
+    {
+        final Trident trident = flying(Trident.class);
+        final Trident replacement = mock(Trident.class);
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(replacement);
+        when(trident.getItem()).thenReturn(mock(ItemStack.class));
+        when(trident.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
+        doThrow(new IllegalArgumentException("refused")).when(replacement).setItem(any());
+
+        GateEntityScanner.sendProjectileThrough(trident, origin);
+
+        verify(trident).remove();
+        verify(trident, never()).teleport(any(Location.class));
+        verify(replacement, never()).remove();
+        verify(replacement).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
+    /** A replacement that cannot even be given its shooter is taken back, and the original goes instead. */
+    @Test
+    void aReplacementThatCannotBeSetUpIsNotLeftAsASecondShot()
+    {
+        doThrow(new IllegalStateException("refused")).when(spawned).setShooter(any());
+
+        sendArrowThroughGate();
+
+        verify(spawned).remove();
+        verify(arrow, never()).remove();
+        verify(arrow).teleport(any(Location.class));
     }
 
     /** A spectral arrow's glow lasts as long as the bow gave it, not the default. */
@@ -414,9 +455,13 @@ class GateProjectileTest
         verify(replacement).setItem(item);
     }
 
-    /** A crossbow's firework keeps its stars and its angle, rather than arriving as a blank rocket. */
+    /**
+     * A crossbow's firework keeps its stars and its angle, rather than arriving as a blank rocket.
+     *
+     * <p>Setting the meta restarts its flight; on Paper the flight it had left is put back after.
+     */
     @Test
-    void aFireworkKeepsItsExplosion()
+    void aFireworkKeepsItsExplosion() throws Exception
     {
         final Firework firework = flying(Firework.class);
         final Firework replacement = mock(Firework.class);
@@ -424,11 +469,36 @@ class GateProjectileTest
         final FireworkMeta meta = mock(FireworkMeta.class);
         when(firework.getFireworkMeta()).thenReturn(meta);
         when(firework.isShotAtAngle()).thenReturn(true);
+        if (GateEntityScanner.fireworkFlightIsSettable())
+        {
+            when(Firework.class.getMethod("getTicksToDetonate").invoke(firework)).thenReturn(31);
+            when(Firework.class.getMethod("getTicksFlown").invoke(firework)).thenReturn(12);
+        }
 
         GateEntityScanner.sendProjectileThrough(firework, origin);
 
         verify(replacement).setFireworkMeta(meta);
         verify(replacement).setShotAtAngle(true);
+        if (GateEntityScanner.fireworkFlightIsSettable())
+        {
+            Firework.class.getMethod("setTicksToDetonate", int.class).invoke(verify(replacement), 31);
+            Firework.class.getMethod("setTicksFlown", int.class).invoke(verify(replacement), 12);
+        }
+    }
+
+    /** A fireball given a custom look keeps it. */
+    @Test
+    void aFireballKeepsItsDisplayItem()
+    {
+        final SizedFireball fireball = flying(SizedFireball.class);
+        final SizedFireball replacement = mock(SizedFireball.class);
+        doReturn(replacement).when(world).spawn(any(Location.class), any(Class.class));
+        final ItemStack look = mock(ItemStack.class);
+        when(fireball.getDisplayItem()).thenReturn(look);
+
+        GateEntityScanner.sendProjectileThrough(fireball, origin);
+
+        verify(replacement).setDisplayItem(look);
     }
 
     /**
