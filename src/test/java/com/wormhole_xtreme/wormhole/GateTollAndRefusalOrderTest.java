@@ -128,6 +128,11 @@ class GateTollAndRefusalOrderTest
 
         economy = mockStatic(EconomySupport.class);
         restrictions = mockStatic(StargateRestrictions.class);
+        // The cross-world rule itself, not a stand-in: it reads the mocked same-world-only above.
+        restrictions.when(() -> StargateRestrictions.isCrossWorldRefused(any(World.class), any(Location.class)))
+            .thenCallRealMethod();
+        restrictions.when(() -> StargateRestrictions.isCrossWorldRefused(any(World.class), any(World.class)))
+            .thenCallRealMethod();
     }
 
     @AfterEach

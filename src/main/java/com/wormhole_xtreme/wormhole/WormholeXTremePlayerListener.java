@@ -674,12 +674,7 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static boolean crossesWorldsRefused(final Block gateBlockFinal, final Location target)
     {
-        if (!ConfigManager.isSameWorldOnly() || (target == null))
-        {
-            return false;
-        }
-        final World targetWorld = target.getWorld();
-        return (targetWorld != null) && !gateBlockFinal.getWorld().equals(targetWorld);
+        return StargateRestrictions.isCrossWorldRefused(gateBlockFinal.getWorld(), target);
     }
 
     /**

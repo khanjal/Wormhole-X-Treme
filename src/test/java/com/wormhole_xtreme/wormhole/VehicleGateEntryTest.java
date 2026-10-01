@@ -67,6 +67,8 @@ class VehicleGateEntryTest
 
     private BukkitScheduler scheduler;
     private World world;
+    /** Held here because a Location keeps its World weakly, and a collected mock reads as unloaded. */
+    private World farWorld;
     private Block portal;
     private Stargate src;
     private Stargate dst;
@@ -84,6 +86,7 @@ class VehicleGateEntryTest
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
+        farWorld = mock(World.class);
         portal = mock(Block.class);
         when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
         when(portal.getX()).thenReturn(Integer.valueOf(BX));
@@ -799,8 +802,7 @@ class VehicleGateEntryTest
     void aCartIsPutBackFromAnotherWorldWhenSameWorldOnlyIsOn()
     {
         final Player rider = putARiderAboard();
-        final World nether = mock(World.class);
-        dst.setGatePlayerTeleportLocation(new Location(nether, 100.5, 70.0, 200.5));
+        dst.setGatePlayerTeleportLocation(new Location(farWorld, 100.5, 70.0, 200.5));
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
         ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
         try
@@ -830,7 +832,7 @@ class VehicleGateEntryTest
     {
         final Player rider = putARiderAboard();
         when(rider.isOp()).thenReturn(true);
-        dst.setGatePlayerTeleportLocation(new Location(mock(World.class), 100.5, 70.0, 200.5));
+        dst.setGatePlayerTeleportLocation(new Location(farWorld, 100.5, 70.0, 200.5));
         dst.setGateIrisActive(true);
         src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
         ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
