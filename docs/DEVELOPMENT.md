@@ -373,7 +373,9 @@ the "could not create ...captures" from `MirrorCapture.save`, and the folder mus
 same words with another cause (a full disk, a folder that cannot be made) are a fault. `--fixed 540`
 counts it as a fault as well.
 
-`--cells <regex>` runs only the matching matrix cells. A cell the plugin is known to fail is
+`--cells <names>` runs only the matching matrix cells: names separated by `|`, each matched
+anywhere in a cell's name, or at its start with `^` and its end with `$` (`--cells '^491'`,
+`--cells 'tipped arrow|trident'`). It is a plain match, not a regular expression. A cell the plugin is known to fail is
 expected to fail by the name of its failing check and is listed at the end of the run as a known
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
 expects those cells to pass instead.
@@ -422,8 +424,8 @@ companion named is installed) or `without` (a paired run: only with `--with`, an
 installed), so a self-test without `--with` runs none of them. Two runs cover them all on 1.21.11:
 
 ```bash
-node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with dynmap --cells "^(map|regions|perms) "
-node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with regions,permissions --cells "^(map|regions|perms) "
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with dynmap --cells "^map |^regions |^perms "
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with regions,permissions --cells "^map |^regions |^perms "
 ```
 
 - The **Map Desk** (#236) reads Wormhole's Dynmap markers back with Dynmap's own console commands

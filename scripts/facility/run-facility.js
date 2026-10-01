@@ -15,7 +15,7 @@
 //   --port <n>           server port (default 25590); another port gets its own server folder
 //   --keep-world         keep the world from the last run instead of starting fresh
 //   --quick              self-test with the short matrix (the cells marked quick): a few minutes
-//   --cells <regex>      self-test only the matrix cells whose names match
+//   --cells <names>      self-test only the matrix cells whose names match (a|b, ^start, end$)
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
 //   --shards <n>         self-test: split the matrix across n servers of the version, each on its
@@ -84,7 +84,7 @@ function parseArgs(argv) {
     else if (x === '--cells') {
       a.cells = value(i++);
       // Refused here, before a server is started and a campus built for nothing.
-      try { new RegExp(a.cells); } catch (e) { throw new Error(`--cells ${a.cells}: ${e.message}`); }
+      try { shards.cellMatcher(a.cells); } catch (e) { throw new Error(`--cells ${a.cells}: ${e.message}`); }
     }
     else if (x === '--quick') a.quick = true;
     else if (x === '--fixed') a.fixed = list(value(i++));
@@ -236,7 +236,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
   for (const [vi, v] of versions.entries()) {
     let planFile = null;
     if (n > 1) {
-      const names = shards.labels({ quick: args.quick, only: args.cells ? new RegExp(args.cells) : null, companions: withNames });
+      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null, companions: withNames });
       const p = shards.plan(names, shards.loadTimes(LOCAL, v), n);
       planFile = path.join(work, `plan-${v}.json`);
       fs.writeFileSync(planFile, JSON.stringify(p));
@@ -444,7 +444,7 @@ async function main() {
         console.log(`shard ${args.shard.index + 1}/${args.shard.count}: ${shard.cells.size} matrix cells`);
       }
       const results = await selftest(fac, {
-        buildReport: report, fixtures, only: args.cells ? new RegExp(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
+        buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
         companions: withNames,
       });
       const testMs = Date.now() - ts;
