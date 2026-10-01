@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
@@ -615,12 +616,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
-        if (StargateRestrictions.isCrossWorldRefused(l.getWorld(), target))
-        {
-            refuseCrossWorld(veh, v, passengers);
-            return false;
-        }
-        if (!everyRiderMayTravel(st, passengers))
+        if (!mayCross(st, veh, v, l.getWorld(), target, passengers))
         {
             return false;
         }
@@ -665,6 +661,27 @@ class WormholeXTremeVehicleListener implements Listener
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not turn back a refused vehicle", e);
         }
+    }
+
+    /**
+     * Whether the server and every listener let this vehicle go; a vehicle bound for a world it
+     * may not reach is turned back here.
+     *
+     * @param here
+     *            the world it is in
+     * @param target
+     *            where it would arrive
+     * @return true if it may go
+     */
+    private static boolean mayCross(final Stargate st, final Vehicle veh, final Vector v, final World here,
+                                    final Location target, final List<Entity> passengers)
+    {
+        if (StargateRestrictions.isCrossWorldRefused(here, target))
+        {
+            refuseCrossWorld(veh, v, passengers);
+            return false;
+        }
+        return everyRiderMayTravel(st, passengers);
     }
 
     /**
