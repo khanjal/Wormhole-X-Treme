@@ -34,7 +34,7 @@ const NO = /You lack the permissions to do this\./;
 /** What each trial needs, and the words that say it was allowed. */
 const TRIALS = {
   dial: { node: 'wormhole.use.dialer', allowed: /Gate successfully activated\./ },
-  preview: { node: 'wormhole.build.preview', allowed: /preview|Preview|in front of you|Only you see it/ },
+  preview: { node: 'wormhole.build.preview', allowed: /Previewing Standard( in \w+)?\. Build inside it, then press a real button on its DHD\./ },
   config: { node: 'wormhole.config', allowed: /GATE_SOUND_VOLUME = / },
   admin: { node: 'wormhole.beam.admin', allowed: /Public beam destination "PermDock" set to your current location\./ },
 };
@@ -129,7 +129,10 @@ function checks(ctx, o) {
   for (const [trial, t] of Object.entries(TRIALS)) {
     const said = () => (obs.told && obs.told[trial]) || '';
     if (holds.has(t.node)) {
-      list.push(c(`${trial} (${t.node}) is allowed`, () => t.allowed.test(said()) && !NO.test(said())));
+      list.push(c(`${trial} (${t.node}) is allowed`, () => {
+        if (t.allowed.test(said()) && !NO.test(said())) return true;
+        throw new Error(`told: ${said() || 'nothing'}`);
+      }));
     } else {
       list.push(c(`${trial} (${t.node}) is refused: "You lack the permissions to do this."`, () => NO.test(said()) && !t.allowed.test(said())));
     }

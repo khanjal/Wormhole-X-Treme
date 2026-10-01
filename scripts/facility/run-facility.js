@@ -360,13 +360,14 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10, mobs: true });
   server.installPlugin(folder, plugin);
-  // Always, with or without --with: a run without a companion takes out what an earlier one put in.
-  const removed = companions.install(folder, extras, { fresh: !args.keepWorld });
+  // Always, with or without --with: a run without a companion takes out what an earlier one put
+  // in, jars and the Wormhole settings switched on for them.
+  const switches = Object.assign({}, ...extras.map((c) => companions.SWITCHES[c.name] || {}));
+  const { removed, unseeded } = companions.install(folder, extras, { fresh: !args.keepWorld, switches });
   if (removed.length) console.log(`companions taken out (installed by an earlier run, not wanted by this one): ${removed.join(', ')}`);
+  if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
   const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
   if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
-  const switches = Object.assign({}, ...extras.map((c) => companions.SWITCHES[c.name] || {}));
-  if (Object.keys(switches).length) companions.seedSettings(folder, switches);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 

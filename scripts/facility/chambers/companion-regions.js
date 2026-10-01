@@ -95,11 +95,13 @@ function refuses(o, version, fac) {
 
 /** Everything a probe is told, from the first time it is asked for, as plain text. */
 function ear(probe) {
-  if (!probe.heard) {
-    probe.heard = [];
-    probe.bot.on('message', (m) => { probe.heard.push(m.toString().replace(/§./g, '')); });
+  // Its own properties: another desk's ear on the same Probe2 keeps no times.
+  if (!probe.regionHeard) {
+    probe.regionHeard = [];
+    probe.regionHeardAt = [];
+    probe.bot.on('message', (m) => { probe.regionHeard.push(m.toString().replace(/§./g, '')); probe.regionHeardAt.push(Date.now()); });
   }
-  return probe.heard;
+  return probe.regionHeard;
 }
 
 /** Waits (bounded) for a line matching `re` told to `probe` from index `since`; returns it or null. */
@@ -359,7 +361,10 @@ async function walkIn(ctx, kit, probe2, cart) {
     }
   }
   obs.window = (Date.now() - t0) / 1000;
-  obs.refusals = ear(probe2).slice(since).filter((l) => USE_REFUSED.test(l)).length;
+  const at = ear(probe2).map((l, i) => (i >= since && USE_REFUSED.test(l) ? probe2.regionHeardAt[i] : null)).filter((t) => t !== null);
+  obs.refusals = at.length;
+  // The gaps between one refusal and the next: the reminder's own spacing, whatever the walks took.
+  obs.gaps = at.slice(1).map((t, i) => t - at[i]);
   obs.nearGuarded = probe2.distanceTo(GUARD.arrival);
   obs.dimension = probe2.dimension;
 }
@@ -430,7 +435,14 @@ function checks(ctx, o) {
         c(`Probe2 did not travel: still in the overworld, not at Guarded's arrival`, () => obs.dimension === O && obs.nearGuarded > 8),
         ...(o.case === 'cart refused' ? [c('the cart did not travel either', () => obs.cartAt && Math.hypot(obs.cartAt.x - GUARD.arrival.x, obs.cartAt.z - GUARD.arrival.z) > 8)] : []),
         c('Probe2 was told why: "This region does not allow using gates."', () => obs.refusals >= 1),
-        c('at most once every two seconds', () => obs.refusals <= 1 + Math.ceil(obs.window / 2))];
+        c(o.case === 'walk-in refused' ? 'told again while it kept walking in, but never within two seconds of the last time'
+          : 'never told twice within two seconds', () => {
+          // 1900: the client's clock, not the server's, times each message. A cart goes through
+          // once, so only the walker, three times over six seconds, must have been told again.
+          const again = o.case !== 'walk-in refused' || (obs.gaps && obs.gaps.length > 0);
+          if (again && (obs.gaps || []).every((g) => g >= 1900)) return true;
+          throw new Error(`gaps between refusals: ${(obs.gaps || []).join(', ') || 'none (told once)'} ms`);
+        })];
     case 'shut allowed':
       return [built,
         c('the op opened Guarded to Relay', () => /Stargates connected/.test(obs.opened || '') && Boolean(obs.drawn)),
@@ -449,7 +461,7 @@ function checks(ctx, o) {
       return [c('the completion prompt: "Valid Stargate Design!"', () => told(VALID_DESIGN)),
         c('and no region refusal', () => !told(BUILD_REFUSED))];
     case 'preview refused':
-      return [c('the preview stood', () => !/error|lack/i.test(obs.previewTold || '') && Boolean(obs.preview)),
+      return [c('the preview stood: "Previewing Standard. Build inside it, ..."', () => /Previewing Standard( in \w+)?\. Build inside it, then press a real button on its DHD\./.test(obs.previewTold || '')),
         c('placing it was refused: "This region does not allow building gates. Nothing placed."', () => /This region does not allow building gates\. Nothing placed\./.test(obs.told || '')),
         c('and no block was placed in buildtest', () => obs.nothingPlaced === true)];
     case 'absent':

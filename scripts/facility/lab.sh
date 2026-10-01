@@ -44,4 +44,5 @@ if [ ! -d "$here/node_modules" ]; then
 fi
 
 cd "$repo"
-exec node "$here/run-facility.js" "$version" --port "$port" "${args[@]}"
+# ${args[@]+...}: an empty array under set -u is an error before bash 4.4 (-f alone leaves it empty).
+exec node "$here/run-facility.js" "$version" --port "$port" ${args[@]+"${args[@]}"}

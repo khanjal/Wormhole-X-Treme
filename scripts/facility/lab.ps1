@@ -61,8 +61,13 @@ if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyCon
     exit 0
 }
 
-# Paths as the new window's PowerShell reads them: single-quoted, any quote in them doubled.
-function Quote([string] $s) { "'" + $s.Replace("'", "''") + "'" }
+# Paths as the new window's PowerShell reads them: single-quoted, any quote in them doubled,
+# the typographic ones too (PowerShell reads U+2018 and U+2019 as single quotes as well).
+function Quote([string] $s)
+{
+    foreach ($q in "'", [string][char]0x2018, [string][char]0x2019) { $s = $s.Replace($q, $q + $q) }
+    "'" + $s + "'"
+}
 
 if (-not (Test-Path (Join-Path $facility 'node_modules')))
 {

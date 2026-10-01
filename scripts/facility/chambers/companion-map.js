@@ -230,6 +230,8 @@ async function run(ctx, o) {
       obs.dial = (await kit.dial('MapA', 'Range')).text;
       obs.drawn = await kit.waitOpen(fac.probe, GATES.MapA).catch((e) => { obs.openError = e.message; return null; });
       obs.open = await reader.until((s) => s.gates && s.gates.mapa && s.gates.range && s.gates.mapa.icon === OPEN && s.gates.range.icon === OPEN);
+      // Held for a full redraw after both were drawn open: a line must not appear at any point.
+      obs.lines = await hold(reader, (s) => Object.keys(s.gateLines || {}));
       break;
     }
     case 'rename': {
@@ -429,7 +431,7 @@ function checks(ctx, o) {
       return [built,
         c('MapA dialled the Range', () => /Stargates connected/.test(obs.dial || '') && Boolean(obs.drawn)),
         c('both drawn open (MapA in world, Range in world_nether)', () => obs.open && obs.open.ok && s.gates.range.world === 'world_nether'),
-        c('and no line in any world', () => s && s.gateLines && !Object.keys(s.gateLines).some((id) => id.split('|').includes('mapa')))];
+        c('and no line in any world, for a full redraw', () => (obs.lines || []).length > 0 && obs.lines.every((ids) => !ids.some((id) => id.split('|').includes('mapa'))))];
     }
     case 'rename':
       return [built,
@@ -493,7 +495,9 @@ function checks(ctx, o) {
       return [c('the Transport rings layer is gone entirely', () => obs.sets && !obs.sets[SETS.rings]),
         c('the other three are there', () => obs.sets && [SETS.gates, SETS.beams, SETS.mirrors].every((id) => obs.sets[id]))];
     case 'off':
-      return [c('no Wormhole layer', () => obs.sets && !Object.keys(obs.sets).some((id) => id.startsWith('wormhole.'))),
+      // An empty list proves nothing if Dynmap itself is down: its own "markers" set shows it is up.
+      return [c('Dynmap is up: its own markers set is there', () => obs.sets && Boolean(obs.sets.markers)),
+        c('no Wormhole layer', () => obs.sets && !Object.keys(obs.sets).some((id) => id.startsWith('wormhole.'))),
         c('and nothing logged by Wormhole about Dynmap since the restart', () => Array.isArray(obs.logged) && obs.logged.length === 0)];
     case 'absent':
       return [

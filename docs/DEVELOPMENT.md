@@ -396,7 +396,9 @@ under the pinned name that is not the pinned build is refused, not replaced. Eac
 companion's file, SHA-256, Java and where it came from, and records what it installed in
 `plugins/.wx-companions.json`; a run without a companion takes out the jar an earlier run put
 there (and never one it did not), and a fresh run also clears the data folders of the ones it
-manages. A companion that cannot run on a version is refused by name before the server starts:
+manages. A jar of the same name already in `plugins/` that no run installed and that is not the
+pinned build is somebody's own: the run is refused rather than overwrite it. Only bare names in
+the record are acted on, so an edited record cannot reach outside `plugins/`. A companion that cannot run on a version is refused by name before the server starts:
 no Dynmap build supports 26.x (its newest version helper is 1.21.11), so Dynmap runs on 1.20.4
 (3.7-beta-8) and 1.21.11 (3.8).
 
@@ -405,9 +407,12 @@ class: WorldEdit 7.4.5's main class is Java 21 and most of the rest Java 25, and
 Java 21 itself, needs it), Paper's own floor included. On Java 21, Paper refuses WorldEdit 7.4.5
 and Wormhole only says WorldGuard is not installed; the facility counts a companion that failed to
 load as a fault. Wormhole's switch for each integration (`worldguard-enabled`, `dynmap-enabled`)
-is written into its `config.yml` before the start, since both are read only at enable.
+is written into its `config.yml` before the start, since both are read only at enable, keeping the
+file's line endings. The value it replaced is kept in the record, and a later run without that
+companion puts it back, so a `--keep-world` run without `--with` is not left with an integration
+switched on.
 
-Dynmap's web map gets its own port, `8123 + (port - 25590)`, written into its
+Dynmap's web map gets its own port, `8123 + (port - 25590)`, on 127.0.0.1 only, written into its
 `configuration.txt` (from the jar's own template on a fresh run) and printed; the setup fails if
 Dynmap does not say its web server started there and answer, and a failed bind is a fault. A hand
 lab started by other means keeps its own configuration. `--op <names>` ops testers once the

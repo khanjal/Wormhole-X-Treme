@@ -458,6 +458,8 @@ class Server extends EventEmitter {
       this.exited = code === null ? (signal || 'signal') : code;
       this.emit('exit', this.exited);
     });
+    // 'close' comes once its output streams are drained as well: the last line it printed is in.
+    this.closed = new Promise((resolve) => { this.proc.once('close', resolve); });
     this.starting = this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
     this.starting.then(() => { this.ready = true; }, () => {});
     return this.starting;
@@ -601,6 +603,9 @@ class Server extends EventEmitter {
     this.restarting = true;
     try {
       await this.stop(ms);
+      // The old JVM's last output, drained after its exit, must land before the new start's
+      // index, not in the new start's lines (bounded: a stream that never closes is not waited on).
+      if (this.closed) await Promise.race([this.closed, new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
       this.exited = null;
       this.ready = false;
       this.stdinError = null;

@@ -130,14 +130,23 @@ async function resolve(names, mcVersion, { cache = null, store, log = console.lo
  * The Java major a plugin jar needs: the newest class file version in it (major - 44), over every
  * class but a multi-release jar's META-INF/versions/. Not the main class alone: WorldEdit 7.4.5's
  * main class is Java 21 and most of the rest Java 25, and WorldGuard 7.0.17 is Java 21 throughout
- * but needs WorldEdit. Null if the jar holds no class.
+ * but needs WorldEdit. Null if the jar holds no class. A jar this cannot read (cut short, or a
+ * Zip64 one) is refused by name.
  */
 function classJava(jar) {
-  const buf = fs.readFileSync(jar);
+  try {
+    return newestClass(fs.readFileSync(jar));
+  } catch (e) {
+    throw new Error(`cannot read the class versions in ${jar}: ${e.message}`);
+  }
+}
+
+function newestClass(buf) {
   const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  if (eocd < 0) throw new Error(`${jar} is not a jar`);
+  if (eocd < 0) throw new Error('it is not a jar (no end of central directory)');
   const count = buf.readUInt16LE(eocd + 10);
   let p = buf.readUInt32LE(eocd + 16);
+  if (count === 0xffff || p === 0xffffffff) throw new Error('it is a Zip64 jar, which this reader does not follow');
   let top = null;
   for (let n = 0; n < count; n++) {
     const method = buf.readUInt16LE(p + 10);
@@ -164,14 +173,25 @@ function classJava(jar) {
   return top;
 }
 
-/** The record of what the launcher installed in a server's plugins/: { files: [...], plugins: [...] }. */
+/** A bare file or folder name: nothing that reaches out of plugins/ ("", ".", "..", "a/b" are not). */
+function bareName(x) {
+  return typeof x === 'string' && x !== '' && x !== '.' && x !== '..' && path.basename(x) === x && !/[\\/]/.test(x);
+}
+
+/**
+ * The record of what the launcher installed in a server's plugins/: { files, plugins, seeded }.
+ * Its names are deleted by, and it is a file anyone can edit: a name that is not a bare file or
+ * folder name is ignored, never followed out of plugins/.
+ */
 function readRecord(folder) {
   const f = path.join(folder, 'plugins', RECORD);
   try {
     const r = JSON.parse(fs.readFileSync(f, 'utf8'));
-    return { files: Array.isArray(r.files) ? r.files : [], plugins: Array.isArray(r.plugins) ? r.plugins : [], installed: r.installed || [] };
+    const names = (a) => (Array.isArray(a) ? a.filter(bareName) : []);
+    const seeded = r.seeded && typeof r.seeded === 'object' && !Array.isArray(r.seeded) ? r.seeded : {};
+    return { files: names(r.files), plugins: names(r.plugins), installed: r.installed || [], seeded };
   } catch {
-    return { files: [], plugins: [], installed: [] };
+    return { files: [], plugins: [], installed: [], seeded: {} };
   }
 }
 
@@ -179,32 +199,63 @@ function readRecord(folder) {
  * Installs the resolved companions into plugins/ and takes out any jar an earlier run installed
  * that this one does not want, so the run without a companion really is without it. With
  * `fresh`, a managed companion's data folder goes too (a fresh world must not inherit regions,
- * groups or map tiles from the last one). Returns the names of the jars taken out.
+ * groups or map tiles from the last one).
+ *
+ * A jar of the same name already in plugins/ that no earlier run installed, and that is not the
+ * pinned build, is somebody's own: refused, never overwritten (and so never deleted later).
+ *
+ * `switches` are Wormhole settings to turn on for these companions (SWITCHES): written into its
+ * config.yml with the value each replaced kept in the record, so a later run without that
+ * companion puts it back: a --keep-world run without --with is not left with an integration an
+ * earlier run switched on. Returns { removed, unseeded }: the jars taken out, the settings put back.
  */
-function install(folder, resolved, { fresh = false } = {}) {
+function install(folder, resolved, { fresh = false, switches = {} } = {}) {
   const dir = path.join(folder, 'plugins');
   fs.mkdirSync(dir, { recursive: true });
   const had = readRecord(folder);
+  for (const r of resolved) {
+    const to = path.join(dir, r.file);
+    if (fs.existsSync(to) && !had.files.includes(r.file) && !matches(to, { size: fs.statSync(r.jar).size, sha256: r.sha256 })) {
+      throw new Error(`${to} is already there, is not the pinned ${r.plugin} ${r.version}, and no earlier run installed it: `
+        + 'it is left alone; move it aside to run --with it');
+    }
+  }
   const want = new Set(resolved.map((r) => r.file));
   const removed = [];
   for (const f of had.files) {
     if (!want.has(f) && fs.existsSync(path.join(dir, f))) { fs.rmSync(path.join(dir, f), { force: true }); removed.push(f); }
   }
   if (fresh) {
-    for (const p of new Set([...had.plugins, ...resolved.map((r) => r.plugin)])) fs.rmSync(path.join(dir, p), { recursive: true, force: true });
+    for (const p of new Set([...had.plugins, ...resolved.map((r) => r.plugin)])) {
+      if (bareName(p)) fs.rmSync(path.join(dir, p), { recursive: true, force: true });
+    }
   }
   for (const r of resolved) {
     const to = path.join(dir, r.file);
     if (!matches(to, { size: fs.statSync(r.jar).size, sha256: r.sha256 })) fs.copyFileSync(r.jar, to);
   }
+  // Put back what an earlier run switched on and this one does not want (a key it found absent
+  // goes back to the plugin's default, false); then switch on this run's, keeping the value from
+  // before the first run that switched each on.
+  const seeded = {};
+  const back = {};
+  for (const [k, before] of Object.entries(had.seeded)) {
+    if (k in switches) seeded[k] = before;
+    else back[k] = before === null || before === undefined ? 'false' : before;
+  }
+  if (Object.keys(back).length) seedSettings(folder, back);
+  const replaced = Object.keys(switches).length ? seedSettings(folder, switches) : {};
+  for (const [k, before] of Object.entries(replaced)) if (!(k in seeded)) seeded[k] = before;
   const record = {
-    note: 'Written by scripts/facility/run-facility.js --with: the companion jars it installed here. It removes them again from a run without them.',
+    note: 'Written by scripts/facility/run-facility.js --with: the companion jars it installed here, and the Wormhole settings '
+      + 'it switched on for them with the values they replaced. A run without them takes the jars out and puts the settings back.',
     files: [...want],
     plugins: resolved.map((r) => r.plugin),
+    seeded,
     installed: resolved.map((r) => ({ name: r.name, plugin: r.plugin, version: r.version, file: r.file, sha256: r.sha256, from: r.from, java: r.java })),
   };
   fs.writeFileSync(path.join(dir, RECORD), `${JSON.stringify(record, null, 2)}\n`);
-  return removed;
+  return { removed, unseeded: Object.entries(back).map(([k, x]) => `${k}: ${x}`) };
 }
 
 /** The Java a server needs: Paper's for the version, raised by any plugin jar's class version. */
@@ -233,9 +284,10 @@ function dynmapPort(gamePort) {
 }
 
 /**
- * Points Dynmap's web server at its own port before the server starts: configuration.txt from
- * the jar's own template when there is none yet (what Dynmap would write), with
- * webserver-port set; an existing one has only that line changed.
+ * Points Dynmap's web server at its own port, on this machine only, before the server starts:
+ * configuration.txt from the jar's own template when there is none yet (what Dynmap would
+ * write), with webserver-port and webserver-bindaddress set; an existing one has only those
+ * lines changed.
  */
 function configureDynmap(folder, jar, port) {
   const dir = path.join(folder, 'plugins', 'dynmap');
@@ -248,31 +300,40 @@ function configureDynmap(folder, jar, port) {
     if (!template) throw new Error(`${jar} holds no configuration.txt to start Dynmap's from`);
     body = template.toString('utf8');
   }
-  if (!/^webserver-port:.*$/m.test(body)) throw new Error(`Dynmap's configuration.txt has no webserver-port line to set`);
+  if (!/^webserver-port:.*$/m.test(body)) throw new Error('Dynmap\'s configuration.txt has no webserver-port line to set');
   body = body.replace(/^webserver-port:.*$/m, `webserver-port: ${port}`);
+  // The template has it commented out (#webserver-bindaddress: 0.0.0.0, every interface).
+  if (/^#?\s*webserver-bindaddress:.*$/m.test(body)) body = body.replace(/^#?\s*webserver-bindaddress:.*$/m, 'webserver-bindaddress: 127.0.0.1');
+  else body = body.replace(/^webserver-port:.*$/m, (l) => `webserver-bindaddress: 127.0.0.1\n${l}`);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(file, body);
   return file;
 }
 
 /**
- * Sets top-level keys in Wormhole's config.yml before the server starts (a companion's
- * integration switch, read only at enable). A file that is not there yet is written with just
- * these keys: the plugin appends every setting a file does not mention.
+ * Sets top-level keys in Wormhole's config.yml (a companion's integration switch, read only at
+ * enable), keeping the file's own line endings. A file that is not there yet is written with
+ * just these keys: the plugin appends every setting a file does not mention. Returns what each
+ * key held before ({ key: value }, null where there was none).
  */
 function seedSettings(folder, settings) {
   const dir = path.join(folder, 'plugins', 'WormholeXTreme');
   const file = path.join(dir, 'config.yml');
   fs.mkdirSync(dir, { recursive: true });
-  const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split('\n') : [];
+  const body = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const eol = body.includes('\r\n') ? '\r\n' : '\n';
+  const lines = body === '' ? [] : body.split(/\r?\n/);
   if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  const before = {};
   for (const [k, v] of Object.entries(settings)) {
     // A top-level key starts its line; matched as text, never as a pattern.
     const at = lines.findIndex((l) => l.startsWith(`${k}:`));
-    if (at >= 0) lines[at] = `${k}: ${v}${lines[at].endsWith('\r') ? '\r' : ''}`;
+    before[k] = at >= 0 ? lines[at].slice(k.length + 1).trim() : null;
+    if (at >= 0) lines[at] = `${k}: ${v}`;
     else lines.push(`${k}: ${v}`);
   }
-  fs.writeFileSync(file, `${lines.join('\n')}\n`);
+  fs.writeFileSync(file, `${lines.join(eol)}${eol}`);
+  return before;
 }
 
 /** Wormhole's switches for its integrations with each companion: set true when it is installed. */
