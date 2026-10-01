@@ -498,15 +498,15 @@ class Facility {
    * chamber that is staged is refused until its Reset. Returns
    * { outcome: PASS | FAIL | REFUSED | STAGED, reason, checks }.
    */
-  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, by = null } = {}) {
-    const result = await this.runChamberOnce(e, { values, raw, mode, holdMs });
+  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, by = null, settings = {} } = {}) {
+    const result = await this.runChamberOnce(e, { values, raw, mode, holdMs, settings });
     // In the Logbook, and every holder's copy replaced with one that has it.
     this.logbook.record(e, raw ? values : this.valuesOf(e, values), result, by);
     await this.logbook.refresh();
     return result;
   }
 
-  async runChamberOnce(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
+  async runChamberOnce(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, settings = {} } = {}) {
     const ch = e.chamber;
     // A run would reset the cell and put its settings back under a stage a person is using.
     if (mode !== 'stage' && this.held.has(e.def.id)) {
@@ -549,7 +549,8 @@ class Facility {
       }
       await bar.advance('applying settings');
       const needs = ch.needs ? ch.needs(v) : {};
-      await this.config.apply(needs.config || {}, e.def.id);
+      // A matrix cell's own `settings` (a setting's effect on an ordinary run) on top of the chamber's.
+      await this.config.apply({ ...(needs.config || {}), ...settings }, e.def.id);
       try {
         await ch.stage(ctx, v);
       } catch (err) { err.phase = 'fixture'; throw err; }
@@ -591,7 +592,12 @@ class Facility {
     } finally {
       // A stage that got as far as being staged holds its settings until its Reset; anything
       // else, a failed stage included, puts them back now.
-      if (!staged) await this.config.restore(e.def.id);
+      if (!staged) {
+        await this.config.restore(e.def.id);
+        // What a chamber owes once its settings are back (a restart, so a setting read only at
+        // start is not left in force for whatever runs next).
+        if (ch.afterRestore) await ch.afterRestore(ctx).catch((err) => this.log(`  ${e.def.id} after its settings were put back: ${err.message}`));
+      }
     }
     lap('checks');
     result.timing = timing;

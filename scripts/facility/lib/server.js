@@ -355,6 +355,10 @@ const KNOWN_BENIGN = [
   // #236, dynmap-enabled with Dynmap absent (the Map Desk's paired run): said once at enable, by
   // design, and everything else carries on (MapMarkers.enable).
   'dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.',
+  // S1's read-at-start case switches these on with neither plugin installed: said once at enable,
+  // by design, and nothing else changes.
+  'Placeholders enabled in config but PlaceholderAPI was not found. Placeholders disabled.',
+  'Vault not found. Economy features disabled.',
 ];
 
 /**

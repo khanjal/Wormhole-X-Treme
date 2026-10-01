@@ -149,19 +149,21 @@ async function selftest(fac, {
         if (quick && !cell.quick) continue;
         if (!inShard(label)) continue;
         // Every setting a cell needs is read before the first run that needs it, and checked at the end.
-        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+        const needs = [...(e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : []), ...Object.keys(cell.settings || {})];
         for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
-        const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
+        const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0, settings: cell.settings || {} });
         const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
         const ok = got === want;
         // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
         const note = cell.regressedBy && fixed.includes(cell.regressedBy) ? cell.regressionNote : cell.known;
         const knownNow = Boolean(note) && want !== 'PASS';
         const secs = ((Date.now() - t0) / 1000).toFixed(1);
+        // A cell run under a setting that is meant to stop it (`because`) fails as the setting says.
+        const asSet = cell.because && want !== 'PASS' ? `as set: ${cell.because}; ` : '';
         const detail = ok
-          ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+          ? `${asSet}${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
           : `got ${got}${knownNow ? ` (expected the known plugin failure: ${note})` : ''}, ${secs} s`;
         check('matrix', `${label} → ${want}`, ok, detail);
         if (ok && knownNow) known.push({ label, note, version: fac.version });
@@ -402,6 +404,10 @@ async function selftest(fac, {
   });
 
   await guard('settings', async () => {
+    // And whatever a cell set during its run (ctx.config.set), not only what it declared.
+    for (const [n, x] of fac.config.changed) {
+      if (x.owner !== 'facility baseline' && !settings.has(n)) { settings.add(n); before[n] = x.before; }
+    }
     for (const n of settings) {
       const now = await fac.config.get(n);
       check('settings', `${n} restored`, now === before[n], `before ${before[n]}, after ${now}`);
