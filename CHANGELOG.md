@@ -17,7 +17,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   gate lights up while its wormhole is open, with a line to the gate it joins. Off until
   `dynmap-enabled` is set; `map-show-gates`, `-rings`, `-beams` and `-mirrors` leave a layer
   out, and `map-show-iris-gates: false` hides gates with an iris code. Players' private beam
-  places are never shown. See [the guide](docs/guide/SERVER.md#dynmap).
+  places are never shown. 1.21.11 needs Dynmap 3.8, and no Dynmap runs on 26.x yet. See
+  [the guide](docs/guide/SERVER.md#dynmap).
 
 ### Server
 
