@@ -115,8 +115,7 @@ class ItemGateTracker implements Listener
     public void onItemSpawn(final ItemSpawnEvent event)
     {
         final Item item = event.getEntity();
-        final Vector velocity = item.getVelocity();
-        if ((velocity != null) && (velocity.lengthSquared() > MOVING_SQUARED))
+        if (item.getVelocity().lengthSquared() > MOVING_SQUARED)
         {
             follow(item);
         }
@@ -131,7 +130,7 @@ class ItemGateTracker implements Listener
         }
         // Near a gate first: an item nowhere near one is not being turned away by a full set.
         final Location at = item.getLocation();
-        if ((at == null) || !nearAGate(at))
+        if (!nearAGate(at))
         {
             return;
         }
@@ -253,8 +252,7 @@ class ItemGateTracker implements Listener
     /** Whether a landed item has stopped sliding along the ground. */
     private static boolean settled(final Vector velocity)
     {
-        return (velocity == null)
-            || (((velocity.getX() * velocity.getX()) + (velocity.getZ() * velocity.getZ())) < SETTLED_SQUARED);
+        return ((velocity.getX() * velocity.getX()) + (velocity.getZ() * velocity.getZ())) < SETTLED_SQUARED;
     }
 
     /**

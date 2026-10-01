@@ -82,7 +82,7 @@ class ItemGateTrackerTest
             pending.put(Integer.valueOf(id), inv.getArgument(1, Runnable.class));
             return Integer.valueOf(id);
         });
-        doAnswer(inv -> pending.remove(Integer.valueOf(inv.getArgument(0, Integer.class).intValue())))
+        doAnswer(inv -> pending.remove(inv.getArgument(0, Integer.class)))
             .when(scheduler).cancelTask(anyInt());
         PluginTestSupport.scheduler(scheduler);
 
