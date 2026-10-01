@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -90,6 +92,15 @@ class RepeatingSweepsTest
         return found;
     }
 
+    /** Every sweep a setting times is started, once each, the mirrors' period timing two. */
+    @Test
+    void everySweepASettingTimesIsStarted()
+    {
+        assertEquals(List.of(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, ConfigKeys.GATE_SOUND_AMBIENT_TICKS,
+            ConfigKeys.MIRROR_PROXIMITY_TICKS, ConfigKeys.MIRROR_PROXIMITY_TICKS, ConfigKeys.GATE_IRIS_HORIZON_TICKS),
+            RepeatingSweeps.runningKeys());
+    }
+
     /** The reported case: the hum moves to its new interval, and the old one stops. */
     @Test
     void theHumFollowsANewIntervalWithoutARestart()
@@ -137,21 +148,26 @@ class RepeatingSweepsTest
         final List<BukkitTask> horizon = startedAt(10L);
         assertEquals(1, horizon.size(), scheduled.toString());
 
+        final int before = scheduled.size();
         ConfigManager.applySetting("gate-iris-horizon-ticks", "0");
         verify(horizon.get(0)).cancel();
-        assertEquals(5, scheduled.size(), "nothing scheduled at a period of 0");
+        assertEquals(before, scheduled.size(), "nothing scheduled at a period of 0");
+        assertFalse(RepeatingSweeps.runningKeys().contains(ConfigKeys.GATE_IRIS_HORIZON_TICKS),
+            "and the horizon is not counted as running");
 
         ConfigManager.applySetting("gate-iris-horizon-ticks", "15");
         assertEquals(1, startedAt(15L).size(), "running again at 15");
+        assertTrue(RepeatingSweeps.runningKeys().contains(ConfigKeys.GATE_IRIS_HORIZON_TICKS));
     }
 
     /** A setting that times no sweep leaves them all running as they were. */
     @Test
     void aSettingThatTimesNoSweepLeavesThemAlone()
     {
+        final int before = scheduled.size();
         ConfigManager.applySetting("gate-sounds-enabled", "false");
 
-        assertEquals(5, scheduled.size(), "nothing rescheduled: " + scheduled);
+        assertEquals(before, scheduled.size(), "nothing rescheduled: " + scheduled);
         for (final Scheduled s : scheduled)
         {
             verify(s.task(), never()).cancel();

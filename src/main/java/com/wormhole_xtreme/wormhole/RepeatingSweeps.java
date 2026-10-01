@@ -99,6 +99,24 @@ public final class RepeatingSweeps
         return times;
     }
 
+    /**
+     * The settings timing a sweep that is running now, once per sweep.
+     *
+     * @return the keys, in the order the sweeps were started
+     */
+    static List<ConfigKeys> runningKeys()
+    {
+        final List<ConfigKeys> keys = new ArrayList<>();
+        for (final Sweep sweep : sweeps)
+        {
+            if (sweep.task != null)
+            {
+                keys.add(sweep.key);
+            }
+        }
+        return keys;
+    }
+
     /** Schedules one sweep, unless its period says it is off. */
     private static void schedule(final Sweep sweep, final long delay)
     {

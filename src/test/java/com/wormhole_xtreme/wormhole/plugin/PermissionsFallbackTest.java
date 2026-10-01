@@ -8,14 +8,21 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import java.util.UUID;
+import org.bukkit.entity.Player;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * {@code permissions-auto-fallback} is asked at every check, so changing it in-game applies at once.
  *
- * <p>It used to be read once at enable, where finding no provider wrote {@code true} into
- * {@code permissions-support-disable} in memory. Turning the fallback off afterwards changed
- * nothing, and the next save wrote that {@code true} into config.yml, where it outlived the server
- * ever finding a provider.
+ * <p>It used to be read once at enable, where finding no provider set
+ * {@code permissions-support-disable} to {@code true} in memory, so turning the fallback off
+ * afterwards changed nothing until a restart. (That value was never saved: config.yml's writer
+ * leaves permissions-support-disable as the admin wrote it.)
  */
 class PermissionsFallbackTest
 {
@@ -56,5 +63,24 @@ class PermissionsFallbackTest
         ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, false);
 
         assertTrue(PermissionsSupport.isSimpleMode());
+    }
+
+    /**
+     * The whole check follows it: a player holding no node may use the compass under the fallback,
+     * and not once the fallback is turned off in-game.
+     */
+    @Test
+    void aPermissionCheckFollowsTheFallbackAtOnce()
+    {
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.hasPermission(anyString())).thenReturn(false);
+        PermissionsSupport.setNoProvider(true);
+        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
+        assertTrue(WXPermissions.checkWXPermissions(player, PermissionType.COMPASS), "simple mode lets anyone");
+
+        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, false);
+
+        assertFalse(WXPermissions.checkWXPermissions(player, PermissionType.COMPASS), "nodes, which they lack");
     }
 }

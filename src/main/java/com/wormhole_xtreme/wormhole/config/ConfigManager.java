@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 
 
@@ -411,15 +412,6 @@ public class ConfigManager
         {
             return true;
         }
-    }
-
-    /**
-     * Set the runtime Permissions support disable flag. This updates the in-memory configuration
-     * map; persisting to disk requires writing config.yml separately.
-     */
-    public static void setPermissionsSupportDisable(final boolean disabled)
-    {
-        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", SECTION));
     }
 
     /**
@@ -1797,8 +1789,18 @@ public class ConfigManager
         }
         setting.setValue(parsed.getValue());
         Configuration.persistCurrentConfiguration(SECTION);
-        follow(setting.getName());
-        return setting.getName().name() + " is now " + parsed.getValue() + ".";
+        final String done = setting.getName().name() + " is now " + parsed.getValue();
+        // The value is already saved; a failure to apply it must say so, not escape the command.
+        try
+        {
+            follow(setting.getName());
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not apply " + setting.getName(), e);
+            return done + ", saved, but it could not be applied now: " + e + ". It applies at the next restart.";
+        }
+        return done + ".";
     }
 
     /**
@@ -1819,6 +1821,7 @@ public class ConfigManager
             // Every ring's trigger volume is indexed at load, as deep as these two said then.
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
+            case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
             default -> RepeatingSweeps.follow(key);
         }
     }
@@ -1826,37 +1829,22 @@ public class ConfigManager
     /** Attaches to or lets go of Vault's economy to match {@code economy-enabled}. */
     private static void followEconomy()
     {
-        try
+        if (isEconomyEnabled())
         {
-            if (isEconomyEnabled())
-            {
-                EconomySupport.enableEconomy();
-            }
-            else
-            {
-                EconomySupport.disableEconomy();
-            }
+            EconomySupport.enableEconomy();
         }
-        catch (final Exception | LinkageError e)
+        else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not follow economy-enabled", e);
+            EconomySupport.disableEconomy();
         }
     }
 
     /** Registers the PlaceholderAPI expansion when turned on; turned off, it answers nothing. */
     private static void followPlaceholders()
     {
-        if (!isPlaceholdersEnabled())
-        {
-            return;
-        }
-        try
+        if (isPlaceholdersEnabled())
         {
             PlaceholderSupport.enablePlaceholders();
-        }
-        catch (final Exception | LinkageError e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not follow placeholders-enabled", e);
         }
     }
 

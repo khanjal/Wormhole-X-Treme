@@ -195,8 +195,8 @@ Worth knowing:
   provider, even if one is present.
 - `permissions-auto-fallback` (default `true`) — if no provider is found at startup, basic use
   actions keep working and advanced ones stay with operators and gate owners. Set `false` to
-  leave permission handling entirely to you. Whether a provider is there is looked at once, at
-  startup; this setting itself applies as soon as it is changed.
+  leave permission handling entirely to you. Whether a provider is there is looked at startup, and
+  again whenever this or `permissions-support-disable` is changed in-game.
 
 ## Commands
 

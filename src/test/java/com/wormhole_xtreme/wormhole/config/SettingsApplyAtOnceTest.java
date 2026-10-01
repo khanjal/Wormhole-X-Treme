@@ -29,6 +29,11 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.Map;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 
 /**
  * Settings something reads once rather than where it is used, changed with {@code /wormhole config},
@@ -117,16 +122,88 @@ class SettingsApplyAtOnceTest
         assertNotNull(RingIndex.volumeAt(WORLD, 100, 68, 100), "and inside a reach of 5");
     }
 
-    /** Turned on in-game, material groups are looked for now rather than at the next shape load. */
+    /** Turned on in-game, a palette a loaded shape implies is added now, not at the next shape load. */
     @Test
-    void autodiscoveryTurnedOnInGameLooksForGroupsAtOnce()
+    void autodiscoveryTurnedOnInGameAddsTheGroupAShapeImpliesAtOnce()
     {
+        MaterialGroupRegistry.load(Map.of("Standard", Map.of("structure", "OBSIDIAN")));
+        final StargateShape diamond = new StargateShape();
+        diamond.setShapeStructureMaterial(Material.DIAMOND_BLOCK);
+        diamond.setShapeIrisMaterial(Material.GLASS);
+        diamond.setShapeLightMaterial(Material.GOLD_BLOCK);
+        StargateShapeRegistry.getStargateShapes().put("DiamondTest", diamond);
         ConfigTestSupport.set(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, false);
-        try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class))
+        try
         {
+            assertNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.DIAMOND_BLOCK), "not yet");
+
             ConfigManager.applySetting("gate-material-groups-autodiscover", "true");
 
-            shapes.verify(StargateShapeRegistry::followAutodiscover);
+            assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.DIAMOND_BLOCK),
+                "the diamond palette, added without a shape reload");
+        }
+        finally
+        {
+            StargateShapeRegistry.getStargateShapes().remove("DiamondTest");
+            MaterialGroupRegistry.load(null);
+        }
+    }
+
+    /** A deeper ring-max-ceiling-drop arms a ceiling ring's volume further down at once. */
+    @Test
+    void aDeeperCeilingDropArmsTheDeeperVolumeAtOnce()
+    {
+        ConfigTestSupport.set(ConfigKeys.RING_MAX_CEILING_DROP, 10);
+        final Ring a = new Ring(100, 64, 100, RingPattern.ODD, RingOrientation.CEILING, Material.STONE_SLAB,
+            Material.GLOWSTONE);
+        final Ring b = new Ring(200, 64, 200, RingPattern.ODD, RingOrientation.CEILING, Material.STONE_SLAB,
+            Material.GLOWSTONE);
+        RingManager.addPair(new RingPair("pair", WORLD, a, b), ConfigManager.getRingReach());
+        assertNull(RingIndex.volumeAt(WORLD, 100, 64 - 15, 100), "fifteen down is past a drop of 10");
+
+        ConfigManager.applySetting("ring-max-ceiling-drop", "20");
+
+        assertNotNull(RingIndex.volumeAt(WORLD, 100, 64 - 15, 100), "and inside a drop of 20");
+    }
+
+    /**
+     * A setting that is saved but cannot be applied says so, rather than the command failing.
+     *
+     * <p>The value is already in config.yml by then, so an exception escaping would leave the
+     * operator with an error and a setting that had in fact changed.
+     */
+    @Test
+    void aSettingThatCannotBeAppliedNowSaysSoInWords()
+    {
+        ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
+        final String said;
+        try (MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            economy.when(EconomySupport::enableEconomy).thenThrow(new IllegalStateException("no vault"));
+
+            said = ConfigManager.applySetting("economy-enabled", "true");
+        }
+
+        assertTrue(said.contains("could not be applied now") && said.contains("no vault"), said);
+        assertTrue(ConfigManager.isEconomyEnabled(), "the value itself was still changed");
+    }
+
+    /**
+     * permissions-support-disable turned off in-game finds the fallback ready.
+     *
+     * <p>Startup used to look for a provider only when support was on, so a server started with it
+     * off had never looked: turned on later, it asked for nodes nobody could have.
+     */
+    @Test
+    void supportTurnedBackOnInGameLooksForAProviderAgain()
+    {
+        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
+        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
+        try (MockedStatic<PermissionsSupport> permissions = mockStatic(PermissionsSupport.class))
+        {
+            ConfigManager.applySetting("permissions-support-disable", "false");
+
+            permissions.verify(PermissionsSupport::detectProvider);
         }
     }
 }
