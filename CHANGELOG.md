@@ -19,6 +19,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
   between two entity sweeps and landed behind the ring; a shut iris destroys them as before.
+- **The build guide takes the frame block in an `[S:C]` chevron, as detection does.** A gate built
+  that way was detected but never shown as built, `gate preview needs` named only the chevron
+  block, and `gate regen -fill` refused to fill a gate with one.
+- **The player who pulls an iris lever sees the iris sweep in, as everyone else does.** Their own
+  arm swing redrew the whole iris a tick later, over the sweep.
+- **A detector rail wired to a gate dials it on Paper 1.21.11.** Paper reports a rail's press as
+  a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
 
 ### Performance
 
