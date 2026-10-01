@@ -533,7 +533,10 @@ class GateTollAndRefusalOrderTest
     void aWalkerAlreadyInThePortalIsNotHeldThere()
     {
         aGateToAnotherWorld();
+        // A second block of the opening, so the step is from one portal block into another.
+        src.getGatePortalBlocks().add(new Location(world, BX, BY, BZ - 1));
 
-        assertFalse(stepFrom(BZ + 0.2).isCancelled());
+        assertFalse(stepFrom(BZ - 0.5).isCancelled(), "a step within the portal is not held");
+        verify(walker).sendMessage(contains("Cross-world travel is disabled"));
     }
 }
