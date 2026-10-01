@@ -653,6 +653,86 @@ What it found:
 - Paper writes its console in the Windows code page unless told otherwise, which turns a `·` in
   a readback into a replacement character; the server is started with UTF-8 output.
 
+#### Seeing the facility (`--viewer`, `--shots`, `--schematics`)
+
+The campus was designed from coordinates; these show it. None of them runs unless asked, so the
+self-test is as it was without them.
+
+```bash
+node scripts/facility/run-facility.js 1.21.11 --viewer           # hold, with a browser view of Probe
+node scripts/facility/run-facility.js 1.21.11 --shots all        # a PNG per vantage point, then stop
+node scripts/facility/run-facility.js 1.21.11 --shots gate-room,range --selftest
+node scripts/facility/run-facility.js 1.21.11 --with worldedit --schematics ../my-schematics
+```
+
+`--viewer` serves [prismarine-viewer](https://github.com/PrismarineJS/prismarine-viewer) (pinned in
+`scripts/facility/package.json`) on Probe, on 127.0.0.1 only, at port 3007 + (game port − 25590)
+(3007 on the default port; `--viewer-port` picks another; a port under 1024 is refused). `/`
+orbits round Probe (drag to turn, scroll to zoom); `/first/` looks out of Probe's eyes. The
+launcher prints both addresses, and the viewer stops with it. A request whose Host, or whose
+Origin when a browser sends one, is not 127.0.0.1 or localhost is refused, so a web page open
+elsewhere cannot drive it. Blocks are drawn; text displays (the boards and plaques) are not.
+After a restart (the Map and Region Desks) it serves the new Probe on the same port.
+
+prismarine-viewer 1.33.0 has textures and models up to 1.21.4 and draws a newer 1.x with the
+newest of that 1.x: 1.20.4 with its 1.20.1 assets, 1.21.11 with its 1.21.4. It has nothing for
+26.x, so `--viewer` and `--shots` refuse 26.1.2 by name before a server starts. The servers number
+their block states differently from those assets (1.21.5 onwards inserted blocks), so
+`lib/viewer.js` translates every chunk and block update, by block name and properties, into the
+assets' numbering. The two blocks renamed in between (`short_grass` was `grass`, `iron_chain` was
+`chain`) are drawn by their old names; a block the assets do not have at all (1.21.11's shelves
+and copper chests, 1.20.4's tuff bricks and crafter, say) is drawn as stone, and the launcher
+lists them by name. Every block the facility builds is a 1.20.4 one, so the campus is drawn
+whole. Its renderer draws 256 blocks of height, from y 0 (the world before 1.18), so the page is
+shown the world raised by the dimension's depth below 0: the overworld from -64 to 191 is drawn,
+and the launcher says once if anything above 191 was left out.
+
+`--shots` flies Probe to each vantage point in `campus.SHOTS` (`all`, or names separated by
+commas; one or more a wing: `gate-room`, `atrium`, `systems-mezzanine`, `gate-hall`,
+`gate-hall-deck`, `g1-control`, `ring-concourse`, `shaft-window`, `beam-lab`, `b1-pads`,
+`mirror-hall`, `mirror-optics`, `m1-round`, `menagerie`, `range`, `annex`), opens the viewer's
+first-person page in a headless browser and saves `.local-server/shots/<version>/<name>.png`
+(1280 × 720). A shot is taken once three frames a second apart are the same with no chunk sent to
+that page between them (two would take a pause in SwiftShader's meshing for the end), and it
+counts only if the page was sent chunks and at least 5% of the frame is not the page's empty
+sky: blank frames are the same too. The page names itself in its address, so only its own
+chunks count, whatever other viewer pages are open. A shot that fails those is saved all the
+same, named in the output, and fails the run, whether the run then stops, holds or self-tests
+(where each shot is a check in a `shots` section). `WX_SHOTS_SETTLE_MS` shortens the wait, to
+see a failed shot fail a run. It prints the paths at the end. A
+cell's gallery looks through tinted glass, which is all a seat beside it shows, so B1 and M1 are
+seen from inside, high by the gallery wall. The browser is an installed Chrome or Edge (Edge
+comes with Windows), driven by `puppeteer-core`, which downloads nothing; `WX_BROWSER` names
+another Chromium, such as a `chrome-headless-shell`. WebGL is drawn by SwiftShader, in software,
+so a machine with no GPU draws the same picture. Shots are taken after the fixtures, so the
+gates, rings and pads are in them; then `--selftest` runs, `--viewer` holds, or, with neither,
+the launcher stops. A vantage point is feet position, yaw (0 south,
+−90 east) and pitch (down is positive), so a new one is a line in `campus.SHOTS`.
+
+`--schematics <folder>` pastes WorldEdit schematics (Sponge `.schem`, as `//schem save` writes
+them) after the build and before Probe joins: the placements in `campus.SCHEMATICS` and in
+`<folder>/placements.json`, each `{ "file": "x.schem", "at": { "x": 0, "y": 0, "z": 0 },
+"rotation": 90, "dim": "minecraft:overworld" }` (rotation 0, 90, 180 or 270, clockwise as
+`//rotate`; `dim` defaults to the overworld), the files read from the folder. It needs `--with
+worldedit`. `at` is where the schematic's origin goes: where its maker stood for `//copy`, so
+the box it fills runs from there as it did from them. **A paste replaces everything in its box,
+air included**: it is a plain `//paste`, never `-a`, since a designer's empty space is meant. So
+before the server starts, each schematic's whole box where it would land is checked against every
+volume the decoration guardrail protects (`wings/decor/guard.js`: cells and their clear volumes,
+footprints, pads, rings, gates, lanes, plates, walk-in lines, mirror spots), and a box reaching
+into any of them, by so much as a block, is refused with what it reaches into. That covers what
+the tests use, not the campus itself: a box over a room's wall, a corridor or a doorway passes and
+replaces it, so a set piece placed there can still wall off a route a test walks. WorldEdit pastes them from the console, with no player and no API:
+`//world <world>`, `//pos1 x,y,z`, `/schem load`, `//rotate`, `//paste` (one slash fewer on
+1.20.4, whose console keeps the slash 1.21.11's drops; the launcher tries `//world`, then
+`/world`). The console has no position, so the paste puts the origin at pos #1; WorldEdit
+7.4.5's `//toggleplace` refuses the console outright. `/schem load` reads the file off the main
+thread and says so later, so the launcher waits for that file's "loaded" line. A paste that
+fails is a setup problem, and fails a `--selftest`. Where a box lands was checked against
+WorldEdit itself: a schematic copied with its origin at the far corner, saved by 7.4.5 (format
+3) and 7.2.20 (format 2), then pasted plain and turned 90 and 270, landed exactly in the boxes
+`lib/schematics.js` works out (`scripts/facility/test/fixtures/`).
+
 ## Static analysis
 
 - **SpotBugs** runs in CI and fails the build on what it finds. Locally:
