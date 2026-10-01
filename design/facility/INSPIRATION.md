@@ -1,5 +1,8 @@
 # Wormhole Research Facility — restyling inspiration digest
 
+> Written while the brief still asked for 1.20 blocks only. The brief now allows everything up
+> to 1.21.11, so tuff, copper bulbs and the trial-chamber blocks are open too.
+
 Research date: 2026-10-01. Read-only web research; nothing was downloaded. Ideas are described in my own words; each is tied to the page that prompted it. Everything proposed uses blocks that exist in Minecraft 1.20 (no copper bulbs, tuff bricks, crafters, trial-chamber blocks, or anything else from 1.21+).
 
 Working premise: the facility already has the right bones (white concrete/quartz shell, copper for the operable bits, glass, sea lanterns, one department colour per wing). What it lacks is *theatre* — depth in the walls, a sense of weight and procedure around the gate, a reason to look up, and set-piece props that say "someone works here". The references below are chosen for that.

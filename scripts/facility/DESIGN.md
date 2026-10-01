@@ -1103,3 +1103,12 @@ Every build so far was designed blind from coordinates. Add a viewer:
   rest from viewer shots; Opus builds it; shots are retaken to compare.
 Timing: before the restyle and the dashboard; small enough for its own stage (6.5) or to lead
 stage 8.
+
+## Addendum: designed decoration on 1.21 and later only (user, 2026-10-01)
+
+A designer's build (design/facility/BRIEF.md) may use every block up to 1.21.11. It is applied as a
+decoration layer on 1.21.11 and later; 1.20.4 runs keep the plain campus, so the plugin is still
+tested on 1.20 and no check may depend on the decoration. Design mode (`lab.ps1 -Design`, with
+`check` and `export`) runs 1.21.11 and is built after the world viewer lands, on its template and
+guardrail. Older clients joining through ViaVersion see the decoration with newer blocks mapped to
+older ones.

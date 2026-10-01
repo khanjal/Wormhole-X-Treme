@@ -10,7 +10,7 @@ The campus works, but it is plain white boxes. This job is the look, the sense o
 wayfinding. The bot still has to find every chamber at the size and position it expects, so
 the space rules below are firm.
 
-Target: **Minecraft Java 1.20.4** (Paper). Sizes are interior air volumes in blocks,
+Target: **Minecraft Java 1.21.11** (Paper). Sizes are interior air volumes in blocks,
 width (x) × depth (z) × height (y).
 
 ## Two ways to work
@@ -42,8 +42,7 @@ scripts/facility/lab.ps1 -Design -Op YourName
 scripts/facility/lab.sh --design --op YourName
 ```
 
-Design mode generates the campus once on Minecraft 1.20.4, so only 1.20 blocks are available,
-and then leaves it alone:
+Design mode generates the campus once on Minecraft 1.21.11, and then leaves it alone:
 
 - You are in creative mode with WorldEdit, and the bot does not run.
 - Test volumes are filled with a marked placeholder block, so you can see them. They go back to
@@ -67,9 +66,12 @@ limit. We load it, run the full self-test on it, and send back screenshots and r
 
 ## Hard rules
 
-1. **Blocks from Minecraft 1.20 only.** No copper bulbs, tuff bricks, crafters, trial-chamber
-   blocks or anything newer. No mods or resource packs. Design mode enforces this by running
-   1.20.4.
+1. **Blocks up to Minecraft 1.21.11.** Copper bulbs, tuff bricks, trial-chamber blocks and
+   the rest of 1.21 are all fine; nothing newer, no mods, no resource packs. Design mode
+   enforces this by running 1.21.11. Your build is the facility's decoration on 1.21.11 and
+   later, where every block exists; test runs on 1.20.4 use the plain campus without it, so
+   nothing about the tests may depend on your build. Players on older clients who join through
+   ViaVersion still see it, with each newer block drawn as an older lookalike.
 2. **Test volumes stay empty air.** Nothing of yours goes inside one, including light blocks,
    barriers, carpet or water.
 3. **Keep a 2-block skin around every test volume free of active parts.** No redstone, rails,
