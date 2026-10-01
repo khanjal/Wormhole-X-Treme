@@ -8,6 +8,9 @@
 //                           if the plugin is fixed the cell fails until its expectation is updated.
 // `expect` may be a function of the server version. A known failure with `fixedBy: '<issue>'` is
 // expected to PASS when run-facility is told `--fixed <issue>` (a plugin jar with the fix).
+// A cell may hold `settings` ({ setting: value }) for its run, on top of the chamber's own: an
+// ordinary trip under a setting meant to stop it, `because` saying how, fails at the check the
+// setting stops ('FAIL:<check name>'), against the same cell without it that passes.
 
 const { normaliseOptions } = require('./lib/console');
 const { atLeast } = require('./lib/version');
