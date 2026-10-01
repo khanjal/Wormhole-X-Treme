@@ -1,6 +1,9 @@
 # Facility creative pass: identity, transit by the plugin's own features, per-wing set pieces
 
-A design, not code. It sits on top of `lab-design.md` (with its addenda) and on what stages 0–3
+> An internal design pass from 2026-09-29. Its section 5 describes harness changes that were planned
+> then; check `scripts/facility/` for what exists. The brief for designers is [BRIEF.md](BRIEF.md).
+
+A design, not code. It sits on top of [`scripts/facility/DESIGN.md`](../../scripts/facility/DESIGN.md) (with its addenda) and on what stages 0–3
 have built in `scripts/facility/` (`lib/campus.js` owns every coordinate; `lib/blueprint.js` the
 geometry vocabulary; `wings/*.js` the shells; `chambers/*.js` the logic). Nothing here moves a
 chamber. Everything here is either (a) decoration outside cell volumes, gate footprints and lanes,

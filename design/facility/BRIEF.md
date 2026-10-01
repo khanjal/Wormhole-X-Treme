@@ -15,34 +15,36 @@ width (x) × depth (z) × height (y).
 
 ## Two ways to work
 
-**Route A, recommended: dress the generated campus.** You run the facility in design mode (below).
-Every test volume is a marked placeholder you must not touch; you build around it: walls,
+**Route A, recommended: dress the generated campus.** You run the facility in design mode (below;
+planned, not built yet). Every test volume is a marked placeholder you must not touch; you build around it: walls,
 facades, corridors, lighting, props, exteriors. Positions are already fixed, so nothing you build
 can move a test. The footprints below stay where they are.
 
 **Route B: build a whole map from scratch.** You design the floor plan. Every required space in
 the tables below must exist somewhere, at no less than its minimum size, and you mark each one
 (see *Marking your spaces*). Full freedom over layout, scale and story. On our side the scripts
-need a marker reader before they can run on your map; allow about a week after your massing
-milestone for that.
+need a marker reader (planned, not built yet) before they can run on your map; allow about a
+week after your massing milestone for that.
 
 ## Run it yourself
 
-> **Status:** design mode and the export are being built. Until they land, ask the maintainer
-> for a world download of the template.
+> **Planned, not built yet.** Everything in this section (the `-Design` and `-Export` options,
+> and the `check` and `export` chat commands) describes how design mode will work; the commands
+> below do not run today. Until it lands, ask the maintainer for a world download of the
+> template, and send the world folder back the same way.
 
-You need Windows, macOS or Linux, Java 21 or newer, Node.js 20 or newer, and a clone of this
-repository. Nothing else: the script downloads Paper and the plugin's latest release, and
-installs its own Node modules the first time.
+You will need Windows, macOS or Linux, Java 25 (WorldEdit 7.4 needs it), a current Node.js LTS
+release, and a clone of this repository. The script downloads Paper and the plugin, and installs
+its own Node modules the first time.
 
 ```bash
-# Windows
+# Windows (planned)
 scripts/facility/lab.ps1 -Design -Op YourName
-# macOS / Linux
+# macOS / Linux (planned)
 scripts/facility/lab.sh --design --op YourName
 ```
 
-Design mode generates the campus once on Minecraft 1.21.11, and then leaves it alone:
+Design mode will generate the campus once on Minecraft 1.21.11, and then leaves it alone:
 
 - You are in creative mode with WorldEdit, and the bot does not run.
 - Test volumes are filled with a marked placeholder block, so you can see them. They go back to
@@ -52,7 +54,7 @@ Design mode generates the campus once on Minecraft 1.21.11, and then leaves it a
 - Say `check` in chat at any time. It lists every block of yours inside a test volume or its
   2-block skin, with coordinates and the wing it belongs to.
 
-### Sending your work back
+### Sending your work back (planned)
 
 Say `export` in chat, or run `scripts/facility/lab.ps1 -Design -Export` with the server stopped.
 It writes one file to `.local-server/exports/facility-design-<date>.zip` holding:
@@ -68,7 +70,7 @@ limit. We load it, run the full self-test on it, and send back screenshots and r
 
 1. **Blocks up to Minecraft 1.21.11.** Copper bulbs, tuff bricks, trial-chamber blocks and
    the rest of 1.21 are all fine; nothing newer, no mods, no resource packs. Design mode
-   enforces this by running 1.21.11. Your build is the facility's decoration on 1.21.11 and
+   will enforce this by running 1.21.11. Your build is the facility's decoration on 1.21.11 and
    later, where every block exists; test runs on 1.20.4 use the plain campus without it, so
    nothing about the tests may depend on your build. Players on older clients who join through
    ViaVersion still see it, with each newer block drawn as an older lookalike.
@@ -97,7 +99,9 @@ Nether and the End.
 
 ### A mock campus plan
 
-One idea, not a requirement: Ops in the middle, each wing reached through its own transport
+One idea for Route B, not a requirement, and **not the generated layout**: in the campus you
+dress on Route A, Gate Dynamics is north of Ops, Ring Transit east, Beam Physics west and Mirror
+Optics south, with the tunnel running east. In this mock, Ops is in the middle, each wing reached through its own transport
 (gate north, rings east, beam south-east, mirror west), lanes and the underground tunnel along
 the south edge. Every box is drawn at its real size, north at the top. The Overworld part fits
 in roughly 400 × 420 blocks.
@@ -110,38 +114,41 @@ Every row is a minimum interior air volume. A room may be bigger, but a chamber'
 exact: build its walls on the line. A wing must hold its chambers plus walkways at least 3 wide
 and 4 high between them.
 
-| ID | Space | Interior W × D × H | Notes |
-|---|---|---|---|
-| **ops** | **Operations** | **41 × 41 × 16** | The hub. One arrival point per wing (gate, ring pad, beam pad, mirror) and the Systems mezzanine. |
-| c0 | Calibration Cell | 7 × 7 × 4 | Door west, gallery south. |
-| systems | Systems mezzanine | desks | 6 blocks above the Ops floor along one wall: the settings, map, regions and permissions desks. |
-| **gates** | **Gate Dynamics** | **141 × 131 × 36** | The biggest wing. Stargates are built and dialled here. |
-| g1 | Test Stand | 41 × 37 × 30 | Door south, gallery west. The tallest chamber. |
-| relay | Relay | 21 × 21 × 24 | Holds the far end of dialled gates. |
-| g2 | Shape Gallery | 133 × 19 × 30 | One long hall of gate shapes side by side. |
-| g3 | Automation Bay | 27 × 31 × 16 | Redstone inputs; the 2-block skin matters most here. |
-| g4 | Build Bench | 27 × 31 × 16 | |
-| g5 | Iris Chamber | 33 × 31 × 16 | |
-| **rings** | **Ring Transit** | **71 × 61 × 14** | |
-| r1 | Pair Stand | 63 × 17 × 12 | Two ring platforms far apart. |
-| r2 | Ceiling Room | 15 × 17 × 12 | Tests rings under a low ceiling; keep the ceiling as given. |
-| r3 | Shaft | 7 × 7 × 12 | Plus a 7 × 7 shaft 60 deep below it. A window onto it is welcome. |
-| r4 | Build Bench | 23 × 17 × 12 | |
-| tunnel | Tunnel | 269 × 9 × 6 | Straight and enclosed; can run underground. |
-| r5 | Ring desk | desk | |
-| **beams** | **Beam Physics** | **71 × 61 × 12** | |
-| b1 | Pad Array | 53 × 35 × 10 | A grid of beam pads. |
-| b2 | Dispatch desk | desk | Ideally overlooks the pad array. |
-| **mirrors** | **Mirror Optics** | **81 × 51 × 12** | |
-| m1 | Mirror Round | 73 × 19 × 10 | A hall of mirrors at player height. |
-| m2 | Wall Bench | 29 × 13 × 8 | |
-| m3 | Capture Desk | 29 × 13 × 8 | |
-| **menagerie** | **Menagerie and Motor Pool** | **51 × 61 × 10** | Animals, vehicles and projectiles through gates. |
-| **range** | **The Range** | **61 × 61 × 20** | In the Nether, on solid ground, away from lava lakes. |
-| **annex** | **The Annex** | **41 × 41 × 20** | In the End; off the main island is fine, reachable on foot from its gate. |
+| ID | Space | Interior W × D × H | Door | Gallery | Notes |
+|---|---|---|---|---|---|
+| **ops** | **Operations** | **41 × 41 × 16** | | | The hub. One arrival point per wing (gate, ring pad, beam pad, mirror) and the Systems mezzanine. |
+| c0 | Calibration Cell | 7 × 7 × 4 | w | s | |
+| s1, map, regions, perms | Systems desks | desks | | | On a mezzanine 6 blocks above the Ops floor along one wall: the console, map, region and permission desks. |
+| **gates** | **Gate Dynamics** | **141 × 131 × 36** | | | The biggest wing. Stargates are built and dialled here. |
+| g1 | Test Stand | 41 × 37 × 30 | s | w | The tallest chamber. |
+| relay | Relay Gate | 21 × 21 × 24 | s | e | Holds the far end of dialled gates. |
+| g2 | Shape Gallery | 133 × 19 × 30 | w | s | One long hall of gate shapes side by side. |
+| g3 | Automation Bay | 27 × 31 × 16 | w | s | Redstone inputs; the 2-block skin matters most here. |
+| g4 | Build Bench | 27 × 31 × 16 | e | s | |
+| g5 | Iris Chamber | 33 × 31 × 16 | e | s | |
+| **rings** | **Ring Transit** | **71 × 61 × 14** | | | |
+| r1 | Pair Stand | 63 × 17 × 12 | s | n | Two ring platforms far apart. |
+| r2 | Ceiling Room | 15 × 17 × 12 | n | e | Tests rings under a low ceiling; keep the ceiling as given. |
+| r3 | Shaft | 7 × 7 × 12 | n | s | Plus a 7 × 7 shaft 60 deep below it. A window onto it is welcome. |
+| r4 | Build Bench | 23 × 17 × 12 | n | w | |
+| tunnel | Range Tunnel | 269 × 9 × 6 | | | Straight and enclosed; can run underground. |
+| r5 | Edit Desk | desk | | | |
+| **beams** | **Beam Physics** | **71 × 61 × 12** | | | |
+| b1 | Pad Array | 53 × 35 × 10 | e | s | A grid of beam pads. |
+| b2 | Dispatch Desk | desk | | | Ideally overlooks the pad array. |
+| **mirrors** | **Mirror Optics** | **81 × 51 × 12** | | | |
+| m1 | Mirror Round | 73 × 19 × 10 | n | s | A hall of mirrors at player height. |
+| m2 | Wall Bench | 29 × 13 × 8 | n | e | |
+| m3 | Capture Desk | 29 × 13 × 8 | n | w | A sealed chamber despite its name. |
+| **menagerie** | **Menagerie and Motor Pool** | **51 × 61 × 10** | | | Animals, vehicles and projectiles through gates. |
+| **range** | **The Range** | **61 × 61 × 20** | | | In the Nether, on solid ground, away from lava lakes. |
+| **annex** | **The Annex** | **41 × 41 × 20** | | | In the End; off the main island is fine, reachable on foot from its gate. |
 
-"Desk" rows are workstations, not sealed volumes: a 3 × 2 floor area with a console where a
-player stands.
+Door and gallery give the wall (n, e, s or w) that has the chamber's door and its viewing
+window; on Route A they are fixed, on Route B keep them too.
+
+Rows marked "desk" are workstations, not sealed volumes: a 3 × 2 floor area with a console where
+a player stands.
 
 ### Lanes and the Menagerie
 
@@ -171,8 +178,7 @@ wx:wing=gates
 wx:desk=b2 facing=n
 ```
 
-Sides are n, e, s or w. Where the table names a side, keep it; elsewhere choose, and say so in
-the marker.
+Sides are n, e, s or w, as in the table.
 
 ## Direction
 
@@ -210,6 +216,6 @@ Systems we want:
 3. **Everything finished.** All wings and both far sites.
 4. **Fixes.** One round for anything the tests catch.
 
-A milestone passes when `check` reports nothing, and the bot's full self-test passes on your
+A milestone passes when the facility's keep-clear check reports nothing, and the bot's full self-test passes on your
 world at the same count as on the plain campus. Rights and credit are in the
 [design README](../README.md).

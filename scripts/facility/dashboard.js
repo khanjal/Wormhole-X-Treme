@@ -14,23 +14,28 @@ const path = require('path');
 
 const SERVERS = path.join(__dirname, '..', '..', '.local-server');
 
+/** A lab's log file, or null when it has none (yet). */
+function logOf(folder) {
+  try { return fs.statSync(path.join(folder, 'logs', 'latest.log')); } catch { return null; }
+}
+
 /** Every lab folder with a log, newest first; its Dynmap URL when Dynmap is installed there. */
 function findLabs() {
   let names = [];
-  try { names = fs.readdirSync(SERVERS).filter((n) => /^facility-/.test(n)); } catch { return []; }
+  try { names = fs.readdirSync(SERVERS); } catch { return []; }
   return names
-    .map((n) => path.join(SERVERS, n))
-    .filter((folder) => fs.existsSync(path.join(folder, 'logs', 'latest.log')))
-    .sort((a, b) => fs.statSync(path.join(b, 'logs', 'latest.log')).mtimeMs - fs.statSync(path.join(a, 'logs', 'latest.log')).mtimeMs)
-    .map((folder) => {
-      const m = /^facility-(.+?)(?:-(\d+))?$/.exec(path.basename(folder));
+    .map((n) => ({ n, m: /^facility-(.+?)(?:-(\d+))?$/.exec(n), log: logOf(path.join(SERVERS, n)) }))
+    .filter(({ m, log }) => m && log)
+    .sort((x, y) => y.log.mtimeMs - x.log.mtimeMs)
+    .map(({ n, m }) => {
+      const folder = path.join(SERVERS, n);
       let map = null;
       try {
         const conf = fs.readFileSync(path.join(folder, 'plugins', 'dynmap', 'configuration.txt'), 'utf8');
         const port = /^webserver-port:\s*(\d+)/m.exec(conf);
         if (port) map = `http://localhost:${port[1]}/`;
       } catch { /* no Dynmap here */ }
-      return { id: path.basename(folder).replace(/\W/g, '_'), name: `${m[1]} · :${m[2] || 25590}`, folder, map };
+      return { id: n.replace(/\W/g, '_'), name: `${m[1]} · :${m[2] || 25590}`, folder, map };
     });
 }
 
@@ -38,49 +43,63 @@ const BACKLOG = 400;
 const POLL_MS = 500;
 
 const argPort = process.argv.indexOf('--port');
-const PORT = argPort > 0 ? Number(process.argv[argPort + 1]) : 8200;
+const PORT = argPort > 0 && Number(process.argv[argPort + 1]) > 0 ? Number(process.argv[argPort + 1]) : 8200;
 
-/** The last `count` lines of a file, read from its end. */
-function tail(file, count) {
+/** Bytes [from, to) of a file, or null if it cannot be read just now (rotating, locked). */
+function readRange(file, from, to) {
+  let fd;
   try {
-    const size = fs.statSync(file).size;
-    const start = Math.max(0, size - 256 * 1024);
-    const fd = fs.openSync(file, 'r');
-    const buf = Buffer.alloc(size - start);
-    fs.readSync(fd, buf, 0, buf.length, start);
-    fs.closeSync(fd);
-    const lines = buf.toString('utf8').split(/\r?\n/);
-    if (start > 0) lines.shift();
-    return { lines: lines.filter((l) => l.length).slice(-count), offset: size };
+    fd = fs.openSync(file, 'r');
+    const buf = Buffer.alloc(to - from);
+    const got = fs.readSync(fd, buf, 0, buf.length, from);
+    return buf.subarray(0, got);
   } catch {
-    return { lines: [], offset: 0 };
+    return null;
+  } finally {
+    if (fd !== undefined) try { fs.closeSync(fd); } catch { /* already gone */ }
   }
 }
 
-/** Streams a lab's log as server-sent events: the backlog, then each new line. */
+/** Streams a lab's log as server-sent events: a reset, the backlog, then each new line. */
 function stream(lab, res) {
   const file = path.join(lab.folder, 'logs', 'latest.log');
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   const send = (line) => res.write(`data: ${JSON.stringify(line)}\n\n`);
-  const first = tail(file, BACKLOG);
-  let offset = first.offset;
-  let partial = '';
-  first.lines.forEach(send);
-  res.write(`event: status\ndata: ${JSON.stringify(fs.existsSync(file) ? 'live' : 'no log yet')}\n\n`);
+  // A reconnect sends the backlog again, so the page clears what it has first.
+  res.write('event: reset\ndata: ""\n\n');
+  let offset = 0;
+  let inode = null;
+  let pending = Buffer.alloc(0);
+  /** Sends every complete line from offset to `size`, holding back an unfinished last line. */
+  const advance = (size, keep, dropFirst = false) => {
+    const chunk = readRange(file, offset, size);
+    if (!chunk) return;
+    offset += chunk.length;
+    const all = Buffer.concat([pending, chunk]);
+    const cut = all.lastIndexOf(0x0a) + 1;
+    pending = all.subarray(cut);
+    const lines = all.subarray(0, cut).toString('utf8').split(/\r?\n/);
+    if (dropFirst) lines.shift();
+    lines.filter((l) => l.length).slice(-keep).forEach(send);
+  };
+  const first = logOf(lab.folder);
+  if (first) {
+    inode = first.ino;
+    offset = Math.max(0, first.size - 256 * 1024);
+    advance(first.size, BACKLOG, offset > 0);
+  }
+  res.write(`event: status\ndata: ${JSON.stringify(first ? 'live' : 'no log yet')}\n\n`);
   const timer = setInterval(() => {
-    let size;
-    try { size = fs.statSync(file).size; } catch { return; }
-    if (size < offset) { offset = 0; partial = ''; send('— log restarted (server started again) —'); }
-    if (size === offset) return;
-    const fd = fs.openSync(file, 'r');
-    const buf = Buffer.alloc(size - offset);
-    fs.readSync(fd, buf, 0, buf.length, offset);
-    fs.closeSync(fd);
-    offset = size;
-    const text = partial + buf.toString('utf8');
-    const lines = text.split(/\r?\n/);
-    partial = lines.pop();
-    lines.filter((l) => l.length).forEach(send);
+    const now = logOf(lab.folder);
+    if (!now) return;
+    // Paper replaces latest.log on a restart: a new file (a new inode), whatever its size.
+    if (now.ino !== inode || now.size < offset) {
+      if (inode !== null) send('— log restarted (server started again) —');
+      inode = now.ino;
+      offset = 0;
+      pending = Buffer.alloc(0);
+    }
+    if (now.size > offset) advance(now.size, Infinity);
   }, POLL_MS);
   res.on('close', () => clearInterval(timer));
 }
@@ -111,7 +130,7 @@ iframe{flex:1;border:0;width:100%;background:#fff}
 <header><h1>Lab Dashboard</h1><div id="tabs" style="display:flex;gap:4px;flex-wrap:wrap"></div></header>
 <main id="views"></main>
 <script>
-const LABS = ${JSON.stringify(LABS.map(({ id, name, map }) => ({ id, name, map })))};
+const LABS = ${labsJson(LABS)};
 const tabs = document.getElementById('tabs'), views = document.getElementById('views');
 function show(id){for(const b of tabs.children)b.classList.toggle('on',b.dataset.v===id);
   for(const v of views.children)v.classList.toggle('on',v.id===id);
@@ -152,6 +171,7 @@ for(const lab of LABS){
     if(hidden(t))d.classList.add('h');pre.appendChild(d);
     while(pre.children.length>5000)pre.firstChild.remove();
     if(follow.checked)pre.scrollTop=pre.scrollHeight};
+  es.addEventListener('reset',()=>{pre.textContent=''});
   es.addEventListener('status',(m)=>{const s=JSON.parse(m.data);st.textContent=s;dot.classList.toggle('live',s==='live')});
   es.onerror=()=>{st.textContent='reconnecting…';dot.classList.remove('live')};
 }
@@ -163,16 +183,30 @@ for(const lab of LABS){
     :'<div class="empty">No Dynmap on this lab. Start it with -With dynmap (no Dynmap build supports 26.x yet).</div>';
   views.appendChild(v);
 }
-if(!LABS.length)views.innerHTML='<div class="empty">No labs yet. Start one with scripts/facility/lab.ps1, then reload.</div>';
+if(!LABS.length)views.innerHTML='<div class="empty">No labs yet. Start one with scripts/facility/lab.ps1; this page picks it up once its server has written a log.</div>';
 else{let first='con-'+LABS[0].id;try{first=localStorage.getItem('wxdash.tab')||first}catch{}
 show(document.getElementById(first)?first:'con-'+LABS[0].id);}
+// Reload when a lab appears or goes, so a lab started after this page still shows up.
+const known=LABS.map((l)=>l.id).join();
+setInterval(()=>fetch('/labs').then((r)=>r.json()).then((ids)=>{if(ids.join()!==known)location.reload()}).catch(()=>{}),5000);
 </script></body></html>`;
 
-http.createServer((req, res) => {
+/** The labs as JSON that is safe inside an inline script. */
+function labsJson(labs) {
+  return JSON.stringify(labs.map(({ id, name, map }) => ({ id, name, map })))
+    .replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
+const server = http.createServer((req, res) => {
+  // Only this machine's own names: a page elsewhere that rebinds a hostname to 127.0.0.1 gets nothing.
+  if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host || '')) { res.writeHead(403); res.end(); return; }
   const url = new URL(req.url, 'http://127.0.0.1');
   if (url.pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(page(findLabs()));
+  } else if (url.pathname === '/labs') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(findLabs().map((l) => l.id)));
   } else if (url.pathname === '/log') {
     const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
     if (!lab) { res.writeHead(404); res.end(); return; }
@@ -181,4 +215,9 @@ http.createServer((req, res) => {
     res.writeHead(404);
     res.end();
   }
-}).listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
+});
+server.on('error', (e) => {
+  console.error(e.code === 'EADDRINUSE' ? `Port ${PORT} is in use; is the dashboard already running? Try --port.` : e.message);
+  process.exit(1);
+});
+server.listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
