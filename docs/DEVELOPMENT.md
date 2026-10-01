@@ -536,21 +536,17 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
   an unknown `rg flag`) from another thread, after the command's fence: the desks wait for the
   answer line in the log instead.
 
-Known plugin failures, each expected by name in `matrix.js` (stage 5's first):
+Stage 5's three known plugin failures are fixed by #546, so `g3 detector rail`, `g4 lenient` and
+`g5 the puller watches the sweep` now expect a pass, and a jar from before it fails them:
 
-- Not yet filed: the build guide takes a lenient `[S:C]` chevron for a strict `[C]`. `needs` asks
-  for the chevron block there and the guide marks the frame block wrong (`BuildGuide.accepts`,
-  CHEVRON), though detection takes either (`StargateHelper.cellMatches`): a gate built with the
-  frame block there completes, and the guide never says it is built (`g4 lenient`).
-- Not yet filed: the player who pulls an iris lever never sees the sweep. Their arm swing near a
-  drawn iris redraws it whole a tick later (`onPlayerAnimation`, `redrawPortalVisualsSoon`,
-  `sendIrisTo`, which does not ask `StargateIrisAnimator.isSweeping`); another player sees the
-  steps (`g5 the puller watches the sweep`).
-- Not yet filed: a detector rail by the DHD never dials on Paper 1.21.11. Paper raises its
-  `BlockRedstoneEvent` with the old current 15 as well as the new (`DetectorRailBlock.checkPressed`
-  passes the new state twice; 1.20.4 and 26.1.2 report 0 then 15), and the listener takes only a
-  rise from 0 (`isActionableRisingEdge`), so the rail the plugin documents as a trigger is dropped
-  there (`g3 detector rail`).
+- The build guide took a lenient `[S:C]` chevron for a strict `[C]`: `needs` asked for the
+  chevron block there and the guide marked the frame block wrong, though detection takes either,
+  so a gate built with the frame block there completed and the guide never said it was built.
+- The player who pulled an iris lever never saw the sweep: their arm swing near a drawn iris
+  redrew it whole a tick later, without asking `StargateIrisAnimator.isSweeping`.
+- A detector rail by the DHD never dialled on Paper 1.21.11: Paper raises its `BlockRedstoneEvent`
+  with the old current 15 as well as the new (`DetectorRailBlock.checkPressed` passes the new
+  state twice; 1.20.4 and 26.1.2 report 0 then 15), and the listener took only a rise from 0.
 
 Stage 2's (#536 and #537 are fixed on main by #542 and #543, so their cells now expect a pass:
 the self-test is set for a jar built from current main, and an older jar fails them):

@@ -226,15 +226,8 @@ const MATRIX = {
   // Stage 5: the Automation Bay, the Build Bench (preview actions, building by hand) and the Iris Chamber.
   g3: [
     ...['lever', 'button', 'plate', 'repeater', 'comparator'].map((i) => ({ name: `g3 ${i}`, values: { input: i }, expect: 'PASS' })),
-    {
-      name: 'g3 detector rail',
-      values: { input: 'detector rail' },
-      // Paper 1.21.11's detector rail reports its BlockRedstoneEvent with the new current as the old
-      // one as well (DetectorRailBlock.checkPressed). Seen there only; 1.20.4 and 26.1.2 report 0
-      // then 15 by their source, and no other 1.21.x has been run.
-      expect: (v) => (v === '1.21.11' ? 'FAIL:the detector rail dialled Bay: its opening was drawn' : 'PASS'),
-      known: 'a detector rail by the DHD never dials on Paper 1.21.11: Paper raises its BlockRedstoneEvent with old current 15 as well as new (DetectorRailBlock.checkPressed passes the new state twice), and the redstone listener takes only a rise from 0 (WormholeXTremeRedstoneListener.isActionableRisingEdge), so the rail the plugin documents as a trigger is dropped there',
-    },
+    // A known failure on Paper 1.21.11 (its rail reports a press as 15 to 15) until #546.
+    { name: 'g3 detector rail', values: { input: 'detector rail' }, expect: 'PASS' },
     ...['gate build', 'gate dial', 'gate force', 'ring build', 'ring fire', 'mirror create', 'beam send']
       .map((k) => ({ name: `g3 command block: ${k}`, values: { input: 'console', console: k }, expect: 'PASS' })),
     { name: 'g3 timeout 0: open until somebody goes through', values: { input: 'lever', timing: 'timeout 0' }, expect: 'PASS' },
@@ -244,12 +237,8 @@ const MATRIX = {
   g4: [
     ...['hand', 'layer', 'chevrons', 'dhd', 'material', 'iris', 'activate', 'share', 'place', 'fill a gap', 'clear']
       .map((k) => ({ name: `g4 ${k}`, values: { case: k }, expect: 'PASS' })),
-    {
-      name: 'g4 lenient [S:C] chevron in the frame block',
-      values: { case: 'lenient' },
-      expect: 'FAIL:the guide said "Lab is built! Press its button to check it."',
-      known: 'the build guide takes a lenient [S:C] chevron for a strict [C]: `needs` asks for the chevron block only and the guide marks the frame block there wrong (BuildGuide.accepts, CHEVRON), though detection takes either (StargateHelper.cellMatches), so a gate built so completes but is never "built!"',
-    },
+    // A known failure (the guide held an [S:C] cell to [C]'s rule) until #546.
+    { name: 'g4 lenient [S:C] chevron in the frame block', values: { case: 'lenient' }, expect: 'PASS' },
   ],
   g5: [
     { name: 'g5 sweep steps, IrisS', values: { check: 'steps' }, expect: 'PASS' },
@@ -258,12 +247,8 @@ const MATRIX = {
     { name: 'g5 steps at 4 ticks', values: { check: 'steps', 'step ticks': '4' }, expect: 'PASS' },
     { name: 'g5 steps merged to two bands', values: { check: 'steps', 'max ticks': '4' }, expect: 'PASS' },
     { name: 'g5 steps with no band limit', values: { check: 'steps', 'max ticks': '0' }, expect: 'PASS' },
-    {
-      name: 'g5 the puller watches the sweep',
-      values: { check: 'steps', watcher: 'puller' },
-      expect: "FAIL:closing was drawn in the plugin's sweep steps, cell for cell",
-      known: 'the player who pulls the iris lever is shown the iris whole a tick later: their arm swing near a drawn iris redraws it (WormholeXTremePlayerListener.onPlayerAnimation, StargateManager.redrawPortalVisualsSoon, StargateBlockSetup.sendIrisTo), which does not ask whether a sweep is under way (StargateIrisAnimator.isSweeping), so they never see it close step by step',
-    },
+    // A known failure (the puller's own arm swing redrew the iris whole mid-sweep) until #546.
+    { name: 'g5 the puller watches the sweep', values: { check: 'steps', watcher: 'puller' }, expect: 'PASS' },
     ...['front', 'behind', 'side'].map((s) => ({ name: `g5 layers from ${s === 'side' ? 'the side' : s === 'front' ? 'the front' : 'behind'}, IrisS`, values: { check: 'layers', side: s }, expect: 'PASS' })),
     { name: 'g5 layers from the front, IrisA (ice behind glass)', values: { check: 'layers', gate: 'Atlantis' }, expect: 'PASS' },
     { name: 'g5 layers from behind, IrisA', values: { check: 'layers', gate: 'Atlantis', side: 'behind' }, expect: 'PASS' },
