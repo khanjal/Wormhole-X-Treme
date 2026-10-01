@@ -97,17 +97,55 @@ async function shareIn(page, png) {
 }
 
 /**
+ * Waits for the picture to hold: frames `everyMs` apart from `shoot()`, until `pairs` pairs of
+ * consecutive frames running are the same with `chunks()` unchanged across them (two pairs, so a
+ * pause while SwiftShader is still meshing is not taken for the end), or `settleMs` has passed.
+ * Returns { png: the last frame, still, chunksBefore: chunks() at the first frame of the run }.
+ */
+async function settle({ shoot, chunks, wait = sleep, settleMs = 60000, everyMs = 1000, pairs = 2, now = Date.now }) {
+  const t0 = now();
+  let last = null;
+  let png = null;
+  let run = 0;
+  let runStart = -1;
+  let prevChunks = -1;
+  while (now() - t0 < settleMs) {
+    const before = chunks();
+    png = await shoot();
+    if (last && png.equals(last) && before === prevChunks) {
+      run++;
+      if (run >= pairs) return { png, still: true, chunksBefore: runStart };
+    } else {
+      run = 0;
+      runStart = before;
+    }
+    last = png;
+    prevChunks = before;
+    await wait(everyMs);
+  }
+  return { png, still: false, chunksBefore: runStart };
+}
+
+/** Shots as self-test results, section 'shots': one per shot, so a bad one fails the run. */
+function asResults(shots) {
+  return shots.map((s) => ({ section: 'shots', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
+}
+
+/**
  * Takes each shot: { name, file, ok, detail }. `fac` has Probe; `viewer` is lib/viewer.js's
  * running viewer; PNGs go to `outDir`/<name>.png. A shot that is not a picture (see judge) is
- * saved all the same, for a look, and fails.
+ * saved all the same, for a look, and fails. `launch` starts the browser (puppeteer's, unless a
+ * test gives its own). WX_SHOTS_SETTLE_MS shortens the wait, to see a failed shot fail a run.
  */
-async function takeShots(fac, viewer, shots, outDir, { log = console.log, width = 1280, height = 720, settleMs = 60000 } = {}) {
+async function takeShots(fac, viewer, shots, outDir, {
+  log = console.log, width = 1280, height = 720, settleMs = Number(process.env.WX_SHOTS_SETTLE_MS) || 60000, launch = null,
+} = {}) {
   const exe = findBrowser();
   if (!exe) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
   // An ES module: imported, not required (Node 22 warns that requiring one is experimental).
-  const { default: puppeteer } = await import('puppeteer-core');
+  const start = launch || (await import('puppeteer-core')).default.launch;
   fs.mkdirSync(outDir, { recursive: true });
-  const browser = await puppeteer.launch({
+  const browser = await start({
     executablePath: exe,
     headless: true,
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check', '--mute-audio'],
@@ -120,7 +158,7 @@ async function takeShots(fac, viewer, shots, outDir, { log = console.log, width 
     await page.setViewport({ width, height });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    for (const s of shots) {
+    for (const [i, s] of shots.entries()) {
       const file = path.join(outDir, `${s.name}.png`);
       try {
         // The last shot's page goes first, so it is not sent the chunks of this move.
@@ -131,29 +169,20 @@ async function takeShots(fac, viewer, shots, outDir, { log = console.log, width 
         bot.creative.startFlying();
         await bot.waitForChunksToLoad();
         errors.length = 0;
-        await page.goto(`${viewer.url}first/`, { waitUntil: 'load' });
+        // The page names itself, so only its own chunks are counted (another page may be open).
+        const token = `s${process.pid}-${i}-${Date.now()}`;
+        const chunks = () => viewer.chunks(token);
+        await page.goto(`${viewer.url}first/?shot=${token}`, { waitUntil: 'load' });
         await page.waitForSelector('canvas', { timeout: 15000 });
-        // Drawn once two frames a second apart are the same with no chunk sent between them,
-        // after three seconds at least.
         const t0 = Date.now();
-        let last = null;
-        let png = null;
-        let still = false;
-        let chunksBefore = -1;
         await sleep(3000);
-        while (Date.now() - t0 < settleMs) {
-          const before = viewer.chunks();
-          png = await page.screenshot({ type: 'png' });
-          if (last && png.equals(last) && before === chunksBefore) { still = true; break; }
-          last = png;
-          chunksBefore = before;
-          await sleep(1000);
-        }
-        fs.writeFileSync(file, png);
-        const share = await shareIn(page, png);
-        const verdict = judge({ still, chunks: viewer.chunks(), chunksBefore, share, errors });
+        const held = await settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: Math.max(0, settleMs - 3000) });
+        if (!held.png) throw new Error(`no frame within ${settleMs} ms`);
+        fs.writeFileSync(file, held.png);
+        const share = await shareIn(page, held.png);
+        const verdict = judge({ still: held.still, chunks: chunks(), chunksBefore: held.chunksBefore, share, errors });
         const secs = ((Date.now() - t0) / 1000).toFixed(0);
-        const detail = `${secs} s, ${viewer.chunks()} chunks, ${(100 * share).toFixed(0)}% scene${verdict.ok ? '' : `; ${verdict.why.join('; ')}`}`;
+        const detail = `${secs} s, ${chunks()} chunks, ${(100 * share).toFixed(0)}% scene${verdict.ok ? '' : `; ${verdict.why.join('; ')}`}`;
         out.push({ name: s.name, file, ok: verdict.ok, detail });
         log(`  ${verdict.ok ? 'shot' : 'SHOT PROBLEM'} ${s.name}: ${file} (${detail})`);
       } catch (e) {
@@ -169,4 +198,4 @@ async function takeShots(fac, viewer, shots, outDir, { log = console.log, width 
   return out;
 }
 
-module.exports = { select, findBrowser, browserEnv, takeShots, judge, sceneShare, SKY, MIN_SCENE };
+module.exports = { select, findBrowser, browserEnv, takeShots, settle, asResults, judge, sceneShare, SKY, MIN_SCENE };

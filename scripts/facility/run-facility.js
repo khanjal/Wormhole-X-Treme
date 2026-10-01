@@ -498,17 +498,21 @@ async function main() {
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
     console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
-    let shotsBad = 0;
+    // Every shot is a check: a bad one fails the run, whether it then stops, self-tests or holds.
+    let shotChecks = [];
     if (args.shots) {
+      const shotsLib = require('./lib/shots');
       const dir = path.join(LOCAL, 'shots', version);
-      const shots = await require('./lib/shots').takeShots(fac, web, require('./lib/shots').select(args.shots), dir);
-      shotsBad = shots.filter((x) => !x.ok).length;
+      const shots = await shotsLib.takeShots(fac, web, shotsLib.select(args.shots), dir);
+      shotChecks = shotsLib.asResults(shots);
+      const shotsBad = shots.filter((x) => !x.ok).length;
       console.log(`\nshots on ${version}: ${shots.length - shotsBad} of ${shots.length} drawn, in ${dir}`);
       for (const x of shots) if (x.file) console.log(`  ${x.file}`);
     }
+    const shotsFailed = shotChecks.some((r) => !r.ok);
 
     if (args.shots && !args.selftest && !args.viewer) {
-      exit = shotsBad || setup.length || stray.length ? 1 : 0;
+      exit = shotsFailed || setup.length || stray.length ? 1 : 0;
     } else if (args.selftest) {
       const ts = Date.now();
       let shard = null;
@@ -523,6 +527,7 @@ async function main() {
       });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
+      results.push(...shotChecks);
       const sections = [...new Set(results.map((r) => r.section))];
       console.log(`\nfacility self-test on ${version}:`);
       for (const s of sections) {
@@ -568,6 +573,8 @@ async function main() {
         srv.on('exit', (code) => { if (srv.restarting) return; console.error(`facility: the server exited (${code})`); resolve(); });
       });
       holding = null;
+      if (shotsFailed) console.error('facility: a shot failed (above), so the run fails');
+      exit = shotsFailed ? 1 : 0;
     }
   } catch (e) {
     console.error(`facility: ${e.stack || e}`);

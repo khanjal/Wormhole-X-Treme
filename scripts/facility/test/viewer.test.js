@@ -170,3 +170,10 @@ test('a placement that is not a plain .schem name, or turns by an odd angle, is 
     assert.throws(() => sch.placements(d), why);
   }
 }));
+
+test('a shot page is known by the token in the address its socket came from', () => {
+  assert.strictEqual(viewer.shotToken('http://127.0.0.1:3007/first/?shot=s12-0-99'), 's12-0-99');
+  assert.strictEqual(viewer.shotToken('http://127.0.0.1:3007/first/?x=1&shot=abc'), 'abc');
+  assert.strictEqual(viewer.shotToken('http://127.0.0.1:3007/first/'), null);
+  assert.strictEqual(viewer.shotToken(undefined), null);
+});

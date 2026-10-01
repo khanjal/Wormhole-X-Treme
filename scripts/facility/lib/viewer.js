@@ -164,6 +164,12 @@ function relay(socket, tr, lift, count = { chunks: 0 }) {
   };
 }
 
+/** The shot token a page was opened with (?shot=...), from its socket's Referer; null if none. */
+function shotToken(referer) {
+  const m = /[?&]shot=([\w-]+)/.exec(referer || '');
+  return m ? m[1] : null;
+}
+
 /** True for a host name (Host or Origin) of this machine: a page elsewhere may not drive the viewer. */
 function localHost(value) {
   if (!value) return false;
@@ -197,8 +203,9 @@ async function listen(srv, port, tries = 10) {
 
 /**
  * Serves the viewer for `bot` on 127.0.0.1:`port`. Resolves once listening with { url, assets,
- * chunks(), close() }; `url` is the orbit page, `url + 'first/'` the first-person one, and
- * chunks() is how many chunks the newest page has been sent.
+ * chunks(token), close() }; `url` is the orbit page, `url + 'first/'` the first-person one, and
+ * chunks(token) is how many chunks the page opened with ?shot=<token> has been sent (0 before
+ * it connects), whatever other pages are open.
  */
 async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
   const assets = assetVersion(bot.version);
@@ -230,12 +237,13 @@ async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
     raycast: (...a) => bot.world.raycast(...a),
   };
   const views = new Set();
-  let newest = { chunks: 0 };
+  const counts = new Map(); // shot token -> its page's chunk count
   // How far the page's world is raised: the current dimension's depth below 0.
   const lift = () => -(bot.game.minY || 0);
   const serve = (io, firstPerson) => io.on('connection', (socket) => {
     const out = relay(socket, tr, lift);
-    newest = out.count;
+    const token = shotToken(socket.handshake.headers.referer);
+    if (token) counts.set(token, out.count);
     socket.emit('version', assets);
     const view = new WorldView(world, viewDistance, bot.entity.position, out);
     const position = () => {
@@ -280,7 +288,7 @@ async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
   return {
     url,
     assets,
-    chunks: () => newest.chunks,
+    chunks: (token) => (counts.get(token) || { chunks: 0 }).chunks,
     // Resolves once the port is free again: the pages are dropped, then the HTTP server closed.
     close: () => new Promise((done) => {
       for (const io of ios) {
@@ -294,5 +302,5 @@ async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
 }
 
 module.exports = {
-  viewerPort, assetVersion, stateMap, encode, decode, translator, relay, localHost, allowLocal, startViewer, PV_VERSION, RENAMED,
+  viewerPort, assetVersion, stateMap, encode, decode, translator, relay, shotToken, localHost, allowLocal, startViewer, PV_VERSION, RENAMED,
 };

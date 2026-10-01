@@ -692,17 +692,21 @@ commas; one or more a wing: `gate-room`, `atrium`, `systems-mezzanine`, `gate-ha
 `gate-hall-deck`, `g1-control`, `ring-concourse`, `shaft-window`, `beam-lab`, `b1-pads`,
 `mirror-hall`, `mirror-optics`, `m1-round`, `menagerie`, `range`, `annex`), opens the viewer's
 first-person page in a headless browser and saves `.local-server/shots/<version>/<name>.png`
-(1280 × 720). A shot is taken once two frames a second apart are the same with no chunk sent to
-the page between them, and it counts only if the page was sent chunks and at least 5% of the
-frame is not the page's empty sky: two blank frames are the same too. A shot that fails those is
-saved all the same, named in the output, and fails the run. It prints the paths at the end. A
+(1280 × 720). A shot is taken once three frames a second apart are the same with no chunk sent to
+that page between them (two would take a pause in SwiftShader's meshing for the end), and it
+counts only if the page was sent chunks and at least 5% of the frame is not the page's empty
+sky: blank frames are the same too. The page names itself in its address, so only its own
+chunks count, whatever other viewer pages are open. A shot that fails those is saved all the
+same, named in the output, and fails the run, whether the run then stops, holds or self-tests
+(where each shot is a check in a `shots` section). `WX_SHOTS_SETTLE_MS` shortens the wait, to
+see a failed shot fail a run. It prints the paths at the end. A
 cell's gallery looks through tinted glass, which is all a seat beside it shows, so B1 and M1 are
 seen from inside, high by the gallery wall. The browser is an installed Chrome or Edge (Edge
 comes with Windows), driven by `puppeteer-core`, which downloads nothing; `WX_BROWSER` names
 another Chromium, such as a `chrome-headless-shell`. WebGL is drawn by SwiftShader, in software,
 so a machine with no GPU draws the same picture. Shots are taken after the fixtures, so the
 gates, rings and pads are in them; then `--selftest` runs, `--viewer` holds, or, with neither,
-the launcher stops (exit 1 if any shot failed). A vantage point is feet position, yaw (0 south,
+the launcher stops. A vantage point is feet position, yaw (0 south,
 −90 east) and pitch (down is positive), so a new one is a line in `campus.SHOTS`.
 
 `--schematics <folder>` pastes WorldEdit schematics (Sponge `.schem`, as `//schem save` writes
@@ -716,8 +720,9 @@ air included**: it is a plain `//paste`, never `-a`, since a designer's empty sp
 before the server starts, each schematic's whole box where it would land is checked against every
 volume the decoration guardrail protects (`wings/decor/guard.js`: cells and their clear volumes,
 footprints, pads, rings, gates, lanes, plates, walk-in lines, mirror spots), and a box reaching
-into any of them, by so much as a block, is refused with what it reaches into, so a set piece
-cannot break a test. WorldEdit pastes them from the console, with no player and no API:
+into any of them, by so much as a block, is refused with what it reaches into. That covers what
+the tests use, not the campus itself: a box over a room's wall, a corridor or a doorway passes and
+replaces it, so a set piece placed there can still wall off a route a test walks. WorldEdit pastes them from the console, with no player and no API:
 `//world <world>`, `//pos1 x,y,z`, `/schem load`, `//rotate`, `//paste` (one slash fewer on
 1.20.4, whose console keeps the slash 1.21.11's drops; the launcher tries `//world`, then
 `/world`). The console has no position, so the paste puts the origin at pos #1; WorldEdit

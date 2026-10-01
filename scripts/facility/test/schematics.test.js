@@ -132,3 +132,16 @@ test('paste reports each placement that fails and carries on with the next', asy
   assert.strictEqual(out[1].ok, true);
   assert.strictEqual(srv.sent[srv.sent.length - 1], '/world');
 });
+
+// WorldEdit 7.2.20 given a format-3 file: it finds the file, then says so without naming it.
+for (const refusal of ['Unknown schematic format: sponge.3.', 'This schematic version is currently not supported. Version: 3.']) {
+  test(`paste takes "${refusal.slice(0, 40)}..." as the pending load's answer, not a silence`, async () => {
+    const srv = fakeServer([[/^\/schem load/, () => ({ lines: [], later: [`[09:00:00 INFO]: ${refusal}`] })], ...OK]);
+    const t0 = Date.now();
+    const out = await sch.paste(srv, [place('new.schem', 1)], { loadMs: 5000 });
+    assert.strictEqual(out[0].ok, false);
+    assert.ok(out[0].detail.includes(refusal), out[0].detail);
+    assert.ok(Date.now() - t0 < 2000, 'it waited for the deadline instead');
+    assert.ok(!srv.sent.includes('/paste'));
+  });
+}

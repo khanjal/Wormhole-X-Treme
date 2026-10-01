@@ -5,6 +5,8 @@
 // lists the design's, and <folder>/placements.json may add more. Every placement's box is
 // checked against the decoration guardrail (wings/decor/guard.js) before the server starts,
 // and refused if it reaches into a cell, a footprint, a pad, a lane or anything else it guards.
+// That is what the tests use, not the campus's walls, corridors and doorways: a box over those
+// passes, and the paste replaces them.
 // WorldEdit pastes them from the console: //world, //pos1 x,y,z, /schem load, //rotate,
 // //paste. No WorldEdit API, no player.
 
@@ -174,7 +176,11 @@ async function paste(srv, placed, { loadMs = 120000 } = {}) {
         // this file's own, loaded or refused.
         const esc = name.replace(/[.]/g, '\\.');
         const done = new RegExp(`${esc} loaded\\. Paste it`, 'i');
-        const answer = nextLine(srv, new RegExp(`${done.source}|${esc}.*(could not|not supported|unknown|does not exist)`, 'i'), loadMs, `answer from WorldEdit to /schem load ${name}`);
+        // WorldEdit's refusals of a file it found but cannot read name no file ("Unknown schematic
+        // format: sponge.3.", "This schematic version is currently not supported. Version: 3."), so
+        // while this load is the one waiting they are taken as its answer.
+        const refused = 'Unknown schematic format|schematic version is currently not supported';
+        const answer = nextLine(srv, new RegExp(`${done.source}|${esc}.*(could not|not supported|unknown|does not exist)|${refused}`, 'i'), loadMs, `answer from WorldEdit to /schem load ${name}`);
         let line;
         try {
           const r = await srv.run(`/schem load ${name}`, 60000);
