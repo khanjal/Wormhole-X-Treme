@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 
 
 /**
@@ -1834,6 +1835,8 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
+            case DYNMAP_ENABLED, MAP_SHOW_GATES, MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS,
+                MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
         }
     }

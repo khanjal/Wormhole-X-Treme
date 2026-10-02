@@ -442,8 +442,9 @@ Which layers are drawn is set separately, and is shared by any web map this plug
   redrawn.
 - **No Dynmap** means nothing happens; the log says so once. So does a Dynmap that is installed
   but did not start, for instance one that does not support the server's Minecraft version; the
-  map starts when Dynmap does. The log says the map is showing only once Dynmap is up. Dynmap is
-  looked for once, at startup, and these settings take effect at the next restart.
+  map starts when Dynmap does. The log says the map is showing only once Dynmap is up.
+- **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
+  and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
 - Nothing is saved into Dynmap's own marker file: the layers are rebuilt from the plugin's state
   each time, so a gate removed while Dynmap was down does not linger.
 - Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or

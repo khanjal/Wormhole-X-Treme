@@ -199,9 +199,27 @@ public final class MapMarkers
     }
 
     /**
+     * Applies a changed map setting now: takes the map down and, if it is still wanted, puts it
+     * back up with the layers the config now asks for, looking for Dynmap again on the way.
+     *
+     * <p>Called from {@code /wormhole config}, on the main thread.
+     */
+    public static void followConfig()
+    {
+        if (running)
+        {
+            disable();
+        }
+        if (ConfigManager.isDynmapEnabled())
+        {
+            enable(WormholeXTreme.getThisPlugin());
+        }
+    }
+
+    /**
      * Stops keeping the map up to date and takes this plugin's marks off it.
      *
-     * <p>Called from {@code WormholeXTreme.onDisable}. Clears on the main thread, because no
+     * <p>Called from {@code WormholeXTreme.onDisable}, and by {@link #followConfig()}. Clears on the main thread, because no
      * task can be scheduled while the plugin disables; it is a handful of deletions, after
      * waiting for at most the one draw that may be in flight.
      */
