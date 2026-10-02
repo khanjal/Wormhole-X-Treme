@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
 
@@ -148,14 +149,14 @@ final class ParsedSetting
         {
             final String animation = ConfigManager.parseIrisAnimation(raw);
             return (animation == null)
-                ? refused(key + " is " + String.join(", ", ConfigManager.irisAnimations()) + ", not \"" + raw + "\".")
+                ? notOneOf(key, ConfigManager.irisAnimations(), raw)
                 : accepted(animation);
         }
         if (key == ConfigKeys.GATE_VIEW)
         {
             final String level = ConfigManager.parseGateView(raw);
             return (level == null)
-                ? refused(key + " is " + String.join(", ", ConfigManager.GATE_VIEWS) + ", not \"" + raw + "\".")
+                ? notOneOf(key, ConfigManager.GATE_VIEWS, raw)
                 : accepted(level);
         }
         return null;
@@ -331,10 +332,15 @@ final class ParsedSetting
         final ChatColor colour = SignStyle.colorNamed(raw);
         if (colour == null)
         {
-            return refused(key + " is " + String.join(", ", SignStyle.colorNames())
-                + ", not \"" + raw + "\".");
+            return notOneOf(key, SignStyle.colorNames(), raw);
         }
         return accepted(colour.name());
+    }
+
+    /** Refuses a value that is none of a setting's names, listing them. */
+    private static ParsedSetting notOneOf(final ConfigKeys key, final List<String> names, final String raw)
+    {
+        return refused(key + " is " + String.join(", ", names) + ", not \"" + raw + "\".");
     }
 
     /**
