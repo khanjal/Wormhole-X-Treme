@@ -67,6 +67,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
   Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
   flight over at the far gate.
+- **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
+  to roll half into the iris before it was put back, still with its front inside.
 
 ### Quantum mirrors
 
