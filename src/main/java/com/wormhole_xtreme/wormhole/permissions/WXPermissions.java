@@ -1,6 +1,6 @@
 package com.wormhole_xtreme.wormhole.permissions;
 import org.bukkit.entity.Player;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
 
@@ -133,7 +133,7 @@ public class WXPermissions
         {
             return isOwnerAction(permissiontype);
         }
-        if (ConfigManager.getPermissionsSupportDisable())
+        if (PermissionsSupport.isSimpleMode())
         {
             // Simple mode: no permission plugin installed. Anyone may use, dial and travel;
             // build, remove and config need op, which was settled above.

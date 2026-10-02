@@ -505,10 +505,10 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Takes a player through a wormhole, or explains why they are not going.
      *
-     * <p>Reads as the order the questions are asked in: may they use this gate, have they
-     * only just come out of it, are they on cooldown, can they pay, is the far end sealed,
-     * is it even in this world. Only once all of that has passed does anything move, and
-     * even then a listener may still say no.
+     * <p>Reads as the order the questions are asked in: is the far end in a world they may
+     * reach, may they use this gate, have they only just come out of it, are they on cooldown,
+     * can they pay, is the far end sealed. Only once all of that has passed does anything
+     * move, and even then a listener may still say no.
      *
      * @param event
      *            the move that carried them in
@@ -539,6 +539,13 @@ class WormholeXTremePlayerListener implements Listener
         }
         catch (final RuntimeException ignore) { /* best effort */ }
 
+        final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+        // First, as the cart path asks it: a trip that can never happen is refused for that
+        // reason, not for an iris, a cooldown or a fare that would not have mattered.
+        if (crossesWorldsRefused(gateBlockFinal, target))
+        {
+            return refuseCrossWorld(event, player, stargate);
+        }
         if (refusedBeforeTravel(player, stargate))
         {
             return false;
@@ -563,13 +570,8 @@ class WormholeXTremePlayerListener implements Listener
             return bounceOffRemoteIris(event, player, stargate);
         }
 
-        final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
         // A far gate with no arrival point has nowhere to put anybody, and teleport(null) throws.
         if (target == null)
-        {
-            return false;
-        }
-        if (refusedForCrossWorld(player, gateBlockFinal, target))
         {
             return false;
         }
@@ -664,30 +666,37 @@ class WormholeXTremePlayerListener implements Listener
     /**
      * Whether this trip crosses worlds on a server that does not allow it.
      *
-     * @param player
-     *            the traveller
      * @param gateBlockFinal
      *            the portal block they are standing in
      * @param target
-     *            where they would arrive
-     * @return true if they were refused and told so
+     *            where they would arrive, null if nowhere
+     * @return true if the server forbids it
      */
-    private static boolean refusedForCrossWorld(final Player player, final Block gateBlockFinal,
-                                                final Location target)
+    private static boolean crossesWorldsRefused(final Block gateBlockFinal, final Location target)
     {
-        if (!ConfigManager.isSameWorldOnly())
-        {
-            return false;
-        }
-        final World targetWorld = (target != null) ? target.getWorld() : null;
-        if ((targetWorld != null) && !gateBlockFinal.getWorld().equals(targetWorld))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Cross-world travel is disabled on this server.");
-            player.setNoDamageTicks(5);
-            return true;
-        }
-        return false;
+        return StargateRestrictions.isCrossWorldRefused(gateBlockFinal.getWorld(), target);
+    }
+
+    /**
+     * Refuses a trip to another world, saying so once per approach rather than at every block.
+     *
+     * <p>Someone stepping in is held out, as at any refused gate. Someone already standing in the
+     * portal is let walk on: cancelling their every move would trap them in it.
+     *
+     * @param event
+     *            the move that carried them in
+     * @param player
+     *            the traveller
+     * @param stargate
+     *            the gate they entered
+     * @return true if the move should be cancelled
+     */
+    private static boolean refuseCrossWorld(final PlayerMoveEvent event, final Player player,
+                                            final Stargate stargate)
+    {
+        refuseWithReminder(player, stargate, ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+        final Location from = event.getFrom();
+        return !stargate.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
     }
 
     /**

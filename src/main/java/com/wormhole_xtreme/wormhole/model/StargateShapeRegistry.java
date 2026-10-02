@@ -568,6 +568,18 @@ public final class StargateShapeRegistry
         rebuildKnownStructureMaterials();
     }
 
+    /**
+     * Adds the palettes the loaded shapes imply, now, when {@code gate-material-groups-autodiscover}
+     * has just been turned on, rather than at the next shape load.
+     */
+    public static void followAutodiscover()
+    {
+        if (ConfigManager.isGateMaterialGroupsAutodiscover())
+        {
+            reportShapesWithoutMaterialGroup();
+        }
+    }
+
     /** Frame materials any loaded shape declares. Replaced wholesale on load. */
     // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
     @SuppressWarnings("java:S3077")
