@@ -18,6 +18,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Economy](#economy)
 - [Placeholders](#placeholders)
 - [CoreProtect](#coreprotect)
+- [WorldGuard](#worldguard)
 - [Dynmap](#dynmap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
@@ -404,6 +405,40 @@ to it, so an admin can look them up and roll them back like anything else.
 - **CoreProtect is looked for once**, the first time something is logged. One installed while the
   server is running is picked up at the next restart.
 
+## WorldGuard
+
+Optional. With [WorldGuard](https://enginehub.org/worldguard) installed, a region owner can say
+where gates may be built and where they may be used, with two region flags.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `worldguard-enabled` | `false` | The flags are only added, and only checked, while this is on. Turning it off applies at once; turning it on takes a restart. |
+
+| Flag | Refuses |
+|---|---|
+| `wormhole-build` | Finishing a gate any block of which, or its DHD, is in the region: the DHD press, `/wormhole complete`, `gate preview -place` and `gate build` by coordinates. |
+| `wormhole-use` | Opening a gate in the region from its DHD, `gate dial` from it, and travelling through a wormhole with either end in it, on foot or riding. |
+
+```
+/rg flag spawn wormhole-build deny
+/rg flag spawn wormhole-use -g nonmembers deny
+```
+
+- **A plain `deny` holds the region's own members and owners too.** Add `-g nonmembers`, as in the
+  second line, to leave them free to build or use gates there.
+- **A flag only takes away.** Permission nodes decide who may build or use a gate, the region
+  decides where, and both have to allow it. A player without the node is told that, not about
+  the region. Both flags default to allow, so turning this on changes nothing until a region
+  sets one to `deny`.
+- **Owning the gate is no way past a region,** and this plugin makes no exception for operators.
+  WorldGuard's own region bypass, `worldguard.region.bypass.<world>`, is the one exemption;
+  operators hold it by default.
+- **Not refused:** shutting a gate down, its iris, and redstone dialling. Dialling *to* a gate in a
+  denied region is not refused at the dial; the trip into it is.
+- **Gates only.** Rings, beams and mirrors are not held to these flags.
+- **No WorldGuard, or one that fails,** means nothing is refused; the log says so once. A region
+  check that throws lets the player through.
+
 ## Dynmap
 
 Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installed, gates, transport
@@ -431,8 +466,9 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 
 - **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
   in its popup, and its icon lit once a wormhole has formed through it; a line between two
-  dialled gates once their wormhole has formed, when both are in the same world; both ends of each ring pair, with a line between them; each public beam
-  destination; each quantum mirror at its banner. A mirror has no line, because which room it
+  dialled gates once their wormhole has formed, when both are in the same world; both ends of
+  each ring pair, with a line between them; each public beam destination; each quantum mirror
+  at its banner. A mirror has no line, because which room it
   opens onto is chosen at it.
 - **Never shown:** players' private beam places. Dynmap shows every marker to every viewer, so a
   private place on the map would be anybody's to find.
@@ -442,7 +478,8 @@ Which layers are drawn is set separately, and is shared by any web map this plug
   redrawn.
 - **No Dynmap** means nothing happens; the log says so at startup, and again whenever a map
   setting is changed. So does a Dynmap that is installed but did not start, for instance one that
-  does not support the server's Minecraft version; the map starts when Dynmap does. The log says the map is showing only once Dynmap is up.
+  does not support the server's Minecraft version; the map starts when Dynmap does. The log says
+  the map is showing only once Dynmap is up.
 - **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
   and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
 - The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the

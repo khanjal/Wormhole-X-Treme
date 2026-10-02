@@ -20,6 +20,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
@@ -205,5 +206,24 @@ class SettingsApplyAtOnceTest
 
             permissions.verify(PermissionsSupport::detectProvider);
         }
+    }
+
+    /**
+     * worldguard-enabled turned on in-game with no flags registered says it applies at the next restart.
+     *
+     * <p>It used to reply that it was now true while nothing changed, because nothing followed it.
+     */
+    @Test
+    void worldGuardTurnedOnInGameSaysItWaitsForARestart()
+    {
+        ConfigTestSupport.set(ConfigKeys.WORLDGUARD_ENABLED, false);
+        RegionFlags.setCheckForTest(null);
+
+        final String said = ConfigManager.applySetting("worldguard-enabled", "true");
+
+        assertTrue(said.contains("applies at the next restart"), said);
+        assertTrue(ConfigManager.isWorldGuardEnabled(), "the value itself was still changed");
+        assertEquals("WORLDGUARD_ENABLED is now false.", ConfigManager.applySetting("worldguard-enabled", "false"),
+            "turning it off applies at once");
     }
 }

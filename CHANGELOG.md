@@ -37,6 +37,17 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`help-support-disable`**, which nothing read: the Help plugin it turned off is long gone. A line
   for it in `config.yml` is ignored and left where it is.
 
+### For server admins
+
+**Added**
+
+- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
+  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
+  from or travelled through, at either end. A flag only takes away: a player still needs the
+  usual permission, and WorldGuard's region bypass gets past the flag. Off until
+  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
+  yet. See [the guide](docs/guide/SERVER.md#worldguard).
+
 ### Stargates
 
 **Fixed**
@@ -79,6 +90,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
   Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
   flight over at the far gate.
+- **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
+  to roll half into the iris before it was put back, still with its front inside.
 
 ### Quantum mirrors
 
