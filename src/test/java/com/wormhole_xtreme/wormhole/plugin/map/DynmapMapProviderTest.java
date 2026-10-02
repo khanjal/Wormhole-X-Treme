@@ -225,7 +225,8 @@ class DynmapMapProviderTest
         // and must not record itself as set up for the new one, or the redraw the new one
         // asks for would find nothing to set up and draw into sets that no longer exist.
         final MarkerAPI second = mock(MarkerAPI.class);
-        when(second.createMarkerSet(anyString(), anyString(), isNull(), anyBoolean())).thenReturn(mock(MarkerSet.class));
+        final MarkerSet secondSet = mock(MarkerSet.class);
+        when(second.createMarkerSet(anyString(), anyString(), isNull(), anyBoolean())).thenReturn(secondSet);
         final AtomicInteger calls = new AtomicInteger();
         when(api.getMarkerSet(DynmapMapProvider.GATES)).thenAnswer(call ->
         {
@@ -252,7 +253,8 @@ class DynmapMapProviderTest
         provider.attach(api);
         final FakeSet gates = sets.get(DynmapMapProvider.GATES);
         gates.failOn = "chulak";
-        assertThrows(IllegalStateException.class, () -> provider.apply(everything()));
+        final MapSnapshot picture = everything();
+        assertThrows(IllegalStateException.class, () -> provider.apply(picture));
         gates.failOn = null;
         for (final Map.Entry<String, FakeSet> made : sets.entrySet())
         {
