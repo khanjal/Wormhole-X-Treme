@@ -13,6 +13,18 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
 
+**Fixed**
+
+- **Every setting changed with `/wormhole config` applies at once, as the guide says.** Ten waited
+  for a restart: `gate-sound-ambient-ticks`, `entity-scan-interval-ticks`, `mirror-proximity-ticks`,
+  `gate-iris-horizon-ticks`, `ring-reach`, `ring-max-ceiling-drop`, `economy-enabled`,
+  `placeholders-enabled`, `permissions-auto-fallback` and `gate-material-groups-autodiscover`.
+
+**Removed**
+
+- **`help-support-disable`**, which nothing read: the Help plugin it turned off is long gone. A line
+  for it in `config.yml` is ignored and left where it is.
+
 ### Stargates
 
 **Fixed**
@@ -26,6 +38,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   arm swing redrew the whole iris a tick later, over the sweep.
 - **A detector rail wired to a gate dials it on Paper 1.21.11.** Paper reports a rail's press as
   a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
+- **`same-world-only` keeps everything in its own world, not only players on foot.** A minecart
+  carried its rider through to the Nether, and a mob, an item or an arrow went too. With it on, a
+  gate in another world cannot be dialled, and `/dial` and the dial sign say why. A player walking
+  in is told that before any cooldown or iris, and once, not at every block.
+- **`/wormhole config` refuses a sign colour that is not one**, and names the sixteen there are.
+  `sign-color-gate-name PINK` was accepted, and every sign written after it came out dark aqua.
+
+### Transport rings
+
+**Fixed**
+
+- **A ring pair whose slab or pad light this server does not have loads**, drawn in
+  `ring-default-material` or lit in `ring-default-light`, and is saved with the name it had. It was
+  skipped as unreadable and lost at the next save, and `ring-default-material` was read by nothing.
 
 ### Performance
 

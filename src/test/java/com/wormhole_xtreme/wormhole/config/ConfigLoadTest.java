@@ -381,4 +381,22 @@ class ConfigLoadTest
         assertEquals(List.of("Stone"), groupNames());
         assertFalse(configLines().contains("  Atlantis:"), "nothing added to a section that is already there");
     }
+
+    /**
+     * A config.yml that still holds help-support-disable loads as before, and keeps the line.
+     *
+     * <p>The setting was retired in 1.9.0: nothing had read it since the Help plugin it turned off
+     * stopped existing. Settings are loaded by walking the defaults, not the file, so the line is
+     * ignored rather than refused, and an operator's file is not rewritten under them.
+     */
+    @Test
+    void aConfigStillHoldingTheRetiredHelpSettingLoads() throws Exception
+    {
+        writeConfig("help-support-disable: true\ntimeout-shutdown: 41\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(41, ConfigManager.getTimeoutShutdown(), "the rest of the file is read");
+        assertTrue(configLines().contains("help-support-disable: true"), "and the retired line is left where it was");
+    }
 }

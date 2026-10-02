@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -54,6 +56,7 @@ class WormholePlaceholdersTest
         drain();
         world = mock(World.class);
         expansion = new WormholePlaceholders();
+        ConfigTestSupport.set(ConfigKeys.PLACEHOLDERS_ENABLED, true);
     }
 
     @AfterEach
@@ -62,6 +65,7 @@ class WormholePlaceholdersTest
         drain();
         GateSpatialIndex.clear();
         PluginTestSupport.remove();
+        ConfigTestSupport.clear();
     }
 
     /** See PlaceholderValuesTest: the registry and the open set are static and shared. */
@@ -191,5 +195,23 @@ class WormholePlaceholdersTest
 
         assertFalse(PlaceholderSupport.isRegistered(),
             "nothing should claim to be registered without PlaceholderAPI running");
+    }
+
+    /**
+     * Turned off with /wormhole config, the expansion stops answering at once.
+     *
+     * <p>PlaceholderAPI keeps an expansion registered until the plugin unloads, so turning the
+     * setting off used to change nothing until a restart.
+     */
+    @Test
+    void placeholdersTurnedOffInGameAnswerNothing()
+    {
+        gate("only", ALICE.toString(), 5);
+        assertEquals("1", expansion.onRequest(null, "gates_total"), "answered while on");
+
+        ConfigTestSupport.set(ConfigKeys.PLACEHOLDERS_ENABLED, false);
+
+        assertNull(expansion.onRequest(null, "gates_total"),
+            "null leaves the placeholder as typed, which is how PlaceholderAPI shows nothing answers it");
     }
 }

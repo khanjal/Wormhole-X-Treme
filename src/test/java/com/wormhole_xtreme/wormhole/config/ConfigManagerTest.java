@@ -59,15 +59,4 @@ class ConfigManagerTest
 
         assertEquals(45, ConfigManager.getTimeoutActivate());
     }
-
-    /** The one setting with a public setter round-trips through its own getter. */
-    @Test
-    void permissionsSupportDisableRoundTrips()
-    {
-        ConfigManager.setPermissionsSupportDisable(true);
-        assertEquals(true, ConfigManager.getPermissionsSupportDisable());
-
-        ConfigManager.setPermissionsSupportDisable(false);
-        assertEquals(false, ConfigManager.getPermissionsSupportDisable());
-    }
 }

@@ -5,6 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -63,6 +64,11 @@ public class WormholePlaceholders extends PlaceholderExpansion
     @Override
     public String onRequest(final OfflinePlayer player, final String params)
     {
+        // Turned off in-game: PlaceholderAPI keeps the expansion, so it stops answering instead.
+        if (!ConfigManager.isPlaceholdersEnabled())
+        {
+            return null;
+        }
         if (player == null)
         {
             return PlaceholderValues.resolve(params, null, null, null);

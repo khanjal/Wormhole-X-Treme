@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -181,12 +183,7 @@ public final class RingIndex
         final String world = pair.getWorldName();
         final RingEnd end = new RingEnd(pair, ring);
 
-        final ConcurrentMap<Long, RingEnd> volume = volumes.computeIfAbsent(world,
-            k -> new ConcurrentHashMap<>());
-        for (final int[] block : ring.triggerVolumeBlocks(volumeDepth(ring, reach)))
-        {
-            volume.put(Long.valueOf(pack(block[0], block[1], block[2])), end);
-        }
+        putVolume(volumes.computeIfAbsent(world, k -> new ConcurrentHashMap<>()), end, reach);
 
         final ConcurrentMap<Long, RingEnd> edge = perimeters.computeIfAbsent(world,
             k -> new ConcurrentHashMap<>());
@@ -194,6 +191,50 @@ public final class RingIndex
         {
             edge.put(Long.valueOf(pack(block[0], block[1], block[2])), end);
         }
+    }
+
+    /**
+     * Writes one end's trigger volume into a world's map.
+     *
+     * @param volume
+     *            the world's volume map
+     * @param end
+     *            the end, which says which ring
+     * @param reach
+     *            how many block layers deep the trigger volume runs
+     */
+    private static void putVolume(final Map<Long, RingEnd> volume, final RingEnd end, final int reach)
+    {
+        for (final int[] block : end.getRing().triggerVolumeBlocks(volumeDepth(end.getRing(), reach)))
+        {
+            volume.put(Long.valueOf(pack(block[0], block[1], block[2])), end);
+        }
+    }
+
+    /**
+     * Indexes every pair's trigger volume again at a new depth.
+     *
+     * <p>Each world's volume is built aside and swapped in whole, so a move looked up meanwhile
+     * finds the old volume or the new one, never an empty or half-built one. Perimeters do not
+     * depend on the depth and are left as they are.
+     *
+     * @param pairs
+     *            every pair there is
+     * @param reach
+     *            how many block layers deep each trigger volume runs now
+     */
+    public static void rebuildVolumes(final Collection<RingPair> pairs, final int reach)
+    {
+        final Map<String, ConcurrentMap<Long, RingEnd>> rebuilt = new HashMap<>();
+        for (final RingPair pair : pairs)
+        {
+            final ConcurrentMap<Long, RingEnd> volume =
+                rebuilt.computeIfAbsent(pair.getWorldName(), k -> new ConcurrentHashMap<>());
+            putVolume(volume, new RingEnd(pair, pair.getEndA()), reach);
+            putVolume(volume, new RingEnd(pair, pair.getEndB()), reach);
+        }
+        volumes.putAll(rebuilt);
+        volumes.keySet().retainAll(rebuilt.keySet());
     }
 
     /**

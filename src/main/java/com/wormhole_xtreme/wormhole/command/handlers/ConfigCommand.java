@@ -19,7 +19,8 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
  * that line.
  *
  * <p>This is the one command for all of them, and it takes effect immediately: settings are
- * read where they are used rather than cached at startup, so there is nothing to reload.
+ * read where they are used, and the few read once -- a sweep's period, an integration -- are
+ * applied again by {@code ConfigManager.applySetting}, so there is nothing to reload.
  */
 public class ConfigCommand implements SubCommand
 {
