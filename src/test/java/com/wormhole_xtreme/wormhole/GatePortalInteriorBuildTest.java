@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -82,13 +83,13 @@ class GatePortalInteriorBuildTest
 
         permissionsWereDisabled = ConfigManager.getPermissionsSupportDisable();
         // Node checks are only reached with a permissions plugin present.
-        ConfigManager.setPermissionsSupportDisable(false);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
-        ConfigManager.setPermissionsSupportDisable(permissionsWereDisabled);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, permissionsWereDisabled);
         StargateManager.removeStargate(gate, null, false);
         GateSpatialIndex.clear();
         PluginTestSupport.remove();

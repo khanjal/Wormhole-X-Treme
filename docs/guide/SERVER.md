@@ -94,6 +94,10 @@ options. Sound names are not checked, because a resource pack's sounds have to p
 back from memory when it shuts down, so an edit made underneath it is overwritten. Use the
 command, or edit the file with the server stopped.
 
+**A change applies from the next time it is used.** A wormhole already open closes on the timeout
+it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
+its colours until it is next written. Nothing waits for a restart.
+
 ### Keeping gates from staying open
 
 | Setting | Default | What it does |
@@ -185,7 +189,6 @@ Worth knowing:
   carry it. A block left there is not part of the gate, so anyone can break it back out.
 - One use cooldown applies to everyone: `use-cooldown-seconds`, switched on by
   `use-cooldown-enabled`.
-- With the `Help` plugin present, the nodes are registered with it.
 
 ### Permission backend and fallback
 
@@ -193,7 +196,8 @@ Worth knowing:
   provider, even if one is present.
 - `permissions-auto-fallback` (default `true`) — if no provider is found at startup, basic use
   actions keep working and advanced ones stay with operators and gate owners. Set `false` to
-  leave permission handling entirely to you.
+  leave permission handling entirely to you. Whether a provider is there is looked at startup, and
+  again whenever this or `permissions-support-disable` is changed in-game.
 
 ## Commands
 
@@ -357,7 +361,7 @@ from this one.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `placeholders-enabled` | `false` | Nothing is registered while this is off. |
+| `placeholders-enabled` | `false` | Nothing answers while this is off. |
 
 | Placeholder | What it is |
 |---|---|
