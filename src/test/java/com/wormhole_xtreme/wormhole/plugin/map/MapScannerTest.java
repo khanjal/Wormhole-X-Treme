@@ -60,13 +60,15 @@ class MapScannerTest
         return gate;
     }
 
-    /** Both ends of a formed wormhole, each holding the other as its target. */
+    /**
+     * Both ends of a formed wormhole. Only the gate that dialled holds a target, as
+     * {@code StargateDialManager.connect} leaves them.
+     */
     private static void dial(final Stargate from, final Stargate to)
     {
         formed(from);
         when(from.getGateTarget()).thenReturn(to);
         formed(to);
-        when(to.getGateTarget()).thenReturn(from);
     }
 
     private static void formed(final Stargate gate)
@@ -142,12 +144,15 @@ class MapScannerTest
         final Stargate abydos = gate("Abydos", overworld);
         final Stargate chulak = gate("Chulak", overworld);
         when(chulak.getGatePortalBounds()).thenReturn(new BoundingBox(100, 64, 200, 102, 67, 201));
+        // Dialling sets a target on the dialler only; both ends holding one is defended against
+        // anyway, so a pair never draws two lines on top of each other.
         dial(abydos, chulak);
+        when(chulak.getGateTarget()).thenReturn(abydos);
 
         final MapSnapshot snapshot = scan(List.of(abydos, chulak), MapLayers.ALL);
 
         assertEquals(1, snapshot.gateLinks().size(),
-            "both ends of an open wormhole report the other; that is one line, not two drawn on top of each other");
+            "both ends reporting the other is one line, not two drawn on top of each other");
         final LineMark line = snapshot.gateLinks().get("abydos|chulak");
         assertNotNull(line, "the line is keyed on the two names in order, whichever end was seen first");
         assertEquals(11.0, line.x1(), 1e-9);
@@ -326,7 +331,8 @@ class MapScannerTest
         final Stargate earth = gate("Earth", overworld);
         final Stargate abydos = gate("Abydos", overworld);
         when(earth.getGateIrisDeactivationCode()).thenReturn("GDO");
-        dial(earth, abydos);
+        // The shown gate holds the target, so a line from it is what is being refused.
+        dial(abydos, earth);
 
         final MapSnapshot snapshot = scan(List.of(earth, abydos),
             new MapLayers(true, false, true, true, true));

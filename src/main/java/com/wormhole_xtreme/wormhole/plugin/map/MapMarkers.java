@@ -163,6 +163,8 @@ public final class MapMarkers
             listener = new MapRefreshListener();
             plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             ticker = WormholeXTreme.getScheduler().runTaskTimer(plugin, MapMarkers::tick, 20L, PERIOD_TICKS);
+            // Before the hook: registering calls back at once when Dynmap is already up.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Waiting for " + chosen.name() + " to be ready.");
             // Last, and undone on failure: Dynmap's listener list is static, and a hook left in it
             // would outlive this plugin's classloader.
             if (hook != null)
@@ -175,7 +177,6 @@ public final class MapMarkers
             disable();
             throw e;
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Waiting for " + chosen.name() + " to be ready.");
     }
 
     /**

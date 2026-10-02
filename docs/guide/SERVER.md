@@ -445,8 +445,9 @@ Which layers are drawn is set separately, and is shared by any web map this plug
   map starts when Dynmap does. The log says the map is showing only once Dynmap is up.
 - **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
   and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
-- Nothing is saved into Dynmap's own marker file: the layers are rebuilt from the plugin's state
-  each time, so a gate removed while Dynmap was down does not linger.
+- The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the
+  plugin's state each time, so a gate removed while Dynmap was down does not linger. Only the
+  icons are kept by Dynmap, and they are refreshed each time the map starts.
 - Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or
   squaremap can be added later without changing what is shown.
 

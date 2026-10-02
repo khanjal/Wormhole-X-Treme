@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -393,6 +395,27 @@ class MapMarkersTest
             verify(logger, times(1)).prettyLog(eq(Level.INFO), contains("Showing"));
             verify(set).createMarker(eq("start"), eq("start"), eq(false), eq("world"), anyDouble(), anyDouble(),
                 anyDouble(), any(), eq(false));
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
+    }
+
+    @Test
+    void withDynmapAlreadyUpWaitingIsSaidBeforeShowing()
+    {
+        // Registering calls back at once when Dynmap is already up, so a log that said it was
+        // waiting after that would read as if the map had gone down again.
+        try
+        {
+            DynmapCommonAPIListener.apiInitialized(dynmapUp(mock(MarkerAPI.class)));
+
+            enableRealDynmap(true);
+
+            final InOrder order = inOrder(logger);
+            order.verify(logger).prettyLog(eq(Level.FINE), contains("Waiting for Dynmap"));
+            order.verify(logger).prettyLog(eq(Level.INFO), contains("Showing"));
         }
         finally
         {
