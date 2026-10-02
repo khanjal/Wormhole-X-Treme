@@ -15,8 +15,8 @@ width (x) × depth (z) × height (y).
 
 ## Two ways to work
 
-**Route A, recommended: dress the generated campus.** You run the facility in design mode (below;
-planned, not built yet). Every test volume is a marked placeholder you must not touch; you build around it: walls,
+**Route A, recommended: dress the generated campus.** You run the facility in design mode (below). Every
+test volume is a marked placeholder you must not touch; you build around it: walls,
 facades, corridors, lighting, props, exteriors. Positions are already fixed, so nothing you build
 can move a test. The footprints below stay where they are.
 
@@ -28,58 +28,100 @@ week after your massing milestone for that.
 
 ## Run it yourself
 
-> **Planned, not built yet.** Everything in this section (the `-Design` and `-Export` options,
-> and the `check` and `export` chat commands) describes how design mode will work; the commands
-> below do not run today. Until it lands, ask the maintainer for a world download of the
-> template, and send the world folder back the same way.
-
 You will need Windows, macOS or Linux, Java 25 (WorldEdit 7.4 needs it), a current Node.js LTS
-release, and a clone of this repository. The script downloads Paper and the plugin, and installs
-its own Node modules the first time.
+release, a clone of this repository, and the plugin's jar: download `WormholeXTreme.jar` from the
+[releases page](https://github.com/khanjal/Wormhole-X-Treme/releases) and pass it with `-Plugin`
+(`-p`) the first time; later sessions keep using it. (Without it the script builds the plugin
+from your clone, which needs Maven and a JDK 17.) The script downloads Paper and WorldEdit, and
+installs its own Node modules the first time.
 
 ```bash
-# Windows (planned)
-scripts/facility/lab.ps1 -Design -Op YourName
-# macOS / Linux (planned)
-scripts/facility/lab.sh -d -o YourName
+# Windows
+scripts/facility/lab.ps1 -Design -Op YourName -Plugin path\to\WormholeXTreme.jar
+# macOS / Linux
+scripts/facility/lab.sh -d -o YourName -p path/to/WormholeXTreme.jar
 ```
 
-Design mode will generate the campus once on Minecraft 1.21.11, and then leaves it alone:
+The first session generates the campus on Minecraft 1.21.11 (a few minutes; nobody can join
+until it is done), and then leaves it alone. Join `localhost:25590` once the window says `ready`.
+The server listens on your own machine only. `-Open` (`-O`) lets others on your network join,
+but the server does not check names, so anyone who can reach it could join as you, op and all:
+use it only on a network you trust.
 
-- You are in creative mode with WorldEdit, and the bot does not run.
-- Test volumes are filled with a marked placeholder block, so you can see them. They go back to
-  air when the tests run.
-- Your world is kept between sessions. Say `stop` in chat to save and shut down; run the same
-  command to carry on.
-- Say `check` in chat at any time. It lists every block of yours inside a test volume or its
-  2-block skin, with coordinates and the wing it belongs to.
+- You are in creative mode with WorldEdit, and the bot does not run. It joins once in the first
+  session to build the gates, ring pads, beam pads and mirrors the tests travel by, so you see the
+  real ones, and leaves.
+- Every protected volume is filled with a placeholder block, so you can see it: **pink stained
+  glass** in the test volumes (the chambers, the ring shaft, the range tunnel) and **green stained
+  glass** round the fixtures (gates, pads, lanes, plates, the air in front of mirrors, boards).
+  Break them to look inside if you need to; air there is fine. They exist only in your world:
+  the export leaves them out, so a test never sees one. Do not use pink or green stained glass in
+  your build; the export turns any you place to air.
+- **Chamber walls, roofs, doors and galleries are the campus's, and protected too.** They are
+  solid, so no glass marks them: a chamber is the white box (tinted glass on its gallery side)
+  round the pink glass, and the air of its doorway and of the gallery walk in front of its window
+  is green. `check` reports any change to them, and the export leaves them out, so the campus's
+  own walls are what the tests meet whatever you do. Dress around them: clad a chamber one block
+  outside its walls, frame its door from outside the doorway, light its gallery from beside it.
+  Keep that cladding to plain blocks (rule 3), and do not take away the campus's floor next to a
+  chamber.
+- Your world is kept between sessions, in `.local-server/design-1.21.11/`. Say `stop` in chat to
+  save and shut down; run the same command to carry on. To start over, delete that folder.
+- Say `check` in chat at any time (it takes a minute, and you are a spectator until it is done,
+  so nothing changes under it). It lists every block of yours inside a protected volume; in a
+  chamber's 2-block skin every active part (rule 3), any campus part you changed (a sign, a
+  lever) and any campus block you took away; any block rule 8 forbids; any text that runs a
+  command when clicked; and any entity rule 6 does not allow: each with its coordinates, the
+  chamber or fixture and the wing. The first few are in chat; the whole report is in
+  `.local-server/design-1.21.11/wx-design/check.txt`. With the server stopped,
+  `lab.ps1 -Design -Check` (`lab.sh -d -k`) runs it from the command line.
+- Only ops can say `check`, `export` and `stop`: `-Op` makes you one.
 
-### Sending your work back (planned)
+### Sending your work back
 
-Say `export` in chat, or run `scripts/facility/lab.ps1 -Design -Export` with the server stopped.
-It writes one file to `.local-server/exports/facility-design-<date>.zip` holding:
+Say `export` in chat, or run `scripts/facility/lab.ps1 -Design -Export` (`lab.sh -d -e`) with the
+server stopped. It writes one file, small enough to attach to the job's issue, to
+`.local-server/exports/facility-design-<date>.zip`, holding:
 
-- your world (Overworld, Nether and End),
-- `manifest.json`: the facility version it was generated from, the Minecraft version, your name,
+- one WorldEdit schematic per area: each wing's rooms with 16 blocks all round, from y −63 to 95
+  in the Overworld (the Nether site from y 32 and the End site from y 30, to 120). This is what
+  our runs apply, so build inside these areas: anything outside them stays in your world but is
+  not carried over. The protected volumes are left out of them, so the campus's own chambers and
+  fixtures stay as the facility builds them;
+- `placements.json`, which tells our runs where each schematic goes;
+- `manifest.json`: the facility version it was generated from, the Minecraft version, your name
+  and the date;
 - `check.txt`: the `check` report at the time of export.
 
-Send the zip to the maintainer, or attach it to the job's issue if it is under GitHub's size
-limit. We load it, run the full self-test on it, and send back screenshots and results.
+Blocks, with their contents (chests, signs, banners), and your item frames and armour stands are
+carried; other entities are not. Text that runs a command when clicked loses its command, and
+the blocks rule 8 forbids are left out. Our runs check the export again before using it, and
+refuse one whose `check.txt` reports problems: run `check` until it reports none first.
+
+`export full` in chat, or `-Export -Full` (`lab.sh -d -e -f`), adds your three worlds (Overworld,
+Nether and End, placeholders and all) for reference: a much bigger file, to send only when the
+maintainer asks for it.
+
+Send the zip to the maintainer, or attach it to the job's issue. We load it, run the full self-test on it, and send back screenshots and results.
 
 ## Hard rules
 
-1. **Blocks up to Minecraft 1.21.11.** Copper bulbs, tuff bricks, trial-chamber blocks and
-   the rest of 1.21 are all fine; nothing newer, no mods, no resource packs. Design mode
-   will enforce this by running 1.21.11. Your build is the facility's decoration on 1.21.11 and
+1. **Blocks up to Minecraft 1.21.11.** Copper bulbs, tuff bricks, trial-chamber blocks (but
+   see rule 8) and the rest of 1.21 are all fine; nothing newer, no mods, no resource packs.
+   Design mode enforces this by running 1.21.11. Your build is the facility's decoration on 1.21.11 and
    later, where every block exists; test runs on 1.20.4 use the plain campus without it, so
    nothing about the tests may depend on your build. Players on older clients who join through
    ViaVersion still see it, with each newer block drawn as an older lookalike.
 2. **Test volumes stay empty air.** Nothing of yours goes inside one, including light blocks,
    barriers, carpet or water.
-3. **Keep a 2-block skin around every test volume free of active parts.** No redstone, rails,
-   signs, buttons, levers, pressure plates, item frames, banners, hoppers, pistons, observers or
-   command blocks within 2 blocks of a chamber. The plugin reacts to many of these, and the
-   tests would pick up your props. Decorative versions belong in corridors and offices.
+3. **Keep a 2-block skin around every test volume free of active parts.** No redstone of any
+   kind (lamps, copper bulbs, note blocks, targets, observers and the rest), rails, signs,
+   buttons, levers, pressure plates, doors, trapdoors, fence gates, bells, lightning rods, TNT,
+   jukeboxes, lecterns, item frames, banners, hoppers, pistons, water, lava or fire, and no
+   block with contents or text (a chest, a barrel, a sign), within 2 blocks of a chamber; leave
+   the campus's own parts there as they are (the export keeps the campus's version of them). The plugin and the
+   tests react to many of these, and the tests would pick up your props. Decorative versions
+   belong in corridors and offices.
 4. **Chamber walls are at least 1 block thick and solid,** with door and gallery openings where
    the table says. A gallery is a viewing window into the chamber: glass or glass panes, at least
    5 wide and 3 high, centred on that wall.
@@ -89,6 +131,11 @@ limit. We load it, run the full self-test on it, and send back screenshots and r
    bot counts entities in its tests.
 7. **No third-party schematics** unless the author has given written permission to include them
    in an open-source project. [INSPIRATION.md](INSPIRATION.md) lists references for ideas only.
+8. **Nothing that runs commands, spawns or carries you off.** Anywhere in your build: no command
+   blocks, spawners, trial spawners, vaults, structure or jigsaw blocks, end portals, end
+   gateways or nether portals; no sculk shrieker that can summon a warden; no beehive or bee nest
+   with bees in it; no dispenser, dropper or crafter with anything in it; and no clickable text
+   that runs a command. Our runs refuse a design that holds any of these.
 
 ## Massing
 
@@ -172,9 +219,10 @@ Nether, y 60 in the End). Coordinates are campus blocks with Ops centred on x 0,
 | Optics mirror | x −10, z 40, facing south | As the Ops mirror |
 | Range and Annex mirrors | Nether x −15, z −24; End x 1012, z 1016 | On a free-standing pier the facility builds; leave the pier and the floor in front of it |
 | Teleport plates | A row of eight under the mezzanine, x −16 to 16 every 4 blocks at z −18 | The service corridor x −20 to 20, z −20 to −15, flat and clear |
-| Boards | The Ops wall, the fault counter, the welcome board, and one per wing lobby | Left where they are; design mode will mark them |
+| Boards | The Ops wall, the fault counter, the welcome board, and one per wing lobby | Left where they are; design mode marks each board's own block |
 
-Design mode will mark these as it marks the chambers, and the facility's check covers them too.
+Design mode marks these as it marks the chambers (green placeholder glass), and its check covers
+them too.
 
 ### Lanes and the Menagerie
 
