@@ -13,6 +13,7 @@ import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -159,6 +160,8 @@ public class ConfigManager
         PLACEHOLDERS_ENABLED,
         /** Whether gate and ring construction is logged to CoreProtect (#238). */
         COREPROTECT_ENABLED,
+        /** Whether the WorldGuard region flags wormhole-build and wormhole-use are registered (#240). */
+        WORLDGUARD_ENABLED,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
         /** Whether economy (Vault) integration is enabled. */
@@ -1818,6 +1821,7 @@ public class ConfigManager
             case METRICS_ENABLED -> followMetrics();
             case ECONOMY_ENABLED -> followEconomy();
             case PLACEHOLDERS_ENABLED -> followPlaceholders();
+            case WORLDGUARD_ENABLED -> RegionFlags.follow();
             // Every ring's trigger volume is indexed at load, as deep as these two said then.
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
@@ -2026,6 +2030,13 @@ public class ConfigManager
     public static boolean isCoreProtectEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.COREPROTECT_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if the WorldGuard region flags should be registered and checked. */
+    public static boolean isWorldGuardEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.WORLDGUARD_ENABLED);
         return s != null && s.getBooleanValue();
     }
 

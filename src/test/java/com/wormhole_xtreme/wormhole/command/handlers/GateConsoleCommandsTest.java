@@ -33,6 +33,8 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -574,6 +576,95 @@ class GateConsoleCommandsTest
 
             verify(asThemselves).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
+        }
+    }
+
+    /**
+     * Dialling from a gate needs the dial right and a region allowing use, both; the right is asked first.
+     *
+     * <p>Which wins when the two disagree (#240): neither. A player without the right is told that and
+     * not about the region; one with it, at a gate in a region denying use, is refused by the region.
+     */
+    @Test
+    void aDialNeedsTheRightAndTheRegionAndTheRightIsAskedFirst()
+    {
+        final Player player = mock(Player.class);
+        final Stargate start = new Stargate();
+        start.setGatePlayerTeleportLocation(new Location(null, 0, 64, 0));
+        RegionFlagsTestSupport.install((who, where, action) -> false);
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
+             MockedStatic<Dial> dial = mockStatic(Dial.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(start);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+
+            perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(false);
+            GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
+            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player, never()).sendMessage(RegionFlags.USE_REFUSED);
+
+            perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(true);
+            GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
+            verify(player).sendMessage(RegionFlags.USE_REFUSED);
+            dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
+
+            RegionFlagsTestSupport.install((who, where, action) -> true);
+            GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
+            dial.verify(() -> Dial.dialFrom(player, start, new String[] { "Chulak" }));
+        }
+        finally
+        {
+            RegionFlagsTestSupport.remove();
+        }
+    }
+
+    /** A player building by coordinates is held to the regions the gate would stand in, before anything is placed. */
+    @Test
+    void aPlayerBuildingIntoARegionDenyingItIsRefusedBeforeAnythingIsPlaced()
+    {
+        final Player player = mock(Player.class);
+        final List<Location> asked = new ArrayList<>();
+        RegionFlagsTestSupport.install((who, where, action) -> {
+            asked.add(where);
+            return false;
+        });
+        try (Building building = new Building(player);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, "", WXPermissions.PermissionType.BUILD)).thenReturn(true);
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            verify(player).sendMessage(RegionFlags.BUILD_REFUSED);
+            building.nothingPlaced();
+            assertEquals(List.of(new Location(building.world, 0, -60, 0)), asked, "asked where the gate would stand");
+        }
+        finally
+        {
+            RegionFlagsTestSupport.remove();
+        }
+    }
+
+    /** The console is not held to regions, as it is not held to per-network rights. */
+    @Test
+    void theConsoleBuildsWhateverTheRegionSays()
+    {
+        RegionFlagsTestSupport.install((who, where, action) -> false);
+        try (Building building = new Building())
+        {
+            building.previews.when(() -> GatePreviews.placeAt(any(), any(), any(), any())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOADED, List.of(), null, null));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            building.previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()));
+            verify(building.console, never()).sendMessage(RegionFlags.BUILD_REFUSED);
+        }
+        finally
+        {
+            RegionFlagsTestSupport.remove();
         }
     }
 }

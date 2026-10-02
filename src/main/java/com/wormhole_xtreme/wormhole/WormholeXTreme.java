@@ -24,6 +24,7 @@ import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
@@ -606,6 +607,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
+        RegionFlags.listen(this);
         // Before anything reads a stored file. Gates, rings and beam destinations used to
         // live in the same folder as another fork's database; this moves ours out of it, and
         // reading them first would find nothing and load an empty server.
@@ -742,6 +744,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load mirror looks", e);
         }
+        RegionFlags.register();
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 

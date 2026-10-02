@@ -31,6 +31,8 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -220,6 +222,40 @@ class PendingCompletionDetectionTest
         }
 
         verify(player).sendMessage(contains("Construction Failed after interactive detection"));
+        assertNull(Complete.getPendingCompletion(player), "the click is spent either way");
+    }
+
+    /**
+     * A gate the click finds in a region denying gate building is not completed, and the click is spent.
+     *
+     * <p>{@code /wormhole complete} with no DHD pressed yet waits for this click, so it is its own way
+     * of building a gate and has to ask the region as a pressed DHD does.
+     */
+    @Test
+    void aDetectedGateInARegionDenyingBuildingIsNotCompleted()
+    {
+        Complete.addPendingCompletion(player, "Detected", "", "");
+        final Stargate found = detectedGate();
+        found.getGateStructureBlocks().add(new Location(null, 5, 64, 5));
+        RegionFlagsTestSupport.install((who, where, action) -> false);
+
+        try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
+        {
+            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+                .thenReturn(null);
+            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+                .thenReturn(found);
+
+            click();
+        }
+        finally
+        {
+            RegionFlagsTestSupport.remove();
+        }
+
+        verify(player).sendMessage(RegionFlags.BUILD_REFUSED);
+        assertNull(StargateManager.getStargate("Detected"), "a refused gate must not be registered");
+        assertNull(StargateManager.getIncompleteStargate(player));
         assertNull(Complete.getPendingCompletion(player), "the click is spent either way");
     }
 }

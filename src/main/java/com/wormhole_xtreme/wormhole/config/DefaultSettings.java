@@ -84,6 +84,7 @@ class DefaultSettings
 
         group("Integrations", "Other plugins and services this one can talk to. Each is optional.",
             new Setting(ConfigKeys.COREPROTECT_ENABLED, false, "Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.", SECTION),
+            new Setting(ConfigKeys.WORLDGUARD_ENABLED, false, "Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.", SECTION),
             new Setting(ConfigKeys.PLACEHOLDERS_ENABLED, false, "Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.", SECTION),
             new Setting(ConfigKeys.METRICS_ENABLED, true, "Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.", SECTION)),
 
