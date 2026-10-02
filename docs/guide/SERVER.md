@@ -440,9 +440,9 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 - **Kept up to date** every five seconds, and straight away when a gate is built, removed or
   shut, or its wormhole forms. The map is drawn off the main thread, and only what changed is
   redrawn.
-- **No Dynmap** means nothing happens; the log says so once. So does a Dynmap that is installed
-  but did not start, for instance one that does not support the server's Minecraft version; the
-  map starts when Dynmap does. The log says the map is showing only once Dynmap is up.
+- **No Dynmap** means nothing happens; the log says so at startup, and again whenever a map
+  setting is changed. So does a Dynmap that is installed but did not start, for instance one that
+  does not support the server's Minecraft version; the map starts when Dynmap does. The log says the map is showing only once Dynmap is up.
 - **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
   and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
 - The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the
