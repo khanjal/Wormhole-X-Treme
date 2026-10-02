@@ -103,14 +103,18 @@ public final class BuildGuide
         return out;
     }
 
-    /** Detection's rule: a lit chevron may be frame or chevron material; a [C] cell only chevron. */
+    /**
+     * Detection's rule: a lit chevron may be frame or chevron material; a [C] cell only chevron, and
+     * an [S:C] cell either.
+     */
     private static boolean accepts(final Cell cell, final Palette palette, final Material found)
     {
         return switch (cell.part())
         {
             case FRAME -> (found == palette.structure())
                 || ((cell.wave() > 0) && (palette.chevron() != null) && (found == palette.chevron()));
-            case CHEVRON -> found == ((palette.chevron() != null) ? palette.chevron() : palette.structure());
+            case CHEVRON -> (found == ((palette.chevron() != null) ? palette.chevron() : palette.structure()))
+                || (cell.lenient() && (found == palette.structure()));
             case BUTTON -> MaterialUtils.isButton(found) || (found == Material.LEVER);
             case DIAL_SIGN -> MaterialUtils.isWallSign(found);
             case PORTAL -> !blocksOpening(found);
@@ -129,7 +133,10 @@ public final class BuildGuide
                 ? word(drawn.chevron()) + " or " + word(palette.structure())
                 : word(drawn.materialOf(cell));
             // A [C] cell takes the chevron material even while chevrons are drawn as frame.
-            case CHEVRON, PORTAL -> word(palette.materialOf(cell));
+            case CHEVRON -> (cell.lenient() && (palette.chevron() != null))
+                ? word(palette.chevron()) + " or " + word(palette.structure())
+                : word(palette.materialOf(cell));
+            case PORTAL -> word(palette.materialOf(cell));
         };
     }
 

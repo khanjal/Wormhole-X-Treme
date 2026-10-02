@@ -244,4 +244,31 @@ class ParsedSettingTest
         assertTrue(parsed.getRefusal().contains("horizon") && parsed.getRefusal().contains("open"),
             parsed.getRefusal());
     }
+
+    /**
+     * A sign colour that is not a colour is refused, naming the colours there are. Stage 6 of the
+     * research facility set sign-color-gate-name to PINK: it was accepted, and every sign written
+     * afterwards fell back to dark aqua without a word.
+     */
+    @Test
+    void aSignColourThatIsNotAColourIsRefused()
+    {
+        for (final ConfigKeys key : new ConfigKeys[] { ConfigKeys.SIGN_COLOR_GATE_NAME,
+            ConfigKeys.SIGN_COLOR_NETWORK, ConfigKeys.SIGN_COLOR_OWNER, ConfigKeys.SIGN_COLOR_SELECTED,
+            ConfigKeys.SIGN_COLOR_NEIGHBOUR })
+        {
+            final ParsedSetting parsed = refuses(key, "PINK");
+            assertTrue(parsed.getRefusal().contains("DARK_AQUA") && parsed.getRefusal().contains("LIGHT_PURPLE"),
+                "the refusal has to list the colours, or the next guess is as blind: " + parsed.getRefusal());
+            storesAs(key, "light_purple", "LIGHT_PURPLE");
+        }
+    }
+
+    /** A format code is not a colour: a sign written in MAGIC cannot be read at all. */
+    @Test
+    void aSignColourThatIsAFormatRatherThanAColourIsRefused()
+    {
+        refuses(ConfigKeys.SIGN_COLOR_SELECTED, "magic");
+        refuses(ConfigKeys.SIGN_COLOR_SELECTED, "bold");
+    }
 }

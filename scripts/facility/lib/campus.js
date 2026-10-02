@@ -139,6 +139,10 @@ const CHAMBERS = [
   { id: 'c0', wing: 'ops', title: 'Calibration Cell', kind: 'cell', logic: 'c0-calibration',
     box: { x0: 11, x1: 17, z0: 7, z1: 13, y0: 0, h: 4 }, door: 'w', gallery: 's' },
   { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, at: { x: 0, y: 6, z: -19 } },
+  // The companion desks (run-facility --with): each refuses a run without its companion plugins.
+  { id: 'map', wing: 'systems', title: 'Map Desk', kind: 'desk', stage: 6, logic: 'companion-map', at: { x: 6, y: 6, z: -19 } },
+  { id: 'regions', wing: 'systems', title: 'Region Desk', kind: 'desk', stage: 6, logic: 'companion-regions', at: { x: -8, y: 6, z: -19 } },
+  { id: 'perms', wing: 'systems', title: 'Permissions Desk', kind: 'desk', stage: 6, logic: 'companion-perms', at: { x: -15, y: 6, z: -19 } },
   // Gate Dynamics
   { id: 'g1', wing: 'gates', title: 'Test Stand', kind: 'cell', stage: 2, logic: 'g1-stand',
     box: { x0: -20, x1: 20, z0: -140, z1: -104, y0: 0, h: 30 }, door: 's', gallery: 'w' },
@@ -146,11 +150,11 @@ const CHAMBERS = [
     box: { x0: 30, x1: 50, z0: -140, z1: -120, y0: 0, h: 24 }, door: 's', gallery: 'e' },
   { id: 'g2', wing: 'gates', title: 'Shape Gallery', kind: 'cell', stage: 2, logic: 'g2-gallery',
     box: { x0: -66, x1: 66, z0: -168, z1: -150, y0: 0, h: 30 }, door: 'w', gallery: 's' },
-  { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5,
+  { id: 'g3', wing: 'gates', title: 'Automation Bay', kind: 'cell', stage: 5, logic: 'g3-automation',
     box: { x0: 40, x1: 66, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'w', gallery: 's' },
-  { id: 'g4', wing: 'gates', title: 'Build Bench', kind: 'cell', stage: 5, creative: true,
+  { id: 'g4', wing: 'gates', title: 'Build Bench', kind: 'cell', stage: 5, creative: true, logic: 'g4-bench',
     box: { x0: -66, x1: -40, z0: -90, z1: -60, y0: 0, h: 16 }, door: 'e', gallery: 's' },
-  { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5,
+  { id: 'g5', wing: 'gates', title: 'Iris Chamber', kind: 'cell', stage: 5, logic: 'g5-iris',
     box: { x0: -66, x1: -34, z0: -140, z1: -110, y0: 0, h: 16 }, door: 'e', gallery: 's' },
   // Ring Transit
   { id: 'r1', wing: 'rings', title: 'Pair Stand', kind: 'cell', stage: 3, logic: 'r1-pair',
@@ -257,12 +261,13 @@ const ROUTES = {
   ],
   // One in each world beside Ops and the gallery (so the default per-world limit of 1 is kept in
   // the nether and the End). `wall: 'room'` hangs on a room's wall, `'pier'` on a free-standing
-  // pier the decoration builds; `floorY` is where a traveller's feet land.
+  // pier the decoration builds; `floorY` is where a traveller's feet land. A banner hangs at
+  // floorY + 1, where a standing player's head is, as a player builds one.
   mirrors: [
-    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 2, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
-    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 2, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
-    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 66, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
-    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 62, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
+    { name: 'Ops', wing: 'ops', dim: OVERWORLD, x: -10, y: 1, z: 20, facing: 'north', floorY: 0, wall: 'room', start: 'Optics', look: 'indoors' },
+    { name: 'Optics', wing: 'mirrors', dim: OVERWORLD, x: -10, y: 1, z: 40, facing: 'south', floorY: 0, wall: 'room', start: 'Ops', look: 'library' },
+    { name: 'Range', wing: 'range', dim: NETHER, x: -15, y: 65, z: -24, facing: 'south', floorY: 64, wall: 'pier', start: 'Ops', look: 'nether' },
+    { name: 'Annex', wing: 'annex', dim: END, x: 1012, y: 61, z: 1016, facing: 'north', floorY: 60, wall: 'pier', start: 'Ops', look: 'end' },
   ],
 };
 
@@ -312,6 +317,37 @@ const FORCELOAD = [
   { dim: END, from: [978, 978], to: [1022, 1022], why: 'The Annex' },
 ];
 
+/**
+ * The viewer's vantage points (run-facility --shots): where Probe stands (feet; it flies, so a
+ * point may be in the air), facing `yaw` (0 south, -90 east, 90 west, 180 north) and `pitch`
+ * (down is positive), for a picture of each wing. A cell's tinted glass is all a seat beside it
+ * shows, so B1 and M1 are seen from inside, high by the gallery wall.
+ */
+const SHOTS = [
+  { name: 'gate-room', wing: 'ops', dim: OVERWORLD, x: 0.5, y: 2, z: 12.5, yaw: 180, pitch: 5 },
+  { name: 'atrium', wing: 'ops', dim: OVERWORLD, x: 0.5, y: 6, z: -15.5, yaw: 0, pitch: 20 },
+  { name: 'systems-mezzanine', wing: 'systems', dim: OVERWORLD, x: -18.5, y: 6, z: -16.5, yaw: -90, pitch: 5 },
+  { name: 'gate-hall', wing: 'gates', dim: OVERWORLD, x: 0.5, y: 12, z: -44.5, yaw: 180, pitch: 20 },
+  { name: 'gate-hall-deck', wing: 'gates', dim: OVERWORLD, x: -25.5, y: 7, z: -139.5, yaw: -60, pitch: 15 },
+  { name: 'g1-control', wing: 'gates', dim: OVERWORLD, x: -28.5, y: 9, z: -105.5, yaw: -100, pitch: 20 },
+  { name: 'ring-concourse', wing: 'rings', dim: OVERWORLD, x: 42.5, y: 5, z: 0.5, yaw: -90, pitch: 10 },
+  { name: 'shaft-window', wing: 'rings', dim: OVERWORLD, x: 69.5, y: 1, z: 17.5, yaw: 180, pitch: 75 },
+  { name: 'beam-lab', wing: 'beams', dim: OVERWORLD, x: -44.5, y: 5, z: 20.5, yaw: 120, pitch: 15 },
+  { name: 'b1-pads', wing: 'beams', dim: OVERWORLD, x: -77.5, y: 7, z: 6.5, yaw: 180, pitch: 25 },
+  { name: 'mirror-hall', wing: 'mirrors', dim: OVERWORLD, x: 0.5, y: 4, z: 41.5, yaw: 0, pitch: 15 },
+  { name: 'mirror-optics', wing: 'mirrors', dim: OVERWORLD, x: -9.5, y: 1, z: 46.5, yaw: 180, pitch: 0 },
+  { name: 'm1-round', wing: 'mirrors', dim: OVERWORLD, x: 0.5, y: 6, z: 66.5, yaw: 180, pitch: 25 },
+  { name: 'menagerie', wing: 'menagerie', dim: OVERWORLD, x: 83.5, y: 6, z: -62.5, yaw: -135, pitch: 20 },
+  { name: 'range', wing: 'range', dim: NETHER, x: 0.5, y: 68, z: 22.5, yaw: 180, pitch: 10 },
+  { name: 'annex', wing: 'annex', dim: END, x: 1000.5, y: 64, z: 1018.5, yaw: 180, pitch: 10 },
+];
+
+/**
+ * WorldEdit schematics placed during generation with --schematics <folder> (lib/schematics.js):
+ * [{ file, at: { x, y, z }, rotation, dim }], each checked by the decoration guardrail first.
+ */
+const SCHEMATICS = [];
+
 function wing(id) {
   const w = WINGS.find((x) => x.id === id);
   if (!w) throw new Error(`no wing ${id}`);
@@ -326,5 +362,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, wing, chamber,
+  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, SHOTS, SCHEMATICS, wing, chamber,
 };

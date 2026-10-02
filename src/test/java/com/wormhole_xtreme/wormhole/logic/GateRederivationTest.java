@@ -904,6 +904,35 @@ class GateRederivationTest
     }
 
     /**
+     * The frame material in an {@code [S:C]} cell is what detection takes there, so it is not a
+     * gap, and it does not stop the fill of a real one. Held to {@code [C]}'s rule it read as a
+     * solid block in the frame, and nothing was ever filled.
+     */
+    @Test
+    void theFrameMaterialInALenientChevronIsNotAGap() throws Exception
+    {
+        final List<String> lines = new ArrayList<>();
+        for (final String line : Files.readAllLines(SHAPE_DIR.resolve("Standard.shape")))
+        {
+            lines.add(line.trim().startsWith("#") ? line : line.replace("[S:L#1]", "[S:C:L#1]"));
+        }
+        lines.add("CHEVRON_MATERIAL=REDSTONE_LAMP");
+        final Stargate3DShape lenient = new Stargate3DShape(lines.toArray(new String[0]));
+        final Stargate gate = StargateHelper.checkStargate(build(lenient, BlockFace.SOUTH, 0, 64, 0), BlockFace.SOUTH,
+            lenient);
+        assertNotNull(gate, "built with the frame material in its [S:C] cell, and detected");
+        final Location hole = gate.getGateStructureBlocks().get(0);
+        final Material frame = at(hole);
+        knockOut(hole);
+
+        final GateRederivation.Fill fill = GateRederivation.fillFrame(gate);
+
+        assertTrue(fill.blocked().isEmpty(), "blocked were: " + fill.blocked());
+        assertEquals(1, fill.placed().size(), "gaps were: " + fill.gaps());
+        assertEquals(frame, at(hole));
+    }
+
+    /**
      * A chevron block in a frame cell that does not light is wrong, as detection reads it, so it
      * stops the fill; in a cell that lights it is right, and is not a gap at all.
      */

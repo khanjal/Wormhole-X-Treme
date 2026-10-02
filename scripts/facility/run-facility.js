@@ -6,7 +6,8 @@
 //   node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   (in parallel)
 //
 // Options:
-//   --java <path>        java for the server (default: a JDK of the version's major, found by
+//   --java <path>        java for the server (default: a JDK of the highest major the version and
+//                        the newest class file in every plugin jar need, found by
 //                        JAVA<major>_HOME or in the usual install folders)
 //   --plugin <jar>       use this plugin jar instead of building one
 //   --no-build           use target/WormholeXTreme.jar as it is
@@ -21,8 +22,43 @@
 //                        own port and folder, run at once, with one merged report (lib/shards.js);
 //                        with --versions, versions x shards servers
 //   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
-//   --tied               (set by --versions and --shards for their children) stop when stdin
+//   --with <list>        install companion plugins, pinned in companions.json: viaversion,
+//                        viabackwards, dynmap, worldedit, worldguard, luckperms, vault, or the
+//                        sets via, regions, permissions (what one needs comes with it). Read from
+//                        the plugin cache, else downloaded from an official source and checked;
+//                        a run without one takes out the jar an earlier run installed. The
+//                        self-test's companion cells run only with --with (lib/companions.js)
+//   --plugin-cache <dir> read companion jars from <dir>/<version>/ then <dir>/any/ first
+//                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
+//                        the repository or a folder above it)
+//   --op <names>         op these players (comma-separated) once the server is up
+//   --tied              (set by --versions and --shards for their children) stop when stdin
 //                        closes
+//   --viewer             serve prismarine-viewer on Probe at http://127.0.0.1:<3007 + port - 25590>/
+//                        (orbit) and .../first/ (Probe's eyes); not on 26.x, which it cannot draw
+//   --viewer-port <n>    the viewer's web port instead
+//   --shots [names|all]  fly Probe to campus.SHOTS's vantage points and save a PNG of each to
+//                        .local-server/shots/<version>/<name>.png (needs Chrome or Edge, or
+//                        WX_BROWSER); then the self-test with --selftest, the hold with --viewer,
+//                        else the end
+//   --schematics <dir>   paste the WorldEdit schematics campus.SCHEMATICS and <dir>/placements.json
+//                        place, from <dir>, after the build; each box checked by the decoration
+//                        guardrail first (lib/schematics.js). Needs --with worldedit; a placement
+//                        with a minVersion newer than the version is left out
+//   --design             design mode (design/facility/BRIEF.md): 1.21.11 with WorldEdit, the world
+//                        in .local-server/design-1.21.11/ kept between sessions, ops in creative, no
+//                        tests; the campus and its placeholders are made in the first session only.
+//                        An op says check, export or stop in chat (lib/designmode.js)
+//   --design-check       design mode's check from here: start the design world, check, stop
+//                        (exit 1 if it found a problem); the report is in wx-design/check.txt
+//   --design-export      design mode's export from here: start, export, stop; the zip (the
+//                        schematics, placements, manifest and check report) is in .local-server/exports/
+//   --full               with --design-export: the zip holds the three worlds as well
+//   --design-open        design mode listens on every address, not only 127.0.0.1 (online-mode is
+//                        off, so anyone who can reach the port can join under any name, an op's too)
+//   --design-import <zip> a design export: unpacked into .local-server/imports/<name>/ and pasted as
+//                        --schematics with WorldEdit, on 1.21.11 and later (1.20.4 runs without it);
+//                        refused if its check.txt reports problems, unless --accept-check-problems
 //
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
@@ -38,6 +74,8 @@ const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
 const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
+const shapes = require('./lib/shapes');
+const companions = require('./lib/companions');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -86,12 +124,57 @@ function parseArgs(argv) {
     else if (x === '--report') a.report = value(i++);
     else if (x === '--tied') a.tied = true;
     else if (x === '--paper-build') a.paperBuild = whole('--paper-build', value(i++), 1);
+    // `--with none` is a run with --with and no companion: the paired cells' run without any.
+    else if (x === '--with') {
+      a.with = list(value(i++)).filter((s) => s !== 'none');
+      companions.expand(a.with); // a name it does not know is refused here, before anything starts
+    }
+    else if (x === '--plugin-cache') a.pluginCache = value(i++);
+    else if (x === '--op') {
+      a.op = list(value(i++));
+      const bad = a.op.find((p) => !/^\w{1,16}$/.test(p));
+      if (bad !== undefined) throw new Error(`--op takes player names, not ${bad}`);
+    }
+    else if (x === '--viewer') a.viewer = true;
+    else if (x === '--viewer-port') a.viewerPort = whole('--viewer-port', value(i++), 1024);
+    else if (x === '--shots') {
+      // The list is optional: a bare --shots (or one followed by an option or the version) is all.
+      const next = argv[i + 1];
+      a.shots = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : 'all';
+      require('./lib/shots').select(a.shots); // a name it does not know is refused here
+    }
+    else if (x === '--schematics') a.schematics = path.resolve(value(i++));
+    else if (x === '--design') a.design = true;
+    else if (x === '--design-check') { a.design = true; a.designCheck = true; }
+    else if (x === '--design-export') { a.design = true; a.designExport = true; }
+    else if (x === '--design-import') a.designImport = path.resolve(value(i++));
+    else if (x === '--full') a.full = true;
+    else if (x === '--accept-check-problems') a.acceptCheckProblems = true;
+    else if (x === '--design-open') a.designOpen = true;
     else if (!x.startsWith('--') && !a.version) a.version = x;
     else throw new Error(`unknown argument ${x}`);
   }
   if (a.versions && !a.versions.length) throw new Error('--versions names no version');
+  if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics || a.designImport)) throw new Error('--viewer, --shots, --schematics and --design-import take one version and one server');
+  if (a.designImport && a.schematics) throw new Error('--design-import is a --schematics of its own: give one of them');
+  if (a.design) {
+    const design = require('./lib/design');
+    if (a.version && a.version !== design.VERSION) throw new Error(`design mode runs Minecraft ${design.VERSION} only, not ${a.version}`);
+    const clash = [['--selftest', a.selftest], ['--versions', a.versions], ['--shards', a.shards], ['--viewer', a.viewer], ['--shots', a.shots],
+      ['--schematics', a.schematics], ['--design-import', a.designImport], ['--keep-world', a.keepWorld]].filter(([, on]) => on).map(([n]) => n);
+    if (clash.length) throw new Error(`design mode runs no tests and keeps its own world: not with ${clash.join(', ')}`);
+    if (a.designCheck && a.designExport) throw new Error('--design-check or --design-export, one at a time');
+    a.version = design.VERSION;
+  }
+  if (a.full && !a.designExport) throw new Error('--full goes with --design-export');
+  if (a.acceptCheckProblems && !a.designImport) throw new Error('--accept-check-problems goes with --design-import');
+  if (a.designOpen && !a.design) throw new Error('--design-open goes with --design');
   a.version = a.version || DEFAULT_VERSION;
   return a;
+}
+
+function schematicsLib() {
+  return require('./lib/schematics');
 }
 
 function pluginJar(args) {
@@ -104,6 +187,142 @@ function pluginJar(args) {
   const jdk = args.jdk17 || server.findJava(17);
   console.log(`building the plugin with Maven on ${jdk || 'the default JDK'}`);
   return server.buildPlugin(REPO, jdk);
+}
+
+/**
+ * Design mode's plugin jar: --plugin, else the one the design folder already has (a designer
+ * passes -Plugin once), else a Maven build; without Maven, says where a jar comes from.
+ */
+function designPlugin(args, folder) {
+  if (args.plugin) return path.resolve(args.plugin);
+  const kept = path.join(folder, 'plugins', 'WormholeXTreme.jar');
+  if (fs.existsSync(kept)) return kept;
+  try {
+    return pluginJar(args);
+  } catch (e) {
+    throw new Error(`${e.message}\n\nDesign mode needs the plugin's jar. Without Maven and a JDK 17, download WormholeXTreme.jar `
+      + 'from https://github.com/khanjal/Wormhole-X-Treme/releases and pass it: lab.ps1 -Design -Plugin <jar>, lab.sh -d -p <jar>, '
+      + 'or --plugin <jar>. Later sessions keep using it.');
+  }
+}
+
+/**
+ * Unpacks a design export (--design-import) into .local-server/imports/<name>/, fresh, and says
+ * what it is; returns that folder for --schematics.
+ */
+function unpackDesign(zipFile, { acceptCheckProblems = false } = {}) {
+  const design = require('./lib/design');
+  if (!fs.existsSync(zipFile)) throw new Error(`--design-import ${zipFile} is not there`);
+  const name = path.basename(zipFile).replace(/\.zip$/i, '');
+  if (!/^[\w.-]+$/.test(name) || /^\.+$/.test(name)) throw new Error(`--design-import ${zipFile}: name the zip with letters, digits, dots, dashes or underscores`);
+  const dir = path.join(LOCAL, 'imports', name);
+  fs.rmSync(dir, { recursive: true, force: true });
+  // Only what a run reads: never the worlds of a full export, nor anything else in it.
+  const wanted = (n) => ['placements.json', 'manifest.json', 'check.txt'].includes(n) || /^[\w.-]+\.schem$/.test(n);
+  require('./lib/zip').extractZip(zipFile, dir, wanted);
+  const manifest = path.join(dir, 'manifest.json');
+  if (!fs.existsSync(manifest) || !fs.existsSync(path.join(dir, 'placements.json'))) throw new Error(`${zipFile} is not a design export: no manifest.json and placements.json`);
+  // A hand-edited zip could add an unguarded placement, pasted plainly: refused outright.
+  const unguarded = schematicsLib().designPlacementProblems(dir);
+  if (unguarded) throw new Error(`${zipFile}: ${unguarded}`);
+  // The import's own guardrail (--schematics) is the real gate; the export's check report, which a
+  // hand can also edit, is a second one the maintainer may override.
+  const reported = design.reportProblems(fs.existsSync(path.join(dir, 'check.txt')) ? fs.readFileSync(path.join(dir, 'check.txt'), 'utf8') : '');
+  if (reported !== 0 && !acceptCheckProblems) {
+    throw new Error(`${zipFile}: its check.txt ${reported === null ? 'says nothing readable' : `reports ${reported} problem(s)`}; send it back to the designer, or pass --accept-check-problems to try it anyway`);
+  }
+  const m = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  const c = design.clean;
+  const commit = m.facility && typeof m.facility === 'object' ? c(m.facility.commit, 60) : '?';
+  console.log(`design export by ${c(m.designer, 40)} on ${c(m.date, 40)} (Minecraft ${c(m.minecraft, 20)}, facility ${commit}): `
+    + `${Array.isArray(m.areas) ? m.areas.length : '?'} areas, ${c(m.checkProblems, 10)} check problem(s) when exported; unpacked in ${dir}`);
+  if (m.minecraft !== design.VERSION) console.log(`  WARNING: made on Minecraft ${c(m.minecraft, 20)}, not ${design.VERSION}, the version design mode runs`);
+  const here = require('./lib/designmode').facilityCommit(REPO).replace(/\+changes$/, '');
+  if (commit.replace(/\+changes$/, '') !== here) console.log(`  WARNING: made with facility ${commit}, and this checkout is ${here}: a protected volume that moved since is refused below if the design reaches it`);
+  return dir;
+}
+
+/**
+ * Design mode after the server is up: the first session generates the campus, its fixtures and
+ * placeholders; then a check or an export from the command line, or a hold for the designer.
+ * Returns the exit code.
+ */
+async function designSession({ args, fac, srv, folder, plugin, hold }) {
+  const { DesignMode, facilityCommit, opsOf } = require('./lib/designmode');
+  const design = require('./lib/design');
+  const dm = new DesignMode({ srv, folder, repo: REPO, local: LOCAL });
+  // Probe is opped only while it builds the fixtures; one left over from a session that died then goes now.
+  const deopProbe = async () => {
+    const r = await srv.run(`deop ${BOT}`);
+    const words = r.lines.join(' ');
+    if (!/no longer a server operator|Nothing changed/i.test(words)) throw new Error(`deop ${BOT}: ${words || 'no answer'}`);
+    if (opsOf(folder).includes(BOT)) throw new Error(`${BOT} is still in ops.json after deop`);
+  };
+  if (opsOf(folder).includes(BOT)) { await deopProbe(); console.log(`design: ${BOT}'s op from an earlier session taken away`); }
+  if (DesignMode.generated(folder)) {
+    console.log(`design: the world generated ${dm.state().generated} is kept as it is`);
+  } else {
+    // The whitelist is on (server.properties) and nobody else is opped until this is done.
+    console.log('design: generating the campus (the first session only; nobody can join until it is done)');
+    const report = await fac.build();
+    const failed = report.filter((r) => !r.ok);
+    if (failed.length) throw new Error(`the campus did not build: ${failed.map((r) => `${r.fn}: ${r.detail}`).join('; ')}`);
+    await srv.run(`whitelist add ${BOT}`);
+    let fixtures;
+    try {
+      await fac.connectProbe();
+      fixtures = await fac.fixtures({ stock: false });
+    } finally {
+      await fac.dismissProbe();
+      await deopProbe();
+      await srv.run(`whitelist remove ${BOT}`);
+    }
+    for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
+    await dm.finishGeneration({
+      commit: facilityCommit(REPO), version: design.VERSION, plugin: path.basename(plugin),
+      fixtureProblems: fixtures.filter((f) => !f.ok).map((f) => `${f.id}: ${f.detail}`),
+    });
+    await srv.run('whitelist off');
+  }
+  for (const name of args.op || []) {
+    const r = await srv.run(`op ${name}`);
+    console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
+  }
+  // Who made it: --op, else the server's ops; never a made-up name.
+  const designer = (args.op && args.op[0]) || opsOf(folder).filter((n) => n !== BOT).join(', ');
+  if (args.designExport && !designer) throw new Error('say who the designer is: --op <name> (lab.ps1 -Op, lab.sh -o)');
+  if (args.designCheck) {
+    const r = await dm.check('the console');
+    console.log(`\n${r.report}\nthe report: ${r.file}`);
+    return r.items.some((p) => p.kind !== 'stray') ? 1 : 0;
+  }
+  if (args.designExport) {
+    const r = await dm.export(designer, { plugin: path.basename(plugin), full: Boolean(args.full) });
+    console.log(`\nexported ${(r.bytes / 1024 / 1024).toFixed(1)} MB to ${r.file}`);
+    for (const l of design.chatSummary(r.items, 20)) console.log(`  ${l}`);
+    return 0;
+  }
+  console.log(`\nready: join localhost:${args.port} with Minecraft ${design.VERSION}${args.op ? ` as ${args.op.join(' or ')}` : ' (op yourself with --op)'}.`);
+  console.log('Ops are in creative with WorldEdit. Say check, export (export full for the worlds too) or stop in chat; Ctrl+C here stops it too.');
+  if (!args.designOpen) console.log('The server listens on 127.0.0.1 only (--design-open, lab.ps1 -Open, lab.sh -O to let others in).');
+  let over = false;
+  await new Promise((resolve) => {
+    hold(resolve);
+    const off = dm.listen({ onStop: (who) => { console.log(`design: ${who} said stop`); off(); resolve(); }, plugin: path.basename(plugin) });
+    if (srv.exited !== null) resolve();
+    srv.on('exit', (code) => { if (!over) console.error(`facility: the server exited (${code})`); resolve(); });
+  });
+  over = true;
+  // An export or check still running finishes before the server stops.
+  while (dm.busy) await new Promise((resolve) => { setTimeout(resolve, 500); });
+  return 0;
+}
+
+/** The companion jars for a version (lib/companions.js): from the plugin cache, or downloaded once into .local-server/companions/. */
+function companionsFor(args, version, names) {
+  const cache = args.pluginCache ? path.resolve(args.pluginCache) : companions.defaultCache(REPO);
+  if (args.pluginCache && !fs.existsSync(cache)) throw new Error(`--plugin-cache ${cache} is not there`);
+  return companions.resolve(names, version, { cache, store: path.join(LOCAL, 'companions') });
 }
 
 /**
@@ -185,22 +404,28 @@ async function fanOut(args) {
     await server.ensurePaperJar(LOCAL, v, { build: args.paperBuild || null });
     if (signals) return 130;
   }
+  // Companions likewise (and a companion a version cannot have is refused here, before any start).
+  const withNames = args.with ? companions.expand(args.with) : null;
+  for (const v of versions) {
+    if (withNames) await companionsFor(args, v, withNames);
+    if (signals) return 130;
+  }
   fs.mkdirSync(LOCAL, { recursive: true });
   const work = fs.mkdtempSync(path.join(LOCAL, 'run-'));
   try {
-    return await fanOutIn(work, { args, jar, versions, n, children, stopped: () => signals > 0 });
+    return await fanOutIn(work, { args, jar, versions, n, children, withNames, stopped: () => signals > 0 });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
 }
 
 /** fanOut's children, in the work folder `work` (removed by fanOut however this ends). */
-async function fanOutIn(work, { args, jar, versions, n, children, stopped }) {
+async function fanOutIn(work, { args, jar, versions, n, children, withNames, stopped }) {
   const jobs = [];
   for (const [vi, v] of versions.entries()) {
     let planFile = null;
     if (n > 1) {
-      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null });
+      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null, companions: withNames });
       const p = shards.plan(names, shards.loadTimes(LOCAL, v), n);
       planFile = path.join(work, `plan-${v}.json`);
       fs.writeFileSync(planFile, JSON.stringify(p));
@@ -222,6 +447,9 @@ async function fanOutIn(work, { args, jar, versions, n, children, stopped }) {
     if (args.fixed) child.push('--fixed', args.fixed.join(','));
     if (args.quick) child.push('--quick');
     if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
+    if (args.keepWorld) child.push('--keep-world');
+    if (withNames) child.push('--with', withNames.join(',') || 'none');
+    if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
     const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
     p.stdin.on('error', () => {});
     children.push(p);
@@ -300,15 +528,56 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.versions || (args.shards > 1 && !args.shard)) return fanOut(args);
   const { version } = args;
-  const java = args.java || server.findJava(server.requiredJava(version));
-  if (!java) throw new Error(`no Java ${server.requiredJava(version)} found for ${version}; pass --java`);
-  const javaMajor = server.checkJava(java, version);
-  const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
-  const plugin = pluginJar(args);
   // One folder per version and port, so runs side by side (--versions, or two terminals) never
-  // share a world: a fresh run deletes the worlds of the folder it uses.
-  const folder = path.join(LOCAL, args.port === DEFAULT_PORT ? `facility-${version}` : `facility-${version}-${args.port}`);
-
+  // share a world: a fresh run deletes the worlds of the folder it uses. Design mode has its own,
+  // which no test run uses, so its placeholders never reach one.
+  const folder = path.join(LOCAL, `${args.design ? 'design' : 'facility'}-${version}${args.port === DEFAULT_PORT ? '' : `-${args.port}`}`);
+  if (args.design) {
+    const { DesignMode, STATE_DIR } = require('./lib/designmode');
+    const made = DesignMode.generated(folder);
+    if ((args.designCheck || args.designExport) && !made) throw new Error(`there is no design world in ${folder} yet: start design mode first (--design)`);
+    // The first session starts from nothing; every later one keeps the designer's world.
+    args.keepWorld = made;
+    if (!made) {
+      // A session that died while generating left its state, ops and whitelist: start them over too.
+      fs.rmSync(path.join(folder, STATE_DIR), { recursive: true, force: true });
+      for (const f of ['ops.json', 'whitelist.json']) fs.rmSync(path.join(folder, f), { force: true });
+    }
+    args.designMade = made;
+    args.with = [...new Set([...(args.with || []), 'worldedit'])];
+  }
+  if (args.designImport) {
+    args.schematics = unpackDesign(args.designImport, { acceptCheckProblems: Boolean(args.acceptCheckProblems) });
+    const wanted = schematicsLib().forVersion(schematicsLib().placements(args.schematics), version).use;
+    if (wanted.length) args.with = [...new Set([...(args.with || []), 'worldedit'])];
+  }
+  const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
+  const plugin = args.design ? designPlugin(args, folder) : pluginJar(args);
+  // Companions before Java: the JDK is the highest any jar here needs, Paper's own included.
+  const withNames = args.with ? companions.expand(args.with) : null;
+  const extras = withNames ? await companionsFor(args, version, withNames) : [];
+  const need = companions.javaNeeded(version, [{ name: 'WormholeXTreme', java: companions.classJava(plugin) }, ...extras]);
+  const java = args.java || companions.findJavaAtLeast(need.major);
+  if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
+  const javaMajor = server.checkJava(java, version, need.major, need.why.join('; '));
+  // The viewer and the schematics are refused here, before a server is started for nothing.
+  const viewer = args.viewer || args.shots ? require('./lib/viewer') : null;
+  if (viewer) viewer.assetVersion(version);
+  const webPort = viewer ? args.viewerPort || viewer.viewerPort(args.port) : null;
+  if (args.shots && !require('./lib/shots').findBrowser()) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
+  const schematics = schematicsLib();
+  let placed = [];
+  if (args.schematics) {
+    if (!fs.existsSync(args.schematics)) throw new Error(`--schematics ${args.schematics} is not there`);
+    const { use: list, skipped } = schematics.forVersion(schematics.placements(args.schematics), version);
+    // A design's blocks may be newer than this version: it runs on the plain campus instead.
+    if (skipped.length) console.log(`schematics: ${skipped.length} left out on ${version} (they need ${[...new Set(skipped.map((p) => p.minVersion))].join(', ')} or later): ${skipped.map((p) => p.file).join(', ')}`);
+    if (list.length && !(withNames || []).includes('worldedit')) throw new Error('--schematics pastes with WorldEdit: add --with worldedit');
+    const checked = await schematics.check(list, version);
+    if (checked.problems.length) throw new Error(`the decoration guardrail refuses what --schematics would paste:\n  ${checked.problems.join('\n  ')}`);
+    placed = checked.placed;
+    console.log(`schematics: ${placed.length} to paste from ${args.schematics}, each clear of the guardrail`);
+  }
   // The settings journal describes the plugin's config file, so it goes when that does.
   if (!args.keepWorld) {
     server.freshWorlds(folder, { pluginData: true });
@@ -316,22 +585,46 @@ async function main() {
   }
   // Survival by default: a tester is put in adventure by the welcome, and the self-test's check
   // of that would pass without it if the server's default were adventure already.
-  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: 'survival', viewDistance: 10, mobs: true });
-  server.installPlugin(folder, plugin);
+  // Design mode: creative and peaceful, nothing stocked.
+  server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
+  // Design mode: on 127.0.0.1 unless --design-open, and nobody joins until the campus is generated.
+  if (args.design) {
+    const extra = ['broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`];
+    if (!args.designOpen) extra.push('server-ip=127.0.0.1');
+    fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  }
+  if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
+  // Always, with or without --with: a run without a companion takes out what an earlier one put
+  // in, jars and the Wormhole settings switched on for them.
+  const switches = Object.assign({}, ...extras.map((c) => companions.SWITCHES[c.name] || {}));
+  const { removed, unseeded } = companions.install(folder, extras, { fresh: !args.keepWorld, switches });
+  if (removed.length) console.log(`companions taken out (installed by an earlier run, not wanted by this one): ${removed.join(', ')}`);
+  if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
+  const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
+  if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
+  // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
+  shapes.installTestShapes(folder);
+  if (placed.length) schematics.install(folder, placed);
   const manifest = generate.writeFacilityPack(path.join(folder, 'world'), version);
   const chunks = wings.forceloadChunks();
 
-  console.log(`facility: Paper ${version} on Java ${javaMajor}, port ${args.port}, ${folder}`);
+  console.log(`facility: Paper ${version} on Java ${javaMajor} (${need.why.join('; ')}), port ${args.port}, ${folder}`);
+  for (const c of extras) console.log(`  companion ${c.plugin} ${c.version}: ${c.file}, SHA-256 ${c.sha256}, Java ${c.java || '?'}, from ${c.from}`);
+  if (Object.keys(switches).length) console.log(`  Wormhole settings for them: ${Object.entries(switches).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
+  if (mapPort) console.log(`  Dynmap web map: http://localhost:${mapPort}/`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
-  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [] });
+  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPort });
   // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
   // stops the server, a second one kills it, and an exit any other way kills a JVM still
   // running, so no server is left holding the port and the world folder.
   let holding = null;
   let stopping = false;
+  let web = null;
   const shutDown = async () => {
     stopping = true;
+    if (web) await web.close().catch(() => {});
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
     await srv.stop();
@@ -358,6 +651,21 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
+    // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
+    for (const name of args.design ? [] : args.op || []) {
+      const r = await srv.run(`op ${name}`);
+      console.log(`  op ${name}: ${r.lines.join(' ') || 'no answer'}`);
+    }
+    if (args.design) {
+      for (const p of setup) console.log(`  setup problem: ${p}`);
+      exit = await designSession({ args, fac, srv, folder, plugin, hold: (resolve) => { holding = resolve; } });
+      return exit;
+    }
+    if (mapPort) {
+      const web = await fac.mapWebUp();
+      if (!web.ok) setup.push(`Dynmap's web map: ${web.detail}`);
+      console.log(`  Dynmap web map: ${web.detail}`);
+    }
     for (const p of setup) console.log(`  setup problem: ${p}`);
     const tb = Date.now();
     const report = await fac.build();
@@ -366,15 +674,49 @@ async function main() {
     const total = Object.values(chunks).reduce((a, b) => a + b, 0);
     console.log(`generation: ${report.length} wings, ${blocks} blocks in ${buildMs} ms after ${fac.loadMs} ms of chunk loading; `
       + `forceloaded ${total} chunks (${Object.entries(chunks).map(([d, n]) => `${d.replace('minecraft:', '')} ${n}`).join(', ')})`);
+    if (placed.length) {
+      for (const r of await schematics.paste(srv, placed)) {
+        console.log(`  ${r.ok ? 'pasted' : 'PASTE FAILED'} ${r.file}: ${r.detail}`);
+        if (!r.ok) setup.push(`schematic ${r.file}: ${r.detail}`);
+      }
+    }
     await fac.connectProbe();
+    if (viewer) {
+      web = await viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log });
+      if (args.viewer) console.log(`  viewer (prismarine-viewer ${viewer.PV_VERSION}, ${web.assets} assets): ${web.url} orbits Probe, ${web.url}first/ is through its eyes`);
+      // A restart (a Map or Region Desk cell) brings a new Probe: serve that one, on the same port.
+      // close() resolves once the port is free, and a listen still finding it held retries.
+      fac.afterRestart.push(() => {
+        const old = web;
+        web = null;
+        Promise.resolve(old && old.close())
+          .then(() => viewer.startViewer(fac.probe.bot, { port: webPort, log: console.log }))
+          .then((w) => { web = w; })
+          .catch((e) => console.error(`facility: the viewer did not come back after the restart: ${e.message}`));
+      });
+    }
     await fac.openConsole();
     const tf = Date.now();
     const fixtures = await fac.fixtures();
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
     console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
+    // Every shot is a check: a bad one fails the run, whether it then stops, self-tests or holds.
+    let shotChecks = [];
+    if (args.shots) {
+      const shotsLib = require('./lib/shots');
+      const dir = path.join(LOCAL, 'shots', version);
+      const shots = await shotsLib.takeShots(fac, web, shotsLib.select(args.shots), dir);
+      shotChecks = shotsLib.asResults(shots);
+      const shotsBad = shots.filter((x) => !x.ok).length;
+      console.log(`\nshots on ${version}: ${shots.length - shotsBad} of ${shots.length} drawn, in ${dir}`);
+      for (const x of shots) if (x.file) console.log(`  ${x.file}`);
+    }
+    const shotsFailed = shotChecks.some((r) => !r.ok);
 
-    if (args.selftest) {
+    if (args.shots && !args.selftest && !args.viewer) {
+      exit = shotsFailed || setup.length || stray.length ? 1 : 0;
+    } else if (args.selftest) {
       const ts = Date.now();
       let shard = null;
       if (args.shard) {
@@ -384,9 +726,11 @@ async function main() {
       }
       const results = await selftest(fac, {
         buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
+        companions: withNames,
       });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
+      results.push(...shotChecks);
       const sections = [...new Set(results.map((r) => r.section))];
       console.log(`\nfacility self-test on ${version}:`);
       for (const s of sections) {
@@ -412,19 +756,28 @@ async function main() {
       }
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
+      if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
+      if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
         holding = resolve;
-        const bot = fac.probe.bot;
-        bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
-        // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
-        // now or before the hold began.
-        const gone = (reason) => { console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
-        if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        // Probe again after a restart (a Map or Region Desk cell restarts the server): the old
+        // one leaving then is not the end of the hold.
+        const listen = (bot) => {
+          bot.on('chat', (username, message) => { if (username !== BOT && /^stop[.!]?$/i.test(message.trim())) resolve(); });
+          // Without Probe nobody hears "stop": say so and end rather than hang, whether it left
+          // now or before the hold began.
+          const gone = (reason) => { if (fac.restarting) return; console.error(`facility: ${BOT} left (${reason}); stopping`); resolve(); };
+          if (bot.ended) gone(bot.ended); else bot.once('end', gone);
+        };
+        listen(fac.probe.bot);
+        fac.afterRestart.push(() => listen(fac.probe.bot));
         if (srv.exited !== null) resolve();
-        srv.once('exit', (code) => { console.error(`facility: the server exited (${code})`); resolve(); });
+        srv.on('exit', (code) => { if (srv.restarting) return; console.error(`facility: the server exited (${code})`); resolve(); });
       });
       holding = null;
+      if (shotsFailed) console.error('facility: a shot failed (above), so the run fails');
+      exit = shotsFailed ? 1 : 0;
     }
   } catch (e) {
     console.error(`facility: ${e.stack || e}`);

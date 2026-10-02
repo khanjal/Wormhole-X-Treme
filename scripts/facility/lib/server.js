@@ -25,7 +25,7 @@ const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
 // Lines another thread may print into any command's output: Paper's update banner arrives
 // asynchronously a few seconds after start, and the tick loop's lag warning whenever a build
 // has just taken a few seconds. They are not the command's, so run() drops them.
-const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?/;
+const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?|^\[PaperVersionFetcher\] |Error obtaining version information/;
 
 /** Gamerule names: camelCase before 1.21.11, snake_case from it. Only one form is ever sent. */
 const GAMERULES = {
@@ -56,17 +56,19 @@ function requiredJava(version) {
   return 17;
 }
 
-/** Runs `<java> -version` and returns its major, or refuses with what it found. */
-function checkJava(java, version) {
+/**
+ * Runs `<java> -version` and returns its major, or refuses with what it found. `need` raises the
+ * floor above Paper's (a plugin jar compiled for a newer Java), and `why` says what raised it.
+ */
+function checkJava(java, version, need = requiredJava(version), why = null) {
   const r = spawnSync(java, ['-version'], { encoding: 'utf8' });
   if (r.error) throw new Error(`cannot run ${java}: ${r.error.message}`);
   const out = `${r.stdout}${r.stderr}`; // -version writes to stderr
   const m = /version "(\d+)(?:\.(\d+))?/.exec(out);
   if (!m) throw new Error(`cannot read the Java version from ${java}: ${out.trim()}`);
   const major = m[1] === '1' ? Number(m[2]) : Number(m[1]);
-  const need = requiredJava(version);
   if (major < need) {
-    throw new Error(`Paper ${version} needs Java ${need}+, but ${java} is Java ${major}; pass --java`);
+    throw new Error(`${why || `Paper ${version} needs Java ${need}+`}, but ${java} is Java ${major}; pass --java`);
   }
   return major;
 }
@@ -106,8 +108,8 @@ function sha256Of(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
-/** Downloads to `file`, refusing a body whose size or SHA-256 is not the one PaperMC published. */
-async function download(url, file, { sha256, size }) {
+/** Downloads to `file`, refusing a body whose size or SHA-256 is not the one `publisher` published (or pinned). */
+async function download(url, file, { sha256, size }, publisher = 'PaperMC') {
   const res = await get(url);
   if (res.statusCode !== 200) { res.resume(); throw new Error(`${url}: HTTP ${res.statusCode}`); }
   const tmp = `${file}.part`;
@@ -121,7 +123,7 @@ async function download(url, file, { sha256, size }) {
   const got = { size: fs.statSync(tmp).size, sha256: sha256Of(tmp) };
   if (got.size !== size || got.sha256 !== sha256) {
     fs.rmSync(tmp, { force: true });
-    throw new Error(`${url}: got ${got.size} bytes with SHA-256 ${got.sha256}; PaperMC published ${size} bytes, ${sha256}`);
+    throw new Error(`${url}: got ${got.size} bytes with SHA-256 ${got.sha256}; ${publisher === 'PaperMC' ? 'PaperMC published' : `pinned for ${publisher}:`} ${size} bytes, ${sha256}`);
   }
   fs.renameSync(tmp, file);
   return file;
@@ -350,6 +352,9 @@ const KNOWN_BENIGN = [
   'No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; '
     + 'advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set '
     + 'PERMISSIONS_AUTO_FALLBACK=false.',
+  // #236, dynmap-enabled with Dynmap absent (the Map Desk's paired run): said once at enable, by
+  // design, and everything else carries on (MapMarkers.enable).
+  'dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.',
 ];
 
 /**
@@ -362,7 +367,8 @@ const KNOWN_FAULTS = [
     // MirrorCapture.save: `!parent.isDirectory() && !parent.mkdirs()` then throw. Two captures
     // finishing together (the transit mirrors, at fixture time) each find the folder missing; the
     // one whose mkdirs loses the race throws "could not create ...\\captures", and that capture
-    // is never written (it stays in memory). Fixed on main by #540; `--fixed 540` counts it.
+    // is never written (it stays in memory). Fixed on main by #540, so a jar built since cannot
+    // print this line; only an older jar's run meets it. `--fixed 540` counts it.
     // Known only with that cause: the trace names it, from MirrorCapture.save, and the folder is
     // there now (the other capture made it). A folder that is still missing is a real failure.
     note: '#540: a mirror capture is not written when two captures finish together: MirrorCapture.save races on creating data/mirror/captures (mkdirs lost to the other thread is read as a failure)',
@@ -419,6 +425,8 @@ class Server extends EventEmitter {
     const args = [`-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false',
       '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8',
       '-jar', path.resolve(this.jar), '--nogui'];
+    // Where this start's lines begin in `log` (a restart keeps the lines before it).
+    this.startIndex = this.log.length;
     // Its own process group on Windows, so a Ctrl+C in the console reaches the launcher, which
     // stops the server, rather than the JVM directly while the launcher is still writing to it.
     this.proc = spawn(this.java, args, {
@@ -451,6 +459,8 @@ class Server extends EventEmitter {
       this.exited = code === null ? (signal || 'signal') : code;
       this.emit('exit', this.exited);
     });
+    // 'close' comes once its output streams are drained as well: the last line it printed is in.
+    this.closed = new Promise((resolve) => { this.proc.once('close', resolve); });
     this.starting = this.waitFor(/Done \([\d.,]+s\)!/, 600000, 'the server to finish starting');
     this.starting.then(() => { this.ready = true; }, () => {});
     return this.starting;
@@ -584,6 +594,30 @@ class Server extends EventEmitter {
     }
   }
 
+  /**
+   * Stops the server and starts it again on the same folder and world, as this same object, so
+   * every listener on its log (the fault counter, the echo) carries on: a setting a plugin reads
+   * only at enable needs a full restart. `restarting` is true from the stop until the start, so a
+   * listener on 'exit' can tell this from the server going away.
+   */
+  async restart(ms = 60000) {
+    this.restarting = true;
+    try {
+      await this.stop(ms);
+      // The old JVM's last output, drained after its exit, must land before the new start's
+      // index, not in the new start's lines (bounded: a stream that never closes is not waited on).
+      if (this.closed) await Promise.race([this.closed, new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
+      this.exited = null;
+      this.ready = false;
+      this.stdinError = null;
+      this.queue = Promise.resolve();
+      this.restarts = (this.restarts || 0) + 1;
+    } finally {
+      this.restarting = false;
+    }
+    return this.start();
+  }
+
   async stop(ms = 60000) {
     if (!this.proc || this.exited !== null) return this.exited;
     const exit = new Promise((resolve) => this.once('exit', resolve));
@@ -634,6 +668,6 @@ function echoOn(value) {
 }
 
 module.exports = {
-  echoOn, jdkVersion, Server, tieToProcess, KNOWN_FAULTS, knownFault, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
+  download, sha256Of, readZipEntry, echoOn, jdkVersion, Server, tieToProcess, KNOWN_FAULTS, knownFault, gameruleName, requiredJava, checkJava, ensurePaperJar, prepareFolder, freshWorlds, installPlugin,
   findJava, buildPlugin, vanillaVersionInfo, pluginFault, KNOWN_BENIGN, COMMAND_ERROR, ASYNC_NOISE,
 };

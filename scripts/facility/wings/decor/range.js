@@ -10,8 +10,9 @@ function decorate(out, w, version) {
   bp.console(out, version, { x: -8, y, z: -14, wing: 'range' }, 'x', [{ command: 'wormhole gate dial Range Ops', label: 'Dial Ops', color: 'red' }]);
   // Blast walls beside the apron (x -6..6 stays clear for what G1 sends through).
   for (const x of [-8, 8]) out.fill(bp.box3(x, y, -12, x, y + 3, -8), 'minecraft:polished_blackstone_bricks');
-  // A free-standing pier for stage 4's Range mirror.
-  out.fill(bp.box3(-17, y, -25, -13, y + 4, -25), 'minecraft:polished_blackstone_bricks');
+  // A free-standing pier for the Range mirror (banner at y + 1): down through the floor, so it is
+  // solid two blocks round the opening below as well as above.
+  out.fill(bp.box3(-17, y - 2, -25, -13, y + 4, -25), 'minecraft:polished_blackstone_bricks');
   for (const [x, z] of [[-29, -29], [29, -29], [-29, 10], [29, 10]]) out.set(x, y, z, 'minecraft:soul_lantern');
   out.cmd(bp.plaque(version, { id: 'forward', wing: 'range', at: { x: 0.5, y: y + 5.5, z: -9.5 }, text: 'FORWARD BASE', colour: 'red', sub: 'the Range · press the button to dial home' }));
 }

@@ -24,6 +24,7 @@ class BuildGuideTest
     private static final Cell FRAME = new Cell(0, 0, 0, Part.FRAME, 0);
     private static final Cell LIT = new Cell(1, 0, 0, Part.FRAME, 3);
     private static final Cell STRICT = new Cell(2, 0, 0, Part.CHEVRON, 0);
+    private static final Cell LENIENT = new Cell(5, 0, 0, Part.CHEVRON, 0, false, 1, true);
     private static final Cell BUTTON = new Cell(3, 0, 0, Part.BUTTON, 0, true);
     private static final Cell SIGN = new Cell(4, 0, 0, Part.DIAL_SIGN, 0, true);
 
@@ -57,6 +58,35 @@ class BuildGuideTest
         assertEquals(BuildGuide.State.PLACED, BuildGuide.of(STRICT, plain, Material.OBSIDIAN),
             "[C] means [S] where there is no chevron block");
         assertEquals(BuildGuide.State.WRONG, BuildGuide.of(LIT, plain, Material.REDSTONE_LAMP));
+    }
+
+    /**
+     * An [S:C] cell takes the chevron block or the frame block, as detection does and GATES.md
+     * says. Held to [C]'s rule, a gate built with frame there was detected but never called built.
+     */
+    @Test
+    void aLenientChevronTakesTheFrameBlockToo()
+    {
+        assertEquals(BuildGuide.State.PLACED, BuildGuide.of(LENIENT, LAMPS, Material.REDSTONE_LAMP));
+        assertEquals(BuildGuide.State.PLACED, BuildGuide.of(LENIENT, LAMPS, Material.OBSIDIAN),
+            "detection accepts the frame material in an [S:C] cell");
+        assertEquals(BuildGuide.State.WRONG, BuildGuide.of(LENIENT, LAMPS, Material.DIRT));
+        assertEquals(BuildGuide.State.PLACED, BuildGuide.of(LENIENT, LAMPS.with(Role.CHEVRON, null), Material.OBSIDIAN));
+    }
+
+    /** The list names both blocks for an [S:C] cell, and only the frame where there is no chevron block. */
+    @Test
+    void theListNamesEitherBlockForALenientChevron()
+    {
+        final Map<Cell, Material> world = Map.of(LENIENT, Material.OBSIDIAN);
+
+        assertEquals(List.of(new BuildGuide.Need("redstone_lamp or obsidian", 1, 0)),
+            BuildGuide.needs(List.of(LENIENT), LAMPS, LAMPS, world::get));
+        assertEquals(List.of(new BuildGuide.Need("redstone_lamp", 1, 1)),
+            BuildGuide.needs(List.of(STRICT), LAMPS, LAMPS, Map.of(STRICT, Material.OBSIDIAN)::get),
+            "a [C] cell still names only the chevron block");
+        assertEquals(List.of(new BuildGuide.Need("obsidian", 1, 0)),
+            BuildGuide.needs(List.of(LENIENT), LAMPS.with(Role.CHEVRON, null), LAMPS, world::get));
     }
 
     /** The DHD takes any button or a lever, and the dial sign any wall sign. */

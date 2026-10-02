@@ -60,9 +60,31 @@ const G1 = [
   { name: 'g1 far iris shut after dial: walker', values: { 'far iris': 'shut after dial' }, expect: 'PASS' },
   { name: 'g1 own iris shut: walker', values: { 'own iris': 'shut' }, expect: 'PASS' },
   { name: 'g1 StandardSignDial by console', values: { shape: 'StandardSignDial' }, expect: 'PASS' },
-  { name: 'g1 custom shape', values: { shape: 'custom' }, expect: 'REFUSED:the custom Lab.shape arrives in stage 5' },
-  { name: 'g1 built by preview', values: { built: 'preview' }, expect: 'REFUSED:building by preview or by hand arrives in stage 5' },
+  { name: 'g1 Lab.shape by console', values: { shape: 'custom' }, expect: 'PASS' },
   { name: 'g1 sign dial on Standard', values: { dial: 'sign right' }, expect: 'REFUSED:Standard has no dial sign or [RD] block' },
+  // Built as a player builds (stage 5): by preview, and every block by hand.
+  { name: 'g1 built by preview', values: { built: 'preview' }, expect: 'PASS' },
+  { name: 'g1 built by hand', values: { built: 'hand' }, expect: 'PASS' },
+  { name: 'g1 Grand by preview', values: { shape: 'Grand', built: 'preview' }, expect: 'PASS' },
+  { name: 'g1 Horizontal by hand', values: { shape: 'Horizontal', built: 'hand' }, expect: 'PASS' },
+  { name: 'g1 by preview in Atlantis', values: { built: 'preview', group: 'Atlantis' }, expect: 'PASS' },
+  { name: 'g1 by hand in Diamond', values: { built: 'hand', group: 'Diamond' }, expect: 'PASS' },
+  { name: 'g1 group Diamond', values: { group: 'Diamond' }, expect: 'PASS' },
+  { name: 'g1 Massive by hand', values: { shape: 'Massive', built: 'hand' }, expect: 'REFUSED:by hand only the small shapes: Large, Grand and Massive take hundreds of blocks' },
+  // The sign-dial shapes and Lab.shape, built by a player, dialled by their signs and redstone.
+  { name: 'g1 StandardSignDial by hand, sign right', values: { shape: 'StandardSignDial', built: 'hand', dial: 'sign right' }, expect: 'PASS' },
+  { name: 'g1 StandardSignDial by preview, sign left', values: { shape: 'StandardSignDial', built: 'preview', dial: 'sign left' }, expect: 'PASS' },
+  { name: 'g1 MinimalSignDial by preview, redstone', values: { shape: 'MinimalSignDial', built: 'preview', dial: 'redstone' }, expect: 'PASS' },
+  { name: 'g1 HorizontalSignDial by hand, console dial', values: { shape: 'HorizontalSignDial', built: 'hand' }, expect: 'PASS' },
+  { name: 'g1 Lab.shape by preview, sign right', values: { shape: 'custom', built: 'preview', dial: 'sign right' }, expect: 'PASS' },
+  { name: 'g1 Lab.shape by hand, [RS] and [RD]', values: { shape: 'custom', built: 'hand', dial: 'redstone' }, expect: 'PASS' },
+  { name: 'g1 Lab.shape to the Range', values: { shape: 'custom', built: 'preview', destination: 'Range' }, expect: 'PASS' },
+  { name: 'g1 sign gate\'s DHD and /dial', values: { shape: 'StandardSignDial', built: 'preview', dial: 'dhd' },
+    expect: 'REFUSED:a sign-dial gate\'s DHD dials what its sign shows: the sign rows are that' },
+  // The chevron light order (G8) is checked on every dial above; these add the spins.
+  { name: 'g1 spin none', values: { spin: 'none' }, expect: 'PASS' },
+  { name: 'g1 spin universe', values: { spin: 'universe' }, expect: 'PASS' },
+  { name: 'g1 chevron order by DHD to the Range', values: { dial: 'dhd', destination: 'Range' }, expect: 'PASS' },
   { name: 'g1 bot throws a fireball', values: P('fireball'), expect: 'REFUSED:a player cannot throw a fireball; the dispenser can' },
   // Every traveller.
   { name: 'g1 minecart', values: { traveller: 'minecart' }, expect: 'PASS' },
@@ -74,30 +96,16 @@ const G1 = [
   // (Spilled items are left out: a broken cart's drops scatter, and whether one stays in the
   // one-block opening until the next sweep is chance. The lying item is the deterministic case.)
   ...['lying item', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
-  ...['dropped item', 'dispensed item'].map((t) => ({
-    name: `g1 ${t}`,
-    values: { traveller: t },
-    expect: 'FAIL:every one of the 5 came out of Relay',
-    fixedBy: '537',
-    known: '#537: of five items tossed (or dispensed) into the opening, some fly through its one block between two entity sweeps (every 20 ticks) and land behind the gate: only an item lying in the opening when a sweep runs is sent',
-  })),
+  // Known failures (#537: items flying through between two entity sweeps) until main's #543.
+  ...['dropped item', 'dispensed item'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
   // Every projectile, and the launchers and angles.
   ...['arrow', 'spectral arrow', 'bolt', 'piercing bolt', 'firework', 'snowball', 'egg', 'pearl',
     'splash potion', 'lingering potion'].map((p) => ({ name: `g1 ${p}`, values: P(p), expect: 'PASS' })),
-  {
-    // Passed while Probe threw in creative, which never uses a trident up; found once thrown in survival.
-    name: 'g1 trident',
-    values: P('trident'),
-    expect: 'FAIL:the loyal trident came back to Probe',
-    known: 'not yet filed (the #536 family): the plugin re-makes a trident at the far gate with a plain trident as its item, so it comes out without Loyalty, sticks where it lands and never comes back; thrown away from a gate it is back in about a second',
-  },
-  {
-    name: 'g1 tipped arrow',
-    values: P('tipped arrow'),
-    expect: 'FAIL:its slowness survived',
-    fixedBy: '536',
-    known: '#536: the plugin re-makes an arrow at the far gate as a plain one: a tipped arrow comes out as item minecraft:arrow, without its potion',
-  },
+  // Thrown in survival, so the trident is used up. Both were #536's known failures (a plain trident
+  // or arrow re-made at the far gate) until main's #542; on Spigot, with no loyalty API, a trident
+  // keeps its enchantments but cannot return, so there it would fail again.
+  { name: 'g1 trident', values: P('trident'), expect: 'PASS' },
+  { name: 'g1 tipped arrow', values: P('tipped arrow'), expect: 'PASS' },
   { name: 'g1 wind charge', values: P('wind charge'), expect: (v) => (atLeast(v, '1.21') ? 'PASS' : 'REFUSED:there are no wind charges before 1.21') },
   { name: 'g1 fireball from a dispenser', values: P('fireball', { launcher: 'dispenser' }), expect: 'PASS' },
   { name: 'g1 llama spit', values: P('llama spit', { launcher: 'dispenser' }), expect: 'PASS' },
@@ -212,6 +220,42 @@ const MATRIX = {
   b2: ['send to public', 'send to player', 'send to coordinates', 'send to nobody', 'goto as op', 'goto as player', 'set as player',
     'own place', 'another\'s place', 'go to a gate as op', 'go to a gate as player', 'cooldown', 'op skips cooldown']
     .map((action) => ({ name: `b2 ${action}`, values: { action }, expect: 'PASS' })),
+  // Stage 5: the Automation Bay, the Build Bench (preview actions, building by hand) and the Iris Chamber.
+  g3: [
+    ...['lever', 'button', 'plate', 'repeater', 'comparator'].map((i) => ({ name: `g3 ${i}`, values: { input: i }, expect: 'PASS' })),
+    // A known failure on Paper 1.21.11 (its rail reports a press as 15 to 15) until #546.
+    { name: 'g3 detector rail', values: { input: 'detector rail' }, expect: 'PASS' },
+    ...['gate build', 'gate dial', 'gate force', 'ring build', 'ring fire', 'mirror create', 'beam send']
+      .map((k) => ({ name: `g3 command block: ${k}`, values: { input: 'console', console: k }, expect: 'PASS' })),
+    { name: 'g3 timeout 0: open until somebody goes through', values: { input: 'lever', timing: 'timeout 0' }, expect: 'PASS' },
+    { name: 'g3 held open by presses, never past max-open', values: { input: 'button', timing: 'hold' }, expect: 'PASS' },
+    { name: 'g3 hold with a lever', values: { input: 'lever', timing: 'hold' }, expect: 'REFUSED:the hold is a button pressed again and again' },
+  ],
+  g4: [
+    ...['hand', 'layer', 'chevrons', 'dhd', 'material', 'iris', 'activate', 'share', 'place', 'fill a gap', 'clear']
+      .map((k) => ({ name: `g4 ${k}`, values: { case: k }, expect: 'PASS' })),
+    // A known failure (the guide held an [S:C] cell to [C]'s rule) until #546.
+    { name: 'g4 lenient [S:C] chevron in the frame block', values: { case: 'lenient' }, expect: 'PASS' },
+  ],
+  g5: [
+    { name: 'g5 sweep steps, IrisS', values: { check: 'steps' }, expect: 'PASS' },
+    { name: 'g5 sweep steps, IrisA', values: { check: 'steps', gate: 'Atlantis' }, expect: 'PASS' },
+    ...['spiral', 'rows', 'columns', 'instant'].map((a) => ({ name: `g5 ${a} steps`, values: { check: 'steps', animation: a }, expect: 'PASS' })),
+    { name: 'g5 steps at 4 ticks', values: { check: 'steps', 'step ticks': '4' }, expect: 'PASS' },
+    { name: 'g5 steps merged to two bands', values: { check: 'steps', 'max ticks': '4' }, expect: 'PASS' },
+    { name: 'g5 steps with no band limit', values: { check: 'steps', 'max ticks': '0' }, expect: 'PASS' },
+    // A known failure (the puller's own arm swing redrew the iris whole mid-sweep) until #546.
+    { name: 'g5 the puller watches the sweep', values: { check: 'steps', watcher: 'puller' }, expect: 'PASS' },
+    ...['front', 'behind', 'side'].map((s) => ({ name: `g5 layers from ${s === 'side' ? 'the side' : s === 'front' ? 'the front' : 'behind'}, IrisS`, values: { check: 'layers', side: s }, expect: 'PASS' })),
+    { name: 'g5 layers from the front, IrisA (ice behind glass)', values: { check: 'layers', gate: 'Atlantis' }, expect: 'PASS' },
+    { name: 'g5 layers from behind, IrisA', values: { check: 'layers', gate: 'Atlantis', side: 'behind' }, expect: 'PASS' },
+    { name: 'g5 arrow at the shut iris, IrisS', values: { check: 'arrow' }, expect: 'PASS' },
+    { name: 'g5 arrow at the shut iris, IrisA', values: { check: 'arrow', gate: 'Atlantis' }, expect: 'PASS' },
+    { name: 'g5 arrow at the open iris', values: { check: 'arrow', iris: 'open' }, expect: 'PASS' },
+    { name: 'g5 block in the shut opening, IrisS', values: { check: 'place' }, expect: 'PASS' },
+    { name: 'g5 block in the shut opening, IrisA', values: { check: 'place', gate: 'Atlantis' }, expect: 'PASS' },
+    { name: 'g5 side row off the layers check', values: { check: 'arrow', side: 'behind' }, expect: 'REFUSED:the side row is the layers check' },
+  ],
 };
 
 /**
@@ -225,9 +269,26 @@ const QUICK = new Set([
   'r1 walk ODD by console', 'r1 swap', 'r2 ceiling 11 up refused', 'r3 shaft 20 down', 'r4 mixed slabs', 'r5 name',
   'tunnel 257 apart: refused', 'b1 N public', 'b1 Trap', 'b2 send to public', 'b2 cooldown',
   'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'm3 stamp a look', 'g1 horse to the Range', 'b1 End',
+  'g1 built by hand', 'g1 Lab.shape by preview, sign right', 'g3 lever', 'g3 command block: gate build', 'g4 activate', 'g4 share', 'g5 sweep steps, IrisS',
+  'g5 layers from the front, IrisA (ice behind glass)', 'g5 arrow at the shut iris, IrisS',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;
 }
 
-module.exports = { MATRIX, QUICK, defaultsOf, expectation };
+// The companion desks' cells (companion-matrix.js), each marked `with` or `without`.
+Object.assign(MATRIX, require('./companion-matrix').CELLS);
+
+/**
+ * Whether a cell belongs in this run: one marked `with` only when every companion it names is
+ * installed; one marked `without` (the paired run: the plugin must do without that companion)
+ * only when --with was given and none it names is. `companions` is the --with list, or null for
+ * a run without --with, which runs neither kind: the default self-test is what it always was.
+ */
+function applies(cell, companions) {
+  if (cell.with) return Boolean(companions) && cell.with.every((c) => companions.includes(c));
+  if (cell.without) return Boolean(companions) && !cell.without.some((c) => companions.includes(c));
+  return true;
+}
+
+module.exports = { MATRIX, QUICK, defaultsOf, expectation, applies };

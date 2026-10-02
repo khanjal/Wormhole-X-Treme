@@ -227,8 +227,9 @@ into a datapack function per wing and a reset per chamber, and refuses to build 
 parts overlap or reach outside the forceloaded chunks. Each chamber's cell is built empty, with
 its gallery, seat, door, pylon and board derived from its box. A chamber gets its tests by
 adding a file to `chambers/` against the contract written at the top of `chambers/index.js`.
-So far `c0` (the calibration cell in Ops), `g1` (the Test Stand), `g2` (the Shape Gallery), the
-five ring chambers and the range tunnel, and the two beam chambers have them; the far gates
+So far `c0` (the calibration cell in Ops), the five gate chambers `g1` to `g5`, the five ring
+chambers and the range tunnel, the two beam chambers and the three mirror chambers have them; the
+far gates
 (Relay across the hall, Range in the nether, Annex in the End), the gallery's six gates and the
 transit routes are built once a session as fixtures, and the Menagerie is stocked. A fixture is
 permanent: a chamber's reset and cleanup leave it alone (`Facility.keepRings` spares the transit
@@ -315,16 +316,65 @@ checks a mirror survives an op's punch, `remove`, and the limit. `m3` shows a vi
 block put in the room after the capture is not drawn until `-capture`, and `-stamp` changes the
 banner. The facility runs with `mirror-per-world-limit 6` (two in the overworld, room for a
 chamber's own), put back at close. A mirror's first capture takes about 13 s at the default view
-depth; the chambers wait on `mirror debug` until it is in memory.
+depth; the chambers wait on `mirror debug` until it is in memory. Every mirror banner hangs at head
+height, feet + 1, as a player builds one (stage 5 moved them all down a block).
 
-There are two self-test profiles. The full one runs the whole matrix (315 checks counting
-resets, 368 with stage 4's mirrors and cross-world rows) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+Stage 5 is the deep gate work. `assets/Lab.shape` is a test shape, never shipped: the launcher
+copies it into the test server's `shapes/gate/`. It has the cells no shipped shape carries (`[C]`,
+`[S:C]`, `[RS]`), dials by sign, and frames in diamond, which no configured group claims, so the
+plugin derives a `Diamond` group from it at startup (`gate-material-groups-autodiscover`).
+`lib/gatebuild.js` builds a gate as a player does: Probe stands where `gate build <shape> [group]`
+puts the preview on the site, then `gate preview place`, or lays every block `gate preview needs`
+lists (with a wool scaffold where a block has nothing to go against), hangs a dial sign, presses
+the button and runs `gate complete`. With it G1's `built preview` and `built hand` are real, which
+makes the sign-dial shapes and Lab.shape buildable and their dials testable: the sign right-clicked
+on and left-clicked back, a lever by `[RD]`, and Lab.shape's sign turned by pulses on `[RS]`. Every
+G1 dial with chevrons is watched from Probe's client, and the chevrons must lock in the order of the
+shape's `:L#n` cells (G8): each wave's last turn to lit before the kawoosh, in order, all lit.
+
+`g3`, the Automation Bay, is a StandardSignDial gate built by preview with one peer, dialled by a
+lever, a button, a pressure plate, a detector rail, a line of repeaters and a comparator by its
+DHD; a lamp by the lever the plugin puts at `[RA]` must light while it is open and go out when it
+shuts. `timeout-shutdown 0` keeps it open until somebody goes through (a dropped signal changes
+nothing; the design's "the signal drop shuts it" is not what the plugin does or documents), and
+presses every 2 s hold it open past a 5 s shutdown and never past `max-open-seconds`. A command
+block runs each console form with `~` (`gate build`, `ring build`, `ring fire`, `mirror create`)
+and without (`gate dial`, `gate force`, `beam admin send`), judged by its `LastOutput` and the
+world. `g4`, the Build Bench, works through the preview actions one a run (layer, chevrons, dhd,
+material, iris, activate, share to Probe2, place, a preview on a standing gate's DHD that fills a
+knocked-out block, clear) and builds by hand, judged by what Probe is told, what `needs` lists and
+the block displays its client (and Probe2's) is shown. `g5`, the Iris Chamber, has two gates twenty
+apart, IrisA (Atlantis, a yellow glass iris) and IrisS (Standard, stone). Its checks are on the
+block-change packets a watcher is sent in the opening: closing and opening must come in the
+plugin's steps for each style (`lib/iris.js` works them out the way `IrisSweep` does), cell for
+cell, a step every `gate-iris-step-ticks`, merged to `max(2, gate-iris-sweep-max-ticks / step)`
+bands; on an open gate with its iris shut, the front is shown the iris in the plane and the horizon
+(water, or ice behind a glass iris) a block behind it, behind is shown the water in the plane and
+the iris a block toward the DHD, and the side the iris alone; an arrow at a shut iris is taken
+away; a block put into the shut opening is refused.
+
+The Facility Logbook (`lib/logbook.js`) is a written book every player is given on joining: page 1
+its contents, each entry turning to its page; Your runs, Bot runs (each run PASS, FAIL or KNOWN,
+the detail in its hover), a page per wing with a Go for the wing and each chamber (`/trigger`, so a
+non-op can), Transit, and how to use the facility. A written book cannot change, so after every run
+each holder's copy is put back in the slot they keep it in, never added to and never dropped. A
+player who no longer holds one is not given another unasked: `!book` and the console's [Logbook]
+replace the copy they hold, or give one in the first free slot if they hold none (or say there is
+no room). Each section runs to as many pages as it needs, at most 14 lines of about 18 characters
+to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
+`written_book_content` component from it (with JSON-string pages to 1.21.4: unverified, since no
+tested version takes that path), and SNBT pages with snake_case click keys from 1.21.5
+(`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
+
+There are two self-test profiles. The full one runs the whole matrix (635 checks on one server
+at stage 5, 508 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
 and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
 banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
-and one transit route per feature, in about 13 minutes. It is the cross-version check (text formats, entity ids, boats, the
+a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
+share, three G5 iris cells, and one transit route per feature, in about 15 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
 them all, and if the launcher is killed outright its children and their servers go with it.
@@ -337,11 +387,11 @@ not by count: every self-test writes each cell's seconds to
 `.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
 the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
 resets, empty, settings and faults sections run on every shard, since they guard that
-shard's own world, so a sharded summary has more checks than a single run (722 at N = 4, with
-the checks added in stage 4.5's review, which took 18.1 minutes); transit, plates, boards, players and console run once, on the first shard. On this machine
+shard's own world, so a sharded summary has more checks than a single run (846 at N = 4 with
+stage 5's chambers and the Logbook, which took 20.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
 CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
-is the one to use here. `--quick` on two versions at once takes about 13 minutes.
+is the one to use here. `--quick` on two versions at once takes about 15 minutes (15.5 at stage 5, peak 3.7 GB).
 
 A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
 close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
@@ -371,7 +421,9 @@ not written when two captures finish at once (`MirrorCapture.save` races on crea
 fixed on main). It is known only with that cause: the stack trace printed after the line must be
 the "could not create ...captures" from `MirrorCapture.save`, and the folder must be there now; the
 same words with another cause (a full disk, a folder that cannot be made) are a fault. `--fixed 540`
-counts it as a fault as well.
+counts it as a fault as well. A jar built from main since #540 (97741c8e) cannot print that line
+at all, since the losing capture now finds the folder made and carries on, so the known entry only
+matters for an older jar; give such a jar's run `--fixed 540`, and a return of the race is a fault.
 
 `--cells <names>` runs only the matching matrix cells: names separated by `|`, each matched
 anywhere in a cell's name, or at its start with `^` and its end with `$` (`--cells '^491'`,
@@ -380,16 +432,134 @@ expected to fail by the name of its failing check and is listed at the end of th
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
 expects those cells to pass instead.
 
-Known plugin failures (stage 2), each expected by name in `matrix.js`:
+#### Companion plugins (`--with`)
+
+`--with <list>` installs companion plugins beside Wormhole: `viaversion`, `viabackwards`,
+`dynmap`, `worldedit`, `worldguard`, `luckperms`, `vault`, or the sets `via`, `regions`
+(WorldEdit and WorldGuard) and `permissions` (LuckPerms and Vault); what one needs comes with it.
+Each is pinned by version and SHA-256 in `scripts/facility/companions.json`, per Minecraft
+version. The launcher reads the plugin cache first (`--plugin-cache <dir>`, else
+`WX_PLUGIN_CACHE`, else the nearest `.wx-plugins` folder beside the repository or a folder above
+it: its `<version>` folder, then `any`), then what an earlier run downloaded
+(`.local-server/companions/`), and only then downloads from the pinned official source: Modrinth,
+GitHub releases, or for Dynmap 3.8 the Dynmap project's own build server (Modrinth has 3.8 only for
+Forge and Fabric; SpigotMC is never used, since its downloads are not scriptable). A cached jar
+under the pinned name that is not the pinned build is refused, not replaced. Each run prints every
+companion's file, SHA-256, Java and where it came from, and records what it installed in
+`plugins/.wx-companions.json`; a run without a companion takes out the jar an earlier run put
+there (and never one it did not), and a fresh run also clears the data folders of the ones it
+manages. A jar of the same name already in `plugins/` that no run installed and that is not the
+pinned build is somebody's own: the run is refused rather than overwrite it (one byte for byte the
+pinned build is adopted, and taken out by a later run without it). Only bare names in
+the record are acted on, so an edited record cannot reach outside `plugins/`. A companion that cannot run on a version is refused by name before the server starts:
+no Dynmap build supports 26.x (its newest version helper is 1.21.11), so Dynmap runs on 1.20.4
+(3.7-beta-8) and 1.21.11 (3.8).
+
+The JDK is the highest any jar needs, read from the newest class file in each (not the main
+class: WorldEdit 7.4.5's main class is Java 21 and most of the rest Java 25, and WorldGuard 7.0.17,
+Java 21 itself, needs it), Paper's own floor included. On Java 21, Paper refuses WorldEdit 7.4.5
+and Wormhole only says WorldGuard is not installed; the facility counts a companion that failed to
+load as a fault. Wormhole's switch for each integration (`worldguard-enabled`, `dynmap-enabled`)
+is written into its `config.yml` before the start, since both are read only at enable, keeping the
+file's line endings. The value it replaced is kept in the record, and a later run without that
+companion puts it back, so a `--keep-world` run without `--with` is not left with an integration
+switched on. The install owns these two switches, not the settings journal: a cell that changed one
+and was killed before putting it back leaves it journalled, and the next start takes it out of the
+journal (as the value to go back to) before `recover()` could turn it against what is installed.
+`npm test --prefix scripts/facility` runs those rules without a server.
+
+Dynmap's web map gets its own port, `8123 + (port - 25590)`, on 127.0.0.1 only, written into its
+`configuration.txt` (from the jar's own template on a fresh run) and printed; the setup fails if
+Dynmap does not say its web server started there and answer, and a failed bind is a fault. A hand
+lab started by other means keeps its own configuration. `--op <names>` ops testers once the
+server is up.
+
+`scripts/facility/lab.ps1` opens a lab in its own window from a fresh clone (it installs the Node
+modules the first time): 26.1.2 by default, its world kept unless `-Fresh`, with `-Version`,
+`-Port`, `-Plugin <jar>`, `-Op`, `-With` and `-PluginCache`. `lab.sh` does the same in the current
+terminal (`-v -P -p -o -w -c -f`).
+
+Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
+companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
+companion named is installed) or `without` (a paired run: only with `--with`, and none of those
+installed), so a self-test without `--with` runs none of them. Two runs cover them all on 1.21.11:
+
+```bash
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with dynmap --cells "^map |^regions |^perms "
+node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with regions,permissions --cells "^map |^regions |^perms "
+```
+
+- The **Map Desk** (#236) reads Wormhole's Dynmap markers back with Dynmap's own console commands
+  (`dmarker listsets`, `list`, `listareas`, `listlines`, `getdesc`; `lib/dynmap.js`), waiting up to
+  8 s after each change: a gate's point, area and popup; a dial (idle while the chevrons lock, open
+  with a cyan line once the wormhole forms, idle again once shut); a pair across worlds; a name and
+  a network of `<b>x</b>` escaped in Dynmap and in the web map's marker file; ring ends, their line
+  and an end's name; a public beam destination drawn and a player's own place never; a mirror, and
+  a new name at the same banner; removal; a restart (every marker the plugin holds drawn once, a gate
+  removed before the stop not among them); `map-show-rings false`; `dynmap-enabled false` (no
+  layers, nothing logged); and the paired `absent` cell, `dynmap-enabled true` without Dynmap (one
+  startup warning, on `KNOWN_BENIGN`, and gates work). A cell whose setting is read at enable
+  restarts the server in place (`Facility.restart`: the same world, Probe back, the console
+  listening again) and its cleanup restarts once more with the setting put back. The checklist's
+  `/dynmap reload` is refused: Dynmap 3.7 and 3.8 have no reload subcommand. The icons at normal
+  zoom and the popup's rendering are for the tester, at the web map.
+- The **Region Desk** (#240) runs the checklist in G1's cell: `Guarded` on the Stand position inside
+  region `gatetest`, the Relay as the gate with no region, and an empty region `buildtest` where
+  Probe2 lays a Standard frame by hand (the blocks set from the console, the DHD pressed by Probe2)
+  and stands a preview. Regions are written to WorldGuard's region file and loaded (`rg define`
+  needs a player's WorldEdit selection); flags and members then change by `rg flag` and
+  `rg addmember`. Probe2, never an op, is in the tester group `builder`. Cases 1 to 15 each a cell;
+  `switched off` is P1 (`worldguard-enabled false` and a restart: WorldGuard calls `wormhole-use`
+  an unknown flag and nothing is refused), and the paired `absent` cell P2 (`worldguard-enabled
+  true` without WorldGuard: the plugin says so once, loads clean, and a gate works).
+- The **Permissions Desk** puts Probe2 in each tester group (`lib/groups.js`: `visitor` uses gates,
+  rings, beams and mirrors; `builder` also builds, by hand and by preview; `operator` also configures
+  and manages, without being a server op) and tries a DHD on a gate Probe owns, a preview, a
+  setting and a public beam destination: each allowed or refused ("You lack the permissions to do
+  this.") exactly as the group says. With LuckPerms installed the console's Operations tab offers
+  `Your tester group: [visitor] [builder] [operator] [default]` (or `!group <name>`), and the
+  `console` cell checks that switch as Probe2.
+
+What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.21.11):
+
+- #236: a visible gate dialled from a hidden iris gate (`map-show-iris-gates false`) is drawn
+  open, not idle, so the map shows it connected to something it does not show. `map iris hidden`
+  expects this as a known failure.
+- The #236 checklist's gate rename has nothing to run: `gate edit` has no `name` field, so a gate
+  cannot be renamed (`map rename`, a known failure). Rings (`ring edit name`) and mirrors (made
+  again at the same banner) do relabel.
+- With a permissions plugin, a player holds only the nodes given, and a mirror is used under a
+  gate's use check (`wormhole.use.sign` or `wormhole.use.dialer`, both `default: false`), where
+  rings and beams have nodes that default to true: Probe2 with no group could not choose a mirror
+  on the transit route. So Probe2 joins as a `visitor` whenever LuckPerms is installed.
+- LuckPerms and WorldGuard answer several console commands (`lp ...`, `rg load`, `rg addmember`,
+  an unknown `rg flag`) from another thread, after the command's fence: the desks wait for the
+  answer line in the log instead.
+
+Stage 5's three known plugin failures are fixed by #546, so `g3 detector rail`, `g4 lenient` and
+`g5 the puller watches the sweep` now expect a pass, and a jar from before it fails them:
+
+- The build guide took a lenient `[S:C]` chevron for a strict `[C]`: `needs` asked for the
+  chevron block there and the guide marked the frame block wrong, though detection takes either,
+  so a gate built with the frame block there completed and the guide never said it was built.
+- The player who pulled an iris lever never saw the sweep: their arm swing near a drawn iris
+  redrew it whole a tick later, without asking `StargateIrisAnimator.isSweeping`.
+- A detector rail by the DHD never dialled on Paper 1.21.11: Paper raises its `BlockRedstoneEvent`
+  with the old current 15 as well as the new (`DetectorRailBlock.checkPressed` passes the new
+  state twice; 1.20.4 and 26.1.2 report 0 then 15), and the listener took only a rise from 0.
+
+Stage 2's (#536 and #537 are fixed on main by #542 and #543, so their cells now expect a pass:
+the self-test is set for a jar built from current main, and an older jar fails them):
 
 - #536: a tipped arrow comes out of the far gate as a plain arrow: the plugin re-makes a projectile at
   the far end and does not copy the arrow's potion. The arrow is checked to leave the bow as a
   tipped arrow of slowness (`item: tipped_arrow` with `potion_contents` slowness on 1.21.11) and
   arrives as `item: arrow` with none.
-- Not yet filed, the same family: a Loyalty trident comes out of the far gate as a plain trident
-  (its `item` has no enchantments; only its `weapon` still has Loyalty III), sticks where it lands
-  and never comes back. Thrown in survival away from any gate, the same trident is back in about a
-  second. (While Probe threw in creative, "it came back" passed without it.)
+- #536 too: a Loyalty trident comes out of the far gate as a plain trident (its `item` has no
+  enchantments; only its `weapon` still has Loyalty III), sticks where it lands and never comes
+  back. Thrown in survival away from any gate, the same trident is back in about a second. (While
+  Probe threw in creative, "it came back" passed without it.) #542 brings it back on Paper; on
+  Spigot, which has no loyalty API, it keeps its enchantments but cannot return.
 - #537: an item tossed (Q) or dispensed into an upright opening mostly flies through its one block
   between two of the plugin's entity sweeps (every 20 ticks) and lands two to four blocks behind the
   gate. With the harness checked first (all five left Probe's hand or the dispenser, which is empty
@@ -404,7 +574,7 @@ Known plugin failures (stage 2), each expected by name in `matrix.js`:
   at the iris, is let about two blocks past the face before it is put back, on main and on the
   fix alike. The Horizontal control (`491-H`: a cart rolled onto a flat gate's shut iris, which is
   real blocks) passes on main; on the fix the cart is put down inside the opening, so `--fixed 491`
-  expects that cell to fail and says why. `--fixed 536` and `--fixed 537` flip their cells too.
+  expects that cell to fail and says why.
 
 What stage 4 found (none of it a plugin fault):
 
@@ -454,9 +624,10 @@ What stage 2 found about the harness itself:
 The self-test checks the world (every wing's sentinel and anchor blocks, every cell clear air),
 the transit routes, every plate, the Ops boards as Probe's client sees them, the matrix with a
 reset after each run (and a Run of a staged chamber, which is refused until its Reset), a non-op
-tester's path through the console, every reset, that the plugin holds nothing the facility did
-not make (its fixture gates, the transit ring pair and beam destinations, no beam places, no
-mirrors), that each setting any cell changed is back, and that the plugin logged no fault.
+tester's path through the console, the Logbook, every reset, that the plugin holds nothing the
+facility did not make (its fixture gates, the transit ring pair and beam destinations, no beam
+places, no mirrors), that each setting any cell changed is back, and that the plugin logged no
+fault.
 Known-benign plugin lines are listed one by one in `lib/server.js`.
 
 The spike, `spike.js`, is stage 0's proof of the four vanilla mechanisms the rest is built on: a
@@ -481,6 +652,184 @@ What it found:
   against the `version.json` inside the server's own jar instead.
 - Paper writes its console in the Windows code page unless told otherwise, which turns a `·` in
   a readback into a replacement character; the server is started with UTF-8 output.
+
+#### Seeing the facility (`--viewer`, `--shots`, `--schematics`)
+
+The campus was designed from coordinates; these show it. None of them runs unless asked, so the
+self-test is as it was without them.
+
+```bash
+node scripts/facility/run-facility.js 1.21.11 --viewer           # hold, with a browser view of Probe
+node scripts/facility/run-facility.js 1.21.11 --shots all        # a PNG per vantage point, then stop
+node scripts/facility/run-facility.js 1.21.11 --shots gate-room,range --selftest
+node scripts/facility/run-facility.js 1.21.11 --with worldedit --schematics ../my-schematics
+```
+
+`--viewer` serves [prismarine-viewer](https://github.com/PrismarineJS/prismarine-viewer) (pinned in
+`scripts/facility/package.json`) on Probe, on 127.0.0.1 only, at port 3007 + (game port − 25590)
+(3007 on the default port; `--viewer-port` picks another; a port under 1024 is refused). `/`
+orbits round Probe (drag to turn, scroll to zoom); `/first/` looks out of Probe's eyes. The
+launcher prints both addresses, and the viewer stops with it. A request whose Host, or whose
+Origin when a browser sends one, is not 127.0.0.1 or localhost is refused, so a web page open
+elsewhere cannot drive it. Blocks are drawn; text displays (the boards and plaques) are not.
+After a restart (the Map and Region Desks) it serves the new Probe on the same port.
+
+prismarine-viewer 1.33.0 has textures and models up to 1.21.4 and draws a newer 1.x with the
+newest of that 1.x: 1.20.4 with its 1.20.1 assets, 1.21.11 with its 1.21.4. It has nothing for
+26.x, so `--viewer` and `--shots` refuse 26.1.2 by name before a server starts. The servers number
+their block states differently from those assets (1.21.5 onwards inserted blocks), so
+`lib/viewer.js` translates every chunk and block update, by block name and properties, into the
+assets' numbering. The two blocks renamed in between (`short_grass` was `grass`, `iron_chain` was
+`chain`) are drawn by their old names; a block the assets do not have at all (1.21.11's shelves
+and copper chests, 1.20.4's tuff bricks and crafter, say) is drawn as stone, and the launcher
+lists them by name. Every block the facility builds is a 1.20.4 one, so the campus is drawn
+whole. Its renderer draws 256 blocks of height, from y 0 (the world before 1.18), so the page is
+shown the world raised by the dimension's depth below 0: the overworld from -64 to 191 is drawn,
+and the launcher says once if anything above 191 was left out.
+
+`--shots` flies Probe to each vantage point in `campus.SHOTS` (`all`, or names separated by
+commas; one or more a wing: `gate-room`, `atrium`, `systems-mezzanine`, `gate-hall`,
+`gate-hall-deck`, `g1-control`, `ring-concourse`, `shaft-window`, `beam-lab`, `b1-pads`,
+`mirror-hall`, `mirror-optics`, `m1-round`, `menagerie`, `range`, `annex`), opens the viewer's
+first-person page in a headless browser and saves `.local-server/shots/<version>/<name>.png`
+(1280 × 720). A shot is taken once three frames a second apart are the same with no chunk sent to
+that page between them (two would take a pause in SwiftShader's meshing for the end), and it
+counts only if the page was sent chunks and at least 5% of the frame is not the page's empty
+sky: blank frames are the same too. The page names itself in its address, so only its own
+chunks count, whatever other viewer pages are open. A shot that fails those is saved all the
+same, named in the output, and fails the run, whether the run then stops, holds or self-tests
+(where each shot is a check in a `shots` section). `WX_SHOTS_SETTLE_MS` shortens the wait, to
+see a failed shot fail a run. It prints the paths at the end. A
+cell's gallery looks through tinted glass, which is all a seat beside it shows, so B1 and M1 are
+seen from inside, high by the gallery wall. The browser is an installed Chrome or Edge (Edge
+comes with Windows), driven by `puppeteer-core`, which downloads nothing; `WX_BROWSER` names
+another Chromium, such as a `chrome-headless-shell`. WebGL is drawn by SwiftShader, in software,
+so a machine with no GPU draws the same picture. Shots are taken after the fixtures, so the
+gates, rings and pads are in them; then `--selftest` runs, `--viewer` holds, or, with neither,
+the launcher stops. A vantage point is feet position, yaw (0 south,
+−90 east) and pitch (down is positive), so a new one is a line in `campus.SHOTS`.
+
+`--schematics <folder>` pastes WorldEdit schematics (Sponge `.schem`, as `//schem save` writes
+them) after the build and before Probe joins: the placements in `campus.SCHEMATICS` and in
+`<folder>/placements.json`, each `{ "file": "x.schem", "at": { "x": 0, "y": 0, "z": 0 },
+"rotation": 90, "dim": "minecraft:overworld" }` (rotation 0, 90, 180 or 270, clockwise as
+`//rotate`; `dim` defaults to the overworld), the files read from the folder. It needs `--with
+worldedit`. `at` is where the schematic's origin goes: where its maker stood for `//copy`, so
+the box it fills runs from there as it did from them. **A paste replaces everything in its box,
+air included**: it is a plain `//paste`, never `-a`, since a designer's empty space is meant. So
+before the server starts, each schematic's whole box where it would land is checked against every
+volume the decoration guardrail protects (`wings/decor/guard.js`: cells and their clear volumes,
+footprints, pads, rings, gates, lanes, plates, walk-in lines, mirror spots), and a box reaching
+into any of them, by so much as a block, is refused with what it reaches into. That covers what
+the tests use, not the campus itself: a box over a room's wall, a corridor or a doorway passes and
+replaces it, so a set piece placed there can still wall off a route a test walks. WorldEdit pastes them from the console, with no player and no API:
+`//world <world>`, `//pos1 x,y,z`, `/schem load`, `//rotate`, `//paste` (one slash fewer on
+1.20.4, whose console keeps the slash 1.21.11's drops; the launcher tries `//world`, then
+`/world`). The console has no position, so the paste puts the origin at pos #1; WorldEdit
+7.4.5's `//toggleplace` refuses the console outright. `/schem load` reads the file off the main
+thread and says so later, so the launcher waits for that file's "loaded" line. A paste that
+fails is a setup problem, and fails a `--selftest`. Where a box lands was checked against
+WorldEdit itself: a schematic copied with its origin at the far corner, saved by 7.4.5 (format
+3) and 7.2.20 (format 2), then pasted plain and turned 90 and 270, landed exactly in the boxes
+`lib/schematics.js` works out (`scripts/facility/test/fixtures/`). A placement may carry
+`"minVersion": "1.21.11"`: a run on an older version leaves it out and says so.
+
+#### Design mode (`--design`, `--design-check`, `--design-export`, `--design-import`)
+
+For the designer the facility is being decorated by (`design/facility/BRIEF.md`, "Run it
+yourself"): `lab.ps1 -Design -Op Name -Plugin <jar>` (`lab.sh -d -o Name -p <jar>`), or
+
+```bash
+node scripts/facility/run-facility.js --design --op YourName --plugin WormholeXTreme.jar
+node scripts/facility/run-facility.js --design-check      # the server stopped: start, check, stop
+node scripts/facility/run-facility.js --design-export     # the server stopped: start, export, stop (--full: the worlds too)
+node scripts/facility/run-facility.js 1.21.11 --design-import .local-server/exports/facility-design-2026-10-01.zip --selftest --quick
+```
+
+Design mode runs 1.21.11 only, adds WorldEdit, and keeps its world in
+`.local-server/design-1.21.11/` (`-<port>` on another port), a folder no test run uses. It listens
+on 127.0.0.1 only unless `--design-open` (`-Open`, `-O`); online-mode is off, so an open server
+lets anyone who reaches it join under any name, an op's included. The first session runs with the
+whitelist on and nobody opped: it builds the campus, then the session fixtures (the menagerie
+unstocked; Probe is whitelisted and opped for them, then leaves, and is deopped in a `finally`
+whose result is checked), fills the air of every protected volume and each board's block with a
+placeholder (pink stained glass for test volumes, green for the rest), saves a baseline schematic
+of each export area (each `campus.FORCELOAD` rectangle grown by 16, y −63..95 in the overworld)
+in `wx-design/baseline/`, writes `wx-design/state.json`, and only then turns the whitelist off
+and ops the `--op` players. A start that finds no state starts the folder over (worlds, ops,
+whitelist); one that finds Probe still opped deops it. Later sessions keep the world as it is.
+Ops are put in creative on joining; the server's default is creative and peaceful. The plugin jar
+is `--plugin`, else the one the folder already has, else a Maven build (the launcher cannot fetch
+a release jar).
+
+"Protected" here is the union over every supported version from 1.21.11 on
+(`version.SUPPORTED`, `design.maskVersions()`): the boxes of `wings/decor/guard.js` and the boards,
+on each version a design is pasted on. The same union is marked, checked and masked.
+
+An op's `check` in chat (or `--design-check`) saves the world, makes every player a spectator
+(their modes come back after), copies each area with WorldEdit's console (`//copy -e`,
+`/schem save`) and compares it with the baseline (`lib/design.js`, `compareArea`):
+- a block that differs by name inside a protected volume (a placeholder, or air where one was,
+  is fine);
+- in a chamber's 2-block skin: an active part that is not the campus's (rule 3's list: redstone
+  of every kind, rails, signs, buttons, levers, plates, doors, trapdoors, fence gates, bells,
+  lightning rods, TNT, jukeboxes, lecterns, banners, hoppers, pistons, water, lava, fire), a
+  campus active part or block with data changed in its full state or data (what using it changes,
+  `powered`, `open`, `lit` and `triggered`, aside), and a campus block replaced by air; re-cladding
+  the floor with another block is not flagged;
+- anywhere, a block no design may hold that the campus did not put there (command blocks,
+  spawners, trial spawners, vaults, structure, jigsaw and test blocks), and a designer's block
+  entity with a click event in its text;
+- a new entity other than an item frame or armour stand, either of those in a volume or skin, or
+  carrying data outside the whitelist (`design.ENTITY_KEYS`: no Passengers, Tags or UUID). Dropped
+  items, falling blocks and experience orbs are not looked at.
+
+The first eight go to chat; the whole report to `wx-design/check.txt`. `export` (or
+`--design-export`) does the same pass and writes `.local-server/exports/facility-design-<date>.zip`
+(`lib/zip.js`, no tool needed): per area a schematic with **structure void at every protected
+position**, and at every campus block a design may not hold (the campus builds those itself);
+every placeholder, structure void and designer's forbidden block elsewhere turned to air; the
+block entities of kept blocks with every click event taken out of their text (JSON strings and
+compounds alike, books in lecterns and chests included); only the designer's item frames and
+armour stands outside volumes and skins, their data cut to the whitelist; `placements.json` with
+each area at its corner, `"guarded": true, "minVersion": "1.21.11"`; `manifest.json`; and
+`check.txt`. That is a few MB. `export full` (`--full`, `-Full`, `lab.sh -d -e -f`) adds the three
+worlds under `worlds/`, read with saving off.
+
+A hand-edited zip is treated as hostile (review of PR #551). Every palette entry must be a
+canonical state (`minecraft:name[key=value,...]`, lower case: WorldEdit would default a missing
+namespace and lower-case a name, so `command_block` or `minecraft:Spawner` would otherwise slip
+past a name check, and an entry it cannot parse is pasted as air); the mask must be exactly
+`minecraft:structure_void`, since `minecraft:structure_void[waterlogged=false]` would be parsed as
+air and wipe the volume; the DataVersion must be 1.21.11's (4671) or newer, so no data fixer
+rewrites text on load; clicks are found by parsing every JSON string and walking its keys, so an
+escaped `\u0063lickEvent` is found; an item frame must hang (`block_pos`, or `TileX/Y/Z`) in the
+block its position is in, and that block is the one checked; end portals, end gateways, nether
+portals, shriekers that can summon, hives with bees and loaded dispensers, droppers and crafters
+are refused like command blocks; and at every skin position an active block or a block entity
+must be structure void (export masks the campus's own there). `--design-import` refuses a
+placements.json with any placement that is not `"guarded": true` with a `minVersion`, and a zip
+whose `check.txt` does not say "No problems" unless `--accept-check-problems`. A gzip that unpacks
+past 256 MB, an entry running past the zip's end, and a block-data number past five bytes or the
+palette are refused. An entity in two overlapping areas is exported by the first area only.
+
+A guarded placement is how a whole wing's box can be pasted when it holds cells, pads and gates:
+the guardrail refuses an ordinary box that touches one, since a plain paste replaces everything in
+it. A guarded one is pasted `//paste -e -m !minecraft:structure_void`, so WorldEdit leaves every
+protected position as the campus built it. A design zip is untrusted: before the server starts,
+`--schematics` reads each guarded schematic whole (Sponge version 3 only, origin at its minimum
+corner, palette indices each used once and in range) and refuses it unless every position the
+guardrail protects on that run's version holds structure void, and it holds no placeholder, no
+forbidden block, no click event, and no entity but an item frame or armour stand with whitelisted
+data outside the volumes and skins. `--design-import <zip>` unpacks into
+`.local-server/imports/<name>/` (a plain name; never `imports/` itself) only `placements.json`,
+`manifest.json`, `check.txt` and the `.schem` files, never the worlds, reading the zip a piece at a
+time: every entry name must be a plain relative path (no `..`, absolute path, drive letter or
+backslash) or nothing is written, each entry is inflated to no more than the size it declares (at
+most 1 GB), and a Zip64 zip is refused. It prints the manifest's strings cleaned of control
+characters, warns if the Minecraft version or the facility commit differs from this checkout's, and
+runs the export as `--schematics`, adding WorldEdit on 1.21.11 and later; on 1.20.4 every
+placement is left out and the run is the plain campus.
 
 ## Static analysis
 

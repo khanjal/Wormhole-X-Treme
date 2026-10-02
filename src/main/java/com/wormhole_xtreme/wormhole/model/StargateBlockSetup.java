@@ -1261,8 +1261,12 @@ class StargateBlockSetup
         }
         else if (isLayered(gate))
         {
-            // Iris and horizon, stacked from whichever side this player is on.
-            sendLayeredTo(player, gate);
+            // Iris and horizon, stacked from whichever side this player is on. Not mid-sweep:
+            // the sweep draws both a ring at a time, and stacks the gate itself when it ends.
+            if (!StargateIrisAnimator.isSweeping(gate))
+            {
+                sendLayeredTo(player, gate);
+            }
         }
         else if (gate.isGateIrisActive())
         {
@@ -1392,13 +1396,18 @@ class StargateBlockSetup
         // the moment an older world's built iris can be taken out. It matches nothing once it
         // has run, so it costs a type check per cell after that.
         BuiltIrisUpgrade.clearLeftover(gate);
-        final BlockData irisData =
-            MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
-        for (final Location bc : gate.getGatePortalBlocks())
+        // Mid-sweep the sweep is drawing the iris a ring at a time; the whole of it sent now
+        // would show the player who pulled the lever the finished iris before it had arrived.
+        if (!StargateIrisAnimator.isSweeping(gate))
         {
-            player.sendBlockChange(
-                new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
-                irisData);
+            final BlockData irisData =
+                MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing());
+            for (final Location bc : gate.getGatePortalBlocks())
+            {
+                player.sendBlockChange(
+                    new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                    irisData);
+            }
         }
         // Chevrons stay lit behind a shut iris on an open gate, and a player who arrives after
         // it shut is owed those too -- the portal path sends them, and this one skips it.
@@ -1834,6 +1843,33 @@ class StargateBlockSetup
     }
 
     /**
+     * Draws a shut iris whole for everybody near, once its closing sweep has finished.
+     *
+     * <p>A redraw asked for mid-sweep leaves the iris alone, so anybody who arrived, or knocked a
+     * cell out of their picture, while it swept is owed the whole of it now. Over a wormhole that
+     * is the layers; on an idle or dialling gate, the iris itself.
+     */
+    static void settleShutIris(final Stargate gate)
+    {
+        if (isLayered(gate))
+        {
+            sendLayered(gate);
+            return;
+        }
+        if (!gate.isGateIrisActive() || (gate.getGateWorld() == null))
+        {
+            return;
+        }
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            {
+                sendIrisTo(player, gate);
+            }
+        }
+    }
+
+    /**
      * Sends a layered gate to everybody near enough to see it, each from their own side.
      */
     static void sendLayered(final Stargate gate)
@@ -2005,7 +2041,8 @@ class StargateBlockSetup
         }
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (!isLayered(gate) || !isNearEnoughToRedraw(gate, to))
+            // Not mid-sweep: the sweep draws the iris a ring at a time, and settles everybody at its end.
+            if (!isLayered(gate) || StargateIrisAnimator.isSweeping(gate) || !isNearEnoughToRedraw(gate, to))
             {
                 continue;
             }

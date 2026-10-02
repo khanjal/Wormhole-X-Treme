@@ -75,11 +75,17 @@ function tagFolder(version, kind) {
   return atLeast(version, '1.21') ? kind : `${kind}s`;
 }
 
+/** The predicate folder's name: plural before 1.21, singular from it, as the others. */
+function predicateFolder(version) {
+  return atLeast(version, '1.21') ? 'predicate' : 'predicates';
+}
+
 /**
  * Writes the pack, replacing any earlier one; returns the pack folder. `tags` maps
- * "<kind>/<namespace>:<name>" (kind: function or entity_type) to a list of values.
+ * "<kind>/<namespace>:<name>" (kind: function or entity_type) to a list of values; `predicates`
+ * maps a name in wx: to a predicate's JSON.
  */
-function writePack(worldFolder, version, functions, tags = {}) {
+function writePack(worldFolder, version, functions, tags = {}, predicates = {}) {
   const root = path.join(worldFolder, 'datapacks', 'wx');
   fs.rmSync(root, { recursive: true, force: true });
   const fnRoot = path.join(root, 'data', 'wx', functionFolder(version));
@@ -95,8 +101,13 @@ function writePack(worldFolder, version, functions, tags = {}) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, `${JSON.stringify({ replace: false, values }, null, 2)}\n`);
   }
+  for (const [name, predicate] of Object.entries(predicates)) {
+    const file = path.join(root, 'data', 'wx', predicateFolder(version), `${name}.json`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify(predicate, null, 2)}\n`);
+  }
   fs.writeFileSync(path.join(root, 'pack.mcmeta'), `${JSON.stringify(packMeta(version), null, 2)}\n`);
   return root;
 }
 
-module.exports = { PACK_FORMATS, packFormat, packMeta, functionFolder, tagFolder, boxFunction, writePack };
+module.exports = { PACK_FORMATS, packFormat, packMeta, functionFolder, tagFolder, predicateFolder, boxFunction, writePack };

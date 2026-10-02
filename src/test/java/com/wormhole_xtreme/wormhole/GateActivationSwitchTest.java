@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import java.util.UUID;
 
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -322,5 +324,40 @@ class GateActivationSwitchTest
         assertFalse(GateInteractionHandler.dialFromSign(gate, player));
 
         verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+    }
+
+    /**
+     * With same-world-only on, a sign showing a gate in another world says why it will not dial.
+     *
+     * <p>Without its own message the dial would come back refused and the player be told the far
+     * gate was busy, which it is not.
+     */
+    @Test
+    void aSignShowingAGateInAnotherWorldSaysCrossWorldTravelIsOff()
+    {
+        final Stargate gate = spy(new Stargate());
+        gate.setGateName("home");
+        gate.setGateWorld(mock(World.class));
+        gate.setGateSignPowered(true);
+        gate.setGateDialSignBlock(signBlock());
+        gate.setGateDialSignIndex(0);
+        StargateManager.registerStargate(gate);
+
+        final Stargate peer = new Stargate();
+        peer.setGateName("nether");
+        peer.setGateWorld(mock(World.class));
+        StargateManager.registerStargate(peer);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            assertFalse(GateInteractionHandler.dialFromSign(gate, player));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        verify(player).sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
     }
 }

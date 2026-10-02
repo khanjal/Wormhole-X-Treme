@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.config;
 import java.util.Locale;
 import java.util.logging.Level;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
@@ -11,6 +12,7 @@ import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.SignStyle;
 
 /**
  * What a value typed at {@code /wormhole config} turns into, or why it was refused.
@@ -188,6 +190,9 @@ final class ParsedSetting
                 return readSlab(key, trimmed);
             case RING_DEFAULT_LIGHT, RING_DEFAULT_FLASH:
                 return readBlock(key, trimmed);
+            case SIGN_COLOR_GATE_NAME, SIGN_COLOR_NETWORK, SIGN_COLOR_OWNER, SIGN_COLOR_SELECTED,
+                SIGN_COLOR_NEIGHBOUR:
+                return readColour(key, trimmed);
             default:
                 return accepted(raw);
         }
@@ -310,6 +315,26 @@ final class ParsedSetting
             return refused(key + " is the name of a block, not \"" + raw + "\".");
         }
         return accepted(material.name());
+    }
+
+    /**
+     * Reads a sign colour, which a sign would otherwise quietly draw in its default.
+     *
+     * @param key
+     *            which setting is being written
+     * @param raw
+     *            the value as typed
+     * @return the colour's name, or the reason it was refused
+     */
+    private static ParsedSetting readColour(final ConfigKeys key, final String raw)
+    {
+        final ChatColor colour = SignStyle.colorNamed(raw);
+        if (colour == null)
+        {
+            return refused(key + " is " + String.join(", ", SignStyle.colorNames())
+                + ", not \"" + raw + "\".");
+        }
+        return accepted(colour.name());
     }
 
     /**

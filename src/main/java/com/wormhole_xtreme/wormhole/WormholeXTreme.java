@@ -26,7 +26,6 @@ import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
-import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
@@ -43,7 +42,6 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -700,48 +698,17 @@ public class WormholeXTreme extends JavaPlugin
         registerCommands();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
-        // Periodic sweep: send loose non-player entities that drift into an open
-        // wormhole through it. Players and vehicles have their own events; this covers
-        // dropped items and wandering mobs, which generate none.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            GateEntityScanner.create(), 20L, entityScanIntervalTicks);
-        // Projectiles cross a portal in about a tick, far too fast for the sweep above to
+        // The sweeps whose period is a setting, rescheduled when /wormhole config changes one.
+        RepeatingSweeps.startAll();
+        // Projectiles cross a portal in about a tick, far too fast for the entity sweep to
         // see, so they are followed individually and checked every tick while in flight.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ProjectileGateTracker.createTicker(), 20L, 1L);
         // A thrown item crosses the opening in a tick or two, so it is followed the same way.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ItemGateTracker.createTicker(), 20L, 1L);
-        // An open wormhole hums. One sweep over the open gates rather than a task per gate:
-        // the work is the same and there is nothing per-gate to cancel or leak.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            GateSounds::tickAmbient,
-            20L, ConfigManager.getGateSoundAmbientTicks());
-        // A mirror hung on a wall is drawn as a view of its room. One sweep over the registered
-        // mirrors, which skips any whose world or chunk is not loaded; open gates join it when
-        // gate-view asks them to (#516).
+        // Open gates join the mirror sweep when gate-view asks them to (#516).
         MirrorProximity.alsoOffer(GateViews::offerAll);
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            MirrorProximity.createTicker(),
-            40L, ConfigManager.getMirrorProximityTicks());
-        // A mirror names itself above the hotbar to whoever is looking at it. Its own task
-        // rather than a second job inside the sweep above: that one walks the mirrors, this
-        // one walks the players, and folding them together would mean doing the more expensive
-        // of the two loops for the sake of the cheaper. Shares the period because both are
-        // about what a player sees when they approach a banner.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            MirrorSignpost.createTicker(),
-            40L, ConfigManager.getMirrorProximityTicks());
-        // Behind a see-through iris the wormhole is drawn in ice, which does not move the way
-        // water does, so it is moved for it. Registered only when it is wanted: a server that
-        // has turned it off should not pay a task that walks the open gates to do nothing.
-        final long irisHorizonTicks = ConfigManager.getGateIrisHorizonTicks();
-        if (irisHorizonTicks > 0)
-        {
-            WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-                StargateManager::tickIrisHorizon,
-                20L, irisHorizonTicks);
-        }
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GatePreviews::tick, 100L, 100L);

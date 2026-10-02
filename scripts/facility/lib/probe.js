@@ -343,6 +343,53 @@ class Probe {
     await this.bot.toss(this.bot.heldItem.type, null, 1);
   }
 
+  // ---- building -------------------------------------------------------------------------------
+
+  /** Puts one of an item in the main hand (by console: in creative a placed block is not used up). */
+  async wield(id) {
+    const name = id.replace(/^minecraft:/, '');
+    if (this.bot.heldItem && this.bot.heldItem.name === name) return;
+    const r = await this.srv.run(`item replace entity ${this.name} weapon.mainhand with minecraft:${name}`);
+    if (r.errors.length) throw new Error(`${this.name} cannot hold ${name}: ${r.errors.join(' ')}`);
+    const deadline = Date.now() + 5000;
+    while (!(this.bot.heldItem && this.bot.heldItem.name === name)) {
+      if (Date.now() > deadline) throw new Error(`${this.name} was never handed ${name}`);
+      await ticks(1);
+    }
+  }
+
+  /**
+   * The face a block at `p` can be placed against, as a player places one: a neighbour the
+   * client sees as a full block, below first. Null if it has none (it needs a scaffold).
+   */
+  supportOf({ x, y, z }, avoid = () => false) {
+    const at = new Vec3(x, y, z);
+    for (const d of [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1), new Vec3(0, 1, 0)]) {
+      const ref = this.bot.blockAt(at.minus(d));
+      if (ref && ref.boundingBox === 'block' && !avoid(ref.position)) return { ref, face: d };
+    }
+    return null;
+  }
+
+  /**
+   * Places the held block at `p` against `support` (supportOf's answer), as a player does, and
+   * waits until the client shows it there. Throws with what was there instead.
+   */
+  async placeAgainst(p, { ref, face }, ms = 5000) {
+    const at = new Vec3(p.x, p.y, p.z);
+    const placed = waitEvent(this.bot, 'blockUpdate', (_old, b) => b && b.position.equals(at) && b.name !== 'air', ms,
+      `a block at ${p.x} ${p.y} ${p.z} after placing ${this.bot.heldItem ? this.bot.heldItem.name : 'nothing'}`);
+    try {
+      await this.bot.lookAt(ref.position.offset(0.5 + face.x * 0.5, 0.5 + face.y * 0.5, 0.5 + face.z * 0.5), true);
+      await this.alive(this.bot._genericPlace(ref, face, { swingArm: 'right', forceLook: true }), `placing at ${p.x} ${p.y} ${p.z}`, ms);
+    } catch (e) {
+      placed.catch(() => {});
+      throw e;
+    }
+    const [, now] = await this.alive(placed, `waiting for the block at ${p.x} ${p.y} ${p.z}`, ms + 1000);
+    return now;
+  }
+
   // ---- saddles --------------------------------------------------------------------------------
 
   /** The client's copy of the entity nearest a server-tagged entity (tags stay server-side). */

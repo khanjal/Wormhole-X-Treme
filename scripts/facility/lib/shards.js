@@ -12,7 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { MATRIX } = require('../matrix');
+const { MATRIX, applies } = require('../matrix');
 
 const DEFAULTS = path.join(__dirname, '..', 'cell-times.json');
 
@@ -43,11 +43,12 @@ function cellMatcher(spec) {
   };
 }
 
-/** The labels of the matrix cells a run would take, in matrix order, with --quick and --cells applied. */
-function labels({ quick = false, only = null } = {}) {
+/** The labels of the matrix cells a run would take, in matrix order, with --quick, --cells and --with applied. */
+function labels({ quick = false, only = null, companions = null } = {}) {
   const out = [];
   for (const [id, cells] of Object.entries(MATRIX)) {
     for (const cell of cells) {
+      if (!applies(cell, companions)) continue;
       const label = labelOf(id, cell);
       if (only && !only.test(label)) continue;
       if (quick && !cell.quick) continue;

@@ -15,7 +15,7 @@ const { atLeast } = require('../lib/version');
 const def = campus.chamber('m3');
 const O = campus.OVERWORLD;
 // On the inside of the north wall (z 75), east of the door (x 22..23).
-const DESK = { name: 'Desk', dim: O, x: 30, y: 2, z: 76, facing: 'south', floorY: 0 };
+const DESK = { name: 'Desk', dim: O, x: 30, y: 1, z: 76, facing: 'south', floorY: 0 };
 // In its room, eight in front: seen through the opening, flipped behind the wall.
 const MARK = { x: 30, y: 0, z: 84 };
 

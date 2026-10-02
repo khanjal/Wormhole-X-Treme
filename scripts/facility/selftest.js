@@ -14,6 +14,10 @@
 //             staged chamber, which is refused
 //   resets    every chamber's reset function, then its cell must be clear
 //   console   a non-op Tester clicks through the menus, chooses an option, runs and resets
+//   players   a non-op Tester is not hurt or hungry; a mob still is
+//   logbook   Tester is given the Logbook on joining; its contents and Go links are intact in
+//             what the client holds; a Go moves Tester; after a run its copy is replaced in the
+//             same slot, not added to, with the run in it
 //   empty     the plugin holds nothing the facility did not make: its fixture gates, the transit
 //             ring pair and beam destinations, no mirrors
 //   settings  every setting a chamber needed is back to what it was
@@ -29,10 +33,10 @@ const { RingKit } = require('./lib/rings');
  * The matrix: per chamber, the cells to run and what each must come to. A refusal is a
  * result like any other: `REFUSED:<the chamber's reason>`.
  */
-const { MATRIX, defaultsOf, expectation } = require('./matrix');
+const { MATRIX, defaultsOf, expectation, applies } = require('./matrix');
 
 async function selftest(fac, {
-  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null,
+  buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null, companions = null,
 }) {
   const results = [];
   const known = [];
@@ -137,13 +141,16 @@ async function selftest(fac, {
       const e = fac.entries.find((x) => x.def.id === id);
       const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
-        // Every setting any cell needs is read before its first run, and checked at the end.
-        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
-        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
+        // Only the cells this run takes: a companion cell's settings may not exist in a jar tested
+        // without its companion, and a cell --cells, --quick or the shard leaves out reads nothing.
+        if (!applies(cell, companions)) continue;
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
         if (!inShard(label)) continue;
+        // Every setting a cell needs is read before the first run that needs it, and checked at the end.
+        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
         const want = expectation(cell, fac.version, fixed);
         const t0 = Date.now();
         const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
@@ -279,6 +286,86 @@ async function selftest(fac, {
     }
   });
 
+  // The Logbook (lib/logbook.js), judged by what Tester's client holds: the book, its pages'
+  // click events as they arrived, a Go that moves it (a non-op, by /trigger), and a copy
+  // replaced after a run, in the same slot.
+  if (first) await guard('logbook', async () => {
+    const { clientPages, clicksIn, rowsOf, PAGE_LINES } = require('./lib/logbook');
+    const blueprint = require('./lib/blueprint');
+    const { Vec3 } = require('vec3');
+    const tester = await join({ port: fac.port, version: fac.version, username: 'Tester' });
+    const until = async (test, ms) => {
+      const end = Date.now() + ms;
+      for (;;) {
+        if (test()) return true;
+        if (Date.now() > end) return false;
+        await new Promise((resolve) => { setTimeout(resolve, 100); });
+      }
+    };
+    const books = () => tester.inventory.slots.map((it, i) => ({ it, i })).filter((x) => x.it && x.it.name === 'written_book');
+    const pageOf = (pages, name) => {
+      const entry = clicksIn(pages[0] || {}).find((x) => x.text === name);
+      return entry ? { entry, page: pages[Number(entry.target) - 1] } : { entry: null, page: null };
+    };
+    try {
+      await waitEvent(tester, 'message', (m) => /Welcome to the Wormhole Research Facility/.test(m.toString()), 20000, 'the welcome');
+      await until(() => books().length > 0, 8000);
+      const given = books();
+      check('logbook', 'Tester is given the Logbook on joining', given.length === 1, `${given.length} written book(s)`);
+      const pages = clientPages(given[0] && given[0].it);
+      const yours = pageOf(pages, 'Your runs');
+      check('logbook', 'a contents entry turns to its page: change_page as the client received it', yours.entry && yours.entry.action === 'change_page'
+        && /YOUR RUNS/.test(text.plain(yours.page || {})), yours.entry ? `${yours.entry.action} ${yours.entry.target}: ${text.plain(yours.page || {}).slice(0, 60)}` : `contents: ${text.plain(pages[0] || {}).slice(0, 120)}`);
+      check('logbook', 'Your runs lists the run Tester made from the console', /C0 (PASS|FAIL|KNOWN)/.test(text.plain(yours.page || {})), text.plain(yours.page || {}).replace(/\n/g, ' / ').slice(0, 160));
+      // A page that runs past the book's lines is cut off on the client, Go links and all.
+      const rows = pages.map((p) => rowsOf(text.plain(p)));
+      const over = rows.map((r, i) => ({ r, i })).filter((x) => x.r > PAGE_LINES);
+      check('logbook', `no page runs past ${PAGE_LINES} lines (wrapped as a book wraps them)`, pages.length > 2 && over.length === 0,
+        over.length ? over.map((x) => `page ${x.i + 1}: ${x.r} lines`).join(', ') : `${pages.length} pages, the longest ${Math.max(...rows)} lines`);
+      const wing = campus.wing('gates');
+      const gates = pageOf(pages, wing.title);
+      const go = clicksIn(gates.page || {}).find((x) => x.text === '[Go]');
+      check('logbook', `${wing.title}'s Go is intact: run_command /trigger wx set <code>`, go && go.action === 'run_command' && /^\/trigger wx set \d+$/.test(go.target), go ? `${go.action} ${go.target}` : 'no Go on the page');
+      if (go) {
+        tester.chat(go.target);
+        const e = wing.entrance;
+        const moved = await until(() => tester.entity.position.distanceTo(new Vec3(e.x, e.y, e.z)) < 2, 8000);
+        check('logbook', `clicked by Tester (not an op), the Go moves it to ${wing.title}`, moved, `at ${tester.entity.position}`);
+      }
+      // A chamber's own Go: the console's Watch code, to its gallery seat.
+      const seatGo = clicksIn(gates.page || {}).map((x) => ({ ...x, code: Number((/^\/trigger wx set (\d+)$/.exec(x.target) || [])[1]) })).find((x) => x.code >= 10000);
+      const target = seatGo ? fac.entries.find((x) => x.number === Math.floor(seatGo.code / 10000)) : null;
+      if (target) {
+        tester.chat(seatGo.target);
+        const s = blueprint.layoutOf(target.def).seat;
+        const seated = await until(() => tester.entity.position.distanceTo(new Vec3(s.x, s.y, s.z)) < 2, 8000);
+        check('logbook', `a chamber's Go moves Tester to ${target.def.id.toUpperCase()}'s gallery seat`, seated, `at ${tester.entity.position}, the seat at ${s.x} ${s.y} ${s.z}`);
+      } else {
+        check('logbook', 'a chamber\'s Go moves Tester to its gallery seat', false, `no chamber Go on ${wing.title}'s page`);
+      }
+      // A run by the bot: the copy is replaced where it is, not added to, and now has the run:
+      // one more on Bot runs' count, and first on its list.
+      const slot = given[0] ? given[0].i : null;
+      const latest = () => {
+        const b = books();
+        const p = b.length ? pageOf(clientPages(b[0].it), 'Bot runs').page : null;
+        const lines = p ? text.plain(p).split('\n').filter(Boolean) : [];
+        return { b, count: Number((/BOT RUNS · (\d+)/.exec(lines[0] || '') || [])[1]), first: lines[1] || '' };
+      };
+      const before = latest();
+      const c0 = fac.entries.find((x) => x.def.id === 'c0');
+      await fac.runChamber(c0, { values: MATRIX.c0[0].values, raw: true, holdMs: 0 });
+      await fac.resetChamber(c0);
+      await until(() => latest().count === before.count + 1, 8000);
+      const after = latest();
+      check('logbook', 'after a run its copy is replaced in the same slot, not added to, with the run first on Bot runs',
+        after.b.length === 1 && after.b[0].i === slot && after.count === before.count + 1 && /C0 PASS/.test(after.first),
+        `${after.b.length} book(s), slot ${after.b.length ? after.b[0].i : '-'} (was ${slot}); Bot runs ${before.count} → ${after.count}, first "${after.first}"`);
+    } finally {
+      tester.quit();
+    }
+  });
+
   await guard('resets', async () => {
     for (const f of fac.manifest.functions.filter((x) => x.fn.startsWith('reset/'))) {
       const e = fac.entries.find((x) => x.def.id === f.chamber) || { def: chamber(f.chamber), chamber: null };
@@ -288,13 +375,13 @@ async function selftest(fac, {
   });
 
   await guard('empty', async () => {
-    // Only the session's fixtures: the far gates and the gallery. A gate a run built and its
-    // reset left behind would show here.
+    // Only the session's fixtures: the far gates, the gallery, the transit gates and the Iris
+    // Chamber's pair. A gate a run built and its reset left behind would show here.
     const gates = await srv.run('wormhole list');
     const listed = gates.lines.filter((l) => !/Available gates|No gates found/.test(l)).join(',')
       .replace(/§./g, '').split(',').map((x) => x.trim()).filter(Boolean).sort();
     const fixed = [...Object.keys(require('./chambers/relay').farGates()), ...require('./chambers/g2-gallery').gallery().map((g) => g.name),
-      ...Object.keys(campus.ROUTES.gates)].sort();
+      ...Object.keys(campus.ROUTES.gates), ...Object.values(require('./chambers/g5-iris').GATES).map((g) => g.name)].sort();
     check('empty', 'only the fixture gates', JSON.stringify(listed) === JSON.stringify(fixed), `listed ${listed.join(', ') || 'none'}; fixtures ${fixed.join(', ')}`);
     const listing = await transitListing(fac);
     const keep = [...fac.keepRings];
@@ -321,6 +408,8 @@ async function selftest(fac, {
     }
   });
 
+  // (A known fault whose fix this jar carries, --fixed <issue>, is counted as a fault by FaultCounter.)
+  await fac.faults.settled();
   check('faults', 'plugin log has no faults', fac.faults.count === 0,
     fac.faults.faults.slice(0, 3).join(' | ') || (fac.faults.known.length ? `0 faults; KNOWN PLUGIN FAULT: ${fac.faults.known[0].note} (${fac.faults.known.length}x)` : '0 faults'));
   for (const k of fac.faults.known) known.push({ label: `plugin log: ${k.line}`, note: k.note, version: fac.version });

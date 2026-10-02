@@ -40,6 +40,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -66,6 +67,8 @@ class VehicleGateEntryTest
 
     private BukkitScheduler scheduler;
     private World world;
+    /** Held here because a Location keeps its World weakly, and a collected mock reads as unloaded. */
+    private World farWorld;
     private Block portal;
     private Stargate src;
     private Stargate dst;
@@ -83,6 +86,7 @@ class VehicleGateEntryTest
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
+        farWorld = mock(World.class);
         portal = mock(Block.class);
         when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
         when(portal.getX()).thenReturn(Integer.valueOf(BX));
@@ -786,5 +790,79 @@ class VehicleGateEntryTest
             "a bounced cart has moved, and the move must not read as another trip");
         assertFalse(WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(UUID.randomUUID()),
             "nobody was aboard to mark");
+    }
+
+    /**
+     * With same-world-only on, a cart does not carry its rider into another world.
+     *
+     * <p>Found by the research facility: walking into a gate to the Nether was refused, and a
+     * minecart took the same player straight through, because only the walking path asked.
+     */
+    @Test
+    void aCartIsPutBackFromAnotherWorldWhenSameWorldOnlyIsOn()
+    {
+        final Player rider = putARiderAboard();
+        dst.setGatePlayerTeleportLocation(new Location(farWorld, 100.5, 70.0, 200.5));
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            rollIn();
+            // Still where the server would have it on the next move, had it only been reversed.
+            rollIn();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        verify(rider, times(1)).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
+        assertEquals(world, whereItLanded().getWorld(), "put back on this side, never sent to the far world");
+        assertEquals(6.5, whereItLanded().getZ(), 1.0e-9, "at the gate it came from");
+        assertTrue(WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(cart.getUniqueId()),
+            "and marked, so it does not read as a fresh entry");
+    }
+
+    /**
+     * Another world is asked before the far iris, so a rider is not told of an iris on a trip that
+     * could never happen, and is not bounced twice.
+     */
+    @Test
+    void aCartBoundForAnotherWorldIsToldThatRatherThanOfTheFarIris()
+    {
+        final Player rider = putARiderAboard();
+        when(rider.isOp()).thenReturn(true);
+        dst.setGatePlayerTeleportLocation(new Location(farWorld, 100.5, 70.0, 200.5));
+        dst.setGateIrisActive(true);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            rollIn();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        verify(rider).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
+        verify(rider, never()).sendMessage(ArgumentMatchers.contains("Remote Iris"));
+    }
+
+    /** The rule is about crossing worlds: a cart in one world goes on as ever with it on. */
+    @Test
+    void aCartWithinOneWorldStillTravelsWhenSameWorldOnlyIsOn()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            rollIn();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        assertEquals(101.5, whereItLanded().getX(), 1.0e-9, "it went through to the far gate");
     }
 }
