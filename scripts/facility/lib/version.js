@@ -20,4 +20,7 @@ function atLeast(version, floor) {
   return compare(version, floor) >= 0;
 }
 
-module.exports = { compare, atLeast };
+// The versions the facility is run and tested on (DESIGN.md, the self-test matrix), oldest first.
+const SUPPORTED = ['1.20.4', '1.21.11', '26.1.2'];
+
+module.exports = { compare, atLeast, SUPPORTED };
