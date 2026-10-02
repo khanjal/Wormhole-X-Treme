@@ -33,7 +33,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
   from or travelled through, at either end. A flag only takes away: a player still needs the
   usual permission, and WorldGuard's region bypass gets past the flag. Off until
-  `worldguard-enabled` is set, which takes a restart. Rings, beams and mirrors are not covered
+  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
   yet. See [the guide](docs/guide/SERVER.md#worldguard).
 
 ### Stargates

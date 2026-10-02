@@ -32,6 +32,7 @@ import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -236,7 +237,7 @@ class PendingCompletionDetectionTest
         Complete.addPendingCompletion(player, "Detected", "", "");
         final Stargate found = detectedGate();
         found.getGateStructureBlocks().add(new Location(null, 5, 64, 5));
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
@@ -249,7 +250,7 @@ class PendingCompletionDetectionTest
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
 
         verify(player).sendMessage(RegionFlags.BUILD_REFUSED);

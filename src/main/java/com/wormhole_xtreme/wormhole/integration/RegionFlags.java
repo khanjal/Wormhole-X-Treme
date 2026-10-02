@@ -129,6 +129,20 @@ public final class RegionFlags
     }
 
     /**
+     * Follows {@code worldguard-enabled} changed in-game: off applies at once, as every check reads it.
+     *
+     * @throws IllegalStateException
+     *             if it was turned on with no flags registered, which only a restart can do
+     */
+    public static void follow()
+    {
+        if (ConfigManager.isWorldGuardEnabled() && (check == null))
+        {
+            throw new IllegalStateException("WorldGuard's flags are only added while the server starts");
+        }
+    }
+
+    /**
      * Starts refusing travel through gates in regions that deny their use, if the flags registered.
      *
      * @param plugin
@@ -216,7 +230,7 @@ public final class RegionFlags
      */
     public static boolean mayBuild(final Player player, final Collection<Location> at)
     {
-        if ((check == null) || (at == null))
+        if ((check == null) || (at == null) || !ConfigManager.isWorldGuardEnabled())
         {
             return true;
         }
@@ -272,7 +286,7 @@ public final class RegionFlags
     private static boolean allows(final Player player, final Location at, final Action action)
     {
         final Check current = check;
-        if ((current == null) || (player == null) || (at == null))
+        if ((current == null) || (player == null) || (at == null) || !ConfigManager.isWorldGuardEnabled())
         {
             return true;
         }

@@ -71,7 +71,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -3066,7 +3066,7 @@ class GatePreviewsTest
         final List<Cell> cells = standardLookingNorth();
         GatePreviews.show(owner, standard, null);
         final Cell denied = cells.get(cells.size() / 2);
-        RegionFlags.setCheckForTest((who, where, action) -> (where.getBlockX() != denied.x())
+        RegionFlagsTestSupport.install((who, where, action) -> (where.getBlockX() != denied.x())
             || (where.getBlockY() != denied.y()) || (where.getBlockZ() != denied.z()));
         try
         {
@@ -3074,12 +3074,12 @@ class GatePreviewsTest
             assertTrue(written.isEmpty(), "nothing may be placed once a region refuses");
             assertTrue(detected.isEmpty());
 
-            RegionFlags.setCheckForTest((who, where, action) -> true);
+            RegionFlagsTestSupport.install((who, where, action) -> true);
             assertEquals(GatePreviews.Outcome.PLACED, GatePreviews.place(owner).outcome());
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
     }
 }

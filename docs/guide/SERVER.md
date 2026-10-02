@@ -411,7 +411,7 @@ where gates may be built and where they may be used, with two region flags.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `worldguard-enabled` | `false` | The flags are only added, and only checked, while this is on. Takes effect on restart. |
+| `worldguard-enabled` | `false` | The flags are only added, and only checked, while this is on. Turning it off applies at once; turning it on takes a restart. |
 
 | Flag | Refuses |
 |---|---|

@@ -42,7 +42,7 @@ class RegionTravelListenerTest
     @AfterEach
     void tearDown()
     {
-        RegionFlags.setCheckForTest(null);
+        RegionFlagsTestSupport.remove();
     }
 
     private static Stargate gateAt(final Location arrival)
@@ -63,7 +63,7 @@ class RegionTravelListenerTest
     /** Use denied only where the named spot is. */
     private static void denyUseAt(final Location denied)
     {
-        RegionFlags.setCheckForTest((who, where, action) -> (action != Action.USE) || !where.equals(denied));
+        RegionFlagsTestSupport.install((who, where, action) -> (action != Action.USE) || !where.equals(denied));
     }
 
     /** Leaving from a gate in a denying region is refused, with the region's reason. */
@@ -90,7 +90,7 @@ class RegionTravelListenerTest
     @Test
     void bothEndsAllowingLeavesTheTripAlone()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> true);
+        RegionFlagsTestSupport.install((who, where, action) -> true);
 
         assertFalse(trip().isCancelled());
         verify(player, never()).sendMessage(any(String.class));

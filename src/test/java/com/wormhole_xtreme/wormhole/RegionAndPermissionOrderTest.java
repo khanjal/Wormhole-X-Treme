@@ -29,6 +29,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
@@ -55,13 +56,13 @@ class RegionAndPermissionOrderTest
         when(player.getName()).thenReturn("builder");
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         // Every region here denies everything, so only the permission can make a difference.
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
     }
 
     @AfterEach
     void tearDown() throws ReflectiveOperationException
     {
-        RegionFlags.setCheckForTest(null);
+        RegionFlagsTestSupport.remove();
         StargateManager.removeIncompleteStargate(player);
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
@@ -124,7 +125,7 @@ class RegionAndPermissionOrderTest
     @Test
     void withTheNodeAndAnAllowingRegionTheGateIsOffered()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> true);
+        RegionFlagsTestSupport.install((who, where, action) -> true);
         final Stargate gate = builtGate();
         try (MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
              MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))

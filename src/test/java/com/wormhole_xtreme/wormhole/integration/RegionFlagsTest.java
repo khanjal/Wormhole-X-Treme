@@ -1,7 +1,9 @@
 package com.wormhole_xtreme.wormhole.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -56,7 +58,7 @@ class RegionFlagsTest
     @AfterEach
     void tearDown() throws ReflectiveOperationException
     {
-        RegionFlags.setCheckForTest(null);
+        RegionFlagsTestSupport.remove();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -93,7 +95,7 @@ class RegionFlagsTest
     @Test
     void aRegionDenyingUseRefusesItAndSaysSo()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> action != Action.USE);
+        RegionFlagsTestSupport.install((who, where, action) -> action != Action.USE);
         final Stargate gate = gateArrivingAt(at(1));
 
         assertFalse(RegionFlags.mayUse(player, gate));
@@ -113,13 +115,13 @@ class RegionFlagsTest
     {
         final Stargate gate = gateArrivingAt(at(1));
 
-        RegionFlags.setCheckForTest((who, where, action) -> {
+        RegionFlagsTestSupport.install((who, where, action) -> {
             throw new IllegalStateException("region manager not loaded");
         });
         assertTrue(RegionFlags.mayUse(player, gate), "an exception must fail open");
         assertFalse(RegionFlags.refusesBuild(player, gate), "an exception must fail open");
 
-        RegionFlags.setCheckForTest((who, where, action) -> {
+        RegionFlagsTestSupport.install((who, where, action) -> {
             throw new NoClassDefFoundError("com/sk89q/worldguard/protection/regions/RegionQuery");
         });
         assertTrue(RegionFlags.mayUse(player, gate), "a linkage error must fail open too");
@@ -131,7 +133,7 @@ class RegionFlagsTest
     void aGateWithOneBlockInADenyingRegionMayNotBeBuilt()
     {
         final Location denied = at(7);
-        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(denied));
+        RegionFlagsTestSupport.install((who, where, action) -> !where.equals(denied));
         final Stargate gate = gateArrivingAt(at(1));
         when(gate.getGateStructureBlocks()).thenReturn(List.of(at(5), at(6), denied, at(8)));
 
@@ -144,7 +146,7 @@ class RegionFlagsTest
     @Test
     void aLeverInADenyingRegionRefusesTheGate()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(2)));
+        RegionFlagsTestSupport.install((who, where, action) -> !where.equals(at(2)));
         final Stargate gate = gateArrivingAt(at(1));
         when(gate.getGateStructureBlocks()).thenReturn(List.of(at(5)));
 
@@ -156,7 +158,7 @@ class RegionFlagsTest
     void useIsAskedAtTheDhdAndWhereTravellersArrive()
     {
         final List<Location> asked = new ArrayList<>();
-        RegionFlags.setCheckForTest((who, where, action) -> asked.add(where));
+        RegionFlagsTestSupport.install((who, where, action) -> asked.add(where));
 
         RegionFlags.mayUse(player, gateArrivingAt(at(1)));
         RegionFlags.mayUse(player, gateArrivingAt(null));
@@ -175,13 +177,13 @@ class RegionFlagsTest
     {
         final Stargate gate = gateArrivingAt(at(1));
 
-        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(2)));
+        RegionFlagsTestSupport.install((who, where, action) -> !where.equals(at(2)));
         assertFalse(RegionFlags.mayUse(player, gate), "a denied DHD refuses though the arrival allows");
 
-        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(1)));
+        RegionFlagsTestSupport.install((who, where, action) -> !where.equals(at(1)));
         assertFalse(RegionFlags.mayUse(player, gate), "a denied arrival refuses though the DHD allows");
 
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
         assertTrue(RegionFlags.refusesUse(player, gate));
         verify(player, times(1)).sendMessage(RegionFlags.USE_REFUSED);
     }
@@ -190,7 +192,7 @@ class RegionFlagsTest
     @Test
     void aGateWhoseOpeningIsInADenyingRegionMayNotBeBuilt()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> !where.equals(at(9)));
+        RegionFlagsTestSupport.install((who, where, action) -> !where.equals(at(9)));
         final Stargate gate = gateArrivingAt(at(1));
         when(gate.getGateDialLeverBlock()).thenReturn(null);
         when(gate.getGateStructureBlocks()).thenReturn(List.of(at(5)));
@@ -208,7 +210,7 @@ class RegionFlagsTest
     @Test
     void theFirstFailingCheckIsAWarningAndLaterOnesAreNot()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> {
+        RegionFlagsTestSupport.install((who, where, action) -> {
             throw new IllegalStateException("region manager not loaded");
         });
 
@@ -254,10 +256,51 @@ class RegionFlagsTest
         final PluginManager plugins = mock(PluginManager.class);
         when(plugin.getServer()).thenReturn(server);
         when(server.getPluginManager()).thenReturn(plugins);
-        RegionFlags.setCheckForTest((who, where, action) -> true);
+        RegionFlagsTestSupport.install((who, where, action) -> true);
 
         RegionFlags.listen(plugin);
 
         verify(plugins).registerEvents(any(RegionTravelListener.class), eq(plugin));
+    }
+
+    /**
+     * Turning worldguard-enabled off in-game stops regions refusing at once, and back on they refuse again.
+     *
+     * <p>The flags stay registered with WorldGuard until a restart, so the setting has to be read at
+     * every check; otherwise the command said it was off while every denying region still refused.
+     */
+    @Test
+    void turningTheSettingOffStopsRegionsRefusingAtOnce()
+    {
+        RegionFlagsTestSupport.install((who, where, action) -> false);
+        final Stargate gate = gateArrivingAt(at(1));
+
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.WORLDGUARD_ENABLED, false);
+        assertTrue(RegionFlags.mayUse(player, gate), "off, a denying region must not refuse use");
+        assertTrue(RegionFlags.mayBuild(player, gate), "off, a denying region must not refuse building");
+        assertTrue(RegionFlags.mayBuild(player, List.of(at(5))));
+
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.WORLDGUARD_ENABLED, true);
+        assertFalse(RegionFlags.mayUse(player, gate), "back on, the flags registered at startup refuse again");
+        assertFalse(RegionFlags.mayBuild(player, gate));
+        assertFalse(RegionFlags.mayBuild(player, List.of(at(5))));
+    }
+
+    /**
+     * Turning the setting on with no flags registered cannot take effect, and says so; anything else can.
+     *
+     * <p>WorldGuard closes its flag registry before plugins enable, so only a restart can add them.
+     */
+    @Test
+    void followingTheSettingFailsOnlyWhenTurnedOnWithNothingRegistered()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.WORLDGUARD_ENABLED, true);
+        assertThrows(IllegalStateException.class, RegionFlags::follow);
+
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.WORLDGUARD_ENABLED, false);
+        assertDoesNotThrow(RegionFlags::follow, "turning it off always applies");
+
+        RegionFlagsTestSupport.install((who, where, action) -> true);
+        assertDoesNotThrow(RegionFlags::follow, "flags registered at startup can be turned back on");
     }
 }

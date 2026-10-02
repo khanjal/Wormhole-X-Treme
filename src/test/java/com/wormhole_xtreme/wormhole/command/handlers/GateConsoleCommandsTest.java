@@ -34,6 +34,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -590,7 +591,7 @@ class GateConsoleCommandsTest
         final Player player = mock(Player.class);
         final Stargate start = new Stargate();
         start.setGatePlayerTeleportLocation(new Location(null, 0, 64, 0));
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
              MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
              MockedStatic<Dial> dial = mockStatic(Dial.class))
@@ -608,13 +609,13 @@ class GateConsoleCommandsTest
             verify(player).sendMessage(RegionFlags.USE_REFUSED);
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
 
-            RegionFlags.setCheckForTest((who, where, action) -> true);
+            RegionFlagsTestSupport.install((who, where, action) -> true);
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
             dial.verify(() -> Dial.dialFrom(player, start, new String[] { "Chulak" }));
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
     }
 
@@ -624,7 +625,7 @@ class GateConsoleCommandsTest
     {
         final Player player = mock(Player.class);
         final List<Location> asked = new ArrayList<>();
-        RegionFlags.setCheckForTest((who, where, action) -> {
+        RegionFlagsTestSupport.install((who, where, action) -> {
             asked.add(where);
             return false;
         });
@@ -642,7 +643,7 @@ class GateConsoleCommandsTest
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
     }
 
@@ -650,7 +651,7 @@ class GateConsoleCommandsTest
     @Test
     void theConsoleBuildsWhateverTheRegionSays()
     {
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
         try (Building building = new Building())
         {
             building.previews.when(() -> GatePreviews.placeAt(any(), any(), any(), any())).thenReturn(
@@ -663,7 +664,7 @@ class GateConsoleCommandsTest
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
     }
 }

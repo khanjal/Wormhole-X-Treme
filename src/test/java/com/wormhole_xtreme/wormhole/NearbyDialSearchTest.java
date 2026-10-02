@@ -28,6 +28,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -260,7 +261,7 @@ class NearbyDialSearchTest
         leverAt(1, 0, 0, Material.OBSIDIAN);
         final Stargate found = unregisteredGate();
         when(found.getGateStructureBlocks()).thenReturn(List.of(new Location(null, 1, 64, 0)));
-        RegionFlags.setCheckForTest((who, where, action) -> false);
+        RegionFlagsTestSupport.install((who, where, action) -> false);
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
              MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
@@ -278,7 +279,7 @@ class NearbyDialSearchTest
         }
         finally
         {
-            RegionFlags.setCheckForTest(null);
+            RegionFlagsTestSupport.remove();
         }
     }
 }
