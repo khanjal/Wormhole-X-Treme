@@ -1,0 +1,35 @@
+<svg width="996" height="300" viewBox="0 0 664 200" xmlns="http://www.w3.org/2000/svg">
+<style>
+.wing{fill:#e9edf1;stroke:#1f5f99;stroke-width:1}.farside{fill:#f3f5f7;stroke:#b05a2c;stroke-width:1;stroke-dasharray:3 2}
+.hub{fill:#fff;stroke:#b05a2c;stroke-width:1.5}.cell{fill:#fff;stroke:#17222e;stroke-width:.6}
+.corr rect{fill:#e6b800}.corrline{fill:none;stroke:#e6b800;stroke-width:4}.link path{fill:none;stroke:#b05a2c;stroke-width:1;stroke-dasharray:2 2}
+.shaft{fill:#17222e}.gatemark{fill:none;stroke:#1f5f99;stroke-width:1.5}.mezz{fill:#1f5f99;opacity:.35}
+.water{fill:#1f5f99}.rail{fill:#566474}.stripe{fill:#b05a2c}.tunnel{fill:none;stroke:#566474;stroke-width:1;stroke-dasharray:4 2}
+.ink{fill:#17222e}.lbl,.lbl text{fill:#17222e;font:500 9px ui-monospace,Consolas,monospace}
+.note,.note text,.dim{fill:#566474;font:400 8px ui-monospace,Consolas,monospace}
+.base,.scale{stroke:#17222e;stroke-width:1.2}
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+
+      <line class="base" x1="6" y1="150" x2="658" y2="150"/>
+      <rect class="wing" x="10" y="109" width="41" height="41"/>
+      <rect class="wing" x="63" y="19" width="141" height="131"/>
+      <rect class="wing" x="216" y="89" width="71" height="61"/>
+      <rect class="wing" x="299" y="89" width="71" height="61"/>
+      <rect class="wing" x="382" y="99" width="81" height="51"/>
+      <rect class="wing" x="475" y="89" width="51" height="61"/>
+      <rect class="farside" x="538" y="89" width="61" height="61"/>
+      <rect class="farside" x="611" y="109" width="41" height="41"/>
+      <text class="lbl" x="10" y="164">Ops</text><text class="dim" x="10" y="176">41×41</text>
+      <text class="lbl" x="63" y="164">Gate Dynamics</text><text class="dim" x="63" y="176">141×131</text>
+      <text class="lbl" x="216" y="164">Rings</text><text class="dim" x="216" y="176">71×61</text>
+      <text class="lbl" x="299" y="164">Beams</text><text class="dim" x="299" y="176">71×61</text>
+      <text class="lbl" x="382" y="164">Mirrors</text><text class="dim" x="382" y="176">81×51</text>
+      <text class="lbl" x="475" y="164">Menag.</text><text class="dim" x="475" y="176">51×61</text>
+      <text class="lbl" x="538" y="164">Range</text><text class="dim" x="538" y="176">Nether</text>
+      <text class="lbl" x="611" y="164">Annex</text><text class="dim" x="611" y="176">End</text>
+      <line class="scale" x1="560" y1="30" x2="610" y2="30"/>
+      <line class="scale" x1="560" y1="26" x2="560" y2="34"/>
+      <line class="scale" x1="610" y1="26" x2="610" y2="34"/>
+      <text class="dim" x="560" y="46">50 blocks</text>
+    </svg>

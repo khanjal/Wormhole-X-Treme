@@ -1,0 +1,88 @@
+<svg width="840" height="880" viewBox="0 0 420 440" xmlns="http://www.w3.org/2000/svg">
+<style>
+.wing{fill:#e9edf1;stroke:#1f5f99;stroke-width:1}.farside{fill:#f3f5f7;stroke:#b05a2c;stroke-width:1;stroke-dasharray:3 2}
+.hub{fill:#fff;stroke:#b05a2c;stroke-width:1.5}.cell{fill:#fff;stroke:#17222e;stroke-width:.6}
+.corr rect{fill:#e6b800}.corrline{fill:none;stroke:#e6b800;stroke-width:4}.link path{fill:none;stroke:#b05a2c;stroke-width:1;stroke-dasharray:2 2}
+.shaft{fill:#17222e}.gatemark{fill:none;stroke:#1f5f99;stroke-width:1.5}.mezz{fill:#1f5f99;opacity:.35}
+.water{fill:#1f5f99}.rail{fill:#566474}.stripe{fill:#b05a2c}.tunnel{fill:none;stroke:#566474;stroke-width:1;stroke-dasharray:4 2}
+.ink{fill:#17222e}.lbl,.lbl text{fill:#17222e;font:500 6.5px ui-monospace,Consolas,monospace}
+.note,.note text,.dim{fill:#566474;font:400 5.5px ui-monospace,Consolas,monospace}
+.base,.scale{stroke:#17222e;stroke-width:1.2}
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+
+      <!-- corridors (floor lines) -->
+      <g class="corr">
+        <rect x="208" y="191" width="5" height="39"/>
+        <rect x="231" y="248" width="39" height="5"/>
+        <rect x="141" y="248" width="49" height="5"/>
+        <path d="M226 271 V285 H285 V300" class="corrline"/>
+        <path d="M196 271 V285 H146 V300" class="corrline"/>
+      </g>
+      <!-- transit links -->
+      <g class="link">
+        <path d="M210 252 Q160 120 210 108"/>
+        <path d="M216 256 Q260 200 305 228"/>
+        <path d="M214 262 Q240 320 285 322"/>
+        <path d="M204 256 Q160 200 100 233"/>
+      </g>
+      <!-- wings -->
+      <rect class="wing" x="140" y="60" width="141" height="131"/>
+      <rect class="wing" x="270" y="215" width="71" height="61"/>
+      <rect class="wing" x="250" y="300" width="71" height="61"/>
+      <rect class="wing" x="60" y="220" width="81" height="51"/>
+      <rect class="wing" x="120" y="300" width="51" height="61"/>
+      <rect class="wing hub" x="190" y="230" width="41" height="41"/>
+      <!-- chambers -->
+      <g class="cell">
+        <rect x="150" y="70" width="41" height="37"/><rect x="250" y="70" width="21" height="21"/>
+        <rect x="150" y="118" width="27" height="31"/><rect x="185" y="118" width="27" height="31"/><rect x="220" y="118" width="33" height="31"/>
+        <rect x="144" y="164" width="133" height="19"/>
+        <rect x="274" y="219" width="63" height="17"/><rect x="274" y="245" width="15" height="17"/><rect x="296" y="245" width="7" height="7"/><rect x="310" y="245" width="23" height="17"/>
+        <rect x="259" y="305" width="53" height="35"/>
+        <rect x="64" y="224" width="73" height="19"/><rect x="64" y="252" width="29" height="13"/><rect x="104" y="252" width="29" height="13"/>
+        <rect x="124" y="304" width="11" height="11"/><rect x="124" y="345" width="45" height="7"/>
+        <rect x="194" y="234" width="7" height="7"/>
+      </g>
+      <circle class="shaft" cx="299.5" cy="248.5" r="2.2"/>
+      <circle class="gatemark" cx="210.5" cy="256" r="5"/>
+      <rect class="mezz" x="190" y="230" width="41" height="4"/>
+      <!-- lanes -->
+      <rect class="water" x="20" y="374" width="119" height="3"/>
+      <rect class="rail" x="20" y="384" width="119" height="2"/>
+      <rect class="stripe" x="180" y="374" width="79" height="3"/>
+      <rect class="tunnel" x="70" y="408" width="269" height="9"/>
+      <path class="corrline" d="M330 276 V408"/>
+      <!-- far sites -->
+      <rect class="farside" x="10" y="10" width="61" height="61"/>
+      <rect class="farside" x="345" y="10" width="41" height="41"/>
+      <!-- labels -->
+      <g class="lbl">
+        <text x="146" y="56">Gate Dynamics</text>
+        <text x="153" y="80">g1 Test Stand</text><text x="252" y="80">relay</text>
+        <text x="153" y="130">g3</text><text x="188" y="130">g4</text><text x="223" y="130">g5 Iris</text>
+        <text x="148" y="176">g2 Shape Gallery</text>
+        <text x="272" y="211">Ring Transit</text>
+        <text x="277" y="230">r1 Pair Stand</text><text x="275" y="271">r2</text><text x="294" y="261">r3</text><text x="313" y="271">r4</text>
+        <text x="252" y="296">Beam Physics</text><text x="263" y="325">b1 Pad Array</text>
+        <text x="62" y="216">Mirror Optics</text><text x="68" y="236">m1 Mirror Round</text><text x="66" y="262">m2</text><text x="106" y="262">m3</text>
+        <text x="122" y="296">Menagerie</text><text x="137" y="313">armoury</text><text x="124" y="342">arrow range</text>
+        <text x="193" y="268">Ops</text><text x="203" y="240">c0</text>
+        <text x="20" y="370">canal 119</text><text x="20" y="395">rails 119</text><text x="180" y="370">run-up 79</text>
+        <text x="70" y="430">tunnel 269, underground, reached from Ring Transit</text>
+        <text x="14" y="84">Range · Nether</text><text x="345" y="64">Annex · End</text>
+      </g>
+      <g class="note">
+        <text x="233" y="238">mezzanine</text>
+        <text x="290" y="282">r3 shaft 60 deep</text>
+      </g>
+      <!-- north arrow + scale -->
+      <g class="ink">
+        <path d="M395 92 l5 -14 l5 14 l-5 -4 z"/>
+      </g>
+      <text class="lbl" x="397" y="104">N</text>
+      <line class="scale" x1="345" y1="150" x2="395" y2="150"/>
+      <line class="scale" x1="345" y1="146" x2="345" y2="154"/>
+      <line class="scale" x1="395" y1="146" x2="395" y2="154"/>
+      <text class="note" x="345" y="165">50 blocks</text>
+    </svg>
