@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.permissions;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -225,5 +227,36 @@ public class StargateRestrictions
             getPlayerUseCooldownStart().remove(player);
         }
         return 0;
+    }
+
+    /**
+     * Whether {@code same-world-only} forbids a trip that starts in one world and arrives at a place.
+     *
+     * @param here
+     *            the world the trip starts in, null if unknown
+     * @param arrival
+     *            where it would arrive, null if nowhere
+     * @return true if the server forbids it
+     */
+    public static boolean isCrossWorldRefused(final World here, final Location arrival)
+    {
+        return (arrival != null) && isCrossWorldRefused(here, arrival.getWorld());
+    }
+
+    /**
+     * Whether {@code same-world-only} forbids a trip from one world to another.
+     *
+     * <p>Every way across a gate asks this, not only walking: a cart, an item or an arrow is
+     * carried between worlds as surely as a player is.
+     *
+     * @param here
+     *            the world the trip starts in, null if unknown
+     * @param there
+     *            the world it would end in, null if unknown
+     * @return true if the server forbids it; an unknown world is not refused
+     */
+    public static boolean isCrossWorldRefused(final World here, final World there)
+    {
+        return ConfigManager.isSameWorldOnly() && (here != null) && (there != null) && !here.equals(there);
     }
 }
