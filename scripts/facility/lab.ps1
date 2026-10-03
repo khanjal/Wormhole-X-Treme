@@ -137,9 +137,15 @@ $lock = Join-Path $facility 'package-lock.json'
 $stamp = Join-Path $facility 'node_modules\.facility-lock.json'
 if (-not (Test-Path $stamp) -or (Get-FileHash $stamp).Hash -ne (Get-FileHash $lock).Hash)
 {
+    # npm ci deletes node_modules first, from under a lab on another port that is running from it.
+    $running = Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+        Where-Object { $_.CommandLine -and $_.CommandLine.Contains((Join-Path $facility 'run-facility.js')) }
+    if ($running) { throw "The facility's Node modules need reinstalling, but a lab is running from them (node process $(@($running)[0].ProcessId)): stop it first." }
     Write-Host 'Installing the facility''s Node modules...'
     # npm.cmd under 'Continue': under 'Stop', Windows PowerShell ends npm.ps1 at its first warning on stderr, mid-install.
     $ErrorActionPreference = 'Continue'
+    # Not 0 beforehand: if npm.cmd is not found, 'Continue' goes on with an earlier command's code.
+    $global:LASTEXITCODE = 1
     & npm.cmd ci --prefix $facility
     $installed = $LASTEXITCODE -eq 0
     $ErrorActionPreference = 'Stop'
@@ -159,6 +165,8 @@ if ($Design)
 }
 elseif (-not $Fresh) { $arguments += '--keep-world' }
 if ($Plugin) { $arguments += @('--plugin', (Resolve-Path $Plugin).Path) }
+$Op = @($Op | Where-Object { $_ })
+$With = @($With | Where-Object { $_ })
 if ($Op) { $arguments += @('--op', ($Op -join ',')) }
 if ($With) { $arguments += @('--with', ($With -join ',')) }
 if ($PluginCache) { $arguments += @('--plugin-cache', (Resolve-Path $PluginCache).Path) }
