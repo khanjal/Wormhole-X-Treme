@@ -18,7 +18,7 @@ Spigot's. The ones that are *not* marked were confirmed against a live resource 
 | Title | `Wormhole X-Treme` |
 | Tag line | `Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3` |
 | Category **(assumed)** | Transportation, under Spigot Plugins. Mechanics is the second choice. |
-| Version | `1.8.1` — newest release |
+| Version | `1.9.0` — newest release |
 | Native Major MC Version | `1.20` |
 | Tested Major MC Versions | everything from 1.20 through 26.3 |
 | Tags **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
@@ -164,6 +164,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 [*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
 [*][B]WorldGuard[/B], if you want it: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] region flags refuse building and using gates in a region. Off until [ICODE]worldguard-enabled[/ICODE] is set.
+[*][B]Dynmap[/B], if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until [ICODE]dynmap-enabled[/ICODE] is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 [*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]metrics-enabled: false[/ICODE] turns it off.
 [*][B]Update check[/B]: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
@@ -359,7 +360,7 @@ is an upload in the first place — see [Fields](#fields).
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the resource carries.** `v1.8.1` is the newest release. Upload the newer
+1. **Check which version the resource carries.** `v1.9.0` is the newest release. Upload the newer
    jar and update the Version field if it has not been done.
 2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,
