@@ -6,12 +6,18 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## 1.9.0 (unreleased)
+## 1.9.0 (2026-10-03)
 
 ### For server admins
 
 **Added**
 
+- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
+  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
+  from or travelled through, at either end. A flag only takes away: a player still needs the
+  usual permission, and WorldGuard's region bypass gets past the flag. Off until
+  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
+  yet. See [the guide](docs/guide/SERVER.md#worldguard).
 - **Gates, rings, public beam destinations and quantum mirrors show on a
   [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) web map**, each as its own layer. A
   gate lights up while its wormhole is open, with a line to the gate it joins. Off until
@@ -19,14 +25,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   out, and `map-show-iris-gates: false` hides gates with an iris code. Players' private beam
   places are never shown. 1.21.11 needs Dynmap 3.8, and no Dynmap runs on 26.x yet. See
   [the guide](docs/guide/SERVER.md#dynmap).
+- **A newer release is announced at startup**: one console line with where to get it, and a line
+  to players with `wormhole.update.notify` (ops) as they join. Nothing is downloaded, and nothing
+  is said to a server running something newer. `update-check: false` turns it off.
 
 ### Server
 
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
-- **A newer release is announced at startup**: one console line with where to get it, and a line
-  to players with `wormhole.update.notify` (ops) as they join. Nothing is downloaded, and nothing
-  is said to a server running something newer. `update-check: false` turns it off.
 
 **Fixed**
 
@@ -39,17 +45,6 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **`help-support-disable`**, which nothing read: the Help plugin it turned off is long gone. A line
   for it in `config.yml` is ignored and left where it is.
-
-### For server admins
-
-**Added**
-
-- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
-  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
-  from or travelled through, at either end. A flag only takes away: a player still needs the
-  usual permission, and WorldGuard's region bypass gets past the flag. Off until
-  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
-  yet. See [the guide](docs/guide/SERVER.md#worldguard).
 
 ### Stargates
 
