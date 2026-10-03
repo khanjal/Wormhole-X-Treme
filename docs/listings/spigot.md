@@ -164,6 +164,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 [*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
 [*][B]WorldGuard[/B], if you want it: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] region flags refuse building and using gates in a region. Off until [ICODE]worldguard-enabled[/ICODE] is set.
+[*][B]Dynmap[/B], if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until [ICODE]dynmap-enabled[/ICODE] is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 [*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]metrics-enabled: false[/ICODE] turns it off.
 [*][B]Update check[/B]: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.

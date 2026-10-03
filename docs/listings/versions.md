@@ -51,7 +51,7 @@ Modrinth and Hangar changelog:
 ````markdown
 **Upgrading from 1.8 — nothing you have to do.** The new integrations are off until you turn them on. The update check is on: at startup it looks online for a newer release, sending only the plugin and Minecraft versions, and `update-check: false` turns it off. With `same-world-only` on, carts, mobs, items and arrows now stay in their own world too. Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
 
-- **WorldGuard regions can refuse gates**: `wormhole-build` and `wormhole-use` flags stop gates being built or used in a region. Set `worldguard-enabled: true`.
+- **WorldGuard regions can refuse gates**: `wormhole-build` and `wormhole-use` flags stop gates being built or used in a region. Set `worldguard-enabled: true` and restart.
 - **Gates, rings, public beam destinations and mirrors on a Dynmap web map**, each as its own layer. Set `dynmap-enabled: true`. On 1.21.11 use Dynmap 3.8; there is no Dynmap for 26.x yet.
 - **A newer release is announced at startup**, in the console and to ops as they join. Nothing is downloaded.
 - **`same-world-only` now keeps carts, mobs, items and arrows in their own world too**, and ten settings that waited for a restart now apply at once from `/wormhole config`.
@@ -66,7 +66,7 @@ Spigot update message:
 [B]Upgrading from 1.8 - nothing you have to do.[/B] The new integrations are off until you turn them on. The update check is on: at startup it looks online for a newer release, sending only the plugin and Minecraft versions, and [ICODE]update-check: false[/ICODE] turns it off. With [ICODE]same-world-only[/ICODE] on, carts, mobs, items and arrows now stay in their own world too. Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
 
 [LIST]
-[*][B]WorldGuard regions can refuse gates[/B]: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] flags stop gates being built or used in a region. Set [ICODE]worldguard-enabled: true[/ICODE].
+[*][B]WorldGuard regions can refuse gates[/B]: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] flags stop gates being built or used in a region. Set [ICODE]worldguard-enabled: true[/ICODE] and restart.
 [*][B]Gates, rings, public beam destinations and mirrors on a Dynmap web map[/B], each as its own layer. Set [ICODE]dynmap-enabled: true[/ICODE]. On 1.21.11 use Dynmap 3.8; there is no Dynmap for 26.x yet.
 [*][B]A newer release is announced at startup[/B], in the console and to ops as they join. Nothing is downloaded.
 [*][B][ICODE]same-world-only[/ICODE] now keeps carts, mobs, items and arrows in their own world too[/B], and ten settings that waited for a restart now apply at once from [ICODE]/wormhole config[/ICODE].

@@ -297,6 +297,10 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building
   and using gates in a region. Off until `worldguard-enabled` is set.
+- **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map,
+  each as its own layer, with a line between dialled gates. Players' private beam places are never
+  shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for
+  26.x yet.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.
