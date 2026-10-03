@@ -66,9 +66,12 @@ else
   [ "$fresh" = 1 ] || args+=(--keep-world)
 fi
 
-if [ ! -d "$here/node_modules" ]; then
-  echo "Installing the facility's Node modules (once)..."
-  npm install --prefix "$here"
+# The lock file's copy goes in only after npm succeeds (lab.ps1 checks the same one), so a missing
+# or different one means an install that never finished, or a newer lock: npm ci starts over.
+if ! cmp -s "$here/package-lock.json" "$here/node_modules/.facility-lock.json"; then
+  echo "Installing the facility's Node modules..."
+  npm ci --prefix "$here"
+  cp "$here/package-lock.json" "$here/node_modules/.facility-lock.json"
 fi
 
 cd "$repo"
