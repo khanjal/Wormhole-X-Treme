@@ -138,15 +138,22 @@ $stamp = Join-Path $facility 'node_modules\.facility-lock.json'
 if (-not (Test-Path $stamp) -or (Get-FileHash $stamp).Hash -ne (Get-FileHash $lock).Hash)
 {
     # npm ci deletes node_modules first, from under a lab on another port that is running from it.
-    $running = Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
-        Where-Object { $_.CommandLine -and $_.CommandLine.Contains((Join-Path $facility 'run-facility.js')) }
-    if ($running) { throw "The facility's Node modules need reinstalling, but a lab is running from them (node process $(@($running)[0].ProcessId)): stop it first." }
+    # Any slashes and case (git-bash passes C:/...), and a relative path counts too: it may be this one.
+    $script = (Join-Path $facility 'run-facility.js').ToLowerInvariant()
+    $running = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object {
+        $c = "$($_.CommandLine)".Replace('/', '\').ToLowerInvariant()
+        $c.Contains($script) -or $c -match '(^|[\s"''])(\.\\)?scripts\\facility\\run-facility\.js'
+    }
+    if ($running) { throw "The facility's Node modules need reinstalling, but a lab may be running from them (node process $(@($running)[0].ProcessId)): stop it first." }
+    # An application (npm.cmd, or Volta's npm.exe), never npm.ps1: under 'Stop', Windows PowerShell
+    # ends npm.ps1 at its first warning on stderr, mid-install. And 'Continue' for the same reason.
+    $npm = Get-Command npm -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $npm) { throw 'npm is not on the PATH' }
     Write-Host 'Installing the facility''s Node modules...'
-    # npm.cmd under 'Continue': under 'Stop', Windows PowerShell ends npm.ps1 at its first warning on stderr, mid-install.
     $ErrorActionPreference = 'Continue'
-    # Not 0 beforehand: if npm.cmd is not found, 'Continue' goes on with an earlier command's code.
+    # Not 0 beforehand: if npm cannot run, 'Continue' goes on with an earlier command's code.
     $global:LASTEXITCODE = 1
-    & npm.cmd ci --prefix $facility
+    & $npm.Source ci --prefix $facility
     $installed = $LASTEXITCODE -eq 0
     $ErrorActionPreference = 'Stop'
     if (-not $installed) { throw 'npm ci failed' }

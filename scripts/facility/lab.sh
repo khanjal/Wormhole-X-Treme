@@ -69,6 +69,11 @@ fi
 # The lock file's copy goes in only after npm succeeds (lab.ps1 checks the same one), so a missing
 # or different one means an install that never finished, or a newer lock: npm ci starts over.
 if ! cmp -s "$here/package-lock.json" "$here/node_modules/.facility-lock.json"; then
+  # npm ci deletes node_modules first, from under a running lab. No pgrep in git-bash: no check there.
+  if command -v pgrep >/dev/null && pgrep -f 'run-facility\.js' >/dev/null; then
+    echo "The facility's Node modules need reinstalling, but a lab may be running from them: stop it first." >&2
+    exit 1
+  fi
   echo "Installing the facility's Node modules..."
   npm ci --prefix "$here"
   cp "$here/package-lock.json" "$here/node_modules/.facility-lock.json"
