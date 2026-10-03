@@ -180,6 +180,12 @@ or delete it.
 | `wormhole.beam.admin` | op | Public destinations and anyone's places; bypasses beam cooldown and cost |
 | `wormhole.beam.admin.teleport` | op | `beam admin goto` and `send`. Not implied by `beam.admin`: curating destinations and relocating players are different powers. |
 
+**Server**
+
+| Node | Default | Allows |
+|---|---|---|
+| `wormhole.update.notify` | op | Being told on joining that a newer release is available (see `update-check` under [Metrics](#metrics)) |
+
 Worth knowing:
 
 - `beam`, `ring`, `go`, `list` and `compass` answer to their own nodes, and a gate's owner may
@@ -447,6 +453,7 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 | Setting | Default | What it does |
 |---|---|---|
 | `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
+| `update-check` | `true` | At startup, asks Modrinth for the newest release listed for this Minecraft version, or GitHub's latest release if Modrinth does not answer or has none for this version; if that release is newer than the one running, it says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
 
 What is sent, twice an hour:
 

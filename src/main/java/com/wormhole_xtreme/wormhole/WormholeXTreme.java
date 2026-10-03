@@ -52,6 +52,7 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
@@ -602,6 +603,7 @@ public class WormholeXTreme extends JavaPlugin
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
             enableMetricsIfConfigured();
+            UpdateCheck.startIfConfigured(this);
         }
         catch (final Exception e)
         {
