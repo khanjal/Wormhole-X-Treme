@@ -87,6 +87,8 @@ test('every chamber the matrix runs has a vantage point, facing into it', () => 
   for (const id of Object.keys(MATRIX)) assert.ok(campus.WATCH[id], `no WATCH entry for ${id}`);
   for (const p of points) {
     assert.ok(p.look, `${p.id} says nothing to look for`);
+    // `tp` puts a whole x or z at the block's centre, so a point anywhere else is not where a watcher lands.
+    assert.ok(Math.abs(p.x % 1) === 0.5 && Math.abs(p.z % 1) === 0.5 && Number.isInteger(p.y), `${p.id} at ${p.x} ${p.y} ${p.z} is not a block centre`);
     const f = watcher.facing(p);
     assert.ok(Number.isFinite(f.yaw) && Number.isFinite(f.pitch) && f.pitch > -90 && f.pitch < 90, `${p.id}: yaw ${f.yaw}, pitch ${f.pitch}`);
   }

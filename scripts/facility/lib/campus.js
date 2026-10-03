@@ -363,7 +363,7 @@ const WATCH = {
     look: 'Bay, the gate on the left, opens from a lever, button, plate, rail or redstone, and the lamp by its lever lights while it is open' },
   g4: { dim: OVERWORLD, x: -52.5, y: 10, z: -61.5, at: { x: -53, y: 2, z: -80 },
     look: 'a gate preview on the bench: Probe works the preview action, or builds the gate by hand' },
-  g5: { dim: OVERWORLD, x: -50, y: 10, z: -112.5, at: { x: -50, y: 3, z: -125 },
+  g5: { dim: OVERWORLD, x: -49.5, y: 10, z: -112.5, at: { x: -50, y: 3, z: -125 },
     look: 'IrisA (west) and IrisS (east): the iris sweeps shut or open in steps, and what is thrown at a shut one stops' },
   r1: { dim: OVERWORLD, x: 70.5, y: 9, z: -11.5, at: { x: 70, y: 1, z: -18 },
     look: 'two slab circles pair, the rings rise, and whatever stands in one is swapped with the other end' },
