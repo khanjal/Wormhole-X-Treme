@@ -16,7 +16,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 
 - **Post oldest first.** Each site treats the newest upload as current, and Spigot makes the last
   update posted the resource's download. Going oldest to newest in one sitting leaves each site on
-  1.8.1 with the history in order.
+  1.9.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
 - **Tick each version's own Minecraft range** on Modrinth and Hangar, from its section below, not
@@ -35,6 +35,46 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+
+## 1.9.0
+
+Released 2026-10-03.
+
+| Field | Value |
+|---|---|
+| Version (all three sites) | `1.9.0` |
+| Title (Spigot update title, Modrinth version title) | `1.9.0 - WorldGuard flags, Dynmap markers and an update check` |
+| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+
+Modrinth and Hangar changelog:
+
+````markdown
+**Upgrading from 1.8 — nothing you have to do.** The new integrations are off until you turn them on; the update check is on, and `update-check: false` turns it off. Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
+
+- **WorldGuard regions can refuse gates**: `wormhole-build` and `wormhole-use` flags stop gates being built or used in a region. Set `worldguard-enabled: true`.
+- **Gates, rings, public beam destinations and mirrors on a Dynmap web map**, each as its own layer. Set `dynmap-enabled: true`. Dynmap 3.8 runs up to Minecraft 1.21.11; there is no Dynmap for 26.x yet.
+- **A newer release is announced at startup**, in the console and to ops as they join. Nothing is downloaded.
+- **`same-world-only` now keeps carts, mobs, items and arrows in their own world too**, and every `/wormhole config` change applies at once.
+- **Gate fixes**: thrown and dispensed items go through an open gate, tipped arrows keep their effect, and a cart stops at the face of a shut iris instead of rolling into it.
+
+[Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#190-2026-10-03)
+````
+
+Spigot update message:
+
+```
+[B]Upgrading from 1.8 - nothing you have to do.[/B] The new integrations are off until you turn them on; the update check is on, and [ICODE]update-check: false[/ICODE] turns it off. Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
+
+[LIST]
+[*][B]WorldGuard regions can refuse gates[/B]: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] flags stop gates being built or used in a region. Set [ICODE]worldguard-enabled: true[/ICODE].
+[*][B]Gates, rings, public beam destinations and mirrors on a Dynmap web map[/B], each as its own layer. Set [ICODE]dynmap-enabled: true[/ICODE]. Dynmap 3.8 runs up to Minecraft 1.21.11; there is no Dynmap for 26.x yet.
+[*][B]A newer release is announced at startup[/B], in the console and to ops as they join. Nothing is downloaded.
+[*][B][ICODE]same-world-only[/ICODE] now keeps carts, mobs, items and arrows in their own world too[/B], and every [ICODE]/wormhole config[/ICODE] change applies at once.
+[*][B]Gate fixes[/B]: thrown and dispensed items go through an open gate, tipped arrows keep their effect, and a cart stops at the face of a shut iris instead of rolling into it.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#190-2026-10-03]Full changelog[/URL]
+```
 
 ## 1.8.1
 
