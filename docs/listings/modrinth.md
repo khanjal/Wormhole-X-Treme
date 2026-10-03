@@ -294,6 +294,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
+- **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
@@ -413,7 +414,7 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.8.1` |
+| Version number | `1.9.0` |
 | Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
@@ -428,7 +429,7 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.8.1` is the newest release.
+1. **Check which version the project carries.** `v1.9.0` is the newest release.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
