@@ -92,7 +92,8 @@ class DefaultSettings
             new Setting(ConfigKeys.MAP_SHOW_MIRRORS, true, "Whether quantum mirrors appear on the web map, as their own layer.", SECTION),
             new Setting(ConfigKeys.MAP_SHOW_IRIS_GATES, true, "Whether gates with an iris code appear on the web map. Set false on a PvP server where a gate's location is a secret.", SECTION),
             new Setting(ConfigKeys.PLACEHOLDERS_ENABLED, false, "Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.", SECTION),
-            new Setting(ConfigKeys.METRICS_ENABLED, true, "Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.", SECTION)),
+            new Setting(ConfigKeys.METRICS_ENABLED, true, "Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.", SECTION),
+            new Setting(ConfigKeys.UPDATE_CHECK, true, "At startup, look online for a newer release and say so in the log and to players with wormhole.update.notify as they join. Sends only the plugin and Minecraft versions; never downloads anything. Set false to stop.", SECTION)),
 
         group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
             new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),

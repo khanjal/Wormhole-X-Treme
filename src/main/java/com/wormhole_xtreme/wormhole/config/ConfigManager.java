@@ -177,6 +177,8 @@ public class ConfigManager
         MAP_SHOW_IRIS_GATES,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
+        /** Whether startup looks for a newer release (#461). */
+        UPDATE_CHECK,
         /** Whether economy (Vault) integration is enabled. */
         ECONOMY_ENABLED,
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
@@ -2108,6 +2110,13 @@ public class ConfigManager
     public static boolean isMetricsEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.METRICS_ENABLED);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if startup may look for a newer release; on when the setting is missing, as it ships. */
+    public static boolean isUpdateCheckEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.UPDATE_CHECK);
         return (s == null) || s.getBooleanValue();
     }
 

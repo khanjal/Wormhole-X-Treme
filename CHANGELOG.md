@@ -24,6 +24,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **Tested on Minecraft 1.21.8.** CI builds against Spigot's and Paper's 1.21.8 API and boots a
   Paper 1.21.8 server, as for the other eleven versions.
+- **A newer release is announced at startup**: one console line with where to get it, and a line
+  to players with `wormhole.update.notify` (ops) as they join. Nothing is downloaded, and nothing
+  is said to a server running something newer. `update-check: false` turns it off.
 
 **Fixed**
 
