@@ -739,7 +739,7 @@ async function main() {
     if (args.shots && !args.selftest && !args.viewer) {
       exit = shotsFailed || setup.length || stray.length ? 1 : 0;
     } else if (args.selftest) {
-      if (fac.watcher) await fac.watcher.arrive();
+      if (fac.watcher && !(await fac.watcher.arrive())) throw new Error('the server stopped before the watcher joined');
       const ts = Date.now();
       let shard = null;
       if (args.shard) {

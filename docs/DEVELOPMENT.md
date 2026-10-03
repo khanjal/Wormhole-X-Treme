@@ -766,8 +766,11 @@ mirror banner, out of every ring's volume and outside every gate a cell builds (
 mutated into each and failed). The facility's own `@p` selectors (the tp plates and the beam
 pads' prompt) leave out `wx_watcher`, and G1's `tester` launcher never picks a watcher. So a
 mirror's view stays a banner to a watcher: it opens only within 16 blocks. A watcher who leaves
-is let go and the run carries on; one who comes back is put back where the run is. Join before
-it starts: a first join lands at the world spawn by the atrium until the watcher is set up.
+is let go and the run carries on; one who comes back is put back where the run is, and one who
+joins before the self-test starts is held over the atrium. What the leash cannot stop is a click:
+a spectator who clicks Probe, or picks a player from the spectator menu, is carried along with
+it until the next tick's leash puts them back, so do not, mid-cell. A watcher step that fails (a
+console command timing out) is logged and the self-test goes on as an unwatched one would.
 
 `--watch-bot` is `--watch` with a stand-in client, `Watcher`, that joins as a person would and
 stays where it is put; it works with `--versions` and `--shards` (one per server), to show a

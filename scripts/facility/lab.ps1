@@ -149,6 +149,7 @@ if (-not $NoDashboard -and -not $Export -and -not $Check)
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
 {
     if ($Export -or $Check) { throw "Something is listening on port ${Port}: say export or check in the lab's chat instead, or stop it first." }
+    if ($Watch) { throw "Something is listening on port ${Port}: stop that lab first, or give -Watch another -Port." }
     Write-Host "Something is already listening on port $Port (a lab already running?); leaving it alone."
     exit 0
 }
