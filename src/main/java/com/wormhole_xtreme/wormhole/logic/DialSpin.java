@@ -374,7 +374,7 @@ public final class DialSpin
         final int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
         if (pattern == DialSpinPattern.CHEVRON)
         {
-            return hops(path, glyph, head);
+            return hopStep(path, glyph, head);
         }
         return run(path, head, (pattern == DialSpinPattern.FILL) ? (head + 1) : tail());
     }
@@ -384,7 +384,7 @@ public final class DialSpin
      * the chevron it sets off from and the one it lands on, and lands as that chevron alone. It
      * lights no chevron on the way: a chevron lights only as it locks.
      */
-    private Set<Cell> hops(final List<Cell> path, final int glyph, final int head)
+    private Set<Cell> hopStep(final List<Cell> path, final int glyph, final int head)
     {
         final int last = path.size() - 1;
         final Set<Cell> chevron = chevron(glyph);
@@ -398,8 +398,9 @@ public final class DialSpin
     }
 
     /**
-     * The glyph-wide hops a chevron-to-chevron light takes over the frame up to a chevron, whose cells can sit
-     * among frame cells, as Grand's do: up to the first reached. A hop never spans a chevron.
+     * The glyph-wide hops a chevron-to-chevron light takes over the frame up to a chevron, whose
+     * cells can sit among frame cells, as Grand's do: up to the first reached. A hop never spans a
+     * chevron.
      */
     private List<Set<Cell>> hops(final List<Cell> path, final Set<Cell> chevron)
     {
