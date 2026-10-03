@@ -145,7 +145,7 @@ function parseArgs(argv) {
       // The name is optional: a bare --watch (or one followed by an option or the version) is anyone.
       const next = argv[i + 1];
       a.watch = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : true;
-      if (a.watch !== true && (!/^\w{1,16}$/.test(a.watch) || require('./lib/watcher').BOTS.has(a.watch))) throw new Error(`--watch takes a player name that is not one of the facility's bots, not ${a.watch}`);
+      if (a.watch !== true && (!/^\w{1,16}$/.test(a.watch) || [...require('./lib/watcher').BOTS].some((b) => b.toLowerCase() === a.watch.toLowerCase()))) throw new Error(`--watch takes a player name that is not one of the facility's bots, not ${a.watch}`);
     }
     else if (x === '--watch-bot') a.watchBot = true;
     else if (x === '--viewer') a.viewer = true;

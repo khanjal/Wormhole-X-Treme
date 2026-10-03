@@ -122,7 +122,9 @@ class Watcher {
   /** Makes `name` a watcher: spectator, tagged, night vision for the dark cells, and held at a vantage point at once. */
   async adopt(name) {
     // The facility's welcome (adventure, the atrium, the Logbook) runs from the same log line and is
-    // skipped for a watcher (Facility.openConsole).
+    // skipped for a watcher (Facility.openConsole). Moved first: a first join lands at the world
+    // spawn, within a mirror's reach of the Ops banner.
+    await this.move(name, this.current || vantage('sections'));
     for (const c of [`gamemode spectator ${name}`, `tag ${name} add ${TAG}`, `effect give ${name} minecraft:night_vision infinite 0 true`]) {
       await this.srv.run(c);
     }
@@ -150,10 +152,14 @@ class Watcher {
 
   /** Puts the leash marker at a vantage point and every watcher there. */
   async goTo(v) {
-    if (this.current && this.current.dim === v.dim && this.current.x === v.x && this.current.y === v.y && this.current.z === v.z) return;
-    this.current = v;
+    const same = (a) => a && ['dim', 'x', 'y', 'z', 'yaw', 'pitch'].every((k) => a[k] === v[k]);
+    if (same(this.current)) return;
+    // `current` only once the marker is there: a failed summon is tried again by the next cell, not skipped as done.
+    this.current = null;
     await this.srv.run(`kill @e[type=minecraft:marker,tag=${MARKER}]`);
-    await this.srv.run(`execute in ${v.dim} run summon minecraft:marker ${v.x} ${v.y} ${v.z} {Tags:["${MARKER}"],Rotation:[${v.yaw}f,${v.pitch}f]}`);
+    const r = await this.srv.run(`execute in ${v.dim} run summon minecraft:marker ${v.x} ${v.y} ${v.z} {Tags:["${MARKER}"],Rotation:[${v.yaw}f,${v.pitch}f]}`);
+    if (r.errors.length) throw new Error(`the vantage marker: ${r.errors.join(' ')}`);
+    this.current = v;
     for (const n of this.present) await this.move(n, v);
     if (this.bot && this.present.has(STAND_IN)) await this.standInThere(v);
   }
@@ -214,6 +220,10 @@ class Watcher {
       await this.tellAll([{ text: 'Self-test over: ', color: 'aqua' }, { text: summary, color: 'white' },
         { text: ' The server stops in 10 seconds.', color: 'gray' }]);
       await this.srv.run(`kill @e[type=minecraft:marker,tag=${MARKER}]`);
+      // The world is kept for the next lab: nobody stays a watcher in it.
+      for (const n of this.present) {
+        for (const c of [`tag ${n} remove ${TAG}`, `effect clear ${n} minecraft:night_vision`]) await this.srv.run(c);
+      }
     });
     this.current = null;
     if (this.bot) this.log(`watch: ${STAND_IN} saw itself a spectator at its vantage point after ${this.moves - this.misses} of ${this.moves} moves`);
@@ -223,10 +233,12 @@ class Watcher {
   /** A restart (a companion cell) put everyone out: a person rejoins by hand, the stand-in by itself. */
   async afterRestart() {
     // `present` is kept by the log's join and leave lines, which a rejoin during the restart has already updated.
-    const v = this.current;
-    this.current = null;
-    if (v) await this.goTo(v);
-    if (this.standIn) await this.joinStandIn();
+    await this.quietly('the restart', async () => {
+      const v = this.current;
+      this.current = null;
+      if (v) await this.goTo(v);
+      if (this.standIn) await this.joinStandIn();
+    });
   }
 
   close() {

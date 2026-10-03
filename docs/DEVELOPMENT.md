@@ -767,9 +767,13 @@ mutated into each and failed). The facility's own `@p` selectors (the tp plates 
 pads' prompt) leave out `wx_watcher`, and G1's `tester` launcher never picks a watcher. So a
 mirror's view stays a banner to a watcher: it opens only within 16 blocks. A watcher who leaves
 is let go and the run carries on; one who comes back is put back where the run is, and one who
-joins before the self-test starts is held over the atrium. What the leash cannot stop is a click:
-a spectator who clicks Probe, or picks a player from the spectator menu, is carried along with
-it until the next tick's leash puts them back, so do not, mid-cell. A watcher step that fails (a
+joins before the self-test starts is held over the atrium. What the leash cannot stop is a click,
+or speed: a spectator who clicks Probe, or picks a player from the spectator menu, is carried
+along with it until the next tick's leash puts them back, and one sprint-flying at full speed
+covers about four blocks in the tick before it does, more than the test's one-block margin. So
+look around, but do not click the bots or race off mid-cell. When the self-test ends the
+watchers' tag and night vision are taken away, and a welcome takes away any tag (and, with no
+watched run going, any leash marker) a killed run left in the kept world. A watcher step that fails (a
 console command timing out) is logged and the self-test goes on as an unwatched one would.
 
 `--watch-bot` is `--watch` with a stand-in client, `Watcher`, that joins as a person would and

@@ -20,6 +20,7 @@ const { Logbook } = require('./lib/logbook');
 const { companionFault } = require('./lib/companions');
 const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
 const { httpText } = require('./lib/http');
+const { TAG: WATCHER_TAG, MARKER: WATCHER_MARKER } = require('./lib/watcher');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
@@ -383,6 +384,10 @@ class Facility {
   async welcome(player) {
     const h = campus.TRANSIT.home;
     await this.srv.run(`gamemode adventure ${player}`);
+    // A watched self-test that was killed (lib/watcher.js) leaves its tag in the player's data and its
+    // leash marker in the world, either of which would take this tester's plates and pads away.
+    await this.srv.run(`tag ${player} remove ${WATCHER_TAG}`);
+    if (!this.watcher) await this.srv.run(`kill @e[type=minecraft:marker,tag=${WATCHER_MARKER}]`);
     await this.shield(player);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
