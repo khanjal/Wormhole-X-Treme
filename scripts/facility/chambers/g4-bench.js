@@ -293,4 +293,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/g4',
+  PLACE,
 };
