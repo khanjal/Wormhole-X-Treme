@@ -617,6 +617,89 @@ The arrival splash â€” a moment of water shown to a traveller as they come out â
 mechanism, and deliberately brief. It is the one drawing that makes the client's world *less*
 solid than the real one, so it is only sent where the eye is in open air.
 
+## Seeing through a gate (experimental)
+
+`gate-view` ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)) draws an open gate
+the way a mirror draws its room: the ground in front of the dialled gate, in real blocks sent to
+each viewer, behind the gate's plane. `behind` keeps the horizon in front of it; `open` clears the
+horizon once the far side is ready. It is the mirror drawing, not a copy of it: `GateViews` offers
+each open gate to the mirror sweep as a window, and nothing in the world changes.
+
+**A gate is a window that is walked through.** It is never barred, since travellers have to get
+into it, and a punch at its view goes nowhere: the gate's own rules decide who crosses. The
+opening is the gate's to draw, so the view leaves it alone. A traveller is sent on as they
+enter the opening, so they should never reach the drawn room behind; that is still to be
+watched for in a world, at speed and on a mount.
+
+**A capture is seen through the gate's own opening.** A mirror's is taken through a hole three
+wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
+spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
+still, the spread would get coarse enough to miss things, and nobody has measured where, so the
+largest opening drawn whole is a Large gate's, eight by eight. A bigger gate (Grand, Massive)
+shows its view through an eight-by-eight window carved at the foot of its opening's middle, on the
+lowest rows the ring leaves room for, and the rest of its opening keeps its horizon. At `open`
+only that window clears; an iris still covers it.
+
+**A capture is the base, kept, and taken again when that is cheap.** It is written to
+`data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
+opening a gate view draws, eight by eight: every smaller opening sits inside that one, on the same
+middle column and bottom row, so what it can see is already there, and one capture serves every
+gate that dials this one. The file is named for the gate made file-safe, with a hash of the name,
+since two names can come out alike; one seen through a smaller opening, left by an earlier build,
+is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
+once rather than after its far side has been read off the disk. Removing a gate deletes its
+captures; a refresh that hands a gate back keeps them. It is taken again:
+
+- **as a gate is dialled or opens**, or its iris opens, once it is a minute old. The dial is the
+  first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in. A sign
+  dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
+  still shows the horizon until it is read;
+- **while somebody stands at the gate it shows**, once it is ten minutes old. Most of that gate's
+  chunks are loaded then, though a capture reaches `gate-view-depth` past the gate and to either
+  side, which can be further than a player with a short view distance has loaded. Each gate is
+  looked at once a minute, and a capture on disk is judged by its file's age, not read to find out;
+- **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
+
+The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
+The dial's ask needs somebody near the dialling gate, as the view itself does, so a gate dialled
+by redstone with nobody about waits for the first sweep with somebody there.
+
+**A gate's view comes in two steps.** The first reaches `gate-view-depth`, 32 by default against a
+mirror's 160: at a mirror's depth the box round a far gate nobody had loaded was some 230 chunks,
+read twice before anything showed, and at 32 it is about fifteen. Once that is in, the fill out to
+`gate-view-full-depth` is taken behind it: 160 by default, and never past what the far world's
+server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
+nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
+the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
+is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
+its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
+fill too big to keep is cut to fit, never shallower than the first step, and the view is drawn
+only as far as the cut left it, past which this world shows; a capture that fails is tried again
+five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
+viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
+stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times
+a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks out. `mirror debug`
+says when a view was cut, and to what. With `mirror-fog-at-depth` on, a player drawn only a
+gate's view has their send distance pulled in to the depth it is drawn to, not a mirror's: at the
+first step, 32, that is two chunks and the edge in every direction, until the fill arrives and it
+is given back. "What the server sends" is the world's view distance; on Paper a lower
+`send-view-distance` can make the fill reach a little further than a client is ever sent.
+
+**What it does not do yet**, each a thing to judge in a world before it is built:
+
+- **Nothing hides the view's edges.** A mirror hangs in a wall; a gate stands in the open, so the
+  view is clipped against its ring alone. This is the go/no-go.
+- **`open` clears the horizon for everybody.** A viewer too far off to be drawn the view, or
+  behind the gate, sees an empty ring, and the horizon comes back for everybody when the last
+  player near enough to be drawn it walks away.
+- **A gate's captures show only in `mirror debug -views`**, which lists every window a player is
+  drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
+  how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old
+  name's capture behind.
+- **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
+  point draws its old capture until its next retake, at most a minute after it is next dialled.
+- **No setting per gate**, no horizontal gates, and no creatures on the far side.
+
 ## Animation
 
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](images/gates/gate-dial.webp)

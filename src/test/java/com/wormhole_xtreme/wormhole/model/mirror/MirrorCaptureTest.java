@@ -77,6 +77,46 @@ class MirrorCaptureTest
         assertEquals(2, capture.states(), "air and stone");
     }
 
+    /**
+     * A capture taken through a gate's opening sees what that opening lets through (#516).
+     *
+     * <p>A mirror's hole is three wide and two tall, and every capture used to be taken through
+     * it. A gate five by five taken that way lost everything seen past the mirror's fan: the
+     * ground either side of the arrival and the top of the view came out as holes onto this world.
+     * The blocks here stand in the arrival's own layer just far enough out that no face of them
+     * shows through a mirror's hole -- a block is kept for any see-through neighbour a ray
+     * reaches, so the air behind each is out of a mirror's fan too -- to both sides, so a flipped
+     * sideways axis cannot pass, and above.
+     */
+    @Test
+    void aCaptureThroughAWiderHoleSeesWhatAMirrorsCannot()
+    {
+        for (final boolean gate : new boolean[] { false, true })
+        {
+            // A box 21 wide, 12 tall and 9 deep, arrival at (10, 2, 0) facing +z.
+            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 12, 9), air);
+            builder.put(1, 2, 0, stone);
+            builder.put(19, 2, 0, stone);
+            builder.put(10, 8, 0, stone);
+            builder.keepOnlySeen(gate ? new MirrorCapture.Arrival(10, 2, 0, 0, 1, 5, 5) : new MirrorCapture.Arrival(10, 2, 0, 0, 1), 8);
+
+            final MirrorCapture capture = builder.build();
+
+            if (gate)
+            {
+                assertSame(stone, capture.at(1, 2, 0), "nine blocks to one side of a gate's arrival");
+                assertSame(stone, capture.at(19, 2, 0), "and to the other");
+                assertSame(stone, capture.at(10, 8, 0), "six up, over the top of a gate's opening");
+            }
+            else
+            {
+                assertTrue(capture.isBuried(1, 2, 0), "past a mirror's fan, left to the real world");
+                assertTrue(capture.isBuried(19, 2, 0), "on either side");
+                assertTrue(capture.isBuried(10, 8, 0), "and above its two-tall hole");
+            }
+        }
+    }
+
     @Test
     void theTopOfAColumnIsItsHighestBlockThatIsNotAir()
     {
@@ -255,6 +295,73 @@ class MirrorCaptureTest
                 assertSame(stone, capture.at(4, 2, 7), "and the layer behind it");
             }
         }
+    }
+
+    /**
+     * Leaves can be seen through a few layers deep, and no more.
+     *
+     * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+     * crown in its way and a view onto one kept the whole canopy, though in a world nobody sees
+     * more than a few trees in. A ray ends after {@code LEAF_SIGHT} blocks of leaves; the block it
+     * ends on and the one behind it are kept, as behind any block, and the rest is buried.
+     */
+    @Test
+    void leavesAreSeenThroughOnlyAFewLayersDeep()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(leaves, capture.at(1, 2, 3), "the first few layers are seen");
+        assertSame(leaves, capture.at(1, 2, MirrorCapture.Builder.LEAF_SIGHT), "as far as the leaves' sight");
+        assertTrue(capture.isBuried(1, 2, MirrorCapture.Builder.LEAF_SIGHT + 4), "a few past it is hidden by the leaves in front");
+        assertTrue(capture.isBuried(1, 2, 40), "and so is the rest of the forest");
+    }
+
+    /**
+     * Water and leaves are counted apart: a ray through a pond is not short of leaves to see through after it.
+     *
+     * <p>A corridor of water twenty long, then leaves. Counted together, the water spent the leaves'
+     * sight before the ray reached them, and a forest past a lake was left to the real world.
+     */
+    @Test
+    void waterAndLeavesAreCountedApart()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, (z <= 20) ? water : leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(water, capture.at(1, 2, 20), "the water, within its own sight");
+        // Leaves 21 to 26 seen through, and the ray ends on the seventh, at 27. Counted together with
+        // the water it would end on the first, at 21, and keep no further than the two layers behind it.
+        assertSame(leaves, capture.at(1, 2, 20 + MirrorCapture.Builder.LEAF_SIGHT + 1),
+            "the leaves past it, with their own sight to spend");
     }
 
     /**
@@ -602,5 +709,67 @@ class MirrorCaptureTest
         Files.write(file.toPath(), new byte[] { 1, 2, 3 });
 
         assertThrows(IOException.class, () -> MirrorCapture.load(file));
+    }
+
+    /**
+     * A capture remembers how far it kept, through the disk.
+     *
+     * <p>A cut to fit keeps the box, so without this a capture cut from 160 to 90 said it reached
+     * 160: the view was drawn to 160 with this world showing past 90, and the debug line said the
+     * same, after a restart too.
+     */
+    @Test
+    void aCaptureRemembersHowFarItKeptThroughTheDisk(@TempDir final File dir) throws IOException
+    {
+        final MirrorCapture.Builder cut = box();
+        cut.keptReach(3);
+        final File file = new File(dir, "cut.view");
+        cut.build().save(file);
+        final File whole = new File(dir, "whole.view");
+        box().build().save(whole);
+
+        assertEquals(3, MirrorCapture.load(file).keptReach(), "cut short, and says where");
+        assertEquals(-1, MirrorCapture.load(whole).keptReach(), "never cut");
+    }
+
+    /**
+     * A file from before a capture recorded how far it kept still loads, as never cut.
+     *
+     * <p>Every mirror capture on a server is one; refused, each would be taken again on the next look.
+     */
+    @Test
+    void aVersionThreeFileStillLoadsAsNeverCut(@TempDir final File dir) throws IOException
+    {
+        final MirrorCapture.Builder builder = box();
+        builder.put(1, 2, 3, stone);
+        final File file = new File(dir, "three.view");
+        builder.build().save(file);
+        asVersionThree(file);
+
+        final MirrorCapture loaded = MirrorCapture.load(file);
+
+        assertEquals(-1, loaded.keptReach());
+        assertEquals("minecraft:stone", loaded.nameAt(1, 2, 3), "and reads the rest as it always did");
+    }
+
+    /** Rewrites a capture file as version 3 wrote it: the same, less the kept reach after when it was taken. */
+    private static void asVersionThree(final File file) throws IOException
+    {
+        final byte[] raw;
+        try (GZIPInputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
+        {
+            raw = in.readAllBytes();
+        }
+        final ByteBuffer buffer = ByteBuffer.wrap(raw);
+        buffer.putInt(4, 3);
+        // Magic, version, the world's name, sky and complete, the box's six ints, when it was taken.
+        final int kept = 8 + 4 + buffer.getInt(8) + 2 + 24 + 8;
+        final byte[] three = new byte[raw.length - 4];
+        System.arraycopy(raw, 0, three, 0, kept);
+        System.arraycopy(raw, kept + 4, three, kept, raw.length - kept - 4);
+        try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        {
+            out.write(three);
+        }
     }
 }

@@ -837,7 +837,7 @@ public final class SubCommands
     private static final String DEBUG = "debug";
 
     /** What {@code mirror debug} takes on its own, or after a name: all and full take one. */
-    private static final String[] DEBUG_SWITCHES = { "-all", "-full", "-off", "-on" };
+    private static final String[] DEBUG_SWITCHES = { "-all", "-full", "-off", "-on", "-views" };
 
     /**
      * Completions for {@code /wormhole mirror debug [name] [-all|-full]} and {@code debug -off|-on}.

@@ -1367,6 +1367,16 @@ public class StargateManager
         if (announce)
         {
             GateEvents.fireRemoved(s, remover);
+            // A removal, not a refresh handing the gate back: what it shows goes with it (#516).
+            try
+            {
+                GateViews.removed(s);
+            }
+            catch (final Exception | LinkageError e)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Could not forget the view of gate '" + s.getGateName() + "'", e);
+            }
         }
         getStargateList().remove(normalizeGateName(s.getGateName()));
         // A gate deleted while its wormhole was open would otherwise stay in the open set

@@ -131,6 +131,15 @@ public class ConfigManager
         /** Whether an iris sweeps shut a ring at a time, or arrives all at once. */
         GATE_IRIS_ANIMATION,
 
+        /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
+        GATE_VIEW,
+
+        /** How far past a gate's opening its view is captured and drawn, first. */
+        GATE_VIEW_DEPTH,
+
+        /** How far a gate's view is filled in, behind its first step. */
+        GATE_VIEW_FULL_DEPTH,
+
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
@@ -851,6 +860,8 @@ public class ConfigManager
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
                 return irisAnimations();
+            case GATE_VIEW:
+                return GATE_VIEWS;
             case RING_DEFAULT_ACCESS:
                 return List.of("public", "private");
             case RING_DEFAULT_STYLE:
@@ -1063,6 +1074,61 @@ public class ConfigManager
         }
         final String name = raw.trim().toLowerCase(Locale.ROOT);
         return irisAnimations().contains(name) ? name : null;
+    }
+
+    /** Every level {@code gate-view} takes, the default first. */
+    public static final List<String> GATE_VIEWS = List.of("horizon", "behind", "open");
+
+    /**
+     * What an open gate shows once its kawoosh settles (#516).
+     *
+     * @return horizon, behind or open; horizon for anything else
+     */
+    public static String getGateView()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
+        final String level = (s == null) ? null : parseGateView(String.valueOf(s.getStringValue()));
+        return (level == null) ? GATE_VIEWS.get(0) : level;
+    }
+
+    /**
+     * How far past a gate's opening its view reaches, captured and drawn (#516).
+     *
+     * <p>Its own rather than {@code mirror-view-depth}: a gate's capture is taken when it is dialled,
+     * often of somewhere nobody has loaded, and at a mirror's 160 that was a box of some 230 chunks
+     * read from disk before anything showed.
+     *
+     * @return blocks, 4 to 160
+     */
+    public static int getGateViewDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_DEPTH);
+        return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
+    }
+
+    /**
+     * How far a gate's view is filled in behind its first step, in the background (#516).
+     *
+     * @return blocks, 4 to 160; or 0 for no fill, the view staying at {@code gate-view-depth}
+     */
+    public static int getGateViewFullDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
+        final int depth = (s == null) ? 160 : s.getIntValue();
+        return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+    }
+
+    /**
+     * Reads a level of {@code gate-view} as typed.
+     *
+     * @param raw
+     *            the value as typed
+     * @return it in lower case, or null if it names none
+     */
+    public static String parseGateView(final String raw)
+    {
+        final String level = (raw == null) ? null : raw.trim().toLowerCase(Locale.ROOT);
+        return GATE_VIEWS.contains(level) ? level : null;
     }
 
     /**

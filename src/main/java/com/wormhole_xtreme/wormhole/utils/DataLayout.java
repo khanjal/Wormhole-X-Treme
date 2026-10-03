@@ -20,6 +20,7 @@ import java.io.File;
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
  * ├── data/
  * │   ├── gates/&lt;name&gt;.yml       one file per gate
+ * │   ├── gates/captures/*.view  what stands in front of a gate, per opening size seen through
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
@@ -87,6 +88,19 @@ public final class DataLayout
     public static File gates()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, "gates");
+    }
+
+    /**
+     * The folder of gate captures: what stands in front of a gate, as seen through another's opening (#516).
+     *
+     * <p>Beside the gate files, named for the gate they show, and in a folder of their own so the
+     * gate loader, which reads only the {@code .yml} files at the top, never sees them.
+     *
+     * @return the folder, which may not exist yet
+     */
+    public static File gateCaptureDir()
+    {
+        return new File(gates(), "captures");
     }
 
     /** @return one YAML file per world, holding every ring pair in it */

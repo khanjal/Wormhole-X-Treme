@@ -132,6 +132,18 @@ public final class MirrorWindows
     /** The same, settable so a test can make a room not fit. */
     static int mostFixed = MOST_FIXED;
 
+    /**
+     * Most blocks one gate's view may hold (#516): four times a mirror's, some 50 MB while it is drawn.
+     *
+     * <p>A gate view is filled to 160 blocks through an opening up to eight by eight, and at a
+     * mirror's cap open ground past a hundred or so was cut away, leaving this world showing
+     * behind the far side. One view serves everybody looking into the gate.
+     */
+    private static final int MOST_GATE_FIXED = 1_000_000;
+
+    /** The same, settable so a test can make a gate's view not fit. */
+    static int mostGateFixed = MOST_GATE_FIXED;
+
     /** What {@link #fixedTo} gives for a view past its limit, told apart by identity from any real view. */
     private static final Map<Long, BlockData> TOO_MANY = Collections.unmodifiableMap(new HashMap<>());
 
@@ -422,6 +434,16 @@ public final class MirrorWindows
         final boolean fixedForViewer = view.fixedNames.contains(name);
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.field(name, howDrawn(window, fixedForViewer)));
+        if (window.walkThrough)
+        {
+            // A gate's view comes in steps, and which step it is on is the first question when it looks short.
+            final int box = reachAhead(window);
+            final int kept = window.capture.keptReach();
+            lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
+                + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth
+                + " (full " + MirrorCaptures.gateFillDepth(window.mirror.destination(), ConfigManager.getGateViewDepth())
+                + "), " + window.capture.secondsOld() + "s old"));
+        }
         if (!fixedForViewer)
         {
             final Far far = view.far.get(name);
@@ -479,15 +501,42 @@ public final class MirrorWindows
             + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
     }
 
+    /**
+     * How far past its arrival a window's capture reaches, the way a traveller faces.
+     *
+     * @return blocks, counted to the far edge of the capture's box
+     */
+    static int reachAhead(final MirrorWindowState window)
+    {
+        final int[] box = window.capture.bounds();
+        final Spot far = window.shape.far();
+        final Spot ahead = window.shape.ahead();
+        if (ahead.x() != 0)
+        {
+            return (ahead.x() > 0) ? (box[3] - far.x()) : (far.x() - box[0]);
+        }
+        return (ahead.z() > 0) ? (box[5] - far.z()) : (far.z() - box[2]);
+    }
+
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
     private static String toDepth(final MirrorWindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
-            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
+            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixedFor(window)
                 + BLOCKS);
         }
         return "to depth " + window.fixedDepth;
+    }
+
+    /**
+     * The most blocks a window's view may hold before its depth is cut to fit.
+     *
+     * @return a gate's cap for a gate's window, a mirror's for a mirror's
+     */
+    static int mostFixedFor(final MirrorWindowState window)
+    {
+        return window.walkThrough ? mostGateFixed : mostFixed;
     }
 
     /** Static state only. */
@@ -510,6 +559,7 @@ public final class MirrorWindows
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
+        mostGateFixed = MOST_GATE_FIXED;
         streamPerTick = STREAM_PER_TICK;
         nearDistance = NEAR_DISTANCE;
         restFactor = REST_FACTOR;
@@ -586,6 +636,153 @@ public final class MirrorWindows
         }
         OFFERED.put(mirror.name(), window);
         return true;
+    }
+
+    /**
+     * The deepest of the views a viewer is being drawn: a gate's is its own, not a mirror's.
+     *
+     * @return blocks; {@code mirror-view-depth} for none
+     */
+    private static int deepest(final List<MirrorWindowState> seeing)
+    {
+        return seeing.stream().mapToInt(window -> window.depth).max().orElse(ConfigManager.getMirrorViewDepth());
+    }
+
+    /** A gate's capture older than this is retaken as the gate is dialled or opens, the old one drawn until the new is ready. */
+    static final long GATE_CAPTURE_SECONDS = 60L;
+
+    /**
+     * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
+     *
+     * <p>Drawn as a mirror's is, but walked through: never barred, never punched through, and its
+     * opening left to the gate's own horizon. Drawn from the capture kept for it, which survives a
+     * restart, and asked for again when it is missing, shallower than the depth, or old as the gate opens.
+     *
+     * @param gate
+     *            the gate, as the drawing sees it
+     * @param opened
+     *            true on the first sweep since the gate or its iris opened
+     * @return true if it is a window now, false while its first capture is being taken
+     */
+    public static boolean offerGate(final GateWindow gate, final boolean opened)
+    {
+        final MirrorCapture capture = gateCapture(gate, opened);
+        if (capture == null)
+        {
+            return false;
+        }
+        final String name = gate.name();
+        final MirrorWindow shape = gate.shape();
+        final QuantumMirror stand = new QuantumMirror(name, MirrorBlock.of(gate.anchor()), gate.destination());
+        final MirrorWindowState window = new MirrorWindowState(stand, shape, gate.anchor(), gate.open(), capture,
+            true, drawDepthOf(gate, capture));
+        final MirrorWindowState previous = WINDOWS.get(name);
+        if ((previous != null) && previous.shape.equals(shape))
+        {
+            window.solid = previous.solid;
+            window.margin = previous.margin;
+            window.frame = previous.frame;
+            window.border = previous.border;
+            window.solidAt = previous.solidAt;
+            // A gate set in a wall is drawn whole, and walking that room again every sweep is what the cache is for.
+            if ((previous.fixed != null) && (previous.capture == capture) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
+            {
+                window.fixed = previous.fixed;
+                window.fixedFrom = previous.fixedFrom;
+                window.fixedAt = previous.fixedAt;
+                window.fixedFor = previous.fixedFor;
+                window.fixedDepth = previous.fixedDepth;
+                window.fixedUsedAt = previous.fixedUsedAt;
+            }
+        }
+        OFFERED.put(name, window);
+        return true;
+    }
+
+    /**
+     * Makes sure a gate's capture is on its way as the gate is dialled, before its kawoosh.
+     *
+     * <p>Waiting for the first sweep after the kawoosh cost that long again before anything showed,
+     * and a capture of somewhere nobody had loaded starts with reading it off the disk.
+     *
+     * @param gate
+     *            the gate, as the drawing sees it
+     */
+    public static void prepareGate(final GateWindow gate)
+    {
+        gateCapture(gate, true);
+    }
+
+    /**
+     * The capture a gate is drawn from, asking for the next step of it: the first, out to
+     * {@code gate-view-depth}, if it has none or it is shallower than that; a retake at the depth it
+     * is drawn to, if the gate has just opened and it is old; otherwise the fill out to
+     * {@code gate-view-full-depth}, behind the first, if it does not reach that yet.
+     *
+     * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
+     * fill several times that, most of them read off the disk. A retake keeps the depth drawn, the
+     * old capture shown until it lands, so an opening never shrinks the view.
+     *
+     * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
+     */
+    private static MirrorCapture gateCapture(final GateWindow gate, final boolean opened)
+    {
+        final MirrorCapture capture = MirrorCaptures.get(gate.captureKey());
+        final int full = fullDepthOf(gate);
+        final int ask;
+        if ((capture == null) || !MirrorCaptures.reaches(capture, gate.destination(), gate.depth()))
+        {
+            ask = gate.depth();
+        }
+        else if (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS))
+        {
+            // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
+            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
+            ask = drawDepthOf(gate, capture);
+        }
+        else
+        {
+            ask = MirrorCaptures.reaches(capture, gate.destination(), full) ? 0 : full;
+        }
+        if (ask > 0)
+        {
+            MirrorCaptures.requestGate(gate.captureKey(), gate.target(), gate.destination(), MirrorCaptures.GATE_OPENING,
+                MirrorCaptures.GATE_OPENING, ask);
+        }
+        return capture;
+    }
+
+    /**
+     * How far a gate's view is filled in behind its first step.
+     *
+     * @return {@link MirrorCaptures#gateFillDepth}
+     */
+    static int fullDepthOf(final GateWindow gate)
+    {
+        return MirrorCaptures.gateFillDepth(gate.destination(), gate.depth());
+    }
+
+    /**
+     * How deep a gate is drawn from its capture: the full depth once the fill is in, and the first
+     * step's until then; never past where a cut to fit left it.
+     */
+    private static int drawDepthOf(final GateWindow gate, final MirrorCapture capture)
+    {
+        final int full = fullDepthOf(gate);
+        return MirrorCaptures.reaches(capture, gate.destination(), full) ? MirrorCaptures.drawableReach(capture, full)
+            : gate.depth();
+    }
+
+    /**
+     * Whether a gate's window is being drawn for anybody: its capture is in and it was offered.
+     *
+     * @param name
+     *            the name it was offered under
+     * @return true if the sweep holds it as a window
+     */
+    public static boolean holdsWindow(final String name)
+    {
+        return WINDOWS.containsKey(name) || OFFERED.containsKey(name);
     }
 
     /** Ends a sweep: the windows offered become the windows there are, and every view follows. */
@@ -678,15 +875,27 @@ public final class MirrorWindows
      */
     public static void release(final QuantumMirror mirror)
     {
-        OFFERED.remove(mirror.name());
-        if (WINDOWS.remove(mirror.name()) == null)
+        release(mirror.name());
+    }
+
+    /**
+     * Takes one window out of every view it is in, by the name it was offered under: a mirror's,
+     * or a gate's that has just closed.
+     *
+     * @param name
+     *            the window no longer being drawn
+     */
+    public static void release(final String name)
+    {
+        OFFERED.remove(name);
+        if (WINDOWS.remove(name) == null)
         {
             return;
         }
         final long now = now();
         for (final Map.Entry<UUID, MirrorDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
-            if (entry.getValue().mirrors.contains(mirror.name()))
+            if (entry.getValue().mirrors.contains(name))
             {
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)
@@ -934,7 +1143,8 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final MirrorWindowState window = WINDOWS.get(name);
-            if ((window != null) && window.open.contains(at)
+            // A gate is walked through under its own rules; a punch at its view goes nowhere.
+            if ((window != null) && !window.walkThrough && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
                 return window.mirror;
@@ -973,7 +1183,7 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final MirrorWindowState window = WINDOWS.get(name);
-            if ((window == null) || !window.banner.getWorld().equals(block.getWorld()))
+            if ((window == null) || window.walkThrough || !window.banner.getWorld().equals(block.getWorld()))
             {
                 continue;
             }
@@ -1007,7 +1217,7 @@ public final class MirrorWindows
             VIEWS.put(id, view);
         }
         // Before any early return, so a fog setting changed mid-view still reaches the viewer.
-        MirrorFog.apply(player, ConfigManager.getMirrorViewDepth());
+        MirrorFog.apply(player, deepest(seeing));
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
@@ -1320,6 +1530,11 @@ public final class MirrorWindows
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final MirrorWindowState window : seeing)
         {
+            // A gate's opening is walked into, and its horizon is the gate's own to draw.
+            if (window.walkThrough)
+            {
+                continue;
+            }
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
             // stays hanging in front of the view.
             if (MirrorPackets.available())
@@ -1351,7 +1566,7 @@ public final class MirrorWindows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).banner.getWorld(), eye, ConfigManager.getMirrorViewDepth(), seeing, fixed,
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, deepest(seeing), seeing, fixed,
                 allOpen, inside);
         }
         return wanted;
@@ -1724,7 +1939,7 @@ public final class MirrorWindows
     private static boolean fixedIsFresh(final MirrorWindowState window, final long now)
     {
         return (window.fixed != null) && (window.fixedFrom == window.capture)
-            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
+            && (window.fixedFor == window.depth) && ((now - window.fixedAt) < FIXED_MILLIS);
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -1775,7 +1990,7 @@ public final class MirrorWindows
         final int[] span = MirrorFace.acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
         {
-            for (int y = shape.base().y() - reach; y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
+            for (int y = shape.base().y() - reach; y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = MirrorFace.faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
@@ -1812,23 +2027,24 @@ public final class MirrorWindows
      * the whole far side is drawn once, and kept for a minute before the real world is read again.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
+     * A view past {@link #mostFixedFor} blocks is cut shallower until it fits.
      */
     private static void fixedView(final MirrorWindowState window, final long now)
     {
-        final int configured = ConfigManager.getMirrorViewDepth();
+        final int configured = window.depth;
         if (fixedIsFresh(window, now))
         {
             return;
         }
         int depth = configured;
-        Map<Long, BlockData> view = fixedTo(window, depth, now, mostFixed);
+        final int most = mostFixedFor(window);
+        Map<Long, BlockData> view = fixedTo(window, depth, now, most);
         // Half a sphere of the depth is what was looked at, found in the capture or not.
         workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
         while ((view == TOO_MANY) && (depth > 4))
         {
             depth = Math.max(4, (depth * 3) / 4);
-            view = fixedTo(window, depth, now, mostFixed);
+            view = fixedTo(window, depth, now, most);
             workSpent += (int) (2.1 * depth * depth * depth);
         }
         window.fixed = (view == TOO_MANY) ? new HashMap<>() : view;
@@ -2021,7 +2237,7 @@ public final class MirrorWindows
         final int rightStep = alongX ? shape.into().x() : -shape.into().z();
         final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5
             + ((shape.width() - 1) * 0.5 * rightStep);
-        final double y = shape.base().y() + (MirrorWindow.HEIGHT / 2.0);
+        final double y = shape.base().y() + (shape.height() / 2.0);
         final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
         return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
     }
@@ -2333,7 +2549,7 @@ public final class MirrorWindows
         final boolean alongX = shape.into().x() != 0;
         final int[] span = MirrorFace.acrossSpan(shape, SURROUND);
         final int lowY = shape.base().y() - SURROUND;
-        final int highY = shape.base().y() + MirrorWindow.HEIGHT + SURROUND;
+        final int highY = shape.base().y() + shape.height() + SURROUND;
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = lowY; y <= highY; y++)
@@ -2397,7 +2613,7 @@ public final class MirrorWindows
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - reach;
-                y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
+                y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = MirrorFace.faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())

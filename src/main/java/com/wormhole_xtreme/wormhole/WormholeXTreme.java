@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
+import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -303,6 +304,7 @@ public class WormholeXTreme extends JavaPlugin
             try
             {
                 MirrorProximity.restoreAll();
+                GateViews.clear();
             }
             catch (final Exception | LinkageError e)
             {
@@ -709,6 +711,8 @@ public class WormholeXTreme extends JavaPlugin
         // A thrown item crosses the opening in a tick or two, so it is followed the same way.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ItemGateTracker.createTicker(), 20L, 1L);
+        // Open gates join the mirror sweep when gate-view asks them to (#516).
+        MirrorProximity.alsoOffer(GateViews::offerAll);
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GatePreviews::tick, 100L, 100L);

@@ -70,6 +70,7 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 | `mirror debug [name] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws. See [below](#what-you-see-in-one) |
+| `mirror debug -views` | Every view you are being drawn, a gate's too, and how far each reaches |
 
 All of them need `wormhole.config`: a mirror moves players between worlds.
 
@@ -135,7 +136,10 @@ for about thirty blocks, as in the game.
 of it is drawn; `-all` lists every fact, green where it is drawn whole and red for whatever trims
 or stops it — a gap in the wall, another mirror too near, a missing capture file. `-full` draws
 the whole capture for you alone, wherever you stand. `mirror debug -off` turns views off for you,
-so you see the world as it is, and `-on` puts them back. `debug` is not in the usage line, but
+so you see the world as it is, and `-on` puts them back. `mirror debug -views` needs no mirror:
+it lists every view you are being drawn, including a gate's (`gate-view`), with how far that gate's
+capture reaches, whether it was cut to fit, how deep it is drawn and how old it is. `debug` is not
+in the usage line, but
 tab-completes for anyone who may run it.
 
 ## Its look

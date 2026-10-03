@@ -52,7 +52,10 @@ public final class MirrorCapture
     private static final int MAGIC = 0x4D495257;
 
     /** 3 keeps only entries, sorted; 1 and 2 wrote a dense grid, and are taken again. */
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
+
+    /** The version before a capture recorded how far it kept; still read, as never cut. */
+    private static final int UNCUT_VERSION = 3;
 
     /** Most distinct block states a capture may hold; a short index per block. */
     private static final int MOST_STATES = 65_535;
@@ -83,6 +86,13 @@ public final class MirrorCapture
     /** The air that can be seen, which has no entries. */
     private final MirrorSeenAir air;
     private BlockData standIn;
+
+    /**
+     * How far ahead of its arrival this capture kept, where a cut to fit {@code MOST_KEPT} made
+     * that short of its box; -1 for a capture never cut. The box is not shrunk with it, so a view
+     * does not ask again for a depth the cut will only take away again.
+     */
+    private int keptReach = -1;
 
     private MirrorCapture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
         final long takenAt, final Blocks blocks, final MirrorSeenAir air)
@@ -160,9 +170,18 @@ public final class MirrorCapture
      *            one step the way a traveller faces on arrival, x
      * @param aheadZ
      *            the same, z
+     * @param width
+     *            how wide a hole the capture is seen through
+     * @param height
+     *            how tall
      */
-    public record Arrival(int x, int y, int z, int aheadX, int aheadZ)
+    public record Arrival(int x, int y, int z, int aheadX, int aheadZ, int width, int height)
     {
+        /** Seen through a mirror's hole: three wide, so either width of mirror is served, and two tall. */
+        public Arrival(final int x, final int y, final int z, final int aheadX, final int aheadZ)
+        {
+            this(x, y, z, aheadX, aheadZ, 3, 2);
+        }
     }
 
     /** The palette and the entries that index into it, as a capture is made from them. */
@@ -213,6 +232,7 @@ public final class MirrorCapture
         private short lastIndex;
         private boolean lastOccludes;
         private boolean lastMurky;
+        private boolean lastLeafy;
         /** Every block that is not air. */
         private final BitSet filled;
         /** Every block that hides what is behind it. */
@@ -221,6 +241,8 @@ public final class MirrorCapture
         private final BitSet cleared;
         /** Every block of water, which a ray sees through for {@link #WATER_SIGHT} blocks and no further. */
         private final BitSet murky;
+        /** Every block of leaves, which a ray sees through for {@link #LEAF_SIGHT} blocks and no further. */
+        private final BitSet leafy;
         /** After {@link #keepOnlySeen}, the blocks it kept; before it, null: everything. */
         private BitSet kept;
         /** After {@link #keepOnlySeen}, the air it saw; before it, null: none. */
@@ -256,6 +278,7 @@ public final class MirrorCapture
             this.solid = new BitSet(volume);
             this.cleared = new BitSet(volume);
             this.murky = new BitSet(volume);
+            this.leafy = new BitSet(volume);
             names.add((air == null) ? "minecraft:air" : air.getAsString());
             states.add(air);
             byName.put(names.get(0), (short) 0);
@@ -296,10 +319,12 @@ public final class MirrorCapture
                     lastIndex = -1;
                     lastOccludes = hides(data);
                     lastMurky = isWater(data);
+                    lastLeafy = isLeaves(data);
                 }
                 filled.set(at);
                 solid.set(at, lastOccludes);
                 murky.set(at, lastMurky);
+                leafy.set(at, lastLeafy);
             }
         }
 
@@ -328,10 +353,12 @@ public final class MirrorCapture
                 lastIndex = index(data);
                 lastOccludes = (lastIndex != 0) && hides(data);
                 lastMurky = (lastIndex != 0) && isWater(data);
+                lastLeafy = (lastIndex != 0) && isLeaves(data);
             }
             filled.set(at, lastIndex != 0);
             solid.set(at, lastOccludes);
             murky.set(at, lastMurky);
+            leafy.set(at, lastLeafy);
             add(x, y, z, lastIndex);
         }
 
@@ -351,6 +378,18 @@ public final class MirrorCapture
         private static boolean isWater(final BlockData data)
         {
             return data.getMaterial() == Material.WATER;
+        }
+
+        /**
+         * Whether a block is leaves, which can be seen through a few layers deep, but no more.
+         *
+         * <p>By name rather than {@code Tag.LEAVES}, which needs a live registry, so every kind of
+         * leaves any version adds is counted without being listed.
+         */
+        private static boolean isLeaves(final BlockData data)
+        {
+            // valueOf: a stand-in block with no material reads as "null", not as leaves.
+            return String.valueOf(data.getMaterial()).endsWith("_LEAVES");
         }
 
         /**
@@ -379,6 +418,7 @@ public final class MirrorCapture
                 filled.clear(at);
                 solid.clear(at);
                 murky.clear(at);
+                leafy.clear(at);
                 cleared.set(at);
                 add(x, y, z, (short) 0);
             }
@@ -516,6 +556,16 @@ public final class MirrorCapture
          */
         static final int WATER_SIGHT = 32;
 
+        /**
+         * How many blocks of leaves a ray sees through before they hide the rest.
+         *
+         * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+         * crown in its way and a view onto one kept the whole canopy, though nobody can see more
+         * than a few trees in. Past the last leaf a ray reaches, the real world shows through the
+         * gaps in it, which is why this is not smaller.
+         */
+        static final int LEAF_SIGHT = 6;
+
         /** @return how many blocks that are not air this would keep, as it stands */
         public int keptCount()
         {
@@ -632,22 +682,29 @@ public final class MirrorCapture
             final double exitZ = (from.z() + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            final double step = Math.tan(Math.toRadians(1.0));
+            // A bigger hole lets through more directions from each point; the rays are spread wider
+            // so a gate's capture costs about what a mirror's does.
+            final double step = Math.tan(Math.toRadians(Math.max(1.0, Math.sqrt((from.width() * from.height()) / 6.0))));
             // Filled afresh for each ray, which only reads them.
             final double[] origin = new double[3];
             final double[] direction = new double[3];
-            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
-            // than its room's, on whichever side its view turns that column to, so a room captured
-            // once serves a mirror of either width looking in either way.
+            // A mirror's is three blocks wide, centred on the arrival: a mirror two banners wide sees
+            // one column more than its room's, on whichever side its view turns that column to, so a
+            // room captured once serves a mirror of either width looking in either way. An even-width
+            // gate's arrival is left of its middle, so its hole sits half a block right.
+            final double half = from.width() / 2.0;
+            final double centre = ((from.width() - 1) % 2) / 2.0;
+            final double spacing = (from.width() == 3) ? 0.35 : ((half - 0.1) / 4);
+            final double rise = (from.height() == 2) ? 0.2 : (from.height() / 10.0);
             for (int column = -4; column <= 4; column++)
             {
-                final double across = column * 0.35;
-                for (double up = 0.1; up < 2.0; up += 0.2)
+                final double across = centre + (column * spacing);
+                for (double up = rise / 2; up < from.height(); up += rise)
                 {
                     // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
+                    for (double sideways = ((centre - half) - across) + (step / 2); sideways < ((centre + half) - across); sideways += step)
                     {
-                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
+                        for (double upward = -up + (step / 2); upward < (from.height() - up); upward += step)
                         {
                             final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
                             origin[0] = (exitX + ((across + sideways) * rightX)) - minX;
@@ -689,6 +746,19 @@ public final class MirrorCapture
             }
         }
 
+        /**
+         * Whether a ray ends at a block: one that hides what is behind it, or the last of as much
+         * water or leaves as can be seen through.
+         *
+         * @param through
+         *            {@code {water, leaves}} seen through so far along this ray, counted on
+         */
+        private boolean ends(final int at, final int[] through)
+        {
+            return solid.get(at) || (murky.get(at) && (++through[0] > WATER_SIGHT))
+                || (leafy.get(at) && (++through[1] > LEAF_SIGHT));
+        }
+
         /** Which axis a ray crosses a block boundary on next: whichever crossing comes soonest. */
         private static int soonest(final double[] tMax)
         {
@@ -721,7 +791,8 @@ public final class MirrorCapture
                 final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
                 tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
             }
-            int water = 0;
+            // Blocks of water and of leaves seen through so far, for when either ends the ray.
+            final int[] through = new int[2];
             double t = 0.0;
             while (t < reach)
             {
@@ -731,7 +802,7 @@ public final class MirrorCapture
                 }
                 final int at = offset(c[0], c[1], c[2], sizeY, sizeZ);
                 seen.set(at);
-                if (solid.get(at) || (murky.get(at) && (++water > WATER_SIGHT)))
+                if (ends(at, through))
                 {
                     return;
                 }
@@ -742,8 +813,34 @@ public final class MirrorCapture
             }
         }
 
+        /** How far ahead the sift kept, where it was cut short of the box; -1 if not. */
+        private int keptReach = -1;
+
+        /**
+         * Records that the sift was cut short of the box, to fit.
+         *
+         * @param reach
+         *            how far ahead of the arrival it kept
+         */
+        void keptReach(final int reach)
+        {
+            keptReach = reach;
+        }
+
         /** @return the finished capture, taken now */
         public MirrorCapture build()
+        {
+            return build(System.currentTimeMillis());
+        }
+
+        /**
+         * The finished capture, as though taken at a given time: for a test of what an old one does.
+         *
+         * @param takenAt
+         *            when it counts as taken, in milliseconds
+         * @return the capture
+         */
+        MirrorCapture build(final long takenAt)
         {
             // Sorted by position, the last word on each block winning: a block put and then
             // cleared is air, and a block put twice is what it was put as last.
@@ -770,11 +867,13 @@ public final class MirrorCapture
                     out++;
                 }
             }
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                System.currentTimeMillis(),
+            final MirrorCapture capture = new MirrorCapture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt,
                 new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
                     Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
                 MirrorSeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
+            capture.keptReach = keptReach;
+            return capture;
         }
 
         /**
@@ -1073,6 +1172,7 @@ public final class MirrorCapture
             out.writeInt(sizeY);
             out.writeInt(sizeZ);
             out.writeLong(takenAt);
+            out.writeInt(keptReach);
             out.writeInt(names.length);
             for (final String name : names)
             {
@@ -1128,7 +1228,7 @@ public final class MirrorCapture
                 throw new IOException(file + " is not a mirror capture");
             }
             final int version = in.readInt();
-            if (version != VERSION)
+            if ((version != VERSION) && (version != UNCUT_VERSION))
             {
                 throw new IOException(file + " is capture version " + version + ", not " + VERSION
                     + "; it will be taken again");
@@ -1143,6 +1243,7 @@ public final class MirrorCapture
             final int sizeY = in.readInt();
             final int sizeZ = in.readInt();
             final long takenAt = in.readLong();
+            final int kept = (version == UNCUT_VERSION) ? -1 : in.readInt();
             final int count = in.readInt();
             if ((count < 1) || (count > MOST_STATES) || (sizeX < 1) || (sizeY < 1) || (sizeZ < 1)
                 || (((long) sizeX * sizeY * sizeZ) > Integer.MAX_VALUE))
@@ -1171,8 +1272,10 @@ public final class MirrorCapture
                 }
             }
             final MirrorSeenAir air = MirrorSeenAir.read(in, file, sizeX, sizeY, sizeZ);
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            final MirrorCapture capture = new MirrorCapture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            capture.keptReach = kept;
+            return capture;
         }
     }
 
@@ -1237,6 +1340,12 @@ public final class MirrorCapture
     long secondsOld()
     {
         return (System.currentTimeMillis() - takenAt) / 1000L;
+    }
+
+    /** @return how far ahead of its arrival this capture kept, where a cut made that short of its box; -1 if never cut */
+    int keptReach()
+    {
+        return keptReach;
     }
 
     /**
