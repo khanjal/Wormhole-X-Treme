@@ -134,10 +134,10 @@ public final class DialSpin
 
     /**
      * The cells a glyph's light passes under a pattern, ending on the glyph's chevron, or on the
-     * top for {@link DialSpinPattern#TOP}. {@link DialSpinPattern#PEGASUS} starts from the chevron
+     * top for {@link DialSpinPattern#TOP}. {@link DialSpinPattern#CHEVRON} starts from the chevron
      * locked before it, the top for the first glyph, so its length varies from glyph to glyph.
      * {@link DialSpinPattern#UNIVERSE} turns the whole ring and has no one path; this is
-     * {@link DialSpinPattern#CHEVRON}'s for it.
+     * {@link DialSpinPattern#PEGASUS}'s for it.
      *
      * @param pattern
      *            how the light moves
@@ -152,7 +152,7 @@ public final class DialSpin
         {
             case TOP -> route(nearest(Math.PI), nearest(0.0), alternating(glyph));
             case LAP -> route(Math.floorMod(end + 1, ring.size()), end, 1);
-            case PEGASUS -> route(nearest((glyph <= 1) ? 0.0 : chevronAngle(glyph - 1)), end, -alternating(glyph));
+            case CHEVRON -> route(nearest((glyph <= 1) ? 0.0 : chevronAngle(glyph - 1)), end, -alternating(glyph));
             case CHASE -> (glyph <= 1) ? route(Math.floorMod(end - 1, ring.size()), end, -1)
                 : route(nearest(chevronAngle(glyph - 1)), end, -alternating(glyph));
             case OVERSHOOT -> overshoot(path(glyph), alternating(glyph));
@@ -372,19 +372,19 @@ public final class DialSpin
         final List<Cell> path = path(pattern, glyph);
         final int last = path.size() - 1;
         final int head = (ticks <= 1) ? last : (int) Math.round(((double) tick * last) / (ticks - 1));
-        if (pattern == DialSpinPattern.PEGASUS)
+        if (pattern == DialSpinPattern.CHEVRON)
         {
-            return pegasus(path, glyph, head);
+            return hops(path, glyph, head);
         }
         return run(path, head, (pattern == DialSpinPattern.FILL) ? (head + 1) : tail());
     }
 
     /**
-     * A Pegasus step: the light jumps a glyph at a time over the frame between the chevron it sets
-     * off from and the one it lands on, and lands as that chevron alone. It lights no chevron on the
-     * way, as an Atlantis gate's chevron lights only as it locks.
+     * A {@link DialSpinPattern#CHEVRON} step: the light jumps a glyph at a time over the frame between
+     * the chevron it sets off from and the one it lands on, and lands as that chevron alone. It
+     * lights no chevron on the way: a chevron lights only as it locks.
      */
-    private Set<Cell> pegasus(final List<Cell> path, final int glyph, final int head)
+    private Set<Cell> hops(final List<Cell> path, final int glyph, final int head)
     {
         final int last = path.size() - 1;
         final Set<Cell> chevron = chevron(glyph);
@@ -398,7 +398,7 @@ public final class DialSpin
     }
 
     /**
-     * The glyph-wide hops a Pegasus light takes over the frame up to a chevron, whose cells can sit
+     * The glyph-wide hops a chevron-to-chevron light takes over the frame up to a chevron, whose cells can sit
      * among frame cells, as Grand's do: up to the first reached. A hop never spans a chevron.
      */
     private List<Set<Cell>> hops(final List<Cell> path, final Set<Cell> chevron)
@@ -462,7 +462,7 @@ public final class DialSpin
         return lit;
     }
 
-    /** How many glyphs round an Atlantis gate, a Pegasus step being one's width. */
+    /** How many glyphs round a gate, a chevron-to-chevron hop being one's width. */
     private static final int GLYPHS = 36;
 
     /** The angle a glyph's light lands on: its chevron's, or the top's for one not on the ring. */
@@ -507,7 +507,7 @@ public final class DialSpin
      */
     public Set<Cell> comet(final int glyph, final int tick, final int ticks)
     {
-        return lit(DialSpinPattern.CHEVRON, glyph, tick, ticks);
+        return lit(DialSpinPattern.PEGASUS, glyph, tick, ticks);
     }
 
     /** The axis (0 x, 1 y, 2 z) the cells spread least along. */

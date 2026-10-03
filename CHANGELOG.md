@@ -6,6 +6,17 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.10.0 (unreleased)
+
+### Stargates
+
+**Changed**
+
+- **The `pegasus` and `chevron` dial spins have swapped.** `pegasus`, which the Atlantis group
+  uses, now runs half the ring onto each chevron; `chevron` now steps from each locked chevron to
+  the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
+  upgrade; set it to the other name to keep the old look.
+
 ## 1.9.0 (2026-10-03)
 
 ### For server admins

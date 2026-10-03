@@ -164,7 +164,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   left, the top one last — at half a second each on a Standard gate and a little slower on bigger
   ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 - **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
-  `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap`
+  `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to the next, `lap`
   takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an
   Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns
   it off. A gate, or a whole material group, can pick its own.
