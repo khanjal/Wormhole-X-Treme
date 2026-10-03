@@ -103,9 +103,9 @@ In `config.yml`, under its `# --- Transport rings ---` heading. Every key is fla
 | `ring-max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
 | `ring-default-access` | `PRIVATE` | What a new pair starts as. |
 | `ring-default-style` | `CONCURRENT` | How the stack deploys. |
-| `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as. |
+| `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as; also a stored pad whose light block this server does not have. |
 | `ring-default-flash` | `GLOWSTONE` | What a ring turns to as the light passes. |
-| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
+| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only: what a ring is drawn in when the slab it was saved with is not one this server has. Normally it is the slab you laid. |
 | `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `ring-outline-ticks` | 40 | How long that outline stays up. |
 

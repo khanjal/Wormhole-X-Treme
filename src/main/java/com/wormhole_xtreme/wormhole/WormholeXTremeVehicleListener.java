@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
@@ -45,6 +46,9 @@ class WormholeXTremeVehicleListener implements Listener
 
     /** The nospeed. */
     private static final Vector nospeed = new Vector();
+
+    /** How far short of a shut iris a stopped vehicle's front is left. */
+    private static final double IRIS_CLEARANCE = 0.01;
 
     /** Vehicles recently teleported — short cooldown to avoid immediate re-trigger. */
     private static final Set<UUID> recentlyTeleported = ConcurrentHashMap.newKeySet();
@@ -216,24 +220,118 @@ class WormholeXTremeVehicleListener implements Listener
     private enum VehicleKind
     {
         /** No re-sync teleport: it would zero the cart's velocity. */
-        MINECART("minecart", 8, false),
+        MINECART("minecart", 8, false, 0.49),
         /** Paper needs a re-sync so it resends EntityTeleport and SetPassengers once water physics settle. */
-        BOAT("boat", 12, true);
+        BOAT("boat", 12, true, 0.6875);
 
         private final String noun;
         private final int maxAttempts;
         private final boolean resync;
+        /** Half its width, which vanilla has not changed on any version this runs on. */
+        private final double halfWidth;
 
-        VehicleKind(final String noun, final int maxAttempts, final boolean resync)
+        VehicleKind(final String noun, final int maxAttempts, final boolean resync, final double halfWidth)
         {
             this.noun = noun;
             this.maxAttempts = maxAttempts;
             this.resync = resync;
+            this.halfWidth = halfWidth;
         }
 
         static VehicleKind of(final Vehicle veh)
         {
             return veh instanceof Boat ? BOAT : MINECART;
+        }
+    }
+
+    /**
+     * Where the front of a moving vehicle is, along x or z.
+     *
+     * @param alongX
+     *            true for x, false for z
+     * @param nose
+     *            how far ahead of its centre its front is on that axis, signed; 0 when it is
+     *            not moving along it
+     */
+    private record Heading(boolean alongX, double nose)
+    {
+        /** Along whichever axis it is mostly moving. */
+        static Heading of(final Vehicle veh, final Location from, final Location to)
+        {
+            if ((from == null) || (to == null))
+            {
+                return new Heading(true, 0);
+            }
+            return along(veh, from, to, Math.abs(to.getX() - from.getX()) >= Math.abs(to.getZ() - from.getZ()));
+        }
+
+        /** Along a gate's normal, the one axis its opening has a face on. */
+        static Heading across(final Stargate st, final Vehicle veh, final Location from, final Location to)
+        {
+            final BlockFace facing = st.getGateFacing();
+            if ((from == null) || (to == null) || (facing == null))
+            {
+                return new Heading(true, 0);
+            }
+            return along(veh, from, to, facing.getModX() != 0);
+        }
+
+        private static Heading along(final Vehicle veh, final Location from, final Location to,
+            final boolean alongX)
+        {
+            final double d = alongX ? (to.getX() - from.getX()) : (to.getZ() - from.getZ());
+            return new Heading(alongX, Math.signum(d) * VehicleKind.of(veh).halfWidth);
+        }
+
+        /** The block coordinate, on this axis, that the front is in with the centre at {@code at}. */
+        int noseBlock(final Location at)
+        {
+            return (int) Math.floor((alongX ? at.getX() : at.getZ()) + nose);
+        }
+
+        boolean noseChangedBlock(final Location from, final Location to)
+        {
+            return (nose != 0) && (noseBlock(from) != noseBlock(to));
+        }
+
+        /** The block the front is in with the centre at {@code at}. */
+        Block noseBlockAt(final Location at)
+        {
+            if (at.getWorld() == null)
+            {
+                return null;
+            }
+            final int n = noseBlock(at);
+            return at.getWorld().getBlockAt(alongX ? n : at.getBlockX(), at.getBlockY(), alongX ? at.getBlockZ() : n);
+        }
+
+        /** Whether the front is in the gate's opening with the centre at {@code at}. */
+        boolean noseIn(final Stargate st, final Location at)
+        {
+            final int n = noseBlock(at);
+            return st.isGatePortalBlockAt(alongX ? n : at.getBlockX(), at.getBlockY(), alongX ? at.getBlockZ() : n);
+        }
+
+        /**
+         * Where the centre goes for the front to rest just short of a block it is heading into.
+         *
+         * @param block
+         *            that block's coordinate on this axis
+         */
+        Location shortOf(final Location at, final int block)
+        {
+            final double face = (nose > 0) ? block : block + 1;
+            final double centre = face - nose - Math.signum(nose) * IRIS_CLEARANCE;
+            final Location out = at.clone();
+            if (alongX)
+            {
+                out.setX(centre);
+            }
+            else
+            {
+                out.setZ(centre);
+            }
+            return out;
         }
     }
 
@@ -585,7 +683,8 @@ class WormholeXTremeVehicleListener implements Listener
         // before whether the gate is open, because an idle gate's shut iris is the same drawing.
         if (st.isGateIrisActive() && st.isGateIrisDrawn())
         {
-            stopShortOfOwnIris(event);
+            // Normally caught a block earlier by its front; this is a cart fast enough to skip it.
+            stopCentreAtShutIris(event, st, ch);
             return false;
         }
         // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
@@ -605,7 +704,7 @@ class WormholeXTremeVehicleListener implements Listener
         final List<Entity> passengers = new ArrayList<>(veh.getPassengers());
         // Riders whose cooldown and arrival mark are owed once the trip actually happens.
         final List<Player> pendingRestrictions = new ArrayList<>();
-        if (!admitVehiclePassengers(st, veh, passengers, pendingRestrictions, gatenetwork))
+        if (!admitVehiclePassengers(st, veh, l.getWorld(), target, passengers, pendingRestrictions, gatenetwork))
         {
             return false;
         }
@@ -660,6 +759,37 @@ class WormholeXTremeVehicleListener implements Listener
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not turn back a refused vehicle", e);
         }
+    }
+
+    /**
+     * Puts a vehicle bound for another world back out of the portal, under same-world-only, and
+     * tells any player aboard why.
+     *
+     * <p>Put back and marked as a far iris bounces one. Only reversed, it was still in the opening
+     * on its next move, which read as a fresh entry: refused, and its rider told, again.
+     *
+     * @param here
+     *            the world it is in
+     * @param target
+     *            where it would arrive
+     * @return true if it was refused
+     */
+    private static boolean refusedCrossWorld(final Stargate st, final Vehicle veh, final World here,
+                                             final Location target, final List<Entity> passengers)
+    {
+        if (!StargateRestrictions.isCrossWorldRefused(here, target))
+        {
+            return false;
+        }
+        for (final Entity psg : passengers)
+        {
+            if (psg instanceof Player rider)
+            {
+                rider.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+            }
+        }
+        putBackOutOfPortal(st, veh);
+        return true;
     }
 
     /** A concurrent set will not look up a null, which a half-built entity can answer. */
@@ -760,10 +890,15 @@ class WormholeXTremeVehicleListener implements Listener
      * happened is not something the rider can argue with.
      *
      * <p>A locked iris bounces the vehicle rather than simply refusing, which is why this
-     * needs the vehicle and not just its passengers.
+     * needs the vehicle and not just its passengers. Another world under same-world-only is asked
+     * first, so nobody is told of an iris or a cooldown on a trip that could never happen.
      *
      * @param st
      *            the gate being entered
+     * @param here
+     *            the world the vehicle is in
+     * @param target
+     *            where it would arrive, null if nowhere
      * @param passengers
      *            who is aboard, possibly nobody
      * @param pendingRestrictions
@@ -772,11 +907,15 @@ class WormholeXTremeVehicleListener implements Listener
      *            the gate's network name, for the diagnostic
      * @return true if the trip may go on being considered
      */
-    private static boolean admitVehiclePassengers(final Stargate st, final Vehicle veh,
-                                                  final List<Entity> passengers,
+    private static boolean admitVehiclePassengers(final Stargate st, final Vehicle veh, final World here,
+                                                  final Location target, final List<Entity> passengers,
                                                   final List<Player> pendingRestrictions,
                                                   final String gatenetwork)
     {
+        if (refusedCrossWorld(st, veh, here, target, passengers))
+        {
+            return false;
+        }
         if (passengers.isEmpty() || !(passengers.get(0) instanceof Player p))
         {
             if (!st.getGateTarget().isGateIrisActive())
@@ -814,16 +953,7 @@ class WormholeXTremeVehicleListener implements Listener
      */
     private static void bounceOffClosedIris(final Stargate st, final Vehicle veh)
     {
-        final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-            ? st.getGateMinecartTeleportLocation()
-            : st.getGatePlayerTeleportLocation();
-        // With no arrival point of its own there is nowhere to put it back; it stays stopped.
-        if (irisTarget != null)
-        {
-            // Marked before the move so it does not read as another trip through the gate.
-            markVehicleRecentlyTeleported(veh.getUniqueId());
-            putBack(veh, forwardAndUp(irisTarget, st.getGateFacing(), 1.0, 1.0));
-        }
+        putBackOutOfPortal(st, veh);
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
             st.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
@@ -831,21 +961,80 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
     /**
-     * Stops a vehicle rolling into a gate whose own drawn iris is shut, where it just was.
+     * Puts a refused vehicle down at the gate it came from, a block out along its facing.
      *
-     * <p>Back where it was a move ago, not out in front: a gate can be rolled at from either
-     * side, and the front is through the iris for a cart coming from behind. Not marked as
-     * recently teleported either -- it lands outside the opening, so the move cannot read as an
-     * entry, and a mark would switch this check off for the next second while it is nudged back.
+     * @param st
+     *            the gate it entered
+     */
+    private static void putBackOutOfPortal(final Stargate st, final Vehicle veh)
+    {
+        final Location back = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+        // With no arrival point of its own there is nowhere to put it back; it stays stopped.
+        if (back != null)
+        {
+            // Marked before the move so it does not read as another trip through the gate.
+            markVehicleRecentlyTeleported(veh.getUniqueId());
+            putBack(veh, forwardAndUp(back, st.getGateFacing(), 1.0, 1.0));
+        }
+    }
+
+    /**
+     * Stops a vehicle whose front has just reached a gate's shut, drawn iris.
+     *
+     * <p>Asked of its front, not its centre: by the time the centre is in the opening half the
+     * vehicle is through the drawing (#491). One already in the opening, the iris shut around
+     * it, is left to roll out.
+     *
+     * @return true if it was stopped
+     */
+    private static boolean stopAtShutIris(final VehicleMoveEvent event, final Heading heading)
+    {
+        final Block ahead = heading.noseBlockAt(event.getTo());
+        final Stargate st = (ahead == null) ? null : StargateManager.getGateFromBlock(ahead);
+        if ((st == null) || !st.isGateIrisActive() || !st.isGateIrisDrawn()
+            || !heading.noseIn(st, event.getTo()) || heading.noseIn(st, event.getFrom()))
+        {
+            return false;
+        }
+        stopShortOfOwnIris(event, st, ahead);
+        return true;
+    }
+
+    /** As {@link #stopAtShutIris}, for a centre that got in; one already in the opening is left to roll out. */
+    private static void stopCentreAtShutIris(final VehicleMoveEvent event, final Stargate st, final Block iris)
+    {
+        final Location from = event.getFrom();
+        if (!st.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ()))
+        {
+            stopShortOfOwnIris(event, st, iris);
+        }
+    }
+
+    /**
+     * Stops a vehicle at the face of a gate's shut, drawn iris, its front just short of it.
+     *
+     * <p>On whichever side it came from: a gate can be rolled at from either side. Measured on
+     * the gate's normal, not the way the vehicle is mostly going, which on a curve can be along
+     * the gate. Not marked as recently teleported -- it lands outside the opening, so the move
+     * cannot read as an entry, and a mark would switch this check off while it is nudged back.
      *
      * @param event
-     *            the move that would have taken it into the opening
+     *            the move that would have taken it into the iris
+     * @param iris
+     *            the block of the opening it was heading into
      */
-    private static void stopShortOfOwnIris(final VehicleMoveEvent event)
+    private static void stopShortOfOwnIris(final VehicleMoveEvent event, final Stargate st,
+        final Block iris)
     {
         final Vehicle veh = event.getVehicle();
         veh.setVelocity(nospeed);
-        putBack(veh, event.getFrom());
+        final Heading across = Heading.across(st, veh, event.getFrom(), event.getTo());
+        // Not moving towards either face, such as dropped in from above: back where it was.
+        final int irisAt = across.alongX() ? iris.getX() : iris.getZ();
+        final Location at = (across.nose() == 0) ? event.getFrom() : across.shortOf(event.getTo(), irisAt);
+        putBack(veh, at);
     }
 
     /**
@@ -1065,7 +1254,11 @@ class WormholeXTremeVehicleListener implements Listener
         // detection has nothing to say until the block changes. Checking six ints here
         // skips a block lookup, a map lookup and two Location allocations on the great
         // majority of events — this fires roughly twenty times a second per rolling cart.
-        if (!WorldUtils.hasChangedBlock(event.getFrom(), event.getTo()))
+        // The front is watched as well as the centre, for a shut iris.
+        final boolean centreMoved = WorldUtils.hasChangedBlock(event.getFrom(), event.getTo());
+        final Heading heading = Heading.of(vehicle, event.getFrom(), event.getTo());
+        final boolean noseMoved = heading.noseChangedBlock(event.getFrom(), event.getTo());
+        if (!centreMoved && !noseMoved)
         {
             return;
         }
@@ -1076,6 +1269,13 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return;
         }
-        handleStargateVehicleTeleportEvent(event);
+        if (noseMoved && stopAtShutIris(event, heading))
+        {
+            return;
+        }
+        if (centreMoved)
+        {
+            handleStargateVehicleTeleportEvent(event);
+        }
     }
 }

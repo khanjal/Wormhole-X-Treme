@@ -16,6 +16,29 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   to players with `wormhole.update.notify` (ops) as they join. Nothing is downloaded, and nothing
   is said to a server running something newer. `update-check: false` turns it off.
 
+**Fixed**
+
+- **Every setting changed with `/wormhole config` applies at once, as the guide says.** Ten waited
+  for a restart: `gate-sound-ambient-ticks`, `entity-scan-interval-ticks`, `mirror-proximity-ticks`,
+  `gate-iris-horizon-ticks`, `ring-reach`, `ring-max-ceiling-drop`, `economy-enabled`,
+  `placeholders-enabled`, `permissions-auto-fallback` and `gate-material-groups-autodiscover`.
+
+**Removed**
+
+- **`help-support-disable`**, which nothing read: the Help plugin it turned off is long gone. A line
+  for it in `config.yml` is ignored and left where it is.
+
+### For server admins
+
+**Added**
+
+- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
+  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
+  from or travelled through, at either end. A flag only takes away: a player still needs the
+  usual permission, and WorldGuard's region bypass gets past the flag. Off until
+  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
+  yet. See [the guide](docs/guide/SERVER.md#worldguard).
+
 ### Stargates
 
 **Fixed**
@@ -29,6 +52,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   arm swing redrew the whole iris a tick later, over the sweep.
 - **A detector rail wired to a gate dials it on Paper 1.21.11.** Paper reports a rail's press as
   a current of 15 going to 15, which read as no change, so a cart over the rail did nothing.
+- **`same-world-only` keeps everything in its own world, not only players on foot.** A minecart
+  carried its rider through to the Nether, and a mob, an item or an arrow went too. With it on, a
+  gate in another world cannot be dialled, and `/dial` and the dial sign say why. A player walking
+  in is told that before any cooldown or iris, and once, not at every block.
+- **`/wormhole config` refuses a sign colour that is not one**, and names the sixteen there are.
+  `sign-color-gate-name PINK` was accepted, and every sign written after it came out dark aqua.
+
+### Transport rings
+
+**Fixed**
+
+- **A ring pair whose slab or pad light this server does not have loads**, drawn in
+  `ring-default-material` or lit in `ring-default-light`, and is saved with the name it had. It was
+  skipped as unreadable and lost at the next save, and `ring-default-material` was read by nothing.
 
 ### Performance
 
@@ -44,6 +81,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
   Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
   flight over at the far gate.
+- **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
+  to roll half into the iris before it was put back, still with its front inside.
 
 ### Quantum mirrors
 

@@ -14,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Storage is where a mistake is permanent, so it is worth exercising off a live server.
@@ -207,6 +210,114 @@ class RingYamlManagerTest
         assertEquals(1, RingYamlManager.loadAll(directory, REACH));
         assertNotNull(RingManager.getPair("good0001"));
         assertNull(RingManager.getPair("broken01"));
+    }
+
+    /**
+     * A ring whose slab this server does not have is drawn in ring-default-material, not dropped.
+     *
+     * <p>A pair saved on a newer Minecraft can name a slab an older server lacks. It used to be
+     * skipped as unreadable and lost at the next save, while the setting that says it is "used only
+     * when the slab a ring was built from cannot be read" was read by nothing.
+     */
+    @Test
+    void aRingInASlabThisServerLacksIsDrawnInTheDefaultMaterial() throws IOException
+    {
+        final String yaml = """
+            World: world
+            Pairs:
+              future01:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: FUTURE_STONE_SLAB, Light: GLOWSTONE}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+            """;
+        Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL, "QUARTZ_SLAB");
+        try
+        {
+            assertEquals(1, RingYamlManager.loadAll(directory, REACH), "the pair loads");
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        final RingPair loaded = RingManager.getPair("future01");
+        assertEquals(Material.QUARTZ_SLAB, loaded.getEndA().getRingMaterial(),
+            "the configured fallback, not the smooth stone it defaults to");
+        assertEquals(Material.STONE_SLAB, loaded.getEndB().getRingMaterial(), "the other end keeps its own");
+    }
+
+    /**
+     * A slab this server lacks is written back as it was stored, so a server downgraded and
+     * upgraded again gets its ring back as it was built.
+     */
+    @Test
+    void aSlabThisServerLacksIsSavedAsItWasStored() throws IOException
+    {
+        writeFutureRing("FUTURE_STONE_SLAB", "GLOWSTONE");
+        RingYamlManager.loadAll(directory, REACH);
+
+        RingYamlManager.saveWorld(directory, WORLD);
+
+        final String saved = Files.readString(new File(directory, "world.yml").toPath());
+        assertTrue(saved.contains("FUTURE_STONE_SLAB"), "the stored name survives a save: " + saved);
+    }
+
+    /** A recoloured end stores what it was recoloured to, not the name it was loaded with. */
+    @Test
+    void aRecolouredEndStoresItsNewSlab() throws IOException
+    {
+        writeFutureRing("FUTURE_STONE_SLAB", "GLOWSTONE");
+        RingYamlManager.loadAll(directory, REACH);
+        RingManager.getPair("future01").getEndA().setRingMaterial(Material.OAK_SLAB);
+
+        RingYamlManager.saveWorld(directory, WORLD);
+
+        final String saved = Files.readString(new File(directory, "world.yml").toPath());
+        assertTrue(saved.contains("OAK_SLAB"), saved);
+    }
+
+    /**
+     * A pad light this server lacks is lit in ring-default-light, and kept, not the pair skipped.
+     */
+    @Test
+    void aLightThisServerLacksIsLitInTheDefaultLightAndKept() throws IOException
+    {
+        writeFutureRing("STONE_SLAB", "FUTURE_LAMP");
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.RING_DEFAULT_LIGHT, "SEA_LANTERN");
+        try
+        {
+            assertEquals(1, RingYamlManager.loadAll(directory, REACH), "the pair loads");
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+        assertEquals(Material.SEA_LANTERN, RingManager.getPair("future01").getEndA().getLightMaterial(),
+            "the configured fallback, not the redstone lamp it defaults to");
+
+        RingYamlManager.saveWorld(directory, WORLD);
+        assertTrue(Files.readString(new File(directory, "world.yml").toPath()).contains("FUTURE_LAMP"));
+    }
+
+    /** A pair whose end A names this slab and light. */
+    private void writeFutureRing(final String slab, final String light) throws IOException
+    {
+        final String yaml = """
+            World: world
+            Pairs:
+              future01:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: %s, Light: %s}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+            """.formatted(slab, light);
+        Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +28,7 @@ import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -317,5 +319,34 @@ class DialCommandTest
         Assertions.assertTrue(dial(), "no arguments: answered here");
         Assertions.assertTrue(dial("a", "b", "c"), "three arguments: answered here");
         verify(player, times(2)).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /dial <gate> [idc]")));
+    }
+
+    /**
+     * With same-world-only on, /dial to a gate in another world is refused before anything opens, and
+     * says why. The research facility found the dial went through, and only somebody walking in was
+     * stopped: a cart, an item or a mob went on through to the Nether.
+     */
+    @Test
+    void aTargetInAnotherWorldIsRefusedWithTheReasonWhenSameWorldOnlyIsOn()
+    {
+        final Stargate here = gate("here");
+        final Stargate there = gate("there");
+        here.setGateWorld(mock(World.class));
+        there.setGateWorld(mock(World.class));
+        StargateManager.addActivatedStargate(player, here);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.SAME_WORLD_ONLY, true);
+        try
+        {
+            dial("there");
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+
+        verify(player).sendMessage(contains("Cross-world travel is disabled"));
+        assertNull(here.getGateTarget(), "nothing was connected");
+        assertNull(StargateManager.removeActivatedStargate(player),
+            "the lit gate is put out, as for any other refused dial");
     }
 }

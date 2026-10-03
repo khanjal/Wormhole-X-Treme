@@ -18,6 +18,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Economy](#economy)
 - [Placeholders](#placeholders)
 - [CoreProtect](#coreprotect)
+- [WorldGuard](#worldguard)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -92,6 +93,10 @@ options. Sound names are not checked, because a resource pack's sounds have to p
 **Editing `config.yml` while the server is running does not work.** The plugin writes the file
 back from memory when it shuts down, so an edit made underneath it is overwritten. Use the
 command, or edit the file with the server stopped.
+
+**A change applies from the next time it is used.** A wormhole already open closes on the timeout
+it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
+its colours until it is next written. Nothing waits for a restart.
 
 ### Keeping gates from staying open
 
@@ -190,7 +195,6 @@ Worth knowing:
   carry it. A block left there is not part of the gate, so anyone can break it back out.
 - One use cooldown applies to everyone: `use-cooldown-seconds`, switched on by
   `use-cooldown-enabled`.
-- With the `Help` plugin present, the nodes are registered with it.
 
 ### Permission backend and fallback
 
@@ -198,7 +202,8 @@ Worth knowing:
   provider, even if one is present.
 - `permissions-auto-fallback` (default `true`) — if no provider is found at startup, basic use
   actions keep working and advanced ones stay with operators and gate owners. Set `false` to
-  leave permission handling entirely to you.
+  leave permission handling entirely to you. Whether a provider is there is looked at startup, and
+  again whenever this or `permissions-support-disable` is changed in-game.
 
 ## Commands
 
@@ -362,7 +367,7 @@ from this one.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `placeholders-enabled` | `false` | Nothing is registered while this is off. |
+| `placeholders-enabled` | `false` | Nothing answers while this is off. |
 
 | Placeholder | What it is |
 |---|---|
@@ -404,6 +409,40 @@ to it, so an admin can look them up and roll them back like anything else.
   happens; the log says so once. A CoreProtect that fails never stops a gate being built.
 - **CoreProtect is looked for once**, the first time something is logged. One installed while the
   server is running is picked up at the next restart.
+
+## WorldGuard
+
+Optional. With [WorldGuard](https://enginehub.org/worldguard) installed, a region owner can say
+where gates may be built and where they may be used, with two region flags.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `worldguard-enabled` | `false` | The flags are only added, and only checked, while this is on. Turning it off applies at once; turning it on takes a restart. |
+
+| Flag | Refuses |
+|---|---|
+| `wormhole-build` | Finishing a gate any block of which, or its DHD, is in the region: the DHD press, `/wormhole complete`, `gate preview -place` and `gate build` by coordinates. |
+| `wormhole-use` | Opening a gate in the region from its DHD, `gate dial` from it, and travelling through a wormhole with either end in it, on foot or riding. |
+
+```
+/rg flag spawn wormhole-build deny
+/rg flag spawn wormhole-use -g nonmembers deny
+```
+
+- **A plain `deny` holds the region's own members and owners too.** Add `-g nonmembers`, as in the
+  second line, to leave them free to build or use gates there.
+- **A flag only takes away.** Permission nodes decide who may build or use a gate, the region
+  decides where, and both have to allow it. A player without the node is told that, not about
+  the region. Both flags default to allow, so turning this on changes nothing until a region
+  sets one to `deny`.
+- **Owning the gate is no way past a region,** and this plugin makes no exception for operators.
+  WorldGuard's own region bypass, `worldguard.region.bypass.<world>`, is the one exemption;
+  operators hold it by default.
+- **Not refused:** shutting a gate down, its iris, and redstone dialling. Dialling *to* a gate in a
+  denied region is not refused at the dial; the trip into it is.
+- **Gates only.** Rings, beams and mirrors are not held to these flags.
+- **No WorldGuard, or one that fails,** means nothing is refused; the log says so once. A region
+  check that throws lets the player through.
 
 ## Metrics
 
