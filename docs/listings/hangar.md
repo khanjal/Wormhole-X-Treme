@@ -64,10 +64,10 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard]` — every one is optional
-and the plugin loads without them. Declaring a required dependency that is not required would
-make Hangar warn operators off installing it, and the listing's strongest line is "no
-dependencies"; a row for each optional one would dilute that for nothing.
+only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap]` — every
+one is optional and the plugin loads without them. Declaring a required dependency that is not
+required would make Hangar warn operators off installing it, and the listing's strongest line is
+"no dependencies"; a row for each optional one would dilute that for nothing.
 
 If the integrations are ever wanted discoverable, add them as Optional, never Required.
 
