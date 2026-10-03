@@ -106,4 +106,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/m3',
+  DESK,
 };

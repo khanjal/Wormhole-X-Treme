@@ -27,7 +27,7 @@ function button(out, x, z, command, what) {
 
 /** The prompt a beam button sends the nearest player: one click runs `beam to` as them. */
 function beamPrompt(version, to) {
-  return `tellraw @p[distance=..3] ${text.command(version, [
+  return `tellraw @p[distance=..3,tag=!wx_watcher] ${text.command(version, [
     { text: ':: ', color: 'dark_aqua' },
     { text: `[Beam to ${to}]`, color: 'aqua', underlined: true, click: { run: `/wormhole beam to ${to}` } },
   ])}`;

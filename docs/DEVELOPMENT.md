@@ -734,6 +734,46 @@ WorldEdit itself: a schematic copied with its origin at the far corner, saved by
 `lib/schematics.js` works out (`scripts/facility/test/fixtures/`). A placement may carry
 `"minVersion": "1.21.11"`: a run on an older version leaves it out and says so.
 
+#### Watching the self-test (`--watch`)
+
+To stand in the lab and see the bots run the cells:
+
+```bash
+node scripts/facility/run-facility.js 1.21.11 --selftest --watch            # waits for anyone
+node scripts/facility/run-facility.js 1.21.11 --selftest --watch YourName --cells '^r1'
+.\scripts\facility\lab.ps1 -Version 1.21.11 -Watch -Quick                     # its own window
+scripts/facility/lab.sh -v 1.21.11 -W -n YourName -q
+```
+
+The self-test builds the campus as usual, then says to join and waits (for that name, or for
+whoever joins first). From then on, before each matrix cell you are moved to its chamber's
+vantage point (`campus.WATCH`), facing the cell, and told in chat which cell it is, what it
+expects, what to look for and what each option it sets means; after it, its PASS, FAIL or
+KNOWN. Each other section (transit, plates, console and the rest) is announced from a vantage
+over the atrium. `lab.ps1 -Watch` and `lab.sh -W` start from a fresh world, since the
+self-test's first checks are that every cell is as built.
+
+A watcher must not change a result, and the plugin takes no account of game mode: it counts
+any player within `mirror-proximity-distance` (16) of a mirror (which holds a second click and
+keeps the round where it was), carries any player standing in a ring, and sends any entity in a
+gate's opening. So everyone who joins while a watched self-test runs, other than Probe, Probe2
+and Tester, is a watcher: in spectator mode with night vision, tagged `wx_watcher`, never
+welcomed (no adventure mode, no atrium, no Logbook), and refused by the console, whose clicks
+would otherwise run a chamber or change a menu under the test. A tick function (`wx:watcher`)
+puts a watcher who strays more than `WATCH_LEASH` (3) blocks from the vantage marker back on it,
+and `test/watcher.test.js` checks every vantage point stays, leash and all, 20 blocks from every
+mirror banner, out of every ring's volume and outside every gate a cell builds (each was
+mutated into each and failed). The facility's own `@p` selectors (the tp plates and the beam
+pads' prompt) leave out `wx_watcher`, and G1's `tester` launcher never picks a watcher. So a
+mirror's view stays a banner to a watcher: it opens only within 16 blocks. A watcher who leaves
+is let go and the run carries on; one who comes back is put back where the run is. Join before
+it starts: a first join lands at the world spawn by the atrium until the watcher is set up.
+
+`--watch-bot` is `--watch` with a stand-in client, `Watcher`, that joins as a person would and
+stays where it is put; it works with `--versions` and `--shards` (one per server), to show a
+watcher changes nothing. On 1.20.4, 1.21.11 and 26.1.2 the full self-test with one gave the same
+result for every check as without one (the PR has the comparison).
+
 #### Design mode (`--design`, `--design-check`, `--design-export`, `--design-import`)
 
 For the designer the facility is being decorated by (`design/facility/BRIEF.md`, "Run it

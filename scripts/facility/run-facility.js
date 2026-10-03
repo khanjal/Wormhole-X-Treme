@@ -32,6 +32,12 @@
 //                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
 //                        the repository or a folder above it)
 //   --op <names>         op these players (comma-separated) once the server is up
+//   --watch [name]       with --selftest: wait for a person to join (as <name>, or any name), then
+//                        run the self-test with them as a watcher: a spectator moved to each
+//                        chamber's vantage point and told each cell and its result, whom the
+//                        cells take no notice of (lib/watcher.js). One server only
+//   --watch-bot          --watch with a stand-in client named Watcher instead of a person, to
+//                        prove a watcher changes nothing; with --versions or --shards, one each
 //   --tied              (set by --versions and --shards for their children) stop when stdin
 //                        closes
 //   --viewer             serve prismarine-viewer on Probe at http://127.0.0.1:<3007 + port - 25590>/
@@ -135,6 +141,13 @@ function parseArgs(argv) {
       const bad = a.op.find((p) => !/^\w{1,16}$/.test(p));
       if (bad !== undefined) throw new Error(`--op takes player names, not ${bad}`);
     }
+    else if (x === '--watch') {
+      // The name is optional: a bare --watch (or one followed by an option or the version) is anyone.
+      const next = argv[i + 1];
+      a.watch = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : true;
+      if (a.watch !== true && (!/^\w{1,16}$/.test(a.watch) || require('./lib/watcher').BOTS.has(a.watch))) throw new Error(`--watch takes a player name that is not one of the facility's bots, not ${a.watch}`);
+    }
+    else if (x === '--watch-bot') a.watchBot = true;
     else if (x === '--viewer') a.viewer = true;
     else if (x === '--viewer-port') a.viewerPort = whole('--viewer-port', value(i++), 1024);
     else if (x === '--shots') {
@@ -155,6 +168,9 @@ function parseArgs(argv) {
     else throw new Error(`unknown argument ${x}`);
   }
   if (a.versions && !a.versions.length) throw new Error('--versions names no version');
+  if ((a.watch || a.watchBot) && !a.selftest) throw new Error('--watch and --watch-bot watch a self-test: add --selftest');
+  if (a.watch && a.watchBot) throw new Error('--watch waits for a person, --watch-bot joins a stand-in: one of them');
+  if (a.watch && (a.versions || a.shards > 1)) throw new Error('--watch is one person on one server: not with --versions or --shards (--watch-bot is)');
   if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics || a.designImport)) throw new Error('--viewer, --shots, --schematics and --design-import take one version and one server');
   if (a.designImport && a.schematics) throw new Error('--design-import is a --schematics of its own: give one of them');
   if (a.design) {
@@ -450,6 +466,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
     if (args.keepWorld) child.push('--keep-world');
     if (withNames) child.push('--with', withNames.join(',') || 'none');
     if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
+    if (args.watchBot) child.push('--watch-bot');
     const p = spawn(process.execPath, child, { stdio: ['pipe', 'pipe', 'pipe'] });
     p.stdin.on('error', () => {});
     children.push(p);
@@ -616,6 +633,11 @@ async function main() {
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPort });
+  // Before the server starts, so whoever joins early is a watcher, never welcomed as a tester.
+  if (args.watch || args.watchBot) {
+    const { Watcher } = require('./lib/watcher');
+    fac.watcher = new Watcher(fac, { name: args.watch === true ? null : args.watch || null, standIn: Boolean(args.watchBot) });
+  }
   // However the launcher goes, the server goes with it: a signal ends hold mode or the run and
   // stops the server, a second one kills it, and an exit any other way kills a JVM still
   // running, so no server is left holding the port and the world folder.
@@ -717,6 +739,7 @@ async function main() {
     if (args.shots && !args.selftest && !args.viewer) {
       exit = shotsFailed || setup.length || stray.length ? 1 : 0;
     } else if (args.selftest) {
+      if (fac.watcher) await fac.watcher.arrive();
       const ts = Date.now();
       let shard = null;
       if (args.shard) {
@@ -745,6 +768,7 @@ async function main() {
       }
       console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${results.known.length} known plugin failures); `
         + `self-test ${(testMs / 1000).toFixed(0)} s, generation ${buildMs} ms, ${total} chunks forceloaded`);
+      if (fac.watcher) await fac.watcher.finish(`${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks, ${results.known.length} known plugin failures`);
       exit = bad || stray.length ? 1 : 0;
       if (args.report) {
         fs.writeFileSync(args.report, JSON.stringify({
