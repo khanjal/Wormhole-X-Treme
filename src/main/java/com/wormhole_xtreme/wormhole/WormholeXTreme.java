@@ -53,6 +53,7 @@ import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
+import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
@@ -307,6 +308,14 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            try
+            {
+                MapMarkers.disable();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to take markers off the map", e);
             }
             try
             {
@@ -588,6 +597,22 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
+    /**
+     * Starts drawing gates, rings, beams and mirrors on Dynmap (#236), if the config asks for it.
+     * Its own catch, as the others have: a map must never cost a server its gates.
+     */
+    private void enableMapIfConfigured()
+    {
+        try
+        {
+            MapMarkers.enable(this);
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to start the web map markers", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -698,6 +723,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         registerEvents();
         registerCommands();
+        enableMapIfConfigured();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
         // The sweeps whose period is a setting, rescheduled when /wormhole config changes one.

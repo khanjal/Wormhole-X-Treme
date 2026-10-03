@@ -19,7 +19,7 @@ The values a release changes. Change them here first, then carry them into the s
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect and WorldGuard optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
+| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard and Dynmap optional, snakeyaml comes from the server, and bStats is shaded in, relocated. Dynmap shows gates, rings, beams and mirrors as map layers; 1.21.11 needs Dynmap 3.8 (3.7 builds stop at 1.21.4), and no Dynmap runs on 26.x yet |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live

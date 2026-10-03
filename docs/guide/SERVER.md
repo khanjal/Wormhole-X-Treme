@@ -19,6 +19,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Placeholders](#placeholders)
 - [CoreProtect](#coreprotect)
 - [WorldGuard](#worldguard)
+- [Dynmap](#dynmap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -443,6 +444,55 @@ where gates may be built and where they may be used, with two region flags.
 - **Gates only.** Rings, beams and mirrors are not held to these flags.
 - **No WorldGuard, or one that fails,** means nothing is refused; the log says so once. A region
   check that throws lets the player through.
+
+## Dynmap
+
+Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installed, gates, transport
+rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
+viewer can switch on and off.
+
+On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
+CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build
+for Minecraft 26.x yet: there the map stays off, and the log says Dynmap was not found or is not
+running.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `dynmap-enabled` | `false` | The Dynmap switch. Nothing is shown while this is off. |
+
+Which layers are drawn is set separately, and is shared by any web map this plugin draws on:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `map-show-gates` | `true` | Gates, and the lines between dialled gates. |
+| `map-show-rings` | `true` | Transport rings. |
+| `map-show-beams` | `true` | Public beam destinations. |
+| `map-show-mirrors` | `true` | Quantum mirrors. |
+| `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. A gate connected to a hidden one is shown idle, with no line. |
+
+- **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
+  in its popup, and its icon lit once a wormhole has formed through it; a line between two
+  dialled gates once their wormhole has formed, when both are in the same world; both ends of
+  each ring pair, with a line between them; each public beam destination; each quantum mirror
+  at its banner. A mirror has no line, because which room it
+  opens onto is chosen at it.
+- **Never shown:** players' private beam places. Dynmap shows every marker to every viewer, so a
+  private place on the map would be anybody's to find.
+- **A layer switched off** is left off the map entirely, not shown as an empty checkbox.
+- **Kept up to date** every five seconds, and straight away when a gate is built, removed or
+  shut, or its wormhole forms. The map is drawn off the main thread, and only what changed is
+  redrawn.
+- **No Dynmap** means nothing happens; the log says so at startup, and again whenever a map
+  setting is changed. So does a Dynmap that is installed but did not start, for instance one that
+  does not support the server's Minecraft version; the map starts when Dynmap does. The log says
+  the map is showing only once Dynmap is up.
+- **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
+  and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
+- The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the
+  plugin's state each time, so a gate removed while Dynmap was down does not linger. Only the
+  icons are kept by Dynmap, and they are refreshed each time the map starts.
+- Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or
+  squaremap can be added later without changing what is shown.
 
 ## Metrics
 
