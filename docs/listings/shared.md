@@ -13,7 +13,7 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.8.1` — newest release. Check which jar each site actually carries before bumping its field. |
+| Version | `1.9.0` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
