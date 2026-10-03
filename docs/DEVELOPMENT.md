@@ -762,8 +762,8 @@ welcomed (no adventure mode, no atrium, no Logbook), and refused by the console,
 would otherwise run a chamber or change a menu under the test. A tick function (`wx:watcher`)
 puts a watcher who strays more than `WATCH_LEASH` (3) blocks from the vantage marker back on it,
 and `test/watcher.test.js` checks every vantage point stays, leash and all, 20 blocks from every
-mirror banner, out of every ring's volume and outside every gate a cell builds (each was
-mutated into each and failed). The facility's own `@p` selectors (the tp plates and the beam
+mirror banner, out of every ring's volume and outside every gate a cell builds (each check
+was mutated into failing). The facility's own `@p` selectors (the tp plates and the beam
 pads' prompt) leave out `wx_watcher`, and G1's `tester` launcher never picks a watcher. So a
 mirror's view stays a banner to a watcher: it opens only within 16 blocks. A watcher who leaves
 is let go and the run carries on; one who comes back is put back where the run is, and one who
