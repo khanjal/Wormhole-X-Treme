@@ -387,6 +387,26 @@ function sampleResources(pids, everyMs = 10000) {
 }
 
 /**
+ * The Lab Dashboard's way into this lab's console (lib/remote.js): a command port on 127.0.0.1
+ * and its endpoint file in the lab folder, removed however the launcher ends. Returns { close() }.
+ */
+async function openCommandPort(srv, folder, busy) {
+  const remote = require('./lib/remote');
+  const token = remote.newToken();
+  const port = await remote.createCommandPort({ srv, token, busy });
+  remote.writeEndpoint(folder, { port: port.address().port, token });
+  const forget = () => remote.removeEndpoint(folder, token);
+  process.on('exit', forget);
+  return {
+    close() {
+      forget();
+      port.closeAllConnections();
+      return new Promise((resolve) => { port.close(() => resolve()); });
+    },
+  };
+}
+
+/**
  * --versions and --shards: one child process per version and shard, all at once, each on its own
  * port (--port, +2, +4, ...) and in its own server folder; every line is prefixed with which it
  * is. Each shard writes its results to a report; they are merged per version into one summary.
@@ -644,8 +664,11 @@ async function main() {
   let holding = null;
   let stopping = false;
   let web = null;
+  let commands = null;
+  let selftesting = false;
   const shutDown = async () => {
     stopping = true;
+    if (commands) await commands.close();
     if (web) await web.close().catch(() => {});
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
@@ -673,6 +696,18 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
+    // The dashboard's commands queue behind the facility's own in Server.run; a self-test's cells
+    // own the console outright.
+    try {
+      commands = await openCommandPort(srv, folder, () => {
+        if (selftesting) return 'a self-test is running; its cells own the console';
+        if (stopping) return 'the server is stopping';
+        if (srv.restarting || fac.restarting) return 'the server is restarting';
+        return null;
+      });
+    } catch (e) {
+      console.error(`facility: the Lab Dashboard's command box will not reach this lab: ${e.message}`);
+    }
     // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
     for (const name of args.design ? [] : args.op || []) {
       const r = await srv.run(`op ${name}`);
@@ -747,10 +782,16 @@ async function main() {
         shard = { ...args.shard, cells: new Set(planned.shards[args.shard.index]) };
         console.log(`shard ${args.shard.index + 1}/${args.shard.count}: ${shard.cells.size} matrix cells`);
       }
-      const results = await selftest(fac, {
-        buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
-        companions: withNames,
-      });
+      let results;
+      selftesting = true;
+      try {
+        results = await selftest(fac, {
+          buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
+          companions: withNames,
+        });
+      } finally {
+        selftesting = false;
+      }
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
       results.push(...shotChecks);
