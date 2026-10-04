@@ -2722,7 +2722,7 @@ class GatePreviewsTest
 
     /**
      * A preview dials with its material group's ring pattern (#366), as a gate of that group
-     * would: here the server turns no ring, and a group set to chevron turns one anyway.
+     * would: here the server turns no ring, and a group set to pegasus turns one anyway.
      */
     @Test
     void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
