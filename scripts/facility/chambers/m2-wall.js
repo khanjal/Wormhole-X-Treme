@@ -164,4 +164,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/m2',
+  NICHES,
 };

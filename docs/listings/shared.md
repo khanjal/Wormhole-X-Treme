@@ -80,6 +80,7 @@ All pinned to `main`. Prefix: `https://raw.githubusercontent.com/khanjal/Wormhol
 | Rings | `docs/images/rings/ring-cycle.webp` | animated WebP |
 | Beaming | `docs/images/beams/beam-up.webp` | animated WebP |
 | Mirrors | `docs/images/mirrors/mirror-effects.webp` | animated WebP |
+| Dynmap | `docs/images/maps/dynmap-layers.png` | PNG, a real capture of the web map with the Wormhole layers; the icons in it are the plugin's placeholder dots, so redo it when the artist's icons land (#187) |
 | Gallery | `docs/images/gates/gate-shapes.png`, `gate-shapes-active.png`, `gate-horizontal.png`, `standard-palettes.png`, `standard-palettes-active.png`, `standard-palettes-iris.png` | PNG |
 
 The gallery is about 1.9 MB all told. If a page feels heavy, `gate-shapes-active.png` and
@@ -164,10 +165,10 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   left, the top one last — at half a second each on a Standard gate and a little slower on bigger
   ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 - **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
-  `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap`
-  takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an
-  Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns
-  it off. A gate, or a whole material group, can pick its own.
+  `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to
+  the next, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes,
+  `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two
+  more, and `none` turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
   last lying flat to be dropped into rather than walked through. Shapes are plain text files:

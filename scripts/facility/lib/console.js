@@ -147,8 +147,8 @@ function normaliseOptions(options = {}) {
  * null), values: { option: index } }.
  */
 class FacilityConsole {
-  constructor({ srv, version, bot, wings, entries, handlers, status, groups = null }) {
-    Object.assign(this, { srv, version, bot, wings, entries, handlers, status, groups });
+  constructor({ srv, version, bot, wings, entries, handlers, status, groups = null, ignores = () => false }) {
+    Object.assign(this, { srv, version, bot, wings, entries, handlers, status, groups, ignores });
     // Wing tabs, wing Go and tester groups each have a band of codes; a list that outgrows it would
     // answer with another band's action.
     if (wings.length > GO - TAB || wings.length > GROUP - GO || (groups || []).length > 10000 - GROUP) throw new Error('console codes overlap: too many wings or groups');
@@ -262,9 +262,15 @@ class FacilityConsole {
     await this.tell(player, this.tabsLine(e.def.wing === 'systems' ? 'ops' : e.def.wing));
   }
 
+  /** What a watcher of a watched self-test (lib/watcher.js) is told instead of a menu. */
+  async watchingLine(player) {
+    await this.tell(player, [{ text: 'You are watching the self-test: the console is closed to you until it is over.', color: 'gray' }]);
+  }
+
   async onCode({ player, code }) {
     if (!code || player === this.bot.username) return;
     for (const c of rearmCommands(player)) await this.srv.run(c);
+    if (this.ignores(player)) return this.watchingLine(player);
     if (code === HOME) return this.home(player);
     if (code === LOGBOOK) return this.handlers.book(player);
     if (code === TRANSIT_TAB) return this.transitTab(player);
@@ -299,6 +305,7 @@ class FacilityConsole {
    * <value>`, `!run|stage|reset|watch|again <chamber>`, and `!group <visitor|builder|operator|default>`.
    */
   async onTyped({ player, line }) {
+    if (this.ignores(player)) return this.watchingLine(player);
     const words = line.split(/\s+/).filter(Boolean).map((w) => w.toLowerCase());
     if (!words.length || words[0] === 'console') return this.home(player);
     const wingOf = (word) => this.wings.find((w) => w.id === word || w.title.toLowerCase().startsWith(word));

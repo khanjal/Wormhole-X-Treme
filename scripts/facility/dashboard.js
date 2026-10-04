@@ -40,7 +40,8 @@ function findLabs() {
       try {
         const conf = fs.readFileSync(path.join(folder, 'plugins', 'dynmap', 'configuration.txt'), 'utf8');
         const port = /^webserver-port:\s*(\d+)/m.exec(conf);
-        if (port) map = `http://localhost:${port[1]}/`;
+        // Dynmap binds 127.0.0.1 only; a browser can take localhost to ::1 and be refused.
+        if (port) map = `http://127.0.0.1:${port[1]}/`;
       } catch { /* no Dynmap here */ }
       return { id: n.replace(/\W/g, '_'), name: `${m[1]} · :${m[2] || 25590}`, folder, map };
     });
@@ -283,6 +284,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--dim);flex-wrap:wrap}
 .bar input[type=search]{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 8px;border-radius:6px;min-width:220px;font:inherit}
 .bar label{display:flex;gap:4px;align-items:center;cursor:pointer}
+.bar button{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:2px 8px;border-radius:6px;cursor:pointer;font:inherit}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}.dot.live{background:var(--wx)}
 pre{flex:1;margin:0;overflow:auto;padding:8px 12px;font:12.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 .l.w{color:var(--warn)}.l.e{color:var(--err)}.l.x{color:var(--wx)}.l.h{display:none}.l.r{color:var(--accent)}.l.r.e{color:var(--err)}
@@ -297,8 +299,11 @@ iframe{flex:1;border:0;width:100%;background:#fff}
 <script>
 const LABS = ${labsJson(LABS)}, CSRF = '${CSRF}';
 const tabs = document.getElementById('tabs'), views = document.getElementById('views');
-function show(id){for(const b of tabs.children)b.classList.toggle('on',b.dataset.v===id);
+function show(id){const was=views.querySelector('.view.on');
+  for(const b of tabs.children)b.classList.toggle('on',b.dataset.v===id);
   for(const v of views.children)v.classList.toggle('on',v.id===id);
+  // A map loaded before its lab served stays blank: reload it on coming from another tab, not when already on it.
+  const f=document.getElementById(id).querySelector('iframe');if(f&&was&&was.id!==id)f.src=f.src;
   const shown=document.getElementById(id);if(shown.onShow)shown.onShow();
   try{localStorage.setItem('wxdash.tab',id)}catch{}}
 function addTab(id,label){const b=document.createElement('button');b.className='tab';b.dataset.v=id;b.textContent=label;
@@ -375,10 +380,12 @@ for(const lab of LABS){
 for(const lab of LABS){
   const id='map-'+lab.id;addTab(id,'Dynmap '+lab.name);
   const v=document.createElement('section');v.className='view';v.id=id;
-  v.innerHTML=lab.map?'<div class="bar"><a style="color:var(--accent)" target="_blank" href="'+lab.map+'">'+lab.map+'</a>'
+  v.innerHTML=lab.map?'<div class="bar"><button class="reload" title="reload the map">↻</button>'
+    +'<a style="color:var(--accent)" target="_blank" href="'+lab.map+'">'+lab.map+'</a>'
     +'<span>(blank if the lab is not running)</span></div><iframe loading="lazy" src="'+lab.map+'"></iframe>'
     :'<div class="empty">No Dynmap on this lab. Start it with -With dynmap (no Dynmap build supports 26.x yet).</div>';
   views.appendChild(v);
+  const f=v.querySelector('iframe');if(f)v.querySelector('.reload').onclick=()=>{f.src=f.src};
 }
 if(!LABS.length)views.innerHTML='<div class="empty">No labs yet. Start one with scripts/facility/lab.ps1; this page picks it up once its server has written a log.</div>';
 else{let first='con-'+LABS[0].id;try{first=localStorage.getItem('wxdash.tab')||first}catch{}

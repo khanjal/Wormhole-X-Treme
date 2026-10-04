@@ -188,6 +188,7 @@ animation rather than embedding it to run forever.
 | A round trip through a mirror | `mirrors/mirror-effects.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#setting-one-up) |
 | One mirror showing two rooms | `mirrors/mirror-look.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 | A mirror's view shifting as you move past it | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| The Dynmap layers: gates, a ring pair, a beam destination, mirrors | `maps/dynmap-layers.png` | [guide/SERVER.md](guide/SERVER.md#dynmap), [listings/shared.md](listings/shared.md). It shows the placeholder icons, so redo it when #187's icons land. |
 
 **Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
 -- you vanish six steps into a twelve-tick envelope, long before there is time to reach the far
