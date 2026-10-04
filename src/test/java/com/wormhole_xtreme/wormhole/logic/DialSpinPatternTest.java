@@ -126,21 +126,21 @@ class DialSpinPatternTest
     }
 
     /**
-     * PEGASUS goes as an Atlantis gate dials: the first glyph from the top anticlockwise, and each
+     * CHEVRON goes chevron to chevron: the first glyph from the top anticlockwise, and each
      * after from the chevron last locked, turning the other way from the one before.
      */
     @Test
-    void pegasusRunsFromTheLastChevronToTheNextAlternating() throws Exception
+    void chevronRunsFromTheLastChevronToTheNextAlternating() throws Exception
     {
         for (final String name : RINGS)
         {
             final DialSpin spin = spin(name);
-            final List<Cell> first = spin.path(DialSpinPattern.PEGASUS, 1);
+            final List<Cell> first = spin.path(DialSpinPattern.CHEVRON, 1);
             assertEquals(7, first.get(0).wave(), name + ": the first glyph starts at the top");
             assertFalse(clockwise(spin, first), name + ": and turns anticlockwise");
             for (int glyph = 2; glyph <= 7; glyph++)
             {
-                final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
+                final List<Cell> path = spin.path(DialSpinPattern.CHEVRON, glyph);
                 assertEquals(glyph - 1, path.get(0).wave(), name + ": glyph " + glyph + " starts at the chevron before");
                 assertEquals((glyph % 2) == 0, clockwise(spin, path), name + ": glyph " + glyph + " turns the other way");
             }
@@ -178,7 +178,7 @@ class DialSpinPatternTest
             final DialSpin spin = spin(name);
             for (int glyph = 1; glyph <= 7; glyph++)
             {
-                final List<Cell> plain = spin.path(DialSpinPattern.CHEVRON, glyph);
+                final List<Cell> plain = spin.path(DialSpinPattern.PEGASUS, glyph);
                 final List<Cell> over = spin.path(DialSpinPattern.OVERSHOOT, glyph);
                 final Cell chevron = plain.get(plain.size() - 1);
                 assertEquals(plain, over.subList(0, plain.size()), name + " glyph " + glyph + ": the same way there");
@@ -300,12 +300,12 @@ class DialSpinPatternTest
     }
 
     /**
-     * PEGASUS lands as the chevron alone, not the glyph-wide run that carried it there; found on
+     * CHEVRON lands as the chevron alone, not the glyph-wide run that carried it there; found on
      * Massive, where that run lit a dozen frame blocks round each chevron as it locked. Every hop
      * on the way is either clear of the chevron or the chevron itself, never the two together.
      */
     @Test
-    void pegasusLandsAsTheChevronAlone() throws Exception
+    void chevronLandsAsTheChevronAlone() throws Exception
     {
         for (final String name : RINGS)
         {
@@ -313,14 +313,14 @@ class DialSpinPatternTest
             for (int glyph = 1; glyph <= 7; glyph++)
             {
                 final Set<Cell> chevron = onRing(spin, glyph);
-                assertEquals(chevron, spin.lit(DialSpinPattern.PEGASUS, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
-                assertFalse(spin.lit(DialSpinPattern.PEGASUS, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
-                final List<Cell> path = spin.path(DialSpinPattern.PEGASUS, glyph);
+                assertEquals(chevron, spin.lit(DialSpinPattern.CHEVRON, glyph, TICKS - 1, TICKS), name + " glyph " + glyph);
+                assertFalse(spin.lit(DialSpinPattern.CHEVRON, glyph, 0, TICKS).isEmpty(), name + " glyph " + glyph + ": seen setting off");
+                final List<Cell> path = spin.path(DialSpinPattern.CHEVRON, glyph);
                 final int reached = IntStream.range(0, path.size())
                     .filter(i -> chevron.contains(path.get(i))).findFirst().orElse(path.size());
                 for (int tick = 0; tick < TICKS; tick++)
                 {
-                    final Set<Cell> lit = spin.lit(DialSpinPattern.PEGASUS, glyph, tick, TICKS);
+                    final Set<Cell> lit = spin.lit(DialSpinPattern.CHEVRON, glyph, tick, TICKS);
                     assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> c.wave() == 0),
                         name + " glyph " + glyph + " tick " + tick + ": the chevron alone, or frame alone: " + lit);
                     assertTrue(lit.equals(chevron) || lit.stream().allMatch(c -> path.indexOf(c) < reached),
@@ -333,19 +333,19 @@ class DialSpinPatternTest
     }
 
     /**
-     * PEGASUS moves a glyph's width at a time, even between neighbouring chevrons: on Massive the
+     * CHEVRON moves a glyph's width at a time, even between neighbouring chevrons: on Massive the
      * light once sat still in the gap beside the chevron for the whole interval, its step being
      * wider than the gap. Found in-game.
      */
     @Test
-    void pegasusMovesBetweenNeighbouringChevrons() throws Exception
+    void chevronMovesBetweenNeighbouringChevrons() throws Exception
     {
         final DialSpin spin = spin("Massive");
         final int ticks = 15;
         final Set<Set<Cell>> seen = new LinkedHashSet<>();
         for (int tick = 0; tick < (ticks - 1); tick++)
         {
-            seen.add(spin.lit(DialSpinPattern.PEGASUS, 2, tick, ticks));
+            seen.add(spin.lit(DialSpinPattern.CHEVRON, 2, tick, ticks));
         }
         seen.remove(onRing(spin, 2));
         assertTrue(seen.size() >= 2, "stepping across the gap, not sitting in it: " + seen.size());
@@ -354,7 +354,7 @@ class DialSpinPatternTest
         final int n = spin.ring().size();
         for (int tick = 0; tick < (ticks - 1); tick++)
         {
-            final List<Integer> at = spin.lit(DialSpinPattern.PEGASUS, 1, tick, ticks).stream()
+            final List<Integer> at = spin.lit(DialSpinPattern.CHEVRON, 1, tick, ticks).stream()
                 .map(c -> spin.ring().indexOf(c)).toList();
             final long gaps = IntStream.range(1, at.size())
                 .filter(i -> Math.min(Math.floorMod(at.get(i) - at.get(i - 1), n), Math.floorMod(at.get(i - 1) - at.get(i), n)) != 1)

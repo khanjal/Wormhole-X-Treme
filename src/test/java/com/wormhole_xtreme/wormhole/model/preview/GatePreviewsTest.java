@@ -2437,7 +2437,7 @@ class GatePreviewsTest
     @Test
     void theRingsLightTravelsToTheChevronBeforeItLocks()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
         final List<Cell> cells = standardLookingNorth();
         final DialSpin spin = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
@@ -2712,17 +2712,17 @@ class GatePreviewsTest
         assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
     }
 
-    /** Loads a group framed in obsidian whose gates turn CHEVRON, while the server turns none. */
+    /** Loads a group framed in obsidian whose gates turn PEGASUS (half the ring), while the server turns none. */
     private MaterialGroup turningGroup()
     {
         MaterialGroupRegistry.load(Map.of("Turning",
-            Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "chevron")));
+            Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "pegasus")));
         return MaterialGroupRegistry.getGroup("Turning");
     }
 
     /**
      * A preview dials with its material group's ring pattern (#366), as a gate of that group
-     * would: here the server turns no ring, and a group set to chevron turns one anyway.
+     * would: here the server turns no ring, and a group set to pegasus turns one anyway.
      */
     @Test
     void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
