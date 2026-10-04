@@ -35,6 +35,22 @@ const { RingKit } = require('./lib/rings');
  */
 const { MATRIX, defaultsOf, expectation, applies } = require('./matrix');
 
+/** What a watcher (lib/watcher.js) is told as each section begins. */
+const SECTIONS = {
+  world: 'every wing, anchor and empty cell is checked as built (nothing moves)',
+  fixtures: 'the session fixtures: far gates, the gallery, the transit routes',
+  transit: 'Probe2 walks the routes from here: the Ops gate north, the ring east, the beam west, the mirror south',
+  plates: 'Probe steps on each tp plate under the mezzanine, and comes home',
+  boards: 'Probe reads the Ops wall and the fault counter',
+  matrix: 'each chamber\'s cells, one at a time: you are moved to each',
+  console: 'Tester, a non-op, clicks through the console',
+  players: 'Tester falls and is shot unhurt; a pig is not so lucky',
+  logbook: 'Tester\'s Logbook: its pages, a Go, and a fresh copy after a run',
+  resets: 'every chamber reset, and every cell checked empty',
+  empty: 'the plugin holds only the fixtures',
+  settings: 'every setting a cell changed is back',
+};
+
 async function selftest(fac, {
   buildReport, fixtures = [], only = null, fixed = [], quick = false, log = console.log, shard = null, companions = null,
 }) {
@@ -47,8 +63,11 @@ async function selftest(fac, {
     results.push({ section, name, ok: Boolean(ok), detail });
     log(`  ${ok ? 'ok  ' : 'FAIL'} ${section} · ${name}${detail ? ` — ${detail}` : ''}`);
   };
+  // Watch mode (lib/watcher.js): the watcher is told each section, and each matrix cell before and after.
+  const watcher = fac.watcher || null;
   const guard = async (section, fn) => {
     const t0 = Date.now();
+    if (watcher) await watcher.section(section, SECTIONS[section] || '');
     try { await fn(); } catch (e) { check(section, 'threw', false, e.stack || String(e)); }
     sectionMs[section] = (sectionMs[section] || 0) + (Date.now() - t0);
   };
@@ -137,40 +156,48 @@ async function selftest(fac, {
   const settings = new Set();
   const before = {};
   await guard('matrix', async () => {
+    // Only the cells this run takes: a companion cell's settings may not exist in a jar tested
+    // without its companion, and a cell --cells, --quick or the shard leaves out reads nothing.
+    const planned = [];
     for (const [id, cells] of Object.entries(MATRIX)) {
-      const e = fac.entries.find((x) => x.def.id === id);
-      const defaults = defaultsOf(e.chamber);
       for (const cell of cells) {
-        // Only the cells this run takes: a companion cell's settings may not exist in a jar tested
-        // without its companion, and a cell --cells, --quick or the shard leaves out reads nothing.
         if (!applies(cell, companions)) continue;
         const label = cell.name || `${id} ${Object.entries(cell.values).map(([k, x]) => `${k}=${x}`).join(' ')}`;
         if (only && !only.test(label)) continue;
         if (quick && !cell.quick) continue;
         if (!inShard(label)) continue;
-        // Every setting a cell needs is read before the first run that needs it, and checked at the end.
-        const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
-        for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
-        const want = expectation(cell, fac.version, fixed);
-        const t0 = Date.now();
-        const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
-        const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
-        const ok = got === want;
-        // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
-        const note = cell.regressedBy && fixed.includes(cell.regressedBy) ? cell.regressionNote : cell.known;
-        const knownNow = Boolean(note) && want !== 'PASS';
-        const secs = ((Date.now() - t0) / 1000).toFixed(1);
-        const detail = ok
-          ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
-          : `got ${got}${knownNow ? ` (expected the known plugin failure: ${note})` : ''}, ${secs} s`;
-        check('matrix', `${label} → ${want}`, ok, detail);
-        if (ok && knownNow) known.push({ label, note, version: fac.version });
-        if (r.outcome !== 'REFUSED') {
-          const reset = await fac.resetChamber(e);
-          check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
-        }
-        times[label] = Math.round((Date.now() - t0) / 100) / 10;
+        planned.push({ id, cell, label });
       }
+    }
+    for (const [i, { id, cell, label }] of planned.entries()) {
+      const e = fac.entries.find((x) => x.def.id === id);
+      const defaults = defaultsOf(e.chamber);
+      // Every setting a cell needs is read before the first run that needs it, and checked at the end.
+      const needs = e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : [];
+      for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
+      const want = expectation(cell, fac.version, fixed);
+      if (watcher) await watcher.cell(e, { label, values: { ...defaults, ...cell.values }, want, index: i + 1, total: planned.length });
+      const t0 = Date.now();
+      const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0 });
+      const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
+      const ok = got === want;
+      // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
+      const note = cell.regressedBy && fixed.includes(cell.regressedBy) ? cell.regressionNote : cell.known;
+      const knownNow = Boolean(note) && want !== 'PASS';
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      const detail = ok
+        ? `${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+        : `got ${got}${knownNow ? ` (expected the known plugin failure: ${note})` : ''}, ${secs} s`;
+      check('matrix', `${label} → ${want}`, ok, detail);
+      if (ok && knownNow) known.push({ label, note, version: fac.version });
+      let resetOk = true;
+      if (r.outcome !== 'REFUSED') {
+        const reset = await fac.resetChamber(e);
+        resetOk = reset.ok;
+        check('matrix', `${label}: reset leaves the cell as built`, reset.ok, reset.problems.join('; ') || 'clean');
+      }
+      times[label] = Math.round((Date.now() - t0) / 100) / 10;
+      if (watcher) await watcher.result(label, { ok: ok && resetOk, known: knownNow, detail: resetOk ? detail : `${detail}; the reset left the cell not as built` });
     }
     // A Run of a staged chamber is refused, and the stage's setting stays until its Reset.
     const c0 = fac.entries.find((x) => x.def.id === 'c0');

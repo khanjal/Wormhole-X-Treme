@@ -76,4 +76,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/r2',
+  FLOOR_RING, CEILING_XZ,
 };
