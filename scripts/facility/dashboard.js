@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 'use strict';
-// A read-only dashboard for the facility's labs: each lab's live console (streamed from its
-// logs/latest.log) and its Dynmap, in one browser page. Listens on 127.0.0.1 only.
+// A dashboard for the facility's labs: each lab's live console (streamed from its logs/latest.log)
+// with a command box, and its Dynmap, in one browser page. Listens on 127.0.0.1 only.
 //
 //   node scripts/facility/dashboard.js            http://127.0.0.1:8200
 //   node scripts/facility/dashboard.js --port 8300
 //
-// Labs are the server folders under .local-server/ that run-facility.js made; it sends no commands.
+// Labs are the server folders under .local-server/ that run-facility.js made. A command goes to
+// the lab's launcher, at the port and with the token in its .wx-console.json (lib/remote.js).
 
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const remote = require('./lib/remote');
 
 const SERVERS = path.join(__dirname, '..', '..', '.local-server');
 
@@ -119,6 +121,51 @@ function stream(lab, res) {
   res.on('close', () => clearInterval(timer));
 }
 
+const NOT_RUNNING = 'this lab is not running under a launcher that accepts commands (start it with scripts/facility/lab.ps1 or run-facility.js)';
+const COMMAND_MS = 20000;
+
+function json(res, status, body) {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(body));
+}
+
+/** Passes a command from the page to the lab's launcher, and its answer back; the token stays here. */
+async function runOn(lab, req, res) {
+  let command;
+  try {
+    command = remote.commandOf(await remote.readBody(req));
+  } catch (e) {
+    json(res, e.status || 400, { error: e.message });
+    return;
+  }
+  const end = remote.readEndpoint(lab.folder);
+  if (!end) { json(res, 503, { error: NOT_RUNNING }); return; }
+  const body = JSON.stringify({ command });
+  let done = false;
+  const answer = (status, text) => {
+    if (done) return;
+    done = true;
+    res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(text);
+  };
+  const out = http.request({
+    host: '127.0.0.1', port: end.port, path: '/run', method: 'POST', timeout: COMMAND_MS,
+    headers: { Authorization: `Bearer ${end.token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  }, (r) => {
+    const parts = [];
+    r.on('data', (d) => parts.push(d));
+    r.on('end', () => answer(r.statusCode, Buffer.concat(parts).toString('utf8')));
+    r.on('error', (e) => answer(502, JSON.stringify({ error: `the launcher's answer broke off: ${e.message}` })));
+  });
+  out.on('timeout', () => {
+    answer(504, JSON.stringify({ error: `no answer from the launcher in ${COMMAND_MS / 1000} s` }));
+    out.destroy();
+  });
+  // A launcher that went without removing its file (killed outright) leaves nothing listening.
+  out.on('error', (e) => answer(e.code === 'ECONNREFUSED' ? 503 : 502, JSON.stringify({ error: e.code === 'ECONNREFUSED' ? NOT_RUNNING : e.message })));
+  out.end(body);
+}
+
 const page = (LABS) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lab Dashboard</title>
@@ -139,7 +186,11 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .bar button{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:2px 8px;border-radius:6px;cursor:pointer;font:inherit}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}.dot.live{background:var(--wx)}
 pre{flex:1;margin:0;overflow:auto;padding:8px 12px;font:12.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
-.l.w{color:var(--warn)}.l.e{color:var(--err)}.l.x{color:var(--wx)}.l.h{display:none}
+.l.w{color:var(--warn)}.l.e{color:var(--err)}.l.x{color:var(--wx)}.l.h{display:none}.l.me{color:var(--dim)}.l.me.e{color:var(--err)}
+.cmd{display:flex;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--line);color:var(--dim)}
+.cmd input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 8px;border-radius:6px;font:12.5px ui-monospace,Consolas,monospace}
+.cmd button{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font:inherit}
+.cmdst{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cmdst.e{color:var(--err)}
 iframe{flex:1;border:0;width:100%;background:#fff}
 .empty{padding:24px;color:var(--dim)}
 </style></head><body>
@@ -151,8 +202,11 @@ const tabs = document.getElementById('tabs'), views = document.getElementById('v
 function show(id){const was=views.querySelector('.view.on');
   for(const b of tabs.children)b.classList.toggle('on',b.dataset.v===id);
   for(const v of views.children)v.classList.toggle('on',v.id===id);
+  const now=document.getElementById(id);
   // A map loaded before its lab served stays blank: reload it on coming from another tab, not when already on it.
-  const f=document.getElementById(id).querySelector('iframe');if(f&&was&&was.id!==id)f.src=f.src;
+  const f=now.querySelector('iframe');if(f&&was&&was.id!==id)f.src=f.src;
+  // A hidden console does not scroll as lines arrive: bring a following one to its newest line.
+  const p=now.querySelector('pre'),fo=now.querySelector('.follow');if(p&&fo&&fo.checked)p.scrollTop=p.scrollHeight;
   try{localStorage.setItem('wxdash.tab',id)}catch{}}
 function addTab(id,label){const b=document.createElement('button');b.className='tab';b.dataset.v=id;b.textContent=label;
   b.onclick=()=>show(id);tabs.appendChild(b)}
@@ -164,7 +218,10 @@ for(const lab of LABS){
     +'<input type="search" placeholder="filter (e.g. Wormhole, WARN)">'
     +'<label><input type="checkbox" class="follow" checked> follow</label>'
     +'<label><input type="checkbox" class="wxonly"> Wormhole only</label>'
-    +'<label title="the facility&#39;s fence markers and effect re-applies"><input type="checkbox" class="quiet" checked> hide facility noise</label></div><pre></pre>';
+    +'<label title="the facility&#39;s fence markers and effect re-applies"><input type="checkbox" class="quiet" checked> hide facility noise</label></div><pre></pre>'
+    +'<form class="cmd" autocomplete="off"><span>&gt;</span><input type="text" spellcheck="false" maxlength="1000"'
+    +' placeholder="console command, e.g. op Name or dynmap fullrender world (Enter runs it; Up and Down for earlier ones)">'
+    +'<button>Run</button><span class="cmdst"></span></form>';
   views.appendChild(v);
   const pre=v.querySelector('pre'),q=v.querySelector('input[type=search]'),follow=v.querySelector('.follow'),
     wxonly=v.querySelector('.wxonly'),quiet=v.querySelector('.quiet'),st=v.querySelector('.st'),dot=v.querySelector('.dot');
@@ -183,7 +240,27 @@ for(const lab of LABS){
   ].join('|'));
   const hidden=(t)=>(q.value&&!t.toLowerCase().includes(q.value.toLowerCase()))||(wxonly.checked&&!/WormholeXTreme/.test(t))
     ||(quiet.checked&&noise.test(t.replace(/^\\[[^\\]]*\\] \\[[^\\]]*\\]: /,'')));
-  const refilter=()=>{for(const d of pre.children)d.classList.toggle('h',hidden(d.textContent))};
+  const refilter=()=>{for(const d of pre.children)if(!d.classList.contains('me'))d.classList.toggle('h',hidden(d.textContent))};
+  // The command box: the reply comes through the log like any other line; a refusal shows here.
+  const cmd=v.querySelector('.cmd'),cin=cmd.querySelector('input'),cst=v.querySelector('.cmdst'),hkey='wxdash.hist.'+lab.id;
+  let hist=[];try{hist=JSON.parse(localStorage.getItem(hkey))||[]}catch{}
+  if(!Array.isArray(hist))hist=[];hist=hist.filter((h)=>typeof h==='string').slice(-100);
+  let at=hist.length;
+  const mine=(t,bad)=>{const d=document.createElement('div');d.className='l me'+(bad?' e':'');d.textContent=t;pre.appendChild(d);pre.scrollTop=pre.scrollHeight};
+  const state=(t,bad)=>{cst.textContent=t;cst.title=t;cst.className='cmdst'+(bad?' e':'')};
+  cmd.onsubmit=async(ev)=>{ev.preventDefault();const c=cin.value.trim();if(!c)return;
+    if(hist[hist.length-1]!==c){hist.push(c);if(hist.length>100)hist=hist.slice(-100);try{localStorage.setItem(hkey,JSON.stringify(hist))}catch{}}
+    at=hist.length;cin.value='';mine('> '+c);state('running…');
+    try{const r=await fetch('/cmd?lab='+encodeURIComponent(lab.id),{method:'POST',
+        headers:{'Content-Type':'application/json','X-Wx-Dashboard':'1'},body:JSON.stringify({command:c})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){const why=j.error||('HTTP '+r.status);state(why,true);mine('  not run: '+why,true);return}
+      const errs=j.errors||[],lines=j.lines||[];
+      state(errs.length?errs[0]:lines.length?lines[lines.length-1]:'done, no output',errs.length>0);
+    }catch(e){state('the dashboard did not answer: '+e.message,true);mine('  not run: the dashboard did not answer',true)}};
+  cin.onkeydown=(e)=>{
+    if(e.key==='ArrowUp'){e.preventDefault();if(at>0)cin.value=hist[--at]}
+    else if(e.key==='ArrowDown'){e.preventDefault();if(at<hist.length){at++;cin.value=at<hist.length?hist[at]:''}}};
   q.oninput=refilter;wxonly.onchange=refilter;quiet.onchange=refilter;
   const es=new EventSource('/log?lab='+lab.id);
   es.onmessage=(m)=>{const t=JSON.parse(m.data),d=document.createElement('div');d.className='l '+kind(t);d.textContent=t;
@@ -220,7 +297,7 @@ function labsJson(labs) {
 
 const server = http.createServer((req, res) => {
   // Only this machine's own names: a page elsewhere that rebinds a hostname to 127.0.0.1 gets nothing.
-  if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host || '')) { res.writeHead(403); res.end(); return; }
+  if (!remote.localHost(req.headers.host)) { res.writeHead(403); res.end(); return; }
   let url;
   try { url = new URL(req.url, 'http://127.0.0.1'); } catch { res.writeHead(400); res.end(); return; }
   if (url.pathname === '/') {
@@ -229,6 +306,13 @@ const server = http.createServer((req, res) => {
   } else if (url.pathname === '/labs') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(findLabs().map((l) => l.id)));
+  } else if (url.pathname === '/cmd') {
+    if (req.method !== 'POST') { json(res, 405, { error: 'POST only' }); return; }
+    // Its own page only: a page elsewhere cannot send this header and body without a preflight.
+    if (!remote.sameOrigin(req.headers)) { json(res, 403, { error: 'forbidden' }); return; }
+    const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
+    if (!lab) { json(res, 404, { error: 'no such lab' }); return; }
+    runOn(lab, req, res).catch((e) => { if (!res.headersSent) json(res, 500, { error: e.message }); });
   } else if (url.pathname === '/log') {
     const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
     if (!lab) { res.writeHead(404); res.end(); return; }
