@@ -24,9 +24,9 @@ import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
-import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -42,7 +42,6 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -53,6 +52,8 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
+import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
@@ -307,6 +308,14 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            try
+            {
+                MapMarkers.disable();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to take markers off the map", e);
             }
             try
             {
@@ -588,6 +597,22 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
+    /**
+     * Starts drawing gates, rings, beams and mirrors on Dynmap (#236), if the config asks for it.
+     * Its own catch, as the others have: a map must never cost a server its gates.
+     */
+    private void enableMapIfConfigured()
+    {
+        try
+        {
+            MapMarkers.enable(this);
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to start the web map markers", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -603,11 +628,13 @@ public class WormholeXTreme extends JavaPlugin
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
             enableMetricsIfConfigured();
+            UpdateCheck.startIfConfigured(this);
         }
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
+        RegionFlags.listen(this);
         // Before anything reads a stored file. Gates, rings and beam destinations used to
         // live in the same folder as another fork's database; this moves ours out of it, and
         // reading them first would find nothing and load an empty server.
@@ -696,48 +723,18 @@ public class WormholeXTreme extends JavaPlugin
         }
         registerEvents();
         registerCommands();
+        enableMapIfConfigured();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
-        // Periodic sweep: send loose non-player entities that drift into an open
-        // wormhole through it. Players and vehicles have their own events; this covers
-        // dropped items and wandering mobs, which generate none.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            GateEntityScanner.create(), 20L, entityScanIntervalTicks);
-        // Projectiles cross a portal in about a tick, far too fast for the sweep above to
+        // The sweeps whose period is a setting, rescheduled when /wormhole config changes one.
+        RepeatingSweeps.startAll();
+        // Projectiles cross a portal in about a tick, far too fast for the entity sweep to
         // see, so they are followed individually and checked every tick while in flight.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ProjectileGateTracker.createTicker(), 20L, 1L);
         // A thrown item crosses the opening in a tick or two, so it is followed the same way.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ItemGateTracker.createTicker(), 20L, 1L);
-        // An open wormhole hums. One sweep over the open gates rather than a task per gate:
-        // the work is the same and there is nothing per-gate to cancel or leak.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            GateSounds::tickAmbient,
-            20L, ConfigManager.getGateSoundAmbientTicks());
-        // A mirror hung on a wall is drawn as a view of its room. One sweep over the registered
-        // mirrors, which skips any whose world or chunk is not loaded.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            MirrorProximity.createTicker(),
-            40L, ConfigManager.getMirrorProximityTicks());
-        // A mirror names itself above the hotbar to whoever is looking at it. Its own task
-        // rather than a second job inside the sweep above: that one walks the mirrors, this
-        // one walks the players, and folding them together would mean doing the more expensive
-        // of the two loops for the sake of the cheaper. Shares the period because both are
-        // about what a player sees when they approach a banner.
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            MirrorSignpost.createTicker(),
-            40L, ConfigManager.getMirrorProximityTicks());
-        // Behind a see-through iris the wormhole is drawn in ice, which does not move the way
-        // water does, so it is moved for it. Registered only when it is wanted: a server that
-        // has turned it off should not pay a task that walks the open gates to do nothing.
-        final long irisHorizonTicks = ConfigManager.getGateIrisHorizonTicks();
-        if (irisHorizonTicks > 0)
-        {
-            WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-                StargateManager::tickIrisHorizon,
-                20L, irisHorizonTicks);
-        }
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GatePreviews::tick, 100L, 100L);
@@ -775,6 +772,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load mirror looks", e);
         }
+        RegionFlags.register();
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 

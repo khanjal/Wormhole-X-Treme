@@ -18,6 +18,8 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Economy](#economy)
 - [Placeholders](#placeholders)
 - [CoreProtect](#coreprotect)
+- [WorldGuard](#worldguard)
+- [Dynmap](#dynmap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -92,6 +94,10 @@ options. Sound names are not checked, because a resource pack's sounds have to p
 **Editing `config.yml` while the server is running does not work.** The plugin writes the file
 back from memory when it shuts down, so an edit made underneath it is overwritten. Use the
 command, or edit the file with the server stopped.
+
+**A change applies from the next time it is used.** A wormhole already open closes on the timeout
+it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
+its colours until it is next written. Nothing waits for a restart.
 
 ### Keeping gates from staying open
 
@@ -175,6 +181,12 @@ or delete it.
 | `wormhole.beam.admin` | op | Public destinations and anyone's places; bypasses beam cooldown and cost |
 | `wormhole.beam.admin.teleport` | op | `beam admin goto` and `send`. Not implied by `beam.admin`: curating destinations and relocating players are different powers. |
 
+**Server**
+
+| Node | Default | Allows |
+|---|---|---|
+| `wormhole.update.notify` | op | Being told on joining that a newer release is available (see `update-check` under [Metrics](#metrics)) |
+
 Worth knowing:
 
 - `beam`, `ring`, `go`, `list` and `compass` answer to their own nodes, and a gate's owner may
@@ -184,7 +196,6 @@ Worth knowing:
   carry it. A block left there is not part of the gate, so anyone can break it back out.
 - One use cooldown applies to everyone: `use-cooldown-seconds`, switched on by
   `use-cooldown-enabled`.
-- With the `Help` plugin present, the nodes are registered with it.
 
 ### Permission backend and fallback
 
@@ -192,7 +203,8 @@ Worth knowing:
   provider, even if one is present.
 - `permissions-auto-fallback` (default `true`) — if no provider is found at startup, basic use
   actions keep working and advanced ones stay with operators and gate owners. Set `false` to
-  leave permission handling entirely to you.
+  leave permission handling entirely to you. Whether a provider is there is looked at startup, and
+  again whenever this or `permissions-support-disable` is changed in-game.
 
 ## Commands
 
@@ -356,7 +368,7 @@ from this one.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `placeholders-enabled` | `false` | Nothing is registered while this is off. |
+| `placeholders-enabled` | `false` | Nothing answers while this is off. |
 
 | Placeholder | What it is |
 |---|---|
@@ -399,6 +411,89 @@ to it, so an admin can look them up and roll them back like anything else.
 - **CoreProtect is looked for once**, the first time something is logged. One installed while the
   server is running is picked up at the next restart.
 
+## WorldGuard
+
+Optional. With [WorldGuard](https://enginehub.org/worldguard) installed, a region owner can say
+where gates may be built and where they may be used, with two region flags.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `worldguard-enabled` | `false` | The flags are only added, and only checked, while this is on. Turning it off applies at once; turning it on takes a restart. |
+
+| Flag | Refuses |
+|---|---|
+| `wormhole-build` | Finishing a gate any block of which, or its DHD, is in the region: the DHD press, `/wormhole complete`, `gate preview -place` and `gate build` by coordinates. |
+| `wormhole-use` | Opening a gate in the region from its DHD, `gate dial` from it, and travelling through a wormhole with either end in it, on foot or riding. |
+
+```
+/rg flag spawn wormhole-build deny
+/rg flag spawn wormhole-use -g nonmembers deny
+```
+
+- **A plain `deny` holds the region's own members and owners too.** Add `-g nonmembers`, as in the
+  second line, to leave them free to build or use gates there.
+- **A flag only takes away.** Permission nodes decide who may build or use a gate, the region
+  decides where, and both have to allow it. A player without the node is told that, not about
+  the region. Both flags default to allow, so turning this on changes nothing until a region
+  sets one to `deny`.
+- **Owning the gate is no way past a region,** and this plugin makes no exception for operators.
+  WorldGuard's own region bypass, `worldguard.region.bypass.<world>`, is the one exemption;
+  operators hold it by default.
+- **Not refused:** shutting a gate down, its iris, and redstone dialling. Dialling *to* a gate in a
+  denied region is not refused at the dial; the trip into it is.
+- **Gates only.** Rings, beams and mirrors are not held to these flags.
+- **No WorldGuard, or one that fails,** means nothing is refused; the log says so once. A region
+  check that throws lets the player through.
+
+## Dynmap
+
+Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installed, gates, transport
+rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
+viewer can switch on and off.
+
+On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
+CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build
+for Minecraft 26.x yet: there the map stays off, and the log says Dynmap was not found or is not
+running.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `dynmap-enabled` | `false` | The Dynmap switch. Nothing is shown while this is off. |
+
+Which layers are drawn is set separately, and is shared by any web map this plugin draws on:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `map-show-gates` | `true` | Gates, and the lines between dialled gates. |
+| `map-show-rings` | `true` | Transport rings. |
+| `map-show-beams` | `true` | Public beam destinations. |
+| `map-show-mirrors` | `true` | Quantum mirrors. |
+| `map-show-iris-gates` | `true` | `false` leaves off every gate with an iris code, for a PvP server that keeps where its gates stand a secret. A gate connected to a hidden one is shown idle, with no line. |
+
+- **Shown:** each gate at its opening, with the opening drawn as an area and its network and owner
+  in its popup, and its icon lit once a wormhole has formed through it; a line between two
+  dialled gates once their wormhole has formed, when both are in the same world; both ends of
+  each ring pair, with a line between them; each public beam destination; each quantum mirror
+  at its banner. A mirror has no line, because which room it
+  opens onto is chosen at it.
+- **Never shown:** players' private beam places. Dynmap shows every marker to every viewer, so a
+  private place on the map would be anybody's to find.
+- **A layer switched off** is left off the map entirely, not shown as an empty checkbox.
+- **Kept up to date** every five seconds, and straight away when a gate is built, removed or
+  shut, or its wormhole forms. The map is drawn off the main thread, and only what changed is
+  redrawn.
+- **No Dynmap** means nothing happens; the log says so at startup, and again whenever a map
+  setting is changed. So does a Dynmap that is installed but did not start, for instance one that
+  does not support the server's Minecraft version; the map starts when Dynmap does. The log says
+  the map is showing only once Dynmap is up.
+- **These settings apply at once** with `/wormhole config`, like every other: the map is taken down
+  and put back up with the layers now asked for. Dynmap is looked for at startup and again then.
+- The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the
+  plugin's state each time, so a gate removed while Dynmap was down does not linger. Only the
+  icons are kept by Dynmap, and they are refreshed each time the map starts.
+- Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or
+  squaremap can be added later without changing what is shown.
+
 ## Metrics
 
 The plugin sends anonymous counts to [bStats](https://bstats.org), which is how its
@@ -408,6 +503,7 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 | Setting | Default | What it does |
 |---|---|---|
 | `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
+| `update-check` | `true` | At startup, asks Modrinth for the newest release listed for this Minecraft version, or GitHub's latest release if Modrinth does not answer or has none for this version; if that release is newer than the one running, it says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
 
 What is sent, twice an hour:
 

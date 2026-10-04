@@ -64,10 +64,10 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect]` — every one is optional
-and the plugin loads without them. Declaring a required dependency that is not required would
-make Hangar warn operators off installing it, and the listing's strongest line is "no
-dependencies"; four optional rows dilute that for nothing.
+only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap]` — every
+one is optional and the plugin loads without them. Declaring a required dependency that is not
+required would make Hangar warn operators off installing it, and the listing's strongest line is
+"no dependencies"; a row for each optional one would dilute that for nothing.
 
 If the integrations are ever wanted discoverable, add them as Optional, never Required.
 
@@ -227,7 +227,10 @@ this world's hills.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
+- **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
+- **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
+- **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ### Getting started
@@ -333,7 +336,7 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.8.1` |
+| Version | `1.9.0` |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
@@ -347,7 +350,7 @@ Hangar's form has no version title; the version string is the title.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.8.1` is the newest release.
+1. **Check which version the project carries.** `v1.9.0` is the newest release.
 2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
    of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.

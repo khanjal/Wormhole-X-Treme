@@ -12,6 +12,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -85,6 +86,12 @@ public class Dial implements CommandExecutor
         {
             CommandUtilities.closeGate(start, false);
             player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString() + " Not on same network.");
+            return;
+        }
+        if (StargateRestrictions.isCrossWorldRefused(start.getGateWorld(), target.getGateWorld()))
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
             return;
         }
         if (start.isGateIrisActive())

@@ -159,6 +159,20 @@ public final class RingManager
     }
 
     /**
+     * Indexes every pair again, for a reach or ceiling drop changed while the server runs.
+     *
+     * <p>Otherwise each pair keeps the volume it was loaded with, and a pair removed later is taken
+     * out at the new reach, leaving blocks of the old volume armed for a pair that is gone.
+     *
+     * @param reach
+     *            how deep each trigger volume runs now
+     */
+    public static void reindex(final int reach)
+    {
+        RingIndex.rebuildVolumes(pairs.values(), reach);
+    }
+
+    /**
      * Drops every pair and pending, and empties the index.
      */
     public static void clear()

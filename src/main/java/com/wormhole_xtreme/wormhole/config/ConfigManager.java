@@ -11,14 +11,22 @@ import java.util.stream.Stream;
 
 import org.bukkit.Material;
 
+import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
+import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 
 
 /**
@@ -59,9 +67,6 @@ public class ConfigManager
 
         /** Seconds a player waits between gate trips, when the cooldown above is enabled. */
         USE_COOLDOWN_SECONDS,
-
-        /** The HELP SUPPORT DISABLE. */
-        HELP_SUPPORT_DISABLE,
 
         /** Restrict teleportation to same-world gates only. */
         SAME_WORLD_ONLY,
@@ -156,8 +161,24 @@ public class ConfigManager
         PLACEHOLDERS_ENABLED,
         /** Whether gate and ring construction is logged to CoreProtect (#238). */
         COREPROTECT_ENABLED,
+        /** Whether the WorldGuard region flags wormhole-build and wormhole-use are registered (#240). */
+        WORLDGUARD_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on Dynmap (#236). */
+        DYNMAP_ENABLED,
+        /** Whether gates and the lines between dialled pairs are a web map layer. */
+        MAP_SHOW_GATES,
+        /** Whether transport rings are a web map layer. */
+        MAP_SHOW_RINGS,
+        /** Whether public beam destinations are a web map layer. */
+        MAP_SHOW_BEAMS,
+        /** Whether quantum mirrors are a web map layer. */
+        MAP_SHOW_MIRRORS,
+        /** Whether gates with an iris code are drawn on the web map. */
+        MAP_SHOW_IRIS_GATES,
         /** Whether anonymous usage counts are sent to bStats (#239). */
         METRICS_ENABLED,
+        /** Whether startup looks for a newer release (#461). */
+        UPDATE_CHECK,
         /** Whether economy (Vault) integration is enabled. */
         ECONOMY_ENABLED,
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
@@ -268,6 +289,9 @@ public class ConfigManager
         /** The target is active. */
         TARGET_IS_ACTIVE(ERROR_HEADER + "Target gate is currently active."),
 
+        /** The far gate is in another world, and same-world-only is on. */
+        CROSS_WORLD_DISABLED(ERROR_HEADER + "Cross-world travel is disabled on this server."),
+
         /** The gate not active. */
         GATE_NOT_ACTIVE(ERROR_HEADER + "No gate activated to dial."),
 
@@ -357,24 +381,6 @@ public class ConfigManager
     }
 
     /**
-     * Gets the Help plugin support status.
-     * 
-     * @return true, if Help plugin support is disabled.
-     */
-    public static boolean getHelpSupportDisable()
-    {
-        Setting hsd;
-        if ((hsd = ConfigManager.getConfigurations().get(ConfigKeys.HELP_SUPPORT_DISABLE)) != null)
-        {
-            return hsd.getBooleanValue();
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    /**
      * Get Log Level setting from ConfigKeys. Return sane Level value.
      * Return default value if key is missing or broken.
      */
@@ -424,15 +430,6 @@ public class ConfigManager
         {
             return true;
         }
-    }
-
-    /**
-     * Set the runtime Permissions support disable flag. This updates the in-memory configuration
-     * map; persisting to disk requires writing config.yml separately.
-     */
-    public static void setPermissionsSupportDisable(final boolean disabled)
-    {
-        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", SECTION));
     }
 
     /**
@@ -755,14 +752,15 @@ public class ConfigManager
     /**
      * Fallback material for the travelling rings.
      *
-     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when
-     * the template could not say.
+     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when a
+     * stored ring names a material that is not a slab on this server.
      *
-     * @return the fallback slab material
+     * @return the fallback slab material, smooth stone when the setting is not a slab
      */
     public static Material getRingDefaultMaterial()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
+        final Material configured = materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
+        return Ring.isUsableAsRing(configured) ? configured : Material.SMOOTH_STONE_SLAB;
     }
 
     /**
@@ -1808,18 +1806,67 @@ public class ConfigManager
             return parsed.getRefusal();
         }
         setting.setValue(parsed.getValue());
-        if (setting.getName() == ConfigKeys.LOG_LEVEL)
-        {
-            // Read once at startup otherwise, so the change would wait for a restart.
-            WormholeXTreme.applyLogLevel(getLogLevel());
-        }
-        else if (setting.getName() == ConfigKeys.METRICS_ENABLED)
-        {
-            // Likewise read once at startup: start or stop bStats now.
-            followMetrics();
-        }
         Configuration.persistCurrentConfiguration(SECTION);
-        return setting.getName().name() + " is now " + parsed.getValue() + ".";
+        final String done = setting.getName().name() + " is now " + parsed.getValue();
+        // The value is already saved; a failure to apply it must say so, not escape the command.
+        try
+        {
+            follow(setting.getName());
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not apply " + setting.getName(), e);
+            return done + ", saved, but it could not be applied now: " + e + ". It applies at the next restart.";
+        }
+        return done + ".";
+    }
+
+    /**
+     * Applies a setting that something read once rather than where it is used, so a change takes
+     * effect now rather than at the next restart.
+     *
+     * @param key
+     *            the setting just changed
+     */
+    private static void follow(final ConfigKeys key)
+    {
+        switch (key)
+        {
+            case LOG_LEVEL -> WormholeXTreme.applyLogLevel(getLogLevel());
+            case METRICS_ENABLED -> followMetrics();
+            case ECONOMY_ENABLED -> followEconomy();
+            case PLACEHOLDERS_ENABLED -> followPlaceholders();
+            case WORLDGUARD_ENABLED -> RegionFlags.follow();
+            // Every ring's trigger volume is indexed at load, as deep as these two said then.
+            case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
+            case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
+            case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
+            case DYNMAP_ENABLED, MAP_SHOW_GATES, MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS,
+                MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
+            default -> RepeatingSweeps.follow(key);
+        }
+    }
+
+    /** Attaches to or lets go of Vault's economy to match {@code economy-enabled}. */
+    private static void followEconomy()
+    {
+        if (isEconomyEnabled())
+        {
+            EconomySupport.enableEconomy();
+        }
+        else
+        {
+            EconomySupport.disableEconomy();
+        }
+    }
+
+    /** Registers the PlaceholderAPI expansion when turned on; turned off, it answers nothing. */
+    private static void followPlaceholders()
+    {
+        if (isPlaceholdersEnabled())
+        {
+            PlaceholderSupport.enablePlaceholders();
+        }
     }
 
     /** Starts or stops bStats to match {@code metrics-enabled}; a failure costs only a log line. */
@@ -2003,6 +2050,55 @@ public class ConfigManager
         return s != null && s.getBooleanValue();
     }
 
+    /** Returns true if the WorldGuard region flags should be registered and checked. */
+    public static boolean isWorldGuardEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.WORLDGUARD_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on Dynmap. */
+    public static boolean isDynmapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates and the lines between dialled pairs are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_GATES);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if transport rings are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowRings()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_RINGS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if public beam destinations are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowBeams()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_BEAMS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if quantum mirrors are shown on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowMirrors()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_MIRRORS);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if gates with an iris code appear on the web map; on when the setting is missing, as it ships. */
+    public static boolean isMapShowIrisGates()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_IRIS_GATES);
+        return (s == null) || s.getBooleanValue();
+    }
+
     /** Returns true if the PlaceholderAPI expansion should be registered. */
     public static boolean isPlaceholdersEnabled()
     {
@@ -2014,6 +2110,13 @@ public class ConfigManager
     public static boolean isMetricsEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.METRICS_ENABLED);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /** Returns true if startup may look for a newer release; on when the setting is missing, as it ships. */
+    public static boolean isUpdateCheckEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.UPDATE_CHECK);
         return (s == null) || s.getBooleanValue();
     }
 
