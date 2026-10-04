@@ -162,9 +162,10 @@ test('a body cut off before its end is refused with 400, not left waiting', asyn
 test('busyReason gives each reason, and null when the console is free', () => {
   assert.strictEqual(remote.busyReason({ selftest: true }), 'a self-test is running; its cells own the console');
   assert.strictEqual(remote.busyReason({ shots: true }), 'screenshots are being taken');
+  assert.strictEqual(remote.busyReason({ generating: true }), 'the lab is still being built; wait for it to finish');
   assert.strictEqual(remote.busyReason({ stopping: true }), 'the server is stopping');
   assert.strictEqual(remote.busyReason({ restarting: true }), 'the server is restarting');
-  assert.strictEqual(remote.busyReason({ selftest: false, shots: false, stopping: false, restarting: false }), null);
+  assert.strictEqual(remote.busyReason({ selftest: false, shots: false, generating: false, stopping: false, restarting: false }), null);
 });
 
 test('the launcher\'s own answers pass through; anything else from that port is a 502', () => {
@@ -179,6 +180,27 @@ test('the launcher\'s own answers pass through; anything else from that port is 
   assert.deepStrictEqual(remote.launcherAnswer(200, '{"lines":["ok"],"errors":[1]}'), stale);
   for (const s of [401, 403, 404, 418]) assert.deepStrictEqual(remote.launcherAnswer(s, '{"error":"why"}'), stale);
   assert.deepStrictEqual(remote.launcherAnswer(409, '{"message":"why"}'), stale);
+});
+
+test('a command that would stop the server is refused, and only those', () => {
+  for (const c of ['stop', 'STOP', 'minecraft:stop', 'bukkit:stop', 'restart', 'spigot:restart', 'bukkit:restart', 'stop now']) {
+    assert.strictEqual(remote.stopsTheLab(c), true, c);
+  }
+  for (const c of ['stopsound @a', 'say stop', 'list', 'minecraft:stopsound @a', 'dynmap fullrender world', 'end']) {
+    assert.strictEqual(remote.stopsTheLab(c), false, c);
+  }
+  assert.throws(() => remote.commandOf('{"command":"/stop"}'), (e) => e.status === 400 && e.message === remote.STOP_REFUSED);
+  assert.strictEqual(remote.commandOf('{"command":"/stopsound @a"}'), 'stopsound @a');
+});
+
+test('the command port refuses stop with 400 and the way to stop the lab, and runs nothing', async (t) => {
+  const { ran, post } = await port(t);
+  const r = await post({ command: '/stop' });
+  assert.strictEqual(r.status, 400);
+  assert.deepStrictEqual(await r.json(), { error: remote.STOP_REFUSED });
+  assert.deepStrictEqual(ran, []);
+  assert.strictEqual((await post({ command: 'say stop' })).status, 200);
+  assert.deepStrictEqual(ran, ['say stop']);
 });
 
 test('the command port refuses a command with a line break with 400, and runs nothing', async (t) => {

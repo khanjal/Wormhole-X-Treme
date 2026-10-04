@@ -99,6 +99,13 @@ test('a command with a line break is refused with 400 before anything is sent to
   assert.strictEqual(hits.length, 1);
 });
 
+test('stop is refused with 400 and the way to stop the lab, before anything is sent to the lab\'s port', async (t) => {
+  const { folder, post } = await dashboard(t);
+  const hits = await stranger(t, folder, 200, '{"lines":[],"errors":[]}');
+  assert.deepStrictEqual(await post('/stop'), { status: 400, body: { error: remote.STOP_REFUSED } });
+  assert.deepStrictEqual(hits, []);
+});
+
 test('the launcher\'s refusal while busy comes back as its 409 and reason', async (t) => {
   const { folder, post } = await dashboard(t);
   const ran = await launcher(t, folder, { busy: () => 'a self-test is running; its cells own the console' });

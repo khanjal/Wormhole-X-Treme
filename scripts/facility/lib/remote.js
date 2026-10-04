@@ -75,15 +75,28 @@ function readBody(req, max = MAX_BODY) {
   });
 }
 
+const STOP_REFUSED = 'say stop in the game chat, or close the lab\'s window, to stop the lab; the dashboard does not stop it';
+
+/**
+ * Whether a checked command would stop the server: stop or restart, with or without a namespace.
+ * The launcher would see its server exit under it and fail the run.
+ */
+function stopsTheLab(cmd) {
+  return /^(?:(?:minecraft|bukkit):)?stop$|^(?:(?:spigot|bukkit):)?restart$/i.test(cmd.split(' ')[0]);
+}
+
 /** The command in a JSON body { command }, checked; throws with a status of 400. */
 function commandOf(body) {
   let parsed;
   try { parsed = JSON.parse(body); } catch { throw Object.assign(new Error('the body is not JSON'), { status: 400 }); }
+  let cmd;
   try {
-    return checkCommand(parsed && parsed.command);
+    cmd = checkCommand(parsed && parsed.command);
   } catch (e) {
     throw Object.assign(e, { status: 400 });
   }
+  if (stopsTheLab(cmd)) throw Object.assign(new Error(STOP_REFUSED), { status: 400 });
+  return cmd;
 }
 
 function reply(res, status, body) {
@@ -170,9 +183,10 @@ function clearStale(folder) {
 }
 
 /** Why the command port refuses just now, or null when it takes commands. */
-function busyReason({ selftest = false, shots = false, stopping = false, restarting = false } = {}) {
+function busyReason({ selftest = false, shots = false, generating = false, stopping = false, restarting = false } = {}) {
   if (selftest) return 'a self-test is running; its cells own the console';
   if (shots) return 'screenshots are being taken';
+  if (generating) return 'the lab is still being built; wait for it to finish';
   if (stopping) return 'the server is stopping';
   if (restarting) return 'the server is restarting';
   return null;
@@ -206,7 +220,7 @@ function removeEndpoint(folder, token) {
 }
 
 module.exports = {
-  ENDPOINT_FILE, MAX_COMMAND, MAX_BODY, STALE, localHost, checkCommand, sameOrigin, readBody, commandOf,
+  ENDPOINT_FILE, MAX_COMMAND, MAX_BODY, STALE, STOP_REFUSED, localHost, checkCommand, stopsTheLab, sameOrigin, readBody, commandOf,
   createCommandPort, newToken, writeEndpoint, readEndpoint, removeEndpoint, alive, clearStale, busyReason,
   launcherAnswer,
 };

@@ -676,7 +676,11 @@ async function main() {
   let web = null;
   let commands = null;
   let shooting = Boolean(args.shots);
+  // The campus, Probe, fixtures and boards own the console until refreshBoards; however the run
+  // ends, the stop clears it, so the reason given is then the stop.
+  let generating = true;
   const shutDown = async () => {
+    generating = false;
     stopping = true;
     if (commands) await commands.close();
     if (web) await web.close().catch(() => {});
@@ -706,13 +710,13 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
-    // The dashboard's commands queue behind the facility's own in Server.run. A self-test run
-    // refuses them from here to its end, and shots until they are taken. Design mode has none:
-    // the dashboard lists facility labs only.
+    // The dashboard's commands queue behind the facility's own in Server.run. They are refused
+    // while the lab is built, for a whole self-test run, and while shots are taken. Design mode
+    // has none: the dashboard lists facility labs only.
     if (!args.design) {
       try {
         commands = await openCommandPort(srv, folder, () => remote.busyReason({
-          selftest: Boolean(args.selftest), shots: shooting, stopping, restarting: Boolean(srv.restarting || fac.restarting),
+          selftest: Boolean(args.selftest), shots: shooting, generating, stopping, restarting: Boolean(srv.restarting || fac.restarting),
         }));
       } catch (e) {
         console.error(`facility: the Lab Dashboard's command box will not reach this lab: ${e.message}`);
@@ -768,6 +772,7 @@ async function main() {
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
     console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
+    generating = false;
     // Every shot is a check: a bad one fails the run, whether it then stops, self-tests or holds.
     let shotChecks = [];
     if (args.shots) {
