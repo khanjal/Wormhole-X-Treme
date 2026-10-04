@@ -629,7 +629,7 @@ async function main() {
   console.log(`facility: Paper ${version} on Java ${javaMajor} (${need.why.join('; ')}), port ${args.port}, ${folder}`);
   for (const c of extras) console.log(`  companion ${c.plugin} ${c.version}: ${c.file}, SHA-256 ${c.sha256}, Java ${c.java || '?'}, from ${c.from}`);
   if (Object.keys(switches).length) console.log(`  Wormhole settings for them: ${Object.entries(switches).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
-  if (mapPort) console.log(`  Dynmap web map: http://localhost:${mapPort}/`);
+  if (mapPort) console.log(`  Dynmap web map: http://127.0.0.1:${mapPort}/`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
   const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPort });
@@ -780,7 +780,7 @@ async function main() {
       }
     } else {
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
-      if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
+      if (mapPort) console.log(`The Dynmap web map is at http://127.0.0.1:${mapPort}/`);
       if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
