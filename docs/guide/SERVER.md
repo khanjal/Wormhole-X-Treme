@@ -451,7 +451,7 @@ Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installe
 rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
 viewer can switch on and off.
 
-![A Dynmap web map with the Wormhole layers: gates, a ring pair joined by a line, beam pads and mirrors](../images/maps/dynmap-layers.png)
+![A Dynmap web map with the Wormhole layers: gates, a ring pair joined by a line, beam destinations and mirrors](../images/maps/dynmap-layers.png)
 
 | Icon | Marks |
 |---|---|
