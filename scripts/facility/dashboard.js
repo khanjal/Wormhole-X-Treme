@@ -64,10 +64,12 @@ const RCON_MS = 15000;
 function rconOf(folder) {
   let text;
   try { text = fs.readFileSync(path.join(folder, 'server.properties'), 'utf8'); } catch { return null; }
-  const prop = (key) => {
-    const m = new RegExp(`^${key.replace(/\./g, '\\.')}=(.*)$`, 'm').exec(text);
-    return m ? m[1].trim() : null;
-  };
+  const props = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const eq = line.indexOf('=');
+    if (eq > 0 && !line.startsWith('#') && !props.has(line.slice(0, eq).trim())) props.set(line.slice(0, eq).trim(), line.slice(eq + 1).trim());
+  }
+  const prop = (key) => (props.has(key) ? props.get(key) : null);
   if (prop('enable-rcon') !== 'true' || !prop('rcon.password') || prop('server-ip') !== '127.0.0.1') return null;
   return { port: Number(prop('rcon.port')), password: prop('rcon.password') };
 }
