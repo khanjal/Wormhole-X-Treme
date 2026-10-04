@@ -479,6 +479,15 @@ modules the first time): 26.1.2 by default, its world kept unless `-Fresh`, with
 `-Port`, `-Plugin <jar>`, `-Op`, `-With` and `-PluginCache`. `lab.sh` does the same in the current
 terminal (`-v -P -p -o -w -c -f`).
 
+`lab.ps1` also starts the Lab Dashboard (`node scripts/facility/dashboard.js`,
+http://127.0.0.1:8200): each lab's console, streamed from its log, and its Dynmap. The command box
+under a console runs a line on that lab's server, its reply arriving in the console as usual; Up
+and Down recall earlier ones. Each launcher listens for these on 127.0.0.1 only, on a port and with
+a token new every launch, written to `<lab folder>/.wx-console.json` and removed when it stops;
+the dashboard passes the command on and never shows the token to the browser. A command goes
+through `Server.run`'s queue, so it never meets a fence of the facility's own, and is refused
+while a self-test runs, since its cells own the console.
+
 Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
 companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
 companion named is installed) or `without` (a paired run: only with `--with`, and none of those
