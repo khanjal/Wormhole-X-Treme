@@ -646,6 +646,9 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // The plugin's own switch, off in every lab folder: no lab server reports to bStats. Chamber s1 turns it on
+  // and off again to hear the log lines; plugins/bStats/config.yml (prepareFolder) still blocks the send.
+  companions.seedSettings(folder, { 'metrics-enabled': 'false' });
   // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
   // every interface when it is empty.
   const extra = [];
@@ -674,10 +677,10 @@ async function main() {
   if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
   const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
   if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
-  const extra = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
-  if (extra.copied.length) console.log(`plugins-extra copied in: ${extra.copied.join(', ')}`);
-  if (extra.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${extra.removed.join(', ')}`);
-  if (extra.kept.length) console.log(`plugins-extra left alone (copied by an earlier run, replaced since): ${extra.kept.join(', ')}`);
+  const plugged = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
+  if (plugged.copied.length) console.log(`plugins-extra copied in: ${plugged.copied.join(', ')}`);
+  if (plugged.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${plugged.removed.join(', ')}`);
+  if (plugged.kept.length) console.log(`plugins-extra left alone (copied by an earlier run, replaced since): ${plugged.kept.join(', ')}`);
   // The test shape (assets/Lab.shape), read at startup; its diamond frame makes the Diamond group.
   shapes.installTestShapes(folder);
   if (placed.length) schematics.install(folder, placed);
