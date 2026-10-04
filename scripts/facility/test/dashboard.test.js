@@ -87,13 +87,16 @@ test('a lab the dashboard does not have is a 404, and a GET is a 405', async (t)
   assert.deepStrictEqual(ran, []);
 });
 
-test('a command with a line break is refused with 400 before it reaches the launcher', async (t) => {
+test('a command with a line break is refused with 400 before anything is sent to the lab\'s port', async (t) => {
   const { folder, post } = await dashboard(t);
-  const ran = await launcher(t, folder);
+  // Not a launcher, which would refuse it as well: this one takes anything, so only the dashboard can refuse it.
+  const hits = await stranger(t, folder, 200, '{"lines":[],"errors":[]}');
   const r = await post('say hi\nstop');
   assert.strictEqual(r.status, 400);
   assert.match(r.body.error, /one line/);
-  assert.deepStrictEqual(ran, []);
+  assert.deepStrictEqual(hits, []);
+  assert.strictEqual((await post('say hi')).status, 200);
+  assert.strictEqual(hits.length, 1);
 });
 
 test('the launcher\'s refusal while busy comes back as its 409 and reason', async (t) => {

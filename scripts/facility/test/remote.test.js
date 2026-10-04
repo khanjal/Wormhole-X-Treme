@@ -207,6 +207,18 @@ test('the endpoint file round-trips, and removeEndpoint takes it away', () => {
   }
 });
 
+test('an endpoint file without a pid is not an endpoint, so its token is never used', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wx-remote-'));
+  try {
+    fs.writeFileSync(path.join(dir, remote.ENDPOINT_FILE), JSON.stringify({ port: 51234, token: 'abc' }));
+    assert.strictEqual(remote.readEndpoint(dir), null);
+    fs.writeFileSync(path.join(dir, remote.ENDPOINT_FILE), JSON.stringify({ port: 51234, token: 'abc', pid: 4321 }));
+    assert.deepStrictEqual(remote.readEndpoint(dir), { port: 51234, token: 'abc', pid: 4321 });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('a launcher starting clears an endpoint file left by one killed outright, whoever wrote it', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wx-remote-'));
   try {
