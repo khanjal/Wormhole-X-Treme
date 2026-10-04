@@ -479,6 +479,19 @@ modules the first time): 26.1.2 by default, its world kept unless `-Fresh`, with
 `-Port`, `-Plugin <jar>`, `-Op`, `-With` and `-PluginCache`. `lab.sh` does the same in the current
 terminal (`-v -P -p -o -w -c -f`).
 
+Every facility server listens on 127.0.0.1 only (design mode's `--design-open` aside), so a lab
+cannot be joined from another machine. The Lab Dashboard (`scripts/facility/dashboard.js`,
+http://127.0.0.1:8200, started by `lab.ps1`) streams each lab's console and runs a typed command
+on it over RCON. RCON binds to `server-ip`, which is why every lab is loopback now: with that
+empty it would listen on every interface. The launcher turns RCON on for a hand lab's hold only, at
+`port + 10000`, with a password made for the run in `server.properties`, and writes
+`console-channel.json` beside it (`starting`, `ready`, `selftest`) with its pid; the dashboard
+refuses a command unless that says `ready` and the pid is alive. A `--selftest` run never turns
+RCON on, so nothing can interleave with its cells, and RCON's replies never reach stdout, where the
+`wxfence` echoes are read. The dashboard's POST must come from its own origin with the token its
+page carries and a JSON body (which no cross-site form can send without a preflight); the reply
+is shown in the console tab, not in `latest.log`.
+
 Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
 companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
 companion named is installed) or `without` (a paired run: only with `--with`, and none of those

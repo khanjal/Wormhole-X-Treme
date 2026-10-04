@@ -101,7 +101,7 @@ if ($Design -and $Fresh) { throw 'Design mode keeps your world: to start over, d
 if ($Design -and $PSBoundParameters.ContainsKey('Version') -and $Version -ne '1.21.11') { throw 'Design mode runs Minecraft 1.21.11 only' }
 if ($Design) { $Version = '1.21.11' }
 
-# The read-only Lab Dashboard, once for all labs; started even when the lab is already running,
+# The Lab Dashboard, once for all labs; started even when the lab is already running,
 # in case the dashboard was closed. The browser opens only when it starts.
 if (-not $NoDashboard -and -not $Export -and -not $Check)
 {

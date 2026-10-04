@@ -63,6 +63,7 @@
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -81,6 +82,24 @@ const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
 const REPO = path.resolve(__dirname, '..', '..');
 const LOCAL = path.join(REPO, '.local-server');
+
+/** The RCON port for a game port; only the dashboard uses it. */
+function rconPort(gamePort) {
+  const port = gamePort + 10000;
+  if (port > 65535) throw new Error(`the RCON port for game port ${gamePort} would be ${port}: use a game port up to 55535`);
+  return port;
+}
+
+/**
+ * Tells the dashboard whether this lab takes commands: `starting` while the campus is generated,
+ * `ready` in the hold, `selftest` while a self-test runs, `none` otherwise; null removes the file.
+ * The pid tells a launcher still running from one that died.
+ */
+function consoleChannel(folder, state) {
+  const file = path.join(folder, 'console-channel.json');
+  if (state === null) fs.rmSync(file, { force: true });
+  else fs.writeFileSync(file, JSON.stringify({ state, pid: process.pid }));
+}
 
 function parseArgs(argv) {
   const a = { port: DEFAULT_PORT, selftest: false, build: true };
@@ -587,13 +606,22 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
+  // every interface when it is empty.
+  const extra = [];
+  if (!args.designOpen) extra.push('server-ip=127.0.0.1');
   // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
-  // Design mode: on 127.0.0.1 unless --design-open, and nobody joins until the campus is generated.
-  if (args.design) {
-    const extra = ['broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`];
-    if (!args.designOpen) extra.push('server-ip=127.0.0.1');
-    fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
-  }
+  // Design mode: nobody joins until the campus is generated.
+  if (args.design) extra.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
+  // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
+  // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
+  const rcon = !args.design && !args.selftest && !(args.shots && !args.viewer);
+  if (rcon) extra.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
+  else extra.push('enable-rcon=false');
+  fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  let channel = rcon ? 'starting' : 'none';
+  if (args.selftest) channel = 'selftest';
+  consoleChannel(folder, channel);
   if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.
@@ -624,6 +652,7 @@ async function main() {
   let web = null;
   const shutDown = async () => {
     stopping = true;
+    consoleChannel(folder, null);
     if (web) await web.close().catch(() => {});
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
@@ -755,6 +784,7 @@ async function main() {
         shards.saveTimes(LOCAL, version, results.times);
       }
     } else {
+      if (rcon) consoleChannel(folder, 'ready');
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       if (mapPort) console.log(`The Dynmap web map is at http://localhost:${mapPort}/`);
       if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
