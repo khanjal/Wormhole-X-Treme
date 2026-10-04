@@ -81,6 +81,7 @@ function refusal(folder) {
   try { process.kill(ch.pid, 0); } catch (e) { if (e.code !== 'EPERM') return 'its launcher is not running'; }
   if (ch.state === 'selftest') return 'a self-test is running there, and a command would interleave with its cells';
   if (ch.state === 'starting') return 'the launcher is still setting the lab up; try again once it says ready';
+  if (ch.state === 'no-rcon') return 'RCON is not running there (its port was taken, or the game port is above 55535); see the launcher\'s window';
   if (ch.state !== 'ready') return 'this run takes no commands in its mode';
   return null;
 }
@@ -112,10 +113,11 @@ function rconRun({ port, password }, command) {
       sock.destroy();
       if (err) reject(err); else resolve(value);
     };
-    const timer = setTimeout(() => done(new Error('no answer over RCON in time')), RCON_MS);
+    const timer = setTimeout(() => done(new Error(`no reply in ${RCON_MS / 1000} s; the command may still have run`)), RCON_MS);
     sock.on('connect', () => sock.write(rconPacket(1, 3, password)));
     sock.on('error', (e) => done(new Error(e.code === 'ECONNREFUSED' ? 'nothing answers on its RCON port (is the server restarting?)' : e.message)));
-    sock.on('close', () => done(new Error('RCON closed the connection')));
+    // A reply then a close is a command that stopped the server.
+    sock.on('close', () => (marked ? done(null, reply) : done(new Error('RCON closed the connection'))));
     sock.on('data', (d) => {
       buf = Buffer.concat([buf, d]);
       while (buf.length >= 4) {
@@ -396,7 +398,8 @@ const server = http.createServer((req, res) => {
   let url;
   try { url = new URL(req.url, 'http://127.0.0.1'); } catch { res.writeHead(400); res.end(); return; }
   if (url.pathname === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    // Not framed by another page, which could steer a focused command box with keystrokes.
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "frame-ancestors 'none'" });
     res.end(page(findLabs()));
   } else if (url.pathname === '/labs') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

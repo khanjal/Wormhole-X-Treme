@@ -485,13 +485,16 @@ http://127.0.0.1:8200, started by `lab.ps1`) streams each lab's console and runs
 on it over RCON. RCON binds to `server-ip`, which is why every lab is loopback now: with that
 empty it would listen on every interface. The launcher turns RCON on for a hand lab's hold only, at
 `port + 10000`, with a password made for the run in `server.properties`, and writes
-`console-channel.json` beside it (`starting`, `ready`, `selftest`) with its pid once its server
-is up; the dashboard refuses a command unless that says `ready` and the pid is alive. A
+`console-channel.json` beside it (`starting`, `ready`, `selftest`, `no-rcon`) with its pid once
+its server is up; the dashboard refuses a command unless that says `ready` and the pid is alive.
+`no-rcon` is a hold whose RCON did not start (its port taken, or a game port above 55535). A
 `--selftest` run never turns RCON on, so nothing can interleave with its cells, and RCON's
 replies never reach stdout, where the `wxfence` echoes are read (only its connection lines do,
-hidden as facility noise). A game port above 55535 leaves no RCON port, and no command box. The dashboard's POST must come from its own origin with the token its
-page carries and a JSON body (which no cross-site form can send without a preflight); the reply
-is shown in the console tab, not in `latest.log`.
+hidden as facility noise). The launcher refuses to start on a game port that already answers,
+rather than rewrite a running lab's folder. The dashboard's POST must come from its own origin
+with the token its page carries and a JSON body (which no cross-site form can send without a
+preflight), and the page refuses to be framed; the reply is shown in the console tab, not in
+`latest.log`.
 
 Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
 companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
