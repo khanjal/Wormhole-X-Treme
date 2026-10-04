@@ -485,10 +485,11 @@ http://127.0.0.1:8200, started by `lab.ps1`) streams each lab's console and runs
 on it over RCON. RCON binds to `server-ip`, which is why every lab is loopback now: with that
 empty it would listen on every interface. The launcher turns RCON on for a hand lab's hold only, at
 `port + 10000`, with a password made for the run in `server.properties`, and writes
-`console-channel.json` beside it (`starting`, `ready`, `selftest`) with its pid; the dashboard
-refuses a command unless that says `ready` and the pid is alive. A `--selftest` run never turns
-RCON on, so nothing can interleave with its cells, and RCON's replies never reach stdout, where the
-`wxfence` echoes are read. The dashboard's POST must come from its own origin with the token its
+`console-channel.json` beside it (`starting`, `ready`, `selftest`) with its pid once its server
+is up; the dashboard refuses a command unless that says `ready` and the pid is alive. A
+`--selftest` run never turns RCON on, so nothing can interleave with its cells, and RCON's
+replies never reach stdout, where the `wxfence` echoes are read (only its connection lines do,
+hidden as facility noise). A game port above 55535 leaves no RCON port, and no command box. The dashboard's POST must come from its own origin with the token its
 page carries and a JSON body (which no cross-site form can send without a preflight); the reply
 is shown in the console tab, not in `latest.log`.
 

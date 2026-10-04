@@ -57,7 +57,7 @@ const PORT = argPort > 0 && Number(process.argv[argPort + 1]) > 0 ? Number(proce
 // site can send a POST here but cannot read the page, and a custom header needs a preflight this server never grants.
 const CSRF = crypto.randomBytes(24).toString('hex');
 const ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
-const MAX_COMMAND = 1000;
+const MAX_COMMAND_BYTES = 1400;
 const RCON_MS = 15000;
 
 /** A lab's RCON port and password from its server.properties, or null unless RCON is on and bound to 127.0.0.1. */
@@ -76,10 +76,12 @@ function rconOf(folder) {
 function refusal(folder) {
   let ch;
   try { ch = JSON.parse(fs.readFileSync(path.join(folder, 'console-channel.json'), 'utf8')); } catch { return 'its launcher is not running'; }
+  // A pid of 0 or less would signal a process group, and succeed.
+  if (!Number.isInteger(ch.pid) || ch.pid <= 0) return 'its launcher is not running';
   try { process.kill(ch.pid, 0); } catch (e) { if (e.code !== 'EPERM') return 'its launcher is not running'; }
   if (ch.state === 'selftest') return 'a self-test is running there, and a command would interleave with its cells';
   if (ch.state === 'starting') return 'the launcher is still setting the lab up; try again once it says ready';
-  if (ch.state !== 'ready') return 'this run takes no commands (shots only)';
+  if (ch.state !== 'ready') return 'this run takes no commands in its mode';
   return null;
 }
 
@@ -103,6 +105,8 @@ function rconRun({ port, password }, command) {
     const sock = net.connect({ host: '127.0.0.1', port });
     let buf = Buffer.alloc(0);
     let reply = '';
+    let authed = false;
+    let marked = false;
     const done = (err, value) => {
       clearTimeout(timer);
       sock.destroy();
@@ -122,11 +126,14 @@ function rconRun({ port, password }, command) {
         const type = buf.readInt32LE(8);
         const body = buf.subarray(12, 2 + len).toString('utf8');
         buf = buf.subarray(4 + len);
-        if (type === 2) {
+        if (type === 2 && !authed) {
           if (id === -1) { done(new Error('RCON refused the password')); return; }
+          authed = true;
           sock.write(rconPacket(2, 2, command));
-          sock.write(rconPacket(3, 0, ''));
         } else if (id === 2) {
+          // Not sent with the command: the server reads one packet a read, and drops a connection
+          // whose read holds two. It answers this one after the command's last packet.
+          if (!marked) { marked = true; sock.write(rconPacket(3, 0, '')); }
           reply += body;
         } else if (id === 3) {
           done(null, reply);
@@ -165,10 +172,15 @@ async function command(req, res) {
   if (!/^application\/json\b/.test(req.headers['content-type'] || '')) return answer(415, { error: 'JSON only' });
   let body;
   try { body = JSON.parse(await readBody(req, 8192)); } catch { return answer(400, { error: 'bad request' }); }
+  if (!body || typeof body.lab !== 'string' || typeof body.command !== 'string') return answer(400, { error: 'bad request' });
   const lab = findLabs().find((l) => l.id === body.lab);
   if (!lab) return answer(404, { error: 'no such lab' });
-  const line = String(body.command || '').trim().replace(/^\//, '');
-  if (!line || line.length > MAX_COMMAND || /[\r\n\0]/.test(line)) return answer(400, { error: `one line of up to ${MAX_COMMAND} characters` });
+  const line = body.command.trim().replace(/^\//, '');
+  // The server drops a packet past 1460 bytes without a reply, so the cap is in bytes.
+  // eslint-disable-next-line no-control-regex
+  if (!line || Buffer.byteLength(line) > MAX_COMMAND_BYTES || /[\x00-\x1f\x7f]/.test(line)) {
+    return answer(400, { error: `one line of up to ${MAX_COMMAND_BYTES} bytes, without control characters` });
+  }
   const why = refusal(lab.folder);
   if (why) return answer(409, { error: `refused: ${why}` });
   const rcon = rconOf(lab.folder);
@@ -295,7 +307,7 @@ for(const lab of LABS){
     +'<input type="search" placeholder="filter (e.g. Wormhole, WARN)">'
     +'<label><input type="checkbox" class="follow" checked> follow</label>'
     +'<label><input type="checkbox" class="wxonly"> Wormhole only</label>'
-    +'<label title="the facility&#39;s fence markers and effect re-applies"><input type="checkbox" class="quiet" checked> hide facility noise</label></div><pre></pre>'
+    +'<label title="the facility&#39;s fence markers, effect re-applies and the command box&#39;s RCON connections"><input type="checkbox" class="quiet" checked> hide facility noise</label></div><pre></pre>'
     +'<form class="cmd"><input class="line" autocomplete="off" spellcheck="false" maxlength="1000"'
     +' placeholder="run on this lab&#39;s console, e.g. op Steve (Up and Down for earlier commands)"><button>Run</button></form>';
   views.appendChild(v);
@@ -312,7 +324,7 @@ for(const lab of LABS){
     '^Gave \\\\d+','^Set the time to','^Set the weather to','^Changed the weather','game mode to',
     'Created custom bossbar','Custom bossbar','^Removed custom bossbar','^Played sound','^Displaying particle',
     '^Set \\\\[wx','^Enabled trigger','^Reset .* for','^Set .* for .* to \\\\d+','Made \\\\S+ a server operator',
-    '^Removed \\\\d+ item','Showing new title','^Set the difficulty',
+    '^Removed \\\\d+ item','Showing new title','^Set the difficulty','Thread RCON Client',
   ].join('|'));
   const hidden=(t)=>(q.value&&!t.toLowerCase().includes(q.value.toLowerCase()))||(wxonly.checked&&!/WormholeXTreme/.test(t))
     ||(quiet.checked&&noise.test(t.replace(/^\\[[^\\]]*\\] \\[[^\\]]*\\]: /,'')));
@@ -327,7 +339,7 @@ for(const lab of LABS){
   let seen=false;
   v.onShow=()=>{if(!seen||follow.checked)pre.scrollTop=pre.scrollHeight;seen=true};
   const form=v.querySelector('.cmd'),line=v.querySelector('.line'),key='wxdash.history.'+lab.id;
-  let history=[];try{history=JSON.parse(localStorage.getItem(key))||[]}catch{}
+  let history=[];try{const h=JSON.parse(localStorage.getItem(key));if(Array.isArray(h))history=h.filter((c)=>typeof c==='string')}catch{}
   let at=history.length,draft='';
   line.onkeydown=(e)=>{
     if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;

@@ -83,22 +83,24 @@ const DEFAULT_PORT = 25590;
 const REPO = path.resolve(__dirname, '..', '..');
 const LOCAL = path.join(REPO, '.local-server');
 
-/** The RCON port for a game port; only the dashboard uses it. */
+/** The RCON port for a game port (only the dashboard uses it), or null past the last port. */
 function rconPort(gamePort) {
   const port = gamePort + 10000;
-  if (port > 65535) throw new Error(`the RCON port for game port ${gamePort} would be ${port}: use a game port up to 55535`);
-  return port;
+  return port > 65535 ? null : port;
 }
 
 /**
  * Tells the dashboard whether this lab takes commands: `starting` while the campus is generated,
- * `ready` in the hold, `selftest` while a self-test runs, `none` otherwise; null removes the file.
- * The pid tells a launcher still running from one that died.
+ * `ready` in the hold, `selftest` while a self-test runs, `none` otherwise. The pid tells a
+ * launcher still running from one that died; null removes the file if this launcher wrote it, so a
+ * second launcher that fails on a running lab's folder does not take the first one's away.
  */
 function consoleChannel(folder, state) {
   const file = path.join(folder, 'console-channel.json');
-  if (state === null) fs.rmSync(file, { force: true });
-  else fs.writeFileSync(file, JSON.stringify({ state, pid: process.pid }));
+  if (state !== null) { fs.writeFileSync(file, JSON.stringify({ state, pid: process.pid })); return; }
+  try {
+    if (JSON.parse(fs.readFileSync(file, 'utf8')).pid === process.pid) fs.rmSync(file, { force: true });
+  } catch { /* none, or not this launcher's */ }
 }
 
 function parseArgs(argv) {
@@ -615,13 +617,13 @@ async function main() {
   if (args.design) extra.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
   // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
   // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
-  const rcon = !args.design && !args.selftest && !(args.shots && !args.viewer);
+  const rcon = !args.design && !args.selftest && !(args.shots && !args.viewer) && rconPort(args.port) !== null;
   if (rcon) extra.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
   else extra.push('enable-rcon=false');
+  if (!args.selftest && rconPort(args.port) === null) console.log(`The dashboard cannot send commands here: game port ${args.port} leaves no RCON port (port + 10000).`);
   fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
   let channel = rcon ? 'starting' : 'none';
   if (args.selftest) channel = 'selftest';
-  consoleChannel(folder, channel);
   if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.
@@ -678,6 +680,8 @@ async function main() {
   try {
     const t0 = Date.now();
     await srv.start();
+    // Only once this launcher's server holds the port: a second launcher on a running lab's folder fails before this.
+    consoleChannel(folder, channel);
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
     // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
