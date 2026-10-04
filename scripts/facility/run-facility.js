@@ -69,7 +69,9 @@
 // The server folder is .local-server/facility-<version>/. In hold mode, say "stop" in chat or
 // press Ctrl+C to shut it down; Ctrl+C again kills the server if it will not stop.
 
+const crypto = require('crypto');
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 const { spawn } = require('child_process');
 const server = require('./lib/server');
@@ -87,6 +89,38 @@ const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
 const REPO = path.resolve(__dirname, '..', '..');
 const LOCAL = path.join(REPO, '.local-server');
+
+/** The RCON port for a game port (only the dashboard uses it), or null past the last port. */
+function rconPort(gamePort) {
+  const port = gamePort + 10000;
+  return port > 65535 ? null : port;
+}
+
+/** Whether something on this machine already accepts connections on a port. */
+function portAnswers(port) {
+  return new Promise((resolve) => {
+    const sock = net.connect({ host: '127.0.0.1', port });
+    const end = (answered) => { sock.destroy(); resolve(answered); };
+    sock.setTimeout(1000, () => end(false));
+    sock.on('connect', () => end(true));
+    sock.on('error', () => end(false));
+  });
+}
+
+/**
+ * Tells the dashboard whether this lab takes commands: `starting` while the campus is generated,
+ * `ready` in the hold, `selftest` while a self-test runs, `no-rcon` in a hold whose RCON is not
+ * running (its port was taken, or the game port leaves none), `none` otherwise. The pid tells a
+ * launcher still running from one that died; null removes the file if this launcher wrote it, so a
+ * second launcher that fails on a running lab's folder does not take the first one's away.
+ */
+function consoleChannel(folder, state) {
+  const file = path.join(folder, 'console-channel.json');
+  if (state !== null) { fs.writeFileSync(file, JSON.stringify({ state, pid: process.pid })); return; }
+  try {
+    if (JSON.parse(fs.readFileSync(file, 'utf8')).pid === process.pid) fs.rmSync(file, { force: true });
+  } catch { /* none, or not this launcher's */ }
+}
 
 function parseArgs(argv) {
   const a = { port: DEFAULT_PORT, selftest: false, build: true };
@@ -595,6 +629,8 @@ async function main() {
     placed = checked.placed;
     console.log(`schematics: ${placed.length} to paste from ${args.schematics}, each clear of the guardrail`);
   }
+  // A lab already running here would have its worlds, plugins and RCON password rewritten under it.
+  if (await portAnswers(args.port)) throw new Error(`port ${args.port} already answers: is this lab running already? Nothing in ${folder} was touched`);
   // The settings journal describes the plugin's config file, so it goes when that does.
   if (!args.keepWorld) {
     server.freshWorlds(folder, { pluginData: true });
@@ -604,13 +640,25 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
+  // every interface when it is empty.
+  const extra = [];
+  if (!args.designOpen) extra.push('server-ip=127.0.0.1');
   // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
-  // Design mode: on 127.0.0.1 unless --design-open, and nobody joins until the campus is generated.
-  if (args.design) {
-    const extra = ['broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`];
-    if (!args.designOpen) extra.push('server-ip=127.0.0.1');
-    fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
-  }
+  // Design mode: nobody joins until the campus is generated.
+  if (args.design) extra.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
+  // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
+  // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
+  const hold = !args.design && !args.selftest && !(args.shots && !args.viewer);
+  const rcon = hold && rconPort(args.port) !== null;
+  if (rcon) extra.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
+  else extra.push('enable-rcon=false');
+  if (hold && !rcon) console.log(`The dashboard cannot send commands here: game port ${args.port} leaves no RCON port (port + 10000).`);
+  fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  let channel = 'none';
+  if (args.selftest) channel = 'selftest';
+  else if (rcon) channel = 'starting';
+  else if (hold) channel = 'no-rcon';
   if (path.resolve(plugin) !== path.resolve(folder, 'plugins', 'WormholeXTreme.jar')) server.installPlugin(folder, plugin);
   // Always, with or without --with: a run without a companion takes out what an earlier one put
   // in, jars and the Wormhole settings switched on for them.
@@ -646,6 +694,7 @@ async function main() {
   let web = null;
   const shutDown = async () => {
     stopping = true;
+    consoleChannel(folder, null);
     if (web) await web.close().catch(() => {});
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
@@ -670,7 +719,19 @@ async function main() {
   process.on('unhandledRejection', (e) => { stray.push(e); console.error(`facility: unhandled ${e && e.stack ? e.stack : e}`); });
   try {
     const t0 = Date.now();
+    // Paper runs on without RCON when its port is taken, and says so only by not printing this.
+    let rconUp = false;
+    const rconLine = new RegExp(`RCON running on 127\\.0\\.0\\.1:${rconPort(args.port)}$`);
+    const watchRcon = (l) => { if (rconLine.test(l)) rconUp = true; };
+    if (rcon) srv.on('line', watchRcon);
     await srv.start();
+    srv.off('line', watchRcon);
+    if (rcon && !rconUp) {
+      channel = 'no-rcon';
+      console.error(`facility: RCON did not start on port ${rconPort(args.port)} (taken?), so the dashboard cannot send commands here`);
+    }
+    // Only once this launcher's server holds the port: a second launcher on a running lab's folder fails before this.
+    consoleChannel(folder, channel);
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
     // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
@@ -779,6 +840,7 @@ async function main() {
         shards.saveTimes(LOCAL, version, results.times);
       }
     } else {
+      if (channel === 'starting') consoleChannel(folder, 'ready');
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
       if (mapPort) console.log(`The Dynmap web map is at http://127.0.0.1:${mapPort}/`);
       if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
