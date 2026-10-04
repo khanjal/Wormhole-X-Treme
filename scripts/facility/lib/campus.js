@@ -343,6 +343,60 @@ const SHOTS = [
 ];
 
 /**
+ * Watch mode's vantage points (run-facility --selftest --watch, lib/watcher.js): where a watcher
+ * is put before a chamber's cells, facing `at`, and held within WATCH_LEASH of while they run;
+ * `sections` is for the rest of the self-test. A watcher is a player to the plugin, so each point
+ * is kept out of reach of every mirror banner, ring and gate opening the cells use
+ * (test/watcher.test.js). `look` is what the watcher is told to look for.
+ */
+const WATCH_LEASH = 3;
+const WATCH = {
+  sections: { dim: OVERWORLD, x: 16.5, y: 9, z: 16.5, at: { x: 0, y: 2, z: -8 },
+    look: 'the atrium: Probe and Probe2 cross it between wings; the Ops wall and the pylons show each result' },
+  c0: { dim: OVERWORLD, x: 14.5, y: 2, z: 17.5, at: { x: 14, y: 1, z: 10 },
+    look: 'Probe works the lever or button in the cell, and the lamp answers' },
+  g1: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -128 },
+    look: 'the Stand dials a far gate (Relay, east past the wall, or the Range or the Annex); the traveller goes into the opening and does not come back out' },
+  g2: { dim: OVERWORLD, x: 0.5, y: 14, z: -151.5, at: { x: 0, y: 6, z: -166 },
+    look: 'one of the six shapes along the back wall dials another, and Probe goes through it' },
+  g3: { dim: OVERWORLD, x: 53.5, y: 11, z: -61.5, at: { x: 53, y: 2, z: -76 },
+    look: 'Bay, the gate on the left, opens from a lever, button, plate, rail or redstone, and the lamp by its lever lights while it is open' },
+  g4: { dim: OVERWORLD, x: -52.5, y: 10, z: -61.5, at: { x: -53, y: 2, z: -80 },
+    look: 'a gate preview on the bench: Probe works the preview action, or builds the gate by hand' },
+  g5: { dim: OVERWORLD, x: -49.5, y: 10, z: -112.5, at: { x: -50, y: 3, z: -125 },
+    look: 'IrisA (west) and IrisS (east): the iris sweeps shut or open in steps, and what is thrown at a shut one stops' },
+  r1: { dim: OVERWORLD, x: 70.5, y: 9, z: -11.5, at: { x: 70, y: 1, z: -18 },
+    look: 'two slab circles pair, the rings rise, and whatever stands in one is swapped with the other end' },
+  r2: { dim: OVERWORLD, x: 57.5, y: 10, z: 21.5, at: { x: 51, y: 4, z: 13 },
+    look: 'a ring hung from the ceiling pairs with the floor ring, or is refused by height' },
+  r3: { dim: OVERWORLD, x: 69.5, y: 2, z: 18.5, at: { x: 69, y: -10, z: 11 },
+    look: 'down the shaft through the glass: the top ring pairs with one 20, 40 or 60 down' },
+  r4: { dim: OVERWORLD, x: 93.5, y: 9, z: 21.5, at: { x: 93, y: 1, z: 14 },
+    look: 'a faulty circle of slabs is laid and `ring create` refuses it' },
+  r5: { dim: OVERWORLD, x: 80.5, y: 9, z: -6.5, at: { x: 80, y: 1, z: 0 },
+    look: 'the pair in the concourse is edited (name, light, access, owner) and then used' },
+  tunnel: { dim: OVERWORLD, x: 107.5, y: 4, z: 0.5, at: { x: 130, y: 1, z: 0 },
+    look: 'down the range tunnel: rings 64 to 257 apart pair, or are refused past 256' },
+  b1: { dim: OVERWORLD, x: -77.5, y: 7, z: 6.5, at: { x: -80, y: 1, z: -15 },
+    look: 'the traveller is enveloped on the start pad, rises, and comes down on the named pad facing its letter' },
+  b2: { dim: OVERWORLD, x: -70.5, y: 7, z: 27.5, at: { x: -70, y: 1, z: 18 },
+    look: 'the dispatch desk: a beam sent by `admin send` or `admin goto`, or refused in chat' },
+  m1: { dim: OVERWORLD, x: 10.5, y: 7, z: 66.5, at: { x: -15, y: 2, z: 55 },
+    look: 'Round, on the far wall: the traveller right-clicks through the round and punches, and is gone. From here the banner stays a banner: a mirror opens only for whoever is within 16 blocks' },
+  m2: { dim: OVERWORLD, x: 5.5, y: 6, z: 82.5, at: { x: -20, y: 1, z: 80 },
+    look: 'the niches down the bench (west, through the glass): `mirror create` at each, and the answer in chat' },
+  m3: { dim: OVERWORLD, x: 9.5, y: 6, z: 85.5, at: { x: 30, y: 1, z: 80 },
+    look: 'Desk, on the north wall, and the gold block put in its room after the capture. Its view is drawn only within 16 blocks, so here it stays a banner' },
+  // The companion desks' cells all run at the G1 stand (run-facility --with).
+  map: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
+    look: 'the Stand: gates, rings, beams and a mirror made and used while Dynmap draws them' },
+  regions: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
+    look: 'the Stand: building and using in and out of a WorldGuard region' },
+  perms: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
+    look: 'the Stand: Probe2 tries what its LuckPerms group allows and is refused the rest' },
+};
+
+/**
  * WorldEdit schematics placed during generation with --schematics <folder> (lib/schematics.js):
  * [{ file, at: { x, y, z }, rotation, dim }], each checked by the decoration guardrail first.
  */
@@ -362,5 +416,5 @@ function chamber(id) {
 
 module.exports = {
   OVERWORLD, NETHER, END, SEED, FLAT_LAYERS, PALETTE, WINGS, CORRIDORS, LANES, CHAMBERS, MENAGERIE,
-  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, SHOTS, SCHEMATICS, wing, chamber,
+  TRANSIT, ROUTES, BASELINE, OPS, GATES, FORCELOAD, BOARD_MIRRORS, SHOTS, WATCH, WATCH_LEASH, SCHEMATICS, wing, chamber,
 };

@@ -1136,3 +1136,16 @@ or fluids move; campus parts in a skin are compared in full; the masked union is
 version from 1.21.11; the default export is schematics only (`--full` for worlds); design mode
 listens on 127.0.0.1, keeps the whitelist on until generation is done, and deops Probe in a
 `finally`; the zip reader caps inflation and refuses traversal and Zip64.
+
+## Addendum: watch mode (user, 2026-10-03)
+
+A person can watch the self-test from inside the lab, the way the old lab's watch let them watch
+its bot's trips: `--selftest --watch [name]` (lab.ps1 -Watch, lab.sh -W) waits for them to join,
+then moves them to a vantage point facing each chamber (campus.WATCH) before its cells, and says
+each cell and its PASS, FAIL or KNOWN in chat. The watcher must change no result, and the plugin
+counts any player near a mirror, in a ring or in a gate's opening whatever its game mode, so the
+watcher is a spectator held within three blocks of a vantage point kept clear of all of them (a
+tick function and a marker; checked by test/watcher.test.js), left out of the facility's own @p
+selectors, never welcomed and refused by the console. `--watch-bot` puts a stand-in client in the
+watcher's place, to show a watcher changes nothing. Details in docs/DEVELOPMENT.md, "Watching the
+self-test". scripts/watch-local.ps1 is retired in a later change.
