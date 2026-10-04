@@ -57,4 +57,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/r3',
+  TOP,
 };

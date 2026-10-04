@@ -872,7 +872,7 @@ async function shoot(ctx, o, geom, f) {
 }
 
 async function testerName(ctx) {
-  const others = Object.keys(ctx.probe.bot.players).filter((n) => n !== ctx.probe.name && n !== 'Tester');
+  const others = Object.keys(ctx.probe.bot.players).filter((n) => n !== ctx.probe.name && n !== 'Tester' && n !== 'Probe2' && !ctx.facility.watching(n));
   return others[0] || null;
 }
 
