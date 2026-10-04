@@ -484,9 +484,11 @@ http://127.0.0.1:8200): each lab's console, streamed from its log, and its Dynma
 under a console runs a line on that lab's server, its reply arriving in the console as usual; Up
 and Down recall earlier ones. Each launcher listens for these on 127.0.0.1 only, on a port and with
 a token new every launch, written to `<lab folder>/.wx-console.json` and removed when it stops;
-the dashboard passes the command on and never shows the token to the browser. A command goes
-through `Server.run`'s queue, so it never meets a fence of the facility's own, and is refused
-while a self-test runs, since its cells own the console.
+the dashboard passes the command on and never shows the token to the browser. Any process running
+as you can read that file, and that is the trust boundary. A command goes through `Server.run`'s
+queue, so it never meets a fence of the facility's own. A self-test run refuses commands from start
+to end, since its cells own the console, and a `--shots` run until its shots are taken; design
+mode takes none.
 
 Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
 companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every

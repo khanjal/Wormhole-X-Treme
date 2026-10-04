@@ -25,15 +25,15 @@ function logOf(folder) {
  * Every lab folder that has a logs folder, in name order so the tabs stay put; its Dynmap URL when
  * Dynmap is installed there. The logs folder outlives latest.log's rename at a restart.
  */
-function findLabs() {
+function findLabs(servers = SERVERS) {
   let names = [];
-  try { names = fs.readdirSync(SERVERS); } catch { return []; }
+  try { names = fs.readdirSync(servers); } catch { return []; }
   return names
     .map((n) => ({ n, m: /^facility-(.+?)(?:-(\d+))?$/.exec(n) }))
-    .filter(({ n, m }) => m && fs.existsSync(path.join(SERVERS, n, 'logs')))
+    .filter(({ n, m }) => m && fs.existsSync(path.join(servers, n, 'logs')))
     .sort((x, y) => x.n.localeCompare(y.n))
     .map(({ n, m }) => {
-      const folder = path.join(SERVERS, n);
+      const folder = path.join(servers, n);
       let map = null;
       try {
         const conf = fs.readFileSync(path.join(folder, 'plugins', 'dynmap', 'configuration.txt'), 'utf8');
@@ -48,9 +48,6 @@ function findLabs() {
 const BACKLOG = 400;
 const WINDOW = 256 * 1024;
 const POLL_MS = 500;
-
-const argPort = process.argv.indexOf('--port');
-const PORT = argPort > 0 && Number(process.argv[argPort + 1]) > 0 ? Number(process.argv[argPort + 1]) : 8200;
 
 /** Bytes [from, to) of a file, or null if it cannot be read just now (rotating, locked). */
 function readRange(file, from, to) {
@@ -123,9 +120,14 @@ function stream(lab, res) {
 
 const NOT_RUNNING = 'this lab is not running under a launcher that accepts commands (start it with scripts/facility/lab.ps1 or run-facility.js)';
 const COMMAND_MS = 20000;
+const MAX_ANSWER = 1024 * 1024;
+const MAY_RUN = 'it may still run: check the console before sending it again';
 
 function json(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+  // The rest of an over-size body is not read: the connection goes with the answer.
+  if (status === 413) headers.Connection = 'close';
+  res.writeHead(status, headers);
   res.end(JSON.stringify(body));
 }
 
@@ -139,30 +141,40 @@ async function runOn(lab, req, res) {
     return;
   }
   const end = remote.readEndpoint(lab.folder);
-  if (!end) { json(res, 503, { error: NOT_RUNNING }); return; }
+  // A file whose launcher has gone (killed outright) is never trusted with the token.
+  if (!end || !remote.alive(end.pid)) { json(res, 503, { error: NOT_RUNNING }); return; }
   const body = JSON.stringify({ command });
   let done = false;
-  const answer = (status, text) => {
+  const answer = (status, error) => {
     if (done) return;
     done = true;
-    res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(text);
+    json(res, status, { error });
   };
   const out = http.request({
     host: '127.0.0.1', port: end.port, path: '/run', method: 'POST', timeout: COMMAND_MS,
     headers: { Authorization: `Bearer ${end.token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
   }, (r) => {
     const parts = [];
-    r.on('data', (d) => parts.push(d));
-    r.on('end', () => answer(r.statusCode, Buffer.concat(parts).toString('utf8')));
-    r.on('error', (e) => answer(502, JSON.stringify({ error: `the launcher's answer broke off: ${e.message}` })));
+    let size = 0;
+    r.on('data', (d) => {
+      size += d.length;
+      if (size > MAX_ANSWER) { answer(502, remote.STALE); out.destroy(); return; }
+      parts.push(d);
+    });
+    r.on('end', () => {
+      if (done) return;
+      done = true;
+      const a = remote.launcherAnswer(r.statusCode, Buffer.concat(parts).toString('utf8'));
+      json(res, a.status, a.body);
+    });
+    r.on('error', (e) => answer(502, `the launcher's answer broke off (${e.message}); ${MAY_RUN}`));
   });
   out.on('timeout', () => {
-    answer(504, JSON.stringify({ error: `no answer from the launcher in ${COMMAND_MS / 1000} s` }));
+    answer(504, `no answer from the launcher in ${COMMAND_MS / 1000} s; ${MAY_RUN}`);
     out.destroy();
   });
-  // A launcher that went without removing its file (killed outright) leaves nothing listening.
-  out.on('error', (e) => answer(e.code === 'ECONNREFUSED' ? 503 : 502, JSON.stringify({ error: e.code === 'ECONNREFUSED' ? NOT_RUNNING : e.message })));
+  // Nothing listening there: the launcher went without removing its file.
+  out.on('error', (e) => answer(e.code === 'ECONNREFUSED' ? 503 : 502, e.code === 'ECONNREFUSED' ? NOT_RUNNING : `${e.message}; ${MAY_RUN}`));
   out.end(body);
 }
 
@@ -254,10 +266,11 @@ for(const lab of LABS){
     try{const r=await fetch('/cmd?lab='+encodeURIComponent(lab.id),{method:'POST',
         headers:{'Content-Type':'application/json','X-Wx-Dashboard':'1'},body:JSON.stringify({command:c})});
       const j=await r.json().catch(()=>({}));
-      if(!r.ok){const why=j.error||('HTTP '+r.status);state(why,true);mine('  not run: '+why,true);return}
+      // 500, 502 and 504 leave it unknown whether the command ran: the launcher's queue may still run it.
+      if(!r.ok){const why=j.error||('HTTP '+r.status);state(why,true);mine((r.status>=500&&r.status!==503?'  no result: ':'  not run: ')+why,true);return}
       const errs=j.errors||[],lines=j.lines||[];
       state(errs.length?errs[0]:lines.length?lines[lines.length-1]:'done, no output',errs.length>0);
-    }catch(e){state('the dashboard did not answer: '+e.message,true);mine('  not run: the dashboard did not answer',true)}};
+    }catch(e){state('the dashboard did not answer: '+e.message,true);mine('  no result: the dashboard did not answer; check the console before sending it again',true)}};
   cin.onkeydown=(e)=>{
     if(e.key==='ArrowUp'){e.preventDefault();if(at>0)cin.value=hist[--at]}
     else if(e.key==='ArrowDown'){e.preventDefault();if(at<hist.length){at++;cin.value=at<hist.length?hist[at]:''}}};
@@ -295,35 +308,47 @@ function labsJson(labs) {
     .replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
-const server = http.createServer((req, res) => {
-  // Only this machine's own names: a page elsewhere that rebinds a hostname to 127.0.0.1 gets nothing.
-  if (!remote.localHost(req.headers.host)) { res.writeHead(403); res.end(); return; }
-  let url;
-  try { url = new URL(req.url, 'http://127.0.0.1'); } catch { res.writeHead(400); res.end(); return; }
-  if (url.pathname === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(page(findLabs()));
-  } else if (url.pathname === '/labs') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(findLabs().map((l) => l.id)));
-  } else if (url.pathname === '/cmd') {
-    if (req.method !== 'POST') { json(res, 405, { error: 'POST only' }); return; }
-    // Its own page only: a page elsewhere cannot send this header and body without a preflight.
-    if (!remote.sameOrigin(req.headers)) { json(res, 403, { error: 'forbidden' }); return; }
-    const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
-    if (!lab) { json(res, 404, { error: 'no such lab' }); return; }
-    runOn(lab, req, res).catch((e) => { if (!res.headersSent) json(res, 500, { error: e.message }); });
-  } else if (url.pathname === '/log') {
-    const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
-    if (!lab) { res.writeHead(404); res.end(); return; }
-    stream(lab, res);
-  } else {
-    res.writeHead(404);
-    res.end();
-  }
-});
-server.on('error', (e) => {
-  console.error(e.code === 'EADDRINUSE' ? `Port ${PORT} is in use; is the dashboard already running? Try --port.` : e.message);
-  process.exit(1);
-});
-server.listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
+/** The dashboard's http.Server, not yet listening, over the labs in `servers`. */
+function createDashboard({ servers = SERVERS } = {}) {
+  const labs = () => findLabs(servers);
+  return http.createServer((req, res) => {
+    // Only this machine's own names: a page elsewhere that rebinds a hostname to 127.0.0.1 gets nothing.
+    if (!remote.localHost(req.headers.host)) { res.writeHead(403); res.end(); return; }
+    let url;
+    try { url = new URL(req.url, 'http://127.0.0.1'); } catch { res.writeHead(400); res.end(); return; }
+    if (url.pathname === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(page(labs()));
+    } else if (url.pathname === '/labs') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(labs().map((l) => l.id)));
+    } else if (url.pathname === '/cmd') {
+      if (req.method !== 'POST') { json(res, 405, { error: 'POST only' }); return; }
+      // Its own page only: a page elsewhere cannot send this header and body without a preflight.
+      if (!remote.sameOrigin(req.headers)) { json(res, 403, { error: 'forbidden' }); return; }
+      const lab = labs().find((l) => l.id === url.searchParams.get('lab'));
+      if (!lab) { json(res, 404, { error: 'no such lab' }); return; }
+      runOn(lab, req, res).catch((e) => { if (!res.headersSent) json(res, 500, { error: e.message }); });
+    } else if (url.pathname === '/log') {
+      const lab = labs().find((l) => l.id === url.searchParams.get('lab'));
+      if (!lab) { res.writeHead(404); res.end(); return; }
+      stream(lab, res);
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+}
+
+if (require.main === module) {
+  const argPort = process.argv.indexOf('--port');
+  const PORT = argPort > 0 && Number(process.argv[argPort + 1]) > 0 ? Number(process.argv[argPort + 1]) : 8200;
+  const server = createDashboard();
+  server.on('error', (e) => {
+    console.error(e.code === 'EADDRINUSE' ? `Port ${PORT} is in use; is the dashboard already running? Try --port.` : e.message);
+    process.exit(1);
+  });
+  server.listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
+}
+
+module.exports = { createDashboard, findLabs };

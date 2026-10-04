@@ -23,7 +23,8 @@ function localHost(host) {
  */
 function checkCommand(text) {
   if (typeof text !== 'string') throw new Error('the command must be text');
-  if (/[\u0000-\u001f\u007f]/.test(text)) throw new Error('the command must be one line, without control characters');
+  // C0, DEL, C1 and the Unicode line and paragraph separators.
+  if (/[\p{Cc}\p{Zl}\p{Zp}]/u.test(text)) throw new Error('the command must be one line, without control characters');
   const cmd = text.trim().replace(/^\//, '').trim();
   if (!cmd) throw new Error('the command is empty');
   if (cmd.length > MAX_COMMAND) throw new Error(`the command is longer than ${MAX_COMMAND} characters`);
@@ -43,24 +44,34 @@ function sameOrigin(headers) {
   return /^application\/json(\s*;.*)?$/i.test(headers['content-type'] || '');
 }
 
-/** Reads a request body up to `max` bytes; rejects with a status of 413 past that. */
+/**
+ * Reads a request body up to `max` bytes; rejects with a status of 413 past that, and of 400
+ * when the request ends before its body does.
+ */
 function readBody(req, max = MAX_BODY) {
   return new Promise((resolve, reject) => {
     const parts = [];
     let size = 0;
-    let over = false;
+    let settled = false;
+    const fail = (status, message) => {
+      if (settled) return;
+      settled = true;
+      reject(Object.assign(new Error(message), { status }));
+    };
     req.on('data', (d) => {
-      if (over) return;
+      if (settled) return;
       size += d.length;
-      if (size > max) {
-        over = true;
-        reject(Object.assign(new Error(`the request is larger than ${max} bytes`), { status: 413 }));
-        return;
-      }
+      if (size > max) { fail(413, `the request is larger than ${max} bytes`); return; }
       parts.push(d);
     });
-    req.on('end', () => { if (!over) resolve(Buffer.concat(parts).toString('utf8')); });
-    req.on('error', reject);
+    req.on('end', () => {
+      if (settled) return;
+      settled = true;
+      resolve(Buffer.concat(parts).toString('utf8'));
+    });
+    req.on('aborted', () => fail(400, 'the request was cut off'));
+    req.on('close', () => fail(400, 'the request was cut off'));
+    req.on('error', (e) => fail(400, e.message));
   });
 }
 
@@ -122,20 +133,67 @@ function newToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
-function writeEndpoint(folder, { port, token }) {
+/**
+ * Writes the lab's endpoint file. The mode does nothing on Windows: any process running as this
+ * user can read the token, and that is the trust boundary.
+ */
+function writeEndpoint(folder, { port, token, pid = process.pid }) {
   fs.mkdirSync(folder, { recursive: true });
-  fs.writeFileSync(path.join(folder, ENDPOINT_FILE), JSON.stringify({ port, token }), { mode: 0o600 });
+  fs.writeFileSync(path.join(folder, ENDPOINT_FILE), JSON.stringify({ port, token, pid }), { mode: 0o600 });
 }
 
-/** The lab's { port, token }, or null when it has none or it is not readable. */
+/** The lab's { port, token, pid }, or null when it has none or it is not readable. */
 function readEndpoint(folder) {
   try {
     const e = JSON.parse(fs.readFileSync(path.join(folder, ENDPOINT_FILE), 'utf8'));
     if (!Number.isInteger(e.port) || e.port <= 0 || typeof e.token !== 'string' || !e.token) return null;
-    return { port: e.port, token: e.token };
+    if (!Number.isInteger(e.pid) || e.pid <= 0) return null;
+    return { port: e.port, token: e.token, pid: e.pid };
   } catch {
     return null;
   }
+}
+
+/** Whether a process is running: one this user may not signal (EPERM) is. */
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === 'EPERM';
+  }
+}
+
+/** A launcher's first step: an endpoint file left by one killed outright is not this one's. */
+function clearStale(folder) {
+  try { fs.rmSync(path.join(folder, ENDPOINT_FILE), { force: true }); } catch { /* not there */ }
+}
+
+/** Why the command port refuses just now, or null when it takes commands. */
+function busyReason({ selftest = false, shots = false, stopping = false, restarting = false } = {}) {
+  if (selftest) return 'a self-test is running; its cells own the console';
+  if (shots) return 'screenshots are being taken';
+  if (stopping) return 'the server is stopping';
+  if (restarting) return 'the server is restarting';
+  return null;
+}
+
+const STALE = 'that port did not answer as this lab\'s launcher (a stale .wx-console.json?)';
+const LAUNCHER_ERRORS = new Set([400, 409, 413, 500, 504]);
+
+/**
+ * What the dashboard passes back of an answer from a lab's port: the launcher's own answers as
+ * they are, and anything else (a stale file's port now someone else's) as a 502.
+ */
+function launcherAnswer(status, text) {
+  let body;
+  try { body = JSON.parse(text); } catch { body = null; }
+  const strings = (a) => Array.isArray(a) && a.every((s) => typeof s === 'string');
+  if (body && typeof body === 'object') {
+    if (status === 200 && strings(body.lines) && strings(body.errors)) return { status, body: { lines: body.lines, errors: body.errors } };
+    if (LAUNCHER_ERRORS.has(status) && typeof body.error === 'string') return { status, body: { error: body.error } };
+  }
+  return { status: 502, body: { error: STALE } };
 }
 
 /** Removes the lab's endpoint file; with `token`, only if it is still that launcher's. */
@@ -148,6 +206,7 @@ function removeEndpoint(folder, token) {
 }
 
 module.exports = {
-  ENDPOINT_FILE, MAX_COMMAND, MAX_BODY, localHost, checkCommand, sameOrigin, readBody, commandOf,
-  createCommandPort, newToken, writeEndpoint, readEndpoint, removeEndpoint,
+  ENDPOINT_FILE, MAX_COMMAND, MAX_BODY, STALE, localHost, checkCommand, sameOrigin, readBody, commandOf,
+  createCommandPort, newToken, writeEndpoint, readEndpoint, removeEndpoint, alive, clearStale, busyReason,
+  launcherAnswer,
 };

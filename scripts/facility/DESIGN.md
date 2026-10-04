@@ -1080,13 +1080,22 @@ Security: bind 127.0.0.1 only, a per-run token in the URL (the command box runs 
 commands). Local only, like the rest of the facility; never in GitHub. No framework needed: Node's
 http module plus one static page. After stage 7, once the companion loader and map plugins exist.
 - The command box (#559) is in: each launcher (run-facility.js, a --versions or --shards child
-  too) opens a command port on 127.0.0.1 only, port 0, and writes it with a per-run bearer token to
-  `<lab folder>/.wx-console.json`, removed on exit (lib/remote.js). The dashboard's `POST /cmd`
-  takes its own page's requests only (a local Host, its Origin, an `X-Wx-Dashboard` header and a
-  JSON body) and passes the command on with the token, which stays out of the page and any URL; the
-  port refuses any request carrying an Origin. One line, no control characters, through
-  `Server.run`'s queue; refused (409) while a self-test runs or the server restarts. Nothing here
-  listens on another interface, `--design-open` included: that opens the game port only.
+  too) opens a command port on 127.0.0.1 only, port 0, and writes it with a per-run bearer token and
+  its pid to `<lab folder>/.wx-console.json`, removed on exit and cleared at the next start
+  (lib/remote.js). Any process running as the user can read the token (the file mode does nothing
+  on Windows): that is the trust boundary. The dashboard's `POST /cmd` takes its own page's
+  requests only (a local Host, its Origin, an `X-Wx-Dashboard` header and a JSON body) and passes
+  the command on with the token, which stays out of the page and any URL, and never to a file
+  whose pid has exited; an answer not shaped like the launcher's is a 502 (a stale file). The port
+  refuses any request carrying an Origin. One line, no control or separator characters, through
+  `Server.run`'s queue; refused (409) for a whole self-test run, while shots are taken, and while
+  the server stops or restarts; not opened in design mode. A timeout leaves it unknown whether the
+  command ran (the queue may still run it), and the page says so. Nothing here listens on another
+  interface, `--design-open` included: that opens the game port only.
+  Known and left: a command that passes the busy check just as a `Facility.restart` replaces the
+  server's queue can interleave with the restart's own commands (self-test runs only, which are
+  refused anyway); and a command can print a forged fence echo of its own, which only fools the
+  facility of whoever typed it, like a player's chat line can.
 - Log noise to fix (seen in the lab console): the players' shield re-applies every 5 s and logs 'Unable to apply this effect' for players who already have it; re-apply only to players missing it (or silence the output). Fence echoes ([wxfence]) and board 'Modified entity data of Text Display' also flood the console; the stage 8 dashboard should hide them by default. The read-only dashboard is now `scripts/facility/dashboard.js` (127.0.0.1:8200), started by `lab.ps1`.
 - Dynmap and 26.x (checked 2026-09-30): no Dynmap build supports 26.x. Its repo's newest version helper is bukkit-helper-121-11; on 26.1.2 it fails 'bukkit version incompatible' and disables itself. Modrinth has only Forge/Fabric builds (v3.8, up to 1.21.11); GitHub releases stop in 2021. Dynmap cells (#236) run on 1.21.11; a 26.x map needs BlueMap/squaremap/Pl3xMap (#530-532) if they support it.
 - Dynmap and 26.x (checked 2026-09-30): no Dynmap build supports 26.x. Its repo's newest version helper is bukkit-helper-121-11; on 26.1.2 it fails 'bukkit version incompatible' and disables itself. Modrinth has only Forge/Fabric builds (v3.8, up to 1.21.11); GitHub releases stop in 2021. Dynmap cells (#236) run on 1.21.11; a 26.x map needs BlueMap/squaremap/Pl3xMap (#530-532) if they support them. TODO: remove Dynmap-3.8-spigot.jar from facility-26.1.2-25610/plugins when that lab is stopped.

@@ -82,6 +82,7 @@ const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
 const shapes = require('./lib/shapes');
 const companions = require('./lib/companions');
+const remote = require('./lib/remote');
 
 const DEFAULT_VERSION = '26.1.2';
 const DEFAULT_PORT = 25590;
@@ -391,17 +392,24 @@ function sampleResources(pids, everyMs = 10000) {
  * and its endpoint file in the lab folder, removed however the launcher ends. Returns { close() }.
  */
 async function openCommandPort(srv, folder, busy) {
-  const remote = require('./lib/remote');
   const token = remote.newToken();
   const port = await remote.createCommandPort({ srv, token, busy });
-  remote.writeEndpoint(folder, { port: port.address().port, token });
+  const shut = () => {
+    if (typeof port.closeAllConnections === 'function') port.closeAllConnections();
+    return new Promise((resolve) => { port.close(() => resolve()); });
+  };
+  try {
+    remote.writeEndpoint(folder, { port: port.address().port, token });
+  } catch (e) {
+    await shut();
+    throw e;
+  }
   const forget = () => remote.removeEndpoint(folder, token);
   process.on('exit', forget);
   return {
     close() {
       forget();
-      port.closeAllConnections();
-      return new Promise((resolve) => { port.close(() => resolve()); });
+      return shut();
     },
   };
 }
@@ -569,6 +577,8 @@ async function main() {
   // share a world: a fresh run deletes the worlds of the folder it uses. Design mode has its own,
   // which no test run uses, so its placeholders never reach one.
   const folder = path.join(LOCAL, `${args.design ? 'design' : 'facility'}-${version}${args.port === DEFAULT_PORT ? '' : `-${args.port}`}`);
+  // Before anything can fail: a file from a launcher killed outright would point the dashboard at a dead port.
+  remote.clearStale(folder);
   if (args.design) {
     const { DesignMode, STATE_DIR } = require('./lib/designmode');
     const made = DesignMode.generated(folder);
@@ -665,7 +675,7 @@ async function main() {
   let stopping = false;
   let web = null;
   let commands = null;
-  let selftesting = false;
+  let shooting = Boolean(args.shots);
   const shutDown = async () => {
     stopping = true;
     if (commands) await commands.close();
@@ -696,17 +706,17 @@ async function main() {
     await srv.start();
     console.log(`server up in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     const setup = await fac.prepare();
-    // The dashboard's commands queue behind the facility's own in Server.run; a self-test's cells
-    // own the console outright.
-    try {
-      commands = await openCommandPort(srv, folder, () => {
-        if (selftesting) return 'a self-test is running; its cells own the console';
-        if (stopping) return 'the server is stopping';
-        if (srv.restarting || fac.restarting) return 'the server is restarting';
-        return null;
-      });
-    } catch (e) {
-      console.error(`facility: the Lab Dashboard's command box will not reach this lab: ${e.message}`);
+    // The dashboard's commands queue behind the facility's own in Server.run. A self-test run
+    // refuses them from here to its end, and shots until they are taken. Design mode has none:
+    // the dashboard lists facility labs only.
+    if (!args.design) {
+      try {
+        commands = await openCommandPort(srv, folder, () => remote.busyReason({
+          selftest: Boolean(args.selftest), shots: shooting, stopping, restarting: Boolean(srv.restarting || fac.restarting),
+        }));
+      } catch (e) {
+        console.error(`facility: the Lab Dashboard's command box will not reach this lab: ${e.message}`);
+      }
     }
     // Design mode ops its players once the campus is generated (designSession): an op passes the whitelist.
     for (const name of args.design ? [] : args.op || []) {
@@ -763,7 +773,12 @@ async function main() {
     if (args.shots) {
       const shotsLib = require('./lib/shots');
       const dir = path.join(LOCAL, 'shots', version);
-      const shots = await shotsLib.takeShots(fac, web, shotsLib.select(args.shots), dir);
+      let shots;
+      try {
+        shots = await shotsLib.takeShots(fac, web, shotsLib.select(args.shots), dir);
+      } finally {
+        shooting = false;
+      }
       shotChecks = shotsLib.asResults(shots);
       const shotsBad = shots.filter((x) => !x.ok).length;
       console.log(`\nshots on ${version}: ${shots.length - shotsBad} of ${shots.length} drawn, in ${dir}`);
@@ -782,16 +797,10 @@ async function main() {
         shard = { ...args.shard, cells: new Set(planned.shards[args.shard.index]) };
         console.log(`shard ${args.shard.index + 1}/${args.shard.count}: ${shard.cells.size} matrix cells`);
       }
-      let results;
-      selftesting = true;
-      try {
-        results = await selftest(fac, {
-          buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
-          companions: withNames,
-        });
-      } finally {
-        selftesting = false;
-      }
+      const results = await selftest(fac, {
+        buildReport: report, fixtures, only: args.cells ? shards.cellMatcher(args.cells) : null, fixed: args.fixed || [], quick: Boolean(args.quick), shard,
+        companions: withNames,
+      });
       const testMs = Date.now() - ts;
       if (setup.length) results.push({ section: 'setup', name: 'setup', ok: false, detail: setup.join('; ') });
       results.push(...shotChecks);
