@@ -1,11 +1,13 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -28,9 +30,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
  * nothing there. At {@code behind} the far side is drawn behind the horizon; at {@code open} the
  * horizon clears once the far side is ready -- for everybody, not per viewer, which is the first
  * thing a real build would change. Only the dialling end of an upright gate with its iris open.
- * A capture's rays grow with its hole, so an opening wider or taller than {@link #MOST} is drawn
- * through a {@code MOST}-square window carved at the foot of its middle, and the rest of it keeps
- * its horizon.
+ * The whole opening is drawn, up to {@link #MOST} each way, and only a gate with a frame round
+ * its opening: nothing else hides the view's edges as one walks round it.
  *
  * <p>A gate's capture is kept on disk, named for the gate it shows, and is the base it is drawn
  * from after a restart; removing the gate deletes it. It is taken again when able: as a gate
@@ -39,7 +40,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
  */
 public final class GateViews
 {
-    /** The widest or tallest window drawn, the one every capture is seen through; a bigger gate has one carved. */
+    /** The widest or tallest opening drawn, the one every capture is seen through; a bigger one keeps its horizon. */
     static final int MOST = MirrorCaptures.GATE_OPENING;
 
     /** Before a gate's name, so the sweep cannot mistake it for a mirror's. */
@@ -47,9 +48,6 @@ public final class GateViews
 
     /** Gates whose horizon has cleared for their view, by name. */
     private static final Set<String> CLEARED = new HashSet<>();
-
-    /** The window carved in each cleared gate bigger than {@link #MOST}, by name: only its cells are cleared. */
-    private static final Map<String, MirrorWindow> CARVED = new HashMap<>();
 
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
@@ -71,7 +69,6 @@ public final class GateViews
     public static void clear()
     {
         CLEARED.clear();
-        CARVED.clear();
         OPEN.clear();
         LOOKED.clear();
     }
@@ -88,29 +85,8 @@ public final class GateViews
      */
     public static Material horizonOf(final Stargate gate, final Material portal)
     {
-        return ((gate != null) && (portal != Material.AIR) && CLEARED.contains(gate.getGateName())
-            && !CARVED.containsKey(gate.getGateName())) ? Material.AIR : portal;
-    }
-
-    /**
-     * What one cell of a gate's opening is drawn as: nothing where it is inside a window carved in
-     * a big gate and cleared for its view, otherwise what it was going to be drawn as.
-     *
-     * <p>Only the portal is cleared, so an iris drawn over the same cells still shows.
-     *
-     * @param gate
-     *            the gate
-     * @param drawn
-     *            what the cell was going to be drawn as
-     * @param cell
-     *            the cell
-     * @return the material to draw
-     */
-    public static Material horizonAt(final Stargate gate, final Material drawn, final Location cell)
-    {
-        final MirrorWindow carved = (gate == null) ? null : CARVED.get(gate.getGateName());
-        return ((carved != null) && (drawn == gate.getEffectivePortalMaterial())
-            && carved.isOpening(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ())) ? Material.AIR : drawn;
+        return ((gate != null) && (portal != Material.AIR) && CLEARED.contains(gate.getGateName())) ? Material.AIR
+            : portal;
     }
 
     /**
@@ -130,7 +106,6 @@ public final class GateViews
             return;
         }
         CLEARED.remove(gate.getGateName());
-        CARVED.remove(gate.getGateName());
         OPEN.remove(gate.getGateName());
         MirrorWindows.release(PREFIX + gate.getGateName());
     }
@@ -141,7 +116,7 @@ public final class GateViews
         final String level = ConfigManager.getGateView();
         final boolean draws = !"horizon".equals(level);
         final Set<String> open = new HashSet<>();
-        final Map<String, MirrorWindow> clear = new HashMap<>();
+        final Set<String> clear = new HashSet<>();
         final Set<String> busy = new HashSet<>();
         for (final Stargate gate : StargateManager.getOpenGates())
         {
@@ -238,7 +213,7 @@ public final class GateViews
         }
         final Location arrival = gate.getGateTarget().getGatePlayerTeleportLocation();
         final MirrorWindow shape = ((arrival == null) || (arrival.getWorld() == null)) ? null
-            : shapeOf(gate.getGateFacing(), cellsOf(gate), MirrorPoint.of(arrival));
+            : shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), MirrorPoint.of(arrival));
         if (shape != null)
         {
             MirrorWindows.prepareGate(windowOf(gate, shape));
@@ -248,20 +223,37 @@ public final class GateViews
     /** An open gate as the window drawing sees it. */
     private static GateWindow windowOf(final Stargate gate, final MirrorWindow shape)
     {
-        // Only the window's cells: the rest of a big gate's opening is still its horizon.
-        final List<Spot> open = cellsOf(gate).stream().filter(cell -> shape.isOpening(cell.x(), cell.y(), cell.z()))
-            .toList();
-        final Spot first = open.get(0);
+        final List<Spot> open = cellsOf(gate);
+        final Spot middle = middleOf(open);
         final Stargate target = gate.getGateTarget();
-        return new GateWindow(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(first.x(), first.y(), first.z()),
+        return new GateWindow(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
             shape, open, MirrorPoint.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
             ConfigManager.getGateViewDepth());
     }
 
-    /** Whether a window leaves some of a gate's opening outside it. */
-    private static boolean carves(final Stargate gate, final MirrorWindow shape)
+    /**
+     * The cell of an opening nearest its middle, which the drawing measures a viewer's distance from.
+     *
+     * <p>Not its first cell, a top-row one: somebody at the foot of a Massive gate, six blocks in
+     * front, was seventeen from it, past the mirror proximity distance, and was never drawn the view.
+     */
+    static Spot middleOf(final List<Spot> cells)
     {
-        return cellsOf(gate).stream().anyMatch(cell -> !shape.isOpening(cell.x(), cell.y(), cell.z()));
+        final int[] low = { Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE };
+        final int[] high = { Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE };
+        for (final Spot cell : cells)
+        {
+            final int[] at = { cell.x(), cell.y(), cell.z() };
+            for (int axis = 0; axis < 3; axis++)
+            {
+                low[axis] = Math.min(low[axis], at[axis]);
+                high[axis] = Math.max(high[axis], at[axis]);
+            }
+        }
+        final Spot aim = new Spot(low[0] + ((high[0] - low[0]) / 2), low[1] + ((high[1] - low[1]) / 2),
+            low[2] + ((high[2] - low[2]) / 2));
+        return cells.stream().min(Comparator.comparingInt((Spot cell) -> (Math.abs(cell.x() - aim.x())
+            + Math.abs(cell.y() - aim.y()) + Math.abs(cell.z() - aim.z())))).orElseThrow();
     }
 
     /**
@@ -275,10 +267,10 @@ public final class GateViews
      * @param open
      *            added to if it could show a view, whether or not anybody is near to be drawn it
      * @param clear
-     *            added to if its horizon should be cleared, with the window it is cleared in
+     *            added to if its horizon should be cleared
      */
     private static void offer(final Stargate gate, final boolean crossing, final boolean clears,
-        final Set<String> open, final Map<String, MirrorWindow> clear)
+        final Set<String> open, final Set<String> clear)
     {
         final MirrorWindow shape = shapeOf(gate, crossing);
         if (shape == null)
@@ -295,7 +287,7 @@ public final class GateViews
         final boolean drawn = MirrorWindows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
         if (drawn && clears && !crossing)
         {
-            clear.put(name, shape);
+            clear.add(name);
         }
     }
 
@@ -303,8 +295,8 @@ public final class GateViews
      * Whether anybody could be drawn a gate's view: its chunk is loaded and somebody in its world is
      * within the mirror proximity distance of its opening.
      *
-     * <p>Of any of it, not of its first cell: that is a top-row one, and a Grand gate's window at the
-     * foot of its opening could be looked into from half as far back as a Standard gate's.
+     * <p>Of any of it, not of its first cell: that is a top-row one, and the foot of a Grand gate's
+     * opening could be looked into from half as far back as a Standard gate's.
      *
      * <p>A capture is a few seconds of work in the far world, and a gate dialled by redstone in a
      * corner of the map nobody is in should not pay for one.
@@ -353,17 +345,16 @@ public final class GateViews
      * Clears the horizon of every gate newly showing an open view, and puts it back on every gate no
      * longer showing one; a gate mid iris crossing is left as it is until the crossing is over.
      */
-    private static void settleHorizons(final Map<String, MirrorWindow> clear, final Set<String> busy)
+    private static void settleHorizons(final Set<String> clear, final Set<String> busy)
     {
         for (final Iterator<String> it = CLEARED.iterator(); it.hasNext();)
         {
             final String name = it.next();
-            if (clear.containsKey(name) || busy.contains(name))
+            if (clear.contains(name) || busy.contains(name))
             {
                 continue;
             }
             it.remove();
-            CARVED.remove(name);
             final Stargate gate = StargateManager.getStargate(name);
             // Only a wormhole still showing: a shut iris or a closed gate draws its own.
             if ((gate != null) && gate.isGateActive() && gate.isGatePortalOpen() && !gate.isGateIrisActive())
@@ -371,20 +362,10 @@ public final class GateViews
                 gate.fillGateInterior(gate.getEffectivePortalMaterial());
             }
         }
-        for (final Map.Entry<String, MirrorWindow> entry : clear.entrySet())
+        for (final String name : clear)
         {
-            final Stargate gate = StargateManager.getStargate(entry.getKey());
-            if ((gate == null) || !CLEARED.add(entry.getKey()))
-            {
-                continue;
-            }
-            if (carves(gate, entry.getValue()))
-            {
-                // Drawn as its portal, which horizonAt clears inside the window.
-                CARVED.put(entry.getKey(), entry.getValue());
-                gate.fillGateInterior(gate.getEffectivePortalMaterial());
-            }
-            else
+            final Stargate gate = StargateManager.getStargate(name);
+            if ((gate != null) && CLEARED.add(name))
             {
                 gate.fillGateInterior(Material.AIR);
             }
@@ -410,22 +391,28 @@ public final class GateViews
         {
             return null;
         }
-        return shapeOf(gate.getGateFacing(), cellsOf(gate), MirrorPoint.of(arrival));
+        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), MirrorPoint.of(arrival));
     }
 
     /**
-     * The window an upright opening makes onto an arrival point: plain numbers, for testing.
+     * The window an upright opening makes onto an arrival point, if it may show one: plain numbers, for testing.
+     *
+     * <p>Which gates may is decided here and nowhere else: upright, framed ({@link #framed}), and no
+     * bigger than {@link #fits} allows.
      *
      * @param facing
      *            the way the gate faces, which is where it is looked into from
      * @param cells
      *            the opening's cells, all in one upright plane
+     * @param frame
+     *            the gate's frame blocks
      * @param arrival
      *            where a traveller lands, facing the way they leave
-     * @return the window, at most {@link #MOST} each way at the foot of the opening's middle, or null
-     *         for no opening, a gate lying flat, or one with no room for that window
+     * @return the window, the whole of the opening, or null for no opening, a gate lying flat, one
+     *         with no frame round its opening, or one too big
      */
-    static MirrorWindow shapeOf(final BlockFace facing, final List<Spot> cells, final MirrorPoint arrival)
+    static MirrorWindow shapeOf(final BlockFace facing, final List<Spot> cells, final Set<Spot> frame,
+        final MirrorPoint arrival)
     {
         if ((facing == null) || (facing.getModY() != 0) || ((facing.getModX() == 0) == (facing.getModZ() == 0))
             || cells.isEmpty() || (arrival == null))
@@ -438,7 +425,6 @@ public final class GateViews
         int highAcross = Integer.MIN_VALUE;
         int lowY = Integer.MAX_VALUE;
         int highY = Integer.MIN_VALUE;
-        final Set<Long> taken = new HashSet<>();
         for (final Spot cell : cells)
         {
             final int across = (cell.x() * right.x()) + (cell.z() * right.z());
@@ -446,36 +432,53 @@ public final class GateViews
             highAcross = Math.max(highAcross, across);
             lowY = Math.min(lowY, cell.y());
             highY = Math.max(highY, cell.y());
-            taken.add(cellKey(across, cell.y()));
         }
-        final int width = Math.min((highAcross - lowAcross) + 1, MOST);
-        final int height = Math.min((highY - lowY) + 1, MOST);
-        final int from = lowAcross + ((((highAcross - lowAcross) + 1) - width) / 2);
-        final boolean whole = (width == ((highAcross - lowAcross) + 1)) && (height == ((highY - lowY) + 1));
-        // A big gate's: the lowest rows it fits in whole, so its floor is the gate's where the ring
-        // allows, since a round gate's bottom row can be narrower than the window.
-        for (int foot = lowY; (foot + height) <= (highY + 1); foot++)
+        final int width = (highAcross - lowAcross) + 1;
+        final int height = (highY - lowY) + 1;
+        if (!fits(width, height) || !framed(cells, frame, right))
         {
-            if (whole || fits(taken, from, foot, width, height))
-            {
-                // Right runs along one axis, one way or the other, so the across coordinate is the block's own, signed.
-                final Spot plane = cells.get(0);
-                final Spot base = (into.x() != 0) ? new Spot(plane.x(), foot, from * right.z())
-                    : new Spot(from * right.x(), foot, plane.z());
-                return MirrorWindow.through(base, into, arrival, width, height);
-            }
+            return null;
         }
-        return null;
+        // Right runs along one axis, one way or the other, so the across coordinate is the block's own, signed.
+        final Spot plane = cells.get(0);
+        final Spot base = (into.x() != 0) ? new Spot(plane.x(), lowY, lowAcross * right.z())
+            : new Spot(lowAcross * right.x(), lowY, plane.z());
+        return MirrorWindow.through(base, into, arrival, width, height);
     }
 
-    /** Whether every cell of a window is part of the opening. */
-    private static boolean fits(final Set<Long> taken, final int from, final int foot, final int width, final int height)
+    /**
+     * Whether an opening this size may show a view: no wider or taller than the opening every
+     * capture is seen through, whose rays were measured to miss nothing out to 160 blocks.
+     *
+     * @return true if it fits
+     */
+    static boolean fits(final int width, final int height)
     {
-        for (int across = from; across < (from + width); across++)
+        return (width <= MOST) && (height <= MOST);
+    }
+
+    /**
+     * Whether a frame closes an opening in on every side, in its own plane: each cell has opening or
+     * frame beside it, above and below.
+     *
+     * <p>A Minimal gate is two portal cells on one frame block, open to the air at the sides and top.
+     * Nothing but the ring hides a view's edges as one walks round a freestanding gate, so with no ring
+     * the far side would hang in the air beside it. Judged from the gate's own blocks rather than its
+     * shape's name, so a custom shape without a frame is treated the same.
+     *
+     * @param right
+     *            one step across the opening
+     */
+    static boolean framed(final List<Spot> cells, final Set<Spot> frame, final Spot right)
+    {
+        final Set<Spot> opening = new HashSet<>(cells);
+        for (final Spot cell : cells)
         {
-            for (int y = foot; y < (foot + height); y++)
+            for (final Spot side : new Spot[] { new Spot(cell.x() + right.x(), cell.y(), cell.z() + right.z()),
+                new Spot(cell.x() - right.x(), cell.y(), cell.z() - right.z()), new Spot(cell.x(), cell.y() + 1, cell.z()),
+                new Spot(cell.x(), cell.y() - 1, cell.z()) })
             {
-                if (!taken.contains(cellKey(across, y)))
+                if (!opening.contains(side) && !frame.contains(side))
                 {
                     return false;
                 }
@@ -484,10 +487,11 @@ public final class GateViews
         return true;
     }
 
-    /** One cell of an opening, by how far across it is and its height. */
-    private static long cellKey(final int across, final int y)
+    /** A gate's frame blocks as spots. */
+    private static Set<Spot> frameOf(final Stargate gate)
     {
-        return (((long) across) << 32) | (y & 0xFFFFFFFFL);
+        return gate.getGateStructureBlocks().stream()
+            .map(cell -> new Spot(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ())).collect(Collectors.toSet());
     }
 
     /** A gate's portal cells as spots. */

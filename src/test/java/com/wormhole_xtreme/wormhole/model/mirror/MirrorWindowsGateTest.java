@@ -227,8 +227,8 @@ class MirrorWindowsGateTest
                 anyInt(), anyInt())).thenReturn(true);
 
             assertTrue(MirrorWindows.offerGate(gate, false), "the first step is drawn meanwhile");
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(8),
-                eq(8), eq(48)), times(1));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(18),
+                eq(18), eq(48)), times(1));
         }
     }
 
@@ -361,14 +361,14 @@ class MirrorWindowsGateTest
     /**
      * A small gate draws from, and asks for, the far gate's one capture, seen through the largest opening.
      *
-     * <p>Captures were kept per opening size, so a gate dialled by a Minimal and a Standard gate was
+     * <p>Captures were kept per opening size, so a gate dialled by a Standard and a Grand gate was
      * captured twice. Every smaller opening sees a part of what the largest does, so one serves all.
      */
     @Test
     void aSmallGateAsksForTheFarGatesOneCapture()
     {
         final MirrorWindow small = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 1, 2);
-        final GateWindow minimal = new GateWindow(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
+        final GateWindow standard = new GateWindow(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
             ARRIVAL, "Chulak", 16);
         final String key = key();
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -377,8 +377,8 @@ class MirrorWindowsGateTest
             captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertFalse(MirrorWindows.offerGate(minimal, true));
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(8), eq(8),
+            assertFalse(MirrorWindows.offerGate(standard, true));
+            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(18), eq(18),
                 eq(16)), times(1));
         }
     }

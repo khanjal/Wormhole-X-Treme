@@ -86,15 +86,7 @@ class GateViewsSweepTest
         when(gate.getGateTarget()).thenReturn(target);
         when(gate.getGateFacing()).thenReturn(BlockFace.SOUTH);
         when(gate.getEffectivePortalMaterial()).thenReturn(Material.WATER);
-        final List<Location> portal = new ArrayList<>();
-        for (int x = 10; x < 13; x++)
-        {
-            for (int y = 64; y < 67; y++)
-            {
-                portal.add(new Location(world, x, y, 20));
-            }
-        }
-        when(gate.getGatePortalBlocks()).thenReturn(portal);
+        opening(10, 3, 64, 3);
 
         manager = mockStatic(StargateManager.class);
         manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate));
@@ -110,6 +102,37 @@ class GateViewsSweepTest
         GateViews.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * Gives the gate a rectangular opening in the plane z = 20 and a frame round it.
+     *
+     * @return the opening's cells
+     */
+    private List<Location> opening(final int fromX, final int wide, final int fromY, final int tall)
+    {
+        final List<Location> portal = new ArrayList<>();
+        for (int y = (fromY + tall) - 1; y >= fromY; y--)
+        {
+            for (int x = fromX; x < (fromX + wide); x++)
+            {
+                portal.add(new Location(world, x, y, 20));
+            }
+        }
+        final List<Location> ring = new ArrayList<>();
+        for (int x = fromX - 1; x <= (fromX + wide); x++)
+        {
+            ring.add(new Location(world, x, fromY - 1, 20));
+            ring.add(new Location(world, x, fromY + tall, 20));
+        }
+        for (int y = fromY; y < (fromY + tall); y++)
+        {
+            ring.add(new Location(world, fromX - 1, y, 20));
+            ring.add(new Location(world, fromX + wide, y, 20));
+        }
+        when(gate.getGatePortalBlocks()).thenReturn(portal);
+        when(gate.getGateStructureBlocks()).thenReturn(ring);
+        return portal;
     }
 
     /** Puts the one player in the gate's world beside the gate, or far off. */
@@ -147,71 +170,84 @@ class GateViewsSweepTest
         assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "the view went, so the horizon is back");
     }
 
-    /** Makes the gate's opening twelve wide and ten tall, too big for one capture. */
-    private void wide()
-    {
-        final List<Location> portal = new ArrayList<>();
-        for (int x = 10; x < 22; x++)
-        {
-            for (int y = 64; y < 74; y++)
-            {
-                portal.add(new Location(world, x, y, 20));
-            }
-        }
-        when(gate.getGatePortalBlocks()).thenReturn(portal);
-    }
-
     /**
-     * A big gate at {@code open} clears only the window carved in it: the rest of its opening is
-     * still the wormhole, and an iris drawn over the window still shows.
+     * A Grand gate's opening, eighteen by seventeen, is drawn whole and cleared whole at {@code open}.
+     *
+     * <p>It used to be drawn through an eight-by-eight window carved at the foot of its middle, the
+     * rest of the opening keeping its horizon, because a capture through a bigger hole spread its
+     * rays too thin to trust. The rays are bounded and staggered now, and the whole opening is the window.
      */
     @Test
-    void atOpenABigGateClearsOnlyItsWindow()
+    void atOpenAGrandGateClearsItsWholeOpening()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
-        wide();
+        opening(10, 18, 64, 17);
         drawn(true);
 
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> window.open().size() == 64), anyBoolean()));
-        verify(gate, never()).fillGateInterior(Material.AIR);
-        verify(gate).fillGateInterior(Material.WATER);
-        assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "the gate as a whole keeps its horizon");
-        assertEquals(Material.AIR, GateViews.horizonAt(gate, Material.WATER, new Location(world, 15, 67, 20)),
-            "cleared in the window");
-        assertEquals(Material.AIR, GateViews.horizonAt(gate, Material.WATER, new Location(world, 12, 64, 20)),
-            "to its corner");
-        assertEquals(Material.WATER, GateViews.horizonAt(gate, Material.WATER, new Location(world, 11, 64, 20)),
-            "but not beside it");
-        assertEquals(Material.GLASS, GateViews.horizonAt(gate, Material.GLASS, new Location(world, 15, 67, 20)),
-            "and an iris is drawn over it as ever");
+        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> (window.open().size() == (18 * 17))
+            && (window.shape().width() == 18) && (window.shape().height() == 17)), anyBoolean()));
+        verify(gate).fillGateInterior(Material.AIR);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the whole opening, not a window in it");
+    }
 
+    /**
+     * A tall gate's view is measured from the middle of its opening, not its first cell.
+     *
+     * <p>The drawing draws a window for whoever is within the mirror proximity distance of the block
+     * it is anchored to. Anchored to the first portal cell, a top-row one, a Massive gate's view was
+     * never drawn for somebody six blocks in front of it at the foot: the facility saw it, with the
+     * window offered and nobody looking into it. A carved window had hidden this, being anchored to
+     * its own first cell, eight up.
+     */
+    @Test
+    void aTallGatesViewIsAnchoredToTheMiddleOfItsOpening()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        opening(10, 17, 64, 17);
         drawn(false);
+
         GateViews.offerAll();
 
-        assertEquals(Material.WATER, GateViews.horizonAt(gate, Material.WATER, new Location(world, 15, 67, 20)),
-            "the view went, so the window is the wormhole again");
+        offeredTimes(1);
+        verify(world).getBlockAt(18, 72, 20);
+        verify(world, never()).getBlockAt(10, 80, 20);
+    }
+
+    /**
+     * A Minimal gate keeps its horizon: two portal cells on one frame block, open to the air beside
+     * and above.
+     *
+     * <p>Nothing but the ring hides a view's edges as one walks round a freestanding gate, so with no
+     * ring the far side would hang in the air beside it.
+     */
+    @Test
+    void aGateWithNoFrameRoundItsOpeningKeepsItsHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGatePortalBlocks()).thenReturn(List.of(new Location(world, 11, 65, 20), new Location(world, 11, 64, 20)));
+        when(gate.getGateStructureBlocks()).thenReturn(List.of(new Location(world, 11, 63, 20)));
+        drawn(true);
+
+        GateViews.offerAll();
+        GateViews.dialled(gate);
+
+        offeredTimes(0);
+        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+        verify(gate, never()).fillGateInterior(Material.AIR);
     }
 
     /**
      * A tall gate is watched from near any of its opening, not only near its first cell, which is a
-     * top-row one: somebody at the foot of a Grand gate, before its window, was never offered it.
+     * top-row one: somebody at the foot of a Grand gate was never offered it.
      */
     @Test
     void aTallGateIsWatchedFromBesideItsFoot()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
-        final List<Location> portal = new ArrayList<>();
-        for (int y = 83; y >= 64; y--)
-        {
-            for (int x = 10; x < 13; x++)
-            {
-                portal.add(new Location(world, x, y, 20));
-            }
-        }
-        when(gate.getGatePortalBlocks()).thenReturn(portal);
-        // Fourteen from the foot, but over twenty from the first cell, up at y 83.
+        opening(10, 3, 64, 18);
+        // Fourteen from the foot, but over twenty from the first cell, up at y 81.
         when(player.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 34.0));
         drawn(false);
 

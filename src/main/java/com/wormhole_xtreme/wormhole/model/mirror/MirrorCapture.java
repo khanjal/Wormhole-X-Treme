@@ -566,6 +566,28 @@ public final class MirrorCapture
          */
         static final int LEAF_SIGHT = 6;
 
+        /**
+         * The widest a gate capture's rays are spread, in degrees between neighbours (#516).
+         *
+         * <p>Spread with the hole alone, a Massive gate's rays were seven degrees apart, and a flat
+         * floor 64 blocks off kept under half its blocks. With the grids staggered ({@link #STAGGER}),
+         * two and a half kept every block of a wall and a floor out to 160 through every opening from
+         * five to eighteen square. Wider, some sizes began to lose a few: at four, a twentieth of a wall
+         * 160 blocks off through Grand's opening. A mirror's is one.
+         */
+        static final double WIDEST_STEP = 2.5;
+
+        /**
+         * How far each point's grid of directions is shifted, across and up, as a share of a step:
+         * the plastic number's two fractions, so ninety points' grids fill in between each other.
+         *
+         * <p>Every point's grid used to start half a step in. Lined up like that they fell on the
+         * same few directions, and the gaps between those were what a far wall or floor lost: a Large
+         * gate's capture kept 40% of a wall 160 blocks off, and a Grand gate's three quarters of the
+         * floor 24 out.
+         */
+        static final double[] STAGGER = { 0.7548776662466927, 0.5698402909980532 };
+
         /** @return how many blocks that are not air this would keep, as it stands */
         public int keptCount()
         {
@@ -611,8 +633,9 @@ public final class MirrorCapture
          *
          * <p>Rays from points across the front of the opening, in every direction that leaves
          * through its back -- the opening is a hole a block deep, so nothing steeper gets
-         * through, however close the eye -- a degree apart, which at the far end of the depth
-         * is under a block; each followed a block at a time until it meets something that
+         * through, however close the eye -- a degree apart through a mirror's hole, and at most
+         * {@link #WIDEST_STEP} through a gate's with each point's directions {@link #STAGGER staggered}
+         * so the points fill in between each other at the far end of the depth; each followed a block at a time until it meets something that
          * hides what is behind it, or leaves the box, or passes the depth. Every block a
          * ray passes through or ends on is seen, air included: air that a viewer can see is what
          * the view carves through the real world. A block beside anything seen that can be seen
@@ -682,9 +705,12 @@ public final class MirrorCapture
             final double exitZ = (from.z() + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            // A bigger hole lets through more directions from each point; the rays are spread wider
-            // so a gate's capture costs about what a mirror's does.
-            final double step = Math.tan(Math.toRadians(Math.max(1.0, Math.sqrt((from.width() * from.height()) / 6.0))));
+            // A bigger hole lets through more directions from each point; the rays are spread wider,
+            // but never past WIDEST_STEP, and a gate's grids are staggered. A mirror's are as they were.
+            final boolean mirror = (from.width() == 3) && (from.height() == 2);
+            final double step = Math.tan(Math.toRadians(Math.min(WIDEST_STEP,
+                Math.max(1.0, Math.sqrt((from.width() * from.height()) / 6.0)))));
+            int point = 0;
             // Filled afresh for each ray, which only reads them.
             final double[] origin = new double[3];
             final double[] direction = new double[3];
@@ -701,10 +727,13 @@ public final class MirrorCapture
                 final double across = centre + (column * spacing);
                 for (double up = rise / 2; up < from.height(); up += rise)
                 {
+                    point++;
+                    final double shiftAcross = shiftOf(mirror, point, 0);
+                    final double shiftUp = shiftOf(mirror, point, 1);
                     // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = ((centre - half) - across) + (step / 2); sideways < ((centre + half) - across); sideways += step)
+                    for (double sideways = ((centre - half) - across) + (step * shiftAcross); sideways < ((centre + half) - across); sideways += step)
                     {
-                        for (double upward = -up + (step / 2); upward < (from.height() - up); upward += step)
+                        for (double upward = -up + (step * shiftUp); upward < (from.height() - up); upward += step)
                         {
                             final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
                             origin[0] = (exitX + ((across + sideways) * rightX)) - minX;
@@ -718,6 +747,20 @@ public final class MirrorCapture
                     }
                 }
             }
+        }
+
+        /**
+         * How far into its first step one point's grid of directions starts, as a share of a step.
+         *
+         * @param point
+         *            which point across the hole, counted from one
+         * @param axis
+         *            0 across, 1 up
+         * @return half a step for a mirror's, as it always was; a gate's own share of {@link #STAGGER}
+         */
+        private static double shiftOf(final boolean mirror, final int point, final int axis)
+        {
+            return mirror ? 0.5 : ((0.5 + (STAGGER[axis] * point)) % 1.0);
         }
 
         /** Keeps the six blocks round one, where they are not air. */

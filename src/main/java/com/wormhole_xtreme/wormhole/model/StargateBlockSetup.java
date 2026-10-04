@@ -747,10 +747,9 @@ class StargateBlockSetup
         for (final Location bc : portalBlocks)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-            final BlockData data = drawnAt(gate, material, blockData, bc);
             for (final Player p : recipients)
             {
-                p.sendBlockChange(at, data);
+                p.sendBlockChange(at, blockData);
             }
         }
         // Note who is now showing this, so it can be taken back from them later even if they
@@ -813,26 +812,13 @@ class StargateBlockSetup
             // getBlockAt by coordinate rather than Location.getBlock(), which is the same
             // lookup with a Location built and thrown away on the way -- the round trip
             // sendPortalVisual's own comment says buys nothing.
-            final BlockData data = (drawn != null) ? drawnAt(gate, material, drawn, bc)
+            final BlockData data = (drawn != null) ? drawn
                 : gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()).getBlockData();
             for (final Player p : recipients)
             {
                 p.sendBlockChange(at, data);
             }
         }
-    }
-
-    /**
-     * One cell's drawing, with the window carved in a big gate's horizon left clear (#516).
-     *
-     * @param drawn
-     *            {@code material}'s drawing, for every other cell
-     */
-    private static BlockData drawnAt(final Stargate gate, final Material material, final BlockData drawn,
-        final Location cell)
-    {
-        final Material here = GateViews.horizonAt(gate, material, cell);
-        return (here == material) ? drawn : MaterialUtils.drawnAcross(here, gate.getGateFacing());
     }
 
     /**
@@ -1365,7 +1351,7 @@ class StargateBlockSetup
         {
             player.sendBlockChange(
                 new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
-                drawnAt(gate, horizon, blockData, bc));
+                blockData);
         }
         // The chevrons are a drawing too now, so somebody who arrives after the gate
         // dialled would otherwise find a lit wormhole in an unlit frame.

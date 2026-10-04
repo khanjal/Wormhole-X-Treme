@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -49,11 +50,33 @@ class GateViewsTest
         return cells;
     }
 
+    /** An opening's window with a frame closing it in on every side, as every ring gate has. */
+    private static MirrorWindow shapeOf(final BlockFace facing, final List<Spot> cells)
+    {
+        return GateViews.shapeOf(facing, cells, ringOf(facing, cells), ARRIVAL);
+    }
+
+    /** Every block beside an opening's cells, in its plane, that is not one of them: a frame round it. */
+    private static Set<Spot> ringOf(final BlockFace facing, final List<Spot> cells)
+    {
+        final Set<Spot> ring = new HashSet<>();
+        for (final Spot cell : cells)
+        {
+            for (final int[] side : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
+            {
+                ring.add((facing.getModZ() != 0) ? new Spot(cell.x() + side[0], cell.y() + side[1], cell.z())
+                    : new Spot(cell.x(), cell.y() + side[1], cell.z() + side[0]));
+            }
+        }
+        ring.removeAll(cells);
+        return ring;
+    }
+
     @Test
     void theArrivalBlockShowsThroughTheMiddleOfTheOpeningAtItsBottomRow()
     {
         // Faces south, so it is looked into northwards: the first layer behind it is z = 19.
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3), ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         assertNotNull(shape);
         assertEquals(new Spot(100, 70, 200), shape.farOf(11, 64, 19),
@@ -63,7 +86,7 @@ class GateViewsTest
     @Test
     void aStepToTheViewersRightIsAStepToTheTravellersRight()
     {
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3), ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         // The viewer looks north, so their right is east (x 12). The traveller faces south, so
         // theirs is west (x 99). A mirrored window would show x 101 here.
@@ -75,7 +98,7 @@ class GateViewsTest
     @Test
     void furtherBehindTheGateIsFurtherAheadOfTheArrival()
     {
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3), ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         assertEquals(new Spot(100, 70, 204), shape.farOf(11, 64, 15),
             "five blocks behind the gate is four past the arrival block, in the way the traveller faces");
@@ -92,7 +115,7 @@ class GateViewsTest
     void anOpeningFacingEastCoversItsOwnCells()
     {
         final List<Spot> cells = opening(BlockFace.EAST, 5, 3, 3);
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.EAST, cells, ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.EAST, cells);
 
         assertNotNull(shape);
         for (final Spot cell : cells)
@@ -111,32 +134,12 @@ class GateViewsTest
     {
         final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 5, 5));
         cells.removeIf(cell -> ((cell.x() == 10) || (cell.x() == 14)) && ((cell.y() == 64) || (cell.y() == 68)));
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
 
         assertNotNull(shape, "a ring with its corners filled is still an opening");
         assertEquals(5, shape.width(), "its own width, not the capture's");
         assertEquals(new Spot(100, 70, 200), shape.farOf(12, 64, 19),
             "from its bottom row, not lifted a row to clear the missing corners");
-    }
-
-    /**
-     * A gate bigger than the capture's opening is drawn through a window carved at the foot of its
-     * middle, rather than not at all: a capture's rays grow with its opening.
-     */
-    @Test
-    void aWiderAndTallerOpeningHasALargeWindowCarvedAtTheFootOfItsMiddle()
-    {
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 12, 10), ARRIVAL);
-
-        assertNotNull(shape);
-        assertEquals(GateViews.MOST, shape.width(), "no wider than a Large gate's");
-        assertEquals(GateViews.MOST, shape.height(), "nor taller");
-        assertTrue(shape.isOpening(12, 64, 20) && shape.isOpening(19, 71, 20), "the middle eight columns, bottom eight rows");
-        assertFalse(shape.isOpening(11, 64, 20), "the column left of them keeps its horizon");
-        assertFalse(shape.isOpening(20, 64, 20), "and the one right of them");
-        assertFalse(shape.isOpening(15, 72, 20), "and the rows above");
-        assertEquals(new Spot(100, 70, 200), shape.farOf(15, 64, 19),
-            "and the arrival shows through the middle of its bottom row, as through a small gate's");
     }
 
     /** An opening of rows of the given widths, each centred on the widest, from y 64 up. */
@@ -159,7 +162,7 @@ class GateViewsTest
     @Test
     void aLargeOpeningIsDrawnWholeFromItsBottomRow()
     {
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, round(4, 6, 8, 8, 8, 8, 6, 4), ARRIVAL);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, round(4, 6, 8, 8, 8, 8, 6, 4));
 
         assertNotNull(shape);
         assertEquals(8, shape.width(), "the whole of its width, not a Standard window carved in it");
@@ -167,37 +170,103 @@ class GateViewsTest
         assertTrue(shape.isOpening(10, 64, 20) && shape.isOpening(17, 71, 20), "corner to corner");
     }
 
-    /** A round gate's bottom row can be narrower than the window, which then sits on the first row it fits. */
+    /**
+     * A Grand gate is drawn through the whole of its opening, eighteen by seventeen.
+     *
+     * <p>It used to be drawn through an eight-by-eight window carved at the foot of its middle, the
+     * rest keeping its horizon: a small window in a big gate. Its arrival shows through the middle
+     * of its bottom row, as through a small gate's.
+     */
     @Test
-    void aRoundOpeningsWindowSitsOnTheLowestRowsItFitsIn()
+    void aGrandOpeningIsDrawnWhole()
     {
-        // Massive's lower half: five wide at the foot, then nine, eleven, and so on.
-        final List<Spot> cells = round(5, 9, 11, 13, 15, 17, 17, 17, 17, 17);
-        final MirrorWindow shape = GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL);
+        final List<Spot> cells = round(10, 12, 14, 16, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 16, 14, 12);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
 
         assertNotNull(shape);
-        assertFalse(shape.isOpening(14, 64, 20), "not the bottom row, only five wide");
-        assertTrue(shape.isOpening(14, 65, 20) && shape.isOpening(21, 72, 20), "but the eight rows above it");
-        assertTrue(cells.containsAll(List.of(new Spot(14, 65, 20), new Spot(21, 65, 20), new Spot(14, 72, 20))),
-            "every one of them part of the opening");
+        assertEquals(18, shape.width(), "the whole of its width");
+        assertEquals(17, shape.height(), "and its height");
+        for (final Spot cell : cells)
+        {
+            assertTrue(shape.isOpening(cell.x(), cell.y(), cell.z()), "every cell of it: " + cell);
+        }
+        // Eighteen wide from x 10, so its middle is between x 18 and 19; the arrival is left of the middle.
+        assertEquals(new Spot(100, 70, 200), shape.farOf(18, 64, 19), "the arrival through the middle of its bottom row");
     }
 
+    /** A Massive gate's bottom row is five wide, and its window still stands on it. */
     @Test
-    void anOpeningWithNoRoomForTheWindowHasNone()
+    void aMassiveOpeningIsDrawnWholeFromItsBottomRow()
     {
-        final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 12, 10));
-        cells.removeIf(cell -> cell.x() == 15);
+        final List<Spot> cells = round(5, 9, 11, 13, 15, 15, 17, 17, 17, 17, 17, 15, 15, 13, 11, 9, 5);
+        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
 
-        assertNull(GateViews.shapeOf(BlockFace.SOUTH, cells, ARRIVAL),
-            "split down its middle, nowhere has eight columns side by side");
+        assertNotNull(shape);
+        assertEquals(17, shape.width());
+        assertEquals(17, shape.height());
+        assertEquals(new Spot(100, 70, 200), shape.farOf(18, 64, 19),
+            "from its five-wide bottom row, not lifted to where a window would fit");
+    }
+
+    /**
+     * An opening wider or taller than the one every capture is seen through keeps its horizon.
+     *
+     * <p>The capture's rays were measured through that opening and no bigger: a custom shape with
+     * a bigger one would be drawn from rays that never looked where its edges see.
+     */
+    @Test
+    void anOpeningBiggerThanTheCapturesKeepsItsHorizon()
+    {
+        assertNotNull(shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, GateViews.MOST, GateViews.MOST)),
+            "as big as the capture's is drawn");
+        assertNull(shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, GateViews.MOST + 1, 3)), "one wider is not");
+        assertNull(shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, GateViews.MOST + 1)), "nor one taller");
+    }
+
+    /**
+     * A gate with no frame round its opening has no window, however it was built.
+     *
+     * <p>A Minimal gate is two portal cells on one frame block. Nothing but the ring hides a view's
+     * edges as one walks round a freestanding gate, so with no ring the far side would hang in the
+     * air beside it. The rule reads the gate's blocks, not its shape's name.
+     */
+    @Test
+    void aGateWithNoFrameRoundItsOpeningHasNoWindow()
+    {
+        final List<Spot> minimal = List.of(new Spot(10, 64, 20), new Spot(10, 65, 20));
+
+        assertNull(GateViews.shapeOf(BlockFace.SOUTH, minimal, Set.of(new Spot(10, 63, 20)), ARRIVAL),
+            "a Minimal gate: one frame block, under its opening");
+        assertNotNull(shapeOf(BlockFace.SOUTH, minimal), "the same two cells with a ring round them");
+        for (final Spot gap : ringOf(BlockFace.SOUTH, minimal))
+        {
+            final Set<Spot> ring = new HashSet<>(ringOf(BlockFace.SOUTH, minimal));
+            ring.remove(gap);
+            assertNull(GateViews.shapeOf(BlockFace.SOUTH, minimal, ring, ARRIVAL), "a ring open at " + gap);
+        }
+    }
+
+    /** Framed is judged in the opening's own plane: a gate facing east has its sides along z. */
+    @Test
+    void aGateFacingEastIsFramedAlongZ()
+    {
+        final List<Spot> cells = opening(BlockFace.EAST, 5, 3, 3);
+        final Set<Spot> ring = ringOf(BlockFace.EAST, cells);
+
+        assertNotNull(GateViews.shapeOf(BlockFace.EAST, cells, ring, ARRIVAL));
+        // The same ring laid along x, as a south-facing gate's would be, leaves its sides open.
+        assertNull(GateViews.shapeOf(BlockFace.EAST, cells, ringOf(BlockFace.SOUTH, cells), ARRIVAL),
+            "a frame across the wrong axis");
     }
 
     @Test
     void aGateLyingFlatHasNoWindow()
     {
-        assertNull(GateViews.shapeOf(BlockFace.UP, opening(BlockFace.SOUTH, 10, 3, 3), ARRIVAL),
+        assertNull(GateViews.shapeOf(BlockFace.UP, opening(BlockFace.SOUTH, 10, 3, 3),
+            ringOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3)), ARRIVAL),
             "a horizontal gate is out of scope: its opening is a floor");
-        assertNull(GateViews.shapeOf(BlockFace.SOUTH_EAST, opening(BlockFace.SOUTH, 10, 3, 3), ARRIVAL),
+        assertNull(GateViews.shapeOf(BlockFace.SOUTH_EAST, opening(BlockFace.SOUTH, 10, 3, 3),
+            ringOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3)), ARRIVAL),
             "nor a facing that is not a cardinal");
     }
 

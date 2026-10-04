@@ -260,13 +260,14 @@ public final class MirrorCaptures
     static final String GATE_KEY = "gate:";
 
     /**
-     * The opening every gate's capture is seen through, wide and tall: a Large gate's, the largest a gate view draws whole.
+     * The opening every gate's capture is seen through, wide and tall, and the largest a gate view draws:
+     * room for a Grand gate's eighteen by seventeen and a Massive gate's seventeen square.
      *
      * <p>One capture per gate serves every gate that dials it. A smaller opening sits inside this one,
      * centred on the same column and standing on the same row, so every line of sight through it
      * passes through this too, and what it can see is already here.
      */
-    public static final int GATE_OPENING = 8;
+    public static final int GATE_OPENING = 18;
 
     /**
      * The key a gate's capture is kept under: the gate whose front it shows, and the hole it is seen through.

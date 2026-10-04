@@ -117,6 +117,68 @@ class MirrorCaptureTest
         }
     }
 
+    /**
+     * A capture through the largest gate opening keeps every block of a floor and a wall far off (#516).
+     *
+     * <p>Spread with the hole alone, the rays through a Grand or Massive gate's opening were seven
+     * degrees apart, and each point's directions started half a step in, so the ninety points' rays
+     * fell on the same few lines: a floor 64 blocks off kept under half its blocks, and not
+     * staggered even at two and a half degrees a wall at 160 lost a third. The holes were the far side's real ground, drawn as this world. The
+     * spread is bounded now, and each point's directions are staggered so they fill in between.
+     * A straight strip twenty blocks either side of the middle, which any viewer sees through any gate.
+     */
+    @Test
+    void aCaptureThroughTheLargestGateOpeningMissesNothingFarOff()
+    {
+        final int half = 60;
+        final int wall = 160;
+        final MirrorCapture.Builder builder = floorAndWall(half, wall);
+        builder.keepOnlySeen(new MirrorCapture.Arrival(half, 1, 0, 0, 1, MirrorCaptures.GATE_OPENING,
+            MirrorCaptures.GATE_OPENING), wall + 40);
+
+        final MirrorCapture capture = builder.build();
+
+        final List<String> missed = new ArrayList<>();
+        for (int x = half - 20; x <= (half + 20); x++)
+        {
+            for (int z = 16; z < wall; z++)
+            {
+                if (capture.at(x, 0, z) != stone)
+                {
+                    missed.add("floor " + x + "," + z);
+                }
+            }
+            for (int y = 1; y <= 20; y++)
+            {
+                if (capture.at(x, y, wall) != stone)
+                {
+                    missed.add("wall " + x + "," + y);
+                }
+            }
+        }
+        assertTrue(missed.isEmpty(), missed.size() + " blocks a viewer sees were left to this world, e.g. "
+            + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /** Open ground {@code wall} blocks deep with a wall across its end, {@code half} either side of x {@code half}. */
+    private MirrorCapture.Builder floorAndWall(final int half, final int wall)
+    {
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true,
+            new MirrorCapture.Box(0, 0, 0, (2 * half) + 1, 24, wall + 2), air);
+        for (int x = 0; x <= (2 * half); x++)
+        {
+            for (int z = 0; z < wall; z++)
+            {
+                builder.put(x, 0, z, stone);
+            }
+            for (int y = 0; y < 24; y++)
+            {
+                builder.put(x, y, wall, stone);
+            }
+        }
+        return builder;
+    }
+
     @Test
     void theTopOfAColumnIsItsHighestBlockThatIsNotAir()
     {

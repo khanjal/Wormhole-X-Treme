@@ -631,20 +631,43 @@ opening is the gate's to draw, so the view leaves it alone. A traveller is sent 
 enter the opening, so they should never reach the drawn room behind; that is still to be
 watched for in a world, at speed and on a mount.
 
-**A capture is seen through the gate's own opening.** A mirror's is taken through a hole three
-wide and two tall, and through a gate that lost everything past the mirror's fan. The rays are
-spread wider for a bigger hole, so a gate's capture costs about what a mirror's does. Wider
-still, the spread would get coarse enough to miss things, and nobody has measured where, so the
-largest opening drawn whole is a Large gate's, eight by eight. A bigger gate (Grand, Massive)
-shows its view through an eight-by-eight window carved at the foot of its opening's middle, on the
-lowest rows the ring leaves room for, and the rest of its opening keeps its horizon. At `open`
-only that window clears; an iris still covers it.
+**Which gates show a view.** Standard, Large, Grand and Massive, through the whole of their
+opening, which clears whole at `open`. Not Minimal: its two portal cells stand on one frame block,
+open to the air beside and above, and nothing but the ring hides a view's edges as one walks round
+a freestanding gate, so the far side would hang in the air beside it. The rule reads the gate's own
+blocks, not its shape's name: every portal cell needs opening or frame beside it, above and below,
+in the opening's plane, so a custom shape without a frame keeps its horizon too. An opening wider
+or taller than eighteen keeps its horizon as well (`GateViews.fits`, the one place a size limit
+lives); no shipped shape's is. A view is drawn for whoever is within `mirror-proximity-distance` of
+the middle of the opening: measured from its first cell, a top-row one, as it was, somebody at the
+foot of a Massive gate was too far off to be drawn it.
+
+**A capture is seen through the largest opening.** A mirror's is taken through a hole three
+wide and two tall, and through a gate that lost everything past the mirror's fan. A gate's is
+taken through eighteen by eighteen, room for Grand's eighteen by seventeen and Massive's seventeen
+square. Its rays come from ninety points across the hole, each in a grid of directions. Spread
+with the hole alone, as they were, the grid was seven degrees wide for a hole that size, and the
+ninety grids, each starting half a step in, fell on the same few lines: a flat floor 64 blocks out
+kept under half its blocks, and even the eight-by-eight hole used before lost 60% of a wall 160
+blocks off. Each point's grid is now shifted by its own fraction of a step, so the grids fill in
+between each other, and never spread past two and a half degrees. Measured on a flat floor and a
+wall at every eight blocks from 16 to 160, through every hole from five square to eighteen square,
+nothing in a strip twenty blocks either side of the middle was missed. Wider, some sizes began
+to lose a few: at four degrees, a twentieth of a wall 160 blocks off through Grand's opening. A
+mirror's rays are as they were.
+
+The cost is the sift, which works out what can be seen off the main thread: about 2.7 seconds for
+the first step and 7 for a fill to 160, where a mirror's hole takes 0.3 and 1.1. A capture through the
+bigger hole also sees more of the near ground, so over flat open ground a fill is cut to fit
+(`MOST_KEPT`) at 50 blocks rather than the 67 an eight-by-eight one was. What a view holds as it is
+drawn, and so the work of every redraw, does not depend on the gate dialling it: it is the capture
+within the depth, the same capture for every gate.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
 `data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
-opening a gate view draws, eight by eight: every smaller opening sits inside that one, on the same
-middle column and bottom row, so what it can see is already there, and one capture serves every
-gate that dials this one. The file is named for the gate made file-safe, with a hash of the name,
+opening: every smaller opening sits inside that one, on the same middle column and bottom row, so
+what it can see is already there, and one capture serves every gate that dials this one. A Minimal
+gate can still be dialled and shows nothing itself, but a ring gate dialling it shows its front. The file is named for the gate made file-safe, with a hash of the name,
 since two names can come out alike; one seen through a smaller opening, left by an earlier build,
 is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
 once rather than after its far side has been read off the disk. Removing a gate deletes its
