@@ -127,7 +127,7 @@ if ($Design) { $Version = '1.21.11' }
 if (($As -or $Quick -or $Cells) -and -not $Watch) { throw '-As, -Quick and -Cells go with -Watch' }
 if ($Watch -and $Design) { throw 'Design mode runs no tests: -Watch or -Design' }
 
-# The read-only Lab Dashboard, once for all labs; started even when the lab is already running,
+# The Lab Dashboard, once for all labs; started even when the lab is already running,
 # in case the dashboard was closed. The browser opens only when it starts.
 if (-not $NoDashboard -and -not $Export -and -not $Check)
 {
