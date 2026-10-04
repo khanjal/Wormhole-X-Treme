@@ -80,6 +80,7 @@ All pinned to `main`. Prefix: `https://raw.githubusercontent.com/khanjal/Wormhol
 | Rings | `docs/images/rings/ring-cycle.webp` | animated WebP |
 | Beaming | `docs/images/beams/beam-up.webp` | animated WebP |
 | Mirrors | `docs/images/mirrors/mirror-effects.webp` | animated WebP |
+| Dynmap | `docs/images/maps/dynmap-layers.png` | PNG, a real capture of the web map with the four Wormhole layers |
 | Gallery | `docs/images/gates/gate-shapes.png`, `gate-shapes-active.png`, `gate-horizontal.png`, `standard-palettes.png`, `standard-palettes-active.png`, `standard-palettes-iris.png` | PNG |
 
 The gallery is about 1.9 MB all told. If a page feels heavy, `gate-shapes-active.png` and
