@@ -366,15 +366,17 @@ to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
 tested version takes that path), and SNBT pages with snake_case click keys from 1.21.5
 (`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
 
-There are two self-test profiles. The full one runs the whole matrix (635 checks on one server
-at stage 5, 508 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+There are two self-test profiles. The full one runs the whole matrix (over 700 checks on one
+server at stage 6, 600 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
 and two dispatches, a mirror round and its hold, a wall refusal, a capture and a stamp (the
 banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
 a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
-share, three G5 iris cells, and one transit route per feature, in about 15 minutes. It is the cross-version check (text formats, entity ids, boats, the
+share, three G5 iris cells, seven of S1's (the setting audit, bad values, gate and beam sounds,
+the permission fallback and nodes, a ring's defaults), and one transit route per feature, in about
+17 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
 them all, and if the launcher is killed outright its children and their servers go with it.
@@ -387,11 +389,11 @@ not by count: every self-test writes each cell's seconds to
 `.local-server/cell-times-<version>.json`, and the next split puts the longest cells first onto
 the least-loaded shard (the checked-in `cell-times.json` is the fallback). The world, fixtures,
 resets, empty, settings and faults sections run on every shard, since they guard that
-shard's own world, so a sharded summary has more checks than a single run (846 at N = 4 with
-stage 5's chambers and the Logbook, which took 20.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
+shard's own world, so a sharded summary has more checks than a single run (981 at N = 4 with
+stage 6's Systems console, which took 24.8 minutes on a jar built from main, peak 6.8 GB); transit, plates, boards, players and console run once, on the first shard. On this machine
 (32 threads, 64 GB) a full 1.21.11 run took 61 minutes on one server, 31.5 at N = 2 (peak 3.6 GB,
 CPU 54%), 21.3 at N = 3 (5.3 GB, 65%) and 16.6 to 19.3 at N = 4 (6.0 to 7.7 GB, 61 to 90%); N = 4
-is the one to use here. `--quick` on two versions at once takes about 15 minutes (15.5 at stage 5, peak 3.7 GB).
+is the one to use here. `--quick` on two versions at once takes about 17 minutes (17.0 at stage 6, peak 3.7 GB).
 
 A cell whose purpose is not the shutdown timeout closes the gates it opened with the plugin's own
 close (`gate force`) as soon as its checks are read, and then checks the end state: the plugin said
@@ -431,6 +433,145 @@ anywhere in a cell's name, or at its start with `^` and its end with `$` (`--cel
 expected to fail by the name of its failing check and is listed at the end of the run as a known
 plugin failure, never hidden; `--fixed 491` (with `--plugin` pointing at a jar carrying that fix)
 expects those cells to pass instead.
+
+#### Systems (S1, stage 6)
+
+`s1`, the Systems console on the mezzanine, audits the plugin's settings, sounds and permissions.
+It is written for the plugin with #550's fixes (same-world-only for every crossing, every setting
+applied at once, sign colours checked): against a jar without them, the cases that depend on them
+fail, loudly.
+It is a desk with no cell, so a case that needs a gate builds `Sys` on G1's Stand position and its
+cleanup runs G1's reset, as the Permissions Desk does; ring cases use the Concourse floor (and R2's
+and the tunnel's, put back by their resets), a beam the transit pads. Each group of cases is a file
+in `chambers/s1/`, and every setting a case changes goes through `Config`, so it is put back after
+the run like a chamber's `needs.config`. A false check also prints what it saw (`s1 <case>: false:
+...`), since the summary names only the check.
+
+- **The console** (`console.js`). Every setting the running plugin has, read off its own
+  `config.yml` and counted against what `wormhole config` lists ("...and N more"), answers
+  `wormhole config <name>` in both spellings. The jar's list is compared with this source tree's
+  (`lib/settings.js` reads `DefaultSettings.java`), and a difference, a jar from another commit, is
+  said in the log by name rather than failed on. `gate-sound-volume`, `GATE_SOUND_VOLUME` and
+  `Gate-Sound-Volume` are one setting. `ring-sound` and `ring_sound` list exactly the names that
+  hold it. A word for a switch, a word or a fraction for a number, and an unknown name for each
+  fixed set (spin, iris animation, log level, ring access, style, slab and block, and the sign
+  colours) are each refused in the plugin's own words and change nothing. An unknown setting is named as one, and a change is
+  in `config.yml` at once.
+- **Sounds** (`sounds.js`), as the packets Probe's client is sent (`lib/sounds.js`; a bot cannot
+  hear). A dial of `Sys` by console plays the activation once, seven chevrons climbing in pitch
+  from 0.8 to 1.5, the lock with the last at 0.8, the kawoosh at 0.7, the hum while open at 0.4 of
+  `gate-sound-volume`, the iris shut (0.8) and open (1.0), and the shutdown; `gate-sounds-enabled
+  false` silences all of it, `gate-sound-volume 0.5` sets every one, and a renamed sound plays as
+  its new name (`none` plays nothing). Each trip also has the console play a chime where its sound
+  comes from (the gate, a ring end, the beam pad), which the recorder must hear, so a deaf or
+  out-of-range recorder fails rather than reading as silence. A ring trip is heard as the traveller hears it: at the near
+  end the open, four rings climbing 0.8 to 1.4 and the flash out at 1.4; at the far end the flash
+  in at 1.0, four rings back down and the close (each end plays its own, and sixteen blocks off the
+  other is out of hearing). A beam plays charge, depart and arrive once each, depart to arrive 20
+  ticks apart. Each `*-sounds-enabled false` leaves the same trip silent. Mirrors play no sound of
+  their own, so they have no case.
+- **Gate settings** (`gates.js`): `timeout-activate`, the use cooldown, `same-world-only` (a dial
+  to another world refused; and set while a wormhole to the Range is open, a walker and a cart's
+  rider each refused and told once, the cart put back at its own gate, against the same cart at
+  the default, which crosses), the
+  preview limits and lifetime, the default iris animation and dial spin, the arrival splash,
+  `log-level FINE`, and the name sign's colours and glow. Where a change could read as nothing,
+  the same thing is done first without it: the default draws the splash, sweeps the iris, rests
+  on the top chevron, stands a preview.
+- **Ring settings** (`rings.js`): the defaults a pair Probe builds takes (access, style, pad light,
+  flash), each limit's refusal and the same pair made once it is raised (separation, pairs per
+  player, ceiling drop, link distance), the barrier outline a recharging pair shows and how long,
+  and the timings of a trip read off its sounds and lights (deploy, settle, flash, hold, linger).
+- **The rest** (`more.js`): the mirror proximity distance, view depth and fog; metrics and
+  CoreProtect with neither installed; and settings that once waited for a restart, now in force at
+  once: the hum's interval (heard), the entity scan interval (an item lying in an open gate waits
+  for the rescheduled sweep, against one sent at the default), and placeholders and economy (each
+  says at once that its plugin is missing; the start before said neither).
+- **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin: the
+  plugin falls back to its simple mode at start, so Probe2 may use a gate, `/wormhole list` and the
+  compass, but not preview, configure or remove (and `go` to a gate is no gate to it). With
+  `permissions-auto-fallback false`, which the plugin follows at every check, it is held to the
+  nodes and their `plugin.yml` defaults, so the DHD, the list and the compass are refused too; an
+  op is not. With
+  `wormhole-use-is-teleport true` it cannot walk through an open gate, and with false it can. These
+  refuse a run with LuckPerms installed: the Permissions Desk covers that.
+
+A matrix cell may also hold `settings` of its own on top of its chamber's, with `because` saying
+what they are meant to stop: `g1 wolf to the Range, pets-follow-owner false` expects the wolf, alive,
+not to come along (into the nether, since within one world vanilla brings a following wolf to its
+owner anyway), against `g1 wolf to the Range`, the same trip at the default, where it does. Every
+pet cell first checks the pet is there and alive, so a dead or missing pet fails as that.
+
+`.local-server/plugins-extra/` (or `--plugins-extra <dir>`) is the design's drop folder: any jar
+in it is copied into the test server's `plugins/` at start and recorded in
+`plugins/.wx-extras.json` with its SHA-256 as written, so a later run without it takes it out,
+while it is still those bytes, and never a jar it did not write (one of the same name that no run
+copied is refused, or left alone if it is the same bytes; a companion's name is refused). It is for what `--with`
+does not pin: an economy plugin for Vault, say. Tried with ViaVersion: copied in and loaded, then
+taken out by the next run without it.
+
+Every setting, and where it is changed and its effect seen:
+
+| Settings | Where |
+|---|---|
+| `log-level`, `coreprotect-enabled`, `metrics-enabled`, `placeholders-enabled`, `economy-enabled`, `permissions-auto-fallback`, `wormhole-use-is-teleport` | S1 (`log level`, `coreprotect`, `metrics`, `integrations at once`, the permission cases) |
+| `pets-follow-owner` | `g1 wolf to the Range, pets-follow-owner false` |
+| `timeout-activate`, `use-cooldown-*`, `same-world-only`, `gate-preview-*`, `gate-arrival-splash-ticks`, `gate-dial-spin`, `gate-iris-animation`, `entity-scan-interval-ticks` | S1 (gate cases; `scan at once`) |
+| `gate-sounds-enabled`, `gate-sound-volume`, `gate-sound-kawoosh`, `gate-sound-chevron`, `gate-sound-ambient-ticks`; the other gate sound names heard at their defaults | S1 (sound cases, `hum at once`) |
+| `sign-glowing-text`, `sign-color-gate-name`, `-network`, `-owner` | S1 `sign colours`, `sign colour bad` |
+| `ring-default-access`, `-style`, `-light`, `-flash`, `ring-min-separation`, `ring-max-pairs-per-player`, `ring-max-ceiling-drop`, `ring-max-link-distance`, `ring-outline-*`, `ring-deploy/settle/flash/hold/lights-linger-ticks`, `ring-sounds-enabled` | S1 (ring cases) |
+| `beam-sounds-enabled` | S1 `beam sounds off` |
+| `mirror-proximity-distance`, `mirror-view-depth`, `mirror-fog-at-depth` | S1 (mirror cases) |
+| `timeout-shutdown`, `max-open-seconds`, `redstone-extend-open-time` | G3 |
+| `gate-iris-step-ticks`, `gate-iris-sweep-max-ticks` | G5 |
+| `ring-countdown-ticks`, `ring-cooldown-ticks`, `ring-max-link-height` | R1, R5, R3 |
+| the beam timings, `beam-use-cooldown-*` | B1, B2 |
+| `mirror-per-world-limit`, `mirror-approach-message` | M1, M2 |
+
+Not changed by any case, and why:
+
+- `permissions-support-disable`: off by default, and with no permissions plugin the simple mode
+  comes from the fallback anyway; the node cases switch the fallback off instead. #550 retires
+  `help-support-disable` (nothing read it), and makes `ring-default-material` the slab a ring is
+  drawn in when its own is one the server lacks, which no case stages.
+- `economy-use-cost`, `economy-build-cost`, `beam-economy-use-cost`: every cost is 0 without Vault
+  and an economy plugin. `plugins-extra` can supply them; no case is written for them, since none
+  was available here to prove one against.
+- `gate-iris-horizon-ticks` and `mirror-proximity-ticks`: sweep periods, rescheduled at once like
+  the hum's and the scan's (which are measured); G5's layer cells see the horizon drawn at the
+  default.
+- `gate-material-groups-autodiscover`: the first start adds Lab.shape's Diamond group with the
+  default; false matters only for a shape no group claims, and an added group stays in `config.yml`.
+- `sign-color-selected`, `sign-color-neighbour`, `sign-dial-match-material`: only a sign-dial gate
+  shows them, and only a player's build makes one (the console refuses it); G1's and G3's sign
+  cells read the dial sign's text, not its colours or wood.
+- `ring-reach`: how far up `ring create` looks and how deep a floor ring carries; no case varies it.
+- `ring-sound-refused`: played only when a transport cannot start on entering (a blocked end),
+  which no case stages; the other ring and beam sound names and volumes are heard at their
+  defaults.
+
+What stage 6 found, on a jar built from main (eb86f209, 1.21.11); #550 fixes the first three, and
+the cells now expect its behaviour:
+
+- `same-world-only` stopped a player walking into a gate to another world but not one riding in:
+  a cart carried Probe to the Range, and a dial to another world was not refused at all. With
+  #550 the dial is refused, and a wormhole open when the setting is turned on refuses every
+  crossing, the cart put back at its own gate (`s1 same world dial`, `s1 same world while open`).
+- Settings changed by `wormhole config` that waited for a restart, though the guide says a change
+  needs no reload and no restart: the hum's interval was measured unchanged (one hum in five
+  seconds at 20 ticks); by the source the same was so of the entity scan, the iris horizon, the
+  mirror sweep, the permission fallback, placeholders and economy. With #550 each applies at once
+  (`s1 hum at once`, `s1 scan at once`, `s1 integrations at once`, the node permission cases).
+- The sign colours were not checked: `sign-color-gate-name PINK` was "now PINK", and a sign
+  written after showed its default colour. With #550 it is refused, naming the sixteen colours
+  (`s1 sign colour bad`).
+- `help-support-disable` and `ring-default-material` were read by nothing; #550 retires the one and
+  puts the other to use.
+- By the source, not seen in game: `log-level` sets the level of the server's own logger, not the
+  plugin's (`WormholeXTreme.applyLogLevel`).
+- `use-cooldown` has no op bypass: Probe, an op, is refused too, as the source has it.
+- A preview's expiry is silent: it is gone within a minute and ten seconds of
+  `gate-preview-minutes 1`, with nothing said.
 
 #### Companion plugins (`--with`)
 

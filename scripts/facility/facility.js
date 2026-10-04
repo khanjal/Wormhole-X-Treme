@@ -521,15 +521,15 @@ class Facility {
    * chamber that is staged is refused until its Reset. Returns
    * { outcome: PASS | FAIL | REFUSED | STAGED, reason, checks }.
    */
-  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, by = null } = {}) {
-    const result = await this.runChamberOnce(e, { values, raw, mode, holdMs });
+  async runChamber(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, by = null, settings = {} } = {}) {
+    const result = await this.runChamberOnce(e, { values, raw, mode, holdMs, settings });
     // In the Logbook, and every holder's copy replaced with one that has it.
     this.logbook.record(e, raw ? values : this.valuesOf(e, values), result, by);
     await this.logbook.refresh();
     return result;
   }
 
-  async runChamberOnce(e, { values = {}, raw = false, mode = 'run', holdMs = 3000 } = {}) {
+  async runChamberOnce(e, { values = {}, raw = false, mode = 'run', holdMs = 3000, settings = {} } = {}) {
     const ch = e.chamber;
     // A run would reset the cell and put its settings back under a stage a person is using.
     if (mode !== 'stage' && this.held.has(e.def.id)) {
@@ -572,7 +572,8 @@ class Facility {
       }
       await bar.advance('applying settings');
       const needs = ch.needs ? ch.needs(v) : {};
-      await this.config.apply(needs.config || {}, e.def.id);
+      // A matrix cell's own `settings` (a setting's effect on an ordinary run) on top of the chamber's.
+      await this.config.apply({ ...(needs.config || {}), ...settings }, e.def.id);
       try {
         await ch.stage(ctx, v);
       } catch (err) { err.phase = 'fixture'; throw err; }
@@ -751,4 +752,4 @@ class Facility {
   }
 }
 
-module.exports = { Facility, BOT };
+module.exports = { Facility, BOT, BASELINE_OWNER };
