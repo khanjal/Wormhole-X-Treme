@@ -285,7 +285,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .bar label{display:flex;gap:4px;align-items:center;cursor:pointer}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}.dot.live{background:var(--wx)}
 pre{flex:1;margin:0;overflow:auto;padding:8px 12px;font:12.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
-.l.w{color:var(--warn)}.l.e{color:var(--err)}.l.x{color:var(--wx)}.l.h{display:none}.l.r{color:var(--accent)}
+.l.w{color:var(--warn)}.l.e{color:var(--err)}.l.x{color:var(--wx)}.l.h{display:none}.l.r{color:var(--accent)}.l.r.e{color:var(--err)}
 .cmd{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
 .cmd input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 8px;border-radius:6px;font:12.5px ui-monospace,Consolas,monospace}
 .cmd button{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font:inherit}
