@@ -738,7 +738,7 @@ class Facility {
     } catch (e) {
       return { ok: false, detail: `http://127.0.0.1:${port}/ does not answer: ${e.message}` };
     }
-    return { ok: true, detail: `http://localhost:${port}/ (${line.replace(/^\[[^\]]*\]: /, '')})` };
+    return { ok: true, detail: `http://127.0.0.1:${port}/ (${line.replace(/^\[[^\]]*\]: /, '')})` };
   }
 
   async close() {

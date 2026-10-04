@@ -4,7 +4,8 @@
     built and held for you to join, run by run-facility.js.
 
 .DESCRIPTION
-    Works from a fresh clone: it installs the facility's Node modules the first time, and
+    Works from a fresh clone: it installs the facility's Node modules the first time (and again
+    after an install that never finished, or a new package-lock.json), and
     run-facility.js builds the plugin with Maven (or takes -Plugin), fetches and checks Paper,
     and picks the JDK the server and every plugin jar need. Everything is found from this
     script's own folder.
@@ -88,9 +89,10 @@ param(
     [string] $Version = '26.1.2',
     [int] $Port = 25590,
     [string] $Plugin = '',
-    [string] $Op = '',
+    # Arrays: PowerShell reads -With dynmap,via as two values, which a [string] joins with a space.
+    [string[]] $Op = @(),
     [switch] $Fresh,
-    [string] $With = '',
+    [string[]] $With = @(),
     [string] $PluginCache = '',
     [switch] $Design,
     [switch] $Export,
@@ -154,11 +156,33 @@ if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyCon
     exit 0
 }
 
-if (-not (Test-Path (Join-Path $facility 'node_modules')))
+# The lock file's copy goes in only after npm succeeds, so a missing or different one means an
+# install that never finished, or a newer lock: npm ci starts node_modules over.
+$lock = Join-Path $facility 'package-lock.json'
+$stamp = Join-Path $facility 'node_modules\.facility-lock.json'
+if (-not (Test-Path $stamp) -or (Get-FileHash $stamp).Hash -ne (Get-FileHash $lock).Hash)
 {
-    Write-Host 'Installing the facility''s Node modules (once)...'
-    & npm install --prefix $facility
-    if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
+    # npm ci deletes node_modules first, from under a lab on another port that is running from it.
+    # Any slashes and case (git-bash passes C:/...), and a relative path counts too: it may be this one.
+    $script = (Join-Path $facility 'run-facility.js').ToLowerInvariant()
+    $running = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object {
+        $c = "$($_.CommandLine)".Replace('/', '\').ToLowerInvariant()
+        $c.Contains($script) -or $c -match '(^|[\s"''])(\.\\)?scripts\\facility\\run-facility\.js'
+    }
+    if ($running) { throw "The facility's Node modules need reinstalling, but a lab may be running from them (node process $(@($running)[0].ProcessId)): stop it first." }
+    # An application (npm.cmd, or Volta's npm.exe), never npm.ps1: under 'Stop', Windows PowerShell
+    # ends npm.ps1 at its first warning on stderr, mid-install. And 'Continue' for the same reason.
+    $npm = Get-Command npm -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $npm) { throw 'npm is not on the PATH' }
+    Write-Host 'Installing the facility''s Node modules...'
+    $ErrorActionPreference = 'Continue'
+    # Not 0 beforehand: if npm cannot run, 'Continue' goes on with an earlier command's code.
+    $global:LASTEXITCODE = 1
+    & $npm.Source ci --prefix $facility
+    $installed = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = 'Stop'
+    if (-not $installed) { throw 'npm ci failed' }
+    Copy-Item $lock $stamp
 }
 
 $arguments = @($Version, '--port', $Port)
@@ -181,8 +205,10 @@ elseif ($Watch)
 }
 elseif (-not $Fresh) { $arguments += '--keep-world' }
 if ($Plugin) { $arguments += @('--plugin', (Resolve-Path $Plugin).Path) }
-if ($Op) { $arguments += @('--op', $Op) }
-if ($With) { $arguments += @('--with', $With) }
+$Op = @($Op | Where-Object { $_ })
+$With = @($With | Where-Object { $_ })
+if ($Op) { $arguments += @('--op', ($Op -join ',')) }
+if ($With) { $arguments += @('--with', ($With -join ',')) }
 if ($PluginCache) { $arguments += @('--plugin-cache', (Resolve-Path $PluginCache).Path) }
 
 if ($Export -or $Check)
