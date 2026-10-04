@@ -451,6 +451,16 @@ Optional. With [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) installe
 rings, public beam destinations and quantum mirrors are shown on its web map, each as a layer a
 viewer can switch on and off.
 
+![A Dynmap web map with the Wormhole layers: gates, a ring pair joined by a line, beam destinations and mirrors](../images/maps/dynmap-layers.png)
+
+| Icon | Marks |
+|---|---|
+| ![gate, idle](../../src/main/resources/dynmap/gate-idle.png) | A gate with no wormhole |
+| ![gate, open](../../src/main/resources/dynmap/gate.png) | A gate whose wormhole has formed |
+| ![transport ring](../../src/main/resources/dynmap/rings.png) | Each end of a ring pair |
+| ![beam destination](../../src/main/resources/dynmap/beam.png) | A public beam destination |
+| ![quantum mirror](../../src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
+
 On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
 CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build
 for Minecraft 26.x yet: there the map stays off, and the log says Dynmap was not found or is not
