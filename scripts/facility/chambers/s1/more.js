@@ -133,6 +133,7 @@ async function run(ctx, o) {
   ear(probe);
   if (o.case === 'mirror proximity') {
     obs.byDefault = await lookFrom(probe, 8);
+    // Keep this at or under the default 16: test/watcher.test.js clears watch-mode vantage points of banners assuming it.
     await ctx.config.set('mirror-proximity-distance', '4', 's1');
     obs.atEight = await lookFrom(probe, 8);
     obs.atThree = await lookFrom(probe, 3);
