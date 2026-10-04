@@ -13,13 +13,13 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.8.1` — newest release. Check which jar each site actually carries before bumping its field. |
+| Version | `1.9.0` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI and CoreProtect optional, snakeyaml comes from the server, and bStats is shaded in, relocated |
+| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard and Dynmap optional, snakeyaml comes from the server, and bStats is shaded in, relocated. Dynmap shows gates, rings, beams and mirrors as map layers; 1.21.11 needs Dynmap 3.8 (3.7 builds stop at 1.21.4), and no Dynmap runs on 26.x yet |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live
@@ -80,6 +80,7 @@ All pinned to `main`. Prefix: `https://raw.githubusercontent.com/khanjal/Wormhol
 | Rings | `docs/images/rings/ring-cycle.webp` | animated WebP |
 | Beaming | `docs/images/beams/beam-up.webp` | animated WebP |
 | Mirrors | `docs/images/mirrors/mirror-effects.webp` | animated WebP |
+| Dynmap | `docs/images/maps/dynmap-layers.png` | PNG, a real capture of the web map with the Wormhole layers; the icons in it are the plugin's placeholder dots, so redo it when the artist's icons land (#187) |
 | Gallery | `docs/images/gates/gate-shapes.png`, `gate-shapes-active.png`, `gate-horizontal.png`, `standard-palettes.png`, `standard-palettes-active.png`, `standard-palettes-iris.png` | PNG |
 
 The gallery is about 1.9 MB all told. If a page feels heavy, `gate-shapes-active.png` and
@@ -164,10 +165,10 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   left, the top one last — at half a second each on a Standard gate and a little slower on bigger
   ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 - **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks:
-  `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap`
-  takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an
-  Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns
-  it off. A gate, or a whole material group, can pick its own.
+  `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to
+  the next, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes,
+  `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two
+  more, and `none` turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
   last lying flat to be dropped into rather than walked through. Shapes are plain text files:
@@ -295,9 +296,18 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it
   back. Off until `coreprotect-enabled` is set.
+- **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building
+  and using gates in a region. Off until `worldguard-enabled` is set.
+- **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map,
+  each as its own layer, with a line between dialled gates. Players' private beam places are never
+  shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for
+  26.x yet.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.
+- **Update check**: at startup, looks online for a newer release and says in the console, and to
+  operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never
+  downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ## Getting started

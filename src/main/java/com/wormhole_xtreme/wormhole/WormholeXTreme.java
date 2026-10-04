@@ -24,6 +24,7 @@ import com.wormhole_xtreme.wormhole.command.WormholeTabCompleter;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateViews;
@@ -52,6 +53,8 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
+import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
+import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 
 /**
@@ -307,6 +310,14 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            try
+            {
+                MapMarkers.disable();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to take markers off the map", e);
             }
             try
             {
@@ -588,6 +599,22 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
+    /**
+     * Starts drawing gates, rings, beams and mirrors on Dynmap (#236), if the config asks for it.
+     * Its own catch, as the others have: a map must never cost a server its gates.
+     */
+    private void enableMapIfConfigured()
+    {
+        try
+        {
+            MapMarkers.enable(this);
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to start the web map markers", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -603,11 +630,13 @@ public class WormholeXTreme extends JavaPlugin
             enableEconomyIfConfigured();
             enablePlaceholdersIfConfigured();
             enableMetricsIfConfigured();
+            UpdateCheck.startIfConfigured(this);
         }
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
+        RegionFlags.listen(this);
         // Before anything reads a stored file. Gates, rings and beam destinations used to
         // live in the same folder as another fork's database; this moves ours out of it, and
         // reading them first would find nothing and load an empty server.
@@ -696,6 +725,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         registerEvents();
         registerCommands();
+        enableMapIfConfigured();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
         // The sweeps whose period is a setting, rescheduled when /wormhole config changes one.
@@ -746,6 +776,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load mirror looks", e);
         }
+        RegionFlags.register();
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 

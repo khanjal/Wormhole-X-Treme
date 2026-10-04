@@ -37,6 +37,7 @@ import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
@@ -187,7 +188,9 @@ public final class GatePreviews
         /** Its blocks were placed and the gate found. */
         PLACED,
         /** It stood over one gate already there: the blocks that gate was missing were placed. */
-        REPAIRED
+        REPAIRED,
+        /** A WorldGuard region where it would stand refuses its owner gate building, and nothing was placed. */
+        NOT_ALLOWED_HERE
     }
 
     /**
@@ -596,8 +599,29 @@ public final class GatePreviews
     {
         touch(owner.getUniqueId());
         final GatePreview preview = lookedAt(owner);
-        return (preview == null) ? new Placed(Outcome.NOT_LOOKING, List.of(), null, null)
-            : PreviewPlacer.place(preview, overAGate);
+        if (preview == null)
+        {
+            return new Placed(Outcome.NOT_LOOKING, List.of(), null, null);
+        }
+        if (!RegionFlags.mayBuild(owner, footprintOf(preview)))
+        {
+            return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
+        }
+        return PreviewPlacer.place(preview, overAGate);
+    }
+
+    /** Every spot a preview's gate would take: its blocks and its opening. */
+    private static List<Location> footprintOf(final GatePreview preview)
+    {
+        final List<Location> out = new ArrayList<>(preview.cells().size() + preview.opening().size());
+        for (final List<Cell> part : List.of(preview.cells(), preview.opening()))
+        {
+            for (final Cell cell : part)
+            {
+                out.add(new Location(preview.world(), cell.x(), cell.y(), cell.z()));
+            }
+        }
+        return out;
     }
 
     /**

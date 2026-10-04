@@ -228,7 +228,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 ![Dialling a gate](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-dial.webp)
 
 - **Dialling the way the show does it.** Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
-- **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks: `top` sweeps half the ring and reverses each glyph, `chevron` lands on the chevron itself, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns it off. A gate, or a whole material group, can pick its own.
+- **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks: `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to the next, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none` turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
@@ -293,7 +293,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
+- **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
+- **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
+- **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
 ### Getting started
@@ -411,7 +414,7 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.8.1` |
+| Version number | `1.9.0` |
 | Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
@@ -426,7 +429,7 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.8.1` is the newest release.
+1. **Check which version the project carries.** `v1.9.0` is the newest release.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and

@@ -71,6 +71,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.DialSpin;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -2436,7 +2437,7 @@ class GatePreviewsTest
     @Test
     void theRingsLightTravelsToTheChevronBeforeItLocks()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "CHEVRON");
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
         final List<Cell> cells = standardLookingNorth();
         final DialSpin spin = DialSpin.of(cells,
             GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
@@ -2711,17 +2712,17 @@ class GatePreviewsTest
         assertEquals(null, standing.get(List.of(hole.x(), hole.y(), hole.z())));
     }
 
-    /** Loads a group framed in obsidian whose gates turn CHEVRON, while the server turns none. */
+    /** Loads a group framed in obsidian whose gates turn PEGASUS (half the ring), while the server turns none. */
     private MaterialGroup turningGroup()
     {
         MaterialGroupRegistry.load(Map.of("Turning",
-            Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "chevron")));
+            Map.of("structure", "OBSIDIAN", "light", "GLOWSTONE", "dial-spin", "pegasus")));
         return MaterialGroupRegistry.getGroup("Turning");
     }
 
     /**
      * A preview dials with its material group's ring pattern (#366), as a gate of that group
-     * would: here the server turns no ring, and a group set to chevron turns one anyway.
+     * would: here the server turns no ring, and a group set to pegasus turns one anyway.
      */
     @Test
     void aPreviewTurnsItsGroupsPatternWhereTheServerTurnsNone()
@@ -3049,5 +3050,36 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
+
+    /**
+     * A preview with one block in a region refusing its owner gate building places nothing at all.
+     *
+     * <p>Asked before the first block goes down: a frame half-built up to a region's edge is what the
+     * region owner denied, and the owner of the preview could not take it back down there either.
+     */
+    @Test
+    void aRegionRefusingOneBlockOfThePreviewPlacesNothing()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        final Cell denied = cells.get(cells.size() / 2);
+        RegionFlagsTestSupport.install((who, where, action) -> (where.getBlockX() != denied.x())
+            || (where.getBlockY() != denied.y()) || (where.getBlockZ() != denied.z()));
+        try
+        {
+            assertEquals(GatePreviews.Outcome.NOT_ALLOWED_HERE, GatePreviews.place(owner).outcome());
+            assertTrue(written.isEmpty(), "nothing may be placed once a region refuses");
+            assertTrue(detected.isEmpty());
+
+            RegionFlagsTestSupport.install((who, where, action) -> true);
+            assertEquals(GatePreviews.Outcome.PLACED, GatePreviews.place(owner).outcome());
+        }
+        finally
+        {
+            RegionFlagsTestSupport.remove();
+        }
     }
 }

@@ -6,7 +6,49 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## 1.9.0 (unreleased)
+## 1.10.0 (unreleased)
+
+### Stargates
+
+**Added**
+
+- **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
+  `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
+  side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,
+  and only with its iris open. Standard and Large gates show it through their whole opening; Grand
+  and Massive through an eight-by-eight window at the foot of theirs, keeping their horizon round it. `gate-view-depth` (32) is how
+  far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
+  there after a restart, and is taken again as gates are dialled and while somebody is at them.
+
+**Changed**
+
+- **The `pegasus` and `chevron` dial spins have swapped.** `pegasus`, which the Atlantis group
+  uses, now runs half the ring onto each chevron; `chevron` now steps from each locked chevron to
+  the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
+  upgrade; set it to the other name to keep the old look.
+
+## 1.9.0 (2026-10-03)
+
+### For server admins
+
+**Added**
+
+- **[WorldGuard](https://enginehub.org/worldguard) regions can refuse gates**, with two flags:
+  `wormhole-build` stops gates being built there, and `wormhole-use` stops them being dialled
+  from or travelled through, at either end. A flag only takes away: a player still needs the
+  usual permission, and WorldGuard's region bypass gets past the flag. Off until
+  `worldguard-enabled` is set; turning it on takes a restart. Rings, beams and mirrors are not covered
+  yet. See [the guide](docs/guide/SERVER.md#worldguard).
+- **Gates, rings, public beam destinations and quantum mirrors show on a
+  [Dynmap](https://www.spigotmc.org/resources/dynmap.274/) web map**, each as its own layer. A
+  gate lights up while its wormhole is open, with a line to the gate it joins. Off until
+  `dynmap-enabled` is set; `map-show-gates`, `-rings`, `-beams` and `-mirrors` leave a layer
+  out, and `map-show-iris-gates: false` hides gates with an iris code. Players' private beam
+  places are never shown. 1.21.11 needs Dynmap 3.8, and no Dynmap runs on 26.x yet. See
+  [the guide](docs/guide/SERVER.md#dynmap).
+- **A newer release is announced at startup**: one console line with where to get it, and a line
+  to players with `wormhole.update.notify` (ops) as they join. Nothing is downloaded, and nothing
+  is said to a server running something newer. `update-check: false` turns it off.
 
 ### Server
 
@@ -27,16 +69,6 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ### Stargates
 
-**Added**
-
-- **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
-  `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
-  side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,
-  and only with its iris open. Standard and Large gates show it through their whole opening; Grand
-  and Massive through an eight-by-eight window at the foot of theirs, keeping their horizon round it. `gate-view-depth` (32) is how
-  far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
-  there after a restart, and is taken again as gates are dialled and while somebody is at them.
-
 **Fixed**
 
 - **An item thrown or dispensed into an open gate goes through it.** Most flew across the opening
@@ -54,6 +86,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   in is told that before any cooldown or iris, and once, not at every block.
 - **`/wormhole config` refuses a sign colour that is not one**, and names the sixteen there are.
   `sign-color-gate-name PINK` was accepted, and every sign written after it came out dark aqua.
+- **A tipped arrow keeps its effect through a gate, and on Paper a Loyalty trident comes back.** The
+  arrow arrived plain, and the trident unenchanted, stuck at the far side. A spectral arrow keeps how long
+  it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
+  Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
+  flight over at the far gate.
+- **A cart or boat stops at the face of an upright gate's shut iris**, from either side. It used
+  to roll half into the iris before it was put back, still with its front inside.
 
 ### Transport rings
 
@@ -67,16 +106,6 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A mirror's name above the hotbar is looked for only near a mirror.** Every player in a world
   with one traced a ray each sweep; now only players within a chunk of a mirror's banner do.
-
-### Stargates
-
-**Fixed**
-
-- **A tipped arrow keeps its effect through a gate, and on Paper a Loyalty trident comes back.** The
-  arrow arrived plain, and the trident unenchanted, stuck at the far side. A spectral arrow keeps how long
-  it makes its target glow, a thrown potion its contents, and a crossbow firework its stars. On
-  Spigot the trident keeps its enchantments but still does not come back, and a firework starts its
-  flight over at the far gate.
 
 ### Quantum mirrors
 

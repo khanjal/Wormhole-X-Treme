@@ -10,7 +10,10 @@ import java.util.Locale;
  */
 public enum DialSpinPattern
 {
-    /** Half the ring, landing on the chevron about to lock, alternating direction. */
+    /**
+     * From the chevron last locked (the top, for the first glyph) to the next, anticlockwise first
+     * and alternating after, a glyph's width at a time.
+     */
     CHEVRON,
 
     /** Half the ring to the top chevron, alternating direction, as 1.7's first try did. */
@@ -22,14 +25,11 @@ public enum DialSpinPattern
     /** Half the ring to the chevron, filling in behind the light rather than a short run. */
     FILL,
 
-    /**
-     * As an Atlantis gate dials: from the chevron last locked (the top, for the first glyph) to the
-     * next, anticlockwise first and alternating after, a glyph's width at a time.
-     */
+    /** As an Atlantis gate dials: half the ring, landing on the chevron about to lock, alternating direction. */
     PEGASUS,
 
     /**
-     * From the chevron last locked to the next, alternating as {@link #PEGASUS} does, but sliding;
+     * From the chevron last locked to the next, alternating as {@link #CHEVRON} does, but sliding;
      * the first glyph laps anticlockwise from chevron 1 back to it.
      */
     CHASE,
@@ -40,7 +40,7 @@ public enum DialSpinPattern
      */
     UNIVERSE,
 
-    /** As {@link #CHEVRON}, running a little past the chevron and backing up onto it. */
+    /** As {@link #PEGASUS}, running a little past the chevron and backing up onto it. */
     OVERSHOOT,
 
     /** No ring light; chevrons lock in order alone. */

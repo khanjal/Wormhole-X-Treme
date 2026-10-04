@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.wormhole_xtreme.wormhole</groupId>
-	<version>1.8.1</version>
+	<version>1.9.0</version>
 	<artifactId>WormholeXTreme</artifactId>
 	<packaging>jar</packaging>
 	<name>Wormhole-X-Treme</name>
@@ -13,6 +13,9 @@
 		     filtering does not see maven.build.timestamp directly. -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 		<build.stamp>${maven.build.timestamp}</build.stamp>
+		<!-- WorldGuard (#240); see its dependency below. -->
+		<worldguard.version>7.0.9</worldguard.version>
+		<worldedit.version>7.2.14</worldedit.version>
 		<!-- The paper-api profile turns this off. -->
 		<compiler.showDeprecation>true</compiler.showDeprecation>
 		<!--
@@ -276,7 +279,7 @@
 			<scope>provided</scope>
 		</dependency>
 		<!--
-			PlaceholderAPI, for the expansion in plugin/. The only third-party plugin this
+			PlaceholderAPI, for the expansion in plugin/. One of three third-party plugins this
 			build compiles against, and it is here because an expansion has to *extend*
 			PlaceholderExpansion. Vault and LuckPerms are only ever *called*, so those stay
 			reflective with no dependency at all. Provided, so nothing is shipped: the class
@@ -286,6 +289,72 @@
 			<groupId>me.clip</groupId>
 			<artifactId>placeholderapi</artifactId>
 			<version>2.11.6</version>
+			<scope>provided</scope>
+		</dependency>
+		<!--
+			WorldGuard (#240), another: its flags are objects this plugin creates and hands to
+			WorldGuard's registry. 7.0.9 because later releases are built for newer Java than this
+			compiler; every call used is unchanged through 7.0.19 (WorldEdit 7.4.4). Provided, and
+			only these four jars: what they bring along would displace this build's own Guava.
+		-->
+		<dependency>
+			<groupId>com.sk89q.worldguard</groupId>
+			<artifactId>worldguard-bukkit</artifactId>
+			<version>${worldguard.version}</version>
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sk89q.worldguard</groupId>
+			<artifactId>worldguard-core</artifactId>
+			<version>${worldguard.version}</version>
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sk89q.worldedit</groupId>
+			<artifactId>worldedit-bukkit</artifactId>
+			<version>${worldedit.version}</version>
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sk89q.worldedit</groupId>
+			<artifactId>worldedit-core</artifactId>
+			<version>${worldedit.version}</version>
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!--
+			Dynmap's API (#236), the third: like PlaceholderAPI's expansion, its API listener has
+			to be extended.
+			Provided, and only named from plugin/map/DynmapMapProvider, which is loaded only
+			once Dynmap has been found.
+		-->
+		<dependency>
+			<groupId>us.dynmap</groupId>
+			<artifactId>DynmapCoreAPI</artifactId>
+			<version>3.8</version>
 			<scope>provided</scope>
 		</dependency>
 		<!--
@@ -529,6 +598,14 @@
 		<repository>
 			<id>placeholderapi-repo</id>
 			<url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+		</repository>
+		<repository>
+			<id>enginehub-repo</id>
+			<url>https://maven.enginehub.org/repo/</url>
+		</repository>
+		<repository>
+			<id>dynmap-repo</id>
+			<url>https://repo.mikeprimm.com/</url>
 		</repository>
 	</repositories>
 </project>

@@ -18,7 +18,7 @@ Spigot's. The ones that are *not* marked were confirmed against a live resource 
 | Title | `Wormhole X-Treme` |
 | Tag line | `Stargate-style travel: dialling gates, transport rings, beaming and quantum mirrors. MC 1.20-26.3` |
 | Category **(assumed)** | Transportation, under Spigot Plugins. Mechanics is the second choice. |
-| Version | `1.8.1` — newest release |
+| Version | `1.9.0` — newest release |
 | Native Major MC Version | `1.20` |
 | Tested Major MC Versions | everything from 1.20 through 26.3 |
 | Tags **(assumed: 5 max)** | `stargate`, `teleport`, `portal`, `transportation`, `wormhole` |
@@ -88,7 +88,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 [LIST]
 [*][B]Dialling the way the show does it.[/B] Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
-[*][B]Dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] lands on the chevron itself, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, [ICODE]universe[/ICODE] as Destiny's, [ICODE]chase[/ICODE] and [ICODE]overshoot[/ICODE] add two more, and [ICODE]none[/ICODE] turns it off. A gate, or a whole material group, can pick its own.
+[*][B]Dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] steps from each locked chevron to the next, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, [ICODE]universe[/ICODE] as Destiny's, [ICODE]chase[/ICODE] and [ICODE]overshoot[/ICODE] add two more, and [ICODE]none[/ICODE] turns it off. A gate, or a whole material group, can pick its own.
 [*][B]An eighth chevron[/B] locks when the destination is in another world, after the top one.
 [*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
 [*][B]Material groups.[/B] A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build [ICODE]Standard[/ICODE] in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
@@ -163,7 +163,10 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Events for other plugins[/B] to watch or cancel travel, and to hear a wormhole open and close.
 [*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
 [*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
+[*][B]WorldGuard[/B], if you want it: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] region flags refuse building and using gates in a region. Off until [ICODE]worldguard-enabled[/ICODE] is set.
+[*][B]Dynmap[/B], if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until [ICODE]dynmap-enabled[/ICODE] is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 [*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. [ICODE]metrics-enabled: false[/ICODE] turns it off.
+[*][B]Update check[/B]: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
 [/LIST]
 
@@ -357,7 +360,7 @@ is an upload in the first place — see [Fields](#fields).
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the resource carries.** `v1.8.1` is the newest release. Upload the newer
+1. **Check which version the resource carries.** `v1.9.0` is the newest release. Upload the newer
    jar and update the Version field if it has not been done.
 2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,

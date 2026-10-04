@@ -3,7 +3,7 @@ main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: ${project.version}
 api-version: "1.20"
 authors: ["Lologarithm", "alron", "lirelent", "Jeremy Wood", "Khan Jal"]
-softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect]
+softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap]
 
 description: >
   Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
@@ -53,6 +53,9 @@ permissions:
     default: op
   wormhole.config:
     description: Allow changing plugin configuration via command.
+    default: op
+  wormhole.update.notify:
+    description: Be told when a newer Wormhole X-Treme release is available, on joining.
     default: op
   wormhole.ring.build:
     description: Allow building and pairing transport rings.

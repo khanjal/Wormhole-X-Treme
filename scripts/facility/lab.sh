@@ -7,6 +7,7 @@
 #
 #   scripts/facility/lab.sh [-v version] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache] [-f]
 #   scripts/facility/lab.sh -d [-e [-f] | -k] [-O] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache]
+#   scripts/facility/lab.sh -W [-n name] [-q] [-C cells] [-v version] [-P port] [-p plugin.jar] [-w with] [-c cache]
 #
 #   -v  Minecraft version (default 26.1.2)
 #   -P  server port (default 25590; Dynmap's web map is at 8123 + port - 25590)
@@ -22,6 +23,11 @@
 #   -k  with -d and the lab stopped: run the keep-clear check, then stop
 #   -O  with -d: let other machines join (online-mode is off: anyone who reaches the port can join
 #       under any name, an op's too)
+#   -W  watch the self-test from inside the lab: a fresh world; it waits for you to join, then runs
+#       with you as a spectator moved to each chamber and told each cell and its result (--watch)
+#   -n  with -W: the name you will join as (default: whoever joins first)
+#   -q  with -W: the short matrix (about 15 minutes)
+#   -C  with -W: only the matrix cells whose names match (a|b, ^start, end$)
 #
 # Say "stop" in the lab's chat, or press Ctrl+C, to end it. Unlike lab.ps1 it does not start the
 # Lab Dashboard; run `node scripts/facility/dashboard.js` for it (http://127.0.0.1:8200).
@@ -36,7 +42,11 @@ fresh=0
 design=
 job=
 open=
-while getopts 'v:P:p:o:w:c:fdekO' opt; do
+watch=
+name=
+quick=
+cells=
+while getopts 'v:P:p:o:w:c:fdekOWn:qC:' opt; do
   case "$opt" in
     v) version="$OPTARG" ;;
     P) port="$OPTARG" ;;
@@ -49,10 +59,16 @@ while getopts 'v:P:p:o:w:c:fdekO' opt; do
     e) [ -z "$job" ] || { echo '-e or -k, one at a time' >&2; exit 2; }; job=--design-export ;;
     k) [ -z "$job" ] || { echo '-e or -k, one at a time' >&2; exit 2; }; job=--design-check ;;
     O) open=--design-open ;;
-    *) sed -n '2,25p' "$0"; exit 2 ;;
+    W) watch=--watch ;;
+    n) name="$OPTARG" ;;
+    q) quick=--quick ;;
+    C) cells="$OPTARG" ;;
+    *) sed -n '2,31p' "$0"; exit 2 ;;
   esac
 done
 if { [ -n "$job" ] || [ -n "$open" ]; } && [ -z "$design" ]; then echo '-e, -k and -O go with -d' >&2; exit 2; fi
+if { [ -n "$name" ] || [ -n "$quick" ] || [ -n "$cells" ]; } && [ -z "$watch" ]; then echo '-n, -q and -C go with -W' >&2; exit 2; fi
+if [ -n "$watch" ] && [ -n "$design" ]; then echo 'design mode runs no tests: -W or -d' >&2; exit 2; fi
 if [ -n "$design" ]; then
   # With -e, -f is a full export (the worlds too); otherwise design mode keeps its world.
   if [ "$fresh" = 1 ]; then
@@ -62,13 +78,27 @@ if [ -n "$design" ]; then
   version=1.21.11
   args+=("${job:-$design}")
   [ -z "$open" ] || args+=("$open")
+elif [ -n "$watch" ]; then
+  # A self-test starts from a fresh world: its first checks are that every cell is as built.
+  args+=(--selftest --watch)
+  [ -z "$name" ] || args+=("$name")
+  [ -z "$quick" ] || args+=("$quick")
+  [ -z "$cells" ] || args+=(--cells "$cells")
 else
   [ "$fresh" = 1 ] || args+=(--keep-world)
 fi
 
-if [ ! -d "$here/node_modules" ]; then
-  echo "Installing the facility's Node modules (once)..."
-  npm install --prefix "$here"
+# The lock file's copy goes in only after npm succeeds (lab.ps1 checks the same one), so a missing
+# or different one means an install that never finished, or a newer lock: npm ci starts over.
+if ! cmp -s "$here/package-lock.json" "$here/node_modules/.facility-lock.json"; then
+  # npm ci deletes node_modules first, from under a running lab. No pgrep in git-bash: no check there.
+  if command -v pgrep >/dev/null && pgrep -f 'run-facility\.js' >/dev/null; then
+    echo "The facility's Node modules need reinstalling, but a lab may be running from them: stop it first." >&2
+    exit 1
+  fi
+  echo "Installing the facility's Node modules..."
+  npm ci --prefix "$here"
+  cp "$here/package-lock.json" "$here/node_modules/.facility-lock.json"
 fi
 
 cd "$repo"

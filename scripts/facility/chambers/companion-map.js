@@ -546,4 +546,5 @@ module.exports = {
   run,
   checks,
   cleanup,
+  GATES, RING_ENDS, MIRROR,
 };
