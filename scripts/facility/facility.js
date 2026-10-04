@@ -20,6 +20,7 @@ const { Logbook } = require('./lib/logbook');
 const { companionFault } = require('./lib/companions');
 const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
 const { httpText } = require('./lib/http');
+const { TAG: WATCHER_TAG, MARKER: WATCHER_MARKER } = require('./lib/watcher');
 
 const BOT = 'Probe';
 /** The Config owner of the facility's baseline settings, held for the whole session. */
@@ -350,6 +351,8 @@ class Facility {
       },
       groups: this.has('luckperms') ? [...Object.entries(GROUPS).map(([id, g]) => ({ id, why: g.why })),
         { id: 'default', why: 'none of them: only what every player has' }] : null,
+      // A watcher's click would run a chamber or change a menu under the self-test.
+      ignores: (player) => this.watching(player),
     });
     await this.console.start();
     // Once: a restart makes a new console (it reads the new Probe's packets) but the log is the same.
@@ -357,8 +360,14 @@ class Facility {
     this.greeting = true;
     this.srv.on('line', (line) => {
       const m = /: (\w+) joined the game/.exec(line);
-      if (m && m[1] !== BOT && m[1] !== 'Probe2') this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
+      // A watcher (lib/watcher.js) is made one there instead: no adventure mode, atrium or Logbook.
+      if (m && m[1] !== BOT && m[1] !== 'Probe2' && !this.watching(m[1])) this.welcome(m[1]).catch((e) => this.log(`  welcome ${m[1]}: ${e.message}`));
     });
+  }
+
+  /** Whether a player is a watcher of a watched self-test (lib/watcher.js). */
+  watching(player) {
+    return Boolean(this.watcher && this.watcher.is(player));
   }
 
   /** Puts a player in a tester group (lib/groups.js), making the groups the first time. */
@@ -375,6 +384,10 @@ class Facility {
   async welcome(player) {
     const h = campus.TRANSIT.home;
     await this.srv.run(`gamemode adventure ${player}`);
+    // A watched self-test that was killed (lib/watcher.js) leaves its tag in the player's data and its
+    // leash marker in the world, either of which would take this tester's plates and pads away.
+    await this.srv.run(`tag ${player} remove ${WATCHER_TAG}`);
+    if (!this.watcher) await this.srv.run(`kill @e[type=minecraft:marker,tag=${WATCHER_MARKER}]`);
     await this.shield(player);
     await this.srv.run(`execute in ${campus.OVERWORLD} run tp ${player} ${h.x} ${h.y} ${h.z} ${h.yaw} 0`);
     await this.console.greet(player);
@@ -690,6 +703,7 @@ class Facility {
       await this.waitForceloaded();
       await this.connectProbe();
       await this.openConsole();
+      if (this.watcher) await this.watcher.afterRestart();
       this.log(`  restarted the server for ${why} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     } finally {
       this.restarting = false;
@@ -731,6 +745,7 @@ class Facility {
     this.shieldTimer = null;
     await this.config.restore(BASELINE_OWNER).catch(() => {});
     for (const b of this.bars) await b.close().catch(() => {});
+    if (this.watcher) this.watcher.close();
     if (this.probe) this.probe.bot.quit();
     if (this.probe2) this.probe2.bot.quit();
   }

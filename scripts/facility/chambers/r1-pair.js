@@ -68,4 +68,5 @@ module.exports = {
   },
 
   reset: 'wx:reset/r1',
+  A,
 };

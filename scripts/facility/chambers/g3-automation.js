@@ -405,4 +405,5 @@ module.exports = {
   reset: 'wx:reset/g3',
 
   GATES: { BAY, FAR, CB_GATE },
+  BAY, FAR, CB_GATE, RINGS, MIRROR,
 };

@@ -329,7 +329,7 @@ function plate(bp, x, y, z, dest) {
   const d = campus.wing(dest.wing || dest);
   const to = dest.to || d.entrance;
   const dim = dest.dim || d.dim;
-  const command = `execute as @p[distance=..2] in ${dim} run tp @s ${to.x} ${to.y} ${to.z} ${to.yaw || 0} 0`;
+  const command = `execute as @p[distance=..2,tag=!wx_watcher] in ${dim} run tp @s ${to.x} ${to.y} ${to.z} ${to.yaw || 0} 0`;
   bp.set(x, y - 1, z, `minecraft:command_block{Command:"${command}",TrackOutput:0b}`);
   bp.set(x, y, z, 'minecraft:stone_pressure_plate');
   bp.anchor(x, y, z, 'minecraft:stone_pressure_plate', `plate to ${dest.wing || dest}`);
