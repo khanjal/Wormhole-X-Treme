@@ -2,14 +2,13 @@
 // Gate settings, one at a time on Sys (G1's Stand position): each changed, and its effect seen,
 // against the same thing done without it where the change could otherwise read as nothing.
 
-const { Vec3 } = require('vec3');
 const { GateKit } = require('../../lib/gatekit');
 const iris = require('../../lib/iris');
 const campus = require('../../lib/campus');
 const { ticks } = require('../../lib/probe');
 const text = require('../../lib/text');
 const {
-  O, GATE, GEOM, STAND, v, c, ear, toldSince, until, atButton, before, relayArrival, logMark, logSince,
+  O, GATE, GEOM, v, c, ear, toldSince, until, atButton, before, relayArrival, logMark, logSince,
   buildGate, builtChecks, walkThrough, watchLights,
 } = require('./common');
 

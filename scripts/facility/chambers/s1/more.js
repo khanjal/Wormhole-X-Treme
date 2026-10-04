@@ -3,7 +3,6 @@
 // and the settings that once took effect only at the next start, which now apply as soon as
 // `wormhole config` changes them, as the guide says (no reload, no restart).
 
-const { Vec3 } = require('vec3');
 const { GateKit } = require('../../lib/gatekit');
 const mirrors = require('../../lib/mirrors');
 const sounds = require('../../lib/sounds');

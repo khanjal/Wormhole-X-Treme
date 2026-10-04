@@ -752,4 +752,4 @@ class Facility {
   }
 }
 
-module.exports = { Facility, BOT };
+module.exports = { Facility, BOT, BASELINE_OWNER };

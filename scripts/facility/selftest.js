@@ -24,6 +24,7 @@
 //   faults    the plugin log has no fault in it (server.js KNOWN_BENIGN aside)
 
 const campus = require('./lib/campus');
+const { BASELINE_OWNER } = require('./facility');
 const { chamber } = require('./lib/campus');
 const text = require('./lib/text');
 const { join, waitEvent } = require('./lib/probe');
@@ -433,7 +434,7 @@ async function selftest(fac, {
   await guard('settings', async () => {
     // And whatever a cell set during its run (ctx.config.set), not only what it declared.
     for (const [n, x] of fac.config.changed) {
-      if (x.owner !== 'facility baseline' && !settings.has(n)) { settings.add(n); before[n] = x.before; }
+      if (x.owner !== BASELINE_OWNER && !settings.has(n)) { settings.add(n); before[n] = x.before; }
     }
     for (const n of settings) {
       const now = await fac.config.get(n);
