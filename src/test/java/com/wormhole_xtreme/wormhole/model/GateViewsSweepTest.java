@@ -252,8 +252,9 @@ class GateViewsSweepTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
         opening(10, 17, 64, 17);
-        // Middle (18, 72, 20): about 21 off. The opening's corner (10, 64, 20): about 15.
-        when(player.getLocation()).thenReturn(new Location(world, 4.0, 64.0, 34.0));
+        // Middle (18, 72, 20): 16.9 off, just past the 16, and only counting all three ways at once.
+        // The opening's nearest cell (10, 64, 20): about 11.
+        when(player.getLocation()).thenReturn(new Location(world, 8.0, 64.0, 31.0));
         drawn(false);
 
         GateViews.offerAll();
