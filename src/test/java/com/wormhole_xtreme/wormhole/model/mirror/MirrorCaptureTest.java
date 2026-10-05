@@ -208,9 +208,9 @@ class MirrorCaptureTest
         asked[0] = 0;
         final MirrorCapture.Builder forgotten = floorAndWall(20, 12);
         forgotten.stopWhen(() -> (++asked[0]) > 3);
+        final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18);
 
-        assertThrows(CancellationException.class,
-            () -> forgotten.keepOnlySeenWithin(new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18), 16, 8, 1));
+        assertThrows(CancellationException.class, () -> forgotten.keepOnlySeenWithin(arrival, 16, 8, 1));
         assertEquals(4, asked[0], "stopped at the first start point after it was forgotten");
     }
 
