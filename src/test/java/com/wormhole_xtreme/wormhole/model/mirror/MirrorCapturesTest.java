@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -747,6 +748,30 @@ class MirrorCapturesTest
 
         assertTrue(pool.escaped.isEmpty(), "nothing thrown on the pool: " + pool.escaped);
         assertTrue(pool.main.isEmpty(), "and nothing handed back");
+    }
+
+    /**
+     * Where there is no scheduler, what the step after a sift throws is not swallowed.
+     *
+     * <p>Only the scheduler's refusal of a task, as the plugin stops, is caught. Caught round the
+     * step itself, a real failure there -- or in the next gate's whole sift, which runs inside it on
+     * this route -- was logged at FINE as the plugin stopping.
+     */
+    @Test
+    void whatTheStepAfterASiftThrowsIsNotSwallowedWithNoScheduler()
+    {
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            throw new IllegalStateException("a bug in the sift");
+        });
+        doThrow(new IllegalArgumentException("the step after it failed too")).when(plugin)
+            .prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"), any(IllegalStateException.class));
+
+        withServer(() ->
+        {
+            requestGate("Abydos", 0);
+            assertThrows(IllegalArgumentException.class, () -> MirrorCaptures.step(100), "reaches whoever stepped the job");
+        });
     }
 
     /** With the sift working again, a request takes the capture from the start. */

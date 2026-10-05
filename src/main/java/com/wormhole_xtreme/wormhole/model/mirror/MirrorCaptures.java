@@ -825,15 +825,15 @@ public final class MirrorCaptures
     /**
      * Starts the next gate sift waiting, if none is running: the oldest whose capture is still wanted.
      *
-     * <p>One forgotten while it waited is dropped, as is one whose key has been asked for again
-     * since, which a newer job holds.
+     * <p>One forgotten while it waited is dropped: every way a gate's job is let go marks it done or
+     * empties the queue.
      */
     private static void nextGateSift()
     {
         while ((gateSifting == null) && !GATE_SIFTS.isEmpty())
         {
             final Job next = GATE_SIFTS.poll();
-            if (!next.done && (JOBS.get(next.key) == next))
+            if (!next.done)
             {
                 gateSifting = next;
                 next.launch();
@@ -1196,8 +1196,7 @@ public final class MirrorCaptures
             try
             {
                 WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(),
-                    () -> siftThen(work,
-                        then -> WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), then)));
+                    () -> siftThen(work, Job::toMainThread));
             }
             catch (final RuntimeException noScheduler)
             {
@@ -1233,19 +1232,29 @@ public final class MirrorCaptures
         /**
          * Hands the main thread the job's next step, unless nobody wants it any more.
          *
-         * <p>A job forgotten or cleared has given up its turn already. The plugin stopping while a sift
-         * ran left the main thread refusing the hand-back, and the refusal was thrown on the pool's
-         * thread as a SEVERE error; there is nothing left to hand back to.
+         * <p>A job forgotten or cleared has given up its turn already.
          */
         private void handBack(final boolean sifted, final Throwable failure, final Consumer<Runnable> onMain)
         {
-            if (cancelled)
-            {
-                return;
-            }
-            try
+            if (!cancelled)
             {
                 onMain.accept(sifted ? this::again : () -> giveUp(failure));
+            }
+        }
+
+        /**
+         * Hands a step to the main thread from the pool.
+         *
+         * <p>The plugin stopping while a sift ran left the scheduler refusing the task, and the refusal
+         * was thrown on the pool's thread as a SEVERE error; there is nothing left to hand back to. Only
+         * the refusal is caught: where there is no scheduler the step runs here, and what it throws is
+         * a real failure.
+         */
+        private static void toMainThread(final Runnable step)
+        {
+            try
+            {
+                WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), step);
             }
             catch (final RuntimeException stopping)
             {

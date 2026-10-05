@@ -306,12 +306,20 @@ public class WormholeXTreme extends JavaPlugin
             {
                 MirrorProximity.restoreAll();
                 GateViews.clear();
-                // A capture's sift runs for up to a minute and a half off the main thread; stop it.
-                MirrorCaptures.clear();
             }
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            // restoreAll clears the captures on its way, but not if it throws first: a gate capture's
+            // sift runs for up to a minute and a half off the main thread, and must stop either way.
+            try
+            {
+                MirrorCaptures.clear();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.WARNING, "Failed to stop the mirror captures being taken", e);
             }
             try
             {
