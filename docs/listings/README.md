@@ -9,6 +9,7 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`modrinth.md`](modrinth.md) | Markdown | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme): project fields and the description. |
 | [`hangar.md`](hangar.md) | Markdown | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme): project fields and the page. |
 | [`curseforge.md`](curseforge.md) | HTML | CurseForge: **not published yet**. Project fields and the description; see the file for the existing project it must not be confused with. |
+| [`reddit.md`](reddit.md) | Markdown | A one-off launch post for r/admincraft: not a listing, **not published yet**. |
 | [`versions.md`](versions.md) | Markdown and BBCode | Every version's upload fields and short changelog, newest first. |
 
 The first three sites are published:
