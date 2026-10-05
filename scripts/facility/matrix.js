@@ -8,6 +8,9 @@
 //                           if the plugin is fixed the cell fails until its expectation is updated.
 // `expect` may be a function of the server version. A known failure with `fixedBy: '<issue>'` is
 // expected to PASS when run-facility is told `--fixed <issue>` (a plugin jar with the fix).
+// A cell may hold `settings` ({ setting: value }) for its run, on top of the chamber's own: an
+// ordinary trip under a setting meant to stop it, `because` saying how, fails at the check the
+// setting stops ('FAIL:<check name>'), against the same cell without it that passes.
 
 const { normaliseOptions } = require('./lib/console');
 const { atLeast } = require('./lib/version');
@@ -93,6 +96,9 @@ const G1 = [
   { name: 'g1 boat ridden', values: { traveller: 'boat ridden' }, expect: 'PASS' },
   ...['horse', 'camel', 'pig', 'donkey', 'llama', 'strider'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
   ...['wolf', 'cat', 'parrot', 'sitting wolf'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
+  // A wolf to the Range under `pets-follow-owner false` (a Systems setting, stage 6): left behind.
+  // Into the nether, since in one world vanilla brings a following wolf to its owner anyway.
+  { name: 'g1 wolf to the Range, pets-follow-owner false', values: { destination: 'Range', traveller: 'wolf' }, settings: { 'pets-follow-owner': 'false' }, expect: 'FAIL:the wolf came along', because: 'pets-follow-owner false: a following pet stays behind' },
   // (Spilled items are left out: a broken cart's drops scatter, and whether one stays in the
   // one-block opening until the next sweep is chance. The lying item is the deterministic case.)
   ...['lying item', 'xp', 'armour stand', 'item frame', 'zombie'].map((t) => ({ name: `g1 ${t}`, values: { traveller: t }, expect: 'PASS' })),
@@ -256,6 +262,9 @@ const MATRIX = {
     { name: 'g5 block in the shut opening, IrisA', values: { check: 'place', gate: 'Atlantis' }, expect: 'PASS' },
     { name: 'g5 side row off the layers check', values: { check: 'arrow', side: 'behind' }, expect: 'REFUSED:the side row is the layers check' },
   ],
+  // S1, the Systems console: the settings and permissions audits (chambers/s1-systems.js).
+  // A case may carry its own expectation and known failure (chambers/s1/*.js).
+  s1: require('./chambers/s1-systems').CASES.map((c) => ({ name: `s1 ${c.value}`, values: { case: c.value }, expect: c.expect || 'PASS', ...(c.known ? { known: c.known } : {}) })),
 };
 
 /**
@@ -271,6 +280,7 @@ const QUICK = new Set([
   'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'm3 stamp a look', 'g1 horse to the Range', 'b1 End',
   'g1 built by hand', 'g1 Lab.shape by preview, sign right', 'g3 lever', 'g3 command block: gate build', 'g4 activate', 'g4 share', 'g5 sweep steps, IrisS',
   'g5 layers from the front, IrisA (ice behind glass)', 'g5 arrow at the shut iris, IrisS',
+  's1 every setting', 's1 bad values', 's1 gate sounds', 's1 beam sounds', 's1 fallback', 's1 nodes', 's1 ring defaults',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;

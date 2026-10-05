@@ -138,7 +138,7 @@ const CHAMBERS = [
   // Ops
   { id: 'c0', wing: 'ops', title: 'Calibration Cell', kind: 'cell', logic: 'c0-calibration',
     box: { x0: 11, x1: 17, z0: 7, z1: 13, y0: 0, h: 4 }, door: 'w', gallery: 's' },
-  { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, at: { x: 0, y: 6, z: -19 } },
+  { id: 's1', wing: 'systems', title: 'Systems Console', kind: 'desk', stage: 6, logic: 's1-systems', at: { x: 0, y: 6, z: -19 } },
   // The companion desks (run-facility --with): each refuses a run without its companion plugins.
   { id: 'map', wing: 'systems', title: 'Map Desk', kind: 'desk', stage: 6, logic: 'companion-map', at: { x: 6, y: 6, z: -19 } },
   { id: 'regions', wing: 'systems', title: 'Region Desk', kind: 'desk', stage: 6, logic: 'companion-regions', at: { x: -8, y: 6, z: -19 } },
@@ -394,6 +394,9 @@ const WATCH = {
     look: 'the Stand: building and using in and out of a WorldGuard region' },
   perms: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
     look: 'the Stand: Probe2 tries what its LuckPerms group allows and is refused the rest' },
+  // The Systems desk has no cell: its gate cases build at the Stand, so a watcher is put there too.
+  s1: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
+    look: 'the Stand: Probe changes one plugin setting at a time and the gate, ring, sound or message answers it' },
 };
 
 /**
