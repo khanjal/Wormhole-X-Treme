@@ -2,21 +2,22 @@
 
 The copy that goes on the plugin sites, kept here so a release is an edit rather than a rewrite.
 
-| File | What it is |
-|---|---|
-| [`shared.md`](shared.md) | The source of truth. Every fact and every block of prose the listings share, in plain Markdown with no site markup. |
-| [`spigot.md`](spigot.md) | [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) — form fields and the description in BBCode. |
-| [`modrinth.md`](modrinth.md) | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) — project fields and the description in Markdown. |
-| [`hangar.md`](hangar.md) | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) — project fields and the page in Markdown. |
-| [`versions.md`](versions.md) | Every version's upload fields and short changelog, Markdown and BBCode, newest first. |
+| File | Markup | What it is |
+|---|---|---|
+| [`shared.md`](shared.md) | Markdown | The source of truth. Every fact and every block of prose the listings share, in plain Markdown with no site markup. |
+| [`spigot.md`](spigot.md) | BBCode | [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/): form fields and the description. |
+| [`modrinth.md`](modrinth.md) | Markdown | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme): project fields and the description. |
+| [`hangar.md`](hangar.md) | Markdown | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme): project fields and the page. |
+| [`curseforge.md`](curseforge.md) | HTML | CurseForge: **not published yet**. Project fields and the description; see the file for the existing project it must not be confused with. |
+| [`versions.md`](versions.md) | Markdown and BBCode | Every version's upload fields and short changelog, newest first. |
 
-All three are published:
+The first three sites are published:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
 [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme). Editing a file here does not change
 a live page; it records what the page should say, and somebody still has to paste it.
 
-Nothing here is generated. The three site files are parallel texts, not renders of `shared.md`,
+Nothing here is generated. The site files are parallel texts, not renders of `shared.md`,
 because the markup and the field sets differ enough that a generator would cost more than it
 saves. What `shared.md` buys is that the *facts* live in one place: when a number or a link
 changes, you change it there and then carry it into whichever site files quote it.
