@@ -1479,13 +1479,25 @@ public final class MirrorWindows
         return seeing;
     }
 
-    /** Whether a clear line runs from an eye to any open block of a window's opening. */
-    private static boolean canSee(final World here, final Location eye, final MirrorWindowState window,
+    /**
+     * Most lines of sight tried to one window's opening per redraw.
+     *
+     * <p>A Grand gate's opening is 274 cells. Every one of them blocked -- somebody behind a wall in
+     * front of a gate -- cost some 80 ms a redraw where a Large gate's 52 had cost about 14.
+     */
+    static final int MOST_SIGHT_LINES = 64;
+
+    /**
+     * Whether a clear line runs from an eye to any open block of a window's opening: to every block of
+     * one up to {@link #MOST_SIGHT_LINES}, and to that many spread evenly over a bigger one.
+     */
+    static boolean canSee(final World here, final Location eye, final MirrorWindowState window,
         final long now)
     {
-        for (final Spot cell : window.open)
+        final int stride = Math.max(1, (window.open.size() + MOST_SIGHT_LINES - 1) / MOST_SIGHT_LINES);
+        for (int i = 0; i < window.open.size(); i += stride)
         {
-            if (MirrorSight.clearLine(here, eye, cell, window.shape.into(), now))
+            if (MirrorSight.clearLine(here, eye, window.open.get(i), window.shape.into(), now))
             {
                 return true;
             }

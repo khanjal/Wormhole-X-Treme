@@ -232,7 +232,8 @@ public final class GateViews
     }
 
     /**
-     * The cell of an opening nearest its middle, which the drawing measures a viewer's distance from.
+     * The cell of an opening nearest its middle: the window's anchor, which the drawing measures a
+     * viewer's distance from, and so does {@link #watched}.
      *
      * <p>Not its first cell, a top-row one: somebody at the foot of a Massive gate, six blocks in
      * front, was seventeen from it, past the mirror proximity distance, and was never drawn the view.
@@ -293,13 +294,14 @@ public final class GateViews
 
     /**
      * Whether anybody could be drawn a gate's view: its chunk is loaded and somebody in its world is
-     * within the mirror proximity distance of its opening.
+     * within the mirror proximity distance of the middle of its opening, measured as the drawing
+     * measures it ({@link #middleOf}), so a capture is never started for somebody it would not be drawn for.
      *
-     * <p>Of any of it, not of its first cell: that is a top-row one, and the foot of a Grand gate's
-     * opening could be looked into from half as far back as a Standard gate's.
+     * <p>Measured to the nearest point of the opening, somebody fourteen blocks in front of a Massive
+     * gate's foot and off to one side was eight from it and twenty from the middle: the capture,
+     * seconds of work in the far world, was started, and the view never drawn.
      *
-     * <p>A capture is a few seconds of work in the far world, and a gate dialled by redstone in a
-     * corner of the map nobody is in should not pay for one.
+     * <p>A gate dialled by redstone in a corner of the map nobody is in should not pay for one.
      */
     private static boolean watched(final Stargate gate)
     {
@@ -308,37 +310,19 @@ public final class GateViews
         {
             return false;
         }
-        final Location first = gate.getGatePortalBlocks().get(0);
-        if (!world.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4))
+        final Spot middle = middleOf(cellsOf(gate));
+        if (!world.isChunkLoaded(middle.x() >> 4, middle.z() >> 4))
         {
             return false;
         }
         final double reach = ConfigManager.getMirrorProximityDistance();
-        final double[] box = boxOf(gate.getGatePortalBlocks());
         return world.getPlayers().stream().map(Player::getLocation).anyMatch(at ->
         {
-            final double dx = at.getX() - Math.max(box[0], Math.min(box[3], at.getX()));
-            final double dy = at.getY() - Math.max(box[1], Math.min(box[4], at.getY()));
-            final double dz = at.getZ() - Math.max(box[2], Math.min(box[5], at.getZ()));
+            final double dx = at.getX() - middle.x();
+            final double dy = at.getY() - middle.y();
+            final double dz = at.getZ() - middle.z();
             return ((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach);
         });
-    }
-
-    /** The smallest box round some cells: lowest x, y and z, then highest. */
-    private static double[] boxOf(final List<Location> cells)
-    {
-        final double[] box = {Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE,
-            -Double.MAX_VALUE, -Double.MAX_VALUE};
-        for (final Location cell : cells)
-        {
-            box[0] = Math.min(box[0], cell.getBlockX());
-            box[1] = Math.min(box[1], cell.getBlockY());
-            box[2] = Math.min(box[2], cell.getBlockZ());
-            box[3] = Math.max(box[3], cell.getBlockX());
-            box[4] = Math.max(box[4], cell.getBlockY());
-            box[5] = Math.max(box[5], cell.getBlockZ());
-        }
-        return box;
     }
 
     /**

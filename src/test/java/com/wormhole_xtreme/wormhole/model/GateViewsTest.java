@@ -9,16 +9,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
+import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
@@ -243,6 +250,47 @@ class GateViewsTest
             final Set<Spot> ring = new HashSet<>(ringOf(BlockFace.SOUTH, minimal));
             ring.remove(gap);
             assertNull(GateViews.shapeOf(BlockFace.SOUTH, minimal, ring, ARRIVAL), "a ring open at " + gap);
+        }
+    }
+
+    /**
+     * The shipped shapes, read by the plugin's own shape reader and laid out as a gate is built:
+     * Standard, Large, Grand and Massive are framed, and Minimal is not.
+     *
+     * <p>The docs say which gates show a view, and why Minimal does not, from these files. A shape
+     * edited so its ring no longer closes the opening, or Minimal given a frame, should say so here
+     * rather than in a world.
+     */
+    @Test
+    void theShippedRingGatesAreFramedAndMinimalIsNot() throws Exception
+    {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+        try
+        {
+            for (final String name : new String[] { "Standard", "Large", "Grand", "Massive", "Minimal" })
+            {
+                final Stargate3DShape shape = new Stargate3DShape(
+                    Files.readAllLines(Paths.get("src/main/resources/shapes/gate", name + ".shape")).toArray(new String[0]));
+                // Looked at from the north, so the gate faces south and its opening lies along x.
+                final GateGrid grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
+                final List<Spot> cells = GateBlueprint.openingOf(shape, grid).stream()
+                    .map(cell -> new Spot(cell.x(), cell.y(), cell.z())).toList();
+                final Set<Spot> frame = GateBlueprint.of(shape, grid).stream()
+                    .filter(cell -> (cell.part() == GateBlueprint.Part.FRAME) || (cell.part() == GateBlueprint.Part.CHEVRON))
+                    .map(cell -> new Spot(cell.x(), cell.y(), cell.z())).collect(Collectors.toSet());
+                assertFalse(cells.isEmpty(), name + " has an opening");
+                assertEquals(1, cells.stream().map(Spot::z).distinct().count(), name + "'s opening lies along x");
+
+                final boolean framed = GateViews.framed(cells, frame, new Spot(1, 0, 0));
+
+                assertEquals(!"Minimal".equals(name), framed, name);
+                assertEquals(framed, GateViews.shapeOf(BlockFace.SOUTH, cells, frame, ARRIVAL) != null,
+                    name + " shows a view exactly when it is framed: it fits the capture's opening");
+            }
+        }
+        finally
+        {
+            PluginTestSupport.remove();
         }
     }
 

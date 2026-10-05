@@ -639,8 +639,10 @@ blocks, not its shape's name: every portal cell needs opening or frame beside it
 in the opening's plane, so a custom shape without a frame keeps its horizon too. An opening wider
 or taller than eighteen keeps its horizon as well (`GateViews.fits`, the one place a size limit
 lives); no shipped shape's is. A view is drawn for whoever is within `mirror-proximity-distance` of
-the middle of the opening: measured from its first cell, a top-row one, as it was, somebody at the
-foot of a Massive gate was too far off to be drawn it.
+the middle of the opening, and a capture is started only for somebody that near. Both used to
+measure from elsewhere: the drawing from the opening's first cell, a top-row one, so somebody at
+the foot of a Massive gate was never drawn its view; and the capture from the nearest cell, so
+somebody off to one side of that foot had one taken that nobody was drawn.
 
 **A capture is seen through the largest opening.** A mirror's is taken through a hole three
 wide and two tall, and through a gate that lost everything past the mirror's fan. A gate's is
@@ -650,17 +652,36 @@ with the hole alone, as they were, the grid was seven degrees wide for a hole th
 ninety grids, each starting half a step in, fell on the same few lines: a flat floor 64 blocks out
 kept under half its blocks, and even the eight-by-eight hole used before lost 60% of a wall 160
 blocks off. Each point's grid is now shifted by its own fraction of a step, so the grids fill in
-between each other, and never spread past two and a half degrees. Measured on a flat floor and a
-wall at every eight blocks from 16 to 160, through every hole from five square to eighteen square,
-nothing in a strip twenty blocks either side of the middle was missed. Wider, some sizes began
-to lose a few: at four degrees, a twentieth of a wall 160 blocks off through Grand's opening. A
-mirror's rays are as they were.
+between each other, and never spread past two and a half degrees. A mirror's rays are exactly as
+they were, which a test pins against a fingerprint taken from the code before the change.
 
-The cost is the sift, which works out what can be seen off the main thread: about 2.7 seconds for
-the first step and 7 for a fill to 160, where a mirror's hole takes 0.3 and 1.1. A capture through the
-bigger hole also sees more of the near ground, so over flat open ground a fill is cut to fit
-(`MOST_KEPT`) at 50 blocks rather than the 67 an eight-by-eight one was. What a view holds as it is
-drawn, and so the work of every redraw, does not depend on the gate dialling it: it is the capture
+What was measured, with the real sifter over made-up ground, every eight blocks from 16 to 160:
+a flat floor and a facing wall through every hole from five square to eighteen square, in a strip
+twenty blocks either side of the middle, and through eighteen square out to sixty degrees either
+side; rows of one-block posts from 40 to 160 blocks out. Nothing was missed. Wider than two and a
+half degrees, some sizes began to lose a few: at four, a twentieth of a wall 160 blocks off
+through Grand's opening. Not measured: walls taller than twenty blocks, so steeply upward
+sight-lines; ground seen through leaves or water; and real terrain, beyond what the facility's
+Grand and Massive gates showed.
+
+**What it costs.** The sift works out what can be seen, off the main thread, and the eighteen-square
+hole sends some fifteen million rays where a mirror's sends under two. Over flat ground it took
+about 2.7 seconds for the first step and 7 for a fill to 160, where a mirror's hole takes 0.3 and
+1.1. Over open sky, where no ray stops until its reach, one pass to 160 took 34 seconds, and the
+fill, cut to fit by passes a quarter shorter each time, a minute and a half: a mirror's, 4.5 and
+13. That is one of the server's background threads, and the fill comes in late; the first step
+does not wait for it. A capture through the bigger hole sees more near ground, so over open
+ground a fill is cut to fit (`MOST_KEPT`) at 50 blocks rather than the 67 an eight-by-eight one
+reached.
+
+On the main thread, a redraw of a gate's view walks every block the view holds, up to the million
+a gate's view may hold: about 13 ms for half a million and 27 for a million, measured on their
+own, before any block is judged for the eye. A redraw rests three times as long as it took, so a
+viewer at a capped view costs a quarter of the main thread at most, the rule that bounds a
+mirror's view, whose cap is a quarter of a gate's. The views the facility drew held four to eight thousand blocks and
+redrew in 12 to 25 ms. Whether a viewer can see into the opening at all tries at most 64 lines of
+sight, spread over it: all 274 of a Grand gate's, every one blocked by a wall in front, took some
+80 ms a redraw. What a view holds does not depend on the gate dialling it: it is the capture
 within the depth, the same capture for every gate.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to

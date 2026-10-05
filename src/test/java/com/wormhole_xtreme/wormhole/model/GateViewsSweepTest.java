@@ -239,16 +239,37 @@ class GateViewsSweepTest
     }
 
     /**
-     * A tall gate is watched from near any of its opening, not only near its first cell, which is a
-     * top-row one: somebody at the foot of a Grand gate was never offered it.
+     * A gate is watched only by somebody the drawing would draw its view for: near the middle of its
+     * opening, not merely near some part of it.
+     *
+     * <p>Measured to the nearest cell, somebody fourteen blocks in front of a Massive gate's foot and
+     * off to one side was eight from the opening and twenty from its middle, where the drawing
+     * measures from: the capture, seconds of work in the far world, was started for a view nobody
+     * was drawn.
      */
     @Test
-    void aTallGateIsWatchedFromBesideItsFoot()
+    void somebodyNearATallGatesFootButFarFromItsMiddleDoesNotWatchIt()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
-        opening(10, 3, 64, 18);
-        // Fourteen from the foot, but over twenty from the first cell, up at y 81.
-        when(player.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 34.0));
+        opening(10, 17, 64, 17);
+        // Middle (18, 72, 20): about 21 off. The opening's corner (10, 64, 20): about 15.
+        when(player.getLocation()).thenReturn(new Location(world, 4.0, 64.0, 34.0));
+        drawn(false);
+
+        GateViews.offerAll();
+        GateViews.dialled(gate);
+
+        offeredTimes(0);
+        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+    }
+
+    /** Somebody six blocks in front of a tall gate's foot is ten from its middle, and watches it. */
+    @Test
+    void somebodyAtATallGatesFootWatchesIt()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        opening(10, 17, 64, 17);
+        when(player.getLocation()).thenReturn(new Location(world, 18.0, 64.0, 26.0));
         drawn(false);
 
         GateViews.offerAll();

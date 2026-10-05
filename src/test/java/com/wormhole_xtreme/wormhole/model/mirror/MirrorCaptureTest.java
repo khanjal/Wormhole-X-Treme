@@ -118,46 +118,146 @@ class MirrorCaptureTest
     }
 
     /**
-     * A capture through the largest gate opening keeps every block of a floor and a wall far off (#516).
+     * A capture through the largest gate opening keeps every block of a floor and a wall far off,
+     * straight ahead and off to the side (#516).
      *
      * <p>Spread with the hole alone, the rays through a Grand or Massive gate's opening were seven
      * degrees apart, and each point's directions started half a step in, so the ninety points' rays
-     * fell on the same few lines: a floor 64 blocks off kept under half its blocks, and not
-     * staggered even at two and a half degrees a wall at 160 lost a third. The holes were the far side's real ground, drawn as this world. The
-     * spread is bounded now, and each point's directions are staggered so they fill in between.
-     * A straight strip twenty blocks either side of the middle, which any viewer sees through any gate.
+     * fell on the same few lines: a floor 64 blocks off kept under half its blocks, and, not
+     * staggered, even at two and a half degrees a wall at 160 lost a third. What was missed was left
+     * to this world, so the far side's ground came through with holes in it. The spread is bounded
+     * now, and each point's directions are staggered so they fill in between. Checked out to
+     * forty-five degrees either side, which is as far as a viewer standing back from a gate sees
+     * through it; the probe that chose the bounds looked to sixty, all of it kept.
      */
     @Test
     void aCaptureThroughTheLargestGateOpeningMissesNothingFarOff()
     {
-        final int half = 60;
+        final int half = 172;
         final int wall = 160;
         final MirrorCapture.Builder builder = floorAndWall(half, wall);
         builder.keepOnlySeen(new MirrorCapture.Arrival(half, 1, 0, 0, 1, MirrorCaptures.GATE_OPENING,
-            MirrorCaptures.GATE_OPENING), wall + 40);
+            MirrorCaptures.GATE_OPENING), wall + 70);
+
+        final MirrorCapture capture = builder.build();
+
+        final List<String> missed = new ArrayList<>();
+        for (int x = 0; x <= (2 * half); x++)
+        {
+            final int off = Math.abs(x - half);
+            for (int z = Math.max(16, off); z < wall; z++)
+            {
+                missedAt(capture, x, 0, z, "floor", missed);
+            }
+            for (int y = 1; (y <= 20) && (off <= wall); y++)
+            {
+                missedAt(capture, x, y, wall, "wall", missed);
+            }
+        }
+        assertTrue(missed.isEmpty(), missed.size() + " blocks a viewer sees were left to this world, e.g. "
+            + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /**
+     * Through a hole one short of the gates' own, seventeen square, the floor a hundred blocks out is
+     * kept whole.
+     *
+     * <p>Pins the stagger across the hole, which the eighteen-square hole happens not to need: there
+     * the nine columns' grids fall between each other anyway, on a floor, a wall and rows of posts
+     * alike. At seventeen they line up, and without the stagger a fifth of the floor about a hundred
+     * blocks out was missed. A different opening is one constant away.
+     */
+    @Test
+    void aHoleOneShortOfTheGatesStillKeepsTheFloorFarOff()
+    {
+        final int half = 40;
+        final int deep = 122;
+        final MirrorCapture.Builder builder = floorAndWall(half, deep);
+        builder.keepOnlySeen(new MirrorCapture.Arrival(half, 1, 0, 0, 1, 17, 17), deep + 20);
 
         final MirrorCapture capture = builder.build();
 
         final List<String> missed = new ArrayList<>();
         for (int x = half - 20; x <= (half + 20); x++)
         {
-            for (int z = 16; z < wall; z++)
+            for (int z = 96; z < 120; z++)
             {
-                if (capture.at(x, 0, z) != stone)
-                {
-                    missed.add("floor " + x + "," + z);
-                }
+                missedAt(capture, x, 0, z, "floor", missed);
             }
-            for (int y = 1; y <= 20; y++)
+        }
+        assertTrue(missed.isEmpty(), missed.size() + " floor blocks left to this world, e.g. "
+            + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /** Notes a block that should be the far side's stone but was not kept. */
+    private void missedAt(final MirrorCapture capture, final int x, final int y, final int z, final String what,
+        final List<String> missed)
+    {
+        if (capture.at(x, y, z) != stone)
+        {
+            missed.add(what + " " + x + "," + y + "," + z);
+        }
+    }
+
+    /**
+     * A mirror's rays are exactly what they were before gates' were staggered and bounded.
+     *
+     * <p>Every room already captured, and every view of it, depends on them; the change was for
+     * gates. Each of a mirror's grids starts half a step in, as it always did, and a capture of a
+     * scene of posts through a mirror's hole keeps exactly the cells it kept before: the fingerprint
+     * here was taken from the code as it stood before the change.
+     */
+    @Test
+    void aMirrorsRaysAreAsTheyWere()
+    {
+        final MirrorCapture.Arrival mirror = new MirrorCapture.Arrival(30, 1, 0, 0, 1);
+        final MirrorCapture.Arrival gate = new MirrorCapture.Arrival(30, 1, 0, 0, 1, 18, 18);
+        boolean gateMoved = false;
+        for (int point = 1; point <= 90; point++)
+        {
+            for (int axis = 0; axis < 2; axis++)
             {
-                if (capture.at(x, y, wall) != stone)
+                assertEquals(0.5, MirrorCapture.Builder.shiftFor(mirror, point, axis), "point " + point + " axis " + axis);
+                gateMoved |= MirrorCapture.Builder.shiftFor(gate, point, axis) != 0.5;
+            }
+        }
+        assertTrue(gateMoved, "a gate's grids are staggered, so this is not comparing like with like");
+
+        final MirrorCapture.Builder builder = postsScene();
+        builder.keepOnlySeen(mirror, 56);
+        final long[] print = { 0L, 0L };
+        builder.build().forEachKept((x, y, z, isAir) ->
+        {
+            print[0]++;
+            print[1] = (print[1] * 1_000_003L) + (((x * 64L) + y) * 64L) + z + (isAir ? 7L : 0L);
+        });
+
+        assertEquals(49_198L, print[0], "cells kept, as before");
+        assertEquals(6_013_164_860_287_022_334L, print[1], "and exactly the same cells");
+    }
+
+    /** Flat ground sixty blocks deep, with single blocks standing on it in widening rows, every third block across. */
+    private MirrorCapture.Builder postsScene()
+    {
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 61, 16, 60), air);
+        for (int x = 0; x < 61; x++)
+        {
+            for (int z = 0; z < 60; z++)
+            {
+                builder.put(x, 0, z, stone);
+            }
+        }
+        for (int z = 6; z < 58; z += 4)
+        {
+            for (int x = 30 - z; x <= (30 + z); x += 3)
+            {
+                if ((x >= 0) && (x < 61))
                 {
-                    missed.add("wall " + x + "," + y);
+                    builder.put(x, 1 + ((x + z) % 5), z, stone);
                 }
             }
         }
-        assertTrue(missed.isEmpty(), missed.size() + " blocks a viewer sees were left to this world, e.g. "
-            + missed.subList(0, Math.min(5, missed.size())));
+        return builder;
     }
 
     /** Open ground {@code wall} blocks deep with a wall across its end, {@code half} either side of x {@code half}. */

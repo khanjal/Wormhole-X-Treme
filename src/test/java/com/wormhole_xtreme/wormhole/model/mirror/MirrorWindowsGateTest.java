@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -17,8 +18,10 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -380,6 +383,44 @@ class MirrorWindowsGateTest
             assertFalse(MirrorWindows.offerGate(standard, true));
             captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(18), eq(18),
                 eq(16)), times(1));
+        }
+    }
+
+    /** A window of a whole opening of the given size, as a gate's: every cell of it open. */
+    private MirrorWindowState windowOf(final int wide, final int tall)
+    {
+        final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, wide, tall);
+        final List<Spot> open = new ArrayList<>();
+        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        return new MirrorWindowState(new QuantumMirror(NAME, MirrorBlock.of(anchor), ARRIVAL), shape, anchor, open,
+            capture(32), true, 16);
+    }
+
+    /**
+     * Whether a viewer can see into a big gate tries at most {@link MirrorWindows#MOST_SIGHT_LINES} lines of sight.
+     *
+     * <p>It tried every cell of the opening, on the main thread, each redraw: for somebody behind a
+     * wall in front of a Grand gate, 274 blocked lines, some 80 ms a redraw against a Large gate's 14.
+     * A small opening is still tried cell by cell, so a mirror is judged exactly as it was.
+     */
+    @Test
+    void aBigOpeningIsLookedIntoAlongAtMostSoManyLinesOfSight()
+    {
+        final Location eye = new Location(world, 19.0, 66.0, 36.0);
+        final AtomicInteger lines = new AtomicInteger();
+        try (MockedStatic<MirrorSight> sight = mockStatic(MirrorSight.class))
+        {
+            sight.when(() -> MirrorSight.clearLine(any(), any(), any(), any(), anyLong()))
+                .thenAnswer(call -> (lines.incrementAndGet() < 0));
+
+            assertFalse(MirrorWindows.canSee(world, eye, windowOf(18, 17), 0L), "every line blocked");
+            final int grand = lines.getAndSet(0);
+            assertFalse(MirrorWindows.canSee(world, eye, windowOf(8, 8), 0L));
+            final int large = lines.get();
+
+            assertTrue(grand <= MirrorWindows.MOST_SIGHT_LINES, grand + " lines into 306 cells, not every one");
+            assertTrue(grand >= (MirrorWindows.MOST_SIGHT_LINES / 2), grand + " lines, spread over the opening");
+            assertEquals(64, large, "an opening of 64 cells is tried at every one, as before");
         }
     }
 }

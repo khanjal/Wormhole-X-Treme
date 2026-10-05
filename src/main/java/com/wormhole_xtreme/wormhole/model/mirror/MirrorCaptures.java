@@ -1115,8 +1115,9 @@ public final class MirrorCaptures
             final int depth = reach;
             reachAsked = depth;
             reachKept = depth;
-            // A third of a million rays: off the main thread, since the box is noted and
-            // nothing here reads the world again.
+            // Under two million rays through a mirror's hole and some fifteen million through a
+            // gate's, repeated for each cut to fit: seconds, and over open sky a minute or more. Off
+            // the main thread, since the box is noted and nothing here reads the world again.
             final Runnable work = () -> reachKept = sifter.sift(builder, arrival, depth, floor);
             try
             {
