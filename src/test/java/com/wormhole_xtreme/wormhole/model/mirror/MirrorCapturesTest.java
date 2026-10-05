@@ -626,6 +626,129 @@ class MirrorCapturesTest
         assertEquals(0, MirrorCaptures.taking());
     }
 
+    /** Asks for a gate's capture, to depth 8, landing {@code east} blocks east of the museum's room: a few west keeps the same chunks. */
+    private void requestGate(final String gate, final int east)
+    {
+        assertTrue(MirrorCaptures.requestGate(MirrorCaptures.gateKey(gate, MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING),
+            gate, new MirrorPoint("far", 100.5 + east, 70.0, -20.5, 0.0f, 0.0f), MirrorCaptures.GATE_OPENING,
+            MirrorCaptures.GATE_OPENING, 8));
+    }
+
+    /** Ticks until a number of sifts are held on the pool and a number of gate sifts wait. */
+    private static void tickUntilSifting(final Pool pool, final int held, final int waiting)
+    {
+        for (int i = 0; (i < 200) && ((pool.held.size() < held) || (MirrorCaptures.gateSiftsWaiting() < waiting)); i++)
+        {
+            pool.tick();
+        }
+        assertEquals(held, pool.held.size(), "sifts on the pool");
+        assertEquals(waiting, MirrorCaptures.gateSiftsWaiting(), "gate sifts waiting their turn");
+    }
+
+    /**
+     * Gate sifts take turns, oldest first, one forgotten while it waited is dropped, and a mirror's
+     * does not wait behind them (#516).
+     *
+     * <p>A gate's sift is a core for seconds, over open sky for a minute and a half. Run as they came,
+     * a hub of gates dialled at once was as many cores at once, and on a small server the main thread
+     * starved.
+     */
+    @Test
+    void gateSiftsTakeTurnsAndAMirrorsDoesNotWait() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        final List<Double> sifted = new ArrayList<>();
+        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        {
+            sifted.add((double) from.x());
+            return reach;
+        });
+
+        withServer(() ->
+        {
+            requestGate("Abydos", 0);
+            requestGate("Chulak", -1);
+            requestGate("Dakara", -2);
+            requestGate("Edora", -3);
+            assertTrue(MirrorCaptures.request(mirror));
+            tickUntilSifting(pool, 2, 3);
+
+            MirrorCaptures.forgetGate("Chulak");
+            pool.runHeld();
+            pool.runMain();
+
+            assertEquals(List.of(100.0, 100.0), sifted, "Abydos's and the museum's sifts ran side by side");
+            assertEquals(1, pool.held.size(), "then the next gate's, alone");
+            assertEquals(1, MirrorCaptures.gateSiftsWaiting(), "Chulak's dropped, and Edora's still waiting");
+            pool.runHeld();
+            assertEquals(98.0, sifted.get(2), "Dakara's, the oldest still wanted, not Chulak's or Edora's");
+            pool.holdAsync = false;
+            pool.runMain();
+            pool.tickUntilIdle();
+        });
+
+        assertEquals(List.of(100.0, 100.0, 98.0, 97.0), sifted, "Edora's last, and Chulak's never");
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A gate forgotten mid-sift hands nothing back and lets the next gate's sift start at once.
+     *
+     * <p>Its sift stops at its next start point; waiting for that, or for a sift that never notices,
+     * would hold every other gate's back.
+     */
+    @Test
+    void aGateForgottenMidSiftLetsTheNextOneGoAtOnce() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        MirrorCaptures.siftWith((builder, from, reach, floor) -> reach);
+
+        withServer(() ->
+        {
+            requestGate("Abydos", 0);
+            requestGate("Chulak", -1);
+            tickUntilSifting(pool, 1, 1);
+
+            MirrorCaptures.forgetGate("Abydos");
+
+            assertEquals(2, pool.held.size(), "Chulak's sift started without waiting for Abydos's to end");
+            pool.runHeld();
+            assertEquals(1, pool.main.size(), "only Chulak's is handed back to the main thread");
+            pool.holdAsync = false;
+            pool.tickUntilIdle();
+        });
+
+        assertNotNull(MirrorCaptures.get(MirrorCaptures.gateKey("Chulak", MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING)));
+        assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A sift that ends as the plugin stops does not throw on the pool's thread.
+     *
+     * <p>The main thread refuses a task from a disabled plugin, and the refusal was thrown from the
+     * sift's finally on the pool, logged as SEVERE.
+     */
+    @Test
+    void aSiftEndingAsThePluginStopsThrowsNothing() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        MirrorCaptures.siftWith((builder, from, reach, floor) -> reach);
+
+        withServer(() ->
+        {
+            requestGate("Abydos", 0);
+            tickUntilSifting(pool, 1, 0);
+            pool.refuseMain = true;
+            pool.runHeld();
+        });
+
+        assertTrue(pool.escaped.isEmpty(), "nothing thrown on the pool: " + pool.escaped);
+        assertTrue(pool.main.isEmpty(), "and nothing handed back");
+    }
+
     /** With the sift working again, a request takes the capture from the start. */
     private void takenAfresh(final Pool pool)
     {
@@ -655,6 +778,8 @@ class MirrorCapturesTest
         final List<Runnable> held = new ArrayList<>();
         final List<RuntimeException> escaped = new ArrayList<>();
         boolean holdAsync;
+        /** True once the plugin has stopped: the main thread refuses its tasks. */
+        boolean refuseMain;
         private int nextId;
 
         Pool() throws Exception
@@ -683,6 +808,10 @@ class MirrorCapturesTest
             });
             when(scheduler.runTask(any(Plugin.class), any(Runnable.class))).thenAnswer(invocation ->
             {
+                if (refuseMain)
+                {
+                    throw new IllegalStateException("Plugin attempted to register task while disabled");
+                }
                 main.add(invocation.getArgument(1));
                 return mock(BukkitTask.class);
             });

@@ -306,6 +306,8 @@ public class WormholeXTreme extends JavaPlugin
             {
                 MirrorProximity.restoreAll();
                 GateViews.clear();
+                // A capture's sift runs for up to a minute and a half off the main thread; stop it.
+                MirrorCaptures.clear();
             }
             catch (final Exception | LinkageError e)
             {

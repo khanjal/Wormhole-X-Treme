@@ -648,8 +648,21 @@ public final class MirrorWindows
         return seeing.stream().mapToInt(window -> window.depth).max().orElse(ConfigManager.getMirrorViewDepth());
     }
 
-    /** A gate's capture older than this is retaken as the gate is dialled or opens, the old one drawn until the new is ready. */
+    /**
+     * A gate's capture of its first step alone, older than this, is retaken as the gate is dialled or
+     * opens, the old one drawn until the new is ready.
+     */
     static final long GATE_CAPTURE_SECONDS = 60L;
+
+    /**
+     * The same for a capture that holds the fill (#516): ten minutes, as for somebody standing at the gate.
+     *
+     * <p>A minute was priced for a capture of seconds. A fill is the whole cut-to-fit loop, over open
+     * sky a minute and a half of a core and two passes over some 440 chunks, so a gate dialled every
+     * two minutes kept a core sifting for as long as it was used. The old capture is drawn meanwhile,
+     * so a remote gate still shows its view at once.
+     */
+    static final long GATE_FILL_CAPTURE_SECONDS = 600L;
 
     /**
      * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
@@ -734,7 +747,7 @@ public final class MirrorWindows
         {
             ask = gate.depth();
         }
-        else if (opened && (capture.secondsOld() > GATE_CAPTURE_SECONDS))
+        else if (opened && (capture.secondsOld() > retakeAfter(gate, capture)))
         {
             // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
             // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
@@ -750,6 +763,20 @@ public final class MirrorWindows
                 MirrorCaptures.GATE_OPENING, ask);
         }
         return capture;
+    }
+
+    /**
+     * How old a gate's capture may be before an opening retakes it: a minute for one of the first
+     * step alone, ten for one holding the fill.
+     *
+     * @return seconds
+     */
+    static long retakeAfter(final GateWindow gate, final MirrorCapture capture)
+    {
+        // The box, not the depth drawn: a fill cut to fit cost as much as one that was not.
+        final int full = fullDepthOf(gate);
+        return ((full > gate.depth()) && MirrorCaptures.reaches(capture, gate.destination(), full))
+            ? GATE_FILL_CAPTURE_SECONDS : GATE_CAPTURE_SECONDS;
     }
 
     /**

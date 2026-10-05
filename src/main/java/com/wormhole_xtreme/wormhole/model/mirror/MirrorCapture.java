@@ -15,6 +15,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -588,6 +590,33 @@ public final class MirrorCapture
          */
         static final double[] STAGGER = { 0.7548776662466927, 0.5698402909980532 };
 
+        /** Asked before each start point's rays whether the capture is still wanted; never stopped unless set. */
+        private BooleanSupplier stopped = () -> false;
+
+        /**
+         * Has the sift give up between one start point's rays and the next once a capture is no longer
+         * wanted, by throwing {@link CancellationException}.
+         *
+         * <p>A gate's sift over open sky runs a minute and a half. A gate removed, or the plugin disabled,
+         * left it computing all that time for nobody; a /reload, in the old classloader.
+         *
+         * @param stop
+         *            true once the capture is not wanted
+         */
+        public void stopWhen(final BooleanSupplier stop)
+        {
+            stopped = stop;
+        }
+
+        /** Gives up the sift if nobody wants the capture any more. */
+        private void stopIfUnwanted()
+        {
+            if (stopped.getAsBoolean())
+            {
+                throw new CancellationException("the capture is no longer wanted");
+            }
+        }
+
         /** How far into its first step a mirror's every grid of directions starts: half a step, as it always has. */
         static final double MIRROR_SHIFT = 0.5;
 
@@ -733,6 +762,7 @@ public final class MirrorCapture
                 final double across = centre + (column * spacing);
                 for (double up = rise / 2; up < from.height(); up += rise)
                 {
+                    stopIfUnwanted();
                     point++;
                     final double shiftAcross = shiftFor(from, point, 0);
                     final double shiftUp = shiftFor(from, point, 1);

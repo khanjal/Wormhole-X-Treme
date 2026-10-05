@@ -17,7 +17,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
@@ -284,10 +286,60 @@ class MirrorWindowsGateTest
     /** A capture of the far side as though taken two minutes ago, reaching {@code ahead} blocks past the arrival. */
     private static MirrorCapture oldCapture(final int ahead)
     {
+        return oldCapture(ahead, 120);
+    }
+
+    /** A capture of the far side as though taken {@code seconds} ago, reaching {@code ahead} blocks past the arrival. */
+    private static MirrorCapture oldCapture(final int ahead, final int seconds)
+    {
         final BlockData air = mock(BlockData.class);
         when(air.getAsString()).thenReturn("minecraft:air");
         return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(80, 60, 199, 41, 20, ahead + 2), air)
-            .build(System.currentTimeMillis() - 120_000L);
+            .build(System.currentTimeMillis() - (seconds * 1000L));
+    }
+
+    /** Opens the gate with a capture installed, and counts the captures asked for, by depth. */
+    private Map<Integer, Integer> askedAsItOpens(final MirrorCapture held)
+    {
+        final Map<Integer, Integer> asked = new HashMap<>();
+        MirrorCaptures.install(key(), held);
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+        {
+            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+                anyInt(), anyInt())).thenAnswer(call ->
+                {
+                    asked.merge(call.getArgument(5), 1, Integer::sum);
+                    return true;
+                });
+            assertTrue(MirrorWindows.offerGate(gate, true), "drawn from the capture it has meanwhile");
+        }
+        return asked;
+    }
+
+    /**
+     * A capture holding the fill is not retaken as the gate opens until it is ten minutes old.
+     *
+     * <p>Retaken once a minute old, a gate over open ground dialled every two minutes kept a core
+     * sifting -- a minute and a half a fill over open sky -- for as long as it was used.
+     */
+    @Test
+    void aFilledCaptureIsRetakenAsTheGateOpensOnlyOnceTenMinutesOld()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+
+        assertEquals(Map.of(), askedAsItOpens(oldCapture(60, 300)), "five minutes old: drawn as it is");
+        MirrorCaptures.clear();
+        assertEquals(Map.of(48, 1), askedAsItOpens(oldCapture(60, 660)), "eleven minutes old: retaken, at the depth drawn");
+    }
+
+    /** A capture of the first step alone is still retaken as the gate opens once a minute old: it costs seconds. */
+    @Test
+    void aFirstStepCaptureIsRetakenAsTheGateOpensOnceAMinuteOld()
+    {
+        assertEquals(Map.of(), askedAsItOpens(oldCapture(20, 30)), "half a minute old: drawn as it is");
+        MirrorCaptures.clear();
+        assertEquals(Map.of(16, 1), askedAsItOpens(oldCapture(20, 120)), "two minutes old: retaken");
     }
 
     /**
@@ -302,7 +354,7 @@ class MirrorWindowsGateTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
         final String key = key();
-        MirrorCaptures.install(key, oldCapture(60));
+        MirrorCaptures.install(key, oldCapture(60, 660));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
         {

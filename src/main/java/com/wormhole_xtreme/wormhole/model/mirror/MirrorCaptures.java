@@ -3,8 +3,10 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -211,6 +213,20 @@ public final class MirrorCaptures
 
     /** How long a gate capture that failed waits before it is tried again. */
     static final long GATE_RETRY_MILLIS = 300_000L;
+
+    /**
+     * Gate captures waiting their turn to be sifted, oldest first (#516).
+     *
+     * <p>A gate's sift is some fifteen million rays, and over open sky a minute and a half of one core.
+     * Run as they came, a hub of gates dialled at once was that many cores at once, and on a server of
+     * two or four the main thread starved. They take turns instead: one at a time, since even one is
+     * a core for a minute, and a second would be half the cores of a small server. A mirror's, a
+     * second or so, goes on as it always did and never waits behind a gate's.
+     */
+    private static final Deque<Job> GATE_SIFTS = new ArrayDeque<>();
+
+    /** The gate capture being sifted now, or null. */
+    private static Job gateSifting;
 
     /** Bumped whenever a capture arrives or changes, so every view knows to look again. */
     private static int generation;
@@ -448,6 +464,8 @@ public final class MirrorCaptures
         {
             job.done = true;
             job.cancel();
+            // Its sift stops at its next start point; the next gate's need not wait for that.
+            finishedSifting(job);
         }
         LOADED.remove(key);
         ABSENT.add(key);
@@ -798,17 +816,54 @@ public final class MirrorCaptures
         generation++;
     }
 
+    /** @return how many gate captures are waiting for their turn to be sifted */
+    static int gateSiftsWaiting()
+    {
+        return GATE_SIFTS.size();
+    }
+
+    /**
+     * Starts the next gate sift waiting, if none is running: the oldest whose capture is still wanted.
+     *
+     * <p>One forgotten while it waited is dropped, as is one whose key has been asked for again
+     * since, which a newer job holds.
+     */
+    private static void nextGateSift()
+    {
+        while ((gateSifting == null) && !GATE_SIFTS.isEmpty())
+        {
+            final Job next = GATE_SIFTS.poll();
+            if (!next.done && (JOBS.get(next.key) == next))
+            {
+                gateSifting = next;
+                next.launch();
+            }
+        }
+    }
+
+    /** Lets the next gate sift go, if this job's was the one running. */
+    private static void finishedSifting(final Job job)
+    {
+        if (gateSifting == job)
+        {
+            gateSifting = null;
+            nextGateSift();
+        }
+    }
+
     /** @return how many captures are being taken right now */
     static int taking()
     {
         return JOBS.size();
     }
 
-    /** Forgets everything in memory, for a test or a reload. Files stay. */
+    /** Forgets everything in memory, for a test, a reload or the plugin stopping; a sift in progress stops. Files stay. */
     public static void clear()
     {
         JOBS.values().forEach(Job::cancel);
         JOBS.clear();
+        GATE_SIFTS.clear();
+        gateSifting = null;
         LOADED.clear();
         ABSENT.clear();
         WARNED.clear();
@@ -950,6 +1005,10 @@ public final class MirrorCaptures
         private boolean noting = true;
         private boolean sifting;
         private boolean done;
+        /** Set once nobody wants this capture, which its sift checks between start points. */
+        private volatile boolean cancelled;
+        /** The sift, once the chunks are noted, waiting its turn if it is a gate's. */
+        private Runnable work;
         private BukkitTask task;
         /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
         private int reachAsked;
@@ -1118,7 +1177,22 @@ public final class MirrorCaptures
             // Under two million rays through a mirror's hole and some fifteen million through a
             // gate's, repeated for each cut to fit: seconds, and over open sky a minute or more. Off
             // the main thread, since the box is noted and nothing here reads the world again.
-            final Runnable work = () -> reachKept = sifter.sift(builder, arrival, depth, floor);
+            work = () -> reachKept = sifter.sift(builder, arrival, depth, floor);
+            if (key.startsWith(GATE_KEY))
+            {
+                GATE_SIFTS.add(this);
+                nextGateSift();
+            }
+            else
+            {
+                launch();
+            }
+        }
+
+        /** Hands the sift to the scheduler's pool, or runs it here where there is none. */
+        void launch()
+        {
+            builder.stopWhen(() -> cancelled);
             try
             {
                 WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(),
@@ -1152,16 +1226,39 @@ public final class MirrorCaptures
             }
             finally
             {
-                final Throwable failure = why;
-                onMain.accept(sifted ? this::again : () -> giveUp(failure));
+                handBack(sifted, why, onMain);
             }
         }
 
-        /** Reads the chunks again for the blocks the sift kept. */
+        /**
+         * Hands the main thread the job's next step, unless nobody wants it any more.
+         *
+         * <p>A job forgotten or cleared has given up its turn already. The plugin stopping while a sift
+         * ran left the main thread refusing the hand-back, and the refusal was thrown on the pool's
+         * thread as a SEVERE error; there is nothing left to hand back to.
+         */
+        private void handBack(final boolean sifted, final Throwable failure, final Consumer<Runnable> onMain)
+        {
+            if (cancelled)
+            {
+                return;
+            }
+            try
+            {
+                onMain.accept(sifted ? this::again : () -> giveUp(failure));
+            }
+            catch (final RuntimeException stopping)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "A capture finished as the plugin stopped", stopping);
+            }
+        }
+
+        /** Reads the chunks again for the blocks the sift kept, and lets the next gate sift go. */
         private void again()
         {
             next = 0;
             sifting = false;
+            finishedSifting(this);
         }
 
         /** Drops a job whose sift failed, so the next look at the mirror starts a fresh one. */
@@ -1169,6 +1266,7 @@ public final class MirrorCaptures
         {
             done = true;
             cancel();
+            finishedSifting(this);
             // A job forgotten while it sifted says nothing, or it would hide its successor's failure.
             if (!JOBS.remove(key, this))
             {
@@ -1210,6 +1308,7 @@ public final class MirrorCaptures
 
         void cancel()
         {
+            cancelled = true;
             if (task != null)
             {
                 task.cancel();

@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -187,6 +188,30 @@ class MirrorCaptureTest
         }
         assertTrue(missed.isEmpty(), missed.size() + " floor blocks left to this world, e.g. "
             + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /**
+     * A sift asks whether it is still wanted before each start point's rays, and stops when it is not.
+     *
+     * <p>A gate's sift over open sky runs a minute and a half; forgotten, or with the plugin stopped,
+     * it ran to the end for nobody.
+     */
+    @Test
+    void aSiftNoLongerWantedStopsAtItsNextStartPoint()
+    {
+        final int[] asked = { 0 };
+        final MirrorCapture.Builder wanted = floorAndWall(20, 12);
+        wanted.stopWhen(() -> (++asked[0]) < 0);
+        wanted.keepOnlySeen(new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18), 16);
+        assertEquals(90, asked[0], "asked once a start point, not once a ray");
+
+        asked[0] = 0;
+        final MirrorCapture.Builder forgotten = floorAndWall(20, 12);
+        forgotten.stopWhen(() -> (++asked[0]) > 3);
+
+        assertThrows(CancellationException.class,
+            () -> forgotten.keepOnlySeenWithin(new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18), 16, 8, 1));
+        assertEquals(4, asked[0], "stopped at the first start point after it was forgotten");
     }
 
     /** Notes a block that should be the far side's stone but was not kept. */

@@ -255,7 +255,7 @@ class GateViewsTest
 
     /**
      * The shipped shapes, read by the plugin's own shape reader and laid out as a gate is built:
-     * Standard, Large, Grand and Massive are framed, and Minimal is not.
+     * Standard, Large, Grand and Massive are framed, and Minimal is not; each sign-dial shape as its own.
      *
      * <p>The docs say which gates show a view, and why Minimal does not, from these files. A shape
      * edited so its ring no longer closes the opening, or Minimal given a frame, should say so here
@@ -267,7 +267,8 @@ class GateViewsTest
         PluginTestSupport.install(mock(WormholeXTreme.class));
         try
         {
-            for (final String name : new String[] { "Standard", "Large", "Grand", "Massive", "Minimal" })
+            for (final String name : new String[] { "Standard", "StandardSignDial", "Large", "Grand", "Massive", "Minimal",
+                "MinimalSignDial" })
             {
                 final Stargate3DShape shape = new Stargate3DShape(
                     Files.readAllLines(Paths.get("src/main/resources/shapes/gate", name + ".shape")).toArray(new String[0]));
@@ -283,7 +284,7 @@ class GateViewsTest
 
                 final boolean framed = GateViews.framed(cells, frame, new Spot(1, 0, 0));
 
-                assertEquals(!"Minimal".equals(name), framed, name);
+                assertEquals(!name.startsWith("Minimal"), framed, name);
                 assertEquals(framed, GateViews.shapeOf(BlockFace.SOUTH, cells, frame, ARRIVAL) != null,
                     name + " shows a view exactly when it is framed: it fits the capture's opening");
             }

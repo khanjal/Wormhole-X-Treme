@@ -631,8 +631,8 @@ opening is the gate's to draw, so the view leaves it alone. A traveller is sent 
 enter the opening, so they should never reach the drawn room behind; that is still to be
 watched for in a world, at speed and on a mount.
 
-**Which gates show a view.** Standard, Large, Grand and Massive, through the whole of their
-opening, which clears whole at `open`. Not Minimal: its two portal cells stand on one frame block,
+**Which gates show a view.** Standard (and StandardSignDial), Large, Grand and Massive, through
+the whole of their opening, which clears whole at `open`. Not Minimal or MinimalSignDial: its two portal cells stand on one frame block,
 open to the air beside and above, and nothing but the ring hides a view's edges as one walks round
 a freestanding gate, so the far side would hang in the air beside it. The rule reads the gate's own
 blocks, not its shape's name: every portal cell needs opening or frame beside it, above and below,
@@ -681,7 +681,10 @@ viewer at a capped view costs a quarter of the main thread at most, the rule tha
 mirror's view, whose cap is a quarter of a gate's. The views the facility drew held four to eight thousand blocks and
 redrew in 12 to 25 ms. Whether a viewer can see into the opening at all tries at most 64 lines of
 sight, spread over it: all 274 of a Grand gate's, every one blocked by a wall in front, took some
-80 ms a redraw. What a view holds does not depend on the gate dialling it: it is the capture
+80 ms a redraw. The price is a narrow gap: through a one-block peephole in a wall before a gate,
+a viewer is drawn the view only if the hole lines up with one of the lines tried, about one in five
+for a Grand gate's opening. At `open` the horizon is already clear for everybody, so a viewer the
+lines miss sees through an empty ring. What a view holds does not depend on the gate dialling it: it is the capture
 within the depth, the same capture for every gate.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
@@ -694,7 +697,10 @@ is deleted as its gate is next refreshed. So it is there after a restart, and a 
 once rather than after its far side has been read off the disk. Removing a gate deletes its
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
-- **as a gate is dialled or opens**, or its iris opens, once it is a minute old. The dial is the
+- **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the
+  first step, and ten minutes old if it holds the fill: a fill is the whole cut-to-fit loop, over open
+  sky a minute and a half of a core, and a gate dialled every two minutes kept one sifting for as
+  long as it was used. The dial is the
   first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in. A sign
   dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
   still shows the horizon until it is read;
@@ -705,8 +711,19 @@ captures; a refresh that hands a gate back keeps them. It is taken again:
 - **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
 
 The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
-The dial's ask needs somebody near the dialling gate, as the view itself does, so a gate dialled
-by redstone with nobody about waits for the first sweep with somebody there.
+The dial's ask needs somebody within `mirror-proximity-distance` of the middle of the dialling
+gate's opening, as the view itself does: for a Massive gate that middle is eight blocks up, so a
+dialler more than about fourteen blocks out in front is too far. It is not wider than the drawing's
+reach on purpose: a capture for somebody who will not be drawn it would only hold back the gate
+captures queued behind it. A gate dialled by redstone with nobody about waits for the first sweep
+with somebody there.
+
+**Gate captures take turns.** A gate's sift is a core for seconds, over open sky for a minute and a
+half, so they run one at a time, oldest first: a hub of gates dialled at once was that many cores
+at once, and on a server of two or four the main thread starved. One whose gate is removed while
+it waits is dropped; one removed while it runs stops at its next start point, as every sift does
+when the plugin stops, and lets the next go at once. A mirror's, a second or so, never waits
+behind a gate's.
 
 **A gate's view comes in two steps.** The first reaches `gate-view-depth`, 32 by default against a
 mirror's 160: at a mirror's depth the box round a far gate nobody had loaded was some 230 chunks,
