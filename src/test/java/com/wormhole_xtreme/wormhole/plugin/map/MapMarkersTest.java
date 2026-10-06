@@ -188,6 +188,7 @@ class MapMarkersTest
         MapMarkers.setPluginClassForTest("Dynmap", null);
         MapMarkers.setPluginClassForTest("BlueMap", null);
         MapMarkers.setPluginClassForTest("squaremap", null);
+        MapMarkers.setPluginClassForTest("Pl3xMap", null);
         BeamManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.scheduler(null);
@@ -890,6 +891,23 @@ class MapMarkersTest
         assertFalse(MapMarkers.providers().get(0).ready());
         verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
         verify(logger).prettyLog(Level.FINE, "Waiting for squaremap to be ready.");
+    }
+
+    @Test
+    void aServerWithoutPl3xMapIsToldOnceAndOtherwiseLeftAlone()
+    {
+        // Pl3xMap's jar is its API, and it carries classes of its own that a server without it
+        // must never be asked to load.
+        MapMarkers.setProviderForTest(null);
+        MapMarkers.setPluginClassForTest("Pl3xMap", "net.pl3x.map.core.NotInstalled");
+        ConfigTestSupport.set(ConfigKeys.PL3XMAP_ENABLED, true);
+
+        MapMarkers.enable(plugin);
+
+        assertFalse(MapMarkers.isRunning());
+        verifyNoInteractions(scheduler);
+        verify(logger).prettyLog(Level.WARNING,
+            "pl3xmap-enabled is set but Pl3xMap was not found. Nothing is shown on a map.");
     }
 
     @Test

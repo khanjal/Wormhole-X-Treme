@@ -382,6 +382,19 @@
 			Provided, and only named from plugin/map/SquaremapMapProvider. Without its Adventure,
 			which would otherwise win over Paper's own in the Paper builds.
 		-->
+		<!--
+			Pl3xMap (#532) has no API artifact: the plugin jar is its API, from Modrinth's Maven.
+			Built per Minecraft version; 1.20.4-492 is the newest that is Java 17 class files, and
+			the classes used are the same in the 1.21.11 and 26.1.2 builds, which only add to them.
+			Provided, and only named from plugin/map/Pl3xMapMapProvider. The jar carries its own
+			Adventure, unrelocated, so the Paper builds leave it off the test classpath (below).
+		-->
+		<dependency>
+			<groupId>maven.modrinth</groupId>
+			<artifactId>pl3xmap</artifactId>
+			<version>1.20.4-492</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>xyz.jpenilla</groupId>
 			<artifactId>squaremap-api</artifactId>
@@ -444,6 +457,31 @@
 					<scope>provided</scope>
 				</dependency>
 			</dependencies>
+			<build>
+				<plugins>
+					<!-- Pl3xMap's tests (#532) need its jar, which the Paper builds keep off the test
+					     classpath; listing a class whose types are missing fails the whole run. -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>3.6.1</version>
+						<executions>
+							<execution>
+								<id>add-pl3xmap-tests</id>
+								<phase>generate-test-sources</phase>
+								<goals>
+									<goal>add-test-source</goal>
+								</goals>
+								<configuration>
+									<sources>
+										<source>src/pl3xmap/java</source>
+									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 
 		<!-- CI only: proves the methods reached reflectively are really on Paper's API
@@ -489,6 +527,11 @@
 								<server.api>paper</server.api>
 								<paper.api.version>${paper.api.version}</paper.api.version>
 							</systemPropertyVariables>
+							<!-- Pl3xMap's jar carries an older Adventure, unrelocated, which would shadow
+							     Paper's; its tests skip without it. -->
+							<classpathDependencyExcludes>
+								<classpathDependencyExclude>maven.modrinth:pl3xmap</classpathDependencyExclude>
+							</classpathDependencyExcludes>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -647,6 +690,10 @@
 		<repository>
 			<id>bluecolored-repo</id>
 			<url>https://repo.bluecolored.de/releases</url>
+		</repository>
+		<repository>
+			<id>modrinth-repo</id>
+			<url>https://api.modrinth.com/maven</url>
 		</repository>
 	</repositories>
 </project>
