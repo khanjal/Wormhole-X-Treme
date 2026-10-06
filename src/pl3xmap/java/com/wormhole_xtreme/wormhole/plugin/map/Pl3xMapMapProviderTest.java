@@ -243,6 +243,35 @@ class Pl3xMapMapProviderTest
     }
 
     @Test
+    void aWorldLoadedLaterIsFoundMissingItsLayersAndThenGetsThem()
+    {
+        world("world");
+        provider.register();
+        provider.apply(picture(gate("Abydos", "world")));
+
+        final Registry<Layer> later = world("later");
+
+        assertTrue(provider.lost(), "a world with none of our layers, though every icon is there");
+        provider.apply(picture(gate("Abydos", "world"), gate("New", "later")));
+        assertFalse(provider.lost());
+        assertNotNull(marker(later, MapText.GATES, "gate:new"));
+    }
+
+    @Test
+    void anIconPl3xMapForgotIsFoundMissingAndGivenBack()
+    {
+        world("world");
+        provider.register();
+        provider.apply(picture(gate("Abydos", "world")));
+
+        icons.remove("wormhole_mirror");
+
+        assertTrue(provider.lost(), "one icon gone, though every world has its layers");
+        provider.apply(picture(gate("Abydos", "world")));
+        assertTrue(icons.contains("wormhole_mirror"));
+    }
+
+    @Test
     void aPointWhoseIconPl3xMapRefusedIsLeftOutAndTheRestDrawn()
     {
         // Pl3xMap throws on an icon marker whose image it does not have, which would lose the
