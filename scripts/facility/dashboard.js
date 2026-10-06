@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 // A dashboard for the facility's labs: each lab's live console (streamed from its
-// logs/latest.log) with a command box, and its Dynmap, in one browser page. Listens on 127.0.0.1 only.
+// logs/latest.log) with a command box, and its web maps (Dynmap, BlueMap, squaremap, Pl3xMap, one
+// at a time behind a switch), in one browser page. Listens on 127.0.0.1 only.
 //
 //   node scripts/facility/dashboard.js            http://127.0.0.1:8200
 //   node scripts/facility/dashboard.js --port 8300
@@ -16,6 +17,9 @@ const http = require('http');
 const net = require('net');
 const path = require('path');
 
+const maps = require('./lib/maps');
+const companions = require('./lib/companions');
+
 const SERVERS = path.join(__dirname, '..', '..', '.local-server');
 
 /** A lab's log file, or null when it has none (yet). */
@@ -24,27 +28,50 @@ function logOf(folder) {
 }
 
 /**
- * Every lab folder that has a logs folder, in name order so the tabs stay put; its Dynmap URL when
- * Dynmap is installed there. The logs folder outlives latest.log's rename at a restart.
+ * Every lab folder that has a logs folder, in name order so the tabs stay put, with its maps
+ * (lib/maps.js labMaps): each one installed there at the address its own settings give, or why
+ * not. The logs folder outlives latest.log's rename at a restart.
  */
-function findLabs() {
+function findLabs(root = SERVERS) {
   let names = [];
-  try { names = fs.readdirSync(SERVERS); } catch { return []; }
+  try { names = fs.readdirSync(root); } catch { return []; }
   return names
     .map((n) => ({ n, m: /^facility-(.+?)(?:-(\d+))?$/.exec(n) }))
-    .filter(({ n, m }) => m && fs.existsSync(path.join(SERVERS, n, 'logs')))
+    .filter(({ n, m }) => m && fs.existsSync(path.join(root, n, 'logs')))
     .sort((x, y) => x.n.localeCompare(y.n))
     .map(({ n, m }) => {
-      const folder = path.join(SERVERS, n);
-      let map = null;
-      try {
-        const conf = fs.readFileSync(path.join(folder, 'plugins', 'dynmap', 'configuration.txt'), 'utf8');
-        const port = /^webserver-port:\s*(\d+)/m.exec(conf);
-        // Dynmap binds 127.0.0.1 only; a browser can take localhost to ::1 and be refused.
-        if (port) map = `http://127.0.0.1:${port[1]}/`;
-      } catch { /* no Dynmap here */ }
-      return { id: n.replace(/\W/g, '_'), name: `${m[1]} · :${m[2] || 25590}`, folder, map };
+      const folder = path.join(root, n);
+      return { id: n.replace(/\W/g, '_'), name: `${m[1]} · :${m[2] || 25590}`, version: m[1], folder, maps: mapsOf(folder, m[1]) };
     });
+}
+
+/** A lab's maps, for the page: { name, label, installed, url, why, state, detail }. */
+function mapsOf(folder, version) {
+  try {
+    return maps.labMaps(folder, version, { pick: (name, v) => companions.pick(name, v) });
+  } catch (e) {
+    return maps.NAMES.map((name) => ({ name, label: maps.MAPS[name].label, installed: false, url: null, why: `cannot read this lab's maps: ${e.message}` }));
+  }
+}
+
+/** Whether something listens on 127.0.0.1:`port`, within `ms`. */
+function answers(port, ms = 1500) {
+  return new Promise((resolve) => {
+    const sock = net.connect({ host: '127.0.0.1', port });
+    const done = (ok) => { sock.destroy(); resolve(ok); };
+    sock.setTimeout(ms, () => done(false));
+    sock.on('connect', () => done(true));
+    sock.on('error', () => done(false));
+  });
+}
+
+/** GET /maps?lab=: the lab's maps now, each installed one with whether its port answers. */
+async function mapState(lab) {
+  const list = mapsOf(lab.folder, lab.version);
+  for (const m of list) {
+    if (m.installed && m.url) m.answers = await answers(Number(new URL(m.url).port));
+  }
+  return list;
 }
 
 const BACKLOG = 400;
@@ -292,7 +319,10 @@ pre{flex:1;margin:0;overflow:auto;padding:8px 12px;font:12.5px/1.45 ui-monospace
 .cmd input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 8px;border-radius:6px;font:12.5px ui-monospace,Consolas,monospace}
 .cmd button{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font:inherit}
 iframe{flex:1;border:0;width:100%;background:#fff}
+[hidden]{display:none!important}
 .empty{padding:24px;color:var(--dim)}
+.note{padding:6px 12px;border-bottom:1px solid var(--line);color:var(--warn)}
+.bar select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:3px 6px;border-radius:6px;font:inherit}
 </style></head><body>
 <header><h1>Lab Dashboard</h1><div id="tabs" style="display:flex;gap:4px;flex-wrap:wrap"></div></header>
 <main id="views"></main>
@@ -303,7 +333,7 @@ function show(id){const was=views.querySelector('.view.on');
   for(const b of tabs.children)b.classList.toggle('on',b.dataset.v===id);
   for(const v of views.children)v.classList.toggle('on',v.id===id);
   // A map loaded before its lab served stays blank: reload it on coming from another tab, not when already on it.
-  const f=document.getElementById(id).querySelector('iframe');if(f&&was&&was.id!==id)f.src=f.src;
+  const f=document.getElementById(id).querySelector('iframe');if(f&&f.getAttribute('src')&&was&&was.id!==id)f.src=f.src;
   const shown=document.getElementById(id);if(shown.onShow)shown.onShow();
   try{localStorage.setItem('wxdash.tab',id)}catch{}}
 function addTab(id,label){const b=document.createElement('button');b.className='tab';b.dataset.v=id;b.textContent=label;
@@ -334,6 +364,8 @@ for(const lab of LABS){
     'Created custom bossbar','Custom bossbar','^Removed custom bossbar','^Played sound','^Displaying particle',
     '^Set \\\\[wx','^Enabled trigger','^Reset .* for','^Set .* for .* to \\\\d+','Made \\\\S+ a server operator',
     '^Removed \\\\d+ item','Showing new title','^Set the difficulty','Thread RCON Client',
+    // Pl3xMap's status, which the launcher asks for every 2 s while it renders.
+    'Pl3xMap Status','^Renderers are idle$','^-{40,}$',
   ].join('|'));
   const hidden=(t)=>(q.value&&!t.toLowerCase().includes(q.value.toLowerCase()))||(wxonly.checked&&!/WormholeXTreme/.test(t))
     ||(quiet.checked&&noise.test(t.replace(/^\\[[^\\]]*\\] \\[[^\\]]*\\]: /,'')));
@@ -377,15 +409,49 @@ for(const lab of LABS){
   es.addEventListener('status',(m)=>{const s=JSON.parse(m.data);st.textContent=s;dot.classList.toggle('live',s==='live')});
   es.onerror=()=>{st.textContent='reconnecting…';dot.classList.remove('live')};
 }
+// One map tab a lab, with a switch between its maps: each installed one shown at its own address
+// (127.0.0.1, never localhost, which a browser can take to ::1), the others with why they are not.
+const STATES={starting:'starting',up:'up',rendering:'rendering',ready:'rendered',waiting:'waiting',failed:'failed',stopped:'stopped'};
 for(const lab of LABS){
-  const id='map-'+lab.id;addTab(id,'Dynmap '+lab.name);
+  const id='map-'+lab.id;addTab(id,'Maps '+lab.name);
   const v=document.createElement('section');v.className='view';v.id=id;
-  v.innerHTML=lab.map?'<div class="bar"><button class="reload" title="reload the map">↻</button>'
-    +'<a style="color:var(--accent)" target="_blank" href="'+lab.map+'">'+lab.map+'</a>'
-    +'<span>(blank if the lab is not running)</span></div><iframe loading="lazy" src="'+lab.map+'"></iframe>'
-    :'<div class="empty">No Dynmap on this lab. Start it with -With dynmap (no Dynmap build supports 26.x yet).</div>';
+  v.innerHTML='<div class="bar"><select class="pick" title="which map"></select>'
+    +'<button class="reload" title="reload the map">↻</button><a class="link" style="color:var(--accent)" target="_blank"></a>'
+    +'<span class="st"></span></div><div class="note" hidden></div><div class="empty" hidden></div><iframe hidden></iframe>';
   views.appendChild(v);
-  const f=v.querySelector('iframe');if(f)v.querySelector('.reload').onclick=()=>{f.src=f.src};
+  const pick=v.querySelector('.pick'),f=v.querySelector('iframe'),link=v.querySelector('.link'),st=v.querySelector('.st'),
+    note=v.querySelector('.note'),empty=v.querySelector('.empty'),key='wxdash.map.'+lab.id;
+  let list=lab.maps;
+  const fill=()=>{const was=pick.value;pick.textContent='';
+    for(const m of list){const o=document.createElement('option');o.value=m.name;
+      o.textContent=m.label+(m.installed?'':' (not installed)');pick.appendChild(o)}
+    if(was)pick.value=was};
+  fill();
+  let chosen=null;try{chosen=localStorage.getItem(key)}catch{}
+  if(!list.some((m)=>m.name===chosen))chosen=(list.find((m)=>m.installed)||list[0]||{}).name;
+  if(chosen)pick.value=chosen;
+  // What the page says about the chosen map: why it is missing, or its state over its own page.
+  const draw=(reload)=>{
+    const m=list.find((x)=>x.name===pick.value);if(!m)return;
+    const shown=m.installed&&m.url&&m.answers!==false;
+    link.hidden=!m.url;if(m.url){link.href=m.url;link.textContent=m.url}
+    empty.hidden=shown;f.hidden=!shown;
+    if(!m.installed)empty.textContent=m.label+' is not in this lab: '+m.why+'.';
+    else if(!m.url)empty.textContent=m.why+'.';
+    else if(m.answers===false)empty.textContent=m.label+' does not answer at '+m.url+(m.state==='waiting'?': '+m.detail:': is the lab running? (it is '+(STATES[m.state]||'not started')+')');
+    let msg='';
+    if(shown&&m.state==='rendering')msg=m.label+' is rendering the facility ('+m.detail+'): the map fills in as it goes.';
+    else if(shown&&m.state==='starting')msg=m.label+' is starting.';
+    else if(shown&&(m.state==='waiting'||m.state==='failed'))msg=m.detail;
+    note.hidden=!msg;note.textContent=msg;
+    st.textContent=m.installed?(STATES[m.state]||''):'';
+    if(shown&&(reload||f.dataset.src!==m.url)){f.dataset.src=m.url;f.src=m.url}};
+  pick.onchange=()=>{try{localStorage.setItem(key,pick.value)}catch{}draw(true)};
+  v.querySelector('.reload').onclick=()=>draw(true);
+  // A map loaded before its lab served stays blank: the tab reloads it on coming back (show()).
+  const poll=()=>fetch('/maps?lab='+lab.id).then((r)=>r.json()).then((j)=>{list=j;fill();draw(false)}).catch(()=>{});
+  v.onShow=()=>{poll();draw(false)};
+  setInterval(()=>{if(v.classList.contains('on'))poll()},5000);
 }
 if(!LABS.length)views.innerHTML='<div class="empty">No labs yet. Start one with scripts/facility/lab.ps1; this page picks it up once its server has written a log.</div>';
 else{let first='con-'+LABS[0].id;try{first=localStorage.getItem('wxdash.tab')||first}catch{}
@@ -397,7 +463,7 @@ setInterval(()=>fetch('/labs').then((r)=>r.json()).then((ids)=>{if(ids.sort().jo
 
 /** The labs as JSON that is safe inside an inline script. */
 function labsJson(labs) {
-  return JSON.stringify(labs.map(({ id, name, map }) => ({ id, name, map })))
+  return JSON.stringify(labs.map(({ id, name, maps: m }) => ({ id, name, maps: m })))
     .replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
@@ -417,6 +483,13 @@ const server = http.createServer((req, res) => {
     const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
     if (!lab) { res.writeHead(404); res.end(); return; }
     stream(lab, res);
+  } else if (url.pathname === '/maps') {
+    const lab = findLabs().find((l) => l.id === url.searchParams.get('lab'));
+    if (!lab) { res.writeHead(404); res.end(); return; }
+    mapState(lab).then((list) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(list));
+    }, (e) => { console.error(e); res.writeHead(500); res.end(); });
   } else if (url.pathname === '/command') {
     command(req, res).catch((e) => { console.error(e); if (!res.headersSent) { res.writeHead(500); res.end(); } });
   } else {
@@ -424,8 +497,14 @@ const server = http.createServer((req, res) => {
     res.end();
   }
 });
-server.on('error', (e) => {
-  console.error(e.code === 'EADDRINUSE' ? `Port ${PORT} is in use; is the dashboard already running? Try --port.` : e.message);
-  process.exit(1);
-});
-server.listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
+
+// Run, it serves; required (by a test), it only lends its lab finding.
+if (require.main === module) {
+  server.on('error', (e) => {
+    console.error(e.code === 'EADDRINUSE' ? `Port ${PORT} is in use; is the dashboard already running? Try --port.` : e.message);
+    process.exit(1);
+  });
+  server.listen(PORT, '127.0.0.1', () => console.log(`Lab Dashboard: http://127.0.0.1:${PORT}`));
+}
+
+module.exports = { findLabs, mapState, page };
