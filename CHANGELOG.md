@@ -10,6 +10,12 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ### Stargates
 
+**Added**
+
+- **A player coming out of a gate can be told where they are**: "Arrived at Abydos", in chat,
+  once, and not for their pets or mount. Off until `show-gate-welcome-message` is set; a
+  Settings.txt that had it on is named in the upgrade note. Rings, beams and mirrors say nothing.
+
 **Changed**
 
 - **The `pegasus` and `chevron` dial spins have swapped.** `pegasus`, which the Atlantis group

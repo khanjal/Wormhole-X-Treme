@@ -771,6 +771,7 @@ class WormholeXTremePlayerListener implements Listener
         GateFare.charge(player, fare);
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
+        GateWelcome.greet(player, stargate.getGateTarget());
         scheduleArrivalSettle(player, target, vehiclePathUsed);
 
         if (target != stargate.getGatePlayerTeleportLocation())
