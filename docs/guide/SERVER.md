@@ -20,6 +20,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [CoreProtect](#coreprotect)
 - [WorldGuard](#worldguard)
 - [Dynmap](#dynmap)
+- [BlueMap](#bluemap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -501,8 +502,33 @@ Which layers are drawn is set separately, and is shared by any web map this plug
 - The layers and markers are not saved into Dynmap's own marker file: they are rebuilt from the
   plugin's state each time, so a gate removed while Dynmap was down does not linger. Only the
   icons are kept by Dynmap, and they are refreshed each time the map starts.
-- Dynmap is the first map this talks to. Drawing sits behind a small seam of its own, so BlueMap or
-  squaremap can be added later without changing what is shown.
+- Dynmap was the first map this talked to. Each map plugin is drawn on by a small class of its own,
+  so the maps below show the same picture, and any of them can be switched on beside the others.
+
+## BlueMap
+
+Optional. With [BlueMap](https://bluemap.bluecolored.de) installed, the same gates, rings, public
+beam destinations and quantum mirrors are shown on its web map, each as a marker set a viewer can
+switch on and off, with the icons from the Dynmap table above.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `bluemap-enabled` | `false` | The BlueMap switch. Nothing is shown on BlueMap while this is off. |
+
+The layers are the `map-show-*` settings under [Dynmap](#dynmap), shared by every map: a layer
+switched off there is off on BlueMap too.
+
+- **Every map of a world** gets the marks. BlueMap can show one world more than once, flat and in
+  3D say, and each of them has the same sets.
+- **A gate's opening** is drawn as a box from the bottom of the opening to its top, so it stands
+  up in BlueMap's 3D view.
+- **`/bluemap reload`** throws away every marker a plugin made. They are drawn again as soon as
+  BlueMap is back, without waiting for anything on the server to change.
+- **The icons** are written into each map's own assets each time BlueMap starts. Where one cannot be
+  written, that map shows BlueMap's own marker icon instead.
+- **No BlueMap** means nothing happens; the log says so at startup, and again whenever a map setting
+  is changed. A BlueMap that is installed but did not start is reported the same way as Dynmap's.
+- Written against the API that BlueMap 5.3 to 5.28 ship, the same in each.
 
 ## Metrics
 

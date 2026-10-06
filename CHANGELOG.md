@@ -8,6 +8,15 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.10.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Gates, rings, public beam destinations and quantum mirrors show on
+  [BlueMap](https://bluemap.bluecolored.de)** too, on every map of each world, and come back by
+  themselves after a `/bluemap reload`. Off until `bluemap-enabled` is set; the `map-show-*` settings
+  choose the layers for every map. See [the guide](docs/guide/SERVER.md#bluemap).
+
 ### Stargates
 
 **Changed**
