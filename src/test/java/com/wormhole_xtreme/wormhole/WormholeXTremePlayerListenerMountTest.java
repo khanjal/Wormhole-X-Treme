@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -352,6 +353,39 @@ class WormholeXTremePlayerListenerMountTest
         {
             StargateRestrictions.removePlayerUseCooldown(rider);
             ConfigManager.setUseCooldownEnabled(false);
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /**
+     * A rider who comes through on a pig is greeted once, and the pig is not.
+     *
+     * <p>The pig and the rider are moved separately and the rider re-seated after, so there are
+     * two arrivals at the far end and only one of them is somebody to tell (#485).
+     */
+    @Test
+    void aRiderArrivingOnAMountIsGreetedOnceAndTheMountIsNot()
+    {
+        final World world = mock(World.class);
+        final Location arrival = gateAt(world, 110, 64, 70, "srcWelcome");
+        final Pig mount = pig();
+        final Player rider = riderNamed("welcomed");
+        final Paper1204Riding.Stack stack = Paper1204Riding.refusesWhileRidden(
+            mount, new Location(world, 110.5, 64, 70.5), rider);
+        runTasksAtOnce();
+        ConfigTestSupport.set(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, true);
+        try
+        {
+            new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider,
+                new Location(world, 110.5, 64, 68.5), new Location(world, 110.5, 64, 70.5)));
+
+            Assertions.assertEquals(arrival.getX(), stack.at().getX(), 0.001, "the pig must have gone through");
+            verify(rider, times(1)).sendMessage(ArgumentMatchers.anyString());
+            verify(rider).sendMessage(ArgumentMatchers.contains("Arrived at "));
+            verify(mount, never()).sendMessage(ArgumentMatchers.anyString());
+        }
+        finally
+        {
             ConfigTestSupport.clear();
         }
     }

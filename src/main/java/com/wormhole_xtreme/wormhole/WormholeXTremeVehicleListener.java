@@ -729,6 +729,10 @@ class WormholeXTremeVehicleListener implements Listener
             GateFare.charge(driver, GateFare.affordable(driver));
         }
         applyTravelRestrictions(st, pendingRestrictions);
+        for (final Entity passenger : passengers)
+        {
+            GateWelcome.greet(passenger, st.getGateTarget());
+        }
         return true;
     }
 
