@@ -93,6 +93,7 @@ class MapMarkersTest
         int registers = 0;
         int unregisters = 0;
         boolean up = true;
+        boolean lost = false;
         RuntimeException failRegister = null;
 
         Recorder()
@@ -125,6 +126,12 @@ class MapMarkersTest
         public void unregister()
         {
             unregisters++;
+        }
+
+        @Override
+        public boolean lost()
+        {
+            return lost;
         }
 
         @Override
@@ -180,6 +187,7 @@ class MapMarkersTest
         MapMarkers.setSourceForTest(null);
         MapMarkers.setPluginClassForTest("Dynmap", null);
         MapMarkers.setPluginClassForTest("BlueMap", null);
+        MapMarkers.setPluginClassForTest("squaremap", null);
         BeamManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.scheduler(null);
@@ -825,6 +833,63 @@ class MapMarkersTest
 
         verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
         verify(scheduler, never()).runTask(any(Plugin.class), any(Runnable.class));
+    }
+
+    @Test
+    void aMapThatDroppedOurLayersIsDrawnAgainThoughNothingChanged()
+    {
+        // squaremap and Pl3xMap say nothing when a world loads or /map reload empties one, so the
+        // periodic look asks them; without it the map would stay empty until a gate changed.
+        enable();
+        MapMarkers.tick();
+        runBackground();
+
+        map.lost = true;
+        MapMarkers.tick();
+
+        assertEquals(1, background.size(), "the same picture is drawn again");
+        runBackground();
+        assertEquals(List.of(showing, showing), map.applied);
+        map.lost = false;
+        MapMarkers.tick();
+        assertTrue(background.isEmpty(), "and only while something is missing");
+    }
+
+    @Test
+    void aMapThatIsDownIsNotAskedWhatItLost()
+    {
+        final Recorder down = new Recorder("Down map")
+        {
+            @Override
+            public boolean lost()
+            {
+                throw new AssertionError("a map that is not up has nothing to lose");
+            }
+        };
+        down.up = false;
+        MapMarkers.setProvidersForTest(List.of(down, map));
+        enable();
+
+        MapMarkers.tick();
+
+        assertEquals(1, background.size());
+    }
+
+    @Test
+    void squaremapIsLookedForAndLeftWaitingWhenItIsNotLoaded()
+    {
+        // The test classpath has squaremap's API but no squaremap running, as on a server where
+        // squaremap failed to start: the map runs, and nothing claims to be shown.
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.SQUAREMAP_ENABLED, true);
+
+        MapMarkers.enable(plugin);
+
+        assertTrue(MapMarkers.isRunning());
+        assertEquals("squaremap", MapMarkers.providers().get(0).name());
+        assertFalse(MapMarkers.providers().get(0).ready());
+        verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
+        verify(logger).prettyLog(Level.FINE, "Waiting for squaremap to be ready.");
     }
 
     @Test

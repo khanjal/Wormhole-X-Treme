@@ -81,7 +81,9 @@ public final class MapMarkers
         new Backend("Dynmap", "dynmap-enabled", "dynmap", "org.dynmap.DynmapCommonAPIListener",
             ConfigManager::isDynmapEnabled, (layers, ready) -> new DynmapMapProvider(layers, ready)),
         new Backend("BlueMap", "bluemap-enabled", "BlueMap", "de.bluecolored.bluemap.api.BlueMapAPI",
-            ConfigManager::isBlueMapEnabled, (layers, ready) -> new BlueMapMapProvider(layers, ready)));
+            ConfigManager::isBlueMapEnabled, (layers, ready) -> new BlueMapMapProvider(layers, ready)),
+        new Backend("squaremap", "squaremap-enabled", "squaremap", "xyz.jpenilla.squaremap.api.SquaremapProvider",
+            ConfigManager::isSquaremapEnabled, (layers, ready) -> new SquaremapMapProvider(layers, ready)));
 
     /** Guards drawing, so only one picture is drawn at a time. */
     private static final Object DRAWING = new Object();
@@ -536,7 +538,7 @@ public final class MapMarkers
             return;
         }
         scanWarned = false;
-        final boolean retry = redraw.getAndSet(false);
+        final boolean retry = redraw.getAndSet(false) | anyLost();
         if (!retry && now.equals(lastSeen))
         {
             return;
@@ -544,6 +546,29 @@ public final class MapMarkers
         lastSeen = now;
         latest.set(now);
         queueDraw();
+    }
+
+    /**
+     * Whether a map that is up has dropped something of ours without saying so.
+     *
+     * @return true if one has, or cannot tell
+     */
+    private static boolean anyLost()
+    {
+        boolean lost = false;
+        for (final MapProvider map : providers)
+        {
+            try
+            {
+                lost |= map.ready() && map.lost();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                // Drawn again, so a failure to look is reported by the draw rather than every five seconds here.
+                lost = true;
+            }
+        }
+        return lost;
     }
 
     /**

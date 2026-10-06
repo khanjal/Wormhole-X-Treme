@@ -16,6 +16,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   [BlueMap](https://bluemap.bluecolored.de)** too, on every map of each world, and come back by
   themselves after a `/bluemap reload`. Off until `bluemap-enabled` is set; the `map-show-*` settings
   choose the layers for every map. See [the guide](docs/guide/SERVER.md#bluemap).
+- **The same marks show on [squaremap](https://modrinth.com/plugin/squaremap)**, Paper's map, with
+  each world's layers kept on it as worlds load. Off until `squaremap-enabled` is set. See
+  [the guide](docs/guide/SERVER.md#squaremap).
 
 ### Stargates
 
