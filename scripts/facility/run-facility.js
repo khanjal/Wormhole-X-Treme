@@ -474,7 +474,7 @@ async function fanOut(args) {
   for (const v of versions) {
     if (!args.with) { withNames[v] = null; continue; }
     const { names, skipped } = companions.forVersion(args.with, v);
-    for (const s of skipped) console.log(`${v}: --with leaves out ${s.name}: ${s.why}`);
+    for (const s of skipped) console.log(`--with leaves out ${s.why}`);
     withNames[v] = names;
     await companionsFor(args, v, names);
     if (signals) return 130;
@@ -629,7 +629,7 @@ async function main() {
   let withNames = null;
   if (args.with) {
     const picked = companions.forVersion(args.with, version);
-    for (const s of picked.skipped) console.log(`--with leaves out ${s.name} on ${version}: ${s.why}`);
+    for (const s of picked.skipped) console.log(`--with leaves out ${s.why}`);
     withNames = picked.names;
   }
   const extras = withNames ? await companionsFor(args, version, withNames) : [];
