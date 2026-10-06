@@ -648,19 +648,19 @@ async function main() {
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
   // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
   // every interface when it is empty.
-  const extra = [];
-  if (!args.designOpen) extra.push('server-ip=127.0.0.1');
+  const props = [];
+  if (!args.designOpen) props.push('server-ip=127.0.0.1');
   // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
   // Design mode: nobody joins until the campus is generated.
-  if (args.design) extra.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
+  if (args.design) props.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
   // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
   // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
   const hold = !args.design && !args.selftest && !(args.shots && !args.viewer);
   const rcon = hold && rconPort(args.port) !== null;
-  if (rcon) extra.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
-  else extra.push('enable-rcon=false');
+  if (rcon) props.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
+  else props.push('enable-rcon=false');
   if (hold && !rcon) console.log(`The dashboard cannot send commands here: game port ${args.port} leaves no RCON port (port + 10000).`);
-  fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  fs.appendFileSync(path.join(folder, 'server.properties'), `${props.join('\n')}\n`);
   let channel = 'none';
   if (args.selftest) channel = 'selftest';
   else if (rcon) channel = 'starting';
