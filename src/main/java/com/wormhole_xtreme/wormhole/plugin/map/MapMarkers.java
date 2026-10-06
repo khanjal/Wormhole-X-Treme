@@ -1,7 +1,15 @@
 package com.wormhole_xtreme.wormhole.plugin.map;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -20,16 +28,17 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 
 /**
- * Keeps a web map showing the server's gates, rings, public beam destinations and quantum mirrors (#236).
+ * Keeps the web maps showing the server's gates, rings, public beam destinations and quantum mirrors (#236).
  *
  * <p>The main thread only looks: every few seconds, and on the tick after a gate is built,
  * removed, opened or shut, it builds a {@link MapSnapshot} from what is already in memory and
  * compares it with the last one. Only a changed picture is handed on, to one background task
- * at a time, which always draws the newest picture there is -- so a slow draw never lands an
- * older picture over a newer one, and changes that arrive while it runs are drawn together.
+ * at a time, which always draws the newest picture there is on every map that is up -- so a
+ * slow draw never lands an older picture over a newer one, and changes that arrive while it
+ * runs are drawn together.
  *
- * <p>Names no Dynmap type, so it loads on a server without Dynmap; {@link DynmapMapProvider}
- * is named only once Dynmap has been found.
+ * <p>Names no map plugin's types, so it loads on a server without any of them. Each provider is
+ * named only in a lambda that runs once that map plugin's own class has been found.
  */
 public final class MapMarkers
 {
@@ -42,11 +51,37 @@ public final class MapMarkers
     /** How many times a dialling gate is checked before the periodic look is left to it. */
     static final int FORMING_CHECKS = 20;
 
-    /** Dynmap's plugin name, as its plugin.yml gives it. */
-    private static final String DYNMAP_PLUGIN = "dynmap";
+    /**
+     * A map plugin this one can draw on.
+     *
+     * @param name
+     *            what the log calls it
+     * @param setting
+     *            the setting that turns it on, for the log
+     * @param pluginName
+     *            its name in its plugin.yml
+     * @param className
+     *            a class only it provides, looked for before its provider is named
+     * @param wanted
+     *            reads the setting
+     * @param make
+     *            builds its provider from the layers and the ready callback; run only once the
+     *            class has been found
+     */
+    private record Backend(String name, String setting, String pluginName, String className,
+        BooleanSupplier wanted, BiFunction<MapLayers, Consumer<MapProvider>, MapProvider> make)
+    {
+    }
 
-    /** A class only Dynmap provides. */
-    private static final String DYNMAP_CLASS = "org.dynmap.DynmapCommonAPIListener";
+    /**
+     * Every map plugin this one can draw on. Lambdas, not constructor references: a reference is
+     * linked when this class loads, which would load the provider and the map plugin with it.
+     */
+    private static final List<Backend> BACKENDS = List.of(
+        new Backend("Dynmap", "dynmap-enabled", "dynmap", "org.dynmap.DynmapCommonAPIListener",
+            ConfigManager::isDynmapEnabled, (layers, ready) -> new DynmapMapProvider(layers, ready)),
+        new Backend("BlueMap", "bluemap-enabled", "BlueMap", "de.bluecolored.bluemap.api.BlueMapAPI",
+            ConfigManager::isBlueMapEnabled, (layers, ready) -> new BlueMapMapProvider(layers, ready)));
 
     /** Guards drawing, so only one picture is drawn at a time. */
     private static final Object DRAWING = new Object();
@@ -60,16 +95,13 @@ public final class MapMarkers
     /** Whether a look on the next tick is already queued. */
     private static final AtomicBoolean lookQueued = new AtomicBoolean();
 
-    /** Whether the map is being kept up to date. */
+    /** Whether the maps are being kept up to date. */
     private static volatile boolean running = false;
 
-    /** The map being drawn on, while running. */
-    // An interface reference swapped whole: volatile is all the synchronisation it needs.
+    /** The maps being drawn on, while running. */
+    // An immutable list swapped whole: volatile is all the synchronisation it needs.
     @SuppressWarnings("java:S3077")
-    private static volatile MapProvider provider = null;
-
-    /** Undoes whatever the provider registered with its map plugin. Main thread only. */
-    private static Runnable detach = null;
+    private static volatile List<MapProvider> providers = List.of();
 
     /** The periodic look. Main thread only. */
     private static BukkitTask ticker = null;
@@ -86,20 +118,20 @@ public final class MapMarkers
     /** The last picture the main thread built. Main thread only. */
     private static MapSnapshot lastSeen = null;
 
-    /** Whether a failed draw has been reported, so a map that keeps failing does not flood the log. */
-    private static volatile boolean warned = false;
+    /** The maps whose failed draw has been reported, so a map that keeps failing does not flood the log. */
+    private static final Set<MapProvider> warned = ConcurrentHashMap.newKeySet();
 
     /** Whether a failed look has been reported. Main thread only. */
     private static boolean scanWarned = false;
 
-    /** Set when a draw failed, so the next look draws again even though nothing changed. */
+    /** Set when a draw failed or a map came up, so the next look draws again even though nothing changed. */
     private static final AtomicBoolean redraw = new AtomicBoolean();
 
-    /** Test seam: a provider to use instead of looking for Dynmap. */
-    private static MapProvider providerForTest = null;
+    /** Test seam: providers to use instead of looking for map plugins. */
+    private static List<MapProvider> providersForTest = null;
 
-    /** Test seam: the class looked for to decide Dynmap is present. */
-    private static String dynmapClass = DYNMAP_CLASS;
+    /** Test seam: the class looked for to decide a map plugin is present, by its name. */
+    private static final Map<String, String> classesForTest = new HashMap<>();
 
     /** Test seam: runs the background draw; null schedules it on Bukkit's async pool. */
     private static Consumer<Runnable> backgroundForTest = null;
@@ -113,7 +145,7 @@ public final class MapMarkers
     }
 
     /**
-     * Starts keeping the map up to date, if the config asks for it and a map plugin is there.
+     * Starts keeping the maps up to date, if the config asks for one and its plugin is there.
      *
      * <p>Called from {@code WormholeXTreme.onEnable} once gates, rings, beams and mirrors have loaded.
      *
@@ -122,40 +154,20 @@ public final class MapMarkers
      */
     public static void enable(final Plugin plugin)
     {
-        if (running || !ConfigManager.isDynmapEnabled())
+        if (running || !anyWanted())
         {
             return;
         }
         layers = MapLayers.fromConfig();
-        MapProvider chosen = providerForTest;
-        Runnable hook = null;
-        Runnable undo = () ->
+        final List<MapProvider> found = (providersForTest != null) ? providersForTest : findAll(plugin);
+        if (found.isEmpty())
         {
-        };
-        if (chosen == null)
-        {
-            try
-            {
-                Class.forName(dynmapClass);
-            }
-            catch (final ClassNotFoundException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.");
-                return;
-            }
-            warnIfInstalledButNotRunning(plugin);
-            // Only reached with Dynmap on the classpath, which is what makes naming its provider safe.
-            final DynmapMapProvider dynmap = new DynmapMapProvider(layers, MapMarkers::providerReady);
-            chosen = dynmap;
-            hook = dynmap::register;
-            undo = dynmap::unregister;
+            return;
         }
         owner = plugin;
-        provider = chosen;
-        detach = undo;
+        providers = List.copyOf(found);
         running = true;
-        warned = false;
+        warned.clear();
         scanWarned = false;
         redraw.set(false);
         try
@@ -163,45 +175,148 @@ public final class MapMarkers
             listener = new MapRefreshListener();
             plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             ticker = WormholeXTreme.getScheduler().runTaskTimer(plugin, MapMarkers::tick, 20L, PERIOD_TICKS);
-            // Before the hook: registering calls back at once when Dynmap is already up.
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Waiting for " + chosen.name() + " to be ready.");
-            // Last, and undone on failure: Dynmap's listener list is static, and a hook left in it
-            // would outlive this plugin's classloader.
-            if (hook != null)
-            {
-                hook.run();
-            }
         }
         catch (final RuntimeException | LinkageError e)
         {
             disable();
             throw e;
         }
-    }
-
-    /**
-     * Says so once if Dynmap is installed but did not start, which it reports in its own log.
-     *
-     * <p>Dynmap is a soft dependency, so it has enabled, or failed to, before this plugin
-     * enables. The hook is still registered: if Dynmap does start later, the map starts then.
-     *
-     * @param plugin
-     *            this plugin, for its server
-     */
-    private static void warnIfInstalledButNotRunning(final Plugin plugin)
-    {
-        final Plugin dynmap = plugin.getServer().getPluginManager().getPlugin(DYNMAP_PLUGIN);
-        if ((dynmap != null) && !dynmap.isEnabled())
+        // Last, each undone on failure: a map plugin's listener list can be static, and a hook
+        // left in it would outlive this plugin's classloader.
+        for (final MapProvider map : found)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "dynmap-enabled is set, but Dynmap is installed and not running (see its own startup"
-                    + " errors). Nothing is shown until it starts.");
+            register(map);
+        }
+        if (providers.isEmpty())
+        {
+            disable();
         }
     }
 
     /**
-     * Applies a changed map setting now: takes the map down and, if it is still wanted, puts it
-     * back up with the layers the config now asks for, looking for Dynmap again on the way.
+     * Looks for every map plugin that is switched on.
+     *
+     * @param plugin
+     *            this plugin, for its server
+     * @return a provider for each one found
+     */
+    private static List<MapProvider> findAll(final Plugin plugin)
+    {
+        final List<MapProvider> found = new ArrayList<>();
+        for (final Backend backend : BACKENDS)
+        {
+            final MapProvider map = backend.wanted().getAsBoolean() ? find(plugin, backend) : null;
+            if (map != null)
+            {
+                found.add(map);
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Looks for one map plugin and, if it is there, makes its provider.
+     *
+     * @param plugin
+     *            this plugin, for its server
+     * @param backend
+     *            the map plugin
+     * @return the provider, or null if the map plugin is missing or its provider could not be made
+     */
+    private static MapProvider find(final Plugin plugin, final Backend backend)
+    {
+        try
+        {
+            Class.forName(classesForTest.getOrDefault(backend.name(), backend.className()));
+        }
+        catch (final ClassNotFoundException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                backend.setting() + " is set but " + backend.name() + " was not found. Nothing is shown on a map.");
+            return null;
+        }
+        warnIfInstalledButNotRunning(plugin, backend);
+        try
+        {
+            // Only reached with the map plugin on the classpath, which is what makes naming its provider safe.
+            return backend.make().apply(layers, MapMarkers::providerReady);
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Failed to start the " + backend.name() + " markers; nothing is shown on it", e);
+            return null;
+        }
+    }
+
+    /**
+     * Starts one map listening to its plugin. One that fails is dropped, so the others still show.
+     *
+     * @param map
+     *            the map
+     */
+    private static void register(final MapProvider map)
+    {
+        // Before the hook: registering calls back at once when the map is already up.
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Waiting for " + map.name() + " to be ready.");
+        try
+        {
+            map.register();
+        }
+        catch (final RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Failed to start the " + map.name() + " markers; nothing is shown on it", e);
+            final List<MapProvider> rest = new ArrayList<>(providers);
+            rest.remove(map);
+            providers = List.copyOf(rest);
+            unregister(map);
+        }
+    }
+
+    /**
+     * Says so once if a map plugin is installed but did not start, which it reports in its own log.
+     *
+     * <p>Map plugins are soft dependencies, so one has enabled, or failed to, before this plugin
+     * enables. The hook is still registered: if the map plugin does start later, the map starts then.
+     *
+     * @param plugin
+     *            this plugin, for its server
+     * @param backend
+     *            the map plugin
+     */
+    private static void warnIfInstalledButNotRunning(final Plugin plugin, final Backend backend)
+    {
+        final Plugin installed = plugin.getServer().getPluginManager().getPlugin(backend.pluginName());
+        if ((installed != null) && !installed.isEnabled())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                backend.setting() + " is set, but " + backend.name() + " is installed and not running (see its"
+                    + " own startup errors). Nothing is shown until it starts.");
+        }
+    }
+
+    /**
+     * Whether any map is switched on.
+     *
+     * @return true if a map's setting is set
+     */
+    private static boolean anyWanted()
+    {
+        for (final Backend backend : BACKENDS)
+        {
+            if (backend.wanted().getAsBoolean())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Applies a changed map setting now: takes the maps down and, if one is still wanted, puts
+     * them back up with the layers the config now asks for, looking for the map plugins again on
+     * the way.
      *
      * <p>Called from {@code /wormhole config}, on the main thread.
      */
@@ -211,14 +326,14 @@ public final class MapMarkers
         {
             disable();
         }
-        if (ConfigManager.isDynmapEnabled())
+        if (anyWanted())
         {
             enable(WormholeXTreme.getThisPlugin());
         }
     }
 
     /**
-     * Stops keeping the map up to date and takes this plugin's marks off it.
+     * Stops keeping the maps up to date and takes this plugin's marks off them.
      *
      * <p>Called from {@code WormholeXTreme.onDisable}, and by {@link #followConfig()}. Clears on the main thread, because no
      * task can be scheduled while the plugin disables; it is a handful of deletions, after
@@ -237,24 +352,24 @@ public final class MapMarkers
             HandlerList.unregisterAll(listener);
             listener = null;
         }
-        final MapProvider was = provider;
-        final Runnable undo = detach;
-        provider = null;
-        detach = null;
+        final List<MapProvider> was = providers;
+        providers = List.of();
         synchronized (DRAWING)
         {
-            try
+            for (final MapProvider map : was)
             {
-                if (was != null)
+                try
                 {
-                    was.clear();
+                    map.clear();
                 }
-            }
-            finally
-            {
-                if (undo != null)
+                catch (final Exception | LinkageError e)
                 {
-                    undo.run();
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                        "Failed to take the markers off " + map.name(), e);
+                }
+                finally
+                {
+                    unregister(map);
                 }
             }
         }
@@ -267,9 +382,27 @@ public final class MapMarkers
     }
 
     /**
+     * Stops one map listening to its plugin, whatever happens.
+     *
+     * @param map
+     *            the map
+     */
+    private static void unregister(final MapProvider map)
+    {
+        try
+        {
+            map.unregister();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to stop listening to " + map.name(), e);
+        }
+    }
+
+    /**
      * Asks for a look on the next tick, rather than waiting for the periodic one.
      *
-     * <p>Called on the main thread by {@link MapRefreshListener}.
+     * <p>Called on the main thread by {@link MapRefreshListener}, and from any thread when a map comes up.
      */
     static void requestRefresh()
     {
@@ -298,12 +431,22 @@ public final class MapMarkers
     /**
      * Whether there is a map up to draw on.
      *
-     * @return true while running and the provider is ready
+     * @return true while running and at least one provider is ready
      */
     private static boolean isReady()
     {
-        final MapProvider map = provider;
-        return running && (map != null) && map.ready();
+        if (!running)
+        {
+            return false;
+        }
+        for (final MapProvider map : providers)
+        {
+            if (map.ready())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -346,15 +489,17 @@ public final class MapMarkers
     }
 
     /**
-     * The map has come up: says so, and has the whole picture drawn on the next tick, changed
-     * or not, since a map that has just come up shows nothing of ours.
+     * A map has come up: says so, and has the whole picture drawn on the next tick, changed or
+     * not, since a map that has just come up shows nothing of ours.
      *
      * <p>Called by a provider, from whatever thread its map plugin tells it on.
+     *
+     * @param map
+     *            the map that came up
      */
-    static void providerReady()
+    static void providerReady(final MapProvider map)
     {
-        final MapProvider map = provider;
-        if (!running || (map == null))
+        if (!running || !providers.contains(map))
         {
             return;
         }
@@ -368,7 +513,7 @@ public final class MapMarkers
     static void tick()
     {
         lookQueued.set(false);
-        // Nothing to draw on, so nothing to look at: the map coming up asks for a full look.
+        // Nothing to draw on, so nothing to look at: a map coming up asks for a full look.
         if (!isReady())
         {
             return;
@@ -434,42 +579,59 @@ public final class MapMarkers
         WormholeXTreme.getScheduler().runTaskAsynchronously(plugin, MapMarkers::drawLatest);
     }
 
-    /** Draws the newest picture. Runs off the main thread. */
+    /** Draws the newest picture on every map that is up. Runs off the main thread. */
     static void drawLatest()
     {
         // Cleared before reading, so a picture set after this line queues a draw of its own.
         drawQueued.set(false);
         synchronized (DRAWING)
         {
-            final MapProvider map = provider;
             final MapSnapshot picture = latest.get();
-            if ((map == null) || (picture == null))
+            if (picture == null)
             {
                 return;
             }
-            try
+            for (final MapProvider map : providers)
             {
-                map.apply(picture);
-                warned = false;
-            }
-            catch (final Exception | LinkageError e)
-            {
-                // LinkageError as well as Exception: a map plugin updated under a running
-                // server can fail to link here, and a map that cannot draw is not worth a gate.
-                // The next look draws again, since the picture it sees will not have changed.
-                redraw.set(true);
-                if (!warned)
+                if (map.ready())
                 {
-                    warned = true;
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                        "Failed to update the " + map.name() + " markers", e);
+                    draw(map, picture);
                 }
             }
         }
     }
 
     /**
-     * Whether the map is being kept up to date.
+     * Draws a picture on one map, so a map that fails does not stop the others being drawn.
+     *
+     * @param map
+     *            the map
+     * @param picture
+     *            what to show
+     */
+    private static void draw(final MapProvider map, final MapSnapshot picture)
+    {
+        try
+        {
+            map.apply(picture);
+            warned.remove(map);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            // LinkageError as well as Exception: a map plugin updated under a running
+            // server can fail to link here, and a map that cannot draw is not worth a gate.
+            // The next look draws again, since the picture it sees will not have changed.
+            redraw.set(true);
+            if (warned.add(map))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Failed to update the " + map.name() + " markers", e);
+            }
+        }
+    }
+
+    /**
+     * Whether the maps are being kept up to date.
      *
      * @return true between a successful enable and disable
      */
@@ -479,25 +641,55 @@ public final class MapMarkers
     }
 
     /**
-     * Uses this provider instead of looking for Dynmap, for tests.
+     * Uses this provider instead of looking for map plugins, for tests.
      *
      * @param replacement
-     *            the provider, or null to look for Dynmap for real
+     *            the provider, or null to look for map plugins for real
      */
     static void setProviderForTest(final MapProvider replacement)
     {
-        providerForTest = replacement;
+        setProvidersForTest((replacement != null) ? List.of(replacement) : null);
     }
 
     /**
-     * Looks for this class instead of Dynmap's, so a test can play a server without it.
+     * The maps being drawn on, for tests.
      *
-     * @param className
-     *            the class, or null for Dynmap's own
+     * @return the providers, empty while not running
      */
-    static void setDynmapClassForTest(final String className)
+    static List<MapProvider> providers()
     {
-        dynmapClass = (className != null) ? className : DYNMAP_CLASS;
+        return providers;
+    }
+
+    /**
+     * Uses these providers instead of looking for map plugins, for tests.
+     *
+     * @param replacements
+     *            the providers, or null to look for map plugins for real
+     */
+    static void setProvidersForTest(final List<MapProvider> replacements)
+    {
+        providersForTest = (replacements != null) ? List.copyOf(replacements) : null;
+    }
+
+    /**
+     * Looks for this class instead of a map plugin's own, so a test can play a server without it.
+     *
+     * @param name
+     *            the map plugin, as the log calls it
+     * @param className
+     *            the class, or null for the map plugin's own
+     */
+    static void setPluginClassForTest(final String name, final String className)
+    {
+        if (className != null)
+        {
+            classesForTest.put(name, className);
+        }
+        else
+        {
+            classesForTest.remove(name);
+        }
     }
 
     /**

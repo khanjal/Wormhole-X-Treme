@@ -147,6 +147,19 @@ class MapSettingsApplyAtOnceTest
     }
 
     @Test
+    void turningBlueMapOnInGameStartsTheMapWithoutARestart()
+    {
+        MapMarkers.setProviderForTest(new Recorder());
+        ConfigTestSupport.set(ConfigKeys.BLUEMAP_ENABLED, false);
+
+        final String said = ConfigManager.applySetting("bluemap-enabled", "true");
+
+        assertTrue(MapMarkers.isRunning(), "running now, not at the next restart: " + said);
+        ConfigManager.applySetting("bluemap-enabled", "false");
+        assertFalse(MapMarkers.isRunning(), "and stopped again when it is turned off");
+    }
+
+    @Test
     void turningTheMapOffInGameStopsItAndTakesItsMarksOff()
     {
         final Recorder map = new Recorder();

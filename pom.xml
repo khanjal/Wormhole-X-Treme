@@ -358,6 +358,25 @@
 			<scope>provided</scope>
 		</dependency>
 		<!--
+			BlueMap's API (#530). Pinned to 2.7.2, the last release built for Java 16: later ones
+			are Java 21 or 25 class files, which the JDK 17 CI leg cannot read. The classes this
+			plugin calls are unchanged in the copies BlueMap 5.3 to 5.28 ship.
+			Provided, and only named from plugin/map/BlueMapMapProvider.
+		-->
+		<dependency>
+			<groupId>de.bluecolored.bluemap</groupId>
+			<artifactId>BlueMapAPI</artifactId>
+			<version>2.7.2</version>
+			<scope>provided</scope>
+			<!-- Its Gson 2.8.0 would otherwise win over the server's, which the profiles add later. -->
+			<exclusions>
+				<exclusion>
+					<groupId>com.google.code.gson</groupId>
+					<artifactId>gson</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!--
 			bStats (#239), the one library this jar ships. Relocated by the shade plugin, so it
 			never meets another plugin's copy on the same server.
 		-->
@@ -606,6 +625,10 @@
 		<repository>
 			<id>dynmap-repo</id>
 			<url>https://repo.mikeprimm.com/</url>
+		</repository>
+		<repository>
+			<id>bluecolored-repo</id>
+			<url>https://repo.bluecolored.de/releases</url>
 		</repository>
 	</repositories>
 </project>
