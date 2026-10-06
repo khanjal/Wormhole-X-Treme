@@ -3,7 +3,8 @@
   "sets": {
     "permissions": ["luckperms", "vault"],
     "regions": ["worldedit", "worldguard"],
-    "via": ["viaversion", "viabackwards"]
+    "via": ["viaversion", "viabackwards"],
+    "maps": ["dynmap", "bluemap", "squaremap", "pl3xmap"]
   },
   "companions": {
     "viaversion": {
@@ -48,6 +49,64 @@
       "unsupported": [
         {
           "from": "26", "why": "no Dynmap build supports 26.x: its newest version helper is 1.21.11, and on 26.1.2 it disables itself (bukkit version incompatible). Run the Dynmap cells on 1.21.11."
+        }
+      ]
+    },
+    "bluemap": {
+      "plugin": "BlueMap",
+      "why": "a 3D web map; it draws nothing until its accept-download (Mojang's EULA, for the client jar it downloads) is switched on, which is the user's to do",
+      "builds": [
+        {
+          "versions": "1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6,1.21,1.21.1,1.21.2,1.21.3,1.21.4,1.21.5,1.21.6,1.21.7,1.21.8,1.21.9,1.21.10,1.21.11", "version": "5.16", "file": "bluemap-5.16-spigot.jar", "size": 6486553,
+          "sha256": "a31e6cfbae08da882d46b2fc3c40927784ab17f70dbe4feb5d07557dc45d65a1",
+          "source": "Modrinth (bluemap; class 65, so Java 21 even on 1.20.4)", "url": "https://cdn.modrinth.com/data/swbUV1cr/versions/nTnTxZjy/bluemap-5.16-spigot.jar"
+        },
+        {
+          "versions": "26.1,26.1.1,26.1.2,26.2,26.3", "version": "5.28", "file": "bluemap-5.28-spigot.jar", "size": 7090043,
+          "sha256": "5601908281fdf5e0923760b4d54f328c1cccf2427b5f149c93030076a2d3ccdd",
+          "source": "Modrinth (bluemap; class 69, Java 25)", "url": "https://cdn.modrinth.com/data/swbUV1cr/versions/pJm76X7R/bluemap-5.28-spigot.jar"
+        }
+      ]
+    },
+    "squaremap": {
+      "plugin": "squaremap",
+      "why": "a flat web map (Paper only), one build per Minecraft version",
+      "builds": [
+        {
+          "versions": "1.20.4", "version": "1.2.3", "file": "squaremap-paper-mc1.20.4-1.2.3.jar", "size": 7579625,
+          "sha256": "d136971d35c5c97b6a0244c24b4339a6b8401e1b36b448ab58cffb7857ed376c",
+          "source": "Modrinth (squaremap)", "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/3fVrxhwN/squaremap-paper-mc1.20.4-1.2.3.jar"
+        },
+        {
+          "versions": "1.21.11", "version": "1.3.12", "file": "squaremap-paper-mc1.21.11-1.3.12.jar", "size": 8052658,
+          "sha256": "0e4befd7ca97b300860803ad87fb449332251e3b7fa08d7c7d8ff07a02f0f612",
+          "source": "Modrinth (squaremap)", "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/GItyEkou/squaremap-paper-mc1.21.11-1.3.12.jar"
+        },
+        {
+          "versions": "26.1.2", "version": "1.3.13.2", "file": "squaremap-paper-mc26.1.2-1.3.13.2.jar", "size": 8097336,
+          "sha256": "ee16fff763e68cdf20088e7fd223887d493ea953454b2869a477df1bc2c178f6",
+          "source": "Modrinth (squaremap)", "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/mK9vPyoY/squaremap-paper-mc26.1.2-1.3.13.2.jar"
+        }
+      ]
+    },
+    "pl3xmap": {
+      "plugin": "Pl3xMap",
+      "why": "a flat web map; every build is a Modrinth beta, one per Minecraft version",
+      "builds": [
+        {
+          "versions": "1.20.4", "version": "1.20.4-492", "file": "Pl3xMap-1.20.4-492.jar", "size": 10226879,
+          "sha256": "ac65b23d2b9947e1e1fb306b031b53099ab40dbf731b9f013ef95d013f59c0f2",
+          "source": "Modrinth (pl3xmap, beta)", "url": "https://cdn.modrinth.com/data/34T8oVNY/versions/rAKqW9Cm/Pl3xMap-1.20.4-492.jar"
+        },
+        {
+          "versions": "1.21.11", "version": "1.21.11-544", "file": "Pl3xMap-1.21.11-544.jar", "size": 13042752,
+          "sha256": "760b057175754dab7b5beaf638e22becaaab5c4099238c186e8e359418428934",
+          "source": "Modrinth (pl3xmap, beta)", "url": "https://cdn.modrinth.com/data/34T8oVNY/versions/1O4z4iPC/Pl3xMap-1.21.11-544.jar"
+        },
+        {
+          "versions": "26.1.2", "version": "26.1.2-550", "file": "Pl3xMap-26.1.2-550.jar", "size": 11714824,
+          "sha256": "0441977a473ddcb525dc51761599529842213a84eeb1d1c85bf878d6b9a618f5",
+          "source": "Modrinth (pl3xmap, beta)", "url": "https://cdn.modrinth.com/data/34T8oVNY/versions/FjJqTbas/Pl3xMap-26.1.2-550.jar"
         }
       ]
     },

@@ -110,3 +110,45 @@ test('Dynmap\'s web port follows the game port, and a port that would be out of 
   assert.strictEqual(c.dynmapPort(25660), 8193);
   assert.throws(() => c.dynmapPort(17000), /would be -467/);
 });
+
+test('every pinned build comes from an official source, never SpigotMC, with a full SHA-256 and size', () => {
+  const m = c.manifest();
+  for (const [name, comp] of Object.entries(m.companions)) {
+    for (const b of comp.builds) {
+      assert.match(b.sha256, /^[0-9a-f]{64}$/, `${name} ${b.version}`);
+      assert.ok(Number.isInteger(b.size) && b.size > 0, `${name} ${b.version}`);
+      assert.ok(!/spigotmc/i.test(b.url), `${name} ${b.version} is from SpigotMC`);
+      assert.match(b.url, /^https:\/\/(cdn\.modrinth\.com|github\.com|dynmap\.us)\//, `${name} ${b.version}`);
+    }
+  }
+});
+
+test('BlueMap, squaremap and Pl3xMap each have a build for every version the facility runs, Dynmap none on 26.x', () => {
+  const pinned = (name, v) => c.pick(name, v).file;
+  assert.deepStrictEqual(['1.20.4', '1.21.11', '26.1.2'].map((v) => pinned('bluemap', v)), ['bluemap-5.16-spigot.jar', 'bluemap-5.16-spigot.jar', 'bluemap-5.28-spigot.jar']);
+  assert.deepStrictEqual(['1.20.4', '1.21.11', '26.1.2'].map((v) => pinned('squaremap', v)),
+    ['squaremap-paper-mc1.20.4-1.2.3.jar', 'squaremap-paper-mc1.21.11-1.3.12.jar', 'squaremap-paper-mc26.1.2-1.3.13.2.jar']);
+  assert.deepStrictEqual(['1.20.4', '1.21.11', '26.1.2'].map((v) => pinned('pl3xmap', v)), ['Pl3xMap-1.20.4-492.jar', 'Pl3xMap-1.21.11-544.jar', 'Pl3xMap-26.1.2-550.jar']);
+  // The hashes checked against the jars downloaded from Modrinth on 2026-10-06.
+  assert.strictEqual(c.pick('bluemap', '26.1.2').sha256, '5601908281fdf5e0923760b4d54f328c1cccf2427b5f149c93030076a2d3ccdd');
+  assert.strictEqual(c.pick('squaremap', '1.21.11').sha256, '0e4befd7ca97b300860803ad87fb449332251e3b7fa08d7c7d8ff07a02f0f612');
+  assert.strictEqual(c.pick('pl3xmap', '1.20.4').sha256, 'ac65b23d2b9947e1e1fb306b031b53099ab40dbf731b9f013ef95d013f59c0f2');
+  assert.throws(() => c.pick('dynmap', '26.1.2'), /no Dynmap build supports 26\.x/);
+  assert.throws(() => c.pick('squaremap', '1.21.4'), /no build of squaremap is pinned for 1\.21\.4/);
+});
+
+test('--with maps on 26.1.2 leaves Dynmap out and says why; Dynmap named on its own is still refused there', () => {
+  const r = c.forVersion(['maps'], '26.1.2');
+  assert.deepStrictEqual(r.names, ['bluemap', 'squaremap', 'pl3xmap']);
+  assert.deepStrictEqual(r.skipped.map((s) => s.name), ['dynmap']);
+  assert.match(r.skipped[0].why, /no Dynmap build supports 26\.x/);
+  assert.deepStrictEqual(c.forVersion(['maps'], '1.21.11').names, ['dynmap', 'bluemap', 'squaremap', 'pl3xmap']);
+  assert.deepStrictEqual(c.forVersion(['dynmap', 'regions'], '26.1.2').names, ['dynmap', 'worldedit', 'worldguard']);
+});
+
+test('a map web server that fails to bind is a companion fault; another plugin\'s line is not', () => {
+  assert.ok(c.companionFault('[09:00:00 ERROR]: [squaremap] Failed to start internal webserver', ['squaremap']));
+  assert.ok(c.companionFault('[09:00:00 WARN]: [Pl3xMap] java.net.BindException: Address already in use', ['Pl3xMap']));
+  assert.strictEqual(c.companionFault('[09:00:00 ERROR]: [squaremap] Failed to start internal webserver', ['Pl3xMap']), null);
+  assert.strictEqual(c.companionFault('[09:00:00 INFO]: [squaremap] Internal webserver running on 127.0.0.1:8400', ['squaremap']), null);
+});
