@@ -23,7 +23,9 @@ import net.pl3x.map.core.image.IconImage;
 import net.pl3x.map.core.markers.Point;
 import net.pl3x.map.core.markers.Vector;
 import net.pl3x.map.core.markers.layer.Layer;
+import net.pl3x.map.core.markers.marker.Icon;
 import net.pl3x.map.core.markers.marker.Marker;
+import net.pl3x.map.core.markers.marker.Polyline;
 import net.pl3x.map.core.markers.option.Options;
 import net.pl3x.map.core.registry.Registry;
 import net.pl3x.map.core.world.World;
@@ -356,7 +358,7 @@ public final class Pl3xMapMapProvider implements MapProvider
      *            its description, as HTML
      * @return the marker, or null if Pl3xMap does not have its icon
      */
-    private static Marker<?> icon(final String key, final double x, final double z, final String icon,
+    private static Icon icon(final String key, final double x, final double z, final String icon,
         final String name, final String detail)
     {
         final String image = ICONS.get(icon);
@@ -378,7 +380,7 @@ public final class Pl3xMapMapProvider implements MapProvider
      *            its colour, as 0xRRGGBB
      * @return the marker
      */
-    private static Marker<?> line(final LineMark line, final int colour)
+    private static Polyline line(final LineMark line, final int colour)
     {
         return Marker.polyline("link:" + line.id(), Point.of(line.x1(), line.z1()), Point.of(line.x2(), line.z2()))
             .setOptions(drawn(colour, line.label(), MapText.heading(line.label())).fill(false));
