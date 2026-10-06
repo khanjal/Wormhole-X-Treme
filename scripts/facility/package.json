@@ -4,7 +4,7 @@
   "description": "Wormhole Research Facility: the hand-and-bot test facility for Wormhole-X-Treme.",
   "scripts": {
     "spike": "node spike.js",
-    "test": "node --test test/companions.test.js test/extras.test.js test/viewer.test.js test/schematics.test.js test/shots.test.js test/design.test.js test/watcher.test.js"
+    "test": "node --test test/companions.test.js test/maps.test.js test/extras.test.js test/viewer.test.js test/schematics.test.js test/shots.test.js test/design.test.js test/watcher.test.js"
   },
   "dependencies": {
     "minecraft-data": "3.117.0",

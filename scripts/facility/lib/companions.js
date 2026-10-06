@@ -13,14 +13,14 @@ const path = require('path');
 const zlib = require('zlib');
 const server = require('./server');
 const { atLeast } = require('./version');
+const maps = require('./maps');
 
 const MANIFEST = path.join(__dirname, '..', 'companions.json');
 const RECORD = '.wx-companions.json';
 /** The settings journal lib/config.js keeps in a server folder. */
 const JOURNAL = 'facility-settings.json';
 /** Dynmap's web port for the default game port; every other server is offset by its port. */
-const DYNMAP_BASE_PORT = 8123;
-const BASE_GAME_PORT = 25590;
+const DYNMAP_BASE_PORT = maps.MAPS.dynmap.base;
 
 function manifest() {
   return JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
@@ -42,6 +42,28 @@ function expand(list, m = manifest()) {
   };
   for (const n of list) add(n, n);
   return out;
+}
+
+/**
+ * The companions a --with list names for one Minecraft version: expand()'s list, less any member
+ * of a set that has no build for the version (`--with maps` on 26.1.2 has no Dynmap), each left
+ * out with its reason: { names, skipped: [{ name, why }] }. A companion named on its own is never
+ * left out: pick() refuses it later, in plain words.
+ */
+function forVersion(list, version, m = manifest()) {
+  const asked = new Set(list.map((n) => n.toLowerCase()).filter((n) => !m.sets[n]));
+  const skipped = [];
+  const names = expand(list, m).filter((name) => {
+    if (asked.has(name)) return true;
+    try {
+      pick(name, version, m);
+      return true;
+    } catch (e) {
+      skipped.push({ name, why: e.message });
+      return false;
+    }
+  });
+  return { names, skipped };
 }
 
 /** Whether a build's `versions` ("*" or "1.21.11,26.1.2") covers a Minecraft version. */
@@ -330,11 +352,9 @@ function findJavaAtLeast(major, highest = 30) {
   return null;
 }
 
-/** Dynmap's web port for a game port: 8123 on 25590, offset one for one with the game port. */
+/** Dynmap's web port for a game port: 8123 on 25590, offset one for one with the game port (lib/maps.js). */
 function dynmapPort(gamePort) {
-  const port = DYNMAP_BASE_PORT + (gamePort - BASE_GAME_PORT);
-  if (port < 1024) throw new Error(`Dynmap's web port for game port ${gamePort} would be ${port}: run Dynmap on a game port from ${BASE_GAME_PORT - DYNMAP_BASE_PORT + 1024}`);
-  return port;
+  return maps.webPort('dynmap', gamePort);
 }
 
 /**
@@ -390,8 +410,18 @@ function seedSettings(folder, settings) {
   return before;
 }
 
-/** Wormhole's switches for its integrations with each companion: set true when it is installed. */
-const SWITCHES = { worldguard: { 'worldguard-enabled': 'true' }, dynmap: { 'dynmap-enabled': 'true' } };
+/**
+ * Wormhole's switches for its integrations with each companion: set true when it is installed.
+ * The BlueMap, squaremap and Pl3xMap keys follow dynmap-enabled's pattern and are not in 1.9.0,
+ * where a key the plugin does not know changes nothing: they wait for the providers that read them.
+ */
+const SWITCHES = {
+  worldguard: { 'worldguard-enabled': 'true' },
+  dynmap: { 'dynmap-enabled': 'true' },
+  bluemap: { 'bluemap-enabled': 'true' },
+  squaremap: { 'squaremap-enabled': 'true' },
+  pl3xmap: { 'pl3xmap-enabled': 'true' },
+};
 const SWITCH_KEYS = Object.values(SWITCHES).flatMap((s) => Object.keys(s));
 
 /**
@@ -405,10 +435,14 @@ function companionFault(line, plugins) {
   if (/Could not load (plugin )?'|Error loading plugin|^Caused by: java\.lang\.UnsupportedClassVersionError/.test(line)) return line.trim();
   if (plugins.some((p) => line.includes(`Error occurred while enabling ${p} `))) return line.trim();
   if (plugins.includes('dynmap') && /\[dynmap\].*(Failed to start|Address already in use|BindException)/i.test(line)) return line.trim();
+  // The other maps' web servers failing to start, in their own words.
+  for (const p of ['BlueMap', 'squaremap', 'Pl3xMap']) {
+    if (plugins.includes(p) && line.includes(`[${p}]`) && /Failed to start|Address already in use|BindException|could not bind/i.test(line)) return line.trim();
+  }
   return null;
 }
 
 module.exports = {
-  MANIFEST, RECORD, manifest, expand, covers, pick, defaultCache, resolve, classJava, readRecord, install, javaNeeded,
+  MANIFEST, RECORD, manifest, expand, forVersion, covers, pick, defaultCache, resolve, classJava, readRecord, install, javaNeeded,
   findJavaAtLeast, dynmapPort, configureDynmap, seedSettings, SWITCHES, companionFault, DYNMAP_BASE_PORT,
 };
