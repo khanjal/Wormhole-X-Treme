@@ -116,6 +116,12 @@ holding a gate open forever.
 |---|---|---|
 | `pets-follow-owner` | true | A player's tamed wolves, cats and parrots within 12 blocks travel with them by gate, ring, beam or mirror, unless told to sit |
 
+### Clickable chat
+
+| Setting | Default | What it does |
+|---|---|---|
+| `clickable-chat` | true | A command named in chat can be clicked: after `gate build`, each preview action is a button, with hover text saying what it does, and a refusal that names a command links it. An action that needs more, such as `material`, fills in the chat box instead of running. False sends the same lines as plain text, which is all a CraftBukkit server gets anyway |
+
 ### What this costs a busy server
 
 One repeating task per subsystem and no background threads. Cost scales with how much

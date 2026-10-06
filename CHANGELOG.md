@@ -10,6 +10,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ### Stargates
 
+**Added**
+
+- **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
+  to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
+  than running, since it needs a group or a block after it, and a refusal that names a command
+  links it. On by default; `clickable-chat: false` sends the old plain text, which is all
+  CraftBukkit gets.
+
 **Changed**
 
 - **The `pegasus` and `chevron` dial spins have swapped.** `pegasus`, which the Atlantis group

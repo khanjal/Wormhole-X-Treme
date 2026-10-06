@@ -45,7 +45,9 @@ its button.
   between them, its opening included. Each block is a display entity, except the open wormhole,
   which is sent to the owner as fake blocks. `0` turns previews off.
 
-Look at a preview and `/wormhole gate preview <action>` changes it, for you alone:
+Look at a preview and `/wormhole gate preview <action>` changes it, for you alone. The actions
+are listed as buttons after `gate build`: click one to run it, or `[Material]` to have it typed
+for you to finish (`clickable-chat` in [the server guide](SERVER.md#clickable-chat)).
 
 | Action | What it does |
 |---|---|
