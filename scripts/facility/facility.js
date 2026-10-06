@@ -20,6 +20,7 @@ const { Logbook } = require('./lib/logbook');
 const { companionFault } = require('./lib/companions');
 const { Groups, GROUPS, BASELINE: BASELINE_GROUP } = require('./lib/groups');
 const { httpText } = require('./lib/http');
+const maps = require('./lib/maps');
 const { TAG: WATCHER_TAG, MARKER: WATCHER_MARKER } = require('./lib/watcher');
 
 const BOT = 'Probe';
@@ -33,8 +34,9 @@ function clock() {
 
 class Facility {
   /** `srv` is a started Server; `manifest` is what lib/generate.js wrote. */
-  constructor({ srv, version, manifest, port, log = console.log, fixed = [], companions = null, mapPort = null }) {
-    Object.assign(this, { srv, version, manifest, port, log, mapPort });
+  constructor({ srv, version, manifest, port, log = console.log, fixed = [], companions = null, mapPorts = {} }) {
+    // mapPort: Dynmap's, which the Map Desk's Dynmap cells read its web marker file from.
+    Object.assign(this, { srv, version, manifest, port, log, mapPorts, mapPort: mapPorts.dynmap || null });
     // The companion plugins installed (--with), or null for a run without --with at all.
     this.companions = companions;
     const plugins = (companions || []).map((c) => c.plugin);
@@ -714,31 +716,80 @@ class Facility {
   }
 
   /**
-   * Whether Dynmap's web map came up on this server's own port (8123 + port - 25590): its log
-   * says the web server started there, not that it failed to bind, and it answers. Looks at the
-   * log from `from` (a restart's start). Returns { ok, detail }.
+   * Whether a web map came up on this server's own port for it (lib/maps.js webPort): its log
+   * says the web server started on 127.0.0.1 there, not that it failed to bind or bound somewhere
+   * else, and its own page answers. BlueMap says nothing when it starts its web server, so its
+   * page alone decides; without accept-download it starts none and says so, which is reported as
+   * waiting. Looks at the log from `from` (a restart's start). Returns { ok, waiting, detail }.
    */
-  async mapWebUp({ from = 0, ms = 120000 } = {}) {
-    const port = this.mapPort;
-    // "[dynmap] Web server started on address 0.0.0.0:8193": the port compared as text, not as a pattern.
-    const started = { test: (l) => /\[dynmap\] .*[Ww]eb ?server started on /.test(l) && l.trim().endsWith(`:${port}`) };
-    const failed = /\[dynmap\].*(Failed to start|Address already in use|BindException|Error starting)/i;
-    const seen = () => this.srv.log.slice(from).find((l) => started.test(l) || failed.test(l));
+  async mapWebUp({ name = 'dynmap', from = 0, ms = 120000 } = {}) {
+    const port = this.mapPorts[name];
+    const label = maps.MAPS[name].label;
+    const w = maps.WEB[name];
+    const url = `http://127.0.0.1:${port}${w.page}`;
+    const answers = async () => {
+      try { return w.expect.test(await httpText(url, 5000)); } catch { return false; }
+    };
     const deadline = Date.now() + ms;
-    let line = seen();
-    while (!line && Date.now() < deadline) {
+    for (;;) {
+      const said = maps.webLine(name, this.srv.log.slice(from), port);
+      if (said && said.state === 'waiting') return { ok: false, waiting: true, detail: said.detail };
+      if (said && said.state !== 'started') return { ok: false, detail: `${label}: ${said.detail}` };
+      // A map that says when it started is asked only after; BlueMap is asked until it answers.
+      if ((said || !w.started) && await answers()) {
+        return { ok: true, detail: `http://127.0.0.1:${port}/${said ? ` (${label} bound ${said.detail})` : ''}` };
+      }
+      if (Date.now() > deadline) {
+        return { ok: false, detail: said ? `${url} does not answer with ${label}'s page` : `${label} never said its web server started on 127.0.0.1:${port}` };
+      }
       await new Promise((resolve) => { setTimeout(resolve, 500); });
-      line = seen();
     }
-    if (!line) return { ok: false, detail: `Dynmap never said its web server started on port ${port}` };
-    if (failed.test(line)) return { ok: false, detail: line };
-    try {
-      const body = await httpText(`http://127.0.0.1:${port}/up/configuration`);
-      if (!/"worlds"/.test(body)) return { ok: false, detail: `http://127.0.0.1:${port}/up/configuration answered without Dynmap's configuration` };
-    } catch (e) {
-      return { ok: false, detail: `http://127.0.0.1:${port}/ does not answer: ${e.message}` };
+  }
+
+  /**
+   * Has each installed map (other than Dynmap, which renders as chunks change) draw the
+   * facility's worlds: `save-all flush` so the region files hold the campus, then each map's
+   * render command, waiting for it to say it has finished. `onState(name, state, detail)` hears
+   * each step. Returns { <map>: { ok, detail } }.
+   */
+  async renderMaps(names, onState = () => {}, ms = 600000) {
+    const out = {};
+    const todo = names.filter((n) => maps.RENDER[n]);
+    if (!todo.length) return out;
+    await this.srv.run('save-all flush', 120000);
+    for (const name of todo) {
+      const r = maps.RENDER[name];
+      const from = this.srv.log.length;
+      onState(name, 'rendering', `${r.worlds.join(', ')}, since ${clock()}`);
+      try {
+        for (const w of r.worlds) {
+          const said = (await this.srv.run(r.command(w))).lines.join(' ');
+          if (/Unknown or incomplete command|Expected whitespace|is not loaded/i.test(said)) throw new Error(`${r.command(w)}: ${said}`);
+        }
+        const deadline = Date.now() + ms;
+        for (;;) {
+          let done;
+          const lines = this.srv.log.slice(from);
+          if (r.done) {
+            done = r.worlds.every((w) => lines.some((l) => r.done(w).test(l.trim())));
+          } else if (r.started && lines.filter((l) => r.started.test(l)).length < r.worlds.length) {
+            // Pl3xMap starts each render on another thread: idle before that is not done.
+            done = false;
+          } else {
+            done = (await this.srv.run(r.status)).lines.some((l) => r.idle.test(l));
+          }
+          if (done) break;
+          if (Date.now() > deadline) throw new Error(`still rendering after ${ms / 1000} s`);
+          await new Promise((resolve) => { setTimeout(resolve, 2000); });
+        }
+        out[name] = { ok: true, detail: `rendered ${r.worlds.join(', ')}` };
+        onState(name, 'ready', out[name].detail);
+      } catch (e) {
+        out[name] = { ok: false, detail: e.message };
+        onState(name, 'failed', `render: ${e.message}`);
+      }
     }
-    return { ok: true, detail: `http://127.0.0.1:${port}/ (${line.replace(/^\[[^\]]*\]: /, '')})` };
+    return out;
   }
 
   async close() {

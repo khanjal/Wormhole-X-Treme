@@ -18,8 +18,9 @@
     The Minecraft version (default 26.1.2).
 
 .PARAMETER Port
-    The server port (default 25590). Another port gets its own server folder, and Dynmap's web
-    map is at 8123 + (port - 25590).
+    The server port (default 25590). Another port gets its own server folder, and each web map
+    its own port, on 127.0.0.1 only: Dynmap 8123, BlueMap 8300, squaremap 8400, Pl3xMap 8500,
+    each + (port - 25590). A web map needs a port below 25690.
 
 .PARAMETER Plugin
     A plugin jar to test (a branch's build) instead of building this checkout.
@@ -31,8 +32,17 @@
     Start from a new world instead of the one kept from the last lab.
 
 .PARAMETER With
-    Companion plugins (comma-separated): viaversion, viabackwards, dynmap, worldedit, worldguard,
-    luckperms, vault, or the sets via, regions, permissions. See companions.json.
+    Companion plugins (comma-separated): viaversion, viabackwards, dynmap, bluemap, squaremap,
+    pl3xmap, worldedit, worldguard, luckperms, vault, or the sets via, regions, permissions, maps
+    (all four web maps; a version with no build of one, as Dynmap on 26.x, goes without it). See
+    companions.json. The maps render the campus once it is built; the dashboard's Maps tab
+    switches between them and says when one is still rendering.
+
+.PARAMETER AcceptBlueMapDownload
+    Set BlueMap's accept-download: true. That is your acceptance of Mojang's EULA
+    (https://account.mojang.com/documents/minecraft_eula) for the Minecraft client jar BlueMap
+    downloads to draw its 3D map; without it BlueMap loads and draws nothing. The lab's folder
+    keeps the setting once given.
 
 .PARAMETER PluginCache
     A folder of companion jars to read first (<folder>\<version>\ then <folder>\any\).
@@ -73,12 +83,13 @@
     With -Watch: only the matrix cells whose names match (a|b, ^start, end$), e.g. '^g1' or 'b1 '.
 
 .PARAMETER NoDashboard
-    Do not start the Lab Dashboard (each lab's console and Dynmap, http://127.0.0.1:8200). lab.sh
+    Do not start the Lab Dashboard (each lab's console and web maps, http://127.0.0.1:8200). lab.sh
     does not start it; run node scripts/facility/dashboard.js there.
 
 .EXAMPLE
     .\scripts\facility\lab.ps1
     .\scripts\facility\lab.ps1 -Version 1.21.11 -Port 25620 -With dynmap,regions -Op YourName
+    .\scripts\facility\lab.ps1 -With maps
     .\scripts\facility\lab.ps1 -Plugin target\WormholeXTreme.jar -Fresh
     .\scripts\facility\lab.ps1 -Design -Op YourName -Plugin WormholeXTreme.jar
     .\scripts\facility\lab.ps1 -Design -Export
@@ -94,6 +105,7 @@ param(
     [switch] $Fresh,
     [string[]] $With = @(),
     [string] $PluginCache = '',
+    [switch] $AcceptBlueMapDownload,
     [switch] $Design,
     [switch] $Export,
     [switch] $Check,
@@ -210,6 +222,7 @@ $With = @($With | Where-Object { $_ })
 if ($Op) { $arguments += @('--op', ($Op -join ',')) }
 if ($With) { $arguments += @('--with', ($With -join ',')) }
 if ($PluginCache) { $arguments += @('--plugin-cache', (Resolve-Path $PluginCache).Path) }
+if ($AcceptBlueMapDownload) { $arguments += '--accept-bluemap-download' }
 
 if ($Export -or $Check)
 {
