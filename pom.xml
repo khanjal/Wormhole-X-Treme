@@ -377,6 +377,24 @@
 			</exclusions>
 		</dependency>
 		<!--
+			squaremap's API (#531), on Maven Central. Java 8 class files; 1.3.12 is the API the
+			squaremap builds for 1.20.4, 1.21.11 and 26.1.2 ship, the same in each.
+			Provided, and only named from plugin/map/SquaremapMapProvider. Without its Adventure,
+			which would otherwise win over Paper's own in the Paper builds.
+		-->
+		<dependency>
+			<groupId>xyz.jpenilla</groupId>
+			<artifactId>squaremap-api</artifactId>
+			<version>1.3.12</version>
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>net.kyori</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!--
 			bStats (#239), the one library this jar ships. Relocated by the shade plugin, so it
 			never meets another plugin's copy on the same server.
 		-->

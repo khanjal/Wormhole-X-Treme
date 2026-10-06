@@ -21,6 +21,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [WorldGuard](#worldguard)
 - [Dynmap](#dynmap)
 - [BlueMap](#bluemap)
+- [squaremap](#squaremap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -529,6 +530,28 @@ switched off there is off on BlueMap too.
 - **No BlueMap** means nothing happens; the log says so at startup, and again whenever a map setting
   is changed. A BlueMap that is installed but did not start is reported the same way as Dynmap's.
 - Written against the API that BlueMap 5.3 to 5.28 ship, the same in each.
+
+## squaremap
+
+Optional. With [squaremap](https://modrinth.com/plugin/squaremap) installed, the same gates, rings,
+public beam destinations and quantum mirrors are shown on its web map, each as a layer a viewer can
+switch on and off, with the icons from the Dynmap table above. squaremap runs on Paper, not Spigot.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `squaremap-enabled` | `false` | The squaremap switch. Nothing is shown on squaremap while this is off. |
+
+The layers are the `map-show-*` settings under [Dynmap](#dynmap), shared by every map.
+
+- **Every world squaremap maps** gets the layers, each showing that world's marks. A world it starts
+  mapping after startup gets them within five seconds.
+- **squaremap asks for the marks** each time it writes its map, on its own thread, so a change is
+  handed over whole and shows at squaremap's next update.
+- **`/squaremap reload`** keeps the layers; nothing needs redrawing.
+- **No squaremap** means nothing happens; the log says so at startup, and again whenever a map
+  setting is changed.
+- Written against squaremap's API 1.3.12, the same in the squaremap builds for 1.20.4, 1.21.11 and
+  26.1.2.
 
 ## Metrics
 

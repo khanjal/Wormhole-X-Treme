@@ -8,8 +8,8 @@ package com.wormhole_xtreme.wormhole.plugin.map;
  *
  * <p>{@link #apply} is called from one background thread at a time, never the main thread.
  * {@link #register()}, {@link #unregister()} and {@link #clear()} are called on the main thread,
- * the last while the plugin disables; {@link #name()} and {@link #ready()} from either, so they
- * only read.
+ * the last while the plugin disables; {@link #name()}, {@link #ready()} and {@link #lost()} from
+ * either, so they only read.
  */
 public interface MapProvider
 {
@@ -39,6 +39,18 @@ public interface MapProvider
 
     /** Removes everything this plugin has drawn. */
     void clear();
+
+    /**
+     * Whether the map plugin has dropped something drawn on it, a layer or an icon, so the picture
+     * must be applied again though it has not changed. For a map plugin that says nothing when it
+     * does: asked on every look while the map is up, so it must be cheap.
+     *
+     * @return true to have the latest picture applied again
+     */
+    default boolean lost()
+    {
+        return false;
+    }
 
     /**
      * Starts listening to the map plugin, once the provider is in place. May call back at once

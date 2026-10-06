@@ -167,6 +167,8 @@ public class ConfigManager
         DYNMAP_ENABLED,
         /** Whether gates, rings, public beam destinations and mirrors are drawn on BlueMap. */
         BLUEMAP_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on squaremap. */
+        SQUAREMAP_ENABLED,
         /** Whether gates and the lines between dialled pairs are a web map layer. */
         MAP_SHOW_GATES,
         /** Whether transport rings are a web map layer. */
@@ -1843,8 +1845,8 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
-            case DYNMAP_ENABLED, BLUEMAP_ENABLED, MAP_SHOW_GATES, MAP_SHOW_RINGS, MAP_SHOW_BEAMS,
-                MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
+            case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, MAP_SHOW_GATES, MAP_SHOW_RINGS,
+                MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
         }
     }
@@ -2070,6 +2072,13 @@ public class ConfigManager
     public static boolean isBlueMapEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BLUEMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on squaremap. */
+    public static boolean isSquaremapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SQUAREMAP_ENABLED);
         return s != null && s.getBooleanValue();
     }
 

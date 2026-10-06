@@ -85,6 +85,42 @@ final class MapText
     }
 
     /**
+     * A layer's name in a map's layer list.
+     *
+     * @param id
+     *            the layer id
+     * @return its name
+     */
+    static String label(final String id)
+    {
+        return switch (id)
+        {
+            case GATES -> GATES_LABEL;
+            case RINGS -> RINGS_LABEL;
+            case BEAMS -> BEAMS_LABEL;
+            default -> MIRRORS_LABEL;
+        };
+    }
+
+    /**
+     * Where a layer sits in a map's layer list, as every map plugin orders them.
+     *
+     * @param id
+     *            the layer id
+     * @return its place, gates first
+     */
+    static int priority(final String id)
+    {
+        return switch (id)
+        {
+            case GATES -> 10;
+            case RINGS -> 11;
+            case BEAMS -> 12;
+            default -> 13;
+        };
+    }
+
+    /**
      * A gate's description: its name, and its network and owner when it has them.
      *
      * @param gate
