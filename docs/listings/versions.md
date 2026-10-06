@@ -8,6 +8,10 @@ first version on the plugin sites; add a section at the top for each new release
 | [SpigotMC](spigot.md#version-upload) | Post Resource Update | the jar, **Version string**, **Update title**, **Update message** (BBCode) |
 | [Modrinth](modrinth.md#version-upload) | Create version | the jar, **Version number**, **Version title**, **Changelog** (Markdown), game versions |
 | [Hangar](hangar.md#version-upload) | Upload version | the jar, then **Changelog** (Markdown) and platform versions on the next screen |
+| [CurseForge](curseforge.md#file-upload) | Upload file | the jar, **Display name**, **Release type**, **Changelog** (Markdown type), supported versions, related projects |
+
+CurseForge starts at 1.9.0: it is not yet published, and its first file is the current release.
+Back-filling older versions there is optional; their Markdown blocks below would serve.
 
 The jar for each is `WormholeXTreme-<version>.jar` on its
 [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases).
@@ -35,6 +39,10 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+- **CurseForge reuses the Markdown block and the title**; its own rows are release type
+  and related projects, as in 1.9.0's table.
+
+1.10.0 is unreleased; its section is written at release time.
 
 ## 1.9.0
 
@@ -42,11 +50,13 @@ Released 2026-10-03.
 
 | Field | Value |
 |---|---|
-| Version (all three sites) | `1.9.0` |
-| Title (Spigot update title, Modrinth version title) | `1.9.0 - WorldGuard flags, Dynmap markers and an update check` |
-| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+| Version (Spigot, Modrinth, Hangar) | `1.9.0` |
+| Title (Spigot update title, Modrinth version title, CurseForge display name) | `1.9.0 - WorldGuard flags, Dynmap markers and an update check` |
+| Minecraft (Modrinth game versions, Hangar platform versions, CurseForge supported versions) | 1.20 – 26.3 |
+| CurseForge release type | Release |
+| CurseForge related projects | none — every integration is optional, see [`curseforge.md`](curseforge.md#fields) |
 
-Modrinth and Hangar changelog:
+Modrinth, Hangar and CurseForge changelog (on CurseForge, set the changelog type to Markdown):
 
 ````markdown
 **Upgrading from 1.8 — nothing you have to do.** The new integrations are off until you turn them on. The update check is on: at startup it looks online for a newer release, sending only the plugin and Minecraft versions, and `update-check: false` turns it off. With `same-world-only` on, carts, mobs, items and arrows now stay in their own world too. Coming from 1.7? 1.8.0's notes still apply. Installing for the first time? Drop the jar in and start.
