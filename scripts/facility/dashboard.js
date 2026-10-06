@@ -421,23 +421,28 @@ for(const lab of LABS){
   views.appendChild(v);
   const pick=v.querySelector('.pick'),f=v.querySelector('iframe'),link=v.querySelector('.link'),st=v.querySelector('.st'),
     note=v.querySelector('.note'),empty=v.querySelector('.empty'),key='wxdash.map.'+lab.id;
-  let list=lab.maps;
-  const fill=()=>{const was=pick.value;pick.textContent='';
+  let list=lab.maps,filled='';
+  // Rebuilt only when what it lists changes: a rebuild closes the list under the pointer.
+  const fill=()=>{const want=list.map((m)=>m.name+(m.installed?'':'-')).join();if(want===filled)return;filled=want;
+    const was=pick.value;pick.textContent='';
     for(const m of list){const o=document.createElement('option');o.value=m.name;
       o.textContent=m.label+(m.installed?'':' (not installed)');pick.appendChild(o)}
     if(was)pick.value=was};
   fill();
   let chosen=null;try{chosen=localStorage.getItem(key)}catch{}
-  if(!list.some((m)=>m.name===chosen))chosen=(list.find((m)=>m.installed)||list[0]||{}).name;
+  // First choice: an installed map that is not waiting (BlueMap without accept-download draws nothing).
+  if(!list.some((m)=>m.name===chosen))chosen=(list.find((m)=>m.installed&&m.state!=='waiting')||list.find((m)=>m.installed)||list[0]||{}).name;
   if(chosen)pick.value=chosen;
   // What the page says about the chosen map: why it is missing, or its state over its own page.
   const draw=(reload)=>{
     const m=list.find((x)=>x.name===pick.value);if(!m)return;
-    const shown=m.installed&&m.url&&m.answers!==false;
+    // Framed only once its port is known to answer: a refused frame shows the browser's error page.
+    const shown=Boolean(m.installed&&m.url&&m.answers===true);
     link.hidden=!m.url;if(m.url){link.href=m.url;link.textContent=m.url}
     empty.hidden=shown;f.hidden=!shown;
     if(!m.installed)empty.textContent=m.label+' is not in this lab: '+m.why+'.';
     else if(!m.url)empty.textContent=m.why+'.';
+    else if(m.answers===undefined)empty.textContent='Asking '+m.label+' at '+m.url+'…';
     else if(m.answers===false)empty.textContent=m.label+' does not answer at '+m.url+(m.state==='waiting'?': '+m.detail:': is the lab running? (it is '+(STATES[m.state]||'not started')+')');
     let msg='';
     if(shown&&m.state==='rendering')msg=m.label+' is rendering the facility ('+m.detail+'): the map fills in as it goes.';
