@@ -432,8 +432,10 @@ class Server extends EventEmitter {
     const args = [`-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false',
       '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8',
       '-jar', path.resolve(this.jar), '--nogui'];
-    // Where this start's lines begin in `log` (a restart keeps the lines before it).
+    // Where this start's lines begin in `log` (a restart keeps the lines before it), and when:
+    // a map's marker file older than that is from before it (lib/mapreaders.js).
     this.startIndex = this.log.length;
+    this.startedAt = Date.now();
     // Its own process group on Windows, so a Ctrl+C in the console reaches the launcher, which
     // stops the server, rather than the JVM directly while the launcher is still writing to it.
     this.proc = spawn(this.java, args, {

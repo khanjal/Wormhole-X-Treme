@@ -9,21 +9,37 @@ const MAP = ['dynmap'];
 
 const cell = (desk, c, companions, expect = 'PASS', extra = {}) => ({ name: `${desk} ${c}`, values: { case: c }, expect, with: companions, ...extra });
 
+const IRIS_HIDDEN_KNOWN = '#236: a visible gate dialled from a hidden iris gate (map-show-iris-gates false) is drawn open, not idle, so the map shows it connected to something unseen: MapScanner marks each gate open from its own isGatePortalOpen, and the far end of a wormhole is open too; only the dialler\'s target is filtered';
+
+/**
+ * The Map Desk's cases against BlueMap, squaremap or Pl3xMap (`map <name> <case>`), each run only
+ * --with that map. They need the plugin's provider for that map; a jar without one fails them at
+ * "drawn", which is the truth about that jar. The iris case shares Dynmap's known failure: it is
+ * MapScanner's, which every provider draws from.
+ */
+const otherMap = (name) => ['gate', 'dial', 'cross-world', 'escaped', 'iris hidden', 'rings', 'beams', 'mirrors', 'remove', 'restart', 'layer off']
+  .map((c) => ({
+    name: `map ${name} ${c}`,
+    values: { case: c, map: name },
+    expect: c === 'iris hidden' ? 'FAIL:MapB stayed idle for a full redraw after its opening was drawn' : 'PASS',
+    with: [name],
+    ...(c === 'iris hidden' ? { known: IRIS_HIDDEN_KNOWN } : {}),
+  }));
+
 const CELLS = {
-  // #236, Dynmap markers (chambers/companion-map.js).
+  // #236, Dynmap markers (chambers/companion-map.js), then the same desk on BlueMap, squaremap and Pl3xMap.
   map: [
     ...['gate', 'dial', 'cross-world'].map((c) => cell('map', c, MAP)),
     cell('map', 'rename', MAP, 'FAIL:the gate was renamed', {
       known: 'the #236 checklist\'s "gate edit <A> name X" has nothing to run: gate edit has no name field (its fields: portal, iris, light, woosh, redstone, owner, custom, idc, group, spin, iris-animation), so a gate cannot be renamed and its label never moves',
     }),
     cell('map', 'escaped', MAP),
-    cell('map', 'iris hidden', MAP, 'FAIL:MapB stayed idle for a full redraw after its opening was drawn', {
-      known: '#236: a visible gate dialled from a hidden iris gate (map-show-iris-gates false) is drawn open, not idle, so the map shows it connected to something unseen: MapScanner marks each gate open from its own isGatePortalOpen, and the far end of a wormhole is open too; only the dialler\'s target is filtered',
-    }),
+    cell('map', 'iris hidden', MAP, 'FAIL:MapB stayed idle for a full redraw after its opening was drawn', { known: IRIS_HIDDEN_KNOWN }),
     ...['rings', 'beams', 'mirrors', 'remove', 'restart'].map((c) => cell('map', c, MAP)),
     cell('map', 'reload', MAP, 'REFUSED:Dynmap 3.7 and 3.8 have no /dynmap reload (their subcommands stop at render, purge, pause, stats and the like), and nothing else reloads Dynmap alone'),
     ...['layer off', 'off'].map((c) => cell('map', c, MAP)),
     { name: 'map absent', values: { case: 'absent' }, expect: 'PASS', without: MAP },
+    ...['bluemap', 'squaremap', 'pl3xmap'].flatMap(otherMap),
   ],
   // The tester groups in LuckPerms, and the console's group switch (chambers/companion-perms.js).
   perms: ['default', 'visitor', 'builder', 'operator', 'console'].map((c) => cell('perms', c, ['luckperms'])),

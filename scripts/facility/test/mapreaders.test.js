@@ -142,3 +142,29 @@ test('a reader with no files yet reads an empty map, not an error', () => scratc
     assert.deepStrictEqual(await new r.JsonMapReader(name, d).snapshot(), { layers: {}, points: [], areas: [], lines: [] }, name);
   }
 }));
+
+test('a marker file from before the server last started is left out: a restart\'s checks see only what was drawn since', () => scratch(async (d) => {
+  const file = path.join(d, 'plugins', 'squaremap', 'web', 'tiles', 'minecraft_overworld', 'markers.json');
+  write(file, [SQUAREMAP_GATES]);
+  const old = (Date.now() - 60000) / 1000;
+  fs.utimesSync(file, old, old);
+  const startedAt = Date.now() - 1000;
+  assert.strictEqual(r.inLayer(await new r.JsonMapReader('squaremap', d, { since: () => startedAt }).snapshot(), 'Stargates', 'points').length, 0);
+  assert.strictEqual(r.inLayer(await new r.JsonMapReader('squaremap', d).snapshot(), 'Stargates', 'points').length, 1);
+  write(file, [SQUAREMAP_GATES]);
+  assert.strictEqual(r.inLayer(await new r.JsonMapReader('squaremap', d, { since: () => startedAt }).snapshot(), 'Stargates', 'points').length, 1);
+}));
+
+test('every Map Desk cell on BlueMap, squaremap or Pl3xMap is a case the desk runs there, and runs only with that map', () => {
+  const desk = require('../chambers/companion-map');
+  const { CELLS } = require('../companion-matrix');
+  const others = CELLS.map.filter((cell) => cell.values.map && cell.values.map !== 'dynmap');
+  assert.strictEqual(others.length, 33);
+  for (const cell of others) {
+    assert.deepStrictEqual(cell.with, [cell.values.map], cell.name);
+    assert.ok(desk.options.map.some((x) => x.value === cell.values.map), cell.name);
+    assert.strictEqual(desk.refuses(cell.values, '26.1.2', { has: (n) => n === cell.values.map }), null, cell.name);
+  }
+  assert.match(desk.refuses({ case: 'gate', map: 'pl3xmap' }, '26.1.2', { has: () => false }), /--with pl3xmap/);
+  assert.match(desk.refuses({ case: 'reload', map: 'bluemap' }, '26.1.2', { has: () => true }), /a Dynmap case/);
+});
