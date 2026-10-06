@@ -35,7 +35,8 @@ class MapPluginIsolationTest
     private static final Map<String, List<String>> OWNED = Map.of(
         "DynmapMapProvider.java", List.of("org.dynmap"),
         "BlueMapMapProvider.java", List.of("de.bluecolored", "com.flowpowered"),
-        "SquaremapMapProvider.java", List.of("xyz.jpenilla.squaremap"));
+        "SquaremapMapProvider.java", List.of("xyz.jpenilla.squaremap"),
+        "Pl3xMapMapProvider.java", List.of("net.pl3x"));
 
     @Test
     void eachMapPluginIsNamedOnlyByItsOwnProvider() throws IOException

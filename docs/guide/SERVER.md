@@ -22,6 +22,7 @@ has its own page: [gates](GATES.md), [rings](RINGS.md), [beaming](BEAMS.md) and
 - [Dynmap](#dynmap)
 - [BlueMap](#bluemap)
 - [squaremap](#squaremap)
+- [Pl3xMap](#pl3xmap)
 - [Metrics](#metrics)
 - [Troubleshooting](#troubleshooting)
 
@@ -552,6 +553,30 @@ The layers are the `map-show-*` settings under [Dynmap](#dynmap), shared by ever
   setting is changed.
 - Written against squaremap's API 1.3.12, the same in the squaremap builds for 1.20.4, 1.21.11 and
   26.1.2.
+
+## Pl3xMap
+
+Optional. With [Pl3xMap](https://modrinth.com/plugin/pl3xmap) installed, the same gates, rings,
+public beam destinations and quantum mirrors are shown on its web map, each as a layer a viewer can
+switch on and off, with the icons from the Dynmap table above.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `pl3xmap-enabled` | `false` | The Pl3xMap switch. Nothing is shown on Pl3xMap while this is off. |
+
+The layers are the `map-show-*` settings under [Dynmap](#dynmap), shared by every map.
+
+- **Every world Pl3xMap maps** gets the layers, each showing that world's marks. A world it starts
+  mapping after startup gets them within five seconds.
+- **`/map reload`** makes every world afresh and forgets the icons. Both are put back within five
+  seconds of Pl3xMap coming back, without waiting for anything on the server to change.
+- **Pl3xMap asks for the marks** each time it writes its map, on its own thread, so a change is
+  handed over whole and shows at Pl3xMap's next update.
+- **No Pl3xMap** means nothing happens; the log says so at startup, and again whenever a map setting
+  is changed.
+- Pl3xMap is built for one Minecraft version at a time; use the build for the server's. This is
+  written against the 1.20.4 build, whose parts it uses are unchanged in the 1.21.11 and 26.1.2
+  builds.
 
 ## Metrics
 

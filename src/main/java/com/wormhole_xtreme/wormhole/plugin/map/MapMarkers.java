@@ -83,7 +83,9 @@ public final class MapMarkers
         new Backend("BlueMap", "bluemap-enabled", "BlueMap", "de.bluecolored.bluemap.api.BlueMapAPI",
             ConfigManager::isBlueMapEnabled, (layers, ready) -> new BlueMapMapProvider(layers, ready)),
         new Backend("squaremap", "squaremap-enabled", "squaremap", "xyz.jpenilla.squaremap.api.SquaremapProvider",
-            ConfigManager::isSquaremapEnabled, (layers, ready) -> new SquaremapMapProvider(layers, ready)));
+            ConfigManager::isSquaremapEnabled, (layers, ready) -> new SquaremapMapProvider(layers, ready)),
+        new Backend("Pl3xMap", "pl3xmap-enabled", "Pl3xMap", "net.pl3x.map.core.Pl3xMap",
+            ConfigManager::isPl3xMapEnabled, (layers, ready) -> new Pl3xMapMapProvider(layers, ready)));
 
     /** Guards drawing, so only one picture is drawn at a time. */
     private static final Object DRAWING = new Object();

@@ -173,6 +173,19 @@ class MapSettingsApplyAtOnceTest
     }
 
     @Test
+    void turningPl3xMapOnInGameStartsTheMapWithoutARestart()
+    {
+        MapMarkers.setProviderForTest(new Recorder());
+        ConfigTestSupport.set(ConfigKeys.PL3XMAP_ENABLED, false);
+
+        final String said = ConfigManager.applySetting("pl3xmap-enabled", "true");
+
+        assertTrue(MapMarkers.isRunning(), "running now, not at the next restart: " + said);
+        ConfigManager.applySetting("pl3xmap-enabled", "false");
+        assertFalse(MapMarkers.isRunning(), "and stopped again when it is turned off");
+    }
+
+    @Test
     void turningTheMapOffInGameStopsItAndTakesItsMarksOff()
     {
         final Recorder map = new Recorder();
