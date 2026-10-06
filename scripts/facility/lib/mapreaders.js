@@ -206,11 +206,21 @@ function bluemapMaps(folder) {
 
 // ---- readers -----------------------------------------------------------------------------------
 
-function readJson(file) {
+/**
+ * A marker file, parsed (gzipped or not), or null when there is none, it is older than `since`
+ * (a file the map wrote before the server's last start, which a restart's checks must not take
+ * for what the map drew since), or it is being written just now.
+ */
+function readJson(file, since = 0) {
   for (const f of [file, `${file}.gz`]) {
     if (!fs.existsSync(f)) continue;
-    const raw = fs.readFileSync(f);
-    return JSON.parse((f.endsWith('.gz') ? zlib.gunzipSync(raw) : raw).toString('utf8'));
+    try {
+      if (fs.statSync(f).mtimeMs < since) return null;
+      const raw = fs.readFileSync(f);
+      return JSON.parse((f.endsWith('.gz') ? zlib.gunzipSync(raw) : raw).toString('utf8'));
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -218,25 +228,27 @@ function readJson(file) {
 /**
  * A reader for one map in one server folder. `snapshot()` reads every world's markers; `until`
  * polls like lib/dynmap.js MapReader's. `port` is the map's web port (BlueMap's markers are read
- * from it first).
+ * from it first). `since` (a time, or a function giving one: the server's last start) leaves out
+ * a marker file written before it.
  */
 class JsonMapReader {
-  constructor(name, folder, { port = null } = {}) {
+  constructor(name, folder, { port = null, since = 0 } = {}) {
     if (!REDRAW_MS[name]) throw new Error(`no marker reader for ${name}`);
-    Object.assign(this, { name, folder, port, redrawMs: REDRAW_MS[name] });
+    Object.assign(this, { name, folder, port, since, redrawMs: REDRAW_MS[name] });
   }
 
   async snapshot() {
     const snap = empty();
+    const since = (typeof this.since === 'function' ? this.since() : this.since) || 0;
     const web = path.join(this.folder, 'plugins', this.name === 'pl3xmap' ? 'Pl3xMap' : 'squaremap', 'web', 'tiles');
     if (this.name === 'squaremap' || this.name === 'pl3xmap') {
       let worlds = [];
       try { worlds = fs.readdirSync(web, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name); } catch { return snap; }
       for (const w of worlds) {
-        const index = readJson(path.join(web, w, 'markers.json'));
+        const index = readJson(path.join(web, w, 'markers.json'), since);
         if (!index) continue;
         if (this.name === 'squaremap') parseSquaremap(index, squaremapWorld(w), snap);
-        else parsePl3xmap(index, (key) => readJson(path.join(web, w, 'markers', `${key}.json`)), w, snap);
+        else parsePl3xmap(index, (key) => readJson(path.join(web, w, 'markers', `${key}.json`), since), w, snap);
       }
       return snap;
     }
@@ -245,7 +257,7 @@ class JsonMapReader {
       if (this.port) {
         try { json = JSON.parse(await httpText(`http://127.0.0.1:${this.port}/maps/${encodeURIComponent(map.id)}/live/markers.json`, 5000)); } catch { json = null; }
       }
-      if (!json) json = readJson(path.join(this.folder, 'bluemap', 'web', 'maps', map.id, 'live', 'markers.json'));
+      if (!json) json = readJson(path.join(this.folder, 'bluemap', 'web', 'maps', map.id, 'live', 'markers.json'), since);
       if (json) parseBluemap(json, map.world, snap);
     }
     return snap;
