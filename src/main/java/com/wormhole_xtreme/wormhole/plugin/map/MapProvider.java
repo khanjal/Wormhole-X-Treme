@@ -4,11 +4,12 @@ package com.wormhole_xtreme.wormhole.plugin.map;
  * A web map that can show a {@link MapSnapshot}.
  *
  * <p>The seam between working out what to show, which is the same for every map, and drawing
- * it, which is not. Dynmap is the first; another map plugin is another implementation, with no
- * change to {@link MapScanner}.
+ * it, which is not. Each map plugin is one implementation, with no change to {@link MapScanner}.
  *
- * <p>Called from one background thread at a time, never the main thread, except
- * {@link #clear()} while the plugin disables.
+ * <p>{@link #apply} is called from one background thread at a time, never the main thread.
+ * {@link #register()}, {@link #unregister()} and {@link #clear()} are called on the main thread,
+ * the last while the plugin disables; {@link #name()}, {@link #ready()} and {@link #lost()} from
+ * either, so they only read.
  */
 public interface MapProvider
 {
@@ -38,4 +39,31 @@ public interface MapProvider
 
     /** Removes everything this plugin has drawn. */
     void clear();
+
+    /**
+     * Whether the map plugin has dropped something drawn on it, a layer or an icon, so the picture
+     * must be applied again though it has not changed. For a map plugin that says nothing when it
+     * does: asked on every look while the map is up, so it must be cheap.
+     *
+     * @return true to have the latest picture applied again
+     */
+    default boolean lost()
+    {
+        return false;
+    }
+
+    /**
+     * Starts listening to the map plugin, once the provider is in place. May call back at once
+     * when the map is already up.
+     */
+    default void register()
+    {
+        // A map with nothing to listen to needs nothing here.
+    }
+
+    /** Stops listening to the map plugin. Must be safe after a failed or missing register. */
+    default void unregister()
+    {
+        // Nothing was registered by default.
+    }
 }

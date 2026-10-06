@@ -8,6 +8,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.10.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Gates, rings, public beam destinations and quantum mirrors show on
+  [BlueMap](https://bluemap.bluecolored.de)** too, on every map of each world, and come back by
+  themselves after a `/bluemap reload`. Off until `bluemap-enabled` is set; the `map-show-*` settings
+  choose the layers for every map. See [the guide](docs/guide/SERVER.md#bluemap).
+- **The same marks show on [squaremap](https://modrinth.com/plugin/squaremap)**, Paper's map, with
+  each world's layers kept on it as worlds load. Off until `squaremap-enabled` is set. See
+  [the guide](docs/guide/SERVER.md#squaremap).
+- **And on [Pl3xMap](https://modrinth.com/plugin/pl3xmap)**, put back by themselves after a
+  `/map reload`. Off until `pl3xmap-enabled` is set. See [the guide](docs/guide/SERVER.md#pl3xmap).
+
 ### Stargates
 
 **Added**

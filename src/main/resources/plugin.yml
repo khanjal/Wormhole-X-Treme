@@ -3,7 +3,7 @@ main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: ${project.version}
 api-version: "1.20"
 authors: ["Lologarithm", "alron", "lirelent", "Jeremy Wood", "Khan Jal"]
-softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap]
+softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap, Pl3xMap]
 
 description: >
   Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,

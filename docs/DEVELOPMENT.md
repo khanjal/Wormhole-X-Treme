@@ -41,6 +41,12 @@ all: the classes built for 1.21 simply run again.
 MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another package, so
 `src/mockbukkit/` could not compile against both.
 
+Tests in `src/pl3xmap/java/` cover the Pl3xMap provider (#532). Pl3xMap has no API artifact, so
+the build compiles against its plugin jar, which carries its own Adventure, unrelocated. The Paper
+builds keep that jar off the test classpath so it cannot shadow Paper's Adventure, and only the
+Spigot builds compile this directory: on the Paper builds JUnit could not even list a test class
+whose types are missing, and the whole run would fail.
+
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
 by command, a following pet through a gate and by beam into another world, a caller up against
 a shut iris, and a sign gate dialled by redstone. It checks where they arrive and that the trip
