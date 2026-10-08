@@ -36,6 +36,11 @@ people learn to skip.
 
 ## 2. Then read for what PMD cannot see
 
+A new rule can start flagging old patterns at any time (S9391, "use a stream instead of this
+loop", arrived as 48 findings on main in one go), so do not rely on this list being complete:
+before pushing, and again after the merge, run `scripts/sonar-issues.sh <pr>` and read the
+rules in "by rule", not only the count.
+
 Roughly half the open backlog has no PMD equivalent at all. These are the three largest such
 groups, and they need the file open:
 

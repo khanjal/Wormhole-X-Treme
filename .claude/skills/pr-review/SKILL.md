@@ -99,7 +99,12 @@ curl -s "https://sonarcloud.io/api/project_pull_requests/list?project=khanjal_Wo
 
 Zero is the bar before merging (see the `sonar-check` skill for the false positives that
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
-up a backlog nobody sees on a PR. Query it without `pullRequest` when triaging.
+up a backlog nobody sees on a PR. `scripts/sonar-issues.sh <pr>` does both reads at once: the
+PR's open issues (and whether Sonar analysed its head), and main's total. Run it when the PR
+opens and again before merging, put main's total in the PR body before the merge, and run it
+once more after: a PR that raises main's total has added a maintainability issue the PR check
+did not show, and that is fixed in the next change rather than left to a backlog. Maintainability
+issues are not only the PMD-visible ones (see the `sonar-check` skill, section 2).
 
 A PR with fewer than 20 new lines of code (Sonar's count, which leaves out blanks and comments, not the diff's) skips the gate's coverage and duplication conditions, and
 Sonar says so on the PR. A green gate there says nothing about the tests; the issue count still
