@@ -59,9 +59,11 @@
 //                        else the end
 //   --gallery [names|all] documentation pictures and animations, taken in a white studio under open
 //                        sky (lib/gallery.js): a PNG of each gate shape and material group, idle and
-//                        open, and a GIF of each ring pattern dialling and of each shape's woosh, to
-//                        .local-server/gallery/<version>/<name>.png|gif. Names are scenes or a
-//                        prefix ending in a dash (dial-, kawoosh-, palette-). Needs Chrome or Edge
+//                        open, a GIF of each ring pattern dialling and of each shape's woosh, of each
+//                        transport ring pattern and style fired, and of a mirror opening onto
+//                        another world, to .local-server/gallery/<version>/<name>.png|gif. Names
+//                        are scenes or a prefix ending in a dash (dial-, kawoosh-, palette-,
+//                        ring-, mirror-). Needs Chrome or Edge
 //   --gallery-out <dir>  put the gallery's files in <dir> instead
 //   --gallery-slow <n>   run the server n times slower for a reel (default 4; 1.20.3 and later), so
 //                        every tick of an animation is caught; the GIF plays at real speed

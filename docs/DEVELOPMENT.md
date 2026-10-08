@@ -919,6 +919,22 @@ going out and back, from just before the first block of it is drawn in or in fro
 `.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder, such as
 `docs/images/`). Stills are 1280 × 720, reels 800 × 450.
 
+Transport rings and quantum mirrors are scene families beside the gates (`lib/gallery-rings.js`,
+`lib/gallery-mirrors.js`; each is `scenes()`, `prepare`, `act`, `cleanup` and, for what stands
+between scenes, `finish`). `ring-<odd|even>-slabs` is a still of the circle of slabs as a player
+lays it; `ring-<odd|even>-<fast|slow>` is a GIF of that pattern's pair fired in that style, from
+just before the first ring is drawn until Probe2 has been carried across and the stacks have gone
+back down; `ring-ceiling` is a floor ring paired with a ceiling ring six blocks up, under a roof.
+A pair with nobody inside either end stands down after its countdown and draws nothing, so each
+reel stands Probe2 in the first ring before the pair is built, and Probe is the camera. The
+mirror is one banner on the backdrop wall, made once and taken down at the end of the run (its own
+room is captured when it is made, which takes seconds); `mirror-idle` is the banner, and
+`mirror-<nether|end>-open` and `mirror-<nether|end>` the room it opens onto through the wall's
+1 × 2 opening, as a still and as a GIF of the right-click: the campus's own mirrors `Range` and
+`Annex`, so the run has them (a `--gallery mirror-` on a server without the fixtures cannot).
+Between scenes Probe is sent out of the mirror's range so each starts with nothing chosen.
+Beams are not here: the plugin draws a beam with particles, which the viewer does not draw.
+
 A reel is recorded with the server slowed, `tick rate 5` (`--gallery-slow <n>`, 1 to 20, for another factor;
 1.20.3 and later, a server before that records at full speed), because software rendering paints a
 few frames a second and the plugin's animations change every tick. Chrome's screencast keeps each

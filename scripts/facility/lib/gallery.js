@@ -182,9 +182,10 @@ async function dress(kit, geom, group, config = readGroups()) {
 /**
  * The scene families other than gates: lib/gallery-rings.js, lib/gallery-mirrors.js. A family is
  * { scenes(), prepare(ctx, scene) -> { camera, ... }, act?(ctx, scene, prepared), cleanup?(ctx,
- * scene, prepared) }. `prepare` builds what the scene shows and says where Probe stands; `act` is
+ * scene, prepared), finish?(ctx) }. `prepare` builds what the scene shows and says where Probe stands; `act` is
  * what happens while a reel is recorded, or before an open still is taken, and calls `ctx.mark()`
- * where a scene with `trim` should begin; `cleanup` runs after the scene, whatever happened.
+ * where a scene with `trim` should begin; `cleanup` runs after the scene, whatever happened, and
+ * `finish` once at the end of the run, for what a family keeps standing between its scenes.
  */
 function families() {
   return { ring: require('./gallery-rings'), mirror: require('./gallery-mirrors') };
@@ -212,6 +213,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   const errors = [];
   let browser = null;
   let flying = false;
+  const used = new Set();
 
   /** Takes the subject gate down and puts the floor back, for a scene of another family or another gate. */
   const clearGate = async () => {
@@ -354,6 +356,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
       const t0 = Date.now();
       const size = s.kind === 'reel' ? { w: reelWidth, h: reelHeight } : { w: width, h: height };
       const family = s.family ? families()[s.family] : gates;
+      used.add(family);
       let prep = null;
       try {
         await page.setViewport({ width: size.w, height: size.h });
@@ -378,6 +381,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     if (browser) await browser.close().catch(() => {});
     if (flying) { try { bot.creative.stopFlying(); } catch { /* left */ } }
     if (canSlow) await srv.run('tick rate 20').catch(() => {});
+    for (const f of used) if (f.finish) await f.finish(ctx).catch((e) => log(`  finishing a scene family: ${e.message}`));
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
     if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
     // The studio's chunks are not kept loaded for a self-test or a kept world that follows.
