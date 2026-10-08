@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -384,6 +385,35 @@ class VehicleGateEntryTest
 
             verify(cart).teleport(any(Location.class));
             verify(rider, times(1)).sendMessage(ArgumentMatchers.anyString());
+            verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /**
+     * With {@code timeout-shutdown: 0} the cart's rider is still told where they arrived.
+     *
+     * <p>That setting shuts the gate as the cart leaves, which forgets its target, so a greeting
+     * that asked the gate afterwards had no gate to name and said nothing.
+     */
+    @Test
+    void aRiderIsGreetedEvenWhenTheGateShutsBehindTheCart()
+    {
+        final Player rider = putARiderAboard();
+        ConfigTestSupport.set(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, true);
+        ConfigTestSupport.set(ConfigKeys.TIMEOUT_SHUTDOWN, 0);
+        // Shutting the gate empties its opening and releases the chunk under each arrival point.
+        when(world.getBlockAt(any(Location.class))).thenReturn(portal);
+        src.setGateWorld(world);
+        src.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
+        try
+        {
+            rollIn();
+
+            assertNull(src.getGateTarget(), "the gate shut behind the cart");
             verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
         }
         finally

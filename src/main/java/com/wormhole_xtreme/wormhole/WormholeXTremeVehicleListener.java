@@ -718,6 +718,8 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
+        // Read before the trip: timeout-shutdown 0 shuts the gate behind the cart, forgetting it.
+        final Stargate arrivedAt = st.getGateTarget();
         if (!dispatchVehicleTeleport(st, veh, v, target, passengers))
         {
             turnBack(veh, v, passengers);
@@ -729,11 +731,17 @@ class WormholeXTremeVehicleListener implements Listener
             GateFare.charge(driver, GateFare.affordable(driver));
         }
         applyTravelRestrictions(st, pendingRestrictions);
+        greetRiders(passengers, arrivedAt);
+        return true;
+    }
+
+    /** Tells each player aboard which gate they came out of; anything else aboard is passed over. */
+    private static void greetRiders(final List<Entity> passengers, final Stargate arrivedAt)
+    {
         for (final Entity passenger : passengers)
         {
-            GateWelcome.greet(passenger, st.getGateTarget());
+            GateWelcome.greet(passenger, arrivedAt);
         }
-        return true;
     }
 
     /**

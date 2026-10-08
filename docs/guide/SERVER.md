@@ -114,7 +114,7 @@ holding a gate open forever.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `show-gate-welcome-message` | false | A player coming out of a gate is told in chat which gate they arrived at, once; their pets and mount are not. Gates only, not rings, beams or mirrors |
+| `show-gate-welcome-message` | false | A player coming out of a gate is told in chat which gate they arrived at, once; their pets and mount are not. Gates only: rings and beams name their destination whatever this is set to |
 
 ### Pets
 

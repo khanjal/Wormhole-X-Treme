@@ -14,7 +14,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A player coming out of a gate can be told where they are**: "Arrived at Abydos", in chat,
   once, and not for their pets or mount. Off until `show-gate-welcome-message` is set; a
-  Settings.txt that had it on is named in the upgrade note. Rings, beams and mirrors say nothing.
+  Settings.txt that had it on is named in the upgrade note. Gates only: rings and beams name their
+  destination whatever it is set to.
 
 **Changed**
 
