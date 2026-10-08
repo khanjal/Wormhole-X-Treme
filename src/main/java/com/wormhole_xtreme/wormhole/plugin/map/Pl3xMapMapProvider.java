@@ -457,5 +457,18 @@ public final class Pl3xMapMapProvider implements MapProvider
         {
             return showing.getOrDefault(id, Map.of()).getOrDefault(world, List.of());
         }
+
+        /** Pl3xMap's equality compares only the layer's settings, which are the same in every world. */
+        @Override
+        public boolean equals(final Object o)
+        {
+            return (o instanceof final WorldLayer other) && super.equals(o) && world.equals(other.world);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return (31 * super.hashCode()) + world.hashCode();
+        }
     }
 }

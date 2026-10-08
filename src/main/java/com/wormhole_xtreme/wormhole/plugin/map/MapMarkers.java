@@ -79,13 +79,13 @@ public final class MapMarkers
      */
     private static final List<Backend> BACKENDS = List.of(
         new Backend("Dynmap", "dynmap-enabled", "dynmap", "org.dynmap.DynmapCommonAPIListener",
-            ConfigManager::isDynmapEnabled, (layers, ready) -> new DynmapMapProvider(layers, ready)),
+            ConfigManager::isDynmapEnabled, (chosen, ready) -> new DynmapMapProvider(chosen, ready)),
         new Backend("BlueMap", "bluemap-enabled", "BlueMap", "de.bluecolored.bluemap.api.BlueMapAPI",
-            ConfigManager::isBlueMapEnabled, (layers, ready) -> new BlueMapMapProvider(layers, ready)),
+            ConfigManager::isBlueMapEnabled, (chosen, ready) -> new BlueMapMapProvider(chosen, ready)),
         new Backend("squaremap", "squaremap-enabled", "squaremap", "xyz.jpenilla.squaremap.api.SquaremapProvider",
-            ConfigManager::isSquaremapEnabled, (layers, ready) -> new SquaremapMapProvider(layers, ready)),
+            ConfigManager::isSquaremapEnabled, (chosen, ready) -> new SquaremapMapProvider(chosen, ready)),
         new Backend("Pl3xMap", "pl3xmap-enabled", "Pl3xMap", "net.pl3x.map.core.Pl3xMap",
-            ConfigManager::isPl3xMapEnabled, (layers, ready) -> new Pl3xMapMapProvider(layers, ready)));
+            ConfigManager::isPl3xMapEnabled, (chosen, ready) -> new Pl3xMapMapProvider(chosen, ready)));
 
     /** Guards drawing, so only one picture is drawn at a time. */
     private static final Object DRAWING = new Object();
@@ -540,7 +540,7 @@ public final class MapMarkers
             return;
         }
         scanWarned = false;
-        final boolean retry = redraw.getAndSet(false) | anyLost();
+        final boolean retry = redraw.getAndSet(false) || anyLost();
         if (!retry && now.equals(lastSeen))
         {
             return;

@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.plugin.map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -310,6 +312,25 @@ class Pl3xMapMapProviderTest
         assertTrue(icons.contains("wormhole_mirror"), "but it is tried again on the next draw");
         icons.remove("wormhole_mirror");
         assertTrue(provider.lost(), "and once Pl3xMap took it, losing it is noticed again");
+    }
+
+    @Test
+    void aLayerEqualsOnlyTheSameLayerInTheSameWorld()
+    {
+        // Pl3xMap's own equality reads only the layer's settings, which every world's copy shares.
+        final Registry<Layer> world = world("world");
+        final Registry<Layer> nether = world("nether");
+        provider.register();
+        provider.apply(picture(gate("Abydos", "world")));
+        final Layer first = world.get(MapText.GATES);
+
+        provider.clear();
+        provider.apply(picture(gate("Abydos", "world")));
+
+        assertNotEquals(world.get(MapText.GATES), nether.get(MapText.GATES), "the same layer in another world");
+        assertNotSame(first, world.get(MapText.GATES), "made afresh after the clear");
+        assertEquals(first, world.get(MapText.GATES), "the same layer in the same world");
+        assertEquals(first.hashCode(), world.get(MapText.GATES).hashCode());
     }
 
     @Test

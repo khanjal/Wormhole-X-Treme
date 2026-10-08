@@ -390,7 +390,8 @@ class SquaremapMapProviderTest
         assertFalse(world.hasEntry(Key.of(MapText.BEAMS)));
         assertFalse(world.hasEntry(Key.of(MapText.MIRRORS)));
         assertSame(spawn, world.get(Key.of("squaremap-spawn_icon")));
-        assertThrows(IllegalArgumentException.class, () -> world.unregister(Key.of(MapText.GATES)),
+        final Key gates = Key.of(MapText.GATES);
+        assertThrows(IllegalArgumentException.class, () -> world.unregister(gates),
             "really gone, not just emptied");
     }
 

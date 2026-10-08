@@ -111,7 +111,7 @@ public final class BlueMapMapProvider implements MapProvider
     private final Map<String, Map<String, MarkerSet>> sets = new HashMap<>();
 
     /** This session's icon addresses, by map id and then icon file. Background draw only. */
-    private final Map<String, Map<String, String>> icons = new HashMap<>();
+    private final Map<String, Map<String, String>> iconAddresses = new HashMap<>();
 
     /**
      * Creates the provider, not yet listening to BlueMap.
@@ -226,7 +226,7 @@ public final class BlueMapMapProvider implements MapProvider
     {
         worldsDrawn.clear();
         sets.clear();
-        icons.clear();
+        iconAddresses.clear();
     }
 
     /**
@@ -323,7 +323,7 @@ public final class BlueMapMapProvider implements MapProvider
      */
     private Map<String, String> iconsOf(final BlueMapMap map)
     {
-        final Map<String, String> known = icons.get(map.getId());
+        final Map<String, String> known = iconAddresses.get(map.getId());
         if (known != null)
         {
             return known;
@@ -332,7 +332,7 @@ public final class BlueMapMapProvider implements MapProvider
         // Kept only when whole, so a map whose assets failed is tried again on the next draw.
         if (written.size() == ICONS.length)
         {
-            icons.put(map.getId(), written);
+            iconAddresses.put(map.getId(), written);
         }
         return written;
     }
