@@ -636,7 +636,7 @@ async function main() {
   // Each web map's port, refused here (a game port too far from 25590) before anything starts.
   const mapNames = extras.map((c) => c.name).filter((n) => maps.MAPS[n]);
   const mapPorts = Object.fromEntries(mapNames.map((n) => [n, maps.webPort(n, args.port)]));
-  const need =companions.javaNeeded(version, [{ name: 'WormholeXTreme', java: companions.classJava(plugin) }, ...extras]);
+  const need = companions.javaNeeded(version, [{ name: 'WormholeXTreme', java: companions.classJava(plugin) }, ...extras]);
   const java = args.java || companions.findJavaAtLeast(need.major);
   if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
   const javaMajor = server.checkJava(java, version, need.major, need.why.join('; '));
@@ -701,7 +701,7 @@ async function main() {
     else maps.configure(name, folder, { port: mapPorts[name], acceptDownload: Boolean(args.acceptBluemapDownload) });
     maps.writeStatus(folder, name, 'starting', `http://127.0.0.1:${mapPorts[name]}/`);
   }
-  const extra =pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
+  const extra = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
   if (extra.copied.length) console.log(`plugins-extra copied in: ${extra.copied.join(', ')}`);
   if (extra.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${extra.removed.join(', ')}`);
   if (extra.kept.length) console.log(`plugins-extra left alone (copied by an earlier run, replaced since): ${extra.kept.join(', ')}`);

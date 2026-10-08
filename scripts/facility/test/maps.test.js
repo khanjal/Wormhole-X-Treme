@@ -31,9 +31,25 @@ test('every map\'s web port follows the game port, and no two labs or maps side 
       seen.set(w, `${n} on ${p}`);
     }
   }
-  assert.throws(() => maps.webPort('bluemap', 25590 + maps.SPAN), /in the next map's range/);
+  assert.throws(() => maps.webPort('bluemap', 25590 + maps.SPAN), /in another map's range/);
   assert.throws(() => maps.webPort('pl3xmap', 17000), /would be -/);
+  // Below 25590 as well: Pl3xMap on 25490 would take squaremap's 8400 on 25590.
+  assert.throws(() => maps.webPort('pl3xmap', 25490), /would be 8400, in another map's range/);
+  assert.throws(() => maps.webPort('squaremap', 25589), /in another map's range/);
+  assert.strictEqual(maps.webPort('dynmap', 25565), 8098, 'Dynmap has no neighbour below it to reach');
 });
+
+// On 26.x BlueMap's map called world is the nether (its configs from a real run): asking it to
+// render world and world_nether drew the nether and nothing, and the overworld never.
+test('BlueMap is asked to render its maps of the overworld and the nether by their ids, read from its configs', () => scratch((d) => {
+  const dir = path.join(d, 'plugins', 'BlueMap', 'maps');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of fs.readdirSync(path.join(FIX, 'bluemap-26.1.2-maps'))) fs.copyFileSync(path.join(FIX, 'bluemap-26.1.2-maps', f), path.join(dir, f));
+  assert.deepStrictEqual(maps.renderWorlds('bluemap', d).sort(), ['overworld', 'world']);
+  assert.deepStrictEqual(maps.renderWorlds('squaremap', d), ['minecraft:overworld', 'minecraft:the_nether']);
+  fs.rmSync(dir, { recursive: true });
+  assert.throws(() => maps.renderWorlds('bluemap', d), /BlueMap has no map of world or world_nether/);
+}));
 
 test('a fresh folder gets each map on 127.0.0.1 at its port, and the port reads back', () => scratch((d) => {
   maps.configure('squaremap', d, { port: 8400 });

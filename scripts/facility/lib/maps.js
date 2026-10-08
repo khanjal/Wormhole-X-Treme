@@ -6,8 +6,8 @@
 // Ports: each map has its own base, offset one for one with the game port like Dynmap's 8123,
 // so two labs side by side, and two maps in one lab, never ask for the same port. BlueMap's own
 // default (8100), squaremap's and Pl3xMap's (8080) would collide across labs, so none is used.
-// The bases are 100 apart: a game port more than 99 above 25590 would reach the next map's range,
-// and is refused (DESIGN.md: at most about five servers run side by side anyway).
+// The bases are 100 apart: a game port more than 99 above 25590, or any below it, would reach
+// another map's range, and is refused (DESIGN.md: at most about five servers run side by side anyway).
 //
 // Settings: a map writes its config files on its first start, so a file that is not there yet is
 // written with only the keys set here (each plugin fills in its own defaults for the rest), and
@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { bluemapMaps } = require('./mapreaders');
 
 const BASE_GAME_PORT = 25590;
 
@@ -39,8 +40,9 @@ function webPort(name, gamePort) {
   const offset = gamePort - BASE_GAME_PORT;
   const port = m.base + offset;
   if (port < 1024) throw new Error(`${m.label}'s web port for game port ${gamePort} would be ${port}: run it on a game port from ${BASE_GAME_PORT - m.base + 1024}`);
-  if (name !== 'dynmap' && offset >= SPAN) {
-    throw new Error(`${m.label}'s web port for game port ${gamePort} would be ${port}, in the next map's range: run it on a game port below ${BASE_GAME_PORT + SPAN}`);
+  // Below 25590 reaches the previous map's range just as surely as 100 above reaches the next.
+  if (name !== 'dynmap' && (offset < 0 || offset >= SPAN)) {
+    throw new Error(`${m.label}'s web port for game port ${gamePort} would be ${port}, in another map's range: run it on a game port from ${BASE_GAME_PORT} to ${BASE_GAME_PORT + SPAN - 1}`);
   }
   return port;
 }
@@ -271,8 +273,17 @@ function webLine(name, lines, port) {
 const RENDER = {
   squaremap: { worlds: ['minecraft:overworld', 'minecraft:the_nether'], command: (w) => `squaremap fullrender ${w}`, done: (w) => new RegExp(`\\[squaremap\\] Finished rendering map for ${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) },
   pl3xmap: { worlds: ['world', 'world_nether'], command: (w) => `pl3xmap fullrender ${w}`, started: /\[Pl3xMap\].*Full render starting/, status: 'pl3xmap status', idle: /Renderers are idle/ },
-  bluemap: { worlds: ['world', 'world_nether'], command: (w) => `bluemap update ${w}`, status: 'bluemap', idle: /no render-?tasks|render-?threads are idle|0 tasks? (queued|pending)/i },
+  // BlueMap's map ids, read from its configs: on 26.x its map called world is the nether.
+  bluemap: { worlds: (folder) => bluemapMaps(folder).filter((m) => m.world === 'world' || m.world === 'world_nether').map((m) => m.id), command: (w) => `bluemap update ${w}`, status: 'bluemap', idle: /no render-?tasks|render-?threads are idle|0 tasks? (queued|pending)/i },
 };
+
+/** What a map is asked to render in a server folder; throws when BlueMap has no map of either world yet. */
+function renderWorlds(name, folder) {
+  const w = RENDER[name].worlds;
+  const list = typeof w === 'function' ? w(folder) : w;
+  if (!list.length) throw new Error(`${MAPS[name].label} has no map of world or world_nether in plugins/${MAPS[name].plugin}/maps`);
+  return list;
+}
 
 // ---- status, for the dashboard ----------------------------------------------------------------
 
@@ -337,5 +348,5 @@ function labMaps(folder, version, { pick = null } = {}) {
 
 module.exports = {
   MAPS, NAMES, SPAN, BASE_GAME_PORT, webPort, setConf, setYaml, readYaml, configure, readPort,
-  WEB, webLine, RENDER, STATUS, writeStatus, readStatus, labMaps,
+  WEB, webLine, RENDER, renderWorlds, STATUS, writeStatus, readStatus, labMaps,
 };

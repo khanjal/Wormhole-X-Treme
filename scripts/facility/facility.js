@@ -760,9 +760,11 @@ class Facility {
     for (const name of todo) {
       const r = maps.RENDER[name];
       const from = this.srv.log.length;
-      onState(name, 'rendering', `${r.worlds.join(', ')}, since ${clock()}`);
+      let worlds;
       try {
-        for (const w of r.worlds) {
+        worlds = maps.renderWorlds(name, this.srv.folder);
+        onState(name, 'rendering', `${worlds.join(', ')}, since ${clock()}`);
+        for (const w of worlds) {
           const said = (await this.srv.run(r.command(w))).lines.join(' ');
           if (/Unknown or incomplete command|Expected whitespace|is not loaded/i.test(said)) throw new Error(`${r.command(w)}: ${said}`);
         }
@@ -771,8 +773,8 @@ class Facility {
           let done;
           const lines = this.srv.log.slice(from);
           if (r.done) {
-            done = r.worlds.every((w) => lines.some((l) => r.done(w).test(l.trim())));
-          } else if (r.started && lines.filter((l) => r.started.test(l)).length < r.worlds.length) {
+            done = worlds.every((w) => lines.some((l) => r.done(w).test(l.trim())));
+          } else if (r.started && lines.filter((l) => r.started.test(l)).length < worlds.length) {
             // Pl3xMap starts each render on another thread: idle before that is not done.
             done = false;
           } else {
@@ -782,7 +784,7 @@ class Facility {
           if (Date.now() > deadline) throw new Error(`still rendering after ${ms / 1000} s`);
           await new Promise((resolve) => { setTimeout(resolve, 2000); });
         }
-        out[name] = { ok: true, detail: `rendered ${r.worlds.join(', ')}` };
+        out[name] = { ok: true, detail: `rendered ${worlds.join(', ')}` };
         onState(name, 'ready', out[name].detail);
       } catch (e) {
         out[name] = { ok: false, detail: e.message };

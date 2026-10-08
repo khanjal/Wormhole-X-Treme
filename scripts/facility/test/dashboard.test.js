@@ -52,10 +52,25 @@ test('a 1.21.11 lab with Dynmap: its address read from Dynmap\'s own settings', 
   assert.strictEqual(by.squaremap.installed, false);
 }));
 
-test('a map whose port nobody listens on is said not to answer; one that listens, to answer', () => labs('1.21.11', 25630, ['squaremap', 'pl3xmap'], async (root) => {
+/** A server listening on a free port the system picked on 127.0.0.1, once it listens. */
+function listening() {
+  const srv = net.createServer();
+  return new Promise((resolve, reject) => {
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+}
+
+// Ports the system picks, written into each map's settings: a lab's real map ports may be in use
+// on this machine, by a lab that is running.
+test('a map whose port nobody listens on is said not to answer; one that listens, to answer', () => labs('1.21.11', 25630, ['squaremap', 'pl3xmap'], async (root, folder) => {
+  const srv = await listening();
+  const gone = await listening();
+  const closed = gone.address().port;
+  await new Promise((resolve) => { gone.close(resolve); });
+  maps.configure('squaremap', folder, { port: srv.address().port });
+  maps.configure('pl3xmap', folder, { port: closed });
   const [lab] = dashboard.findLabs(root);
-  const srv = net.createServer().listen(maps.webPort('squaremap', 25630), '127.0.0.1');
-  await new Promise((resolve) => { srv.on('listening', resolve); });
   try {
     const by = Object.fromEntries((await dashboard.mapState(lab)).map((m) => [m.name, m]));
     assert.strictEqual(by.squaremap.answers, true);

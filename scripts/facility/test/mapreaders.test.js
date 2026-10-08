@@ -112,6 +112,40 @@ test('a gate drawn by BlueMap: a poi with its height, a shape, a line, colours a
   assert.strictEqual(r.inLayer(snap, 'Stargates', 'lines', 'MapA to MapB')[0].id, 'mapa|mapb');
 });
 
+// Pl3xMap's ellipse gives its radius as { x, z } and squaremap's as radiusX and radiusZ: read as
+// one number they came out NaN or 0, and an area that covers nothing.
+test('a circle or ellipse covers its own box: one radius, or one a side as each map writes it', () => {
+  const sq = r.parseSquaremap([{ id: 'l', name: 'Stargates', markers: [
+    { type: 'ellipse', center: { x: 10, z: 20 }, radiusX: 4, radiusZ: 2, tooltip: 'E' },
+    { type: 'circle', center: { x: 10, z: 20 }, radius: 3, tooltip: 'C' },
+  ] }], 'world');
+  assert.deepStrictEqual(r.inLayer(sq, 'Stargates', 'areas', 'E')[0].bounds, { minX: 6, maxX: 14, minZ: 18, maxZ: 22 });
+  assert.deepStrictEqual(r.inLayer(sq, 'Stargates', 'areas', 'C')[0].bounds, { minX: 7, maxX: 13, minZ: 17, maxZ: 23 });
+  const pl = r.parsePl3xmap([{ key: 'l', label: 'Stargates' }], () => [
+    { type: 'ellipse', data: { key: 'e', center: { x: 10, z: 20 }, radius: { x: 4, z: 2 } }, options: { tooltip: { content: 'E' } } },
+    { type: 'circle', data: { key: 'c', center: { x: 10, z: 20 }, radius: 3 }, options: { tooltip: { content: 'C' } } },
+  ], 'world');
+  assert.deepStrictEqual(r.inLayer(pl, 'Stargates', 'areas', 'E')[0].bounds, { minX: 6, maxX: 14, minZ: 18, maxZ: 22 });
+  assert.deepStrictEqual(r.inLayer(pl, 'Stargates', 'areas', 'C')[0].bounds, { minX: 7, maxX: 13, minZ: 17, maxZ: 23 });
+});
+
+// A TypeError out of snapshot() would end the Map Desk case it was polling for, not just skip a marker.
+test('a marker missing its point or centre is skipped, and the good one beside it still read', () => {
+  const sq = r.parseSquaremap([{ id: 'odd', name: 'Odd', markers: 'none' }, null, { id: 'l', name: 'Stargates', markers: [
+    null, { type: 'icon', tooltip: 'NoPoint' }, { type: 'circle', tooltip: 'NoCentre', radius: 2 }, SQUAREMAP_GATES.markers[0],
+  ] }], 'world');
+  assert.deepStrictEqual(sq.points.map((m) => m.label), ['MapA']);
+  assert.deepStrictEqual(sq.areas, []);
+  const pl = r.parsePl3xmap([null, { key: 'l', label: 'Stargates' }], () => [
+    null, { type: 'icon', data: { key: 'np' } }, { type: 'ellipse', data: { key: 'nc', radius: { x: 1, z: 1 } } },
+    { type: 'icon', data: { key: 'mapa', point: { x: 0.5, z: -110.5 } }, options: { tooltip: { content: 'MapA' } } },
+  ], 'world');
+  assert.deepStrictEqual(pl.points.map((m) => m.id), ['mapa']);
+  assert.deepStrictEqual(pl.areas, []);
+  const bm = r.parseBluemap({ odd: null, s: { label: 'Stargates', markers: { n: null, mapa: { type: 'poi', label: 'MapA', position: { x: 1, y: 2, z: 3 } } } } }, 'world');
+  assert.deepStrictEqual(bm.points.map((m) => m.id), ['mapa']);
+});
+
 test('a reader finds each map\'s files in a server folder, every world, by the Bukkit world name', () => scratch(async (d) => {
   // squaremap: the dimension key with ':' as '_'.
   write(path.join(d, 'plugins', 'squaremap', 'web', 'tiles', 'minecraft_the_nether', 'markers.json'), [SQUAREMAP_GATES]);

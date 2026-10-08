@@ -79,6 +79,27 @@ function flatPoints(v) {
   return [];
 }
 
+/** A point with finite x and z, else null: an odd marker is skipped, never thrown out of snapshot(). */
+const xz = (p) => (p && Number.isFinite(p.x) && Number.isFinite(p.z) ? p : null);
+
+/**
+ * The box around a circle or ellipse, or null. Its radius: one number (a circle), { x, z }
+ * (Pl3xMap's ellipse), or radiusX and radiusZ (squaremap's ellipse).
+ */
+function ellipseBounds(center, radius, radiusX, radiusZ) {
+  const c = xz(center);
+  let r = null;
+  if (Number.isFinite(radius)) r = { x: radius, z: radius };
+  else if (xz(radius)) r = radius;
+  else if (Number.isFinite(radiusX) && Number.isFinite(radiusZ)) r = { x: radiusX, z: radiusZ };
+  return c && r ? { minX: c.x - r.x, maxX: c.x + r.x, minZ: c.z - r.z, maxZ: c.z + r.z } : null;
+}
+
+/** A list, or [] for anything else a file holds there. */
+const list = (v) => (Array.isArray(v) ? v : []);
+/** True for a marker or layer worth reading: an object. */
+const isObj = (v) => Boolean(v) && typeof v === 'object';
+
 const empty = () => ({ layers: {}, points: [], areas: [], lines: [] });
 
 /** Adds a marker to a snapshot under its kind. */
@@ -96,14 +117,15 @@ function squaremapWorld(dir) {
 
 /** One world's squaremap markers.json (parsed) into `snap`. */
 function parseSquaremap(json, world, snap = empty()) {
-  for (const layer of Array.isArray(json) ? json : []) {
+  for (const layer of list(json).filter(isObj)) {
     const lid = String(layer.id);
     snap.layers[lid] = layer.name;
-    for (const m of layer.markers || []) {
+    for (const m of list(layer.markers).filter(isObj)) {
       const label = m.tooltip !== undefined ? String(m.tooltip).replace(/<[^>]*>/g, '') : null;
       const base = { layer: lid, layerLabel: layer.name, id: null, label, world, desc: m.popup || m.tooltip || null, color: hex(m.color) };
       if (m.type === 'icon') {
-        add(snap, 'points', { ...base, x: m.point.x, y: null, z: m.point.z, icon: iconName(m.icon) });
+        const p = xz(m.point);
+        if (p) add(snap, 'points', { ...base, x: p.x, y: null, z: p.z, icon: iconName(m.icon) });
       } else if (m.type === 'polyline') {
         const pts = flatPoints(m.points);
         add(snap, 'lines', { ...base, points: pts, bounds: boundsOf(pts) });
@@ -111,8 +133,8 @@ function parseSquaremap(json, world, snap = empty()) {
         const pts = flatPoints(m.points);
         add(snap, 'areas', { ...base, bounds: boundsOf(pts) });
       } else if (m.type === 'circle' || m.type === 'ellipse') {
-        const r = Number(m.radius || (m.radiusX !== undefined ? Math.max(m.radiusX, m.radiusZ) : 0));
-        add(snap, 'areas', { ...base, bounds: { minX: m.center.x - r, maxX: m.center.x + r, minZ: m.center.z - r, maxZ: m.center.z + r } });
+        const bounds = ellipseBounds(m.center, m.radius, m.radiusX, m.radiusZ);
+        if (bounds) add(snap, 'areas', { ...base, bounds });
       } else {
         // polygon, multipolygon
         add(snap, 'areas', { ...base, bounds: boundsOf(flatPoints(m.points)) });
@@ -135,9 +157,11 @@ function addPl3x(snap, layer, label, world, m) {
     desc: text(o.popup) || tip, color: hex(o.stroke && o.stroke.color !== undefined ? o.stroke.color : (o.fill && o.fill.color)),
   };
   switch (m.type) {
-    case 'icon':
-      add(snap, 'points', { ...base, x: d.point.x, y: null, z: d.point.z, icon: iconName(d.image) });
+    case 'icon': {
+      const p = xz(d.point);
+      if (p) add(snap, 'points', { ...base, x: p.x, y: null, z: p.z, icon: iconName(d.image) });
       break;
+    }
     case 'line':
     case 'polyline':
     case 'multiline': {
@@ -150,8 +174,8 @@ function addPl3x(snap, layer, label, world, m) {
       break;
     case 'circle':
     case 'ellipse': {
-      const r = Number(d.radius || (d.radius && d.radius.x) || 0);
-      add(snap, 'areas', { ...base, bounds: { minX: d.center.x - r, maxX: d.center.x + r, minZ: d.center.z - r, maxZ: d.center.z + r } });
+      const bounds = ellipseBounds(d.center, d.radius, d.radiusX, d.radiusZ);
+      if (bounds) add(snap, 'areas', { ...base, bounds });
       break;
     }
     default:
@@ -161,10 +185,10 @@ function addPl3x(snap, layer, label, world, m) {
 
 /** One Pl3xMap world: its layer index (parsed) and a reader of each layer's marker list. */
 function parsePl3xmap(index, layerMarkers, world, snap = empty()) {
-  for (const layer of Array.isArray(index) ? index : []) {
+  for (const layer of list(index).filter(isObj)) {
     const key = String(layer.key);
     snap.layers[key] = layer.label;
-    for (const m of layerMarkers(key) || []) addPl3x(snap, key, layer.label, world, m);
+    for (const m of list(layerMarkers(key)).filter(isObj)) addPl3x(snap, key, layer.label, world, m);
   }
   return snap;
 }
@@ -173,9 +197,11 @@ function parsePl3xmap(index, layerMarkers, world, snap = empty()) {
 
 /** One BlueMap map's live markers.json (parsed) into `snap`, for the world that map draws. */
 function parseBluemap(json, world, snap = empty()) {
-  for (const [sid, set] of Object.entries(json || {})) {
+  for (const [sid, set] of Object.entries(isObj(json) ? json : {})) {
+    if (!isObj(set)) continue;
     snap.layers[sid] = set.label;
-    for (const [id, m] of Object.entries(set.markers || {})) {
+    for (const [id, m] of Object.entries(isObj(set.markers) ? set.markers : {})) {
+      if (!isObj(m)) continue;
       const pos = m.position || {};
       const base = { layer: sid, layerLabel: set.label, id, label: m.label === undefined ? null : String(m.label), world, desc: m.detail || m.label || null };
       if (m.type === 'poi' || m.type === 'html') {
