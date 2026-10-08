@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Lightweight, trimmed Stargate helper. Responsibilities:
@@ -106,22 +107,16 @@ public final class StargateHelper
      */
     private static List<Location> frameBlocksExcludingDhd(final List<Location> structure, final Block dhd)
     {
-        final List<Location> frame = new ArrayList<>();
         if (structure == null)
         {
-            return frame;
+            return List.of();
         }
-        for (final Location loc : structure)
-        {
-            if ((loc != null)
+        return structure.stream()
+            .filter(loc -> (loc != null)
                 && !((loc.getBlockX() == dhd.getX())
                     && (loc.getBlockY() == dhd.getY())
                     && (loc.getBlockZ() == dhd.getZ())))
-            {
-                frame.add(loc);
-            }
-        }
-        return frame;
+            .toList();
     }
 
     // ---------------------------------------------------------------------
@@ -632,11 +627,9 @@ public final class StargateHelper
                                              final Material chevronMat)
     {
         final Material wanted = (chevronMat != null) ? chevronMat : structMat;
-        final Set<Long> lenient = new HashSet<>();
-        for (final Integer[] pos : layer.getLayerLenientChevronPositions())
-        {
-            lenient.add(cellKey(pos));
-        }
+        final Set<Long> lenient = layer.getLayerLenientChevronPositions().stream()
+            .map(StargateHelper::cellKey)
+            .collect(Collectors.toSet());
         for (final Integer[] pos : layer.getLayerChevronPositions())
         {
             final Material found = frame.blockAt(layerIdx, pos).getType();
