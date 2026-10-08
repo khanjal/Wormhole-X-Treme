@@ -598,7 +598,7 @@ public class WormholeXTreme extends JavaPlugin
     }
 
     /**
-     * Starts drawing gates, rings, beams and mirrors on Dynmap (#236), if the config asks for it.
+     * Starts drawing gates, rings, beams and mirrors on the web maps (#236), if the config asks for one.
      * Its own catch, as the others have: a map must never cost a server its gates.
      */
     private void enableMapIfConfigured()
