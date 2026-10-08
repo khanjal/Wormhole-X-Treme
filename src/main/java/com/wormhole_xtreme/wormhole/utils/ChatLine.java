@@ -227,8 +227,10 @@ public final class ChatLine
             }
             catch (final LinkageError notPaper)
             {
-                // Spigot: no Adventure, which is expected, so it is not logged.
+                // Expected on Spigot, so FINE: it only says why links now go as Spigot's components.
                 noAdventure = true;
+                PluginLog.log(Level.FINE, "This server has no Adventure (" + notPaper
+                    + "), so chat links are sent as Spigot's components instead.");
             }
             catch (final RuntimeException refused)
             {

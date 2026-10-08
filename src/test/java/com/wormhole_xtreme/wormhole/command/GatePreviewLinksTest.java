@@ -131,6 +131,7 @@ class GatePreviewLinksTest
                 ? clicking(ClickEvent.Action.SUGGEST_COMMAND, PREVIEW + action + " ")
                 : clicking(ClickEvent.Action.RUN_COMMAND, PREVIEW + action);
             final String hover = (String) ((Text) button.getHoverEvent().getContents().get(0)).getValue();
+            assertTrue(hover.indexOf('\n') > 0, action + "'s hover should put its help on a line of its own: \"" + hover + "\"");
             final String help = hover.substring(hover.indexOf('\n') + 1);
             assertTrue(help.length() > 10, action + "'s button should say what it does, not \"" + hover + "\"");
         }

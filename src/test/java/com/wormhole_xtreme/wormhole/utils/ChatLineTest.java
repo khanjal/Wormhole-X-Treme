@@ -34,6 +34,8 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -51,6 +53,8 @@ class ChatLineTest
     private static final String CLEAR = "/wormhole gate preview clear -all";
 
     private static final String MATERIAL = "/wormhole gate preview material ";
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     /** What the line read as before links existed, and still reads as without them. */
     private static final String PLAIN = "§3:: §7Use " + ChatText.command(CLEAR) + " or "
@@ -162,6 +166,26 @@ class ChatLineTest
         assertEquals(net.kyori.adventure.text.event.ClickEvent.runCommand(CLEAR), bits.get(1).clickEvent());
         assertEquals(net.kyori.adventure.text.event.ClickEvent.suggestCommand(MATERIAL), bits.get(3).clickEvent());
         assertNull(bits.get(2).clickEvent(), "the words between commands are not a link");
+        assertEquals(HoverEvent.showText(LEGACY.deserialize("Click to run " + ChatText.command(CLEAR))),
+            bits.get(1).hoverEvent(), "pointing at a link says what a click does");
+        assertEquals(ChatText.BODY_COLOUR + ".", LEGACY.serialize(bits.get(4)),
+            "the full stop after a white command keeps the body colour, as in the plain line");
+    }
+
+    /** On Paper a button shows its label, {@code [Clear]}, not the bare word a plain line names it by. */
+    @Test
+    void onPaperAButtonShowsItsLabelNotItsPlainWord()
+    {
+        final Player player = Audience.class.isAssignableFrom(Player.class) ? mock(Player.class)
+            : mock(Player.class, withSettings().extraInterfaces(Audience.class));
+
+        ChatLine.of("§7Actions: ").link(ChatText.command("[Clear]"), ChatText.command("clear"), CLEAR, "Clears", false)
+            .send(player);
+
+        final ArgumentCaptor<Component> sent = ArgumentCaptor.forClass(Component.class);
+        verify((Audience) player).sendMessage(sent.capture());
+        assertEquals(LEGACY.serialize(LEGACY.deserialize(ChatText.command("[Clear]"))),
+            LEGACY.serialize(sent.getValue().children().get(1)));
     }
 
     /** A Spigot that refuses the components still gets the words to the player. */
@@ -201,6 +225,7 @@ class ChatLineTest
 
         verify(player, times(2)).sendMessage("Use " + ChatText.command(CLEAR));
         verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("neither Paper's nor Spigot's chat"));
+        verify(plugin, times(1)).prettyLog(eq(Level.FINE), contains("has no Adventure"));
     }
 
     /**
