@@ -338,7 +338,7 @@ public class RingCommand implements SubCommand
      */
     private static long apart(final Ring one, final Ring other)
     {
-        return Math.round(Math.sqrt((double) one.anchorDistanceSquared(other)));
+        return Math.round(Math.sqrt(Long.valueOf(one.anchorDistanceSquared(other)).doubleValue()));
     }
 
     /**
