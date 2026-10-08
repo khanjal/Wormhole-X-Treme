@@ -22,7 +22,7 @@ const cases = [
   v('mirror proximity', '`mirror-proximity-distance 4`: eight blocks from a mirror nothing is drawn, three blocks from it the room is; the default 16 draws it at eight'),
   v('mirror view depth', '`mirror-view-depth 4`: the room behind a mirror is drawn no deeper than four blocks, where the default goes far further'),
   v('mirror fog', '`mirror-fog-at-depth true` with a shallow view: `mirror debug` says the view distance was pulled in; off by default'),
-  v('metrics', '`metrics-enabled false` stops bStats at once, and true starts it again, each said in the log'),
+  v('metrics', '`metrics-enabled true` starts bStats at once, and false stops it again, each said in the log; the lab starts with it off'),
   v('coreprotect', '`coreprotect-enabled true` with no CoreProtect: building a gate logs that nothing is logged to it'),
   v('hum at once', '`gate-sound-ambient-ticks 20`, no restart: the hum repeats every second at once'),
   v('scan at once', '`entity-scan-interval-ticks 200`, no restart: an item lying in an open gate waits for the next sweep, ten seconds off, where by default it is sent within a second or two'),
@@ -155,14 +155,18 @@ async function run(ctx, o) {
     obs.on = await debug();
     await probe.teleport(campus.TRANSIT.home);
   } else if (o.case === 'metrics') {
-    let mark = logMark(ctx);
+    // The launcher seeds it off, so the first change that is heard is turning it on; plugins/bStats/config.yml
+    // keeps the library from sending while it runs.
     await ctx.config.set('metrics-enabled', 'false', 's1');
     await ticks(10);
-    obs.stopped = logSince(ctx, mark).some((l) => l.includes('Stopped sending usage counts to bStats.'));
-    mark = logMark(ctx);
+    let mark = logMark(ctx);
     await ctx.config.set('metrics-enabled', 'true', 's1');
     await ticks(10);
     obs.started = logSince(ctx, mark).some((l) => l.includes('Sending anonymous usage counts to bStats; metrics-enabled: false stops it.'));
+    mark = logMark(ctx);
+    await ctx.config.set('metrics-enabled', 'false', 's1');
+    await ticks(10);
+    obs.stopped = logSince(ctx, mark).some((l) => l.includes('Stopped sending usage counts to bStats.'));
   } else if (o.case === 'coreprotect') {
     const mark = logMark(ctx);
     Object.assign(obs, await buildGate(ctx));
@@ -228,8 +232,8 @@ function checks(obs, o) {
   }
   if (o.case === 'metrics') {
     return [
-      c('false: "Stopped sending usage counts to bStats." at once', () => obs.stopped === true),
-      c('true again: "Sending anonymous usage counts to bStats; ..."', () => obs.started === true),
+      c('true: "Sending anonymous usage counts to bStats; ..." at once', () => obs.started === true),
+      c('false again: "Stopped sending usage counts to bStats."', () => obs.stopped === true),
     ];
   }
   if (o.case === 'coreprotect') {
