@@ -46,18 +46,29 @@ const SPINS = ['top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 
 /** The shapes the console can build, in the order the guide shows them. */
 const SHAPES = ['Massive', 'Grand', 'Large', 'Standard', 'Minimal', 'Horizontal'];
 
-/** The material groups the shipped config.yml names. */
-function groups(config = path.resolve(__dirname, '..', '..', '..', 'src', 'main', 'resources', 'config.yml')) {
-  const out = [];
+const CONFIG = path.resolve(__dirname, '..', '..', '..', 'src', 'main', 'resources', 'config.yml');
+/** The group a console build is made in, and so the one a gate needs no redressing for. */
+const DEFAULT_GROUP = 'Standard';
+
+/** The material groups the shipped config.yml names, each with its keys: { Standard: { structure: 'OBSIDIAN', ... }, ... }. */
+function readGroups(config = CONFIG) {
+  const out = {};
   let inside = false;
+  let group = null;
   for (const line of fs.readFileSync(config, 'utf8').split(/\r?\n/)) {
     if (/^gate-material-groups:/.test(line)) { inside = true; continue; }
     if (!inside) continue;
     const g = /^ {2}([A-Za-z][\w-]*):\s*$/.exec(line);
-    if (g) out.push(g[1]);
+    const kv = /^ {4}([\w-]+):\s*(\S+)\s*$/.exec(line);
+    if (g) { group = g[1]; out[group] = {}; } else if (kv && group) out[group][kv[1]] = kv[2];
     else if (/^\S/.test(line)) break;
   }
   return out;
+}
+
+/** The names of the material groups the shipped config.yml has. */
+function groups(config = CONFIG) {
+  return Object.keys(readGroups(config));
 }
 
 // ---- the scenes ---------------------------------------------------------------------------
@@ -137,6 +148,8 @@ function camera(geom, kind) {
   } else {
     eye = { x: c.x + n.x * d, y: c.y, z: c.z + n.z * d };
   }
+  // Probe's feet stay on the floor (y 0), whatever height the gate's middle is at.
+  eye.y = Math.max(eye.y, EYE);
   return { x: Math.round(eye.x * 10) / 10, y: Math.round((eye.y - EYE) * 10) / 10, z: Math.round(eye.z * 10) / 10, ...lookAt(eye, c) };
 }
 
@@ -180,47 +193,82 @@ async function tidy(kit, geom, dim = O) {
 }
 
 /**
+ * Dresses a gate built in the default group in another group's frame: a console build always
+ * uses the default group's blocks, and `gate edit group` changes only what the gate draws (its
+ * light, portal and iris), so the structure and chevron blocks are put in by hand and the gate
+ * detected afresh.
+ */
+async function dress(kit, geom, group, config = readGroups()) {
+  const mats = config[group];
+  if (!mats) throw new Error(`the shipped config.yml has no material group ${group}`);
+  for (const b of geom.blocks) {
+    const m = (b.role === 'chevron' && mats.chevron) || mats.structure;
+    await kit.srv.run(`execute in ${O} run setblock ${b.x} ${b.y} ${b.z} minecraft:${m.toLowerCase()}`);
+  }
+  const said = (await kit.say(`wormhole gate regen ${SUBJECT}`)).text;
+  const edit = (await kit.edit(SUBJECT, 'group', group)).text;
+  if (/no material group/i.test(edit)) throw new Error(`the server has no material group ${group} (its config.yml lacks it): ${edit}`);
+  return `${said} / ${edit}`;
+}
+
+/**
+ * The `/tick rate` a reel is recorded at, and the slowdown it really is: { rate, factor }. The rate
+ * is 20 over the slowdown asked for, to the thousandth, and the factor is worked back from the
+ * rate, so a GIF is retimed by the speed the server ran at, not the one that was asked for. A
+ * server that cannot be slowed (before 1.20.3) runs at 20, factor 1.
+ */
+function slowdown(slow, canSlow) {
+  if (!(slow >= 1 && slow <= 20)) throw new Error(`the gallery's slowdown is from 1 to 20, not ${slow}`);
+  const rate = canSlow ? Math.round((20 / slow) * 1000) / 1000 : 20;
+  return { rate, factor: 20 / rate };
+}
+
+/** Runs a server command that must be answered without an error; returns the answer's lines. */
+async function must(srv, command) {
+  const r = await srv.run(command);
+  if (r.errors.length) throw new Error(`${command}: ${r.errors.join(' ')}`);
+  return r.lines;
+}
+
+/**
  * Takes each scene: { name, file, ok, detail }. `fac` has the server (`srv`), Probe and the
  * version; `viewer` is lib/viewer.js's running viewer; pictures go to `outDir`. `slow` is how many
- * times slower than real time a reel's server runs (1 for none; a server before 1.20.3 cannot).
+ * times slower than real time a reel's server runs, 1 to 20 (1 for none; a server before 1.20.3
+ * cannot be slowed, and records at full speed).
  */
 async function takeScenes(fac, viewer, scenes, outDir, {
   log = console.log, width = 1280, height = 720, reelWidth = 800, reelHeight = 450, slow = 4, settleMs = 60000, launch = null,
 } = {}) {
+  const canSlow = atLeast(fac.version, '1.20.3');
+  const { rate, factor } = slowdown(slow, canSlow);
   const srv = fac.srv;
   const kit = new GateKit(srv);
   const probe = fac.probe;
   const bot = probe.bot;
-  const canSlow = atLeast(fac.version, '1.20.3');
-  const factor = canSlow ? slow : 1;
+  const config = readGroups();
   fs.mkdirSync(outDir, { recursive: true });
-  const problems = await buildStudio(srv);
-  for (const p of problems) log(`  studio problem: ${p}`);
-  for (const name of [SUBJECT, PARTNER]) if (await kit.exists(name)) await kit.remove(name);
-  const partner = await kit.build(PARTNER, kit.place('Standard', 'south', { cx: 0, openingAt: STUDIO.partnerAt }), { net: NET });
-  await tidy(kit, partner.geom);
-  log(`  studio ready; partner ${PARTNER}: ${partner.text}`);
-  const browser = await shots.launchBrowser(launch);
   const out = [];
-  const state = { shape: null, geom: null };
-  const page = await browser.newPage();
+  const state = { key: null, geom: null };
   const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  let browser = null;
+  let flying = false;
 
-  /** The subject gate of `s`: rebuilt if its shape changed, redressed in its group and ring pattern. */
+  /** The subject gate of `s`: rebuilt if its shape or group changed, redressed, set to its ring pattern. */
   const subject = async (s) => {
-    if (state.shape !== s.shape) {
-      if (state.shape) {
+    const key = `${s.shape}/${s.group}`;
+    if (state.key !== key) {
+      if (state.key) {
         await kit.remove(SUBJECT);
         await kit.restoreSite(state.geom);
         await tidy(kit, state.geom);
+        state.key = null;
       }
       state.geom = kit.place(s.shape, 'south', { cx: 0, openingAt: STUDIO.plane });
       await kit.build(SUBJECT, state.geom, { net: NET });
       await tidy(kit, state.geom);
-      state.shape = s.shape;
+      if (s.group !== DEFAULT_GROUP) await dress(kit, state.geom, s.group, config);
+      state.key = key;
     }
-    await kit.edit(SUBJECT, 'group', s.group);
     await kit.edit(SUBJECT, 'spin', s.spin || 'default');
     return state.geom;
   };
@@ -232,10 +280,11 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   };
 
   /** Puts Probe at the camera and opens the viewer's page on what it sees; resolves once it has painted. */
-  const frame = async (geom, view, token) => {
+  const frame = async (page, geom, view, token) => {
     await page.goto('about:blank');
     const cam = camera(geom, view);
     bot.creative.startFlying();
+    flying = true;
     await probe.teleport(cam, O);
     bot.creative.startFlying();
     await bot.waitForChunksToLoad();
@@ -266,55 +315,71 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     if (!/connected/i.test(said)) throw new Error(`the dial was refused: ${said || 'no answer'}`);
   };
 
+  /** One still: the picture once it holds, judged as a shot is. */
+  const still = async (page, s, geom, chunks, t0) => {
+    if (s.state === 'open') {
+      await dial();
+      await kit.waitOpen(probe, geom, 20000);
+    }
+    const held = await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: 20000 });
+    const file = path.join(outDir, `${s.name}.png`);
+    fs.writeFileSync(file, held.png);
+    const share = await shots.shareIn(page, held.png);
+    const verdict = shots.judge({ still: held.still, chunks: chunks(), chunksBefore: held.chunksBefore, share, errors });
+    const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${(100 * share).toFixed(0)}% scene${verdict.ok ? '' : `; ${verdict.why.join('; ')}`}`;
+    return { name: s.name, file, ok: verdict.ok, detail, label: verdict.ok ? 'still' : 'STILL PROBLEM' };
+  };
+
+  /** One reel: from the dial command until the wormhole has opened and settled, the server slowed throughout. */
+  const makeReel = async (page, s, geom, size, t0) => {
+    const file = path.join(outDir, `${s.name}.gif`);
+    const rec = await reel.startReel(page, { width: size.w, height: size.h });
+    let frames = [];
+    let openedAt = Date.now();
+    try {
+      if (canSlow) await must(srv, `tick rate ${rate}`);
+      await sleep(500);
+      await dial();
+      await firstDrawn(geom, 60000 * factor);
+      openedAt = Date.now();
+      await kit.waitOpen(probe, geom, 60000 * factor);
+      await sleep(1000);
+    } finally {
+      // The recording first: if the server has gone, the screencast must not be left running.
+      frames = await rec.stop();
+      if (canSlow) await srv.run('tick rate 20').catch(() => {});
+    }
+    if (s.action === 'kawoosh') frames = reel.from(frames, openedAt - 500 * factor);
+    const written = await reel.writeGif(file, frames, { slow: factor });
+    const ok = written.frames >= 5 && errors.length === 0;
+    const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;
+    return { name: s.name, file, ok, detail, label: ok ? 'reel' : 'REEL PROBLEM' };
+  };
+
   try {
+    const problems = await buildStudio(srv);
+    for (const p of problems) log(`  studio problem: ${p}`);
+    for (const name of [SUBJECT, PARTNER]) if (await kit.exists(name)) await kit.remove(name);
+    const partner = await kit.build(PARTNER, kit.place('Standard', 'south', { cx: 0, openingAt: STUDIO.partnerAt }), { net: NET });
+    await tidy(kit, partner.geom);
+    log(`  studio ready; partner ${PARTNER}: ${partner.text}`);
+    browser = await shots.launchBrowser(launch);
+    const page = await browser.newPage();
+    page.on('pageerror', (e) => errors.push(e.message));
     for (const [i, s] of scenes.entries()) {
       const t0 = Date.now();
-      const view = s.kind === 'reel' ? { w: reelWidth, h: reelHeight } : { w: width, h: height };
+      const size = s.kind === 'reel' ? { w: reelWidth, h: reelHeight } : { w: width, h: height };
       try {
-        await page.setViewport({ width: view.w, height: view.h });
+        await page.setViewport({ width: size.w, height: size.h });
         const geom = await subject(s.subject);
         await shut();
         const token = `g${process.pid}-${i}-${Date.now()}`;
-        const chunks = await frame(geom, s.view, token);
+        const chunks = await frame(page, geom, s.view, token);
         const held = await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: Math.max(0, settleMs - 3000) });
         if (!held.still) throw new Error('the picture never held still before the scene began');
-        if (s.kind === 'still') {
-          if (s.state === 'open') {
-            await dial();
-            await kit.waitOpen(probe, geom, 20000);
-          }
-          const png = (await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: 20000 })).png;
-          const file = path.join(outDir, `${s.name}.png`);
-          fs.writeFileSync(file, png);
-          const share = await shots.shareIn(page, png);
-          const verdict = shots.judge({ still: true, chunks: chunks(), chunksBefore: chunks(), share, errors });
-          const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${(100 * share).toFixed(0)}% scene${verdict.ok ? '' : `; ${verdict.why.join('; ')}`}`;
-          out.push({ name: s.name, file, ok: verdict.ok, detail });
-          log(`  ${verdict.ok ? 'still' : 'STILL PROBLEM'} ${s.name}: ${file} (${detail})`);
-        } else {
-          const file = path.join(outDir, `${s.name}.gif`);
-          const rec = await reel.startReel(page, { width: view.w, height: view.h });
-          let frames;
-          let openedAt = Date.now();
-          try {
-            if (canSlow) await srv.run(`tick rate ${Math.max(1, Math.round(20 / factor))}`);
-            await sleep(500);
-            await dial();
-            await firstDrawn(geom, 60000 * factor);
-            openedAt = Date.now();
-            await kit.waitOpen(probe, geom, 60000 * factor);
-            await sleep(1000);
-          } finally {
-            if (canSlow) await srv.run('tick rate 20');
-            frames = await rec.stop();
-          }
-          if (s.action === 'kawoosh') frames = reel.from(frames, openedAt - 500 * factor);
-          const written = await reel.writeGif(file, frames, { slow: factor });
-          const ok = written.frames >= 5 && errors.length === 0;
-          const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;
-          out.push({ name: s.name, file, ok, detail });
-          log(`  ${ok ? 'reel' : 'REEL PROBLEM'} ${s.name}: ${file} (${detail})`);
-        }
+        const done = s.kind === 'still' ? await still(page, s, geom, chunks, t0) : await makeReel(page, s, geom, size, t0);
+        out.push({ name: done.name, file: done.file, ok: done.ok, detail: done.detail });
+        log(`  ${done.label} ${s.name}: ${done.file} (${done.detail})`);
       } catch (e) {
         out.push({ name: s.name, file: null, ok: false, detail: e.message });
         log(`  SCENE FAILED ${s.name}: ${e.message}`);
@@ -322,11 +387,11 @@ async function takeScenes(fac, viewer, scenes, outDir, {
       }
     }
   } finally {
-    await browser.close().catch(() => {});
-    try { bot.creative.stopFlying(); } catch { /* left */ }
+    if (browser) await browser.close().catch(() => {});
+    if (flying) { try { bot.creative.stopFlying(); } catch { /* left */ } }
     if (canSlow) await srv.run('tick rate 20').catch(() => {});
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
-    await probe.teleport(campus.TRANSIT.home).catch(() => {});
+    if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
   }
   return out;
 }
@@ -336,4 +401,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, SPINS, SHAPES, groups, catalog, select, lookAt, camera, buildStudio, takeScenes, asResults, EYE };
+module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, dress, slowdown, takeScenes, asResults, EYE };

@@ -917,7 +917,7 @@ of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring patt
 excepted, from the dial command until the wormhole has opened) and `kawoosh-<shape>` (the woosh
 going out and back, from just before the first block of it is drawn). Files go to
 `.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder, such as
-`docs/images/`). Stills are 1280 × 720, reels 800 × 450.
+`docs/images/`). Stills are 1280 Ã— 720, reels 800 Ã— 450.
 
 A reel is recorded with the server slowed, `tick rate 5` (`--gallery-slow <n>` for another factor;
 1.20.3 and later, a server before that records at full speed), because software rendering paints a

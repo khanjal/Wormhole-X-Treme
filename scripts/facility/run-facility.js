@@ -218,7 +218,10 @@ function parseArgs(argv) {
       require('./lib/gallery').select(a.gallery); // a scene it does not know is refused here
     }
     else if (x === '--gallery-out') a.galleryOut = path.resolve(value(i++));
-    else if (x === '--gallery-slow') a.gallerySlow = whole('--gallery-slow', value(i++), 1);
+    else if (x === '--gallery-slow') {
+      a.gallerySlow = whole('--gallery-slow', value(i++), 1);
+      if (a.gallerySlow > 20) throw new Error(`--gallery-slow takes a whole number from 1 to 20, not ${a.gallerySlow}`);
+    }
     else if (x === '--schematics') a.schematics = path.resolve(value(i++));
     else if (x === '--design') a.design = true;
     else if (x === '--design-check') { a.design = true; a.designCheck = true; }

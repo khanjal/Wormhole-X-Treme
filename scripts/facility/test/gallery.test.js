@@ -85,7 +85,7 @@ test('a gate lying in the floor is seen from above, never square on', () => {
   for (const s of flat) assert.strictEqual(s.view, 'high', s.name);
 });
 
-test('the ring patterns are the plugin\'s, bar none, and the shapes are the ones the console builds', () => {
+test("the ring patterns are the plugin\'s, bar none, and the shapes are the ones the console builds", () => {
   const src = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'src', 'main', 'java', 'com', 'wormhole_xtreme', 'wormhole', 'logic', 'DialSpinPattern.java'), 'utf8');
   const named = [...src.matchAll(/^\s{4}([A-Z_]+)[,;(]/gm)].map((m) => m[1].toLowerCase()).filter((n) => n !== 'none');
   assert.deepStrictEqual([...gallery.SPINS].sort(), named.sort());
@@ -120,4 +120,81 @@ test('the studio is well clear of the campus, whose forceloaded land ends at z 9
   const campus = require('../lib/campus');
   const south = Math.max(...campus.FORCELOAD.filter((f) => f.dim === campus.OVERWORLD).flatMap((f) => [f.from[1], f.to[1]]));
   assert.ok(gallery.STUDIO.backdropAt - 16 > south + 50, `the studio starts at ${gallery.STUDIO.backdropAt - 16}, the campus ends at ${south}`);
+});
+
+test("Probe stands on the floor for every view, however low the gate's middle is", () => {
+  for (const shape of gallery.SHAPES) {
+    const geom = shapes.geometry(shape, { x: 0, y: -1, z: 400 }, 'south');
+    for (const kind of ['front', 'quarter', 'high']) {
+      const cam = gallery.camera(geom, kind);
+      assert.ok(cam.y >= 0, `${shape} ${kind}: feet at ${cam.y}, under the floor`);
+      assert.ok(aim(cam, geom) > 0.999, `${shape} ${kind}: not aimed at the gate once clamped`);
+    }
+  }
+});
+
+test('the groups carry their materials, and the default group is one of them', () => {
+  const all = gallery.readGroups();
+  assert.ok(gallery.DEFAULT_GROUP in all, 'the default group is not in config.yml');
+  for (const [name, g] of Object.entries(all)) assert.ok(g.structure, `${name} has no structure block`);
+  assert.strictEqual(all.Standard.structure, 'OBSIDIAN');
+  assert.strictEqual(all.Atlantis.structure, 'LAPIS_BLOCK');
+  assert.deepStrictEqual(gallery.groups(), Object.keys(all));
+});
+
+/** A kit that records what it is told, and answers `regen` and `edit` as the plugin does. */
+function fakeKit({ edit = 'Gate edited.' } = {}) {
+  const ran = [];
+  return {
+    ran,
+    srv: { run: async (c) => { ran.push(c); return { lines: [], errors: [] }; } },
+    say: async (c) => { ran.push(c); return { text: 'regenerated' }; },
+    edit: async (name, field, value) => { ran.push(`edit ${name} ${field} ${value}`); return { text: edit }; },
+  };
+}
+
+test("a gate is dressed in another group's frame: every block laid in its structure block, then the gate found afresh", async () => {
+  const geom = shapes.geometry('Standard', { x: 0, y: 0, z: 400 }, 'south');
+  const kit = fakeKit();
+  await gallery.dress(kit, geom, 'Atlantis');
+  const sets = kit.ran.filter((c) => /setblock/.test(c));
+  assert.strictEqual(sets.length, geom.blocks.length);
+  assert.ok(sets.every((c) => c.endsWith('minecraft:lapis_block')), sets.join(', '));
+  assert.ok(kit.ran.indexOf(kit.ran.find((c) => /gate regen/.test(c))) > kit.ran.lastIndexOf(sets[sets.length - 1]), 'regen comes after the blocks');
+  assert.ok(kit.ran.some((c) => /^edit StudioA group Atlantis/.test(c)));
+});
+
+test('a group with its own chevron block gets it in the chevron cells, the structure block elsewhere', async () => {
+  const geom = { blocks: [{ x: 1, y: 2, z: 3, role: 'chevron' }, { x: 4, y: 5, z: 6, role: 'frame' }, { x: 7, y: 8, z: 9, role: 'either' }] };
+  const kit = fakeKit();
+  await gallery.dress(kit, geom, 'X', { X: { structure: 'STONE', chevron: 'REDSTONE_LAMP' } });
+  const sets = kit.ran.filter((c) => /setblock/.test(c)).map((c) => c.replace(/^.*setblock /, ''));
+  assert.deepStrictEqual(sets, ['1 2 3 minecraft:redstone_lamp', '4 5 6 minecraft:stone', '7 8 9 minecraft:stone']);
+  // A group with no chevron block of its own has the structure block in them too.
+  const plain = fakeKit();
+  await gallery.dress(plain, geom, 'Y', { Y: { structure: 'DEEPSLATE' } });
+  assert.ok(plain.ran.filter((c) => /setblock/.test(c)).every((c) => c.endsWith('minecraft:deepslate')));
+});
+
+test('a group the repo knows and the server does not is an error, not a picture of the wrong palette', async () => {
+  const geom = shapes.geometry('Standard', { x: 0, y: 0, z: 400 }, 'south');
+  await assert.rejects(gallery.dress(fakeKit({ edit: 'No material group called Atlantis.' }), geom, 'Atlantis'), /server has no material group Atlantis/);
+  await assert.rejects(gallery.dress(fakeKit(), geom, 'Nope'), /no material group Nope/);
+});
+
+test('a reel is retimed by the speed the server ran at: 20 over the tick rate, whatever slowdown was asked for', () => {
+  assert.deepStrictEqual(gallery.slowdown(4, true), { rate: 5, factor: 4 });
+  const odd = gallery.slowdown(3, true);
+  assert.strictEqual(odd.rate, 6.667);
+  assert.strictEqual(odd.factor, 20 / 6.667);
+  assert.ok(Math.abs(odd.factor - 3) < 0.001);
+  assert.deepStrictEqual(gallery.slowdown(20, true), { rate: 1, factor: 20 });
+  assert.deepStrictEqual(gallery.slowdown(1, true), { rate: 20, factor: 1 });
+  // A server that cannot be slowed records at full speed whatever was asked.
+  assert.deepStrictEqual(gallery.slowdown(8, false), { rate: 20, factor: 1 });
+});
+
+test('a slowdown outside 1 to 20 is refused, before anything is built', async () => {
+  for (const bad of [0, 0.5, 21, 30, NaN, -4]) assert.throws(() => gallery.slowdown(bad, true), /from 1 to 20/);
+  await assert.rejects(gallery.takeScenes({}, {}, [], os.tmpdir(), { slow: 30 }), /from 1 to 20/);
 });

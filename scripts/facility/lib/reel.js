@@ -10,9 +10,9 @@ const path = require('path');
 
 /**
  * Starts a screencast of `page`: frames as they are painted, { t: seconds on the browser's clock,
- * recv: ms on this process's, png: Buffer }.
- * `stop()` ends it and returns them in order. Chrome sends no frame for a page that does not
- * change, so a quiet stretch is one long frame, which is what the delays are for.
+ * recv: ms on this process's, png: Buffer }. `stop()` ends it and returns them in order. Chrome
+ * sends no frame for a page that does not change, so a quiet stretch is one long frame, which is
+ * what the delays are for.
  */
 async function startReel(page, { width = 960, height = 540 } = {}) {
   const client = await page.createCDPSession();
@@ -52,71 +52,98 @@ function retime(times, { slow = 1, minGap = 40, hold = 1500 } = {}) {
   });
 }
 
-/** Decodes a PNG to { width, height, data: RGBA }. */
+/** The pixels in a Uint8Array that owns its whole buffer: gifenc reads `.buffer` as if it began at the first pixel. */
+function own(data) {
+  if (data.byteOffset === 0 && data.buffer.byteLength === data.length) return new Uint8Array(data.buffer, 0, data.length);
+  return Uint8Array.from(data);
+}
+
+/** Decodes a PNG to { width, height, data: RGBA }, the data in an array buffer of its own. */
 function decode(png) {
   const { PNG } = require('pngjs');
   const img = PNG.sync.read(png);
-  return { width: img.width, height: img.height, data: img.data };
+  return { width: img.width, height: img.height, data: own(img.data) };
+}
+
+/** A PNG's size, from its header, without decoding it. */
+function sizeOf(png) {
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 }
 
 /**
- * One palette for the whole reel, from a spread of its frames, so the colours do not shimmer from
- * frame to frame the way a palette per frame does. 255 colours: the last index is the transparent one.
+ * The colours one GIF's frames are drawn in: at most 255, from a spread of the frames (`decoded(i)`
+ * gives frame i's pixels), so the colours do not shimmer from frame to frame the way a palette per
+ * frame does. The transparent entry is one past them, and so is never a colour a pixel can be given.
  */
-function sharedPalette(images, { quantize }) {
-  const step = Math.max(1, Math.floor(images.length / 8));
-  const sample = images.filter((_, i) => i % step === 0);
-  const px = Buffer.concat(sample.map((s) => Buffer.from(s.data.buffer, s.data.byteOffset, s.data.length)));
-  return [...quantize(px, 255), [0, 0, 0]];
+function paletteOf(count, decoded, { quantize }) {
+  const step = Math.max(1, Math.floor(count / 8));
+  const sample = [];
+  for (let i = 0; i < count; i += step) sample.push(decoded(i).data);
+  const px = new Uint8Array(sample.reduce((n, d) => n + d.length, 0));
+  let at = 0;
+  for (const d of sample) { px.set(d, at); at += d.length; }
+  const colours = quantize(px, 255);
+  return { colours, transparent: colours.length, table: [...colours, [0, 0, 0]] };
 }
 
-const TRANSPARENT = 255;
-
 /**
- * `index` with every pixel the same as in `before` made transparent, so a frame stores only what
+ * `index` with every pixel the same as in `before` made `transparent`, so a frame stores only what
  * moved (a gate against an empty studio is mostly still, and a GIF stores a whole frame otherwise).
  */
-function changed(index, before) {
+function changed(index, before, transparent) {
   if (!before) return index;
   const out = Uint8Array.from(index);
-  for (let i = 0; i < out.length; i++) if (out[i] === before[i]) out[i] = TRANSPARENT;
+  for (let i = 0; i < out.length; i++) if (out[i] === before[i]) out[i] = transparent;
   return out;
 }
 
-/** The frames from the first one received at or after `wallMs` (process time); all of them if none was before. */
+/**
+ * The frames from the first received at or after `wallMs` (process time), the one before it
+ * included but made to begin at `wallMs`: Chrome sends nothing while the page is still, so that
+ * frame may have been painted long before the cut. All of them if none was received before.
+ */
 function from(frames, wallMs) {
   const i = frames.findIndex((f) => f.recv >= wallMs);
-  return i < 0 ? frames.slice(-1) : frames.slice(Math.max(0, i - 1));
+  if (i < 0) return frames.slice(-1);
+  if (i === 0) return frames;
+  const lead = { ...frames[i - 1], t: Math.max(frames[i - 1].t, frames[i].t - (frames[i].recv - wallMs) / 1000) };
+  return [lead, ...frames.slice(i)];
 }
 
 /**
  * Writes `frames` ({ t, png } from a reel) to `file` as a looping GIF. Returns { file, frames,
- * seconds, bytes }. `slow` and `hold` as for retime.
+ * seconds, bytes }. `slow`, `minGap` and `hold` as for retime. A frame whose size is not the
+ * commonest is left out before anything is timed, so its time goes to its neighbour; frames are
+ * decoded one at a time, so a long reel is not all in memory as pixels at once.
  */
 async function writeGif(file, frames, { slow = 1, hold = 1500, minGap = 40 } = {}) {
   if (!frames.length) throw new Error('no frames were recorded');
   const gif = (await import('gifenc')).default;
-  const timing = retime(frames.map((f) => f.t), { slow, hold, minGap });
-  const images = timing.map((k) => decode(frames[k.index].png));
-  const { width, height } = images[0];
-  const palette = sharedPalette(images, gif);
+  const sizes = new Map();
+  for (const f of frames) {
+    const s = sizeOf(f.png);
+    const k = `${s.width}x${s.height}`;
+    sizes.set(k, { ...s, n: (sizes.get(k) || { n: 0 }).n + 1 });
+  }
+  const { width, height } = [...sizes.values()].sort((a, b) => b.n - a.n)[0];
+  const same = frames.filter((f) => { const s = sizeOf(f.png); return s.width === width && s.height === height; });
+  const timing = retime(same.map((f) => f.t), { slow, hold, minGap });
+  const decoded = (i) => decode(same[timing[i].index].png);
+  const pal = paletteOf(timing.length, decoded, gif);
   const enc = gif.GIFEncoder();
   let before = null;
-  let written = 0;
-  images.forEach((img, i) => {
-    if (img.width !== width || img.height !== height) return; // a resize mid-reel: skip the odd frame
-    const index = gif.applyPalette(img.data, palette);
-    enc.writeFrame(changed(index, before), width, height, {
-      palette: written === 0 ? palette : undefined, delay: timing[i].delay, repeat: 0, transparent: written > 0, transparentIndex: TRANSPARENT, dispose: 1,
+  timing.forEach((k, i) => {
+    const index = gif.applyPalette(decoded(i).data, pal.colours);
+    enc.writeFrame(changed(index, before, pal.transparent), width, height, {
+      palette: i === 0 ? pal.table : undefined, delay: k.delay, repeat: 0, transparent: i > 0, transparentIndex: pal.transparent, dispose: 1,
     });
     before = index;
-    written++;
   });
   enc.finish();
   const bytes = Buffer.from(enc.bytes());
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, bytes);
-  return { file, frames: written, seconds: timing.reduce((n, k) => n + k.delay, 0) / 1000, bytes: bytes.length };
+  return { file, frames: timing.length, seconds: timing.reduce((n, k) => n + k.delay, 0) / 1000, bytes: bytes.length };
 }
 
-module.exports = { startReel, retime, writeGif, decode, from, changed, TRANSPARENT };
+module.exports = { startReel, retime, writeGif, decode, own, sizeOf, paletteOf, changed, from };
