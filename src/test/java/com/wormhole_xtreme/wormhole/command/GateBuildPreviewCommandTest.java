@@ -93,6 +93,8 @@ class GateBuildPreviewCommandTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.isOp()).thenReturn(false);
         when(player.hasPermission(anyString())).thenReturn(false);
+        // These read the words; GatePreviewLinksTest reads the links.
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.CLICKABLE_CHAT, false);
     }
 
     @AfterEach
@@ -101,6 +103,7 @@ class GateBuildPreviewCommandTest
         StargateManager.forgetPlayer(player);
         StargateShapeRegistry.getStargateShapes().remove("Standard");
         MaterialGroupRegistry.load(null);
+        ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
 
