@@ -240,7 +240,7 @@ function vanillaVersionInfo(folder, version) {
 }
 
 /**
- * Writes eula.txt and server.properties for an offline, flat, quiet test server. `layers`
+ * Writes eula.txt, server.properties and the bStats opt-out for an offline, flat, quiet test server. `layers`
  * sets the flat world's layers (bottom up); without it the server's default flat is used.
  */
 function prepareFolder(folder, {
@@ -272,6 +272,9 @@ function prepareFolder(folder, {
   if (seed !== null) props['level-seed'] = String(seed);
   const text = Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n');
   fs.writeFileSync(path.join(folder, 'server.properties'), `${text}\n`);
+  // Every lab folder gets a fresh bStats id, so each would count as another server on the public page.
+  fs.mkdirSync(path.join(folder, 'plugins', 'bStats'), { recursive: true });
+  fs.writeFileSync(path.join(folder, 'plugins', 'bStats', 'config.yml'), 'enabled: false\n');
 }
 
 /** Deletes the worlds (and, with `pluginData`, the plugin's folder) so a run starts clean. */
