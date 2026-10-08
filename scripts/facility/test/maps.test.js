@@ -150,6 +150,6 @@ test('the dashboard is told which maps a lab has, each one\'s address, and why t
   assert.strictEqual(got.bluemap.installed, true);
   assert.strictEqual(got.bluemap.state, 'waiting', 'BlueMap without accept-download says so');
   assert.strictEqual(got.pl3xmap.installed, false, 'a recorded jar that is gone is not installed');
-  assert.match(got.pl3xmap.why, /-With pl3xmap/);
+  assert.match(got.pl3xmap.why, /--with pl3xmap \(or --with maps\)/);
   assert.match(got.dynmap.why, /^no Dynmap build supports 26\.x/);
 }));

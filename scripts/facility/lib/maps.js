@@ -330,7 +330,7 @@ function labMaps(folder, version, { pick = null } = {}) {
       if (version && pick) {
         try { pick(name, version); } catch (e) { out.why = e.message.replace(/^\S+ on \S+: /, ''); }
       }
-      if (!out.why) out.why = `not installed in this lab: start it with -With ${name} (or -With maps)`;
+      if (!out.why) out.why = `not installed in this lab: start it with --with ${name} (or --with maps)`;
       return out;
     }
     const port = readPort(name, folder);

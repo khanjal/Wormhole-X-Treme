@@ -39,7 +39,7 @@ test('a 26.1.2 lab with squaremap and Pl3xMap: both at 127.0.0.1 on its own port
   assert.strictEqual(by.pl3xmap.url, 'http://127.0.0.1:8520/');
   assert.strictEqual(by.dynmap.installed, false);
   assert.match(by.dynmap.why, /no Dynmap build supports 26\.x/);
-  assert.match(by.bluemap.why, /-With bluemap/);
+  assert.match(by.bluemap.why, /--with bluemap \(or --with maps\)/);
   // The page carries them, and names no localhost address.
   const html = dashboard.page([lab]);
   assert.ok(html.includes('http://127.0.0.1:8420/'));
