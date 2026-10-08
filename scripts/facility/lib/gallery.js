@@ -35,6 +35,10 @@ const STUDIO = {
   plane: 400, half: 70, floor: 'minecraft:white_concrete', backdrop: 'minecraft:white_concrete',
   backdropAt: 374, backdropHigh: 48, partnerAt: 470, sideAt: 46,
 };
+/** The chunk rectangle the studio forceloads, as `forceload` takes it: x1 z1 x2 z2. */
+function forceRect(s = STUDIO) {
+  return [-s.half - 16, s.backdropAt - 16, s.half + 16, s.partnerAt + 40];
+}
 const SUBJECT = 'StudioA';
 const PARTNER = 'StudioB';
 const NET = 'Studio';
@@ -59,7 +63,7 @@ function readGroups(config = CONFIG) {
     if (/^gate-material-groups:/.test(line)) { inside = true; continue; }
     if (!inside) continue;
     const g = /^ {2}([A-Za-z][\w-]*):\s*$/.exec(line);
-    const kv = /^ {4}([\w-]+):\s*(\S+)\s*$/.exec(line);
+    const kv = /^ {4}([\w-]+):\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$/.exec(line);
     if (g) { group = g[1]; out[group] = {}; } else if (kv && group) out[group][kv[1]] = kv[2];
     else if (/^\S/.test(line)) break;
   }
@@ -163,11 +167,10 @@ async function buildStudio(srv, dim = O) {
     const r = await srv.run(`execute in ${dim} run ${cmd}`);
     if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
   };
-  const z0 = s.backdropAt - 16;
-  const z1 = s.partnerAt + 40;
-  await run(`forceload add ${-s.half - 16} ${z0} ${s.half + 16} ${z1}`);
+  const [x0, z0, x1, z1] = forceRect(s);
+  await run(`forceload add ${x0} ${z0} ${x1} ${z1}`);
   const points = [];
-  for (let cx = Math.floor((-s.half - 16) / 16); cx <= Math.floor((s.half + 16) / 16); cx++) {
+  for (let cx = Math.floor(x0 / 16); cx <= Math.floor(x1 / 16); cx++) {
     for (let cz = Math.floor(z0 / 16); cz <= Math.floor(z1 / 16); cz++) points.push([cx * 16 + 8, 0, cz * 16 + 8]);
   }
   await srv.waitLoaded(dim, points, 120000);
@@ -192,6 +195,29 @@ async function tidy(kit, geom, dim = O) {
   await kit.srv.run(`execute in ${dim} run kill @e[type=minecraft:item,x=0,y=0,z=${STUDIO.plane},distance=..150]`);
 }
 
+/** True for a block that is air, or not loaded. */
+function isAir(block) {
+  return !block || block.name === 'air' || block.name === 'cave_air';
+}
+
+/**
+ * The cells the woosh can be drawn in: the opening and the cells one and two out from it along the
+ * gate's normal, and above it (a gate lying flat sends its woosh up). Those that are not air before
+ * the dial (the frame, say) are left out by the caller.
+ */
+function wooshCells(geom) {
+  const n = geom.normal;
+  const out = [];
+  for (const c of geom.opening) {
+    out.push(c);
+    for (const k of [1, 2]) {
+      out.push({ x: c.x + n.x * k, y: c.y, z: c.z + n.z * k });
+      out.push({ x: c.x, y: c.y + k, z: c.z });
+    }
+  }
+  return out;
+}
+
 /**
  * Dresses a gate built in the default group in another group's frame: a console build always
  * uses the default group's blocks, and `gate edit group` changes only what the gate draws (its
@@ -201,11 +227,14 @@ async function tidy(kit, geom, dim = O) {
 async function dress(kit, geom, group, config = readGroups()) {
   const mats = config[group];
   if (!mats) throw new Error(`the shipped config.yml has no material group ${group}`);
+  if (!mats.structure) throw new Error(`material group ${group} has no structure block in config.yml`);
   for (const b of geom.blocks) {
     const m = (b.role === 'chevron' && mats.chevron) || mats.structure;
     await kit.srv.run(`execute in ${O} run setblock ${b.x} ${b.y} ${b.z} minecraft:${m.toLowerCase()}`);
   }
   const said = (await kit.say(`wormhole gate regen ${SUBJECT}`)).text;
+  // "Re-detected ... from its frame": the other answer keeps the recorded gate, whose frame is not the group's.
+  if (!/re-detected/i.test(said)) throw new Error(`the gate was not re-detected in ${group}'s frame: ${said || 'no answer'}`);
   const edit = (await kit.edit(SUBJECT, 'group', group)).text;
   if (/no material group/i.test(edit)) throw new Error(`the server has no material group ${group} (its config.yml lacks it): ${edit}`);
   return `${said} / ${edit}`;
@@ -223,10 +252,13 @@ function slowdown(slow, canSlow) {
   return { rate, factor: 20 / rate };
 }
 
-/** Runs a server command that must be answered without an error; returns the answer's lines. */
-async function must(srv, command) {
+/**
+ * Runs a server command whose own answer must match `answer`; returns the answer's lines. A WARN
+ * from something else that lands before the fence is not the command's failure, so it is not judged.
+ */
+async function must(srv, command, answer) {
   const r = await srv.run(command);
-  if (r.errors.length) throw new Error(`${command}: ${r.errors.join(' ')}`);
+  if (!r.lines.some((l) => answer.test(l))) throw new Error(`${command}: ${[...r.lines, ...r.errors].join(' ') || 'no answer'}`);
   return r.lines;
 }
 
@@ -296,18 +328,19 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     return chunks;
   };
 
-  /** Waits until Probe is shown anything in the opening: the first block of the woosh or the portal. */
+  /**
+   * Waits until Probe is shown a block where there was air before the dial, in the opening or one
+   * or two blocks out from it (in front, and above for a gate lying flat): the first block of the
+   * woosh, which the plugin draws out from the opening before it fills it.
+   */
   const firstDrawn = async (geom, ms) => {
+    const watched = wooshCells(geom).filter((c) => isAir(bot.blockAt(new Vec3(c.x, c.y, c.z))));
     const end = Date.now() + ms;
-    const drawn = (c) => {
-      const b = bot.blockAt(new Vec3(c.x, c.y, c.z));
-      return b && b.name !== 'air' && b.name !== 'cave_air';
-    };
     while (Date.now() < end) {
-      if (geom.opening.some(drawn)) return true;
+      if (watched.some((c) => !isAir(bot.blockAt(new Vec3(c.x, c.y, c.z))))) return true;
       await sleep(25);
     }
-    throw new Error('the opening was never drawn');
+    throw new Error('the woosh never began: nothing was drawn in or in front of the opening');
   };
 
   const dial = async () => {
@@ -337,7 +370,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     let frames = [];
     let openedAt = Date.now();
     try {
-      if (canSlow) await must(srv, `tick rate ${rate}`);
+      if (canSlow) await must(srv, `tick rate ${rate}`, /tick rate/i);
       await sleep(500);
       await dial();
       await firstDrawn(geom, 60000 * factor);
@@ -351,8 +384,9 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     }
     if (s.action === 'kawoosh') frames = reel.from(frames, openedAt - 500 * factor);
     const written = await reel.writeGif(file, frames, { slow: factor });
-    const ok = written.frames >= 5 && errors.length === 0;
-    const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;
+    const moved = frames.length > 1 && !frames[0].png.equals(frames[frames.length - 1].png);
+    const ok = written.frames >= 5 && moved && errors.length === 0;
+    const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${moved ? '' : '; the first frame and the last are the same'}${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;
     return { name: s.name, file, ok, detail, label: ok ? 'reel' : 'REEL PROBLEM' };
   };
 
@@ -392,6 +426,8 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     if (canSlow) await srv.run('tick rate 20').catch(() => {});
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
     if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
+    // The studio's chunks are not kept loaded for a self-test or a kept world that follows.
+    await srv.run(`execute in ${O} run forceload remove ${forceRect().join(' ')}`).catch(() => {});
   }
   return out;
 }
@@ -401,4 +437,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, dress, slowdown, takeScenes, asResults, EYE };
+module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };

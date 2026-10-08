@@ -143,12 +143,12 @@ test('the groups carry their materials, and the default group is one of them', (
 });
 
 /** A kit that records what it is told, and answers `regen` and `edit` as the plugin does. */
-function fakeKit({ edit = 'Gate edited.' } = {}) {
+function fakeKit({ edit = 'Gate edited.', regen = 'Re-detected StudioA from its frame.' } = {}) {
   const ran = [];
   return {
     ran,
     srv: { run: async (c) => { ran.push(c); return { lines: [], errors: [] }; } },
-    say: async (c) => { ran.push(c); return { text: 'regenerated' }; },
+    say: async (c) => { ran.push(c); return { text: regen }; },
     edit: async (name, field, value) => { ran.push(`edit ${name} ${field} ${value}`); return { text: edit }; },
   };
 }
@@ -197,4 +197,53 @@ test('a reel is retimed by the speed the server ran at: 20 over the tick rate, w
 test('a slowdown outside 1 to 20 is refused, before anything is built', async () => {
   for (const bad of [0, 0.5, 21, 30, NaN, -4]) assert.throws(() => gallery.slowdown(bad, true), /from 1 to 20/);
   await assert.rejects(gallery.takeScenes({}, {}, [], os.tmpdir(), { slow: 30 }), /from 1 to 20/);
+});
+
+test('a gate that is not found again in its new frame is an error: the picture would show the old gate drawn in the new group', async () => {
+  const geom = shapes.geometry('Standard', { x: 0, y: 0, z: 400 }, 'south');
+  const kept = "No shape matches all of StudioA's frame, so its recorded geometry is kept.";
+  await assert.rejects(gallery.dress(fakeKit({ regen: kept }), geom, 'Atlantis'), /not re-detected in Atlantis/);
+  await assert.rejects(gallery.dress(fakeKit(), geom, 'X', { X: { chevron: 'STONE' } }), /no structure block/);
+});
+
+test('a group key with a comment or quotes is still read', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wx-groups-'));
+  try {
+    const file = path.join(dir, 'config.yml');
+    fs.writeFileSync(file, ['gate-material-groups:', '  A:', '    structure: OBSIDIAN  # the frame', '    light: "SEA_LANTERN"', "    chevron: 'REDSTONE_LAMP'", '    dial-spin: pegasus', ''].join('\n'));
+    assert.deepStrictEqual(gallery.readGroups(file), { A: { structure: 'OBSIDIAN', light: 'SEA_LANTERN', chevron: 'REDSTONE_LAMP', 'dial-spin': 'pegasus' } });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the woosh is watched for in the opening and in the cells in front of it and above it, a block or two out', () => {
+  const geom = shapes.geometry('Standard', { x: 0, y: 0, z: 400 }, 'south');
+  const key = (c) => `${c.x},${c.y},${c.z}`;
+  const cells = new Set(gallery.wooshCells(geom).map(key));
+  for (const c of geom.opening) {
+    assert.ok(cells.has(key(c)), 'the opening itself');
+    for (const k of [1, 2]) {
+      assert.ok(cells.has(key({ x: c.x + geom.normal.x * k, y: c.y, z: c.z + geom.normal.z * k })), `${k} out in front`);
+      assert.ok(cells.has(key({ x: c.x, y: c.y + k, z: c.z })), `${k} above`);
+    }
+  }
+  // Not the cells behind the gate, where the woosh is never drawn.
+  const c = geom.opening[0];
+  assert.ok(!cells.has(key({ x: c.x - geom.normal.x * 3, y: c.y, z: c.z - geom.normal.z * 3 })));
+});
+
+test("the studio's forceload covers its floor and fits one forceload command", () => {
+  const [x0, z0, x1, z1] = gallery.forceRect();
+  const s = gallery.STUDIO;
+  // The floor to its edges, the backdrop and the side walls (which run to partnerAt + 30), and room beyond them.
+  assert.ok(x0 <= -s.half - 16 && x1 >= s.half + 16 && z0 <= s.backdropAt - 16 && z1 >= s.partnerAt + 30);
+  assert.ok((Math.floor(x1 / 16) - Math.floor(x0 / 16) + 1) * (Math.floor(z1 / 16) - Math.floor(z0 / 16) + 1) <= 256, 'a forceload command takes at most 256 chunks');
+});
+
+test('a command is judged by its own answer, not by a warning from something else that landed with it', async () => {
+  const srv = (lines, errors) => ({ run: async () => ({ lines, errors }) });
+  assert.deepStrictEqual(await gallery.must(srv(['The game is running at 5.0 ticks per second'], ['[WARN] unrelated']), 'tick rate 5', /ticks per second/i), ['The game is running at 5.0 ticks per second']);
+  await assert.rejects(gallery.must(srv([], ['Unknown or incomplete command']), 'tick rate 5', /ticks per second/), /Unknown or incomplete command/);
+  await assert.rejects(gallery.must(srv([], []), 'tick rate 5', /ticks/), /no answer/);
 });

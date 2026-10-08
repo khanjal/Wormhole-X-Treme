@@ -908,18 +908,18 @@ the launcher stops. A vantage point is feet position, yaw (0 south,
 
 `--gallery` is `--shots` for the documentation: pictures and animations of the plugin at work,
 taken in a studio built for the purpose rather than in the campus. The studio (`lib/gallery.js`) is
-a white floor, a backdrop and two side walls at z 374 to 500, far from the campus, forceloaded for
-the run, in the same noon light every time; the subject gate and a partner to dial stand in it and
+a white floor, a backdrop and two side walls at z 358 to 510, far from the campus, forceloaded for
+the run (and let go of at the end), in the same noon light every time; the subject gate and a partner to dial stand in it and
 are taken down at the end. `--gallery` takes scene names or a prefix ending in a dash, `all` if
 none: `gate-<shape>-idle` and `-open` (a PNG of each of the six console-buildable shapes, built
 and dialled), `palette-<group>-idle` and `-open` (a Standard gate dressed in each material group
 of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring pattern, `none`
 excepted, from the dial command until the wormhole has opened) and `kawoosh-<shape>` (the woosh
-going out and back, from just before the first block of it is drawn). Files go to
+going out and back, from just before the first block of it is drawn in or in front of the opening). Files go to
 `.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder, such as
 `docs/images/`). Stills are 1280 × 720, reels 800 × 450.
 
-A reel is recorded with the server slowed, `tick rate 5` (`--gallery-slow <n>` for another factor;
+A reel is recorded with the server slowed, `tick rate 5` (`--gallery-slow <n>`, 1 to 20, for another factor;
 1.20.3 and later, a server before that records at full speed), because software rendering paints a
 few frames a second and the plugin's animations change every tick. Chrome's screencast keeps each
 frame with the time it was painted; `lib/reel.js` divides those gaps by the slowdown, so the GIF
@@ -927,7 +927,10 @@ plays at the speed the plugin meant, drops a frame that follows another too clos
 only the pixels that moved (a gate in an empty studio is mostly still, which a GIF otherwise
 stores whole), under one palette for the whole reel so the colours do not shimmer. The tick rate
 is put back after every scene, failed or not. A scene that fails is named in the output and fails
-the run, as a shot does. The viewer draws what the server sends the client as blocks, so the
+the run, as a shot does. A run that is killed (Ctrl+C) leaves the two studio gates and the
+studio's chunks as they were; with `--keep-world` the next `--gallery` removes the gates by name
+and lays the floor again, and a plain run on that world has two gates more on the network
+`Studio`. The viewer draws what the server sends the client as blocks, so the
 wormhole, the woosh and the chevron light are in the pictures; display entities (the build
 preview, the boards) are not. It is a render of the world, not the game's own: sky, water and
 light are the viewer's, which suits showing a shape and a motion and is not a screenshot of the

@@ -76,10 +76,21 @@ test('frames are written as a looping GIF, one image per kept frame, at the dela
     assert.strictEqual(gif.subarray(0, 6).toString('latin1'), 'GIF89a');
     assert.ok(gif.includes(Buffer.from('NETSCAPE2.0')), 'loops');
     assert.strictEqual(reel.decode(frames[0].png).width, 32);
+    // The delays as the file holds them (hundredths of a second, in each Graphic Control Extension), not as writeGif counted them.
+    assert.deepStrictEqual(delaysOf(gif), [10, 10, 50]);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+/** The delay of every frame of a GIF, in hundredths of a second, read from its Graphic Control Extensions. */
+function delaysOf(gif) {
+  const out = [];
+  for (let i = 0; i + 7 < gif.length; i++) {
+    if (gif[i] === 0x21 && gif[i + 1] === 0xf9 && gif[i + 2] === 0x04) out.push(gif.readUInt16LE(i + 4));
+  }
+  return out;
+}
 
 /** A frame of `n` pixels, all `rgb`, with `dark` of them near black. */
 function pixels(n, rgb, dark = 0) {
