@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 /**
  * Holds every ring pair on the server, and decides where a new one may go.
@@ -128,15 +129,9 @@ public final class RingManager
      */
     public static List<RingPair> getPairsInWorld(final String worldName)
     {
-        final List<RingPair> out = new ArrayList<>();
-        for (final RingPair pair : pairs.values())
-        {
-            if (pair.getWorldName().equals(worldName))
-            {
-                out.add(pair);
-            }
-        }
-        return out;
+        return pairs.values().stream()
+            .filter(pair -> pair.getWorldName().equals(worldName))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

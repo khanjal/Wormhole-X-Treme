@@ -384,12 +384,11 @@ public class RegenerateCommand implements SubCommand
         {
             return;
         }
-        final List<String> shown = new ArrayList<>();
-        for (final GateRederivation.Gap gap : gaps.subList(0, Math.min(GAPS_LISTED, gaps.size())))
-        {
-            shown.add(ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " (" + ChatText.material(gap.found().name())
-                + ")");
-        }
+        final List<String> shown = gaps.stream()
+            .limit(GAPS_LISTED)
+            .map(gap -> ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " ("
+                + ChatText.material(gap.found().name()) + ")")
+            .toList();
         final int more = gaps.size() - shown.size();
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + ChatText.bad("Missing or wrong") + ": "
             + String.join(", ", shown) + ((more > 0) ? ", and " + ChatText.value(String.valueOf(more)) + " more." : "."));
@@ -718,11 +717,7 @@ public class RegenerateCommand implements SubCommand
     {
         final List<String> sorted = new ArrayList<>(names);
         sorted.sort(String.CASE_INSENSITIVE_ORDER);
-        final List<String> shown = new ArrayList<>();
-        for (final String name : sorted.subList(0, Math.min(NAMES_LISTED, sorted.size())))
-        {
-            shown.add(ChatText.name(name));
-        }
+        final List<String> shown = sorted.stream().limit(NAMES_LISTED).map(ChatText::name).toList();
         final int more = sorted.size() - shown.size();
         return String.join(", ", shown) + ((more > 0) ? ", and " + ChatText.value(String.valueOf(more)) + " more." : ".");
     }

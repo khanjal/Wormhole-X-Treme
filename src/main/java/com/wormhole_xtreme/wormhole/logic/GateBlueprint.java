@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -378,11 +377,9 @@ public final class GateBlueprint
         {
             return false;
         }
-        final Set<Long> opening = new HashSet<>();
-        for (final Integer[] pos : previous.getLayerPortalPositions())
-        {
-            opening.add(StargateHelper.cellKey(pos));
-        }
+        final Set<Long> opening = previous.getLayerPortalPositions().stream()
+            .map(StargateHelper::cellKey)
+            .collect(Collectors.toSet());
         final List<Integer[]> frame = new ArrayList<>(layer.getLayerBlockPositions());
         frame.addAll(layer.getLayerChevronPositions());
         for (final Integer[] pos : frame)

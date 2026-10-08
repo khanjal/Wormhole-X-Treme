@@ -1983,17 +1983,9 @@ public final class GatePreviews
         final int maxSteps = ConfigManager.getGateIrisMaxSteps();
         final List<List<Location>> rings = closing
             ? IrisSweep.closingOrder(places, style, maxSteps) : IrisSweep.openingOrder(places, style, maxSteps);
-        final List<List<Integer>> out = new ArrayList<>(rings.size());
-        for (final List<Location> ring : rings)
-        {
-            final List<Integer> ringIndexes = new ArrayList<>(ring.size());
-            for (final Location at : ring)
-            {
-                ringIndexes.add(index.get(at));
-            }
-            out.add(ringIndexes);
-        }
-        return out;
+        return rings.stream()
+            .map(ring -> ring.stream().map(index::get).toList())
+            .toList();
     }
 
     /** Draws one ring of the sweep and books the next. */

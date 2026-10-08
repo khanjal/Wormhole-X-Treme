@@ -778,12 +778,7 @@ class StargateAnimator
         {
             return;
         }
-        final List<Location> stillShowing = new ArrayList<>();
-        for (final Block b : gate.getGateAnimatedBlocks())
-        {
-            stillShowing.add(b.getLocation());
-        }
-        StargateBlockSetup.undrawBlocks(gate, stillShowing);
+        StargateBlockSetup.undrawBlocks(gate, gate.getGateAnimatedBlocks().stream().map(Block::getLocation).toList());
         gate.getGateAnimatedBlocks().clear();
     }
 }
