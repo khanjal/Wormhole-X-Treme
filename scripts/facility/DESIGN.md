@@ -1149,3 +1149,38 @@ tick function and a marker; checked by test/watcher.test.js), left out of the fa
 selectors, never welcomed and refused by the console. `--watch-bot` puts a stand-in client in the
 watcher's place, to show a watcher changes nothing. Details in docs/DEVELOPMENT.md, "Watching the
 self-test". scripts/watch-local.ps1 is retired in a later change.
+
+## Addendum: every web map in the lab (2026-10-06)
+
+The maps planned in the companion addendum (2026-09-29) as `--map dynmap|bluemap|squaremap|pl3xmap`
+arrive as companions instead: `--with bluemap`, `squaremap`, `pl3xmap`, or the set `maps` for all
+four, pinned from Modrinth per version range (BlueMap 5.16 for 1.20 to 1.21.11, which is Java 21
+even on 1.20.4, and 5.28 for 26.x on Java 25; squaremap and Pl3xMap one build per version, every
+Pl3xMap build a Modrinth beta). A set leaves out what a version has no build of, so `--with maps`
+on 26.1.2 runs without Dynmap and says so.
+
+- Ports: each map on 127.0.0.1 at its own base + (port - 25590), Dynmap 8123, BlueMap 8300,
+  squaremap 8400, Pl3xMap 8500, so no two labs or maps collide (their defaults would); a game port
+  from 25690 is refused for a map. At most about five servers side by side still holds.
+- Settings: written before the start into each map's own files (lib/maps.js), only the keys the lab
+  needs. BlueMap's accept-download stays the user's, as the 2026-09-29 addendum said: it is their
+  acceptance of Mojang's EULA, so it is never switched on unless `--accept-bluemap-download`
+  (lab.ps1 -AcceptBlueMapDownload, lab.sh -B). Without it BlueMap loads, says so, and draws nothing;
+  the setup reports it as waiting.
+- Rendering: in a hold, after the campus is built, `save-all flush` and each map's render
+  (`squaremap fullrender`, `pl3xmap fullrender`, `bluemap update`), called by name since squaremap
+  and Pl3xMap both claim /map; done when squaremap logs "Finished rendering map for", or Pl3xMap's
+  status says its renderers are idle after "Full render starting". The state goes to map-status.json
+  for the dashboard, whose Maps tab switches between the four and says rendering, waiting or not
+  answering instead of showing a blank page.
+- Read-back: lib/mapreaders.js reads each map's own marker files (none has a console command that
+  lists markers); the Map Desk's `map` option runs its cases against them, a marker found by layer
+  label, label and place, since squaremap's carry no ids. The cells need Wormhole's providers for
+  these maps, which land separately.
+
+Seen on a real run (2026-10-06, the 1.9.0 jar, which has only the Dynmap provider): all three new
+maps load on 1.20.4, 1.21.11 and 26.1.2, squaremap and Pl3xMap bind 127.0.0.1 at their ports and
+render the campus, BlueMap waits for accept-download. squaremap names a world by its dimension key
+(minecraft_overworld), Pl3xMap by its Bukkit name; BlueMap on 26.x calls its nether map "world",
+so a map's world comes from its dimension. BlueMap's marker file and its render are inferred from
+its API and help, not seen.

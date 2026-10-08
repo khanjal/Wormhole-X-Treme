@@ -5,15 +5,19 @@
 # installed the first time, run-facility.js builds the plugin (or takes -p), fetches Paper and
 # picks the JDK. The world is kept between labs unless -f.
 #
-#   scripts/facility/lab.sh [-v version] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache] [-f]
+#   scripts/facility/lab.sh [-v version] [-P port] [-p plugin.jar] [-o ops] [-w with] [-B] [-c cache] [-f]
 #   scripts/facility/lab.sh -d [-e [-f] | -k] [-O] [-P port] [-p plugin.jar] [-o ops] [-w with] [-c cache]
 #   scripts/facility/lab.sh -W [-n name] [-q] [-C cells] [-v version] [-P port] [-p plugin.jar] [-w with] [-c cache]
 #
 #   -v  Minecraft version (default 26.1.2)
-#   -P  server port (default 25590; Dynmap's web map is at 8123 + port - 25590)
+#   -P  server port (default 25590; each web map is on 127.0.0.1 at its base + port - 25590:
+#       Dynmap 8123, BlueMap 8300, squaremap 8400, Pl3xMap 8500)
 #   -p  a plugin jar to test instead of building this checkout
 #   -o  players to op, comma-separated
-#   -w  companion plugins, comma-separated (see companions.json)
+#   -w  companion plugins, comma-separated (see companions.json); `maps` is all four web maps,
+#       less any the version has no build of
+#   -B  set BlueMap's accept-download: true, your acceptance of Mojang's EULA for the client jar
+#       BlueMap downloads (without it BlueMap draws nothing)
 #   -c  a folder of companion jars to read first
 #   -f  a fresh world
 #   -d  design mode (design/facility/BRIEF.md): 1.21.11 with WorldEdit, its own world kept between
@@ -46,13 +50,14 @@ watch=
 name=
 quick=
 cells=
-while getopts 'v:P:p:o:w:c:fdekOWn:qC:' opt; do
+while getopts 'v:P:p:o:w:Bc:fdekOWn:qC:' opt; do
   case "$opt" in
     v) version="$OPTARG" ;;
     P) port="$OPTARG" ;;
     p) args+=(--plugin "$(cd "$(dirname "$OPTARG")" && pwd)/$(basename "$OPTARG")") ;;
     o) args+=(--op "$OPTARG") ;;
     w) args+=(--with "$OPTARG") ;;
+    B) args+=(--accept-bluemap-download) ;;
     c) args+=(--plugin-cache "$(cd "$OPTARG" && pwd)") ;;
     f) fresh=1 ;;
     d) design=--design ;;
@@ -63,7 +68,7 @@ while getopts 'v:P:p:o:w:c:fdekOWn:qC:' opt; do
     n) name="$OPTARG" ;;
     q) quick=--quick ;;
     C) cells="$OPTARG" ;;
-    *) sed -n '2,31p' "$0"; exit 2 ;;
+    *) sed -n '2,35p' "$0"; exit 2 ;;
   esac
 done
 if { [ -n "$job" ] || [ -n "$open" ]; } && [ -z "$design" ]; then echo '-e, -k and -O go with -d' >&2; exit 2; fi

@@ -24,6 +24,13 @@ test('the viewer port follows the game port like Dynmap\'s and refuses one below
   assert.throws(() => viewer.viewerPort(23000), /would be 417/);
 });
 
+test('the viewer port is never a web map\'s, nor the Lab Dashboard\'s, for any lab port a run uses', () => {
+  const maps = require('../lib/maps');
+  const taken = new Set([8200]);
+  for (let p = 25590; p < 25590 + maps.SPAN; p++) for (const n of maps.NAMES) taken.add(maps.webPort(n, p));
+  for (let p = 25590; p < 25590 + maps.SPAN; p++) assert.ok(!taken.has(viewer.viewerPort(p)), `the viewer on ${p}`);
+});
+
 test('a block state keeps its name and properties across the translation to older assets', () => {
   const { map } = viewer.stateMap('1.21.11', '1.21.4');
   const src = mcData('1.21.11').blocksByName;
