@@ -3198,8 +3198,8 @@ class GatePreviewsTest
         final List<List<Integer>> rings = new ArrayList<>();
         for (int i = 1; i < shown.size(); i++)
         {
-            final Set<Integer> moved = new TreeSet<>(closing ? shown.get(i) : shown.get(i - 1));
-            moved.removeAll(closing ? shown.get(i - 1) : shown.get(i));
+            final Set<Integer> moved = new TreeSet<>(shown.get(closing ? i : i - 1));
+            moved.removeAll(shown.get(closing ? i - 1 : i));
             if (!moved.isEmpty())
             {
                 rings.add(new ArrayList<>(moved));
@@ -3572,15 +3572,15 @@ class GatePreviewsTest
                 final Location at = where.getAllValues().get(i);
                 last.put(at.getBlockX() + "," + at.getBlockY() + "," + at.getBlockZ(), what.getAllValues().get(i));
             }
-            final Set<String> now = new TreeSet<>(showing(last, data -> data == marker));
-            final List<String> became = new ArrayList<>(now);
+            final Set<String> nowShowing = new TreeSet<>(showing(last, sent -> sent == marker));
+            final List<String> became = new ArrayList<>(nowShowing);
             became.removeAll(before);
             if (!became.isEmpty())
             {
                 rings.add(became);
             }
             before.clear();
-            before.addAll(now);
+            before.addAll(nowShowing);
             clearInvocations(watcher);
         };
         gate.toggleIrisActive(false);
