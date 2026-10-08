@@ -61,6 +61,7 @@ class Pl3xMapMapProviderTest
     private Pl3xMap pl3xmap;
     private WorldRegistry worlds;
     private final Set<String> icons = new HashSet<>();
+    private String refuse = null;
     private Pl3xMapMapProvider provider;
 
     @BeforeEach
@@ -75,6 +76,10 @@ class Pl3xMapMapProviderTest
         when(iconRegistry.get(anyString())).thenAnswer(call -> icons.contains(call.<String>getArgument(0)) ? image : null);
         when(iconRegistry.register(anyString(), any(IconImage.class))).thenAnswer(call ->
         {
+            if (call.getArgument(0).equals(refuse))
+            {
+                throw new IllegalStateException("Failed to save image");
+            }
             icons.add(call.getArgument(0));
             return call.getArgument(1);
         });
@@ -286,6 +291,25 @@ class Pl3xMapMapProviderTest
         assertNull(marker(world, MapText.GATES, "gate:abydos"), "no icon, so no point");
         assertNotNull(marker(world, MapText.GATES, "opening:abydos"), "but the opening is drawn");
         assertNotNull(marker(world, MapText.GATES, "link:abydos|chulak"));
+    }
+
+    @Test
+    void anIconPl3xMapRefusedIsTriedEachDrawButNotMissedEveryLook()
+    {
+        // A refused icon stays refused; counting it as lost would rebuild the picture every look.
+        world("world");
+        refuse = "wormhole_mirror";
+        provider.register();
+        provider.apply(picture(gate("Abydos", "world")));
+
+        assertTrue(icons.contains("wormhole_gate_idle"), "the other icons are given");
+        assertFalse(provider.lost(), "the refused icon is not found missing");
+
+        refuse = null;
+        provider.apply(picture(gate("Abydos", "world")));
+        assertTrue(icons.contains("wormhole_mirror"), "but it is tried again on the next draw");
+        icons.remove("wormhole_mirror");
+        assertTrue(provider.lost(), "and once Pl3xMap took it, losing it is noticed again");
     }
 
     @Test

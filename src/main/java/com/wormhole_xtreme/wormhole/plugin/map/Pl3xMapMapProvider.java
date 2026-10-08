@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -77,6 +79,9 @@ public final class Pl3xMapMapProvider implements MapProvider
     // An immutable map swapped whole: volatile is all the synchronisation it needs.
     @SuppressWarnings("java:S3077")
     private volatile Map<String, Map<String, List<Marker<?>>>> showing = Map.of();
+
+    /** Icon keys Pl3xMap refused, still tried on each draw but not looked for in between. */
+    private final Set<String> refused = ConcurrentHashMap.newKeySet();
 
     /**
      * Creates the provider, not yet looking for Pl3xMap.
@@ -155,7 +160,8 @@ public final class Pl3xMapMapProvider implements MapProvider
         }
         for (final String key : ICONS.values())
         {
-            if (!map.getIconRegistry().has(key))
+            // One Pl3xMap refused stays refused, so missing it would redraw every look.
+            if (!refused.contains(key) && !map.getIconRegistry().has(key))
             {
                 return true;
             }
@@ -201,6 +207,7 @@ public final class Pl3xMapMapProvider implements MapProvider
     {
         final Pl3xMap map = pl3xmap;
         showing = Map.of();
+        refused.clear();
         if (map == null)
         {
             return;
@@ -248,7 +255,7 @@ public final class Pl3xMapMapProvider implements MapProvider
      * @param map
      *            Pl3xMap
      */
-    private static void registerIcons(final Pl3xMap map)
+    private void registerIcons(final Pl3xMap map)
     {
         for (final Map.Entry<String, String> icon : ICONS.entrySet())
         {
@@ -260,9 +267,11 @@ public final class Pl3xMapMapProvider implements MapProvider
             {
                 map.getIconRegistry().register(icon.getValue(),
                     new IconImage(icon.getValue(), MapText.icon(icon.getKey()), "png"));
+                refused.remove(icon.getValue());
             }
             catch (final IOException | RuntimeException e)
             {
+                refused.add(icon.getValue());
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to give Pl3xMap the icon " + icon.getKey(), e);
             }
         }

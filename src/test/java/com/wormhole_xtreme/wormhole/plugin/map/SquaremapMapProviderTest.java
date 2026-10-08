@@ -70,11 +70,16 @@ class SquaremapMapProviderTest
     private static final class FakeRegistry<T> implements Registry<T>
     {
         final Map<Key, T> entries = new HashMap<>();
+        Key refuse = null;
         int registered = 0;
 
         @Override
         public void register(final Key key, final T value)
         {
+            if (key.equals(refuse))
+            {
+                throw new IllegalStateException("refused: " + key);
+            }
             if (entries.putIfAbsent(key, value) != null)
             {
                 throw new IllegalArgumentException("already registered: " + key);
@@ -347,6 +352,26 @@ class SquaremapMapProviderTest
 
         assertTrue(world.hasEntry(Key.of(MapText.GATES)));
         assertFalse(gone.hasEntry(Key.of(MapText.GATES)));
+        assertFalse(provider.lost(), "a world that is never drawn on is not missing its layers, or every look redraws");
+    }
+
+    @Test
+    void anIconSquaremapRefusedIsTriedEachDrawButNotMissedEveryLook()
+    {
+        // A refused icon stays refused; counting it as lost would rebuild the picture every look.
+        world("world");
+        icons.refuse = Key.of("wormhole_mirror");
+        provider.register();
+        provider.apply(picture(gate("Abydos", "world")));
+
+        assertTrue(icons.hasEntry(Key.of("wormhole_gate_idle")), "the other icons are given");
+        assertFalse(provider.lost(), "the refused icon is not found missing");
+
+        icons.refuse = null;
+        provider.apply(picture(gate("Abydos", "world")));
+        assertTrue(icons.hasEntry(Key.of("wormhole_mirror")), "but it is tried again on the next draw");
+        icons.entries.remove(Key.of("wormhole_mirror"));
+        assertTrue(provider.lost(), "and once squaremap took it, losing it is noticed again");
     }
 
     @Test

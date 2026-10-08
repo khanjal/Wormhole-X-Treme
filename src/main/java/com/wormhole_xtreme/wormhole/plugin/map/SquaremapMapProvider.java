@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -80,6 +81,9 @@ public final class SquaremapMapProvider implements MapProvider
 
     /** World names already worked out, by squaremap world. */
     private final Map<WorldIdentifier, String> names = new ConcurrentHashMap<>();
+
+    /** Icon keys squaremap refused, still tried on each draw but not looked for in between. */
+    private final Set<String> refused = ConcurrentHashMap.newKeySet();
 
     /**
      * Creates the provider, not yet looking for squaremap.
@@ -165,13 +169,19 @@ public final class SquaremapMapProvider implements MapProvider
         }
         for (final String key : ICONS.values())
         {
-            if (!map.iconRegistry().hasEntry(Key.of(key)))
+            // One squaremap refused stays refused, so missing it would redraw every look.
+            if (!refused.contains(key) && !map.iconRegistry().hasEntry(Key.of(key)))
             {
                 return true;
             }
         }
         for (final MapWorld world : map.mapWorlds())
         {
+            // apply() skips a world Bukkit no longer has, so it would be found missing forever.
+            if (nameOf(world) == null)
+            {
+                continue;
+            }
             for (final String id : wanted())
             {
                 if (!world.layerRegistry().hasEntry(Key.of(id)))
@@ -218,6 +228,7 @@ public final class SquaremapMapProvider implements MapProvider
         final Squaremap map = squaremap;
         showing = Map.of();
         names.clear();
+        refused.clear();
         if (map == null)
         {
             return;
@@ -290,7 +301,7 @@ public final class SquaremapMapProvider implements MapProvider
      * @param map
      *            squaremap
      */
-    private static void registerIcons(final Squaremap map)
+    private void registerIcons(final Squaremap map)
     {
         for (final Map.Entry<String, String> icon : ICONS.entrySet())
         {
@@ -302,9 +313,11 @@ public final class SquaremapMapProvider implements MapProvider
             try
             {
                 map.iconRegistry().register(key, MapText.icon(icon.getKey()));
+                refused.remove(icon.getValue());
             }
             catch (final IOException | RuntimeException e)
             {
+                refused.add(icon.getValue());
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to give squaremap the icon " + icon.getKey(), e);
             }
         }
