@@ -3137,6 +3137,28 @@ class GatePreviewsTest
         return GatePreviews.of(owner.getUniqueId()).get(0);
     }
 
+    /** The opening's cells with an iris display standing in them, by index. */
+    private Set<Integer> irisDrawn()
+    {
+        final List<BlockDisplay> displays = thePreview().openingDisplays();
+        final Set<Integer> drawn = new TreeSet<>();
+        for (int i = 0; i < displays.size(); i++)
+        {
+            if (displays.get(i) != null)
+            {
+                drawn.add(i);
+            }
+        }
+        return drawn;
+    }
+
+    /** The style the held preview's iris sweeps in, worked out as the preview does it. */
+    private String previewsIrisStyle()
+    {
+        return ConfigManager.getGateIrisAnimation(null,
+            MaterialGroupRegistry.getGroupByStructureMaterial(thePreview().palette().structure()));
+    }
+
     /** The opening's cell indexes in the rings a sweep of this style is asked for, each sorted. */
     private List<List<Integer>> ringsAsAsked(final boolean closing, final String style)
     {
@@ -3184,17 +3206,20 @@ class GatePreviewsTest
 
     /**
      * Toggles the iris and returns the rings its sweep displayed or hid, in the order it did, read
-     * off the preview's own record of which cells of the iris are showing.
+     * off which cells of the opening have an iris display standing in them after each step.
+     *
+     * <p>The displays, not the preview's record of which cells should show: a step that updated
+     * the record without drawing it would leave the record right and the picture a ring behind.
      *
      * @param closing
-     *            true if the sweep adds cells to the record, false if it takes them away
+     *            true if the sweep puts displays up, false if it takes them down
      */
     private List<List<Integer>> ringsSeen(final boolean closing)
     {
         final List<Set<Integer>> shown = new ArrayList<>();
-        shown.add(new TreeSet<>(thePreview().irisShown()));
+        shown.add(irisDrawn());
         GatePreviews.iris(owner);
-        walkIrisSweep(() -> shown.add(new TreeSet<>(thePreview().irisShown())));
+        walkIrisSweep(() -> shown.add(irisDrawn()));
         final List<List<Integer>> rings = new ArrayList<>();
         for (int i = 1; i < shown.size(); i++)
         {
@@ -3256,7 +3281,7 @@ class GatePreviewsTest
         ConfigTestSupport.set(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 0);
         watchTheSweep();
         GatePreviews.show(owner, standard, null);
-        final int rings = ringsAsAsked(true, "sweep").size();
+        final int rings = ringsAsAsked(true, previewsIrisStyle()).size();
         assertTrue(rings > 1, "a sweep of one ring has no pace to speak of: " + rings);
 
         GatePreviews.iris(owner);
@@ -3289,7 +3314,7 @@ class GatePreviewsTest
             assertTrue(thePreview().sweeping(), "a sweep is running (closing: " + closing + ")");
             // Every step books exactly one more, so the sweep is on its settle step when the
             // number of bookings is the number of rings.
-            final int rings = ringsAsAsked(closing, "sweep").size();
+            final int rings = ringsAsAsked(closing, previewsIrisStyle()).size();
             while (irisDelays.size() < rings)
             {
                 // A sweep that stopped booking early would otherwise leave this loop spinning.
@@ -3310,7 +3335,8 @@ class GatePreviewsTest
                 "and it was no longer sweeping when it did (closing: " + closing + "): " + sweepingWhenDrawn);
             assertFalse(thePreview().sweeping(), "and it stays unregistered");
             GatePreviews.cancelIrisSweep(thePreview());
-            irisTasks.forEach(task -> verify(task, never()).cancel());
+            // Only the last: the step that settled must not be the one cancelled in its place.
+            verify(irisTasks.get(irisTasks.size() - 1), never()).cancel();
             irisDelays.clear();
         }
     }
@@ -3354,7 +3380,9 @@ class GatePreviewsTest
     void aSweepWhosePreviewIsNoLongerHeldStopsWithoutSettling()
     {
         watchTheSweep();
-        final int rings = ringsAsAsked(true, "sweep").size();
+        GatePreviews.show(owner, standard, null);
+        final int rings = ringsAsAsked(true, previewsIrisStyle()).size();
+        GatePreviews.clearAll(owner);
         for (final int stepsFirst : new int[] {1, rings - 1})
         {
             GatePreviews.show(owner, standard, null);
@@ -3380,7 +3408,7 @@ class GatePreviewsTest
     /**
      * Closing and opening show and hide the rings in opposite orders, each the order asked for.
      *
-     * <p>Read off which cells of the iris the preview says are showing after each step, not off the
+     * <p>Read off which cells of the opening have an iris display after each step, not off the
      * ordering function: a loop that walked the rings by index rather than as it was handed them
      * would pass every arithmetic test and play both directions the same way.
      */
@@ -3391,8 +3419,8 @@ class GatePreviewsTest
         final List<List<Integer>> closing = ringsSeen(true);
         final List<List<Integer>> opening = ringsSeen(false);
 
-        assertEquals(ringsAsAsked(true, "sweep"), closing, "closing: the rings, rim first");
-        assertEquals(ringsAsAsked(false, "sweep"), opening, "opening: the rings in the order asked for");
+        assertEquals(ringsAsAsked(true, previewsIrisStyle()), closing, "closing: the rings, rim first");
+        assertEquals(ringsAsAsked(false, previewsIrisStyle()), opening, "opening: the rings in the order asked for");
         final List<List<Integer>> reversed = new ArrayList<>(closing);
         Collections.reverse(reversed);
         assertEquals(reversed, opening, "and that is the closing order reversed");
@@ -3433,17 +3461,18 @@ class GatePreviewsTest
         {
             foldSentAlong(front, -1, frontSees);
             arrived.add(showing(frontSees, standIn));
+            // One block behind the ring is the near side for the viewer behind; their far side is not read.
             iceBehind.add(cellsSentAlong(rear, -1, standIn));
             clearInvocations(front, rear);
         });
 
-        final List<List<Integer>> closingRings = ringsAsAsked(true, "sweep");
+        final List<List<Integer>> closingRings = ringsAsAsked(true, previewsIrisStyle());
         assertTrue(closingRings.size() > 1, "more than one ring, or arriving with its ring is arriving at once");
         assertEquals(soFar(closingRings), arrived.subList(0, closingRings.size()),
             "in front, after each step the far layer stands behind that ring and every one before it, "
                 + "and no other: each ring's far cells arrive with it, none earlier or later");
         assertTrue(iceBehind.stream().allMatch(List::isEmpty),
-            "and the viewer behind is given no stand-in, the wormhole staying in the ring for them");
+            "and the viewer behind is given no stand-in on their near side, the wormhole staying in the ring for them");
 
         final BlockData hidden = GatePreviews.blockData.apply(Material.AIR);
         final Map<Integer, BlockData> frontSeesOpening = new HashMap<>();
@@ -3456,7 +3485,7 @@ class GatePreviewsTest
             left.add(showing(frontSeesOpening, d -> d == hidden));
             clearInvocations(front, rear);
         });
-        final List<List<Integer>> openingRings = ringsAsAsked(false, "sweep");
+        final List<List<Integer>> openingRings = ringsAsAsked(false, previewsIrisStyle());
         assertEquals(soFar(openingRings), left.subList(0, openingRings.size()),
             "opening, after each step the far cells of that ring and every one before it are handed back, "
                 + "and no others");

@@ -1342,6 +1342,9 @@ class IrisSweepOrderingTest
      * <p>A handful of ticks is long enough on a server that is unloading a world. There is nothing
      * to draw on and nobody to draw it for, and the settle step would only take real blocks away
      * in a world that is not there.
+     *
+     * <p>Only a world lost part way through is pinned: the step asks whether the rings are done
+     * before it asks after the world, so one lost between the last ring and the settle still settles.
      */
     @Test
     void aSweepWhoseWorldHasGoneStopsWithoutSettling()
@@ -1455,6 +1458,7 @@ class IrisSweepOrderingTest
         {
             front.absorb();
             arrived.add(front.showing(standIn));
+            // The plane at -1 is the near side for the player behind; their far side is not read.
             iceToRear.add(cellsSentAt(rear, -1, standIn));
         }, watcher, rear);
 
@@ -1464,7 +1468,7 @@ class IrisSweepOrderingTest
             "in front, after each step the far layer stands behind that ring and every one before it, "
                 + "and no other: each ring's far cells arrive with it, none earlier or later");
         assertTrue(iceToRear.stream().allMatch(List::isEmpty),
-            "and the one behind is given no stand-in, the wormhole staying in the ring for them");
+            "and the one behind is given no stand-in on their near side, the wormhole staying in the ring for them");
 
         finishSweep();
         clearInvocations(watcher);
