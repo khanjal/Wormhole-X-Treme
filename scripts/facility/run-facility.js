@@ -669,6 +669,9 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // The plugin's own switch, off in every lab folder: no lab server reports to bStats. Chamber s1 turns it on
+  // and off again to hear the log lines; plugins/bStats/config.yml (prepareFolder) still blocks the send.
+  companions.seedSettings(folder, { 'metrics-enabled': 'false' });
   // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
   // every interface when it is empty.
   const props = [];
