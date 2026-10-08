@@ -4,11 +4,13 @@
   "description": "Wormhole Research Facility: the hand-and-bot test facility for Wormhole-X-Treme.",
   "scripts": {
     "spike": "node spike.js",
-    "test": "node --test test/companions.test.js test/maps.test.js test/mapreaders.test.js test/dashboard.test.js test/extras.test.js test/viewer.test.js test/schematics.test.js test/shots.test.js test/design.test.js test/watcher.test.js"
+    "test": "node --test test/companions.test.js test/maps.test.js test/mapreaders.test.js test/dashboard.test.js test/extras.test.js test/viewer.test.js test/schematics.test.js test/shots.test.js test/design.test.js test/watcher.test.js test/reel.test.js test/gallery.test.js"
   },
   "dependencies": {
+    "gifenc": "1.0.3",
     "minecraft-data": "3.117.0",
     "mineflayer": "4.39.0",
+    "pngjs": "7.0.0",
     "prismarine-nbt": "2.8.0",
     "prismarine-viewer": "1.33.0",
     "puppeteer-core": "25.12.0",
