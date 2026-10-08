@@ -104,13 +104,15 @@ class GateWelcomeMessageTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         GateEvents.setDispatcherForTest(null);
         StargateManager.removeStargate(origin);
         origin.setGateActive(false);
         GateSpatialIndex.clear();
         ConfigTestSupport.clear();
+        PluginTestSupport.scheduler(null);
+        PluginTestSupport.remove();
     }
 
     private void walkIn()

@@ -57,10 +57,12 @@ class WormholeXTremePlayerListenerMountTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         GateSpatialIndex.clear();
         PluginTestSupport.forgetAllGates();
+        PluginTestSupport.scheduler(null);
+        PluginTestSupport.remove();
     }
 
     @Test
