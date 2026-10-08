@@ -112,6 +112,21 @@ test('a gate drawn by BlueMap: a poi with its height, a shape, a line, colours a
   assert.strictEqual(r.inLayer(snap, 'Stargates', 'lines', 'MapA to MapB')[0].id, 'mapa|mapb');
 });
 
+// One pass of a tag-stripping replace turns <scr<b>ipt> into <script> (CodeQL's high alert on #566).
+test('a tooltip\'s label loses all its markup, nested tags and stray brackets too, and a plain one is kept as it is', () => {
+  const nested = 'Map<scr<b>ipt>alert(1)</script>A';
+  const sq = r.parseSquaremap([{ id: 'l', name: 'Stargates', markers: [
+    { type: 'icon', point: { x: 0, z: 0 }, tooltip: nested },
+    { type: 'icon', point: { x: 1, z: 1 }, tooltip: '<b>MapB</b> <i' },
+  ] }], 'world');
+  assert.deepStrictEqual(sq.points.map((m) => m.label), ['Mapalert(1)A', 'MapB i']);
+  const pl = r.parsePl3xmap([{ key: 'l', label: 'Stargates' }], () => [
+    { type: 'icon', data: { key: 'a', point: { x: 0, z: 0 } }, options: { tooltip: { content: nested } } },
+  ], 'world');
+  assert.strictEqual(pl.points[0].label, 'Mapalert(1)A');
+  assert.strictEqual(r.plainText('MapA to MapB'), 'MapA to MapB');
+});
+
 // Pl3xMap's ellipse gives its radius as { x, z } and squaremap's as radiusX and radiusZ: read as
 // one number they came out NaN or 0, and an area that covers nothing.
 test('a circle or ellipse covers its own box: one radius, or one a side as each map writes it', () => {

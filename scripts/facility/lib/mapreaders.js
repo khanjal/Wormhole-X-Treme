@@ -59,6 +59,19 @@ function iconName(icon) {
   return icon.split(/[\\/]/).pop().replace(/\?.*$/, '').replace(/\.[a-z0-9]+$/i, '');
 }
 
+/**
+ * A tooltip's text without its markup: tags stripped until none is left (one pass leaves
+ * `<scr<b>ipt>` as `<script>`), then any stray < or > dropped.
+ */
+function plainText(s) {
+  let out = String(s);
+  for (let before = null; before !== out;) {
+    before = out;
+    out = out.replace(/<[^<>]*>/g, '');
+  }
+  return out.replace(/[<>]/g, '');
+}
+
 /** The box around a list of {x, z} points, or null for none. */
 function boundsOf(pts) {
   const p = (pts || []).filter((q) => q && Number.isFinite(q.x) && Number.isFinite(q.z));
@@ -121,7 +134,7 @@ function parseSquaremap(json, world, snap = empty()) {
     const lid = String(layer.id);
     snap.layers[lid] = layer.name;
     for (const m of list(layer.markers).filter(isObj)) {
-      const label = m.tooltip !== undefined ? String(m.tooltip).replace(/<[^>]*>/g, '') : null;
+      const label = m.tooltip !== undefined ? plainText(m.tooltip) : null;
       const base = { layer: lid, layerLabel: layer.name, id: null, label, world, desc: m.popup || m.tooltip || null, color: hex(m.color) };
       if (m.type === 'icon') {
         const p = xz(m.point);
@@ -153,7 +166,7 @@ function addPl3x(snap, layer, label, world, m) {
   const text = (x) => (x && x.content !== undefined ? String(x.content) : null);
   const tip = text(o.tooltip);
   const base = {
-    layer, layerLabel: label, id: d.key || null, label: tip === null ? null : tip.replace(/<[^>]*>/g, ''), world,
+    layer, layerLabel: label, id: d.key || null, label: tip === null ? null : plainText(tip), world,
     desc: text(o.popup) || tip, color: hex(o.stroke && o.stroke.color !== undefined ? o.stroke.color : (o.fill && o.fill.color)),
   };
   switch (m.type) {
@@ -323,5 +336,5 @@ function covers(m, p, slack = 0.5) {
 }
 
 module.exports = {
-  JsonMapReader, parseSquaremap, parsePl3xmap, parseBluemap, bluemapMaps, inLayer, at, covers, hex, iconName, WORLDS, REDRAW_MS,
+  JsonMapReader, parseSquaremap, parsePl3xmap, parseBluemap, bluemapMaps, inLayer, at, covers, hex, iconName, plainText, WORLDS, REDRAW_MS,
 };
