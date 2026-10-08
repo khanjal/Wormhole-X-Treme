@@ -209,6 +209,25 @@ class GateTabCompletionTest
         assertTrue(complete("gate", "build", "Standard", "Standard", "").isEmpty());
     }
 
+    /**
+     * Shape names are narrowed to what has been typed, in either case, and come back sorted.
+     *
+     * <p>The registry is a hash map, so its own order is whatever the hashes give; a list that
+     * comes back in that order is one nobody can scan for the shape they want.
+     */
+    @Test
+    void shapeNamesAreNarrowedByWhatIsTypedAndSorted()
+    {
+        StargateShapeRegistry.getStargateShapes().put("Tollan", new StargateShape());
+        StargateShapeRegistry.getStargateShapes().put("Atlantis", new StargateShape());
+        StargateShapeRegistry.getStargateShapes().put("Taurian", new StargateShape());
+
+        assertEquals(List.of("Atlantis", "Standard", "Taurian", "Tollan"), complete("gate", "build", ""),
+            "every shape, alphabetically");
+        assertEquals(List.of("Taurian", "Tollan"), complete("gate", "build", "t"),
+            "only the shapes starting with what was typed, whatever its case");
+    }
+
     /** {@code shapes} takes an action, then a shape name for validate. */
     @Test
     void shapesTakesAnActionThenAShape()

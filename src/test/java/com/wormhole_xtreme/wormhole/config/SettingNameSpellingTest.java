@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -82,6 +84,23 @@ class SettingNameSpellingTest
         assertEquals(ConfigManager.settingNames().size(),
             ConfigManager.settingNamesMatching("").size(),
             "/wormhole config with no name lists the lot; an empty needle matches all of it");
+    }
+
+    /**
+     * The names come back in alphabetical order.
+     *
+     * <p>The settings live in a hash map, which iterates in whatever order the hashes give.
+     * The list is what {@code /wormhole config} prints and tab completion offers, read by
+     * somebody hunting for one line among a hundred.
+     */
+    @Test
+    void theNamesComeBackInAlphabeticalOrder()
+    {
+        final List<String> names = ConfigManager.settingNames();
+        final List<String> sorted = new ArrayList<>(names);
+        Collections.sort(sorted);
+        assertTrue(names.size() > 1, "there are settings to put in order");
+        assertEquals(sorted, names, "the hash map's own order is no order a reader can scan");
     }
 
     @Test
