@@ -32,7 +32,11 @@ public final class IrisSweepDriver<C>
      */
     public interface Canvas<C>
     {
-        /** @return false once there is nothing left to draw on, which stops the sweep unsettled */
+        /**
+         * Asked only before a ring is drawn, never before {@link #settle()}.
+         *
+         * @return false once there is nothing left to draw on, which stops the sweep part way, unsettled
+         */
         boolean stillValid();
 
         /** Covers or uncovers one ring. */
@@ -50,7 +54,13 @@ public final class IrisSweepDriver<C>
         /** Forgets this sweep, before it settles or stops. */
         void unregister();
 
-        /** The work done once the last ring is in, with the sweep already unregistered. */
+        /**
+         * The work done once the last ring is in, with the sweep already unregistered.
+         *
+         * <p>May run after the canvas has gone, since {@link #stillValid()} is not asked first: the
+         * canvas decides what that means. A gate runs its afterwards regardless; a preview checks
+         * again that it is still held.
+         */
         void settle();
     }
 
