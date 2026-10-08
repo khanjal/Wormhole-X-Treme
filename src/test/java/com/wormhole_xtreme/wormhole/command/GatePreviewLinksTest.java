@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -36,6 +35,8 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -45,21 +46,39 @@ import net.md_5.bungee.api.chat.hover.content.Text;
  * After {@code gate build}, each preview action is a button to click rather than a word to read
  * and type, and a refusal that names a command links it (#538).
  *
- * <p>Read through Spigot's chat, the one a mocked player reaches; {@code ChatLineTest} covers how
- * the same line goes on Paper and on a server with neither.
+ * <p>Read through whichever chat a mocked player reaches: Adventure's where the API's Player is an
+ * Audience, as on Paper, and Spigot's elsewhere, so both server families check the same buttons.
  */
 class GatePreviewLinksTest
 {
     private static final String PREVIEW = Build.PREVIEW_COMMAND;
 
+    /** On Paper's API a Player is an Audience, and a line goes as Adventure components. */
+    private static final boolean PAPER = Audience.class.isAssignableFrom(Player.class);
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+
     private final Wormhole command = new Wormhole();
     private Player player;
     private Player.Spigot spigot;
 
+    /**
+     * A link as sent, whichever chat sent it.
+     *
+     * @param click
+     *            its click event, Adventure's or BungeeCord's
+     * @param label
+     *            what the line shows, as legacy text
+     * @param hover
+     *            what pointing at it shows, as legacy text
+     */
+    private record Link(Object click, String label, String hover)
+    {
+    }
+
     @BeforeEach
     void setUp() throws Exception
     {
-        assumeFalse(Audience.class.isAssignableFrom(Player.class), "Paper sends Adventure, not BungeeCord chat");
         PluginTestSupport.install(mock(WormholeXTreme.class));
         StargateShapeRegistry.getStargateShapes().put("Standard", new Stargate3DShape(Files.readAllLines(
             Paths.get("src/main/resources/shapes/gate/Standard.shape")).toArray(new String[0])));
@@ -88,24 +107,65 @@ class GatePreviewLinksTest
         PluginTestSupport.remove();
     }
 
-    /** Every piece of every line sent through Spigot's chat. */
-    private List<BaseComponent> sent()
+    /** Every link in every line sent, through Adventure on Paper and Spigot's chat elsewhere. */
+    private List<Link> sent()
     {
-        final ArgumentCaptor<BaseComponent> lines = ArgumentCaptor.forClass(BaseComponent.class);
-        verify(spigot, atLeastOnce()).sendMessage(lines.capture());
-        final List<BaseComponent> pieces = new ArrayList<>();
-        lines.getAllValues().forEach(line -> pieces.addAll(line.getExtra()));
-        return pieces;
+        final List<Link> links = new ArrayList<>();
+        if (PAPER)
+        {
+            final ArgumentCaptor<Component> lines = ArgumentCaptor.forClass(Component.class);
+            verify((Audience) player, atLeastOnce()).sendMessage(lines.capture());
+            lines.getAllValues().forEach(line -> line.children().stream().filter(bit -> bit.clickEvent() != null)
+                .forEach(bit -> links.add(adventure(bit))));
+        }
+        else
+        {
+            final ArgumentCaptor<BaseComponent> lines = ArgumentCaptor.forClass(BaseComponent.class);
+            verify(spigot, atLeastOnce()).sendMessage(lines.capture());
+            lines.getAllValues().forEach(line -> line.getExtra().stream().filter(bit -> bit.getClickEvent() != null)
+                .forEach(bit -> links.add(bungee(bit))));
+        }
+        return links;
     }
 
-    /** The piece a click on which does this, or a failure naming what was there instead. */
-    private BaseComponent clicking(final ClickEvent.Action action, final String command)
+    /** A link sent as Adventure components. */
+    private static Link adventure(final Component bit)
     {
-        final ClickEvent wanted = new ClickEvent(action, command);
-        final List<BaseComponent> pieces = sent();
-        return pieces.stream().filter(piece -> wanted.equals(piece.getClickEvent())).findFirst()
-            .orElseThrow(() -> new AssertionError("no link to " + action + " " + command + " in "
-                + pieces.stream().map(BaseComponent::getClickEvent).toList()));
+        final String hover = (bit.hoverEvent() == null) ? "" : LEGACY.serialize((Component) bit.hoverEvent().value());
+        return new Link(bit.clickEvent(), LEGACY.serialize(bit), hover);
+    }
+
+    /** A link sent as BungeeCord components. */
+    private static Link bungee(final BaseComponent bit)
+    {
+        final String hover = (bit.getHoverEvent() == null) ? ""
+            : (String) ((Text) bit.getHoverEvent().getContents().get(0)).getValue();
+        return new Link(bit.getClickEvent(), ((TextComponent) bit).getText(), hover);
+    }
+
+    /** The link whose click runs this, or fills it in if {@code suggest}, or a failure listing the links. */
+    private Link clicking(final boolean suggest, final String command)
+    {
+        final Object wanted;
+        if (PAPER)
+        {
+            wanted = suggest ? net.kyori.adventure.text.event.ClickEvent.suggestCommand(command)
+                : net.kyori.adventure.text.event.ClickEvent.runCommand(command);
+        }
+        else
+        {
+            wanted = new ClickEvent(suggest ? ClickEvent.Action.SUGGEST_COMMAND : ClickEvent.Action.RUN_COMMAND, command);
+        }
+        final List<Link> links = sent();
+        return links.stream().filter(link -> wanted.equals(link.click())).findFirst()
+            .orElseThrow(() -> new AssertionError("no link to " + wanted + " in "
+                + links.stream().map(Link::click).toList()));
+    }
+
+    /** Legacy text as this chat's link label reads: Adventure drops a colour code nothing follows. */
+    private static String asSent(final String legacy)
+    {
+        return PAPER ? LEGACY.serialize(LEGACY.deserialize(legacy)) : legacy;
     }
 
     /**
@@ -122,15 +182,13 @@ class GatePreviewLinksTest
 
             command.onCommand(player, null, "wormhole", new String[] {"gate", "build", "Standard"});
         }
-        assertEquals(ChatText.command("[Place]"),
-            ((TextComponent) clicking(ClickEvent.Action.RUN_COMMAND, PREVIEW + "place")).getText().substring(2),
-            "after the body colour carried into it");
+        assertEquals(asSent(ChatText.BODY_COLOUR + ChatText.command("[Place]")), clicking(false, PREVIEW + "place").label(),
+            "a button, after the body colour carried into it, not the bare word a plain line names");
         for (final String action : Build.ACTIONS)
         {
-            final BaseComponent button = Build.MATERIAL.equals(action)
-                ? clicking(ClickEvent.Action.SUGGEST_COMMAND, PREVIEW + action + " ")
-                : clicking(ClickEvent.Action.RUN_COMMAND, PREVIEW + action);
-            final String hover = (String) ((Text) button.getHoverEvent().getContents().get(0)).getValue();
+            final Link button = Build.MATERIAL.equals(action) ? clicking(true, PREVIEW + action + " ")
+                : clicking(false, PREVIEW + action);
+            final String hover = button.hover();
             assertTrue(hover.indexOf('\n') > 0, action + "'s hover should put its help on a line of its own: \"" + hover + "\"");
             final String help = hover.substring(hover.indexOf('\n') + 1);
             assertTrue(help.length() > 10, action + "'s button should say what it does, not \"" + hover + "\"");
@@ -145,7 +203,7 @@ class GatePreviewLinksTest
         {
             command.onCommand(player, null, "wormhole", new String[] {"gate", "preview", "clear"});
         }
-        clicking(ClickEvent.Action.RUN_COMMAND, PREVIEW + "clear -all");
+        clicking(false, PREVIEW + "clear -all");
     }
 
     /** A usage line names a command still to be finished, so a click types it rather than runs it. */
@@ -156,7 +214,7 @@ class GatePreviewLinksTest
         {
             command.onCommand(player, null, "wormhole", new String[] {"gate", "preview", "layer", "nonsense"});
         }
-        clicking(ClickEvent.Action.SUGGEST_COMMAND, PREVIEW + "layer ");
+        clicking(true, PREVIEW + "layer ");
     }
 
     /** Too many preview blocks: the refusal's {@code clear} clears the one looked at. */
@@ -169,6 +227,6 @@ class GatePreviewLinksTest
 
             command.onCommand(player, null, "wormhole", new String[] {"gate", "build", "Standard"});
         }
-        clicking(ClickEvent.Action.RUN_COMMAND, PREVIEW + "clear");
+        clicking(false, PREVIEW + "clear");
     }
 }
