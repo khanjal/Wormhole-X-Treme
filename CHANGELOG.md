@@ -36,6 +36,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `config.yml` keeps the old comment on `gate-view`, which is harmless. `gate-view-depth` (32) is how
   far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.
+- **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
+  to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
+  than running, since it needs a group or a block after it, and a refusal that names a command
+  links it. On by default; `clickable-chat: false` sends the old plain text, which is all
+  CraftBukkit gets.
 - **A player coming out of a gate can be told where they are**: "Arrived at Abydos", in chat,
   once, and not for their pets or mount. Off until `show-gate-welcome-message` is set; a
   Settings.txt that had it on is named in the upgrade note. Gates only: rings and beams name their

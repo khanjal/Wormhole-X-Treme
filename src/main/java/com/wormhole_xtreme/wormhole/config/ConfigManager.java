@@ -74,6 +74,9 @@ public class ConfigManager
         /** Whether a player's following pets travel with them by gate, ring, beam or mirror. */
         PETS_FOLLOW_OWNER,
 
+        /** Whether a command named in chat can be clicked (#538). */
+        CLICKABLE_CHAT,
+
         /** The LOG LEVEL. */
         LOG_LEVEL,
         /** Tick interval for periodic non-player entity gate scan. */
@@ -1796,6 +1799,17 @@ public class ConfigManager
     public static boolean isPetsFollowOwner()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PETS_FOLLOW_OWNER);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether a command named in chat can be clicked, rather than only read and typed.
+     *
+     * @return true unless the setting turns it off
+     */
+    public static boolean isClickableChat()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.CLICKABLE_CHAT);
         return (s == null) || s.getBooleanValue();
     }
 

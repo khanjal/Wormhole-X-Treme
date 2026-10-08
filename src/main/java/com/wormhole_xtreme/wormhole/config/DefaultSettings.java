@@ -80,7 +80,8 @@ class DefaultSettings
             new Setting(ConfigKeys.LOG_LEVEL, "INFO", "How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.", SECTION),
             new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to even if available.", SECTION),
             new Setting(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true, "If true and no Vault provider is detected, automatically fall back to simple permission mode.", SECTION),
-            new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION)),
+            new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION),
+            new Setting(ConfigKeys.CLICKABLE_CHAT, true, "Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.", SECTION)),
 
         group("Integrations", "Other plugins and services this one can talk to. Each is optional.",
             new Setting(ConfigKeys.COREPROTECT_ENABLED, false, "Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.", SECTION),
