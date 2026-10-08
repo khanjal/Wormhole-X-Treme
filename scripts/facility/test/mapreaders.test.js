@@ -202,3 +202,30 @@ test('every Map Desk cell on BlueMap, squaremap or Pl3xMap is a case the desk ru
   assert.match(desk.refuses({ case: 'gate', map: 'pl3xmap' }, '26.1.2', { has: () => false }), /--with pl3xmap/);
   assert.match(desk.refuses({ case: 'reload', map: 'bluemap' }, '26.1.2', { has: () => true }), /a Dynmap case/);
 });
+
+/** A squaremap layer `name` holding `markers`, as the desk's providers would draw it. */
+const layer = (id, name, markers = []) => ({ id, name, markers });
+const icon = (label, x, z) => ({ type: 'icon', point: { x, z }, tooltip: label });
+
+// A marker file not yet written (or mid-write) reads as nothing, which also looks like "removed".
+test('the Map Desk takes rings or a beam as removed only with their layer there, not from a snapshot it could not read', () => {
+  const desk = require('../chambers/companion-map');
+  const unread = desk.look(r.parseSquaremap(null, 'world'));
+  assert.strictEqual(desk.UNTIL.ringsGone(unread), false);
+  assert.strictEqual(desk.UNTIL.beamGone(unread), false);
+  const drawn = desk.look(r.parseSquaremap([layer('r', 'Transport rings'), layer('b', 'Beam destinations', [icon('Other', 40, 40)])], 'world'));
+  assert.strictEqual(desk.UNTIL.ringsGone(drawn), true);
+  assert.strictEqual(desk.UNTIL.beamGone(drawn), true);
+});
+
+// Each world's file is written apart: between the overworld's and the nether's, the Range is missing.
+test('after a restart the Map Desk waits for every gate the plugin holds, the nether\'s too, before comparing', () => {
+  const desk = require('../chambers/companion-map');
+  const ends = desk.RING_ENDS.map((e, i) => icon(`End${i}`, e.x + 0.5, e.z + 0.5));
+  const snap = r.parseSquaremap([layer('g', 'Stargates', [icon('MapA', 0.5, -110.5)]), layer('r', 'Transport rings', ends),
+    layer('b', 'Beam destinations', [icon('MapBeam', 60, 60)]), layer('m', 'Quantum mirrors', [icon('MapMirror', 70, 70)])], 'world');
+  const back = desk.UNTIL.allBack(['mapa', 'range']);
+  assert.strictEqual(back(desk.look(snap)), false, 'only the overworld written yet');
+  r.parseSquaremap([layer('g', 'Stargates', [icon('Range', 5, 5)])], 'world_nether', snap);
+  assert.strictEqual(back(desk.look(snap)), true);
+});

@@ -740,7 +740,8 @@ class Facility {
         return { ok: true, detail: `http://127.0.0.1:${port}/${said ? ` (${label} bound ${said.detail})` : ''}` };
       }
       if (Date.now() > deadline) {
-        return { ok: false, detail: said ? `${url} does not answer with ${label}'s page` : `${label} never said its web server started on 127.0.0.1:${port}` };
+        // BlueMap never says it started, so its page not answering is all there is to report.
+        return { ok: false, detail: said || !w.started ? `${url} does not answer with ${label}'s page` : `${label} never said its web server started on 127.0.0.1:${port}` };
       }
       await new Promise((resolve) => { setTimeout(resolve, 500); });
     }

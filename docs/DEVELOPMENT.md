@@ -613,13 +613,15 @@ journal (as the value to go back to) before `recover()` could turn it against wh
 
 Each web map gets its own port on 127.0.0.1 only, its base + `(port - 25590)`: Dynmap 8123,
 BlueMap 8300, squaremap 8400, Pl3xMap 8500 (`lib/maps.js`; their own defaults, 8100 and 8080,
-would collide across labs, and a game port from 25690 would reach the next map's range, so it is
-refused). Dynmap's is written into its `configuration.txt` (from the jar's own template on a fresh
-run); the others' settings files appear only at their first start, so the launcher writes the keys
-it needs into new ones (each plugin fills in the rest) or changes only those keys in existing
-ones: BlueMap's `webserver.conf` (`ip`, `port`), `core.conf` (`metrics: false`) and `plugin.conf`
-(`write-markers-interval: 5`); squaremap's and Pl3xMap's `settings.internal-webserver` (`bind`,
-`port`, and squaremap's `flush-json-immediately`). Each address is printed; the setup fails if a
+would collide across labs, and for BlueMap, squaremap and Pl3xMap a game port below 25590 or from
+25690 would reach another map's range, so it is refused). Dynmap's is written into its
+`configuration.txt` (from the jar's own template on a fresh run); the others' settings files
+appear only at their first start, so the launcher writes the keys it needs into new ones (each
+plugin fills in the rest) or changes only those keys in existing ones: BlueMap's `webserver.conf`
+(`ip`, `port`), `core.conf` (`metrics: false`, and `accept-download: false` where the key is
+absent) and `plugin.conf` (`write-markers-interval: 5`); squaremap's and Pl3xMap's
+`settings.internal-webserver` (`enabled: true`, `bind`, `port`, and squaremap's
+`flush-json-immediately`), and Pl3xMap's `settings.web-address`. Each address is printed; the setup fails if a
 map does not say its web server bound 127.0.0.1 there (BlueMap says nothing, so its page decides)
 and answer, and a failed bind is a fault. BlueMap's `accept-download` is the user's acceptance of
 Mojang's EULA for the client jar BlueMap downloads, so it stays off unless `--accept-bluemap-download`

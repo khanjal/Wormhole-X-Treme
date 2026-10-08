@@ -48,22 +48,20 @@ function expand(list, m = manifest()) {
  * The companions a --with list names for one Minecraft version: expand()'s list, less any member
  * of a set that has no build for the version (`--with maps` on 26.1.2 has no Dynmap), each left
  * out with its reason: { names, skipped: [{ name, why }] }. A companion named on its own is never
- * left out: pick() refuses it later, in plain words.
+ * left out, and nor is anything a companion kept requires: pick() refuses those later, in plain
+ * words, as it did before sets could skip.
  */
 function forVersion(list, version, m = manifest()) {
+  const all = expand(list, m);
   const asked = new Set(list.map((n) => n.toLowerCase()).filter((n) => !m.sets[n]));
-  const skipped = [];
-  const names = expand(list, m).filter((name) => {
-    if (asked.has(name)) return true;
-    try {
-      pick(name, version, m);
-      return true;
-    } catch (e) {
-      skipped.push({ name, why: e.message });
-      return false;
-    }
-  });
-  return { names, skipped };
+  const why = new Map();
+  for (const name of all) {
+    if (asked.has(name)) continue;
+    try { pick(name, version, m); } catch (e) { why.set(name, e.message); }
+  }
+  // What a kept companion requires is kept too, so its refusal is not lost as a skip.
+  const kept = new Set(all.filter((n) => !why.has(n)).flatMap((n) => expand([n], m)));
+  return { names: all.filter((n) => kept.has(n)), skipped: all.filter((n) => !kept.has(n)).map((name) => ({ name, why: why.get(name) })) };
 }
 
 /** Whether a build's `versions` ("*" or "1.21.11,26.1.2") covers a Minecraft version. */

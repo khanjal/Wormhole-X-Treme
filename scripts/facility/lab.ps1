@@ -20,7 +20,7 @@
 .PARAMETER Port
     The server port (default 25590). Another port gets its own server folder, and each web map
     its own port, on 127.0.0.1 only: Dynmap 8123, BlueMap 8300, squaremap 8400, Pl3xMap 8500,
-    each + (port - 25590). A web map needs a port below 25690.
+    each + (port - 25590). BlueMap, squaremap and Pl3xMap need a port from 25590 to 25689.
 
 .PARAMETER Plugin
     A plugin jar to test (a branch's build) instead of building this checkout.
@@ -42,7 +42,7 @@
     Set BlueMap's accept-download: true. That is your acceptance of Mojang's EULA
     (https://account.mojang.com/documents/minecraft_eula) for the Minecraft client jar BlueMap
     downloads to draw its 3D map; without it BlueMap loads and draws nothing. The lab's folder
-    keeps the setting once given.
+    keeps the setting once given, unless -Fresh, which clears BlueMap's folder: give it again then.
 
 .PARAMETER PluginCache
     A folder of companion jars to read first (<folder>\<version>\ then <folder>\any\).

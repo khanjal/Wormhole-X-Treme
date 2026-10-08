@@ -433,6 +433,19 @@ function look(s) {
   };
 }
 
+/** A gate layer's labels, lower-cased like `wormhole list`'s names. */
+const gateLabels = (x) => inLayer(x.s, L.gates, 'points').map((m) => (m.label || '').toLowerCase());
+
+/**
+ * What a case waits for in a `look`. A "gone" needs its layer there, since an unread snapshot has
+ * no markers either; after a restart, every gate the plugin holds (the nether's too, written apart).
+ */
+const UNTIL = {
+  ringsGone: (x) => x.layers().includes(L.rings) && x.ringEnds().length === 0 && x.ringLines().length === 0,
+  beamGone: (x) => x.layers().includes(L.beams) && !x.beam('MapBeam').length,
+  allBack: (gates) => (x) => same(gateLabels(x), gates) && x.ringEnds().length === 2 && x.beam('MapBeam').length > 0 && x.mirror('MapMirror').length > 0,
+};
+
 /** The reader for this case's map: its files in the server folder, none from before the last start. */
 function jsonReader(ctx, map) {
   return new JsonMapReader(map, ctx.server.folder, { port: ctx.facility.mapPorts[map], since: () => ctx.server.startedAt || 0 });
@@ -533,7 +546,7 @@ async function runJson(ctx, o) {
       await fac.probe.teleport(HOME, O);
       await ctx.step('the pair is removed');
       obs.removedText = await rk.remove(obs.pair.id);
-      obs.removed = await lookUntil(reader, (x) => x.ringEnds().length === 0 && x.ringLines().length === 0);
+      obs.removed = await lookUntil(reader, UNTIL.ringsGone);
       break;
     }
     case 'beams': {
@@ -546,7 +559,7 @@ async function runJson(ctx, o) {
       obs.seen = await hold((x) => inLayer(x.s, L.beams, 'points').map((m) => m.label));
       await ctx.step('the destination is removed');
       obs.removeText = await bk.drop(fac.probe, 'public', 'MapBeam');
-      obs.removed = await lookUntil(reader, (x) => !x.beam('MapBeam').length);
+      obs.removed = await lookUntil(reader, UNTIL.beamGone);
       break;
     }
     case 'mirrors': {
@@ -569,8 +582,8 @@ async function runJson(ctx, o) {
       await ctx.step('the server restarts');
       obs.restartFrom = await fac.restart('the Map Desk\'s restart case');
       // Files from before the restart are left out (the reader's `since`): only what was drawn since counts.
-      obs.after = (await lookUntil(reader, (x) => x.gate('MapA').length > 0 && x.ringEnds().length === 2 && x.beam('MapBeam').length > 0 && x.mirror('MapMirror').length > 0, 30000)).snap;
       obs.held = await held(ctx);
+      obs.after = (await lookUntil(reader, UNTIL.allBack(obs.held.gates), 30000)).snap;
       break;
     }
     case 'layer off':
@@ -861,5 +874,5 @@ module.exports = {
   run,
   checks,
   cleanup,
-  GATES, RING_ENDS, MIRROR,
+  GATES, RING_ENDS, MIRROR, look, UNTIL,
 };

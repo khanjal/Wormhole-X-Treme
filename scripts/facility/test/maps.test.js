@@ -51,6 +51,21 @@ test('BlueMap is asked to render its maps of the overworld and the nether by the
   assert.throws(() => maps.renderWorlds('bluemap', d), /BlueMap has no map of world or world_nether/);
 }));
 
+// BlueMap has no started line to wait for, so "never said" sent people looking for one.
+test('a map whose page never answers is reported as that; one with a started line it never wrote, as silent', async () => {
+  const { Facility } = require('../facility');
+  const net = require('net');
+  const gone = net.createServer();
+  await new Promise((resolve, reject) => { gone.once('error', reject); gone.listen(0, '127.0.0.1', resolve); });
+  const port = gone.address().port;
+  await new Promise((resolve) => { gone.close(resolve); });
+  const fac = { srv: { log: [] }, mapPorts: { bluemap: port, squaremap: port } };
+  const blue = await Facility.prototype.mapWebUp.call(fac, { name: 'bluemap', ms: 0 });
+  assert.strictEqual(blue.detail, `http://127.0.0.1:${port}/settings.json does not answer with BlueMap's page`);
+  const square = await Facility.prototype.mapWebUp.call(fac, { name: 'squaremap', ms: 0 });
+  assert.strictEqual(square.detail, `squaremap never said its web server started on 127.0.0.1:${port}`);
+});
+
 test('a fresh folder gets each map on 127.0.0.1 at its port, and the port reads back', () => scratch((d) => {
   maps.configure('squaremap', d, { port: 8400 });
   maps.configure('pl3xmap', d, { port: 8500 });

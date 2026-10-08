@@ -146,6 +146,20 @@ test('--with maps on 26.1.2 leaves Dynmap out and says why; Dynmap named on its 
   assert.deepStrictEqual(c.forVersion(['dynmap', 'regions'], '26.1.2').names, ['dynmap', 'worldedit', 'worldguard']);
 });
 
+// Skipping it would start WorldGuard without WorldEdit, with only a log line to say so.
+test('what a kept companion requires is kept even with no build, so pick() refuses it rather than a skip hiding it', () => {
+  const r = c.forVersion(['worldguard'], '1.21.4');
+  assert.deepStrictEqual(r.names, ['worldedit', 'worldguard']);
+  assert.deepStrictEqual(r.skipped, []);
+  assert.throws(() => c.pick('worldedit', '1.21.4'), /no build of WorldEdit is pinned for 1\.21\.4/);
+  // A set member kept likewise keeps what it requires.
+  const build = (versions) => ({ plugin: 'P', builds: [{ versions, version: '1', file: 'p.jar' }] });
+  const m = { sets: { s: ['a', 'c'] }, companions: { a: { ...build('*'), requires: ['b'] }, b: build('1.0'), c: build('1.0') } };
+  const s = c.forVersion(['s'], '2.0', m);
+  assert.deepStrictEqual(s.names, ['b', 'a']);
+  assert.deepStrictEqual(s.skipped.map((x) => x.name), ['c'], 'a set member with no build of its own is still left out');
+});
+
 test('a map web server that fails to bind is a companion fault; another plugin\'s line is not', () => {
   assert.ok(c.companionFault('[09:00:00 ERROR]: [squaremap] Failed to start internal webserver', ['squaremap']));
   assert.ok(c.companionFault('[09:00:00 WARN]: [Pl3xMap] java.net.BindException: Address already in use', ['Pl3xMap']));
