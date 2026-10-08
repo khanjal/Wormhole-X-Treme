@@ -119,7 +119,7 @@ class DynmapMapProviderTest
         }
         final MarkerIcon icon = mock(MarkerIcon.class);
         when(api.createMarkerIcon(anyString(), anyString(), any(InputStream.class))).thenReturn(icon);
-        provider = new DynmapMapProvider(MapLayers.ALL, readyCalls::incrementAndGet);
+        provider = new DynmapMapProvider(MapLayers.ALL, map -> readyCalls.incrementAndGet());
     }
 
     @AfterEach
@@ -534,7 +534,7 @@ class DynmapMapProviderTest
     {
         final MarkerSet leftover = mock(MarkerSet.class);
         when(api.getMarkerSet(off)).thenReturn(leftover);
-        provider = new DynmapMapProvider(layers, readyCalls::incrementAndGet);
+        provider = new DynmapMapProvider(layers, map -> readyCalls.incrementAndGet());
         provider.attach(api);
 
         provider.apply(everything());
