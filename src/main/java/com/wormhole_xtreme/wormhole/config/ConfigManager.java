@@ -143,6 +143,8 @@ public class ConfigManager
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
+        /** Whether a player arriving through a gate is told in chat which gate they arrived at (#485). */
+        SHOW_GATE_WELCOME_MESSAGE,
         GATE_DIAL_SPIN,
         /** Minutes a gate build preview lasts after its owner last used a build command. */
         GATE_PREVIEW_MINUTES,
@@ -315,6 +317,9 @@ public class ConfigManager
 
         /** The gate dialed. */
         GATE_CONNECTED(NORMAL_HEADER + "Stargates connected."),
+
+        /** Said to a player arriving through a gate, before the destination gate's name. */
+        GATE_ARRIVED(NORMAL_HEADER + "Arrived at "),
 
         /** The construct success. */
         CONSTRUCT_SUCCESS(NORMAL_HEADER + "Gate successfully constructed."),
@@ -1023,6 +1028,13 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */
+    public static boolean isShowGateWelcomeMessage()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE);
+        return (s != null) && s.getBooleanValue();
     }
 
     /**

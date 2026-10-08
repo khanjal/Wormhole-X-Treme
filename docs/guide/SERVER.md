@@ -113,6 +113,12 @@ its colours until it is next written. Nothing waits for a restart.
 The cap is what stops anything that re-dials on a schedule, or a `timeout-shutdown` of `0`, from
 holding a gate open forever.
 
+### Arrival message
+
+| Setting | Default | What it does |
+|---|---|---|
+| `show-gate-welcome-message` | false | A player coming out of a gate is told in chat which gate they arrived at, once; their pets and mount are not. Gates only: rings and beams name their destination whatever this is set to |
+
 ### Pets
 
 | Setting | Default | What it does |
