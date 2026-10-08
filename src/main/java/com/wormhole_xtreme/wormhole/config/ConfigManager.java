@@ -143,6 +143,8 @@ public class ConfigManager
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
+        /** Whether a player arriving through a gate is told in chat which gate they arrived at (#485). */
+        SHOW_GATE_WELCOME_MESSAGE,
         GATE_DIAL_SPIN,
         /** Minutes a gate build preview lasts after its owner last used a build command. */
         GATE_PREVIEW_MINUTES,
@@ -165,6 +167,12 @@ public class ConfigManager
         WORLDGUARD_ENABLED,
         /** Whether gates, rings, public beam destinations and mirrors are drawn on Dynmap (#236). */
         DYNMAP_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on BlueMap. */
+        BLUEMAP_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on squaremap. */
+        SQUAREMAP_ENABLED,
+        /** Whether gates, rings, public beam destinations and mirrors are drawn on Pl3xMap. */
+        PL3XMAP_ENABLED,
         /** Whether gates and the lines between dialled pairs are a web map layer. */
         MAP_SHOW_GATES,
         /** Whether transport rings are a web map layer. */
@@ -309,6 +317,9 @@ public class ConfigManager
 
         /** The gate dialed. */
         GATE_CONNECTED(NORMAL_HEADER + "Stargates connected."),
+
+        /** Said to a player arriving through a gate, before the destination gate's name. */
+        GATE_ARRIVED(NORMAL_HEADER + "Arrived at "),
 
         /** The construct success. */
         CONSTRUCT_SUCCESS(NORMAL_HEADER + "Gate successfully constructed."),
@@ -1017,6 +1028,13 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */
+    public static boolean isShowGateWelcomeMessage()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE);
+        return (s != null) && s.getBooleanValue();
     }
 
     /**
@@ -1841,8 +1859,8 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
-            case DYNMAP_ENABLED, MAP_SHOW_GATES, MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS,
-                MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
+            case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, PL3XMAP_ENABLED, MAP_SHOW_GATES,
+                MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
         }
     }
@@ -2061,6 +2079,27 @@ public class ConfigManager
     public static boolean isDynmapEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DYNMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on BlueMap. */
+    public static boolean isBlueMapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BLUEMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on squaremap. */
+    public static boolean isSquaremapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SQUAREMAP_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Returns true if gates, rings, public beam destinations and mirrors should be drawn on Pl3xMap. */
+    public static boolean isPl3xMapEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PL3XMAP_ENABLED);
         return s != null && s.getBooleanValue();
     }
 

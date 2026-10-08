@@ -23,11 +23,18 @@
 //                        with --versions, versions x shards servers
 //   --paper-build <n>    use this Paper build instead of the newest stable one (still checked)
 //   --with <list>        install companion plugins, pinned in companions.json: viaversion,
-//                        viabackwards, dynmap, worldedit, worldguard, luckperms, vault, or the
-//                        sets via, regions, permissions (what one needs comes with it). Read from
-//                        the plugin cache, else downloaded from an official source and checked;
-//                        a run without one takes out the jar an earlier run installed. The
-//                        self-test's companion cells run only with --with (lib/companions.js)
+//                        viabackwards, dynmap, bluemap, squaremap, pl3xmap, worldedit, worldguard,
+//                        luckperms, vault, or the sets via, regions, permissions, maps (what one
+//                        needs comes with it; a set leaves out a member the version has no build
+//                        of, and says so). Read from the plugin cache, else downloaded from an
+//                        official source and checked; a run without one takes out the jar an
+//                        earlier run installed. The self-test's companion cells run only with
+//                        --with (lib/companions.js). Each web map listens on 127.0.0.1 only, at
+//                        its own port for the game port (lib/maps.js): Dynmap 8123, BlueMap
+//                        8300, squaremap 8400, Pl3xMap 8500, each + (port - 25590); in a hold,
+//                        BlueMap, squaremap and Pl3xMap then render the facility's worlds
+//   --accept-bluemap-download  set BlueMap's accept-download: true, which is accepting Mojang's
+//                        EULA for the client jar BlueMap downloads: yours to give, never a default
 //   --plugin-cache <dir> read companion jars from <dir>/<version>/ then <dir>/any/ first
 //                        (default: WX_PLUGIN_CACHE, else the nearest .wx-plugins folder beside
 //                        the repository or a folder above it)
@@ -87,6 +94,7 @@ const shards = require('./lib/shards');
 const { Config } = require('./lib/config');
 const shapes = require('./lib/shapes');
 const companions = require('./lib/companions');
+const maps = require('./lib/maps');
 const pluginsExtra = require('./lib/extras');
 
 const DEFAULT_VERSION = '26.1.2';
@@ -174,6 +182,7 @@ function parseArgs(argv) {
       companions.expand(a.with); // a name it does not know is refused here, before anything starts
     }
     else if (x === '--plugin-cache') a.pluginCache = value(i++);
+    else if (x === '--accept-bluemap-download') a.acceptBluemapDownload = true;
     else if (x === '--plugins-extra') a.pluginsExtra = value(i++);
     else if (x === '--op') {
       a.op = list(value(i++));
@@ -460,9 +469,14 @@ async function fanOut(args) {
     if (signals) return 130;
   }
   // Companions likewise (and a companion a version cannot have is refused here, before any start).
-  const withNames = args.with ? companions.expand(args.with) : null;
+  // Each version has its own list: a set (maps) leaves out what that version has no build of.
+  const withNames = {};
   for (const v of versions) {
-    if (withNames) await companionsFor(args, v, withNames);
+    if (!args.with) { withNames[v] = null; continue; }
+    const { names, skipped } = companions.forVersion(args.with, v);
+    for (const s of skipped) console.log(`--with leaves out ${s.why}`);
+    withNames[v] = names;
+    await companionsFor(args, v, names);
     if (signals) return 130;
   }
   fs.mkdirSync(LOCAL, { recursive: true });
@@ -480,7 +494,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
   for (const [vi, v] of versions.entries()) {
     let planFile = null;
     if (n > 1) {
-      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null, companions: withNames });
+      const names = shards.labels({ quick: args.quick, only: args.cells ? shards.cellMatcher(args.cells) : null, companions: withNames[v] });
       const p = shards.plan(names, shards.loadTimes(LOCAL, v), n);
       planFile = path.join(work, `plan-${v}.json`);
       fs.writeFileSync(planFile, JSON.stringify(p));
@@ -503,7 +517,8 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
     if (args.quick) child.push('--quick');
     if (args.paperBuild) child.push('--paper-build', String(args.paperBuild));
     if (args.keepWorld) child.push('--keep-world');
-    if (withNames) child.push('--with', withNames.join(',') || 'none');
+    if (withNames[j.v]) child.push('--with', withNames[j.v].join(',') || 'none');
+    if (args.acceptBluemapDownload) child.push('--accept-bluemap-download');
     if (args.pluginCache) child.push('--plugin-cache', args.pluginCache);
     if (args.pluginsExtra) child.push('--plugins-extra', args.pluginsExtra);
     if (args.watchBot) child.push('--watch-bot');
@@ -611,8 +626,16 @@ async function main() {
   const jar = await server.ensurePaperJar(LOCAL, version, { build: args.paperBuild || null });
   const plugin = args.design ? designPlugin(args, folder) : pluginJar(args);
   // Companions before Java: the JDK is the highest any jar here needs, Paper's own included.
-  const withNames = args.with ? companions.expand(args.with) : null;
+  let withNames = null;
+  if (args.with) {
+    const picked = companions.forVersion(args.with, version);
+    for (const s of picked.skipped) console.log(`--with leaves out ${s.why}`);
+    withNames = picked.names;
+  }
   const extras = withNames ? await companionsFor(args, version, withNames) : [];
+  // Each web map's port, refused here (a game port too far from 25590) before anything starts.
+  const mapNames = extras.map((c) => c.name).filter((n) => maps.MAPS[n]);
+  const mapPorts = Object.fromEntries(mapNames.map((n) => [n, maps.webPort(n, args.port)]));
   const need = companions.javaNeeded(version, [{ name: 'WormholeXTreme', java: companions.classJava(plugin) }, ...extras]);
   const java = args.java || companions.findJavaAtLeast(need.major);
   if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
@@ -646,21 +669,24 @@ async function main() {
   // of that would pass without it if the server's default were adventure already.
   // Design mode: creative and peaceful, nothing stocked.
   server.prepareFolder(folder, { port: args.port, layers: campus.FLAT_LAYERS, seed: campus.SEED, gamemode: args.design ? 'creative' : 'survival', viewDistance: 10, mobs: !args.design });
+  // The plugin's own switch, off in every lab folder: no lab server reports to bStats. Chamber s1 turns it on
+  // and off again to hear the log lines; plugins/bStats/config.yml (prepareFolder) still blocks the send.
+  companions.seedSettings(folder, { 'metrics-enabled': 'false' });
   // Every server listens on 127.0.0.1 only, unless --design-open: RCON binds to server-ip, or to
   // every interface when it is empty.
-  const extra = [];
-  if (!args.designOpen) extra.push('server-ip=127.0.0.1');
+  const props = [];
+  if (!args.designOpen) props.push('server-ip=127.0.0.1');
   // The launcher's console commands (thousands of fences) are not shown to a designer who is an op.
   // Design mode: nobody joins until the campus is generated.
-  if (args.design) extra.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
+  if (args.design) props.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
   // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
   // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
   const hold = !args.design && !args.selftest && !(args.shots && !args.viewer);
   const rcon = hold && rconPort(args.port) !== null;
-  if (rcon) extra.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
-  else extra.push('enable-rcon=false');
+  if (rcon) props.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
+  else props.push('enable-rcon=false');
   if (hold && !rcon) console.log(`The dashboard cannot send commands here: game port ${args.port} leaves no RCON port (port + 10000).`);
-  fs.appendFileSync(path.join(folder, 'server.properties'), `${extra.join('\n')}\n`);
+  fs.appendFileSync(path.join(folder, 'server.properties'), `${props.join('\n')}\n`);
   let channel = 'none';
   if (args.selftest) channel = 'selftest';
   else if (rcon) channel = 'starting';
@@ -672,8 +698,12 @@ async function main() {
   const { removed, unseeded } = companions.install(folder, extras, { fresh: !args.keepWorld, switches });
   if (removed.length) console.log(`companions taken out (installed by an earlier run, not wanted by this one): ${removed.join(', ')}`);
   if (unseeded.length) console.log(`Wormhole settings an earlier --with run switched on, put back: ${unseeded.join(', ')}`);
-  const mapPort = extras.some((c) => c.name === 'dynmap') ? companions.dynmapPort(args.port) : null;
-  if (mapPort) companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPort);
+  // Each map's web server on 127.0.0.1 at its own port, written before it starts (lib/maps.js).
+  for (const name of mapNames) {
+    if (name === 'dynmap') companions.configureDynmap(folder, extras.find((c) => c.name === 'dynmap').jar, mapPorts.dynmap);
+    else maps.configure(name, folder, { port: mapPorts[name], acceptDownload: Boolean(args.acceptBluemapDownload) });
+    maps.writeStatus(folder, name, 'starting', `http://127.0.0.1:${mapPorts[name]}/`);
+  }
   const extra = pluginsExtra.install(folder, pluginsExtra.folderOf(REPO, args.pluginsExtra));
   if (extra.copied.length) console.log(`plugins-extra copied in: ${extra.copied.join(', ')}`);
   if (extra.removed.length) console.log(`plugins-extra taken out (copied by an earlier run, gone from the folder): ${extra.removed.join(', ')}`);
@@ -687,10 +717,10 @@ async function main() {
   console.log(`facility: Paper ${version} on Java ${javaMajor} (${need.why.join('; ')}), port ${args.port}, ${folder}`);
   for (const c of extras) console.log(`  companion ${c.plugin} ${c.version}: ${c.file}, SHA-256 ${c.sha256}, Java ${c.java || '?'}, from ${c.from}`);
   if (Object.keys(switches).length) console.log(`  Wormhole settings for them: ${Object.entries(switches).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
-  if (mapPort) console.log(`  Dynmap web map: http://127.0.0.1:${mapPort}/`);
+  for (const name of mapNames) console.log(`  ${maps.MAPS[name].label} web map: http://127.0.0.1:${mapPorts[name]}/`);
   const srv = new server.Server({ jar, java, folder, version, memory: '3G' });
   if (server.echoOn(process.env.WX_ECHO)) srv.on('line', (l) => console.log(`  | ${l}`));
-  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPort });
+  const fac = new Facility({ srv, version, manifest, port: args.port, fixed: args.fixed || [], companions: withNames ? extras : null, mapPorts });
   // Before the server starts, so whoever joins early is a watcher, never welcomed as a tester.
   if (args.watch || args.watchBot) {
     const { Watcher } = require('./lib/watcher');
@@ -709,6 +739,7 @@ async function main() {
     // Bounded: its bossbar removals queue behind whatever run is in flight.
     await Promise.race([fac.close().catch(() => {}), new Promise((resolve) => { setTimeout(resolve, 10000).unref(); })]);
     await srv.stop();
+    for (const name of mapNames) maps.writeStatus(folder, name, 'stopped', 'the lab is not running');
   };
   const stopFor = server.tieToProcess(srv, () => {
     if (holding) { holding(); return; }
@@ -754,10 +785,15 @@ async function main() {
       exit = await designSession({ args, fac, srv, folder, plugin, hold: (resolve) => { holding = resolve; } });
       return exit;
     }
-    if (mapPort) {
-      const web = await fac.mapWebUp();
-      if (!web.ok) setup.push(`Dynmap's web map: ${web.detail}`);
-      console.log(`  Dynmap web map: ${web.detail}`);
+    // Each map's web server, all at once: bound to 127.0.0.1 at its port, and answering.
+    const webUp = await Promise.all(mapNames.map(async (name) => ({ name, web: await fac.mapWebUp({ name }) })));
+    const mapsUp = [];
+    for (const { name, web: up } of webUp) {
+      const label = maps.MAPS[name].label;
+      if (up.ok) mapsUp.push(name);
+      else setup.push(`${label}'s web map: ${up.detail}`);
+      maps.writeStatus(folder, name, up.ok ? 'up' : up.waiting ? 'waiting' : 'failed', up.detail);
+      console.log(`  ${label} web map: ${up.detail}`);
     }
     for (const p of setup) console.log(`  setup problem: ${p}`);
     const tb = Date.now();
@@ -794,6 +830,16 @@ async function main() {
     for (const f of fixtures) console.log(`  ${f.ok ? 'fixture' : 'FIXTURE FAILED'} ${f.id}: ${f.detail}`);
     console.log(`fixtures in ${Date.now() - tf} ms`);
     await fac.refreshBoards();
+    // A hand lab's maps draw the campus now it is built, behind the hold: the dashboard shows each
+    // one rendering until it says it has finished. A self-test reads markers, not tiles: no render.
+    if (hold && mapsUp.some((n) => maps.RENDER[n])) {
+      fac.renderMaps(mapsUp, (name, state, detail) => {
+        maps.writeStatus(folder, name, state, detail);
+        console.log(`  ${maps.MAPS[name].label}: ${state}${detail ? ` (${detail})` : ''}`);
+      }).catch((e) => { if (!stopping) console.error(`facility: rendering the maps: ${e.message}`); });
+    } else {
+      for (const name of mapsUp) if (maps.RENDER[name]) maps.writeStatus(folder, name, 'up', 'not rendered: a self-test reads markers, not tiles');
+    }
     // Every shot is a check: a bad one fails the run, whether it then stops, self-tests or holds.
     let shotChecks = [];
     if (args.shots) {
@@ -852,7 +898,7 @@ async function main() {
     } else {
       if (channel === 'starting') consoleChannel(folder, 'ready');
       console.log(`\nready: join localhost:${args.port} with Minecraft ${version} under any name.`);
-      if (mapPort) console.log(`The Dynmap web map is at http://127.0.0.1:${mapPort}/`);
+      for (const name of mapNames) console.log(`The ${maps.MAPS[name].label} web map is at http://127.0.0.1:${mapPorts[name]}/${mapsUp.includes(name) ? '' : ' (not up: see above)'}`);
       if (args.viewer && web) console.log(`The viewer is at ${web.url} (orbit) and ${web.url}first/ (Probe's eyes)`);
       console.log('You arrive in the atrium in adventure mode; say ! or click Console. Say "stop" in chat, or press Ctrl+C, to end.');
       await new Promise((resolve) => {
