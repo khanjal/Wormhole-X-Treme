@@ -456,6 +456,21 @@
 					<version>${spigot.api.version}</version>
 					<scope>provided</scope>
 				</dependency>
+				<!-- Clickable chat on Paper (ChatLine). Paper ships Adventure and Spigot does not, so it is
+				     provided, for the one class only Paper loads; the Paper legs get Paper's own. The
+				     version Placeholder API already brings, older than any Paper this plugin supports. -->
+				<dependency>
+					<groupId>net.kyori</groupId>
+					<artifactId>adventure-api</artifactId>
+					<version>4.13.1</version>
+					<scope>provided</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.kyori</groupId>
+					<artifactId>adventure-text-serializer-legacy</artifactId>
+					<version>4.13.1</version>
+					<scope>provided</scope>
+				</dependency>
 			</dependencies>
 			<build>
 				<plugins>

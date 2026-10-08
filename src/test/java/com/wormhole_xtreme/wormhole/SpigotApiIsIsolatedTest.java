@@ -51,6 +51,7 @@ class SpigotApiIsIsolatedTest
      */
     private static final Map<String, String> ISOLATED = Map.of(
         "com/wormhole_xtreme/wormhole/utils/ActionBar.java", "SpigotBar",
+        "com/wormhole_xtreme/wormhole/utils/ChatLine.java", "SpigotChat",
         "com/wormhole_xtreme/wormhole/LegacyGateDismountListener.java", "LegacyGateDismountListener");
 
     /** Isolated only while nothing names it in code: a direct reference links it eagerly. */
