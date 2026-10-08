@@ -117,6 +117,7 @@ public final class IrisSweepDriver<C>
         // The index is carried by the step booked rather than kept here, so each booking runs its
         // own ring however late it fires.
         booked = canvas.later(ConfigManager.getGateIrisStepTicks(), () -> step(index + 1));
+        // Booked before registered: the registry holds this sweep for its latest booking, which a call-off drops.
         canvas.register(this);
     }
 

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -35,6 +36,10 @@ class IrisSweepDriverTest
     /** Booked steps not yet run, by booking number; a cancelled one is really dropped. */
     private final Map<Integer, Runnable> pending = new LinkedHashMap<>();
     private final List<Long> delays = new ArrayList<>();
+    /** Every sweep the canvas was asked to register, in order, as each side's registry would hold it. */
+    private final List<IrisSweepDriver<String>> registered = new ArrayList<>();
+    /** The booking numbers a call-off dropped. */
+    private final List<Integer> cancelled = new ArrayList<>();
     private boolean valid = true;
 
     /** Records everything the driver asks of it, in order. */
@@ -65,12 +70,17 @@ class IrisSweepDriverTest
             delays.add(ticks);
             pending.put(id, step);
             events.add("book");
-            return () -> pending.remove(id);
+            return () ->
+            {
+                cancelled.add(id);
+                pending.remove(id);
+            };
         }
 
         @Override
         public void register(final IrisSweepDriver<String> sweep)
         {
+            registered.add(sweep);
             events.add("register");
         }
 
@@ -117,10 +127,12 @@ class IrisSweepDriverTest
     @Test
     void theFirstRingIsDrawnAsTheSweepStartsThenItsStepIsBooked()
     {
-        new IrisSweepDriver<>(RINGS, canvas).start();
+        final IrisSweepDriver<String> sweep = new IrisSweepDriver<>(RINGS, canvas);
+        sweep.start();
 
         assertEquals(List.of("draw[c]", "horizon[c]", "book", "register"), events,
             "the ring, then its far layer, then the next step booked and the sweep registered against it");
+        assertSame(sweep, registered.get(0), "the sweep registered itself, not some other driver");
     }
 
     /**
@@ -172,6 +184,9 @@ class IrisSweepDriverTest
      * <p>Whoever calls it off has already decided what the iris is to look like, and a settle
      * arriving on top would undo that. Unregistering is the caller's: both sides take the sweep out
      * of their own register before they call it off.
+     *
+     * <p>Called off through what the register holds, as both sides do: a step that registered some
+     * other driver, or a driver that kept an earlier booking, would leave the waiting step to run.
      */
     @Test
     void callingASweepOffDropsItsStepAndSettlesNothing()
@@ -180,10 +195,13 @@ class IrisSweepDriverTest
         sweep.start();
         runNextStep();
         assertEquals(1, pending.size(), "a step is waiting");
+        assertEquals(2, registered.size(), "registered once per step");
+        registered.forEach(held -> assertSame(sweep, held, "every step registered the same sweep"));
         events.clear();
 
-        sweep.cancel();
+        registered.get(registered.size() - 1).cancel();
 
+        assertEquals(List.of(1), cancelled, "the second booking, the one waiting, and only that");
         assertTrue(pending.isEmpty(), "the booked step is dropped: " + pending.keySet());
         assertEquals(List.of(), events, "and nothing settled, drawn or unregistered by the call-off");
     }
