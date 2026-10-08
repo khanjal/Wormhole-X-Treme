@@ -259,7 +259,7 @@ public final class BlueMapMapProvider implements MapProvider
      */
     private void draw(final BlueMapMap map, final String world, final MapSnapshot snapshot)
     {
-        final Map<String, String> icon = icons.computeIfAbsent(map.getId(), id -> writeIcons(map));
+        final Map<String, String> icon = iconsOf(map);
         if (layers.gates())
         {
             final Map<String, Marker> want = new HashMap<>();
@@ -312,6 +312,29 @@ public final class BlueMapMapProvider implements MapProvider
         final String world)
     {
         return marks.values().stream().filter(mark -> world.equals(worldOf.apply(mark))).toList();
+    }
+
+    /**
+     * A map's icon addresses, written into its assets the first time.
+     *
+     * @param map
+     *            the map
+     * @return where the web app finds each, by icon file
+     */
+    private Map<String, String> iconsOf(final BlueMapMap map)
+    {
+        final Map<String, String> known = icons.get(map.getId());
+        if (known != null)
+        {
+            return known;
+        }
+        final Map<String, String> written = writeIcons(map);
+        // Kept only when whole, so a map whose assets failed is tried again on the next draw.
+        if (written.size() == ICONS.length)
+        {
+            icons.put(map.getId(), written);
+        }
+        return written;
     }
 
     /**

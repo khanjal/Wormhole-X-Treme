@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
@@ -352,6 +353,31 @@ class BlueMapMapProviderTest
         final POIMarker abydos = poi(maps.get(0), MapText.GATES, "gate:abydos");
         assertNotNull(abydos, "the gate is still drawn");
         assertFalse(abydos.getIconAddress().contains("wormhole"), abydos.getIconAddress());
+    }
+
+    @Test
+    void iconsAMapFailedToTakeAreWrittenAgainOnTheNextDraw() throws IOException
+    {
+        // Remembering a failed write would leave BlueMap's own icon on every marker all session.
+        final FakeBlueMap blueMap = new FakeBlueMap();
+        final List<Map<String, MarkerSet>> maps = blueMap.world("world", 1);
+        final AtomicBoolean readOnly = new AtomicBoolean(true);
+        when(blueMap.assets.get(0).writeAsset(anyString())).thenAnswer(call ->
+        {
+            if (readOnly.get())
+            {
+                throw new IOException("read-only");
+            }
+            return new ByteArrayOutputStream();
+        });
+        provider.attach(blueMap.api);
+        provider.apply(everything());
+
+        readOnly.set(false);
+        provider.apply(everything());
+
+        assertEquals("maps/world0/assets/wormhole/gate-idle.png",
+            poi(maps.get(0), MapText.GATES, "gate:abydos").getIconAddress(), "our icon, once the assets took it");
     }
 
     @Test
