@@ -389,7 +389,7 @@ const WATCH = {
     look: 'Desk, on the north wall, and the gold block put in its room after the capture. Its view is drawn only within 16 blocks, so here it stays a banner' },
   // The companion desks' cells all run at the G1 stand (run-facility --with).
   map: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
-    look: 'the Stand: gates, rings, beams and a mirror made and used while Dynmap draws them' },
+    look: 'the Stand: gates, rings, beams and a mirror made and used while the web map draws them' },
   regions: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },
     look: 'the Stand: building and using in and out of a WorldGuard region' },
   perms: { dim: OVERWORLD, x: -17.5, y: 12, z: -106.5, at: { x: 0, y: 3, z: -125 },

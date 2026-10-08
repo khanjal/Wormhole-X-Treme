@@ -24,8 +24,11 @@ const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
 
 // Lines another thread may print into any command's output: Paper's update banner arrives
 // asynchronously a few seconds after start, and the tick loop's lag warning whenever a build
-// has just taken a few seconds. They are not the command's, so run() drops them.
-const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?|^\[PaperVersionFetcher\] |Error obtaining version information/;
+// has just taken a few seconds. They are not the command's, so run() drops them. So are BlueMap's,
+// squaremap's and Pl3xMap's own prefixed lines, from their loading and render threads (BlueMap's
+// accept-download warning once landed in a gamerule's output as a setup problem); their command
+// replies that matter here carry no prefix.
+const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?|^\[PaperVersionFetcher\] |Error obtaining version information|^\[(BlueMap|squaremap|Pl3xMap)\] /;
 
 /** Gamerule names: camelCase before 1.21.11, snake_case from it. Only one form is ever sent. */
 const GAMERULES = {
@@ -429,8 +432,10 @@ class Server extends EventEmitter {
     const args = [`-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false',
       '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8',
       '-jar', path.resolve(this.jar), '--nogui'];
-    // Where this start's lines begin in `log` (a restart keeps the lines before it).
+    // Where this start's lines begin in `log` (a restart keeps the lines before it), and when:
+    // a map's marker file older than that is from before it (lib/mapreaders.js).
     this.startIndex = this.log.length;
+    this.startedAt = Date.now();
     // Its own process group on Windows, so a Ctrl+C in the console reaches the launcher, which
     // stops the server, rather than the JVM directly while the launcher is still writing to it.
     this.proc = spawn(this.java, args, {

@@ -19,6 +19,14 @@
 // and nothing else reloads Dynmap alone), renaming a gate (`gate edit` has no name field; the
 // cell expects that as a known failure), the icons' look at normal zoom and the popup's rendering
 // (the tester, at the web map), and the main-thread check (a profiler).
+//
+// The `map` option runs a case against BlueMap, squaremap or Pl3xMap instead (--with bluemap,
+// squaremap, pl3xmap, or maps), read back from each one's own marker files (lib/mapreaders.js).
+// Those have no marker ids a check can rely on (squaremap's have none at all), so a marker is
+// found by its layer's label, its own label and its place: it must exist, in the right world, at
+// the gate's opening, the ring's end, the beam's block or the mirror's banner. The cases that
+// need Dynmap's own commands or a provider's switch (reload, off, absent) and rename (nothing to
+// run) are Dynmap's alone.
 
 const campus = require('../lib/campus');
 const { GateKit } = require('../lib/gatekit');
@@ -26,6 +34,8 @@ const { RingKit } = require('../lib/rings');
 const { MirrorKit } = require('../lib/mirrors');
 const { BeamKit } = require('../lib/beams');
 const { MapReader, SETS, LABELS } = require('../lib/dynmap');
+const { JsonMapReader, inLayer, at, covers } = require('../lib/mapreaders');
+const maps = require('../lib/maps');
 const { deskLayout } = require('../lib/blueprint');
 const { ticks } = require('../lib/probe');
 const relay = require('./relay');
@@ -86,7 +96,24 @@ const SETTINGS = {
 };
 const state = { restartOwed: null };
 
+/** The map a case runs against: Dynmap unless the `map` option names another. */
+const MAP_OPTION = [
+  v('dynmap', 'Dynmap, read back with its own dmarker commands'),
+  v('bluemap', 'BlueMap, read back from its live markers.json'),
+  v('squaremap', 'squaremap, read back from its marker files'),
+  v('pl3xmap', 'Pl3xMap, read back from its marker files'),
+];
+/** The cases run against BlueMap, squaremap and Pl3xMap: those that need nothing of Dynmap's own. */
+const JSON_CASES = ['gate', 'dial', 'cross-world', 'escaped', 'iris hidden', 'rings', 'beams', 'mirrors', 'remove', 'restart', 'layer off'];
+
 function refuses(o, version, fac) {
+  const map = o.map || 'dynmap';
+  if (map !== 'dynmap') {
+    const label = maps.MAPS[map].label;
+    if (!JSON_CASES.includes(o.case)) return `${o.case} is a Dynmap case (its own commands, its switch, or nothing to run): not run on ${label}`;
+    if (fac && !fac.has(map)) return `needs ${label}: start the facility --with ${map} (or --with maps)`;
+    return null;
+  }
   if (o.case === 'reload') return 'Dynmap 3.7 and 3.8 have no /dynmap reload (their subcommands stop at render, purge, pause, stats and the like), and nothing else reloads Dynmap alone';
   if (!fac) return null;
   if (o.case === 'absent') return fac.has('dynmap') ? 'the absent case is the paired run: start the facility without Dynmap (--with anything but it)' : null;
@@ -173,6 +200,7 @@ async function stage(ctx, o) {
 }
 
 async function run(ctx, o) {
+  if ((o.map || 'dynmap') !== 'dynmap') return runJson(ctx, o);
   const obs = ctx.observed;
   const fac = ctx.facility;
   const reader = new MapReader(ctx.server);
@@ -378,9 +406,309 @@ async function held(ctx) {
   return { gates, rings, beams, mirrors };
 }
 
+// ---- BlueMap, squaremap, Pl3xMap ----------------------------------------------------------------
+
+const L = { gates: LABELS[SETS.gates], rings: LABELS[SETS.rings], beams: LABELS[SETS.beams], mirrors: LABELS[SETS.mirrors] };
+const isOpen = (m) => Boolean(m && /open/i.test(m.icon || ''));
+const isIdle = (m) => Boolean(m && /idle/i.test(m.icon || ''));
+/** The block centres the ring ends, the beam and the mirror are drawn at (MapScanner: anchor + 0.5). */
+const RING_AT = RING_ENDS.map((e) => ({ x: e.x + 0.5, y: e.y, z: e.z + 0.5 }));
+const BEAM_POINT = { x: BEAM_AT.x + 0.5, y: BEAM_AT.y, z: BEAM_AT.z + 0.5 };
+const MIRROR_POINT = { x: MIRROR.x + 0.5, y: MIRROR.y + 0.5, z: MIRROR.z + 0.5 };
+
+/** What a check needs of a snapshot, by label and place: { gate(name), area(name), line(a, b), ... }. */
+function look(s) {
+  const one = (layer, kind, name) => inLayer(s, layer, kind, name);
+  return {
+    s,
+    gate: (name) => one(L.gates, 'points', name),
+    area: (name) => one(L.gates, 'areas', name),
+    line: (a, b) => one(L.gates, 'lines', `${a} to ${b}`),
+    linesWith: (name) => inLayer(s, L.gates, 'lines').filter((m) => (m.label || '').includes(name)),
+    ringEnds: () => inLayer(s, L.rings, 'points').filter((m) => RING_AT.some((p) => at(m, p, 1.5))),
+    ringLines: () => inLayer(s, L.rings, 'lines').filter((m) => (m.points || []).some((p) => RING_AT.some((q) => Math.abs(p.x - q.x) <= 1.5 && Math.abs(p.z - q.z) <= 1.5))),
+    beam: (name) => one(L.beams, 'points', name),
+    mirror: (name) => one(L.mirrors, 'points', name),
+    layers: () => Object.values(s.layers || {}),
+  };
+}
+
+/** A gate layer's labels, lower-cased like `wormhole list`'s names. */
+const gateLabels = (x) => inLayer(x.s, L.gates, 'points').map((m) => (m.label || '').toLowerCase());
+
+/**
+ * What a case waits for in a `look`. A "gone" needs its layer there, since an unread snapshot has
+ * no markers either; after a restart, every gate the plugin holds (the nether's too, written apart).
+ */
+const UNTIL = {
+  ringsGone: (x) => x.layers().includes(L.rings) && x.ringEnds().length === 0 && x.ringLines().length === 0,
+  beamGone: (x) => x.layers().includes(L.beams) && !x.beam('MapBeam').length,
+  allBack: (gates) => (x) => same(gateLabels(x), gates) && x.ringEnds().length === 2 && x.beam('MapBeam').length > 0 && x.mirror('MapMirror').length > 0,
+};
+
+/** The reader for this case's map: its files in the server folder, none from before the last start. */
+function jsonReader(ctx, map) {
+  return new JsonMapReader(map, ctx.server.folder, { port: ctx.facility.mapPorts[map], since: () => ctx.server.startedAt || 0 });
+}
+
+/** `until` over a `look` of each snapshot; returns { ok, snap: look, ms }. */
+async function lookUntil(reader, test, ms) {
+  const r = await reader.until((s) => test(look(s)), ms);
+  return { ...r, snap: look(r.snap) };
+}
+
+/** The case run against BlueMap, squaremap or Pl3xMap: what it saw goes on `observed` for checksJson. */
+async function runJson(ctx, o) {
+  const obs = ctx.observed;
+  const fac = ctx.facility;
+  const reader = jsonReader(ctx, o.map);
+  const kit = new GateKit(ctx.server);
+  const hold = async (pick, ms = reader.redrawMs) => {
+    const seen = [];
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      seen.push(pick(look(await reader.snapshot())));
+      await ticks(10);
+    }
+    return seen;
+  };
+  const popup = async (name) => {
+    // The owner is set after the build: wait for the popup to carry it.
+    const r = await lookUntil(reader, (x) => x.gate(name).some((m) => /Owner: /.test(m.desc || '')));
+    const g = r.snap.gate(name)[0];
+    const a = r.snap.area(name)[0];
+    return { desc: g ? g.desc : null, areaDesc: a ? a.desc : null };
+  };
+  switch (o.case) {
+    case 'gate': {
+      await ctx.step('MapA is built');
+      obs.build = await buildGate(ctx, 'MapA', GATES.MapA);
+      obs.owner = (await kit.edit('MapA', 'owner', fac.probe.name)).text;
+      obs.drawn = await lookUntil(reader, (x) => x.gate('MapA').length > 0 && x.area('MapA').length > 0);
+      Object.assign(obs, await popup('MapA'));
+      break;
+    }
+    case 'dial':
+    case 'remove': {
+      obs.build = `${await buildGate(ctx, 'MapA', GATES.MapA)} / ${await buildGate(ctx, 'MapB', GATES.MapB)}`;
+      obs.before = await lookUntil(reader, (x) => x.gate('MapA').length > 0 && x.gate('MapB').length > 0);
+      await ctx.step('MapA dials MapB');
+      obs.dial = (await kit.dial('MapA', 'MapB')).text;
+      obs.drawn = await kit.waitOpen(fac.probe, GATES.MapA).catch((e) => { obs.openError = e.message; return null; });
+      obs.open = await lookUntil(reader, (x) => isOpen(x.gate('MapA')[0]) && isOpen(x.gate('MapB')[0]) && x.line('MapA', 'MapB').length > 0);
+      if (o.case === 'dial') {
+        await ctx.step('MapA is shut');
+        obs.shutText = (await kit.force('MapA')).text;
+        obs.shut = await lookUntil(reader, (x) => isIdle(x.gate('MapA')[0]) && isIdle(x.gate('MapB')[0]) && x.linesWith('MapA').length === 0);
+      } else {
+        await ctx.step('MapA is removed, open');
+        obs.removed = (await kit.say('wormhole gate remove MapA -destroy')).text;
+        obs.gone = await lookUntil(reader, (x) => !x.gate('MapA').length && !x.area('MapA').length && !x.linesWith('MapA').length && x.gate('MapB').length > 0);
+      }
+      break;
+    }
+    case 'cross-world': {
+      obs.build = await buildGate(ctx, 'MapA', GATES.MapA, { net: null });
+      if (!(await kit.exists('Range'))) await relay.fixture(ctx);
+      await kit.force('Range');
+      await ctx.step('MapA dials the Range, in the nether');
+      obs.dial = (await kit.dial('MapA', 'Range')).text;
+      obs.drawn = await kit.waitOpen(fac.probe, GATES.MapA).catch((e) => { obs.openError = e.message; return null; });
+      obs.open = await lookUntil(reader, (x) => isOpen(x.gate('MapA')[0]) && isOpen(x.gate('Range')[0]));
+      obs.lines = await hold((x) => x.linesWith('MapA').map((m) => m.label));
+      break;
+    }
+    case 'escaped': {
+      obs.build = await buildGate(ctx, 'MapX', GATES.MapA, { net: RAW });
+      obs.owner = (await kit.edit('MapX', 'owner', RAW)).text;
+      obs.drawnX = (await lookUntil(reader, (x) => x.gate('MapX').length > 0)).ok;
+      Object.assign(obs, await popup('MapX'));
+      break;
+    }
+    case 'iris hidden': {
+      obs.build = `${await buildGate(ctx, 'MapA', GATES.MapA, { idc: IDC })} / ${await buildGate(ctx, 'MapB', GATES.MapB)}`;
+      obs.before = await lookUntil(reader, (x) => x.gate('MapB').length > 0);
+      await ctx.step('MapA, hidden, dials MapB');
+      obs.dial = (await kit.dial('MapA', 'MapB')).text;
+      obs.drawn = await kit.waitOpen(fac.probe, GATES.MapB).catch((e) => { obs.openError = e.message; return null; });
+      obs.seen = await hold((x) => ({ a: x.gate('MapA').length > 0, aArea: x.area('MapA').length > 0, b: x.gate('MapB')[0] ? x.gate('MapB')[0].icon : null, lines: x.linesWith('MapA').length }));
+      break;
+    }
+    case 'rings': {
+      const rk = new RingKit(ctx.server, fac.probe);
+      await ctx.step('a ring pair is built');
+      obs.pair = await layRings(ctx);
+      obs.drawn = await lookUntil(reader, (x) => x.ringEnds().length === 2 && x.ringLines().length === 1);
+      await ctx.step('one end is named');
+      await fac.probe.teleport({ x: RING_ENDS[0].x + 0.5, y: 0, z: RING_ENDS[0].z + 0.5, yaw: 180 }, O);
+      obs.named = await rk.ask('/wormhole ring edit name MapRing', { until: /This ring is now|Stand in/ });
+      obs.relabelled = await lookUntil(reader, (x) => x.ringEnds().some((m) => m.label === 'MapRing' && at(m, RING_AT[0], 1.5)));
+      await fac.probe.teleport(HOME, O);
+      await ctx.step('the pair is removed');
+      obs.removedText = await rk.remove(obs.pair.id);
+      obs.removed = await lookUntil(reader, UNTIL.ringsGone);
+      break;
+    }
+    case 'beams': {
+      const probe2 = await fac.second();
+      const bk = new BeamKit(ctx.server);
+      await ctx.step('a public destination and a player\'s own place');
+      obs.set = await bk.save(fac.probe, 'public', 'MapBeam', BEAM_AT);
+      obs.place = await bk.save(probe2, 'place', 'MapPlace', PLACE_AT);
+      obs.drawn = await lookUntil(reader, (x) => x.beam('MapBeam').length > 0);
+      obs.seen = await hold((x) => inLayer(x.s, L.beams, 'points').map((m) => m.label));
+      await ctx.step('the destination is removed');
+      obs.removeText = await bk.drop(fac.probe, 'public', 'MapBeam');
+      obs.removed = await lookUntil(reader, UNTIL.beamGone);
+      break;
+    }
+    case 'mirrors': {
+      await ctx.step('a mirror is hung');
+      obs.made = await hangMirror(ctx, 'MapMirror');
+      obs.drawn = await lookUntil(reader, (x) => x.mirror('MapMirror').length > 0);
+      await ctx.step('made again at the same banner as MapGlass');
+      obs.remade = await new MirrorKit(ctx.server).create('MapGlass', MIRROR);
+      obs.relabelled = await lookUntil(reader, (x) => x.mirror('MapGlass').length > 0 && !x.mirror('MapMirror').length);
+      break;
+    }
+    case 'restart': {
+      await ctx.step('gates, a ring pair, a destination and a mirror');
+      obs.build = `${await buildGate(ctx, 'MapA', GATES.MapA)} / ${await buildGate(ctx, 'MapB', GATES.MapB)}`;
+      obs.pair = await layRings(ctx);
+      obs.set = await new BeamKit(ctx.server).save(fac.probe, 'public', 'MapBeam', BEAM_AT);
+      obs.made = await hangMirror(ctx, 'MapMirror');
+      obs.before = await lookUntil(reader, (x) => x.gate('MapB').length > 0 && x.ringEnds().length === 2 && x.beam('MapBeam').length > 0 && x.mirror('MapMirror').length > 0);
+      obs.removedB = (await kit.say('wormhole gate remove MapB -destroy')).text;
+      await ctx.step('the server restarts');
+      obs.restartFrom = await fac.restart('the Map Desk\'s restart case');
+      // Files from before the restart are left out (the reader's `since`): only what was drawn since counts.
+      obs.held = await held(ctx);
+      obs.after = (await lookUntil(reader, UNTIL.allBack(obs.held.gates), 30000)).snap;
+      break;
+    }
+    case 'layer off':
+      // Waited out for a full redraw after the restart: a layer is made on the first draw.
+      obs.layers = (await lookUntil(reader, () => false, reader.redrawMs)).snap.layers();
+      break;
+    default:
+      throw new Error(`no case ${o.case} on ${o.map}`);
+  }
+  return undefined;
+}
+
+/** The checks for a case run against BlueMap, squaremap or Pl3xMap. */
+function checksJson(ctx, o) {
+  const obs = ctx.observed;
+  const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
+  const built = c('the gates were built', () => (obs.builds || []).length > 0 && obs.builds.every((t) => /Built /.test(t)));
+  const label = maps.MAPS[o.map].label;
+  // squaremap and Pl3xMap draw flat: at() checks the height only where the map has one.
+  const centre = GATES.MapA.centre;
+  switch (o.case) {
+    case 'gate': {
+      const s = obs.drawn && obs.drawn.snap;
+      const m = s && s.gate('MapA')[0];
+      const a = s && s.area('MapA')[0];
+      return [built,
+        c(`${label} has the four Wormhole layers, by their labels`, () => s && Object.values(L).every((x) => s.layers().includes(x))),
+        c('a point labelled MapA, once, in world', () => s && s.gate('MapA').length === 1 && m.world === 'world'),
+        c('at the centre of its opening', () => at(m, centre)),
+        c('with the idle icon', () => isIdle(m)),
+        c('an area over the opening, in the gate colour', () => covers(a, centre) && a.world === 'world' && a.color === '37b0d8'),
+        c(`the popup names the network: "Network: ${NET}"`, () => (obs.desc || '').includes(`Network: ${NET}`)),
+        c('and the owner: "Owner: Probe"', () => /Owner: Probe\b/.test(obs.desc || ''))];
+    }
+    case 'dial':
+    case 'remove': {
+      const b = obs.before && obs.before.snap;
+      const line = obs.open && obs.open.snap && obs.open.snap.line('MapA', 'MapB')[0];
+      const list = [built,
+        c('both idle before the dial, each at its own opening', () => b && isIdle(b.gate('MapA')[0]) && isIdle(b.gate('MapB')[0])
+          && at(b.gate('MapA')[0], centre) && at(b.gate('MapB')[0], GATES.MapB.centre)),
+        c('the dial connected and the opening was drawn', () => /Stargates connected/.test(obs.dial || '') && Boolean(obs.drawn)),
+        c('then both open', () => obs.open && obs.open.ok),
+        c('with a line between them: "MapA to MapB", in the gate colour, from one opening to the other', () => line && line.color === '37b0d8'
+          && (line.points || []).some((p) => at({ ...p, y: null }, centre, 1)) && (line.points || []).some((p) => at({ ...p, y: null }, GATES.MapB.centre, 1)))];
+      if (o.case === 'dial') list.push(c('shut: both idle and the line gone', () => obs.shut && obs.shut.ok));
+      else {
+        list.push(c('removed: "Wormhole Removed: MapA"', () => /Wormhole Removed: MapA/.test(obs.removed || '')),
+          c('its point, its area and the line are gone, MapB still drawn', () => obs.gone && obs.gone.ok));
+      }
+      return list;
+    }
+    case 'cross-world': {
+      const s = obs.open && obs.open.snap;
+      return [built,
+        c('MapA dialled the Range', () => /Stargates connected/.test(obs.dial || '') && Boolean(obs.drawn)),
+        c('both drawn open, MapA in world and the Range in world_nether', () => obs.open && obs.open.ok && s.gate('MapA')[0].world === 'world' && s.gate('Range')[0].world === 'world_nether'),
+        c('and no line from MapA in any world, for a full redraw', () => (obs.lines || []).length > 0 && obs.lines.every((ls) => ls.length === 0))];
+    }
+    case 'escaped':
+      return [built,
+        c('drawn', () => obs.drawnX),
+        c(`the popup shows the network literally: "Network: ${ESCAPED}"`, () => (obs.desc || '').includes(`Network: ${ESCAPED}`)),
+        c(`and the owner: "Owner: ${ESCAPED}"`, () => (obs.desc || '').includes(`Owner: ${ESCAPED}`)),
+        c('with no raw <b>x</b> in it', () => Boolean(obs.desc) && !obs.desc.includes(RAW)),
+        c('the area\'s popup likewise, where the map gives an area one', () => obs.areaDesc === null || (!obs.areaDesc.includes(RAW)))];
+    case 'iris hidden': {
+      const seen = obs.seen || [];
+      return [built,
+        c('MapB is drawn, MapA (with an iris code) is not', () => obs.before && obs.before.ok && !obs.before.snap.gate('MapA').length),
+        c('MapA dialled MapB', () => /Stargates connected/.test(obs.dial || '') && Boolean(obs.drawn)),
+        c('MapA stayed undrawn, point and area', () => seen.length > 0 && seen.every((x) => !x.a && !x.aArea)),
+        c('MapB stayed idle for a full redraw after its opening was drawn', () => {
+          const icons = [...new Set(seen.map((x) => x.b))];
+          if (seen.length > 0 && icons.length === 1 && /idle/i.test(icons[0] || '')) return true;
+          throw new Error(`MapB's icon read ${icons.join(', ')} over ${seen.length} reads`);
+        }),
+        c('and no line', () => seen.length > 0 && seen.every((x) => x.lines === 0))];
+    }
+    case 'rings': {
+      const s = obs.drawn && obs.drawn.snap;
+      return [c('the pair was built', () => Boolean(obs.pair && obs.pair.id)),
+        c('a point at each end, on its block', () => obs.drawn && obs.drawn.ok && RING_AT.every((p) => s.ringEnds().some((m) => at(m, p, 1.5)))),
+        c('and a grey line between them', () => s && s.ringLines()[0] && s.ringLines()[0].color === '9aa5b1'),
+        c('an end named MapRing is relabelled', () => /This ring is now/.test(obs.named || '') && obs.relabelled && obs.relabelled.ok),
+        c('removed, both points and the line go', () => /Removed both ends/.test(obs.removedText || '') && obs.removed && obs.removed.ok)];
+    }
+    case 'beams': {
+      const s = obs.drawn && obs.drawn.snap;
+      return [c('MapBeam, public, is drawn at its block', () => obs.drawn && obs.drawn.ok && at(s.beam('MapBeam')[0], BEAM_POINT, 1)),
+        c('Probe2\'s own place MapPlace was saved', () => /set to your current location/.test(obs.place || '')),
+        c('and is never drawn, for a full redraw', () => (obs.seen || []).length > 0 && obs.seen.every((labels) => !labels.includes('MapPlace'))),
+        c('removed, MapBeam goes', () => obs.removed && obs.removed.ok)];
+    }
+    case 'mirrors': {
+      const s = obs.drawn && obs.drawn.snap;
+      return [c('the mirror was made', () => /MapMirror/.test(obs.made || '') && !/refus|error/i.test(obs.made || '')),
+        c('drawn at its banner, labelled MapMirror', () => s && at(s.mirror('MapMirror')[0], MIRROR_POINT, 0.6)),
+        c('with no line', () => s && inLayer(s.s, L.mirrors, 'lines').length === 0),
+        c('made again at the same banner, relabelled MapGlass, nothing left as MapMirror', () => obs.relabelled && obs.relabelled.ok)];
+    }
+    case 'restart': {
+      const s = obs.after;
+      const h = obs.held || {};
+      const labels = (layer) => (s ? inLayer(s.s, layer, 'points').map((m) => (m.label || '').toLowerCase()) : null);
+      return [built,
+        c('MapB was removed before the stop', () => /Wormhole Removed: MapB/.test(obs.removedB || '')),
+        c('after the restart, every gate the plugin holds is drawn once, and nothing else', () => same(labels(L.gates), h.gates)),
+        c('MapB is not among them', () => s && !s.gate('MapB').length),
+        c('every ring end is drawn once', () => s && inLayer(s.s, L.rings, 'points').length === (h.rings || []).length),
+        c('every public destination likewise', () => same(labels(L.beams), h.beams)),
+        c('every mirror likewise', () => same(labels(L.mirrors), h.mirrors))];
+    }
+    case 'layer off':
+      return [c('the Transport rings layer is gone entirely', () => obs.layers && !obs.layers.includes(L.rings)),
+        c('the other three are there', () => obs.layers && [L.gates, L.beams, L.mirrors].every((x) => obs.layers.includes(x)))];
+    default:
+      return [c(`a case called ${o.case} on ${label}`, () => false)];
+  }
+}
+
 const same = (a, b) => Array.isArray(a) && Array.isArray(b) && JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 
 function checks(ctx, o) {
+  if ((o.map || 'dynmap') !== 'dynmap') return checksJson(ctx, o);
   const obs = ctx.observed;
   const c = (name, test) => ({ name, afterReset: null, test: async () => Boolean(await test()) });
   const built = c('the gates were built', () => (obs.builds || []).length > 0 && obs.builds.every((t) => /Built /.test(t)));
@@ -539,12 +867,12 @@ module.exports = {
   wing: 'systems',
   title: def.title,
   seat: deskLayout(def).seat,
-  options: { case: CASES },
+  options: { case: CASES, map: MAP_OPTION },
   needs: (o) => ({ config: SETTINGS[o.case] || {} }),
   refuses,
   stage,
   run,
   checks,
   cleanup,
-  GATES, RING_ENDS, MIRROR,
+  GATES, RING_ENDS, MIRROR, look, UNTIL,
 };
