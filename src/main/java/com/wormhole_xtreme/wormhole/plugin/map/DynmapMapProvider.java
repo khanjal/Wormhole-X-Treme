@@ -40,37 +40,19 @@ import com.wormhole_xtreme.wormhole.plugin.map.MapSnapshot.RingMark;
 public final class DynmapMapProvider implements MapProvider
 {
     /** Marker set id for gates, their openings and the lines between dialled pairs. */
-    static final String GATES = "wormhole.gates";
+    static final String GATES = MapText.GATES;
 
     /** Marker set id for ring ends and the lines between pairs. */
-    static final String RINGS = "wormhole.rings";
+    static final String RINGS = MapText.RINGS;
 
     /** Marker set id for public beam destinations. */
-    static final String BEAMS = "wormhole.beams";
+    static final String BEAMS = MapText.BEAMS;
 
     /** Marker set id for quantum mirrors. */
-    static final String MIRRORS = "wormhole.mirrors";
+    static final String MIRRORS = MapText.MIRRORS;
 
-    /** Colour of a gate's opening and of a dialled pair's line: the logo's horizon cyan. */
-    private static final int GATE_COLOUR = 0x37B0D8;
-
-    /** Colour of the line between a ring pair's ends: the logo's ring stone. */
-    private static final int RING_COLOUR = 0x9AA5B1;
-
-    /** Line opacity for everything drawn. */
-    private static final double LINE_OPACITY = 0.8;
-
-    /** Fill opacity for a gate's opening. */
-    private static final double FILL_OPACITY = 0.35;
-
-    /** Line weight for everything drawn. */
-    private static final int LINE_WEIGHT = 3;
-
-    /** A line break in a marker's HTML description. */
-    private static final String BREAK = "<br/>";
-
-    /** Asked to push the latest picture when Dynmap comes up. */
-    private final Runnable onReady;
+    /** Told when Dynmap comes up, to push the latest picture. */
+    private final Consumer<MapProvider> onReady;
 
     /** Which layers to make; one switched off is not made at all. */
     private final MapLayers layers;
@@ -126,9 +108,9 @@ public final class DynmapMapProvider implements MapProvider
      * @param layers
      *            which layers to make
      * @param onReady
-     *            run when Dynmap comes up, to have the latest picture applied
+     *            told when Dynmap comes up, to have the latest picture applied
      */
-    public DynmapMapProvider(final MapLayers layers, final Runnable onReady)
+    public DynmapMapProvider(final MapLayers layers, final Consumer<MapProvider> onReady)
     {
         this.layers = layers;
         this.onReady = onReady;
@@ -147,6 +129,7 @@ public final class DynmapMapProvider implements MapProvider
     }
 
     /** Starts listening for Dynmap; called back at once if it is already up. */
+    @Override
     public void register()
     {
         hook = new Hook(this);
@@ -154,6 +137,7 @@ public final class DynmapMapProvider implements MapProvider
     }
 
     /** Stops listening for Dynmap. */
+    @Override
     public void unregister()
     {
         final Hook h = hook;
@@ -176,7 +160,7 @@ public final class DynmapMapProvider implements MapProvider
         session = new Session(markers, generations.incrementAndGet());
         if (markers != null)
         {
-            onReady.run();
+            onReady.accept(this);
         }
     }
 
@@ -234,13 +218,13 @@ public final class DynmapMapProvider implements MapProvider
             reiconOpenedOrShut(snapshot.gates());
             sync(snapshot.gates(), drawnGates, this::removeGate, this::drawGate);
             sync(snapshot.gateLinks(), drawnGateLinks, id -> removeLine(gateSet, id),
-                (id, line) -> drawLine(gateSet, line, GATE_COLOUR));
+                (id, line) -> drawLine(gateSet, line, MapText.GATE_COLOUR));
         }
         if (ringSet != null)
         {
             sync(snapshot.rings(), drawnRings, id -> remove(ringSet.findMarker(id)), this::drawRing);
             sync(snapshot.ringLinks(), drawnRingLinks, id -> removeLine(ringSet, id),
-                (id, line) -> drawLine(ringSet, line, RING_COLOUR));
+                (id, line) -> drawLine(ringSet, line, MapText.RING_COLOUR));
         }
         if (beamSet != null)
         {
@@ -277,15 +261,15 @@ public final class DynmapMapProvider implements MapProvider
     private void setUp(final MarkerAPI markers)
     {
         forgetDrawn();
-        gateSet = layer(markers, layers.gates(), GATES, "Stargates", 10);
-        ringSet = layer(markers, layers.rings(), RINGS, "Transport rings", 11);
-        beamSet = layer(markers, layers.beams(), BEAMS, "Beam destinations", 12);
-        mirrorSet = layer(markers, layers.mirrors(), MIRRORS, "Quantum mirrors", 13);
-        gateOpenIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_open", "Open stargate", "gate.png", "portal");
-        gateIdleIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_idle", "Stargate", "gate-idle.png", "portal");
-        ringIcon = (ringSet == null) ? null : icon(markers, "wormhole_rings", "Transport rings", "rings.png", "star");
-        beamIcon = (beamSet == null) ? null : icon(markers, "wormhole_beam", "Beam destination", "beam.png", "pin");
-        mirrorIcon = (mirrorSet == null) ? null : icon(markers, "wormhole_mirror", "Quantum mirror", "mirror.png", "sign");
+        gateSet = layer(markers, layers.gates(), GATES, MapText.GATES_LABEL, 10);
+        ringSet = layer(markers, layers.rings(), RINGS, MapText.RINGS_LABEL, 11);
+        beamSet = layer(markers, layers.beams(), BEAMS, MapText.BEAMS_LABEL, 12);
+        mirrorSet = layer(markers, layers.mirrors(), MIRRORS, MapText.MIRRORS_LABEL, 13);
+        gateOpenIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_open", "Open stargate", MapText.GATE_OPEN_ICON, "portal");
+        gateIdleIcon = (gateSet == null) ? null : icon(markers, "wormhole_gate_idle", "Stargate", MapText.GATE_IDLE_ICON, "portal");
+        ringIcon = (ringSet == null) ? null : icon(markers, "wormhole_rings", "Transport rings", MapText.RINGS_ICON, "star");
+        beamIcon = (beamSet == null) ? null : icon(markers, "wormhole_beam", "Beam destination", MapText.BEAM_ICON, "pin");
+        mirrorIcon = (mirrorSet == null) ? null : icon(markers, "wormhole_mirror", "Quantum mirror", MapText.MIRROR_ICON, "sign");
     }
 
     /**
@@ -498,16 +482,7 @@ public final class DynmapMapProvider implements MapProvider
      */
     private void drawGate(final String id, final GateMark gate)
     {
-        final StringBuilder html = new StringBuilder(heading(gate.name()));
-        if (gate.network() != null)
-        {
-            html.append(BREAK).append("Network: ").append(escape(gate.network()));
-        }
-        if (gate.owner() != null)
-        {
-            html.append(BREAK).append("Owner: ").append(escape(gate.owner()));
-        }
-        final String description = html.toString();
+        final String description = MapText.gate(gate);
         final Marker point = gateSet.createMarker(id, gate.name(), false, gate.world(),
             gate.x(), gate.y(), gate.z(), gate.open() ? gateOpenIcon : gateIdleIcon, false);
         if (point != null)
@@ -525,8 +500,8 @@ public final class DynmapMapProvider implements MapProvider
         if (area != null)
         {
             area.setRangeY(f.maxY(), f.minY());
-            area.setLineStyle(LINE_WEIGHT, LINE_OPACITY, GATE_COLOUR);
-            area.setFillStyle(FILL_OPACITY, GATE_COLOUR);
+            area.setLineStyle(MapText.LINE_WEIGHT, MapText.LINE_OPACITY, MapText.GATE_COLOUR);
+            area.setFillStyle(MapText.FILL_OPACITY, MapText.GATE_COLOUR);
             area.setDescription(description);
         }
     }
@@ -548,8 +523,8 @@ public final class DynmapMapProvider implements MapProvider
             new double[] {line.z1(), line.z2()}, false);
         if (drawn != null)
         {
-            drawn.setLineStyle(LINE_WEIGHT, LINE_OPACITY, colour);
-            drawn.setDescription(heading(line.label()));
+            drawn.setLineStyle(MapText.LINE_WEIGHT, MapText.LINE_OPACITY, colour);
+            drawn.setDescription(MapText.heading(line.label()));
         }
     }
 
@@ -563,17 +538,11 @@ public final class DynmapMapProvider implements MapProvider
      */
     private void drawRing(final String id, final RingMark ring)
     {
-        final StringBuilder html = new StringBuilder(heading(ring.name()));
-        html.append(BREAK).append(escape(ring.pair()));
-        if (ring.owner() != null)
-        {
-            html.append(BREAK).append("Owner: ").append(escape(ring.owner()));
-        }
         final Marker point = ringSet.createMarker(id, ring.name(), false, ring.world(),
             ring.x(), ring.y(), ring.z(), ringIcon, false);
         if (point != null)
         {
-            point.setDescription(html.toString());
+            point.setDescription(MapText.ring(ring));
         }
     }
 
@@ -591,7 +560,7 @@ public final class DynmapMapProvider implements MapProvider
             beam.x(), beam.y(), beam.z(), beamIcon, false);
         if (point != null)
         {
-            point.setDescription(heading(beam.name()) + BREAK + "Beam destination");
+            point.setDescription(MapText.beam(beam));
         }
     }
 
@@ -609,46 +578,8 @@ public final class DynmapMapProvider implements MapProvider
             mirror.x(), mirror.y(), mirror.z(), mirrorIcon, false);
         if (point != null)
         {
-            point.setDescription(heading(mirror.name()) + BREAK + "Quantum mirror");
+            point.setDescription(MapText.mirror(mirror));
         }
-    }
-
-    /**
-     * A name in bold, escaped.
-     *
-     * @param text
-     *            the name
-     * @return the markup
-     */
-    private static String heading(final String text)
-    {
-        return "<b>" + escape(text) + "</b>";
-    }
-
-    /**
-     * Escapes text for Dynmap's HTML descriptions, so a gate or player name cannot add markup.
-     *
-     * @param text
-     *            the text
-     * @return it, safe to put in HTML
-     */
-    static String escape(final String text)
-    {
-        final StringBuilder out = new StringBuilder(text.length() + 16);
-        for (int i = 0; i < text.length(); i++)
-        {
-            final char c = text.charAt(i);
-            switch (c)
-            {
-                case '&' -> out.append("&amp;");
-                case '<' -> out.append("&lt;");
-                case '>' -> out.append("&gt;");
-                case '"' -> out.append("&quot;");
-                case '\'' -> out.append("&#39;");
-                default -> out.append(c);
-            }
-        }
-        return out.toString();
     }
 
     /**

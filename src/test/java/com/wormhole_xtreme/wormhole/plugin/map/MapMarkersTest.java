@@ -59,6 +59,8 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
 import com.wormhole_xtreme.wormhole.plugin.map.MapSnapshot.BeamMark;
 
+import de.bluecolored.bluemap.api.BlueMapAPI;
+
 /**
  * When the web map is redrawn, and with what (#236).
  *
@@ -86,13 +88,50 @@ class MapMarkersTest
     private static class Recorder implements MapProvider
     {
         final List<MapSnapshot> applied = new ArrayList<>();
+        final String called;
         int clears = 0;
+        int registers = 0;
+        int unregisters = 0;
         boolean up = true;
+        boolean lost = false;
+        RuntimeException failRegister = null;
+
+        Recorder()
+        {
+            this("Test map");
+        }
+
+        Recorder(final String called)
+        {
+            this.called = called;
+        }
 
         @Override
         public String name()
         {
-            return "Test map";
+            return called;
+        }
+
+        @Override
+        public void register()
+        {
+            registers++;
+            if (failRegister != null)
+            {
+                throw failRegister;
+            }
+        }
+
+        @Override
+        public void unregister()
+        {
+            unregisters++;
+        }
+
+        @Override
+        public boolean lost()
+        {
+            return lost;
         }
 
         @Override
@@ -146,7 +185,10 @@ class MapMarkersTest
         MapMarkers.setProviderForTest(null);
         MapMarkers.setBackgroundForTest(null);
         MapMarkers.setSourceForTest(null);
-        MapMarkers.setDynmapClassForTest(null);
+        MapMarkers.setPluginClassForTest("Dynmap", null);
+        MapMarkers.setPluginClassForTest("BlueMap", null);
+        MapMarkers.setPluginClassForTest("squaremap", null);
+        MapMarkers.setPluginClassForTest("Pl3xMap", null);
         BeamManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.scheduler(null);
@@ -182,7 +224,7 @@ class MapMarkersTest
     void aServerWithoutDynmapIsToldOnceAndOtherwiseLeftAlone()
     {
         MapMarkers.setProviderForTest(null);
-        MapMarkers.setDynmapClassForTest("org.dynmap.NotInstalled");
+        MapMarkers.setPluginClassForTest("Dynmap", "org.dynmap.NotInstalled");
         ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
 
         MapMarkers.enable(plugin);
@@ -277,7 +319,7 @@ class MapMarkersTest
         MapMarkers.tick();
         runBackground();
 
-        MapMarkers.providerReady();
+        MapMarkers.providerReady(map);
         runBookedLook();
 
         assertEquals(1, background.size(), "an unchanged picture is drawn again for a map that just came up");
@@ -712,5 +754,209 @@ class MapMarkersTest
         assertNotNull(snapshot.beams().get("market"), "the public destination is shown");
         assertNull(snapshot.beams().get("mybase"), "the private place is not");
         assertEquals(1, snapshot.beams().size());
+    }
+
+    @Test
+    void aMapThatFailsToDrawDoesNotStopTheOthers()
+    {
+        // Two map plugins are independent: one that throws on every draw must not leave the
+        // other showing a stale picture.
+        final Flaky broken = new Flaky();
+        final Recorder fine = new Recorder("Fine map");
+        MapMarkers.setProvidersForTest(List.of(broken, fine));
+        enable();
+
+        MapMarkers.tick();
+        runBackground();
+
+        assertEquals(List.of(showing), fine.applied, "the working map is drawn though the other threw");
+        assertEquals(1, broken.applied.size());
+        verify(logger).prettyLog(eq(Level.WARNING), contains("Test map"), any(Throwable.class));
+        verify(logger, never()).prettyLog(eq(Level.WARNING), contains("Fine map"), any(Throwable.class));
+    }
+
+    @Test
+    void aMapNotYetUpIsLeftAloneWhileAnotherIsDrawn()
+    {
+        final Recorder down = new Recorder("Down map");
+        down.up = false;
+        final Recorder up = new Recorder("Up map");
+        MapMarkers.setProvidersForTest(List.of(down, up));
+        enable();
+
+        MapMarkers.tick();
+        runBackground();
+
+        assertEquals(List.of(showing), up.applied, "one map up is enough to look and draw");
+        assertTrue(down.applied.isEmpty(), "a map that is not up is not drawn on; it asks when it comes up");
+    }
+
+    @Test
+    void aMapWhoseHookFailsIsDroppedAndTheOthersKeepRunning()
+    {
+        // Each map plugin fails open on its own: a BlueMap whose API will not link must not take
+        // Dynmap down with it.
+        final Recorder refusing = new Recorder("Refusing map");
+        refusing.failRegister = new IllegalStateException("listener refused");
+        final Recorder fine = new Recorder("Fine map");
+        MapMarkers.setProvidersForTest(List.of(refusing, fine));
+
+        enable();
+
+        assertEquals(List.of(fine), MapMarkers.providers());
+        assertEquals(1, refusing.unregisters, "whatever the failed hook left behind is taken out");
+        assertEquals(1, fine.registers);
+        verify(logger).prettyLog(eq(Level.WARNING), contains("Refusing map"), eq(refusing.failRegister));
+        MapMarkers.tick();
+        runBackground();
+        assertTrue(refusing.applied.isEmpty());
+        assertEquals(1, fine.applied.size());
+    }
+
+    @Test
+    void whenEveryMapsHookFailsNothingIsLeftRunning()
+    {
+        map.failRegister = new IllegalStateException("listener refused");
+        ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
+
+        MapMarkers.enable(plugin);
+
+        assertFalse(MapMarkers.isRunning(), "no map to draw on, so no look every five seconds");
+        verify(ticker).cancel();
+    }
+
+    @Test
+    void aReadyCallFromAMapNotShownIsIgnored()
+    {
+        enable();
+
+        MapMarkers.providerReady(new Recorder("Stranger"));
+
+        verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
+        verify(scheduler, never()).runTask(any(Plugin.class), any(Runnable.class));
+    }
+
+    @Test
+    void aMapThatDroppedOurLayersIsDrawnAgainThoughNothingChanged()
+    {
+        // squaremap and Pl3xMap say nothing when a world loads or /map reload empties one, so the
+        // periodic look asks them; without it the map would stay empty until a gate changed.
+        enable();
+        MapMarkers.tick();
+        runBackground();
+
+        map.lost = true;
+        MapMarkers.tick();
+
+        assertEquals(1, background.size(), "the same picture is drawn again");
+        runBackground();
+        assertEquals(List.of(showing, showing), map.applied);
+        map.lost = false;
+        MapMarkers.tick();
+        assertTrue(background.isEmpty(), "and only while something is missing");
+    }
+
+    @Test
+    void aMapThatIsDownIsNotAskedWhatItLost()
+    {
+        final Recorder down = new Recorder("Down map")
+        {
+            @Override
+            public boolean lost()
+            {
+                throw new AssertionError("a map that is not up has nothing to lose");
+            }
+        };
+        down.up = false;
+        MapMarkers.setProvidersForTest(List.of(down, map));
+        enable();
+
+        MapMarkers.tick();
+
+        assertEquals(1, background.size());
+    }
+
+    @Test
+    void squaremapIsLookedForAndLeftWaitingWhenItIsNotLoaded()
+    {
+        // The test classpath has squaremap's API but no squaremap running, as on a server where
+        // squaremap failed to start: the map runs, and nothing claims to be shown.
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.SQUAREMAP_ENABLED, true);
+
+        MapMarkers.enable(plugin);
+
+        assertTrue(MapMarkers.isRunning());
+        assertEquals("squaremap", MapMarkers.providers().get(0).name());
+        assertFalse(MapMarkers.providers().get(0).ready());
+        verify(logger, never()).prettyLog(eq(Level.INFO), contains("Showing"));
+        verify(logger).prettyLog(Level.FINE, "Waiting for squaremap to be ready.");
+    }
+
+    @Test
+    void aServerWithoutPl3xMapIsToldOnceAndOtherwiseLeftAlone()
+    {
+        // Pl3xMap's jar is its API, and it carries classes of its own that a server without it
+        // must never be asked to load.
+        MapMarkers.setProviderForTest(null);
+        MapMarkers.setPluginClassForTest("Pl3xMap", "net.pl3x.map.core.NotInstalled");
+        ConfigTestSupport.set(ConfigKeys.PL3XMAP_ENABLED, true);
+
+        MapMarkers.enable(plugin);
+
+        assertFalse(MapMarkers.isRunning());
+        verifyNoInteractions(scheduler);
+        verify(logger).prettyLog(Level.WARNING,
+            "pl3xmap-enabled is set but Pl3xMap was not found. Nothing is shown on a map.");
+    }
+
+    @Test
+    void aMissingMapPluginIsReportedAndTheOthersStillStart()
+    {
+        MapMarkers.setProviderForTest(null);
+        MapMarkers.setPluginClassForTest("BlueMap", "de.bluecolored.NotInstalled");
+        ConfigTestSupport.set(ConfigKeys.DYNMAP_ENABLED, true);
+        ConfigTestSupport.set(ConfigKeys.BLUEMAP_ENABLED, true);
+        try
+        {
+            MapMarkers.enable(plugin);
+
+            assertTrue(MapMarkers.isRunning(), "Dynmap is there, so the map runs");
+            assertEquals(1, MapMarkers.providers().size());
+            assertEquals("Dynmap", MapMarkers.providers().get(0).name());
+            verify(logger).prettyLog(Level.WARNING,
+                "bluemap-enabled is set but BlueMap was not found. Nothing is shown on a map.");
+        }
+        finally
+        {
+            DynmapCommonAPIListener.apiTerminated();
+        }
+    }
+
+    @Test
+    void blueMapIsFoundAndShownOnceItComesUpAndForgottenOnDisable() throws Exception
+    {
+        MapMarkers.setProviderForTest(null);
+        ConfigTestSupport.set(ConfigKeys.BLUEMAP_ENABLED, true);
+        final BlueMapAPI blueMap = mock(BlueMapAPI.class);
+        try
+        {
+            MapMarkers.enable(plugin);
+            assertTrue(MapMarkers.isRunning());
+            assertEquals("BlueMap", MapMarkers.providers().get(0).name());
+
+            BlueMapLifecycle.up(blueMap);
+            verify(logger, times(1)).prettyLog(Level.INFO,
+                "Showing gates, rings, beam destinations and mirrors on BlueMap.");
+
+            MapMarkers.disable();
+            BlueMapLifecycle.down(blueMap);
+            BlueMapLifecycle.up(blueMap);
+            verify(logger, times(1)).prettyLog(eq(Level.INFO), contains("Showing"));
+        }
+        finally
+        {
+            BlueMapLifecycle.down(blueMap);
+        }
     }
 }
