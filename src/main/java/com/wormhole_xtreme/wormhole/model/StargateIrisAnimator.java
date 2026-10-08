@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -42,7 +41,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 public final class StargateIrisAnimator
 {
     /** The sweep running on each gate, by name, so a second toggle can call the first off. */
-    private static final ConcurrentHashMap<String, Integer> running = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, IrisSweepDriver<Location>> running = new ConcurrentHashMap<>();
 
     /** Static helpers only. */
     private StargateIrisAnimator()
@@ -113,8 +112,7 @@ public final class StargateIrisAnimator
     static void sweepClosed(final Stargate gate, final Material under, final Runnable afterwards)
     {
         final List<List<Location>> rings =
-            IrisSweep.closingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
-                ConfigManager.getGateIrisMaxSteps());
+            IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), true);
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
         for (final List<Location> ring : rings)
@@ -124,8 +122,7 @@ public final class StargateIrisAnimator
         // Then each ring is let through to the truth, which is the iris already standing there.
         // The far layer arrives with the ring that covers it, so a see-through iris has the
         // wormhole behind it from its very first ring rather than the landscape.
-        step(gate, rings, 0, irisAsItStands(gate), afterwards,
-            cells -> StargateBlockSetup.horizonBehind(gate, cells, true));
+        new IrisSweepDriver<>(rings, new GateCanvas(gate, irisAsItStands(gate), true, afterwards)).start();
     }
 
     /**
@@ -157,52 +154,76 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
-        step(gate, IrisSweep.openingOrder(gate.getGatePortalBlocks(), IrisSweep.Style.of(gate.getEffectiveIrisAnimation()),
-            ConfigManager.getGateIrisMaxSteps()), 0, under, afterwards,
-            cells -> StargateBlockSetup.horizonBehind(gate, cells, false));
+        new IrisSweepDriver<>(IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), false),
+            new GateCanvas(gate, under, false, afterwards)).start();
     }
 
     /**
-     * Draws one ring and books the next.
+     * A gate's sweep: block changes for the rings, the scheduler for the steps.
      *
-     * @param rings
-     *            the rings, in the order they are drawn
-     * @param index
-     *            which ring
      * @param draw
      *            what to draw each ring as, or null to send what is really in those cells
+     * @param covering
+     *            true while the iris closes, which brings the far layer in rather than out
      * @param afterwards
      *            run after the last ring, or null
      */
-    private static void step(final Stargate gate, final List<List<Location>> rings, final int index,
-        final Material draw, final Runnable afterwards, final Consumer<List<Location>> alongside)
+    private record GateCanvas(Stargate gate, Material draw, boolean covering, Runnable afterwards)
+        implements IrisSweepDriver.Canvas<Location>
     {
-        if (index >= rings.size())
+        /** A gate can lose its world between two steps, on a server unloading one. */
+        @Override
+        public boolean stillValid()
+        {
+            return gate.getGateWorld() != null;
+        }
+
+        @Override
+        public void drawRing(final List<Location> ring)
+        {
+            StargateBlockSetup.sendCells(gate, ring, draw);
+        }
+
+        @Override
+        public void moveHorizon(final List<Location> ring)
+        {
+            StargateBlockSetup.horizonBehind(gate, ring, covering);
+        }
+
+        @Override
+        public IrisSweepDriver.Booking later(final long ticks, final Runnable step)
+        {
+            final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), step,
+                ticks);
+            return () ->
+            {
+                if (WormholeXTreme.getScheduler() != null)
+                {
+                    WormholeXTreme.getScheduler().cancelTask(task);
+                }
+            };
+        }
+
+        @Override
+        public void register(final IrisSweepDriver<Location> sweep)
+        {
+            running.put(key(gate), sweep);
+        }
+
+        @Override
+        public void unregister()
         {
             running.remove(key(gate));
+        }
+
+        @Override
+        public void settle()
+        {
             if (afterwards != null)
             {
                 afterwards.run();
             }
-            return;
         }
-        // A gate can lose its world between two steps of a sweep, which is a handful of ticks
-        // on a server that is unloading one. Nothing to draw on and nobody to draw it for.
-        if (gate.getGateWorld() == null)
-        {
-            running.remove(key(gate));
-            return;
-        }
-        StargateBlockSetup.sendCells(gate, rings.get(index), draw);
-        if (alongside != null)
-        {
-            alongside.accept(rings.get(index));
-        }
-        final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
-            WormholeXTreme.getThisPlugin(),
-            () -> step(gate, rings, index + 1, draw, afterwards, alongside),
-            ConfigManager.getGateIrisStepTicks());
-        running.put(key(gate), task);
     }
 
     /**
@@ -214,17 +235,17 @@ public final class StargateIrisAnimator
      */
     static void cancel(final Stargate gate)
     {
-        final Integer task = running.remove(key(gate));
-        if ((task != null) && (WormholeXTreme.getScheduler() != null))
+        final IrisSweepDriver<Location> sweep = running.remove(key(gate));
+        if (sweep != null)
         {
-            WormholeXTreme.getScheduler().cancelTask(task);
+            sweep.cancel();
         }
         if ((gate != null) && (gate.getGateWorld() != null))
         {
             // An opening sweep leaves a built iris standing until its last step, which is dropped
             // here: take it away now, to what the opening shows at this moment rather than what it
             // showed when the sweep began (#434).
-            if ((task != null) && !gate.isGateIrisActive() && !StargateBlockSetup.irisIsDrawn(gate))
+            if ((sweep != null) && !gate.isGateIrisActive() && !StargateBlockSetup.irisIsDrawn(gate))
             {
                 gate.fillGateInterior(gate.isGatePortalOpen() ? gate.getEffectivePortalMaterial() : Material.AIR);
             }
@@ -239,10 +260,10 @@ public final class StargateIrisAnimator
     {
         for (final String name : running.keySet().toArray(new String[0]))
         {
-            final Integer task = running.remove(name);
-            if ((task != null) && (WormholeXTreme.getScheduler() != null))
+            final IrisSweepDriver<Location> sweep = running.remove(name);
+            if (sweep != null)
             {
-                WormholeXTreme.getScheduler().cancelTask(task);
+                sweep.cancel();
             }
         }
     }
