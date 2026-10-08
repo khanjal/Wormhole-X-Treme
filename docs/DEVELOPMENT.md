@@ -41,6 +41,12 @@ all: the classes built for 1.21 simply run again.
 MockBukkit's older line for 1.20 is left alone: it is abandoned, and in another package, so
 `src/mockbukkit/` could not compile against both.
 
+Tests in `src/pl3xmap/java/` cover the Pl3xMap provider (#532). Pl3xMap has no API artifact, so
+the build compiles against its plugin jar, which carries its own Adventure, unrelocated. The Paper
+builds keep that jar off the test classpath so it cannot shadow Paper's Adventure, and only the
+Spigot builds compile this directory: on the Paper builds JUnit could not even list a test class
+whose types are missing, and the whole run would fail.
+
 `JourneysOnMockServerTest` takes a player through a gate, a beam, a ring and a mirror, each set up
 by command, a following pet through a gate and by beam into another world, a caller up against
 a shut iris, and a sign gate dialled by redstone. It checks where they arrive and that the trip
@@ -576,8 +582,10 @@ the cells now expect its behaviour:
 #### Companion plugins (`--with`)
 
 `--with <list>` installs companion plugins beside Wormhole: `viaversion`, `viabackwards`,
-`dynmap`, `worldedit`, `worldguard`, `luckperms`, `vault`, or the sets `via`, `regions`
-(WorldEdit and WorldGuard) and `permissions` (LuckPerms and Vault); what one needs comes with it.
+`dynmap`, `bluemap`, `squaremap`, `pl3xmap`, `worldedit`, `worldguard`, `luckperms`, `vault`, or
+the sets `via`, `regions` (WorldEdit and WorldGuard), `permissions` (LuckPerms and Vault) and
+`maps` (the four web maps); what one needs comes with it. A set leaves out a member the version
+has no build of, and says so: `--with maps` on 26.1.2 has no Dynmap.
 Each is pinned by version and SHA-256 in `scripts/facility/companions.json`, per Minecraft
 version. The launcher reads the plugin cache first (`--plugin-cache <dir>`, else
 `WX_PLUGIN_CACHE`, else the nearest `.wx-plugins` folder beside the repository or a folder above
@@ -609,16 +617,32 @@ and was killed before putting it back leaves it journalled, and the next start t
 journal (as the value to go back to) before `recover()` could turn it against what is installed.
 `npm test --prefix scripts/facility` runs those rules without a server.
 
-Dynmap's web map gets its own port, `8123 + (port - 25590)`, on 127.0.0.1 only, written into its
-`configuration.txt` (from the jar's own template on a fresh run) and printed; the setup fails if
-Dynmap does not say its web server started there and answer, and a failed bind is a fault. A hand
-lab started by other means keeps its own configuration. `--op <names>` ops testers once the
-server is up.
+Each web map gets its own port on 127.0.0.1 only, its base + `(port - 25590)`: Dynmap 8123,
+BlueMap 8300, squaremap 8400, Pl3xMap 8500 (`lib/maps.js`; their own defaults, 8100 and 8080,
+would collide across labs, and for BlueMap, squaremap and Pl3xMap a game port below 25590 or from
+25690 would reach another map's range, so it is refused). Dynmap's is written into its
+`configuration.txt` (from the jar's own template on a fresh run); the others' settings files
+appear only at their first start, so the launcher writes the keys it needs into new ones (each
+plugin fills in the rest) or changes only those keys in existing ones: BlueMap's `webserver.conf`
+(`ip`, `port`), `core.conf` (`metrics: false`, and `accept-download: false` where the key is
+absent) and `plugin.conf` (`write-markers-interval: 5`); squaremap's and Pl3xMap's
+`settings.internal-webserver` (`enabled: true`, `bind`, `port`, and squaremap's
+`flush-json-immediately`), and Pl3xMap's `settings.web-address`. Each address is printed; the setup fails if a
+map does not say its web server bound 127.0.0.1 there (BlueMap says nothing, so its page decides)
+and answer, and a failed bind is a fault. BlueMap's `accept-download` is the user's acceptance of
+Mojang's EULA for the client jar BlueMap downloads, so it stays off unless `--accept-bluemap-download`
+(lab.ps1 `-AcceptBlueMapDownload`, lab.sh `-B`); without it BlueMap loads, says so, and draws
+nothing. squaremap and Pl3xMap both claim `/map` (Pl3xMap gets it), so the launcher calls each by its
+own name. In a hold, once the campus is built, it saves the worlds and has squaremap, Pl3xMap (and
+BlueMap, when accepted) render the overworld and the nether, recording each map's state
+(`starting`, `up`, `rendering`, `ready`, `waiting`, `failed`, `stopped`) in `map-status.json` for the
+dashboard. A self-test reads markers, not tiles, and renders nothing. A hand lab started by other
+means keeps its own configuration. `--op <names>` ops testers once the server is up.
 
 `scripts/facility/lab.ps1` opens a lab in its own window from a fresh clone (it installs the Node
 modules the first time): 26.1.2 by default, its world kept unless `-Fresh`, with `-Version`,
-`-Port`, `-Plugin <jar>`, `-Op`, `-With` and `-PluginCache`. `lab.sh` does the same in the current
-terminal (`-v -P -p -o -w -c -f`).
+`-Port`, `-Plugin <jar>`, `-Op`, `-With`, `-PluginCache` and `-AcceptBlueMapDownload`. `lab.sh`
+does the same in the current terminal (`-v -P -p -o -w -B -c -f`).
 
 Every facility server listens on 127.0.0.1 only (design mode's `--design-open` aside), so a lab
 cannot be joined from another machine. The Lab Dashboard (`scripts/facility/dashboard.js`,
@@ -635,7 +659,12 @@ hidden as facility noise). The launcher refuses to start on a game port that alr
 rather than rewrite a running lab's folder. The dashboard's POST must come from its own origin
 with the token its page carries and a JSON body (which no cross-site form can send without a
 preflight), and the page refuses to be framed; the reply is shown in the console tab, not in
-`latest.log`.
+`latest.log`. Each lab's Maps tab switches between Dynmap, BlueMap, squaremap and Pl3xMap (the
+choice kept per lab): an installed one is shown at the address its own settings give, always
+127.0.0.1 (a browser can take localhost to ::1, where nothing listens), with the state from
+`map-status.json` over it (rendering since when, BlueMap waiting for `accept-download`) or, when
+its port does not answer, why; a missing one says why (no build for the version, or a lab started
+without it).
 
 Three desks on the Systems mezzanine run the companion checks, each refusing a run without its
 companions. Their cells are in `companion-matrix.js`, marked `with` (they run only when every
@@ -660,7 +689,16 @@ node scripts/facility/run-facility.js 1.21.11 --plugin <jar> --selftest --with r
   restarts the server in place (`Facility.restart`: the same world, Probe back, the console
   listening again) and its cleanup restarts once more with the setting put back. The checklist's
   `/dynmap reload` is refused: Dynmap 3.7 and 3.8 have no reload subcommand. The icons at normal
-  zoom and the popup's rendering are for the tester, at the web map.
+  zoom and the popup's rendering are for the tester, at the web map. Its `map` option runs the
+  cases that need nothing of Dynmap's own (all but rename, reload, off and absent) against
+  BlueMap, squaremap or Pl3xMap (cells `map <name> <case>`, each `with` that map), read back from
+  each one's own marker files (`lib/mapreaders.js`): squaremap's and Pl3xMap's under their web
+  folders, BlueMap's live `markers.json` from its web server. squaremap's markers carry no ids, so a
+  marker is found by its layer's label, its own label and its place: once, in the right world, at
+  the opening, the ring end, the beam's block or the banner, with an area covering the opening. A
+  marker file older than the server's last start is left out, so the restart case sees only what
+  was drawn since. These cells need the plugin's provider for that map:
+  `--with maps --cells "^map (bluemap|squaremap|pl3xmap) "`.
 - The **Region Desk** (#240) runs the checklist in G1's cell: `Guarded` on the Stand position inside
   region `gatetest`, the Relay as the gate with no region, and an empty region `buildtest` where
   Probe2 lays a Standard frame by hand (the blocks set from the console, the DHD pressed by Probe2)
