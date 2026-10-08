@@ -172,3 +172,24 @@ test('a room is not drawn until more than a handful of blocks have come, and not
   await mirrors.act(bursts.ctx, { mirror: { to: 'Range' } }, bursts.prep);
   assert.ok(Date.now() - t0 >= 50, `ended at ${Date.now() - t0} ms, while blocks were still coming at 40 ms`);
 });
+
+test('a setup that fails after the banner is up still has it taken down at the end', async () => {
+  const { ctx, log } = fakeCtx();
+  ctx.mirrorState.kit.captured = async () => { throw new Error('the capture of Gallery was not taken within 90 s'); };
+  await assert.rejects(mirrors.prepare(ctx, mirrors.scenes()[0]), /capture of Gallery was not taken/);
+  assert.strictEqual(ctx.mirrorState.made, false);
+  assert.strictEqual(ctx.mirrorState.banner, true);
+  log.length = 0;
+  await mirrors.finish(ctx);
+  assert.deepStrictEqual(log, ['remove Gallery', 'run execute in minecraft:overworld run setblock 0 1 375 minecraft:air']);
+  assert.strictEqual(ctx.mirrorState.banner, false);
+});
+
+test('Probe is sent away and left a few seconds before a scene, for the plugin to forget the last choice', async () => {
+  const { ctx } = fakeCtx();
+  ctx.mirrorState.made = true;
+  const waits = [];
+  ctx.sleep = async (ms) => { waits.push(ms); };
+  await mirrors.prepare(ctx, mirrors.scenes()[0]);
+  assert.ok(waits.some((w) => w >= 2500), `waited ${waits.join(', ')} ms`);
+});

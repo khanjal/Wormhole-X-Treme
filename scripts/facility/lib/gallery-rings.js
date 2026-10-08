@@ -58,31 +58,42 @@ function roof(pattern, b) {
   return { x0: f.x0 - 1, x1: f.x1 + 1, z0: f.z0 - 1, z1: f.z1 + 1, y: b.y + 1 };
 }
 
+/**
+ * Lays the circles (and the roof), puts Probe2 in the first and builds the pair, for a reel. What it
+ * has done when something throws is taken away again here: the scene is not run, so nothing else
+ * would, and a pair left standing is refused every later one for standing too close.
+ */
 async function prepare(ctx, s) {
   const kit = new RingKit(ctx.srv, ctx.probe);
   const { pattern, style, ceiling } = s.ring;
   const [a, b] = ends(s.ring);
-  await kit.lay(pattern, a, SLAB, { half: 'bottom' });
-  await kit.lay(pattern, b, SLAB, { half: ceiling ? 'top' : 'bottom' });
-  if (ceiling) {
-    const r = roof(pattern, b);
-    await ctx.srv.run(`execute in ${ctx.dim} run fill ${r.x0} ${r.y} ${r.z0} ${r.x1} ${r.y} ${r.z1} minecraft:white_concrete`);
-  }
-  let id = null;
-  let traveller = null;
-  if (s.kind === 'reel') {
-    // In before the pair exists, so that nothing arms it: it is fired by the console, on the camera's say.
-    traveller = await ctx.second();
-    await traveller.teleport(middle(pattern, a));
-    const built = await kit.build(a, b);
-    if (built.error) throw new Error(`ring build: ${built.error}`);
-    id = built.id;
-    if (style === 'slow') {
-      const said = await kit.ask(`/wormhole ring edit ${id} style slow`, { until: /Style set to|error|cannot|not allowed/i });
-      if (!/Style set to/.test(said)) throw new Error(`ring edit style slow: ${said || 'no answer'}`);
+  const prep = { camera: camera(s.ring), kit, id: null, a, b, pattern, ceiling, traveller: null };
+  try {
+    await kit.lay(pattern, a, SLAB, { half: 'bottom' });
+    await kit.lay(pattern, b, SLAB, { half: ceiling ? 'top' : 'bottom' });
+    if (ceiling) {
+      const r = roof(pattern, b);
+      await ctx.srv.run(`execute in ${ctx.dim} run fill ${r.x0} ${r.y} ${r.z0} ${r.x1} ${r.y} ${r.z1} minecraft:white_concrete`);
     }
+    if (s.kind === 'reel') {
+      // In before the pair exists, so that nothing arms it: it is fired by the console, on the camera's say.
+      prep.traveller = await ctx.second();
+      await prep.traveller.teleport(middle(pattern, a));
+      const built = await kit.build(a, b);
+      if (built.error) {
+        throw new Error(`ring build: ${built.error} (a pair may still stand here from an earlier run that was stopped: take it down with /wormhole ring list and /wormhole ring remove)`);
+      }
+      prep.id = built.id;
+      if (style === 'slow') {
+        const said = await kit.ask(`/wormhole ring edit ${prep.id} style slow`, { until: /Style set to|error|cannot|not allowed/i, ms: 6000 });
+        if (!/Style set to/.test(said)) throw new Error(`ring edit style slow: ${said || 'no answer'}`);
+      }
+    }
+    return prep;
+  } catch (e) {
+    await cleanup(ctx, s, prep).catch(() => {});
+    throw e;
   }
-  return { camera: camera(s.ring), kit, id, a, b, pattern, ceiling, traveller };
 }
 
 /**
@@ -97,10 +108,11 @@ async function act(ctx, s, prep) {
   const inside = (pos) => pos.y >= 0 && pos.y <= SITE.drop + 3 && regions.some((f) => pos.x >= f.x0 && pos.x <= f.x1 && pos.z >= f.z0 && pos.z <= f.z1);
   let first = null;
   let last = null;
+  // The start is the first ring (a slab) drawn: a ceiling pair's lights come on at the countdown, well before any.
   const onUpdate = (_old, block) => {
     if (!block || !inside(block.position)) return;
     last = Date.now();
-    if (!first) {
+    if (!first && /slab/.test(block.name)) {
       first = last;
       ctx.mark();
     }
@@ -108,7 +120,8 @@ async function act(ctx, s, prep) {
   ctx.bot.on('blockUpdate', onUpdate);
   try {
     const said = await prep.kit.fire(prep.id);
-    if (/no ring|not found|error/i.test(said)) throw new Error(`ring fire: ${said}`);
+    // "... is counting down." is the plugin starting it; anything else is a refusal (cycling or cooling, an end blocked).
+    if (!/is counting down/.test(said)) throw new Error(`ring fire: ${said || 'no answer'}`);
     const wall = (ticks) => ticks * 50 * ctx.factor;
     const give = Date.now() + wall(CYCLE_TICKS) * 2;
     const far = middle(pattern, { x: b.x, y: 0, z: b.z });
@@ -127,17 +140,23 @@ async function act(ctx, s, prep) {
   }
 }
 
-/** Takes the pair down if there is one and the slabs and the roof away, so the next scene finds a bare floor. */
+/**
+ * Takes Probe2 home, the pair down if there is one, and the slabs and the roof away, so the next
+ * scene finds a bare floor. The floor is cleared whatever `ring remove` said; what it said is then
+ * an error, because a pair left standing refuses every later one.
+ */
 async function cleanup(ctx, s, prep) {
   const { kit, a, b, pattern } = prep;
   if (prep.traveller) await prep.traveller.teleport(ctx.home).catch(() => {});
-  if (prep.id) await kit.remove(prep.id);
+  let removed = '';
+  if (prep.id) removed = await kit.remove(prep.id).catch((e) => e.message);
   await kit.clear(pattern, a);
   await kit.clear(pattern, b);
   if (prep.ceiling) {
     const r = roof(pattern, b);
     await ctx.srv.run(`execute in ${ctx.dim} run fill ${r.x0} ${r.y} ${r.z0} ${r.x1} ${r.y} ${r.z1} minecraft:air`);
   }
+  if (prep.id && !/Removed both ends/.test(removed)) throw new Error(`ring remove ${prep.id}: ${removed || 'no answer'}`);
 }
 
 module.exports = { scenes, prepare, act, cleanup, camera, ends, middle, roof, SITE, PATTERNS, STYLES };

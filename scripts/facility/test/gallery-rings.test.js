@@ -92,7 +92,7 @@ function stage(pattern = 'ODD') {
   const marks = [];
   const ctx = { bot, factor: 0.01, sleep: (ms) => new Promise((r) => { setTimeout(r, ms); }), mark: () => marks.push(Date.now()) };
   const prep = { a, b, pattern, traveller, kit: { fire: async () => 'is counting down.' }, id: 'abc' };
-  const draw = (at) => bot.emit('blockUpdate', null, { position: { x: at.x, y: 1, z: at.z } });
+  const draw = (at, name = 'smooth_stone_slab') => bot.emit('blockUpdate', null, { name, position: { x: at.x, y: 1, z: at.z } });
   const land = () => { traveller.position = { x: b.x + 0.5, y: 0, z: b.z + 0.5 }; };
   return { ctx, prep, draw, land, a, b, marks };
 }
@@ -129,7 +129,71 @@ test('blocks outside the circles are not the cycle', async () => {
 });
 
 test('a fire the plugin refuses is an error, with what it said', async () => {
+  // The plugin's own refusal (RingConsoleCommands.fire): no word in it says error or not found.
+  const refused = 'Ring pair abc did not fire: it is already cycling or cooling down, an end is blocked, or its world is not loaded.';
   const { ctx, prep } = stage();
-  prep.kit.fire = async () => 'Ring pair abc did not fire: error, an end is blocked';
-  await assert.rejects(rings.act(ctx, { kind: 'reel' }, prep), /ring fire: .*blocked/);
+  prep.kit.fire = async () => refused;
+  await assert.rejects(rings.act(ctx, { kind: 'reel' }, prep), /ring fire: .*cooling down/);
+  const silent = stage();
+  silent.prep.kit.fire = async () => '';
+  await assert.rejects(rings.act(silent.ctx, { kind: 'reel' }, silent.prep), /ring fire: no answer/);
+});
+
+test('the reel begins at the first ring drawn, not at the lights that come on at the countdown', async () => {
+  const { ctx, prep, draw, land, a, b, marks } = stage();
+  const t0 = Date.now();
+  after(10, () => draw(a, 'glowstone'));
+  after(20, () => draw(b, 'glowstone'));
+  after(60, () => draw(a, 'smooth_stone_slab'));
+  after(80, land);
+  await rings.act(ctx, { kind: 'reel' }, prep);
+  assert.strictEqual(marks.length, 1);
+  assert.ok(marks[0] - t0 >= 55, `marked at ${marks[0] - t0} ms, at the lights and not the first ring (60 ms)`);
+});
+
+/** A ctx for prepare(): a server that answers every command with `answer`, and a Probe2 that notes where it is sent. */
+function prepStage(answer) {
+  const log = [];
+  const traveller = { teleport: async (p) => log.push(`traveller ${p.x} ${p.z}`) };
+  const ctx = {
+    srv: { run: async (c) => { log.push(c.replace(/^execute in \S+ run /, '')); return { lines: [answer], errors: [] }; } },
+    probe: {},
+    dim: 'minecraft:overworld',
+    home: { x: 1, y: 0, z: 2 },
+    second: async () => traveller,
+  };
+  return { ctx, log };
+}
+
+test('a ring scene that fails while it is being set up takes away what it had put there, Probe2 included', async () => {
+  const { ctx, log } = prepStage('The pair was refused.');
+  const reel = rings.scenes().find((s) => s.name === 'ring-ceiling');
+  await assert.rejects(rings.prepare(ctx, reel), /ring build: The pair was refused\. \(a pair may still stand here/);
+  // Probe2 sent home, the slabs of both circles and the roof taken up again.
+  assert.ok(log.includes('traveller 1 2'), log.join('\n'));
+  const fills = log.filter((l) => /^fill .* minecraft:air$/.test(l));
+  assert.strictEqual(fills.length, 3, `two circles and a roof: ${fills.join(' / ')}`);
+  const [, b] = rings.ends(reel.ring);
+  assert.ok(fills.some((f) => f.startsWith(`fill ${rings.roof(reel.ring.pattern, b).x0} ${b.y + 1} `)), 'the roof');
+});
+
+test('a still has nothing to take away but its slabs, and builds no pair', async () => {
+  const { ctx, log } = prepStage('x');
+  const still = rings.scenes().find((s) => s.name === 'ring-odd-slabs');
+  const prep = await rings.prepare(ctx, still);
+  assert.strictEqual(prep.id, null);
+  assert.ok(!log.some((l) => /ring build|^traveller/.test(l)));
+  await rings.cleanup(ctx, still, prep);
+  assert.strictEqual(log.filter((l) => /^fill .* minecraft:air$/.test(l)).length, 2);
+});
+
+test('a pair that will not come down is an error after the floor is clear, since it would refuse every later one', async () => {
+  const log = [];
+  const ctx = { srv: { run: async (c) => { log.push(c); return { lines: [], errors: [] }; } }, dim: 'minecraft:overworld', home: { x: 0, z: 0 } };
+  const [a, b] = rings.ends({ ceiling: false });
+  const kit = { remove: async () => 'no ring pair called abc', clear: async (p, at) => log.push(`clear ${at.x}`) };
+  await assert.rejects(rings.cleanup(ctx, {}, { kit, id: 'abc', a, b, pattern: 'ODD', ceiling: false, traveller: null }), /ring remove abc: no ring pair called abc/);
+  assert.deepStrictEqual(log, [`clear ${a.x}`, `clear ${b.x}`], 'both circles cleared before the error');
+  const ok = { remove: async () => 'Removed both ends of abc.', clear: async () => {} };
+  await rings.cleanup(ctx, {}, { kit: ok, id: 'abc', a, b, pattern: 'ODD', ceiling: false, traveller: null });
 });

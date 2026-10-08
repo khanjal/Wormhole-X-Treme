@@ -356,9 +356,10 @@ async function takeScenes(fac, viewer, scenes, outDir, {
       const t0 = Date.now();
       const size = s.kind === 'reel' ? { w: reelWidth, h: reelHeight } : { w: width, h: height };
       const family = s.family ? families()[s.family] : gates;
-      used.add(family);
       let prep = null;
       try {
+        if (!family) throw new Error(`no scene family ${s.family}`);
+        used.add(family);
         await page.setViewport({ width: size.w, height: size.h });
         if (s.family) await clearGate();
         prep = await family.prepare(ctx, s);

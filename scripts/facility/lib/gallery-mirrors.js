@@ -45,7 +45,7 @@ function camera(m = MIRROR) {
   return standAt({ x: m.x + 0.5, y: 1.6, z: m.z + 0.5 + 2 }, { x: m.x + 0.5, y: m.y + 0.6, z: m.z + 0.5 });
 }
 
-/** The state shared by the run: whether the mirror stands, what Probe has been told. */
+/** The state shared by the run: whether the mirror stands (and whether its banner is up, which it can be without), what Probe has been told. */
 function shared(ctx) {
   if (!ctx.mirrorState) ctx.mirrorState = { made: false, heard: [], kit: new mirrors.MirrorKit(ctx.srv) };
   return ctx.mirrorState;
@@ -55,6 +55,8 @@ async function prepare(ctx, s) {
   const st = shared(ctx);
   const m = MIRROR;
   if (!st.made) {
+    // Noted before it goes up: a setup that fails after it must still take it down at the end.
+    st.banner = true;
     await st.kit.banner(m, 'red');
     const said = await st.kit.create(m.name, m);
     const { names } = await st.kit.list();
@@ -65,7 +67,8 @@ async function prepare(ctx, s) {
   }
   // Out of range, so that the choice of the last scene is forgotten and this one starts afresh.
   await ctx.probe.teleport(AWAY);
-  await ctx.sleep(1500);
+  // The plugin forgets a choice on its next proximity sweep (a second at 20 TPS), and a slow server takes longer.
+  await ctx.sleep(2500);
   if (s.mirror.to) {
     const said = await st.kit.set(m.name, '-start', s.mirror.to);
     if (!new RegExp(`right-click on .* opens onto .*${s.mirror.to}`).test(said)) throw new Error(`mirror set -start ${s.mirror.to}: ${said || 'no answer'}`);
@@ -106,10 +109,11 @@ async function act(ctx, s, prep) {
 /** Takes the mirror and its banner away at the end of the run. */
 async function finish(ctx) {
   const st = ctx.mirrorState;
-  if (!st || !st.made) return;
+  if (!st || !(st.made || st.banner)) return;
   await st.kit.remove(MIRROR.name).catch(() => {});
   await ctx.srv.run(`execute in ${MIRROR.dim} run setblock ${MIRROR.x} ${MIRROR.y} ${MIRROR.z} minecraft:air`);
   st.made = false;
+  st.banner = false;
 }
 
 module.exports = { scenes, prepare, act, finish, camera, MIRROR, ROOMS, AWAY };
