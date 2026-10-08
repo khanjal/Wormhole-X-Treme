@@ -39,7 +39,9 @@ people learn to skip.
 A new rule can start flagging old patterns at any time (S9391, "use a stream instead of this
 loop", arrived as 48 findings on main in one go), so do not rely on this list being complete:
 after pushing, once Sonar has analysed the head, and again after the merge, run
-`scripts/sonar-issues.sh <pr>` and read the rules in "by rule", not only the count.
+`scripts/sonar-issues.sh` (step 2 of the `pr-review` skill says when and with what) and read
+the rules in "by rule", not only the count. That is the one instruction in this skill that comes
+after the push; everything else here is for before it.
 
 Roughly half the open backlog has no PMD equivalent at all. These are the three largest such
 groups, and they need the file open:

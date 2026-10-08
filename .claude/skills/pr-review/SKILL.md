@@ -82,7 +82,8 @@ run step 1 again on the new commits, and add that run to the checklist's first-r
 ## 2. Sonar: the PR's issues, not the tick
 
 Open the PR, with the checklist in its body, once step 1's findings are handled; Sonar and CI
-only run on an open PR. A green Sonar check can hide an open issue. Read the count directly:
+only run on an open PR. A green Sonar check can hide an open issue. `scripts/sonar-issues.sh <pr>`
+(below) does the two reads that follow; by hand, read the count directly:
 
 ```bash
 curl -s "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&pullRequest=<n>&resolved=false"
@@ -99,10 +100,12 @@ curl -s "https://sonarcloud.io/api/project_pull_requests/list?project=khanjal_Wo
 
 Zero is the bar before merging (see the `sonar-check` skill for the false positives that
 should be marked won't-fix instead). The PR checks only score new code, so `main` can build
-up a backlog nobody sees on a PR. `scripts/sonar-issues.sh <pr>` does both reads at once: the
-PR's open issues (and whether Sonar analysed its head), and main's total by rule. Run it once
-the PR is open and Sonar has analysed the head, again before merging, and once more after the
-merge has been analysed (the script prints the commit main was analysed at). Main's total also
+up a backlog nobody sees on a PR. The script reads the PR's open issues (and whether Sonar
+analysed its head) and main's total by rule. Run it once the PR is open and Sonar has analysed
+the head, and again before merging; after the merge has been analysed (it prints the commit
+main was analysed at), run it with no PR number, since a PR merged with findings open would
+exit 1. Sonar never analyses a fork's PR (ci.yml skips it), so for one the main read after the
+merge is the only Sonar read there is; the script says so. Main's total also
 moves when a new rule arrives or another PR merges, so compare the rules and files in the list
 against this PR's diff, not the bare count: an issue on a line this PR added is this PR's to fix
 in the next change, rather than left to a backlog. Maintainability issues are not only the
