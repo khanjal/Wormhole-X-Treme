@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -29,6 +30,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wolf;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
@@ -40,6 +42,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -131,6 +134,7 @@ class VehicleGateEntryTest
         GateEvents.setDispatcherForTest(null);
         clearRecentMarks();
         PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
         PluginTestSupport.forgetAllGates();
     }
 
@@ -362,6 +366,83 @@ class VehicleGateEntryTest
 
             rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider));
             rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(rider, dst));
+        }
+    }
+
+    /**
+     * A player riding a cart through is greeted once, by the cart's listener.
+     *
+     * <p>The player listener leaves a cart's rider to the cart, so this is the only place a
+     * player arriving by cart can hear where they are (#485).
+     */
+    @Test
+    void aRiderCarriedThroughByCartIsToldOnceWhichGateTheyArrivedAt()
+    {
+        final Player rider = putARiderAboard();
+        ConfigTestSupport.set(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, true);
+        try
+        {
+            rollIn();
+
+            verify(cart).teleport(any(Location.class));
+            verify(rider, times(1)).sendMessage(ArgumentMatchers.anyString());
+            verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /**
+     * With {@code timeout-shutdown: 0} the cart's rider is still told where they arrived.
+     *
+     * <p>That setting shuts the gate as the cart leaves, which forgets its target, so a greeting
+     * that asked the gate afterwards had no gate to name and said nothing.
+     */
+    @Test
+    void aRiderIsGreetedEvenWhenTheGateShutsBehindTheCart()
+    {
+        final Player rider = putARiderAboard();
+        ConfigTestSupport.set(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, true);
+        ConfigTestSupport.set(ConfigKeys.TIMEOUT_SHUTDOWN, 0);
+        // Shutting the gate empties its opening and releases the chunk under each arrival point.
+        when(world.getBlockAt(any(Location.class))).thenReturn(portal);
+        src.setGateWorld(world);
+        src.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
+        try
+        {
+            rollIn();
+
+            assertNull(src.getGateTarget(), "the gate shut behind the cart");
+            verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /** A mob riding a cart through is not greeted: only a player arrives, in the sense that is announced. */
+    @Test
+    void aWolfRidingACartThroughIsNotGreeted()
+    {
+        final Wolf wolf = mock(Wolf.class);
+        when(wolf.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(wolf.isValid()).thenReturn(true);
+        when(wolf.teleport(any(Location.class))).thenReturn(true);
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>singletonList(wolf));
+        ConfigTestSupport.set(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, true);
+        try
+        {
+            rollIn();
+
+            verify(cart, atLeastOnce()).teleport(any(Location.class));
+            verify(wolf, never()).sendMessage(ArgumentMatchers.anyString());
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
         }
     }
 

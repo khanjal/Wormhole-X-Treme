@@ -8,6 +8,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.10.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **Gates, rings, public beam destinations and quantum mirrors show on
+  [BlueMap](https://bluemap.bluecolored.de)** too, on every map of each world, and come back by
+  themselves after a `/bluemap reload`. Off until `bluemap-enabled` is set; the `map-show-*` settings
+  choose the layers for every map. See [the guide](docs/guide/SERVER.md#bluemap).
+- **The same marks show on [squaremap](https://modrinth.com/plugin/squaremap)**, Paper's map, with
+  each world's layers kept on it as worlds load. Off until `squaremap-enabled` is set. See
+  [the guide](docs/guide/SERVER.md#squaremap).
+- **And on [Pl3xMap](https://modrinth.com/plugin/pl3xmap)**, put back by themselves after a
+  `/map reload`. Off until `pl3xmap-enabled` is set. See [the guide](docs/guide/SERVER.md#pl3xmap).
+
 ### Stargates
 
 **Added**
@@ -22,6 +36,10 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `config.yml` keeps the old comment on `gate-view`, which is harmless. `gate-view-depth` (32) is how
   far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.
+- **A player coming out of a gate can be told where they are**: "Arrived at Abydos", in chat,
+  once, and not for their pets or mount. Off until `show-gate-welcome-message` is set; a
+  Settings.txt that had it on is named in the upgrade note. Gates only: rings and beams name their
+  destination whatever it is set to.
 
 **Changed**
 

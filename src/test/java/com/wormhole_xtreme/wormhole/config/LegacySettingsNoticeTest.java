@@ -120,6 +120,18 @@ class LegacySettingsNoticeTest
                 + " each value is spelled the way config.yml can read it");
     }
 
+    /**
+     * The old file wrote the welcome message's own setting, on by default; the new one ships off,
+     * so a server that had it is told to turn it back on (#485).
+     */
+    @Test
+    void theOldWelcomeMessageSettingIsNamedUnderItsNewName()
+    {
+        assertEquals(List.of("show-gate-welcome-message: true"),
+            LegacySettingsNotice.carryOver(List.of("Setting: SHOW_GATE_WELCOME_MESSAGE", "Value: true"),
+                DefaultSettings.config));
+    }
+
     @Test
     void aSettingsTxtInThePluginFolderIsAnnouncedWithWhatToCarryOver() throws IOException
     {
