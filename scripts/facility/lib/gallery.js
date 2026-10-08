@@ -24,26 +24,13 @@ const { Vec3 } = require('vec3');
 const { GateKit } = require('./gatekit');
 const { atLeast } = require('./version');
 
-const O = campus.OVERWORLD;
+const studio = require('./studio');
 
-// The studio: a floor, a backdrop and two side walls far from the campus (it ends at z 92), its own
-// forceload. The walls are why a view from a corner never looks out past the end of the backdrop;
-// the floor is flat white concrete, whose texture is plain, so it does not shimmer from frame to frame.
-// The subject's opening is in the plane z = PLANE, facing south; the camera stands to the south
-// of it looking north, the partner gate sixty blocks behind the camera.
-const STUDIO = {
-  plane: 400, half: 70, floor: 'minecraft:white_concrete', backdrop: 'minecraft:white_concrete',
-  backdropAt: 374, backdropHigh: 48, partnerAt: 470, sideAt: 46,
-};
-/** The chunk rectangle the studio forceloads, as `forceload` takes it: x1 z1 x2 z2. */
-function forceRect(s = STUDIO) {
-  return [-s.half - 16, s.backdropAt - 16, s.half + 16, s.partnerAt + 40];
-}
+const { O, STUDIO, forceRect, EYE, lookAt, standAt, buildStudio, isAir, must, slowdown } = studio;
+
 const SUBJECT = 'StudioA';
 const PARTNER = 'StudioB';
 const NET = 'Studio';
-// What a gate build lays back in the floor (gatekit.FLOORS), to be painted over with the studio's.
-const FLOOR_AFTER_BUILD = require('./gatekit').FLOORS[O];
 
 /** The ring patterns, as `gate-dial-spin` takes them (all but `none`, which has no ring light to show). */
 const SPINS = ['top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 'overshoot'];
@@ -92,9 +79,10 @@ function catalog(groupNames = groups()) {
   }
   for (const spin of SPINS) out.push({ name: `dial-${spin}`, kind: 'reel', action: 'dial', subject: gate('Standard', 'Standard', spin), view: 'front' });
   for (const shape of SHAPES) {
-    out.push({ name: `kawoosh-${shape.toLowerCase()}`, kind: 'reel', action: 'kawoosh', subject: gate(shape), view: shapes.isFlat(shape) ? 'high' : 'quarter' });
+    out.push({ name: `kawoosh-${shape.toLowerCase()}`, kind: 'reel', action: 'kawoosh', trim: 500, subject: gate(shape), view: shapes.isFlat(shape) ? 'high' : 'quarter' });
   }
-  return out;
+  const other = (list) => list.flatMap((f) => f.scenes());
+  return [...out, ...other(Object.values(families()))];
 }
 
 /**
@@ -115,19 +103,6 @@ function select(spec, all = catalog()) {
 }
 
 // ---- the camera ---------------------------------------------------------------------------
-
-/** Yaw and pitch (Minecraft's: 0 faces south, -90 east, pitch down positive) for looking from `from` at `to`. */
-function lookAt(from, to) {
-  const dx = to.x - from.x;
-  const dz = to.z - from.z;
-  return {
-    yaw: Math.round((Math.atan2(-dx, dz) * 180) / Math.PI * 10) / 10 || 0,
-    pitch: Math.round((Math.atan2(from.y - to.y, Math.hypot(dx, dz)) * 180) / Math.PI * 10) / 10 || 0,
-  };
-}
-
-/** The camera's eye height above Probe's feet. */
-const EYE = 1.62;
 
 /**
  * Where Probe stands (feet, the form `Probe.teleport` takes) to see a gate of `geom` as `kind`:
@@ -152,52 +127,16 @@ function camera(geom, kind) {
   } else {
     eye = { x: c.x + n.x * d, y: c.y, z: c.z + n.z * d };
   }
-  // Probe's feet stay on the floor (y 0), whatever height the gate's middle is at.
-  eye.y = Math.max(eye.y, EYE);
-  return { x: Math.round(eye.x * 10) / 10, y: Math.round((eye.y - EYE) * 10) / 10, z: Math.round(eye.z * 10) / 10, ...lookAt(eye, c) };
-}
-
-// ---- the studio ---------------------------------------------------------------------------
-
-/** Forceloads the studio's chunks and lays its floor and backdrop. Returns the problems it met. */
-async function buildStudio(srv, dim = O) {
-  const s = STUDIO;
-  const problems = [];
-  const run = async (cmd) => {
-    const r = await srv.run(`execute in ${dim} run ${cmd}`);
-    if (r.errors.length) problems.push(`${cmd}: ${r.errors.join(' ')}`);
-  };
-  const [x0, z0, x1, z1] = forceRect(s);
-  await run(`forceload add ${x0} ${z0} ${x1} ${z1}`);
-  const points = [];
-  for (let cx = Math.floor(x0 / 16); cx <= Math.floor(x1 / 16); cx++) {
-    for (let cz = Math.floor(z0 / 16); cz <= Math.floor(z1 / 16); cz++) points.push([cx * 16 + 8, 0, cz * 16 + 8]);
-  }
-  await srv.waitLoaded(dim, points, 120000);
-  await run(`fill ${-s.half} -1 ${z0} ${s.half} -1 ${z1} ${s.floor}`);
-  await run(`fill ${-s.sideAt} 0 ${s.backdropAt} ${s.sideAt} ${s.backdropHigh} ${s.backdropAt} ${s.backdrop}`);
-  for (const x of [-s.sideAt, s.sideAt]) await run(`fill ${x} 0 ${s.backdropAt} ${x} ${s.backdropHigh} ${s.partnerAt + 30} ${s.backdrop}`);
-  return problems;
+  return standAt(eye, c);
 }
 
 // ---- running scenes -----------------------------------------------------------------------
 
 const sleep = shots.sleep;
 
-/**
- * Repaints the floor round a gate and sweeps up what it dropped: a build puts the campus's floor block back where it made room,
- * and a flush gate taken down leaves its trench, so the studio floor would show patches and pits.
- */
+/** Repaints the floor round a gate and sweeps up what it dropped (see studio.tidyBox). */
 async function tidy(kit, geom, dim = O) {
-  const b = kit.siteBox(geom);
-  await kit.srv.run(`execute in ${dim} run fill ${b.x0} -1 ${b.z0} ${b.x1} -1 ${b.z1} ${STUDIO.floor} replace ${FLOOR_AFTER_BUILD}`);
-  // What a removed gate drops: an item is an entity the viewer cannot draw, and shows as a magenta square.
-  await kit.srv.run(`execute in ${dim} run kill @e[type=minecraft:item,x=0,y=0,z=${STUDIO.plane},distance=..150]`);
-}
-
-/** True for a block that is air, or not loaded. */
-function isAir(block) {
-  return !block || block.name === 'air' || block.name === 'cave_air';
+  await studio.tidyBox(kit.srv, kit.siteBox(geom), dim);
 }
 
 /**
@@ -241,25 +180,14 @@ async function dress(kit, geom, group, config = readGroups()) {
 }
 
 /**
- * The `/tick rate` a reel is recorded at, and the slowdown it really is: { rate, factor }. The rate
- * is 20 over the slowdown asked for, to the thousandth, and the factor is worked back from the
- * rate, so a GIF is retimed by the speed the server ran at, not the one that was asked for. A
- * server that cannot be slowed (before 1.20.3) runs at 20, factor 1.
+ * The scene families other than gates: lib/gallery-rings.js, lib/gallery-mirrors.js. A family is
+ * { scenes(), prepare(ctx, scene) -> { camera, ... }, act?(ctx, scene, prepared), cleanup?(ctx,
+ * scene, prepared) }. `prepare` builds what the scene shows and says where Probe stands; `act` is
+ * what happens while a reel is recorded, or before an open still is taken, and calls `ctx.mark()`
+ * where a scene with `trim` should begin; `cleanup` runs after the scene, whatever happened.
  */
-function slowdown(slow, canSlow) {
-  if (!(slow >= 1 && slow <= 20)) throw new Error(`the gallery's slowdown is from 1 to 20, not ${slow}`);
-  const rate = canSlow ? Math.round((20 / slow) * 1000) / 1000 : 20;
-  return { rate, factor: 20 / rate };
-}
-
-/**
- * Runs a server command whose own answer must match `answer`; returns the answer's lines. A WARN
- * from something else that lands before the fence is not the command's failure, so it is not judged.
- */
-async function must(srv, command, answer) {
-  const r = await srv.run(command);
-  if (!r.lines.some((l) => answer.test(l))) throw new Error(`${command}: ${[...r.lines, ...r.errors].join(' ') || 'no answer'}`);
-  return r.lines;
+function families() {
+  return { ring: require('./gallery-rings'), mirror: require('./gallery-mirrors') };
 }
 
 /**
@@ -285,16 +213,20 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   let browser = null;
   let flying = false;
 
+  /** Takes the subject gate down and puts the floor back, for a scene of another family or another gate. */
+  const clearGate = async () => {
+    if (!state.key) return;
+    await kit.remove(SUBJECT);
+    await kit.restoreSite(state.geom);
+    await tidy(kit, state.geom);
+    state.key = null;
+  };
+
   /** The subject gate of `s`: rebuilt if its shape or group changed, redressed, set to its ring pattern. */
   const subject = async (s) => {
     const key = `${s.shape}/${s.group}`;
     if (state.key !== key) {
-      if (state.key) {
-        await kit.remove(SUBJECT);
-        await kit.restoreSite(state.geom);
-        await tidy(kit, state.geom);
-        state.key = null;
-      }
+      await clearGate();
       state.geom = kit.place(s.shape, 'south', { cx: 0, openingAt: STUDIO.plane });
       await kit.build(SUBJECT, state.geom, { net: NET });
       await tidy(kit, state.geom);
@@ -311,10 +243,9 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     await kit.waitShut(probe, state.geom, 8000);
   };
 
-  /** Puts Probe at the camera and opens the viewer's page on what it sees; resolves once it has painted. */
-  const frame = async (page, geom, view, token) => {
+  /** Puts Probe at `cam` and opens the viewer's page on what it sees; resolves once it has painted. */
+  const frame = async (page, cam, token) => {
     await page.goto('about:blank');
-    const cam = camera(geom, view);
     bot.creative.startFlying();
     flying = true;
     await probe.teleport(cam, O);
@@ -348,12 +279,34 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     if (!/connected/i.test(said)) throw new Error(`the dial was refused: ${said || 'no answer'}`);
   };
 
-  /** One still: the picture once it holds, judged as a shot is. */
-  const still = async (page, s, geom, chunks, t0) => {
-    if (s.state === 'open') {
+  /** What a scene may use: the server, Probe, the clocks, and `mark()` for where a trimmed reel begins. */
+  const ctx = {
+    srv, probe, bot, kit, log, sleep, factor, canSlow, clearGate, markAt: null, dim: O, home: campus.TRANSIT.home,
+    second: () => fac.second(),
+    mark() { this.markAt = Date.now(); },
+  };
+
+  /** The gate family: the subject gate, and the dial that opens it. */
+  const gates = {
+    async prepare(_ctx, s) {
+      const geom = await subject(s.subject);
+      await shut();
+      return { camera: camera(geom, s.view), geom };
+    },
+    async act(_ctx, s, prep) {
       await dial();
-      await kit.waitOpen(probe, geom, 20000);
-    }
+      const ms = s.kind === 'reel' ? 60000 * factor : 20000;
+      if (s.kind === 'reel') {
+        await firstDrawn(prep.geom, ms);
+        ctx.mark();
+      }
+      await kit.waitOpen(probe, prep.geom, ms);
+    },
+  };
+
+  /** One still: the picture once it holds, judged as a shot is. */
+  const still = async (page, s, family, prep, chunks, t0) => {
+    if (s.state === 'open' && family.act) await family.act(ctx, s, prep);
     const held = await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: 20000 });
     const file = path.join(outDir, `${s.name}.png`);
     fs.writeFileSync(file, held.png);
@@ -363,26 +316,23 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     return { name: s.name, file, ok: verdict.ok, detail, label: verdict.ok ? 'still' : 'STILL PROBLEM' };
   };
 
-  /** One reel: from the dial command until the wormhole has opened and settled, the server slowed throughout. */
-  const makeReel = async (page, s, geom, size, t0) => {
+  /** One reel: what the family does, the server slowed throughout, from a little before `mark()` if the scene says so. */
+  const makeReel = async (page, s, family, prep, size, t0) => {
     const file = path.join(outDir, `${s.name}.gif`);
     const rec = await reel.startReel(page, { width: size.w, height: size.h });
     let frames = [];
-    let openedAt = Date.now();
+    ctx.markAt = null;
     try {
       if (canSlow) await must(srv, `tick rate ${rate}`, /tick rate/i);
       await sleep(500);
-      await dial();
-      await firstDrawn(geom, 60000 * factor);
-      openedAt = Date.now();
-      await kit.waitOpen(probe, geom, 60000 * factor);
+      await family.act(ctx, s, prep);
       await sleep(1000);
     } finally {
       // The recording first: if the server has gone, the screencast must not be left running.
       frames = await rec.stop();
       if (canSlow) await srv.run('tick rate 20').catch(() => {});
     }
-    if (s.action === 'kawoosh') frames = reel.from(frames, openedAt - 500 * factor);
+    if (s.trim && ctx.markAt) frames = reel.from(frames, ctx.markAt - s.trim * factor);
     const written = await reel.writeGif(file, frames, { slow: factor });
     const moved = frames.length > 1 && !frames[0].png.equals(frames[frames.length - 1].png);
     const ok = written.frames >= 5 && moved && errors.length === 0;
@@ -403,21 +353,25 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     for (const [i, s] of scenes.entries()) {
       const t0 = Date.now();
       const size = s.kind === 'reel' ? { w: reelWidth, h: reelHeight } : { w: width, h: height };
+      const family = s.family ? families()[s.family] : gates;
+      let prep = null;
       try {
         await page.setViewport({ width: size.w, height: size.h });
-        const geom = await subject(s.subject);
-        await shut();
+        if (s.family) await clearGate();
+        prep = await family.prepare(ctx, s);
         const token = `g${process.pid}-${i}-${Date.now()}`;
-        const chunks = await frame(page, geom, s.view, token);
+        const chunks = await frame(page, prep.camera, token);
         const held = await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: Math.max(0, settleMs - 3000) });
         if (!held.still) throw new Error('the picture never held still before the scene began');
-        const done = s.kind === 'still' ? await still(page, s, geom, chunks, t0) : await makeReel(page, s, geom, size, t0);
+        const done = s.kind === 'still' ? await still(page, s, family, prep, chunks, t0) : await makeReel(page, s, family, prep, size, t0);
         out.push({ name: done.name, file: done.file, ok: done.ok, detail: done.detail });
         log(`  ${done.label} ${s.name}: ${done.file} (${done.detail})`);
       } catch (e) {
         out.push({ name: s.name, file: null, ok: false, detail: e.message });
         log(`  SCENE FAILED ${s.name}: ${e.message}`);
         if (canSlow) await srv.run('tick rate 20').catch(() => {});
+      } finally {
+        if (prep && family.cleanup) await family.cleanup(ctx, s, prep).catch((e) => log(`  cleanup after ${s.name}: ${e.message}`));
       }
     }
   } finally {
@@ -437,4 +391,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };
+module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, standAt, takeScenes, asResults, EYE };

@@ -66,8 +66,9 @@ test('every camera stands inside the studio: between its walls, and in front of 
 });
 
 test('every scene has its own name, a shape the console builds, a known group and ring pattern, and a view', () => {
-  const all = gallery.catalog();
-  assert.strictEqual(new Set(all.map((s) => s.name)).size, all.length);
+  const everything = gallery.catalog();
+  assert.strictEqual(new Set(everything.map((s) => s.name)).size, everything.length);
+  const all = everything.filter((s) => !s.family);
   const groups = gallery.groups();
   for (const s of all) {
     assert.ok(shapes.consoleBuildable(s.subject.shape), `${s.name}: ${s.subject.shape}`);
@@ -80,7 +81,7 @@ test('every scene has its own name, a shape the console builds, a known group an
 });
 
 test('a gate lying in the floor is seen from above, never square on', () => {
-  const flat = gallery.catalog().filter((x) => shapes.isFlat(x.subject.shape));
+  const flat = gallery.catalog().filter((x) => !x.family && shapes.isFlat(x.subject.shape));
   assert.ok(flat.length > 0);
   for (const s of flat) assert.strictEqual(s.view, 'high', s.name);
 });
