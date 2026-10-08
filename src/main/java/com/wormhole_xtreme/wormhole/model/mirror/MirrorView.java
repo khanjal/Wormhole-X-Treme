@@ -175,13 +175,7 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         entries.sort(Comparator.<Map.Entry<DyeColor, Integer>>comparingInt(Map.Entry::getValue)
             .reversed().thenComparing(entry -> entry.getKey().name()));
 
-        final List<DyeColor> colours = new ArrayList<>();
-        for (final Map.Entry<DyeColor, Integer> entry : entries.subList(0,
-            Math.min(WANTED, entries.size())))
-        {
-            colours.add(entry.getKey());
-        }
-        return colours;
+        return entries.stream().limit(WANTED).map(Map.Entry::getKey).toList();
     }
 
     /**

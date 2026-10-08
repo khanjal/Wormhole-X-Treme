@@ -14,12 +14,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 
@@ -548,11 +549,9 @@ public final class StargateShapeRegistry
 
         if (!ConfigManager.isGateMaterialGroupsAutodiscover())
         {
-            final List<String> names = new ArrayList<String>();
-            for (final MaterialGroup g : discovered)
-            {
-                names.add(g.getName() + "=" + g.getStructureMaterial());
-            }
+            final List<String> names = discovered.stream()
+                .map(g -> g.getName() + "=" + g.getStructureMaterial())
+                .toList();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Gate shapes imply material groups not in config.yml: " + names
                 + ". Auto-discovery is off, so they were not added; those shapes keep their own materials.");
@@ -601,14 +600,10 @@ public final class StargateShapeRegistry
 
     private static void rebuildKnownStructureMaterials()
     {
-        final Set<Material> materials = new HashSet<Material>();
-        for (final StargateShape shape : getStargateShapes().values())
-        {
-            if (shape.getShapeStructureMaterial() != null)
-            {
-                materials.add(shape.getShapeStructureMaterial());
-            }
-        }
+        final Set<Material> materials = getStargateShapes().values().stream()
+            .map(StargateShape::getShapeStructureMaterial)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
         knownStructureMaterials = Collections.unmodifiableSet(materials);
     }
 }

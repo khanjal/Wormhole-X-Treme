@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -143,11 +142,7 @@ public final class FreyaPreferences
         }
 
         final Map<String, Object> root = new LinkedHashMap<>();
-        final List<String> ids = new ArrayList<>(ENABLED.size());
-        for (final UUID id : ENABLED)
-        {
-            ids.add(id.toString());
-        }
+        final List<String> ids = ENABLED.stream().map(UUID::toString).toList();
         root.put(ENABLED_KEY, ids);
         try
         {
