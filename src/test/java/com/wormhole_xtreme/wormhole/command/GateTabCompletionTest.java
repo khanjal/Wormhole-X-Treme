@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -43,9 +44,11 @@ class GateTabCompletionTest
         clearGates();
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
-        // test JVM. It is a shared static, so put back whatever the rest of the suite had.
+        // test JVM. It is a shared static, so put back whatever the rest of the suite had, and
+        // start from empty so a shape another class left behind cannot join an exact list.
         savedShapes = new HashMap<String, StargateShape>(
             StargateShapeRegistry.getStargateShapes());
+        StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
     }
 
@@ -221,8 +224,11 @@ class GateTabCompletionTest
         StargateShapeRegistry.getStargateShapes().put("Tollan", new StargateShape());
         StargateShapeRegistry.getStargateShapes().put("Atlantis", new StargateShape());
         StargateShapeRegistry.getStargateShapes().put("Taurian", new StargateShape());
+        final List<String> sorted = List.of("Atlantis", "Standard", "Taurian", "Tollan");
+        assertNotEquals(sorted, new ArrayList<>(StargateShapeRegistry.getStargateShapes().keySet()),
+            "the fixture is no test of sorting if the registry already iterates in order");
 
-        assertEquals(List.of("Atlantis", "Standard", "Taurian", "Tollan"), complete("gate", "build", ""),
+        assertEquals(sorted, complete("gate", "build", ""),
             "every shape, alphabetically");
         assertEquals(List.of("Taurian", "Tollan"), complete("gate", "build", "t"),
             "only the shapes starting with what was typed, whatever its case");
