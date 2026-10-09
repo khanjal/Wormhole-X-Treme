@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,6 +73,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
@@ -2435,6 +2437,42 @@ class WindowsTest
         assertNull(Windows.clicked(playerAt(10.5, 7.5), wall));
 
         verifyNoInteractions(wall);
+    }
+
+    /**
+     * A window walked into, a gate's, is drawn through but not barred, and a click into it is no mirror's.
+     *
+     * <p>Barred, the opening would stop a player stepping into the wormhole the view stands in. Once
+     * a gate stopped being offered as a stand-in mirror, only its source's walk-through answer keeps
+     * the barrier off it.
+     */
+    @Test
+    void aWalkedThroughWindowIsDrawnButNotBarred()
+    {
+        MirrorManager.clear();
+        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, arrival);
+        final List<Spot> open = new ArrayList<>();
+        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final GateSource gate = new GateSource("gate:Abydos", banner, shape, open, arrival, "Chulak", 16);
+        final Capture held = Captures.get(Captures.keyOf(arrival));
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        WindowSweep.alsoOffer(() -> Windows.offer(gate, held));
+        try
+        {
+            withServer(WindowSweep::tick);
+        }
+        finally
+        {
+            WindowSweep.alsoOffer(null);
+        }
+
+        final Collection<BlockState> sent = changesTo(viewer, 1).get(0);
+        assertTrue(drawnAs(sent, farOneBlock) > 0, "the far side is drawn through the gate");
+        final Map<Spot, BlockData> drawn = positions(sent);
+        assertNotSame(barrier, drawn.get(new Spot(10, 64, 11)), "the opening is the gate's to walk into");
+        assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)), "all of it");
+        assertNull(Windows.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
     }
 
     /**

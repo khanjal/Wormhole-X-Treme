@@ -34,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -252,6 +253,26 @@ class WindowsGateTest
             captures.verify(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt()), never());
         }
+    }
+
+    /**
+     * A gate whose fill is in is drawn to the full depth, not its first step's.
+     *
+     * <p>The depth rides on the source a gate offers each sweep. Offered at its first step, a view
+     * captured out to 48 blocks would be drawn to 16, and the rest of the fill never shown.
+     */
+    @Test
+    void aGateWhoseFillIsInIsDrawnToTheFullDepth() throws ReflectiveOperationException
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        Captures.install(key(), capture(60));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            assertTrue(GateSource.offer(gate, false));
+        }
+        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+
+        assertEquals(48, offered.get(NAME).depth(), "the fill's depth, not the first step's 16");
     }
 
     @Test
