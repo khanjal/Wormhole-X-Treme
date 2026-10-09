@@ -31,8 +31,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,
   and only with its iris open. Every gate with a ring round its opening shows it through the whole
   opening, Grand and Massive too; a Minimal gate, with no ring, keeps its horizon. A first capture
-  takes a few seconds in the background, and the fill behind it up to a minute and a half over open
-  sky, one gate at a time; over open ground the fill is cut to fit about 50 blocks out. An existing
+  takes a few seconds in the background, and the fill behind it up to half a minute over open
+  sky, one gate at a time. An existing
   `config.yml` keeps the old comment on `gate-view`, which is harmless. `gate-view-depth` (32) is how
   far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.

@@ -667,9 +667,9 @@ Grand and Massive gates showed.
 **What it costs.** The sift works out what can be seen, off the main thread, and the eighteen-square
 hole sends some fifteen million rays where a mirror's sends under two. Over flat ground it took
 about 2.7 seconds for the first step and 7 for a fill to 160, where a mirror's hole takes 0.3 and
-1.1. Over open sky, where no ray stops until its reach, one pass to 160 took 34 seconds, and the
-fill, cut to fit by passes a quarter shorter each time, a minute and a half: a mirror's, 4.5 and
-13. That is one of the server's background threads, and the fill comes in late; the first step
+1.1. Over open sky, where no ray stops until its reach, one pass to 160 took 34 seconds (a gate's
+capture is one pass; a mirror's is cut to fit by passes a quarter shorter each time): a mirror's,
+4.5 and 13. That is one of the server's background threads, and the fill comes in late; the first step
 does not wait for it. A capture through the bigger hole sees more near ground, so over open
 ground a fill keeps more than an eight-by-eight one's. A gate's capture is not cut to a count of
 blocks, as a mirror's is (`MOST_KEPT`); what is kept is all the opening can see, and a view that
@@ -699,8 +699,8 @@ once rather than after its far side has been read off the disk. Removing a gate 
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
 - **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the
-  first step, and ten minutes old if it holds the fill: a fill is the whole cut-to-fit loop, over open
-  sky a minute and a half of a core, and a gate dialled every two minutes kept one sifting for as
+  first step, and ten minutes old if it holds the fill: a fill is a pass to the full depth, over open
+  sky half a minute of a core, and a gate dialled every two minutes kept one sifting for as
   long as it was used. The dial is the
   first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in. A sign
   dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
@@ -735,8 +735,8 @@ nobody is waiting on it and most of it comes off the disk. The first step is dra
 the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
 is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
 its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
-fill too big to keep is cut to fit, never shallower than the first step, and the view is drawn
-only as far as the cut left it, past which this world shows; a capture that fails is tried again
+view too big to draw is drawn only as far as the million blocks a gate's view may hold reach,
+past which this world shows; a capture that fails is tried again
 five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
 viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
 stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times

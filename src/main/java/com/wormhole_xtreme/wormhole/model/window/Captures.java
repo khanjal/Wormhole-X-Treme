@@ -35,6 +35,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Every {@link Capture} the server has, and the taking of new ones.
@@ -677,10 +678,13 @@ public final class Captures
             return NO_CELLS;
         }
         final List<int[]> cells = new ArrayList<>();
-        if (found.getGateNameBlockHolder() != null)
+        if ((found.getGateNameBlockHolder() != null) && (found.getGateFacing() != null))
         {
             final Block name = found.getGateNameBlockHolder().getRelative(found.getGateFacing());
-            cells.add(new int[] { name.getX(), name.getY(), name.getZ() });
+            if (MaterialUtils.isWallSign(name.getType()))
+            {
+                cells.add(new int[] { name.getX(), name.getY(), name.getZ() });
+            }
         }
         return cells.toArray(new int[0][]);
     }
@@ -754,8 +758,7 @@ public final class Captures
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of " + what + " in "
             + far.getName() + " around " + key);
         final int reach = (depth > 0) ? depth : reach(far);
-        // A gate's may be cut to fit as far back as its first step, as a mirror's may be to its view depth:
-        // with the floor at the reach, the cut to MOST_KEPT never ran, and a fill onto a jungle kept millions.
+        // Only a mirror's sift is cut to fit, and never short of the floor; a gate's sift ignores it.
         final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewDepth()) : ConfigManager.getMirrorViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
@@ -1067,7 +1070,7 @@ public final class Captures
         /** The sift, once the chunks are noted, waiting its turn if it is a gate's. */
         private Runnable work;
         private BukkitTask task;
-        /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
+        /** How far the capture was asked to see, and how far it saw; a mirror's is cut to fit {@link #MOST_KEPT}, a gate's is not. */
         private int reachAsked;
         private volatile int reachKept;
         /** The hole the capture is seen through. */
@@ -1238,7 +1241,7 @@ public final class Captures
             reachAsked = depth;
             reachKept = depth;
             // Under two million rays through a mirror's hole and some fifteen million through a
-            // gate's, repeated for each cut to fit: seconds, and over open sky a minute or more. Off
+            // gate's, repeated for a mirror's cut to fit: seconds, and over open sky half a minute or more. Off
             // the main thread, since the box is noted and nothing here reads the world again.
             work = () -> reachKept = siftFor(key).sift(builder, arrival, depth, floor);
             if (key.startsWith(GATE_KEY))

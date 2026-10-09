@@ -715,6 +715,7 @@ class CapturesTest
         when(signBlock.getX()).thenReturn(100);
         when(signBlock.getY()).thenReturn(66);
         when(signBlock.getZ()).thenReturn(-21);
+        when(signBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
         final Stargate abydos = mock(Stargate.class);
         when(abydos.getGateNameBlockHolder()).thenReturn(holder);
         when(abydos.getGateFacing()).thenReturn(BlockFace.SOUTH);
@@ -734,6 +735,65 @@ class CapturesTest
         assertNotNull(capture);
         assertNotEquals(sand, capture.at(100, 66, -21), "the sign's own block is not drawn");
         assertEquals(sand, capture.at(100, 66, -22), "though the ground beside it is");
+    }
+
+    /**
+     * Only a sign is blanked: a gate whose name sign is gone keeps whatever stands in its place.
+     *
+     * <p>The holder survives in the gate's record when the sign is removed or built over, and the
+     * blank was taken on trust.
+     */
+    @Test
+    void aBlockThatIsNoLongerTheNameSignIsKept() throws Exception
+    {
+        final Pool pool = new Pool();
+        Captures.siftWith((builder, from, reach, floor) -> reach);
+        final Block holder = mock(Block.class);
+        final Block where = mock(Block.class);
+        when(holder.getRelative(BlockFace.SOUTH)).thenReturn(where);
+        when(where.getX()).thenReturn(100);
+        when(where.getY()).thenReturn(66);
+        when(where.getZ()).thenReturn(-21);
+        when(where.getType()).thenReturn(Material.STONE);
+        final Stargate abydos = mock(Stargate.class);
+        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
+        when(abydos.getGateFacing()).thenReturn(BlockFace.SOUTH);
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
+            withServer(() ->
+            {
+                requestGate("Abydos", 0);
+                pool.tickUntilIdle();
+            });
+        }
+
+        assertEquals(sand, Captures.get(Captures.gateKey("Abydos", Captures.GATE_OPENING,
+            Captures.GATE_OPENING)).at(100, 66, -21), "a block that is not a sign is drawn");
+    }
+
+    /** A gate with a name holder and no facing is captured without a sign blanked, not thrown out of the sweep. */
+    @Test
+    void aGateWithNoFacingIsCapturedWithoutBlankingASign() throws Exception
+    {
+        final Pool pool = new Pool();
+        Captures.siftWith((builder, from, reach, floor) -> reach);
+        final Stargate abydos = mock(Stargate.class);
+        when(abydos.getGateNameBlockHolder()).thenReturn(mock(Block.class));
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
+            withServer(() ->
+            {
+                requestGate("Abydos", 0);
+                pool.tickUntilIdle();
+            });
+        }
+
+        assertNotNull(Captures.get(Captures.gateKey("Abydos", Captures.GATE_OPENING,
+            Captures.GATE_OPENING)));
     }
 
     /**
