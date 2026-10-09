@@ -385,7 +385,7 @@ public final class Captures
      *            how far the view would be drawn
      * @return blocks
      */
-    static int drawableReach(final Capture capture, final int depth)
+    public static int drawableReach(final Capture capture, final int depth)
     {
         final int kept = capture.keptReach();
         return (kept > 0) ? Math.min(depth, kept) : depth;
@@ -398,7 +398,7 @@ public final class Captures
      *            how far ahead the view draws
      * @return true if the block that far ahead is inside it
      */
-    static boolean reaches(final Capture capture, final Place arrival, final int depth)
+    public static boolean reaches(final Capture capture, final Place arrival, final int depth)
     {
         final WindowShape.Spot ahead = WindowShape.aheadOf(arrival.yaw());
         return capture.contains((int) Math.floor(arrival.x()) + (ahead.x() * depth), (int) Math.floor(arrival.y()),
@@ -586,7 +586,7 @@ public final class Captures
      *
      * @return the capture, or null if none has been taken yet
      */
-    static Capture get(final String key)
+    public static Capture get(final String key)
     {
         final long now = System.currentTimeMillis();
         final Held held = LOADED.get(key);

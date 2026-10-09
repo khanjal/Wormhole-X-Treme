@@ -122,7 +122,7 @@ class WindowsGateTest
             // The far world is not loaded, so the capture cannot even be started.
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(Windows.offerGate(gate, true), "nothing to draw from, so it keeps its horizon");
+            assertFalse(GateSource.offer(gate, true), "nothing to draw from, so it keeps its horizon");
             assertFalse(Windows.holdsWindow(NAME));
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
@@ -133,7 +133,7 @@ class WindowsGateTest
     {
         Captures.install(key(), capture(32));
 
-        assertTrue(Windows.offerGate(gate, true), "its capture is in");
+        assertTrue(GateSource.offer(gate, true), "its capture is in");
         assertTrue(Windows.holdsWindow(NAME), "and the sweep holds it");
     }
 
@@ -145,7 +145,7 @@ class WindowsGateTest
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(Windows.offerGate(gate, true),
+            assertFalse(GateSource.offer(gate, true),
                 "a capture seen through a mirror's three by two is not drawn through a five by five");
         }
     }
@@ -164,7 +164,7 @@ class WindowsGateTest
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertTrue(Windows.offerGate(gate, false), "drawn from what there is");
+            assertTrue(GateSource.offer(gate, false), "drawn from what there is");
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
     }
@@ -175,7 +175,7 @@ class WindowsGateTest
         Captures.install(key(), capture(32));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
-            assertTrue(Windows.offerGate(gate, true));
+            assertTrue(GateSource.offer(gate, true));
             bukkit.verify(() -> Bukkit.getWorld(anyString()), never());
         }
     }
@@ -193,7 +193,7 @@ class WindowsGateTest
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            Windows.prepareGate(gate);
+            GateSource.prepare(gate);
 
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
@@ -203,10 +203,10 @@ class WindowsGateTest
     void aGateStaysAWindowAcrossSweepsUntilItIsReleased()
     {
         Captures.install(key(), capture(32));
-        assertTrue(Windows.offerGate(gate, true));
+        assertTrue(GateSource.offer(gate, true));
         Windows.finish();
 
-        assertTrue(Windows.offerGate(gate, false), "offered again the next sweep");
+        assertTrue(GateSource.offer(gate, false), "offered again the next sweep");
         Windows.finish();
         assertTrue(Windows.holdsWindow(NAME), "a window between sweeps");
 
@@ -234,7 +234,7 @@ class WindowsGateTest
             captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertTrue(Windows.offerGate(gate, false), "the first step is drawn meanwhile");
+            assertTrue(GateSource.offer(gate, false), "the first step is drawn meanwhile");
             captures.verify(() -> Captures.requestGate(eq(key), eq("Chulak"), any(Place.class), eq(18),
                 eq(18), eq(48)), times(1));
         }
@@ -248,7 +248,7 @@ class WindowsGateTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            assertTrue(Windows.offerGate(gate, false));
+            assertTrue(GateSource.offer(gate, false));
             captures.verify(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt()), never());
         }
@@ -257,14 +257,14 @@ class WindowsGateTest
     @Test
     void theFullDepthIsTheFirstStepsWhereItIsOffOrShallower()
     {
-        assertEquals(16, Windows.fullDepthOf(gate), "off");
+        assertEquals(16, gate.fullDepth(), "off");
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 8);
-        assertEquals(16, Windows.fullDepthOf(gate), "shallower than the first step");
+        assertEquals(16, gate.fullDepth(), "shallower than the first step");
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             // The far world not loaded to ask: as far as it is set.
-            assertEquals(48, Windows.fullDepthOf(gate));
+            assertEquals(48, gate.fullDepth());
         }
     }
 
@@ -315,7 +315,7 @@ class WindowsGateTest
                     asked.merge(call.getArgument(5), 1, Integer::sum);
                     return true;
                 });
-            assertTrue(Windows.offerGate(gate, true), "drawn from the capture it has meanwhile");
+            assertTrue(GateSource.offer(gate, true), "drawn from the capture it has meanwhile");
         }
         return asked;
     }
@@ -364,7 +364,7 @@ class WindowsGateTest
             captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertTrue(Windows.offerGate(gate, true), "drawn from the old one meanwhile");
+            assertTrue(GateSource.offer(gate, true), "drawn from the old one meanwhile");
             captures.verify(() -> Captures.requestGate(eq(key), anyString(), any(Place.class), anyInt(),
                 anyInt(), eq(48)), times(1));
             captures.verify(() -> Captures.requestGate(eq(key), anyString(), any(Place.class), anyInt(),
@@ -380,7 +380,7 @@ class WindowsGateTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            assertTrue(Windows.offerGate(gate, false));
+            assertTrue(GateSource.offer(gate, false));
             captures.verify(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt()), never());
         }
@@ -435,7 +435,7 @@ class WindowsGateTest
             captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertFalse(Windows.offerGate(standard, true));
+            assertFalse(GateSource.offer(standard, true));
             captures.verify(() -> Captures.requestGate(eq(key), eq("Chulak"), any(Place.class), eq(18), eq(18),
                 eq(16)), times(1));
         }

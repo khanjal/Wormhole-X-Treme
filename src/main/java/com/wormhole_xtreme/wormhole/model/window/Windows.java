@@ -34,7 +34,6 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
@@ -622,139 +621,11 @@ public final class Windows
      */
     private static int deepest(final List<WindowState> seeing)
     {
-        return seeing.stream().mapToInt(window -> window.depth()).max().orElse(ConfigManager.getMirrorViewDepth());
+        return seeing.stream().mapToInt(WindowState::depth).max().orElse(ConfigManager.getMirrorViewDepth());
     }
 
     /**
-     * A gate's capture of its first step alone, older than this, is retaken as the gate is dialled or
-     * opens, the old one drawn until the new is ready.
-     */
-    static final long GATE_CAPTURE_SECONDS = 60L;
-
-    /**
-     * The same for a capture that holds the fill (#516): ten minutes, as for somebody standing at the gate.
-     *
-     * <p>A minute was priced for a capture of seconds. A fill is the whole cut-to-fit loop, over open
-     * sky a minute and a half of a core and two passes over some 440 chunks, so a gate dialled every
-     * two minutes kept a core sifting for as long as it was used. The old capture is drawn meanwhile,
-     * so a remote gate still shows its view at once.
-     */
-    static final long GATE_FILL_CAPTURE_SECONDS = 600L;
-
-    /**
-     * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
-     *
-     * <p>Drawn as a mirror's is, but walked through: never barred, never punched through, and its
-     * opening left to the gate's own horizon. Drawn from the capture kept for it, which survives a
-     * restart, and asked for again when it is missing, shallower than the depth, or old as the gate opens.
-     *
-     * @param gate
-     *            the gate, as the drawing sees it
-     * @param opened
-     *            true on the first sweep since the gate or its iris opened
-     * @return true if it is a window now, false while its first capture is being taken
-     */
-    public static boolean offerGate(final GateSource gate, final boolean opened)
-    {
-        final Capture capture = gateCapture(gate, opened);
-        if (capture == null)
-        {
-            return false;
-        }
-        offer(gate.drawnTo(drawDepthOf(gate, capture)), capture);
-        return true;
-    }
-
-    /**
-     * Makes sure a gate's capture is on its way as the gate is dialled, before its kawoosh.
-     *
-     * <p>Waiting for the first sweep after the kawoosh cost that long again before anything showed,
-     * and a capture of somewhere nobody had loaded starts with reading it off the disk.
-     *
-     * @param gate
-     *            the gate, as the drawing sees it
-     */
-    public static void prepareGate(final GateSource gate)
-    {
-        gateCapture(gate, true);
-    }
-
-    /**
-     * The capture a gate is drawn from, asking for the next step of it: the first, out to
-     * {@code gate-view-depth}, if it has none or it is shallower than that; a retake at the depth it
-     * is drawn to, if the gate has just opened and it is old; otherwise the fill out to
-     * {@code gate-view-full-depth}, behind the first, if it does not reach that yet.
-     *
-     * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
-     * fill several times that, most of them read off the disk. A retake keeps the depth drawn, the
-     * old capture shown until it lands, so an opening never shrinks the view.
-     *
-     * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
-     */
-    private static Capture gateCapture(final GateSource gate, final boolean opened)
-    {
-        final Capture capture = Captures.get(gate.captureKey());
-        final int full = fullDepthOf(gate);
-        final int ask;
-        if ((capture == null) || !Captures.reaches(capture, gate.destination(), gate.step()))
-        {
-            ask = gate.step();
-        }
-        else if (opened && (capture.secondsOld() > retakeAfter(gate, capture)))
-        {
-            // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
-            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
-            ask = drawDepthOf(gate, capture);
-        }
-        else
-        {
-            ask = Captures.reaches(capture, gate.destination(), full) ? 0 : full;
-        }
-        if (ask > 0)
-        {
-            Captures.requestGate(gate.captureKey(), gate.target(), gate.destination(), Captures.GATE_OPENING,
-                Captures.GATE_OPENING, ask);
-        }
-        return capture;
-    }
-
-    /**
-     * How old a gate's capture may be before an opening retakes it: a minute for one of the first
-     * step alone, ten for one holding the fill.
-     *
-     * @return seconds
-     */
-    static long retakeAfter(final GateSource gate, final Capture capture)
-    {
-        // The box, not the depth drawn: a fill cut to fit cost as much as one that was not.
-        final int full = fullDepthOf(gate);
-        return ((full > gate.step()) && Captures.reaches(capture, gate.destination(), full))
-            ? GATE_FILL_CAPTURE_SECONDS : GATE_CAPTURE_SECONDS;
-    }
-
-    /**
-     * How far a gate's view is filled in behind its first step.
-     *
-     * @return {@link Captures#gateFillDepth}
-     */
-    static int fullDepthOf(final GateSource gate)
-    {
-        return Captures.gateFillDepth(gate.destination(), gate.step());
-    }
-
-    /**
-     * How deep a gate is drawn from its capture: the full depth once the fill is in, and the first
-     * step's until then; never past where a cut to fit left it.
-     */
-    private static int drawDepthOf(final GateSource gate, final Capture capture)
-    {
-        final int full = fullDepthOf(gate);
-        return Captures.reaches(capture, gate.destination(), full) ? Captures.drawableReach(capture, full)
-            : gate.step();
-    }
-
-    /**
-     * Whether a gate's window is being drawn for anybody: its capture is in and it was offered.
+     * Whether a window is being drawn for anybody: its capture is in and it was offered.
      *
      * @param name
      *            the name it was offered under

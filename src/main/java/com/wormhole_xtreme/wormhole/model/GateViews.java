@@ -215,7 +215,7 @@ public final class GateViews
             : shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), Place.of(arrival));
         if (shape != null)
         {
-            Windows.prepareGate(windowOf(gate, shape));
+            GateSource.prepare(windowOf(gate, shape));
         }
     }
 
@@ -284,7 +284,7 @@ public final class GateViews
         {
             return;
         }
-        final boolean drawn = Windows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
+        final boolean drawn = GateSource.offer(windowOf(gate, shape), !OPEN.contains(name));
         if (drawn && clears && !crossing)
         {
             clear.add(name);
