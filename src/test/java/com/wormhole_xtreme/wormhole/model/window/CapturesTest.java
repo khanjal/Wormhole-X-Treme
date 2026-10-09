@@ -780,7 +780,8 @@ class CapturesTest
         final Pool pool = new Pool();
         Captures.siftWith((builder, from, reach, floor) -> reach);
         final Stargate abydos = mock(Stargate.class);
-        when(abydos.getGateNameBlockHolder()).thenReturn(mock(Block.class));
+        final Block holder = mock(Block.class);
+        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
 
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
         {
