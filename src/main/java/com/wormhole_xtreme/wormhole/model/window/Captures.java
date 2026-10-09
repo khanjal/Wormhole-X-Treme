@@ -1380,9 +1380,10 @@ public final class Captures
             FAILED.remove(key);
             FAILED_AT.remove(key);
             changed();
+            final int most = key.startsWith(GATE_KEY) ? mostGateKept : mostKept;
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
-                    + " blocks ahead to keep under " + (key.startsWith(GATE_KEY) ? mostGateKept : mostKept) + " blocks") : ""));
+                    + " blocks ahead to keep under " + most + " blocks") : ""));
             save(capture, fileOf(key));
         }
 
