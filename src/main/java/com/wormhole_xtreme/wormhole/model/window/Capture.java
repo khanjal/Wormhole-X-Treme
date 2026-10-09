@@ -92,7 +92,7 @@ public final class Capture
     private BlockData standIn;
 
     /**
-     * How far ahead of its arrival this capture kept, where a mirror's cut to fit {@code MOST_KEPT} made
+     * How far ahead of its arrival this capture kept, where a cut to fit {@code MOST_KEPT} made
      * that short of its box; -1 for a capture never cut. The box is not shrunk with it, so a view
      * does not ask again for a depth the cut will only take away again.
      */

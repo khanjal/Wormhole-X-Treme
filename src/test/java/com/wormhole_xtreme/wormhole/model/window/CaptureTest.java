@@ -622,15 +622,17 @@ class CaptureTest
     }
 
     /**
-     * A gate's capture is not cut to a count of blocks, though a mirror's is.
+     * A gate's capture is cut to a budget of its own, a million blocks, where a mirror's is 500,000.
      *
      * <p>The cut keeps a mirror's room to about five megabytes by shortening how far it sees. A gate
-     * is seen through a far wider hole and is meant to be deep, so it keeps what it sees.
+     * is seen through a far wider hole and is meant to be deep, and its view draws at most a million
+     * blocks, so none are kept past that.
      */
     @Test
-    void aGateCaptureKeepsItsWholeReachWhereAMirrorsIsCutToABudget()
+    void aGateCaptureIsCutToItsOwnBudgetWhereAMirrorsIsCutToAnother()
     {
-        final int before = Captures.mostKept;
+        final int mirrorBefore = Captures.mostKept;
+        final int gateBefore = Captures.mostGateKept;
         Captures.mostKept = 2000;
         try
         {
@@ -638,16 +640,23 @@ class CaptureTest
             final Capture.Builder mirror = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
             mirror.fillBelow(21, glass);
             assertEquals(8, Captures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
-                "a mirror's capture is cut to the floor to fit the budget");
+                "a mirror's capture is cut to the floor to fit its budget");
 
-            final Capture.Builder gate = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
-            gate.fillBelow(21, glass);
-            assertEquals(32, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(gate, arrival, 32, 8),
-                "a gate's keeps the reach it was asked for");
+            final Capture.Builder roomy = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
+            roomy.fillBelow(21, glass);
+            assertEquals(32, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(roomy, arrival, 32, 8),
+                "a gate's is not cut to a mirror's budget");
+
+            Captures.mostGateKept = 2000;
+            final Capture.Builder tight = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
+            tight.fillBelow(21, glass);
+            assertEquals(8, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(tight, arrival, 32, 8),
+                "but is cut to its own");
         }
         finally
         {
-            Captures.mostKept = before;
+            Captures.mostKept = mirrorBefore;
+            Captures.mostGateKept = gateBefore;
         }
     }
 

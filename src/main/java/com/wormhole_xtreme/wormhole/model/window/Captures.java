@@ -109,7 +109,6 @@ public final class Captures
 
     /**
      * Most blocks that are not air a mirror's capture may keep; past it, the reach is cut until it fits.
-     * A gate's capture is not cut: it is as deep as its view is asked to be.
      *
      * <p>A room of hills and trees at ten chunks keeps a few hundred thousand. A jungle or an
      * ocean bed, seen through leaves or water, could keep millions: tens of megabytes on disk,
@@ -197,6 +196,12 @@ public final class Captures
     /** What a mirror's capture may keep; the field is for a test to lower. */
     static int mostKept = MOST_KEPT;
 
+    /** What a gate's capture may keep: as many as its view may draw ({@code Windows.mostGateFixed}). */
+    static final int MOST_GATE_KEPT = 1_000_000;
+
+    /** What a gate's capture may keep; the field is for a test to lower. */
+    static int mostGateKept = MOST_GATE_KEPT;
+
     private static final Sifter SIFT = (builder, from, reach, floor) ->
     {
         final int kept = builder.keepOnlySeenWithin(from, reach, floor, mostKept);
@@ -204,10 +209,10 @@ public final class Captures
         return kept;
     };
 
-    /** A gate's sift: the reach is never cut to fit a count of blocks, so a gate's view is as deep as it was asked to be. */
+    /** A gate's sift: cut to fit as many blocks as its view may draw, so a capture never holds more than a view can use. */
     private static final Sifter GATE_SIFT = (builder, from, reach, floor) ->
     {
-        final int kept = builder.keepOnlySeenWithin(from, reach, floor, Integer.MAX_VALUE);
+        final int kept = builder.keepOnlySeenWithin(from, reach, floor, mostGateKept);
         builder.prune();
         return kept;
     };
@@ -758,7 +763,7 @@ public final class Captures
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of " + what + " in "
             + far.getName() + " around " + key);
         final int reach = (depth > 0) ? depth : reach(far);
-        // Only a mirror's sift is cut to fit, and never short of the floor; a gate's sift ignores it.
+        // A sift is cut to fit its budget as far back as the floor, never short of it: a mirror's view depth, a gate's first step.
         final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewDepth()) : ConfigManager.getMirrorViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
@@ -1070,7 +1075,7 @@ public final class Captures
         /** The sift, once the chunks are noted, waiting its turn if it is a gate's. */
         private Runnable work;
         private BukkitTask task;
-        /** How far the capture was asked to see, and how far it saw; a mirror's is cut to fit {@link #MOST_KEPT}, a gate's is not. */
+        /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}, or {@link #MOST_GATE_KEPT} for a gate. */
         private int reachAsked;
         private volatile int reachKept;
         /** The hole the capture is seen through. */
@@ -1377,7 +1382,7 @@ public final class Captures
             changed();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
-                    + " blocks ahead to keep under " + MOST_KEPT + " blocks") : ""));
+                    + " blocks ahead to keep under " + (key.startsWith(GATE_KEY) ? mostGateKept : mostKept) + " blocks") : ""));
             save(capture, fileOf(key));
         }
 
