@@ -5,10 +5,14 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -134,7 +138,51 @@ public final class WindowSweep
         }
         // Nobody at it any more: back to its own room.
         MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null));
-        Windows.offer(mirror, block);
+        offerMirror(mirror, block);
+    }
+
+    /**
+     * Offers a mirror to the sweep in progress, if its banner hangs on a wall.
+     *
+     * <p>A mirror whose far side has not been captured yet is not a window until it has; the
+     * capture is asked for, and the mirror stays a banner meanwhile. A mirror whose capture has
+     * been outgrown asks for a fresh one, and keeps showing the old until it arrives.
+     *
+     * @param mirror
+     *            a mirror with somewhere to go
+     * @param banner
+     *            its loaded banner block
+     * @return true if it is a window
+     */
+    static boolean offerMirror(final QuantumMirror mirror, final Block banner)
+    {
+        final BlockData data = banner.getBlockData();
+        // A banner on a post is no window: nothing hides its room past its edges, and create refuses one.
+        if (!(data instanceof Directional))
+        {
+            return false;
+        }
+        // The room of the mirror chosen at it, or its own, shown as a reflection.
+        final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
+        final QuantumMirror showing = (chosen == mirror) ? mirror : mirror.withDestination(chosen.destination());
+        final WindowShape shape = WindowShape.of(mirror.banner(), MirrorArrival.facingOf(data),
+            showing.destination(), MirrorNetwork.reflects(mirror), mirror.width());
+        if (shape == null)
+        {
+            return false;
+        }
+        final Capture capture = Captures.get(showing);
+        if (capture == null)
+        {
+            Captures.request(showing);
+            return false;
+        }
+        if (Captures.outgrown(showing, capture))
+        {
+            Captures.request(showing);
+        }
+        Windows.offer(new MirrorSource(showing, banner, shape, Windows.openCells(shape, banner.getWorld())), capture);
+        return true;
     }
 
     /** The live banner block, or null if it cannot be reached or is no longer a banner. */

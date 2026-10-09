@@ -16,7 +16,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
@@ -221,12 +220,12 @@ public final class GateViews
     }
 
     /** An open gate as the window drawing sees it. */
-    private static GateWindow windowOf(final Stargate gate, final WindowShape shape)
+    private static GateSource windowOf(final Stargate gate, final WindowShape shape)
     {
         final List<Spot> open = cellsOf(gate);
         final Spot middle = middleOf(open);
         final Stargate target = gate.getGateTarget();
-        return new GateWindow(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
+        return new GateSource(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
             shape, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
             ConfigManager.getGateViewDepth());
     }

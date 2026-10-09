@@ -37,7 +37,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
+import com.wormhole_xtreme.wormhole.model.GateSource;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
@@ -63,7 +64,7 @@ class WindowsGateTest
 
     private World world;
     private Block anchor;
-    private GateWindow gate;
+    private GateSource gate;
 
     @BeforeEach
     void setUp() throws Exception
@@ -89,7 +90,7 @@ class WindowsGateTest
         final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 5, 5);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        gate = new GateWindow(NAME, anchor, shape, open, ARRIVAL, "Chulak", 16);
+        gate = new GateSource(NAME, anchor, shape, open, ARRIVAL, "Chulak", 16);
     }
 
     @AfterEach
@@ -278,8 +279,8 @@ class WindowsGateTest
     {
         final Capture held = capture(32);
         final QuantumMirror stand = new QuantumMirror(NAME, BlockPlace.of(anchor), ARRIVAL);
-        final WindowState gateWindow = new WindowState(stand, gate.shape(), anchor, gate.open(), held, true, 16);
-        final WindowState mirrorWindow = new WindowState(stand, gate.shape(), anchor, gate.open(), held, false, 16);
+        final WindowState gateWindow = new WindowState(gate, held);
+        final WindowState mirrorWindow = new WindowState(new MirrorSource(stand, anchor, gate.shape(), gate.open(), 16), held);
 
         assertEquals(1_000_000, Windows.mostFixedFor(gateWindow), "a gate's");
         assertEquals(250_000, Windows.mostFixedFor(mirrorWindow), "a mirror's, as it was");
@@ -408,8 +409,8 @@ class WindowsGateTest
             final Place arrival = new Place("far", 100.5, 70.0, 200.5, (float) facing[0], 0.0f);
             final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 1, 2);
             final Capture held = new Capture.Builder("far", true, (Capture.Box) facing[1], air).build();
-            final WindowState window = new WindowState(new QuantumMirror(NAME, BlockPlace.of(anchor), arrival),
-                shape, anchor, List.of(), held, true, 16);
+            final WindowState window = new WindowState(new GateSource(NAME, anchor, shape, List.of(), arrival, "Chulak", 16),
+                held);
 
             assertEquals(40, Windows.reachAhead(window), "facing yaw " + facing[0]);
         }
@@ -425,7 +426,7 @@ class WindowsGateTest
     void aSmallGateAsksForTheFarGatesOneCapture()
     {
         final WindowShape small = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 1, 2);
-        final GateWindow standard = new GateWindow(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
+        final GateSource standard = new GateSource(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
             ARRIVAL, "Chulak", 16);
         final String key = key();
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -446,8 +447,7 @@ class WindowsGateTest
         final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, wide, tall);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new WindowState(new QuantumMirror(NAME, BlockPlace.of(anchor), ARRIVAL), shape, anchor, open,
-            capture(32), true, 16);
+        return new WindowState(new GateSource(NAME, anchor, shape, open, ARRIVAL, "Chulak", 16), capture(32));
     }
 
     /**

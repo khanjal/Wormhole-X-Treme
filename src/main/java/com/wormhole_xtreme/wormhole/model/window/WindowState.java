@@ -11,16 +11,13 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
-
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
- * One window as the server holds it: its shape, the banner it hangs on, and what it last read.
+ * One window as the server holds it: its shape, what it belongs to, and what it last read.
  *
  * <p>{@link WindowShape} is the shape alone, plain numbers and no server. This is that shape
- * put in a world: the mirror it belongs to, the banner block, the capture it draws from, the
+ * put in a world: the source it was offered by, the capture it draws from, the
  * turn and flip its far-side blocks need, and the wall face and held room as last worked out.
  *
  * <p>Mutable and package-private on purpose. It is the scratch pad {@link Windows} keeps
@@ -30,9 +27,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  */
 final class WindowState
 {
-    final QuantumMirror mirror;
+    final WindowSource source;
     final WindowShape shape;
-    final Block banner;
     final List<Spot> open;
     final Set<Long> openKeys = new HashSet<>();
     final Capture capture;
@@ -61,30 +57,11 @@ final class WindowState
     Windows.Whole full;
     Capture fullFrom;
 
-    /**
-     * A gate's opening rather than a banner's: walked through, so never barred, and with no banner
-     * to take down while it is drawn.
-     */
-    final boolean walkThrough;
-
-    /** How far past the opening its view is drawn: {@code mirror-view-depth} for a mirror, {@code gate-view-depth} for a gate. */
-    final int depth;
-
-    WindowState(final QuantumMirror mirror, final WindowShape shape, final Block banner,
-        final List<Spot> open, final Capture capture)
+    WindowState(final WindowSource source, final Capture capture)
     {
-        this(mirror, shape, banner, open, capture, false, ConfigManager.getMirrorViewDepth());
-    }
-
-    WindowState(final QuantumMirror mirror, final WindowShape shape, final Block banner,
-        final List<Spot> open, final Capture capture, final boolean walkThrough, final int depth)
-    {
-        this.walkThrough = walkThrough;
-        this.depth = depth;
-        this.mirror = mirror;
-        this.shape = shape;
-        this.banner = banner;
-        this.open = open;
+        this.source = source;
+        this.shape = source.shape();
+        this.open = source.open();
         this.capture = capture;
         this.rotation = switch (shape.quarterTurns())
         {
@@ -104,5 +81,29 @@ final class WindowState
                 : Mirror.LEFT_RIGHT;
         }
         open.forEach(cell -> openKeys.add(Windows.key(cell.x(), cell.y(), cell.z())));
+    }
+
+    /** @return what the sweep knows it by */
+    String name()
+    {
+        return source.name();
+    }
+
+    /** @return the block distances to it are measured from */
+    Block anchor()
+    {
+        return source.anchor();
+    }
+
+    /** @return true for an opening walked into, which is never barred, punched through or drawn over */
+    boolean walkThrough()
+    {
+        return source.walkThrough();
+    }
+
+    /** @return how far past the opening its view is drawn */
+    int depth()
+    {
+        return source.depth();
     }
 }
