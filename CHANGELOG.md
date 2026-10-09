@@ -793,7 +793,7 @@ was chosen for scaling with how much exists rather than with how much is happeni
   that way and half by guessing at the working directory.
 - **The plugin singleton is installed in one place**, where seventy-eight tests each did it
   themselves.
-- **Thirty-four command helpers that returned `true` and nothing else** return `void`, and nine
+- **Thirty-four command helpers that returned `true` and nothing else** return `void`, and ten
   class-level `@SuppressWarnings` went with them.
 - **Nine unchecked casts in the tests** are gone, and reflective field access went from 139 sites
   across 87 files to 8 across 7.
