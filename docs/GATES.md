@@ -671,8 +671,9 @@ about 2.7 seconds for the first step and 7 for a fill to 160, where a mirror's h
 fill, cut to fit by passes a quarter shorter each time, a minute and a half: a mirror's, 4.5 and
 13. That is one of the server's background threads, and the fill comes in late; the first step
 does not wait for it. A capture through the bigger hole sees more near ground, so over open
-ground a fill is cut to fit (`MOST_KEPT`) at 50 blocks rather than the 67 an eight-by-eight one
-reached.
+ground a fill keeps more than an eight-by-eight one's. A gate's capture is not cut to a count of
+blocks, as a mirror's is (`MOST_KEPT`); what is kept is all the opening can see, and a view that
+would draw more than the million blocks it may hold is drawn shallower.
 
 On the main thread, a redraw of a gate's view walks every block the view holds, up to the million
 a gate's view may hold: about 13 ms for half a million and 27 for a million, measured on their

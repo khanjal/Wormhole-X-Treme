@@ -622,6 +622,36 @@ class MirrorCaptureTest
     }
 
     /**
+     * A gate's capture is not cut to a count of blocks, though a mirror's is.
+     *
+     * <p>The cut keeps a mirror's room to about five megabytes by shortening how far it sees. A gate
+     * is seen through a far wider hole and is meant to be deep, so it keeps what it sees.
+     */
+    @Test
+    void aGateCaptureKeepsItsWholeReachWhereAMirrorsIsCutToABudget()
+    {
+        final int before = MirrorCaptures.mostKept;
+        MirrorCaptures.mostKept = 2000;
+        try
+        {
+            final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival(10, 2, 0, 0, 1);
+            final MirrorCapture.Builder mirror = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+            mirror.fillBelow(21, glass);
+            assertEquals(8, MirrorCaptures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
+                "a mirror's capture is cut to the floor to fit the budget");
+
+            final MirrorCapture.Builder gate = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+            gate.fillBelow(21, glass);
+            assertEquals(32, MirrorCaptures.siftFor(MirrorCaptures.gateKey("far", 18, 18)).sift(gate, arrival, 32, 8),
+                "a gate's keeps the reach it was asked for");
+        }
+        finally
+        {
+            MirrorCaptures.mostKept = before;
+        }
+    }
+
+    /**
      * A mirror facing north or west sees its room too, with its own wall behind it.
      *
      * <p>"I don't see a reflection at all": a mirror facing north captured 8 blocks and no air.

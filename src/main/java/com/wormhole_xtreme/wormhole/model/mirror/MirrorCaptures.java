@@ -101,7 +101,8 @@ public final class MirrorCaptures
     static final int MOST_REACH = 160;
 
     /**
-     * Most blocks that are not air a capture may keep; past it, the reach is cut until it fits.
+     * Most blocks that are not air a mirror's capture may keep; past it, the reach is cut until it fits.
+     * A gate's capture is not cut: it is as deep as its view is asked to be.
      *
      * <p>A room of hills and trees at ten chunks keeps a few hundred thousand. A jungle or an
      * ocean bed, seen through leaves or water, could keep millions: tens of megabytes on disk,
@@ -186,9 +187,20 @@ public final class MirrorCaptures
         int sift(MirrorCapture.Builder builder, MirrorCapture.Arrival from, int reach, int floor);
     }
 
+    /** What a mirror's capture may keep; the field is for a test to lower. */
+    static int mostKept = MOST_KEPT;
+
     private static final Sifter SIFT = (builder, from, reach, floor) ->
     {
-        final int kept = builder.keepOnlySeenWithin(from, reach, floor, MOST_KEPT);
+        final int kept = builder.keepOnlySeenWithin(from, reach, floor, mostKept);
+        builder.prune();
+        return kept;
+    };
+
+    /** A gate's sift: the reach is never cut to fit a count of blocks, so a gate's view is as deep as it was asked to be. */
+    private static final Sifter GATE_SIFT = (builder, from, reach, floor) ->
+    {
+        final int kept = builder.keepOnlySeenWithin(from, reach, floor, Integer.MAX_VALUE);
         builder.prune();
         return kept;
     };
@@ -234,7 +246,7 @@ public final class MirrorCaptures
     private static ChunkReader reader = (world, chunkX, chunkZ) ->
         world.getChunkAt(chunkX, chunkZ).getChunkSnapshot();
 
-    private static Sifter sifter = SIFT;
+    private static Sifter sifter;
 
     /** A capture in memory and when it was last wanted. */
     private static final class Held
@@ -943,10 +955,20 @@ public final class MirrorCaptures
         reader = other;
     }
 
+    /** @return how a key's capture is sifted: the test's own if one is set, else a gate's, else a mirror's */
+    static Sifter siftFor(final String key)
+    {
+        if (sifter != null)
+        {
+            return sifter;
+        }
+        return key.startsWith(GATE_KEY) ? GATE_SIFT : SIFT;
+    }
+
     /** Sifts captures another way, for a test; null for the usual way. */
     static void siftWith(final Sifter other)
     {
-        sifter = (other == null) ? SIFT : other;
+        sifter = other;
     }
 
     /**
@@ -1177,7 +1199,7 @@ public final class MirrorCaptures
             // Under two million rays through a mirror's hole and some fifteen million through a
             // gate's, repeated for each cut to fit: seconds, and over open sky a minute or more. Off
             // the main thread, since the box is noted and nothing here reads the world again.
-            work = () -> reachKept = sifter.sift(builder, arrival, depth, floor);
+            work = () -> reachKept = siftFor(key).sift(builder, arrival, depth, floor);
             if (key.startsWith(GATE_KEY))
             {
                 GATE_SIFTS.add(this);
