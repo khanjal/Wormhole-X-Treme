@@ -18,6 +18,8 @@ import org.bukkit.inventory.EquipmentSlot;
 
 import com.wormhole_xtreme.wormhole.PetEscort;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
@@ -42,7 +44,7 @@ public final class MirrorInteraction
      * Every banner material, worked out once.
      *
      * <p>This is what keeps a click on an ordinary block cheap. Building a
-     * {@link MirrorBlock} to ask the registry means calling {@code getWorld()} on the block,
+     * {@link BlockPlace} to ask the registry means calling {@code getWorld()} on the block,
      * and that is real work on every click of every block on the server -- there is a test,
      * {@code InteractLoggingCostTest}, that fails if this path touches the world. So the
      * block's own type is checked first: a hash lookup against a set built at class-init,
@@ -104,7 +106,7 @@ public final class MirrorInteraction
             travel(player, mirror);
         }
         // A click the server refused shows the client the real block again, over the view.
-        MirrorWindows.resend(player, block, event.getBlockFace());
+        Windows.resend(player, block, event.getBlockFace());
         return true;
     }
 
@@ -116,10 +118,10 @@ public final class MirrorInteraction
         // a banner at all.
         if (BANNERS.contains(block.getType()))
         {
-            return MirrorManager.at(MirrorBlock.of(block));
+            return MirrorManager.at(BlockPlace.of(block));
         }
         // A window's opening is drawn over a wall, so what was clicked is the wall.
-        final QuantumMirror drawn = MirrorWindows.clicked(player, block);
+        final QuantumMirror drawn = Windows.clicked(player, block);
         return (drawn == null) ? null : MirrorManager.byName(drawn.name());
     }
 
@@ -141,8 +143,8 @@ public final class MirrorInteraction
         // Shown at once, rather than when the sweep next comes round.
         if (!MirrorNetwork.chosen(mirror).name().equals(before))
         {
-            final MirrorBlock at = mirror.banner();
-            MirrorWindows.redraw(mirror, block.getWorld().getBlockAt(at.x(), at.y(), at.z()));
+            final BlockPlace at = mirror.banner();
+            Windows.redraw(mirror, block.getWorld().getBlockAt(at.x(), at.y(), at.z()));
         }
     }
 

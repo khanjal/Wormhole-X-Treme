@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -16,7 +16,7 @@ import java.util.List;
  * <p>The air in a column is a few runs, and a desert at the render distance is a hundred thousand
  * columns rather than tens of millions of blocks of air.
  */
-final class MirrorSeenAir
+final class SeenAir
 {
     /** Every column with air that can be seen, as {@code (dx << 20) | dz}, ascending. */
     private final long[] columns;
@@ -27,7 +27,7 @@ final class MirrorSeenAir
     /** Each run's last y, likewise. */
     private final short[] to;
 
-    private MirrorSeenAir(final long[] columns, final int[] first, final short[] from, final short[] to)
+    private SeenAir(final long[] columns, final int[] first, final short[] from, final short[] to)
     {
         this.columns = columns;
         this.first = first;
@@ -39,12 +39,12 @@ final class MirrorSeenAir
      * The runs of seen air in a box, a column at a time.
      *
      * @param seen
-     *            the air seen, by {@code MirrorCapture.Builder} offset; null for none
+     *            the air seen, by {@code Capture.Builder} offset; null for none
      * @param cleared
      *            blocks blanked to air, which are entries rather than runs
      * @return the runs
      */
-    static MirrorSeenAir of(final BitSet seen, final BitSet cleared, final int sizeX, final int sizeY,
+    static SeenAir of(final BitSet seen, final BitSet cleared, final int sizeX, final int sizeY,
         final int sizeZ)
     {
         final Runs runs = new Runs();
@@ -96,10 +96,10 @@ final class MirrorSeenAir
             }
         }
 
-        MirrorSeenAir done()
+        SeenAir done()
         {
             first.add(from.size());
-            return new MirrorSeenAir(columns.stream().mapToLong(Long::longValue).toArray(),
+            return new SeenAir(columns.stream().mapToLong(Long::longValue).toArray(),
                 first.stream().mapToInt(Integer::intValue).toArray(), shorts(from), shorts(to));
         }
     }
@@ -144,7 +144,7 @@ final class MirrorSeenAir
     }
 
     /** Hands every block of it to {@code kept}, in world coordinates, a column at a time. */
-    void forEach(final int minX, final int minY, final int minZ, final MirrorCapture.Kept kept)
+    void forEach(final int minX, final int minY, final int minZ, final Capture.Kept kept)
     {
         for (int column = 0; column < columns.length; column++)
         {
@@ -181,7 +181,7 @@ final class MirrorSeenAir
      * @throws IOException
      *             if it is cut short, or holds more than a box of this size could
      */
-    static MirrorSeenAir read(final DataInputStream in, final File file, final int sizeX, final int sizeY,
+    static SeenAir read(final DataInputStream in, final File file, final int sizeX, final int sizeY,
         final int sizeZ) throws IOException
     {
         final int count = in.readInt();
@@ -209,6 +209,6 @@ final class MirrorSeenAir
             }
         }
         first[count] = from.size();
-        return new MirrorSeenAir(columns, first, shorts(from), shorts(to));
+        return new SeenAir(columns, first, shorts(from), shorts(to));
     }
 }

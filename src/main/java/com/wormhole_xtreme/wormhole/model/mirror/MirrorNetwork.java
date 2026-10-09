@@ -17,6 +17,9 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
 
 /**
  * Which mirror each mirror opens onto, and how somebody standing at one changes it.
@@ -67,7 +70,7 @@ public final class MirrorNetwork
      * @return in front of the wall, in the banner's own column, level with the bottom of the
      *         opening and facing out; or null if the block is not a wall banner
      */
-    public static MirrorPoint roomOf(final Block banner)
+    public static Place roomOf(final Block banner)
     {
         return roomOf(banner, 1);
     }
@@ -84,7 +87,7 @@ public final class MirrorNetwork
      *            one banner or two
      * @return the room, or null if the block is not a wall banner
      */
-    public static MirrorPoint roomOf(final Block banner, final int width)
+    public static Place roomOf(final Block banner, final int width)
     {
         if ((banner == null) || !(banner.getBlockData() instanceof Directional directional))
         {
@@ -94,8 +97,8 @@ public final class MirrorNetwork
         // Right, looking at the wall; a hair short of the boundary, so the column stays the left one.
         final double shift = (width >= 2) ? 0.49 : 0.0;
         // The banner hangs at the top of the opening; a traveller's feet go at its bottom.
-        final int floor = banner.getY() - (MirrorWindow.HEIGHT - 1);
-        return new MirrorPoint(banner.getWorld().getName(), banner.getX() + 0.5 + (shift * facing.getModZ()),
+        final int floor = banner.getY() - (WindowShape.HEIGHT - 1);
+        return new Place(banner.getWorld().getName(), banner.getX() + 0.5 + (shift * facing.getModZ()),
             floor, banner.getZ() + 0.5 - (shift * facing.getModX()),
             MirrorArrival.yawOf(facing), 0.0f);
     }
@@ -110,11 +113,11 @@ public final class MirrorNetwork
      */
     public static boolean isOwnRoom(final QuantumMirror mirror)
     {
-        final MirrorPoint room = mirror.destination();
-        final MirrorBlock banner = mirror.banner();
+        final Place room = mirror.destination();
+        final BlockPlace banner = mirror.banner();
         return (room != null) && room.worldName().equals(banner.worldName())
             && ((int) Math.floor(room.x()) == banner.x()) && ((int) Math.floor(room.z()) == banner.z())
-            && ((int) Math.floor(room.y()) == (banner.y() - (MirrorWindow.HEIGHT - 1)));
+            && ((int) Math.floor(room.y()) == (banner.y() - (WindowShape.HEIGHT - 1)));
     }
 
     /**
@@ -245,7 +248,7 @@ public final class MirrorNetwork
      *            a player not to count, or null
      * @return true if somebody is
      */
-    public static boolean anybodyNear(final World world, final MirrorBlock banner, final Player except)
+    public static boolean anybodyNear(final World world, final BlockPlace banner, final Player except)
     {
         final double reach = ConfigManager.getMirrorProximityDistance();
         for (final Player player : world.getPlayers())
@@ -259,7 +262,7 @@ public final class MirrorNetwork
     }
 
     /** Whether a place is within a distance of a banner; never for no place. */
-    private static boolean within(final Location at, final MirrorBlock banner, final double reach)
+    private static boolean within(final Location at, final BlockPlace banner, final double reach)
     {
         if (at == null)
         {

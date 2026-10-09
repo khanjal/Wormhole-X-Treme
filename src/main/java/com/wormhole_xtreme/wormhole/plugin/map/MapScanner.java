@@ -17,7 +17,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
@@ -394,7 +394,7 @@ public final class MapScanner
      */
     private static MirrorMark mirrorMark(final QuantumMirror mirror)
     {
-        final MirrorBlock banner = mirror.banner();
+        final BlockPlace banner = mirror.banner();
         if ((mirror.name() == null) || (banner == null) || (banner.worldName() == null))
         {
             return null;

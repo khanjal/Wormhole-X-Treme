@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.model.window.Place;
+
 /**
  * Reading the far side of a mirror.
  *
@@ -34,7 +36,7 @@ import org.mockito.MockedStatic;
 class MirrorViewTest
 {
     /** The destination every test looks at. */
-    private static final MirrorPoint POINT = new MirrorPoint("far", 100, 64, 200, 0f, 0f);
+    private static final Place POINT = new Place("far", 100, 64, 200, 0f, 0f);
 
     @Test
     void cannotLookAtAWorldThatIsNotLoaded()
@@ -122,7 +124,7 @@ class MirrorViewTest
     @Test
     void doesNotSampleBelowTheWorldsOwnFloor()
     {
-        final MirrorPoint bottom = new MirrorPoint("far", 100, -63, 200, 0f, 0f);
+        final Place bottom = new Place("far", 100, -63, 200, 0f, 0f);
         final World world = mock(World.class);
         final List<Integer> read = new ArrayList<>();
         when(world.getMinHeight()).thenReturn(-64);
@@ -151,7 +153,7 @@ class MirrorViewTest
     @Test
     void doesNotSampleAboveTheWorldsOwnCeiling()
     {
-        final MirrorPoint top = new MirrorPoint("far", 100, 318, 200, 0f, 0f);
+        final Place top = new Place("far", 100, 318, 200, 0f, 0f);
         final World world = mock(World.class);
         final List<Integer> read = new ArrayList<>();
         when(world.getMinHeight()).thenReturn(-64);

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 
 /**
  * A block drawn over by a mirror's view is left alone: nothing is placed, broken or started on it.
@@ -41,39 +41,39 @@ class MirrorViewBlockGuardTest
     @Test
     void placingIntoTheViewIsRefusedAndTheViewDrawnBack()
     {
-        try (MockedStatic<MirrorWindows> mirrors = mockStatic(MirrorWindows.class))
+        try (MockedStatic<Windows> mirrors = mockStatic(Windows.class))
         {
-            mirrors.when(() -> MirrorWindows.drew(player, block)).thenReturn(true);
+            mirrors.when(() -> Windows.drew(player, block)).thenReturn(true);
             final BlockPlaceEvent event = BlockEvents.place(player, block, mock(Block.class));
 
             new WormholeXTremeBlockListener().onBlockPlace(event);
 
             assertTrue(event.isCancelled(), "a torch into the room would be built unseen behind the wall");
-            mirrors.verify(() -> MirrorWindows.resend(player, block, null));
+            mirrors.verify(() -> Windows.resend(player, block, null));
         }
     }
 
     @Test
     void breakingWhatTheViewDrawsIsRefused()
     {
-        try (MockedStatic<MirrorWindows> mirrors = mockStatic(MirrorWindows.class))
+        try (MockedStatic<Windows> mirrors = mockStatic(Windows.class))
         {
-            mirrors.when(() -> MirrorWindows.drew(player, block)).thenReturn(true);
+            mirrors.when(() -> Windows.drew(player, block)).thenReturn(true);
             final BlockBreakEvent event = new BlockBreakEvent(block, player);
 
             new WormholeXTremeBlockListener().onBlockBreak(event);
 
             assertTrue(event.isCancelled(), "the real block behind the room is not what they hit");
-            mirrors.verify(() -> MirrorWindows.resend(player, block, null));
+            mirrors.verify(() -> Windows.resend(player, block, null));
         }
     }
 
     @Test
     void hittingWhatTheViewDrawsDoesNotStartBreakingIt()
     {
-        try (MockedStatic<MirrorWindows> mirrors = mockStatic(MirrorWindows.class))
+        try (MockedStatic<Windows> mirrors = mockStatic(Windows.class))
         {
-            mirrors.when(() -> MirrorWindows.drew(player, block)).thenReturn(true);
+            mirrors.when(() -> Windows.drew(player, block)).thenReturn(true);
             final BlockDamageEvent event = BlockEvents.damage(player, block);
 
             new WormholeXTremeBlockListener().onBlockDamage(event);
@@ -85,7 +85,7 @@ class MirrorViewBlockGuardTest
     @Test
     void aBlockNobodyIsShownAsAViewIsLeftToTheRest()
     {
-        try (MockedStatic<MirrorWindows> mirrors = mockStatic(MirrorWindows.class))
+        try (MockedStatic<Windows> mirrors = mockStatic(Windows.class))
         {
             final BlockPlaceEvent event = BlockEvents.place(player, block, mock(Block.class));
 

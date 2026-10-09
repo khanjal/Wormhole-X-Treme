@@ -7,13 +7,14 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
 
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Where a player arrives when a mirror is pointed at another mirror's banner.
  *
  * <p>{@code mirror link} is sugar: it works out where each banner is once, at link time, and
- * stores two ordinary {@link MirrorPoint}s. Nothing about the stored form knows a second
+ * stores two ordinary {@link Place}s. Nothing about the stored form knows a second
  * mirror was involved, which is deliberate -- the points stay valid if either mirror is later
  * renamed or removed, and there is no second kind of destination for the file format or the
  * click path to understand.

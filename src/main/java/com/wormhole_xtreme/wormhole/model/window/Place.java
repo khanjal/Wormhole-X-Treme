@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -36,7 +36,7 @@ import org.bukkit.World;
  * @param pitch
  *            how far up or down an arriving player looks
  */
-public record MirrorPoint(String worldName, double x, double y, double z, float yaw, float pitch)
+public record Place(String worldName, double x, double y, double z, float yaw, float pitch)
 {
     /**
      * The spot a live location stands at.
@@ -45,9 +45,9 @@ public record MirrorPoint(String worldName, double x, double y, double z, float 
      *            the location to record
      * @return the same spot, holding the world's name rather than the world
      */
-    public static MirrorPoint of(final Location location)
+    public static Place of(final Location location)
     {
-        return new MirrorPoint(location.getWorld().getName(), location.getX(), location.getY(),
+        return new Place(location.getWorld().getName(), location.getX(), location.getY(),
             location.getZ(), location.getYaw(), location.getPitch());
     }
 

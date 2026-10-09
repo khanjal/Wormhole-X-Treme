@@ -22,7 +22,7 @@ PR #313, `World.createEntity`/`addEntity` (added in 1.20.2) passed locally and f
 with "cannot find symbol". For any API not already used elsewhere in `src/main`, check it
 against the 1.20 jar. If it's missing there, you have two options:
 - Reach it reflectively: a cached `getMethod` lookup that returns null when absent, and a
-  feature that switches off quietly. `MirrorFog`, `MirrorPackets` and `HiddenEntities` are the
+  feature that switches off quietly. `ViewFog`, `MirrorPackets` and `HiddenEntities` are the
   pattern.
 - Or propose raising the floor. The user has said an old version can be dropped when it blocks
   a feature. Say which versions go, and that the CI matrix and README's supported range change
@@ -49,7 +49,7 @@ static init.
 - Never widen to `Throwable`. That swallows `OutOfMemoryError`, and Sonar flags it (S1181).
 - The load-bearing sites include `MaterialUtils.probeBlockCheck`,
   `Ring.resolveSlabTag`, the sign restore in `StargateBlockSetup`, `EconomySupport`,
-  `PermissionsSupport`, `GateEntityScanner`, `MirrorFog`, `MirrorPackets`, `MirrorStamp` and
+  `PermissionsSupport`, `GateEntityScanner`, `ViewFog`, `MirrorPackets`, `MirrorStamp` and
   `HiddenEntities`.
 - If a Sonar sweep asks to narrow one of these, read whether the guarded call is
   version-sensitive first.
@@ -61,7 +61,7 @@ static init.
   `BlockDamageEvent(Player, Block, ItemStack, boolean)` are safe across the range.
 - Don't mock a method that is only reached reflectively, because the test won't compile on the
   version that lacks it. Give the class a seam instead, such as `HiddenEntities.creationWith`
-  or `MirrorFog.sendDistanceWith`.
+  or `ViewFog.sendDistanceWith`.
 
 **Paper-only methods reached reflectively.** A misspelt name doesn't fail, it just turns the
 feature off on Paper. Add every new reflective Paper name to `PaperApiTest`, which runs only in
@@ -85,7 +85,7 @@ bash .claude/skills/cross-version-compat/edge-builds.sh
 This runs `clean test` offline against Spigot 1.20 (the floor), 1.20.6, 1.21.4 and 26.2, and
 Paper 26.2, each with the JDK and profile CI uses. It prints one PASS/FAIL line per version,
 with the compiler or test errors under each failure. Pass a test pattern to run only some of
-the tests (`'Mirror*Test,PaperApiTest'`). Expect several minutes for the full suite, so run it
+the tests (`'Mirror*Test,Window*Test,Capture*Test,ViewFogTest,BlockPlaceKeyTest,PaperApiTest'`). Expect several minutes for the full suite, so run it
 in the background.
 
 These versions are where changes have actually broken, not the whole matrix. A PASS here makes

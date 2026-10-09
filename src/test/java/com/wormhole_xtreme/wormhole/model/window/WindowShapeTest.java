@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,7 +15,7 @@ import java.util.Set;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * The shape of a window mirror, and where each block drawn behind it comes from.
@@ -24,21 +24,21 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * that still look like a view: a far side shown mirror-image, shown a layer too deep, drawn on
  * the viewer's own side where it would bury them, or showing past the edges of the opening.
  */
-class MirrorWindowTest
+class WindowShapeTest
 {
     /** Where most of these travel: the arrival block is (100, 70, -21). */
-    private static MirrorPoint far(final float yaw)
+    private static Place far(final float yaw)
     {
-        return new MirrorPoint("far", 100.5, 70.0, -20.5, yaw, 0.0f);
+        return new Place("far", 100.5, 70.0, -20.5, yaw, 0.0f);
     }
 
     /** A banner at the origin hung on a wall, facing north, so its wall is the block to the south. */
-    private static MirrorWindow northFacing(final float farYaw)
+    private static WindowShape northFacing(final float farYaw)
     {
-        return MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH, far(farYaw));
+        return WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.NORTH, far(farYaw));
     }
 
-    private static Set<Spot> opening(final MirrorWindow window)
+    private static Set<Spot> opening(final WindowShape window)
     {
         final Set<Spot> opening = new HashSet<>();
         window.forEachOpening((x, y, z) -> opening.add(new Spot(x, y, z)));
@@ -61,7 +61,7 @@ class MirrorWindowTest
     void aBannerFacingEastOpensInTheWallToItsWest()
     {
         assertEquals(Set.of(new Spot(-1, 63, 0), new Spot(-1, 64, 0)),
-            opening(MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.EAST, far(0.0f))));
+            opening(WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.EAST, far(0.0f))));
     }
 
     /**
@@ -123,7 +123,7 @@ class MirrorWindowTest
     @Test
     void aDirectionThroughTheOpeningTurnsWithTheFarSide()
     {
-        final MirrorWindow window = northFacing(-90.0f);
+        final WindowShape window = northFacing(-90.0f);
 
         assertArrayEquals(new double[] { 1.0, 0.0, 0.0 }, window.farDirection(0.0, 0.0, 1.0), 1.0e-9);
         assertArrayEquals(new double[] { 0.0, 0.0, 1.0 }, window.farDirection(-1.0, 0.0, 0.0), 1.0e-9);
@@ -139,7 +139,7 @@ class MirrorWindowTest
     @Test
     void aMirrorTwoWideOpensTwoColumnsToItsRight()
     {
-        final MirrorWindow wide = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH,
+        final WindowShape wide = WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.NORTH,
             far(0.0f), false, 2);
 
         assertEquals(Set.of(new Spot(0, 63, 1), new Spot(0, 64, 1), new Spot(-1, 63, 1), new Spot(-1, 64, 1)),
@@ -159,10 +159,10 @@ class MirrorWindowTest
     @Test
     void aReflectionKeepsEachBlockOnItsOwnSideOfTheRoom()
     {
-        final MirrorPoint room = new MirrorPoint("world", 0.5, 63, 0.5, 180.0f, 0.0f);
-        final MirrorWindow reflection = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH,
+        final Place room = new Place("world", 0.5, 63, 0.5, 180.0f, 0.0f);
+        final WindowShape reflection = WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.NORTH,
             room, true);
-        final MirrorWindow window = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH, room);
+        final WindowShape window = WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.NORTH, room);
 
         assertEquals(new Spot(0, 63, 0), reflection.farOf(0, 63, 2),
             "the first block behind the wall shows the banner's own block, in front of it");
@@ -175,7 +175,7 @@ class MirrorWindowTest
     @Test
     void onlyTheBannersSideOfTheWallIsInFront()
     {
-        final MirrorWindow window = northFacing(0.0f);
+        final WindowShape window = northFacing(0.0f);
 
         assertTrue(window.inFront(0.5, -3.0), "out in the room");
         assertTrue(window.inFront(0.5, 0.9), "standing in the banner's own block");
@@ -186,7 +186,7 @@ class MirrorWindowTest
     @Test
     void theOpeningIsOnlyTheTwoBlocksBehindTheBanner()
     {
-        final MirrorWindow window = northFacing(0.0f);
+        final WindowShape window = northFacing(0.0f);
 
         assertTrue(window.isOpening(0, 63, 1));
         assertTrue(window.isOpening(0, 64, 1));
@@ -200,13 +200,13 @@ class MirrorWindowTest
     @Test
     void aBannerFacingNoUsableWayOrAMirrorGoingNowhereMakesNoWindow()
     {
-        final MirrorBlock banner = new MirrorBlock("world", 0, 64, 0);
+        final BlockPlace banner = new BlockPlace("world", 0, 64, 0);
 
-        assertNull(MirrorWindow.of(banner, BlockFace.NORTH_EAST, far(0.0f)),
+        assertNull(WindowShape.of(banner, BlockFace.NORTH_EAST, far(0.0f)),
             "a wall banner only ever faces a cardinal, so anything else is not one");
-        assertNull(MirrorWindow.of(banner, null, far(0.0f)));
-        assertNull(MirrorWindow.of(banner, BlockFace.UP, far(0.0f)));
-        assertNull(MirrorWindow.of(banner, BlockFace.NORTH, null));
+        assertNull(WindowShape.of(banner, null, far(0.0f)));
+        assertNull(WindowShape.of(banner, BlockFace.UP, far(0.0f)));
+        assertNull(WindowShape.of(banner, BlockFace.NORTH, null));
     }
 
     /**
@@ -218,17 +218,17 @@ class MirrorWindowTest
     @Test
     void aBlockStraightBehindTheOpeningIsSeenThroughIt()
     {
-        final MirrorWindow window = northFacing(0.0f);
+        final WindowShape window = northFacing(0.0f);
         final List<Spot> open = List.of(new Spot(0, 63, 1), new Spot(0, 64, 1));
 
         final double[] behind = window.projected(0.5, 64.0, -3.0, 0, 63, 4);
-        assertTrue((behind != MirrorWindow.UNSEEN) && window.overlaps(behind, open));
+        assertTrue((behind != WindowShape.UNSEEN) && window.overlaps(behind, open));
 
         final double[] offToTheSide = window.projected(0.5, 64.0, -3.0, 12, 63, 2);
-        assertTrue((offToTheSide != MirrorWindow.UNSEEN) && !window.overlaps(offToTheSide, open),
+        assertTrue((offToTheSide != WindowShape.UNSEEN) && !window.overlaps(offToTheSide, open),
             "behind the wall, but not through the opening from there");
 
-        assertSame(MirrorWindow.UNSEEN, window.projected(0.5, 64.0, 6.0, 0, 63, 3),
+        assertSame(WindowShape.UNSEEN, window.projected(0.5, 64.0, 6.0, 0, 63, 3),
             "from behind the wall nothing is behind the opening");
     }
 
@@ -245,13 +245,13 @@ class MirrorWindowTest
     @Test
     void aBlockReachingPastTheEdgeInOpenAirIsCoveredOnlyIfNearlyAllOfItIsBehindTheOpening()
     {
-        final MirrorWindow window = northFacing(0.0f);
+        final WindowShape window = northFacing(0.0f);
         final double[] inside = { 0.2, 0.8, 63.2, 64.8 };
         final double[] mostlyPast = { 0.6, 1.5, 63.2, 63.8 };
         final double[] mostlyInside = { 0.2, 1.4, 63.2, 63.8 };
         final double[] justTouching = { 0.2, 1.02, 63.2, 63.8 };
-        final MirrorWindow.Face openAir = (across, y) -> (across == 0) && ((y == 63) || (y == 64));
-        final MirrorWindow.Face wall = (across, y) -> true;
+        final WindowShape.Face openAir = (across, y) -> (across == 0) && ((y == 63) || (y == 64));
+        final WindowShape.Face wall = (across, y) -> true;
 
         assertTrue(window.covered(inside, openAir), "all of it behind the opening");
         assertFalse(window.covered(mostlyPast, openAir), "most of it beside the opening, in the air");
@@ -270,22 +270,22 @@ class MirrorWindowTest
     @Test
     void aBlockInFrontOfTheWallThrowsAShadowOnItFromTheEye()
     {
-        final MirrorWindow window = northFacing(0.0f);
+        final WindowShape window = northFacing(0.0f);
 
         final double[] shadow = window.shadow(0.5, 64.0, -3.0, 2, 63, -2);
-        assertTrue((shadow != MirrorWindow.UNSEEN) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
+        assertTrue((shadow != WindowShape.UNSEEN) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
             "off to the right and magnified: " + Arrays.toString(shadow));
-        assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
-        assertSame(MirrorWindow.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
+        assertSame(WindowShape.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
+        assertSame(WindowShape.UNSEEN, window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
     }
 
     @Test
     void windowsInTheSameWallShareAFaceAndOthersDoNot()
     {
-        final MirrorWindow one = northFacing(0.0f);
-        final MirrorWindow along = MirrorWindow.of(new MirrorBlock("world", 2, 64, 0), BlockFace.NORTH, far(0.0f));
-        final MirrorWindow deeper = MirrorWindow.of(new MirrorBlock("world", 0, 64, 3), BlockFace.NORTH, far(0.0f));
-        final MirrorWindow facingEast = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.EAST, far(0.0f));
+        final WindowShape one = northFacing(0.0f);
+        final WindowShape along = WindowShape.of(new BlockPlace("world", 2, 64, 0), BlockFace.NORTH, far(0.0f));
+        final WindowShape deeper = WindowShape.of(new BlockPlace("world", 0, 64, 3), BlockFace.NORTH, far(0.0f));
+        final WindowShape facingEast = WindowShape.of(new BlockPlace("world", 0, 64, 0), BlockFace.EAST, far(0.0f));
 
         assertTrue(one.sharesFace(along));
         assertFalse(one.sharesFace(deeper));
@@ -295,12 +295,12 @@ class MirrorWindowTest
     @Test
     void aYawFacesTheNearestCardinal()
     {
-        assertEquals(new Spot(0, 0, 1), MirrorWindow.aheadOf(0.0f), "south");
-        assertEquals(new Spot(-1, 0, 0), MirrorWindow.aheadOf(90.0f), "west");
-        assertEquals(new Spot(0, 0, -1), MirrorWindow.aheadOf(180.0f), "north");
-        assertEquals(new Spot(1, 0, 0), MirrorWindow.aheadOf(-90.0f), "east, however it is written");
-        assertEquals(new Spot(1, 0, 0), MirrorWindow.aheadOf(270.0f), "east");
-        assertEquals(new Spot(0, 0, 1), MirrorWindow.aheadOf(44.0f), "still nearer south");
-        assertEquals(new Spot(-1, 0, 0), MirrorWindow.aheadOf(46.0f), "now nearer west");
+        assertEquals(new Spot(0, 0, 1), WindowShape.aheadOf(0.0f), "south");
+        assertEquals(new Spot(-1, 0, 0), WindowShape.aheadOf(90.0f), "west");
+        assertEquals(new Spot(0, 0, -1), WindowShape.aheadOf(180.0f), "north");
+        assertEquals(new Spot(1, 0, 0), WindowShape.aheadOf(-90.0f), "east, however it is written");
+        assertEquals(new Spot(1, 0, 0), WindowShape.aheadOf(270.0f), "east");
+        assertEquals(new Spot(0, 0, 1), WindowShape.aheadOf(44.0f), "still nearer south");
+        assertEquals(new Spot(-1, 0, 0), WindowShape.aheadOf(46.0f), "now nearer west");
     }
 }

@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -21,6 +21,8 @@ import java.util.zip.GZIPOutputStream;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 
 /**
  * A photograph of a mirror's far side: the blocks around the arrival point that somebody at the
@@ -46,7 +48,7 @@ import org.bukkit.block.data.BlockData;
  *
  * <p>Immutable once built, so it can be read by a redraw and written to disk at the same time.
  */
-public final class MirrorCapture
+public final class Capture
 {
     /** The file header, so a file that is not one is refused rather than misread. */
     private static final int MAGIC = 0x4D495257;
@@ -81,11 +83,11 @@ public final class MirrorCapture
     /** The highest such block in each, as an offset from the box's floor, in step. */
     private final short[] tops;
     /** The air that can be seen, which has no entries. */
-    private final MirrorSeenAir air;
+    private final SeenAir air;
     private BlockData standIn;
 
-    private MirrorCapture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
-        final long takenAt, final Blocks blocks, final MirrorSeenAir air)
+    private Capture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
+        final long takenAt, final Blocks blocks, final SeenAir air)
     {
         this.air = air;
         this.worldName = worldName;
@@ -529,7 +531,7 @@ public final class MirrorCapture
          * since leaves and water are seen through: millions of blocks, tens of megabytes on
          * disk and as much again in memory while any window draws from it. Rather than a
          * setting to lower, the reach is shortened by a quarter at a time until the kept blocks
-         * fit, the way a view is cut shallower until it fits ({@code MirrorWindows.MOST_FIXED}).
+         * fit, the way a view is cut shallower until it fits ({@code Windows.MOST_FIXED}).
          * Never short of {@code floor}, the view depth: a view drawn past its capture would run
          * out of room, so a room that is still too big at the depth is kept as it is.
          *
@@ -743,7 +745,7 @@ public final class MirrorCapture
         }
 
         /** @return the finished capture, taken now */
-        public MirrorCapture build()
+        public Capture build()
         {
             // Sorted by position, the last word on each block winning: a block put and then
             // cleared is air, and a block put twice is what it was put as last.
@@ -770,11 +772,11 @@ public final class MirrorCapture
                     out++;
                 }
             }
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
+            return new Capture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
                 System.currentTimeMillis(),
                 new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
                     Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
-                MirrorSeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
+                SeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
         }
 
         /**
@@ -1116,7 +1118,7 @@ public final class MirrorCapture
      * @throws IOException
      *             if the file is missing, not a capture, of an earlier kind, or cut short
      */
-    public static MirrorCapture load(final File file) throws IOException
+    public static Capture load(final File file) throws IOException
     {
         // The raw stream is its own resource: a file that is not gzip fails inside the gzip
         // stream's constructor, and a stream opened in the same expression would never close.
@@ -1170,8 +1172,8 @@ public final class MirrorCapture
                     throw new IOException(file + " is out of order");
                 }
             }
-            final MirrorSeenAir air = MirrorSeenAir.read(in, file, sizeX, sizeY, sizeZ);
-            return new MirrorCapture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
+            final SeenAir air = SeenAir.read(in, file, sizeX, sizeY, sizeZ);
+            return new Capture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
                 takenAt, new Blocks(names, new BlockData[count], cells, values), air);
         }
     }

@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +28,7 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
  * owner's exception and a show adds one, so a mirror veiling her took her away from her owner and
  * then, on unveiling, showed her to whichever other player had been looking.
  */
-class MirrorVeilTest
+class WindowVeilTest
 {
     @BeforeEach
     void setUp() throws Exception
@@ -56,20 +56,20 @@ class MirrorVeilTest
         when(owner.getLocation()).thenReturn(new Location(world, 0.0, 64.0, 0.0));
         FreyaCompanion.spawnFor(owner);
 
-        assertFalse(MirrorWindows.veilable(freya),
+        assertFalse(Windows.veilable(freya),
             "veiling her hides her from her owner and unveiling shows her to a stranger");
     }
 
     @Test
     void anOrdinaryCatIsStillVeiled()
     {
-        assertTrue(MirrorWindows.veilable(mock(Cat.class)),
+        assertTrue(Windows.veilable(mock(Cat.class)),
             "only the companion is exempt; a real cat inside the view is still hidden");
     }
 
     @Test
     void playersAreNeverVeiled()
     {
-        assertFalse(MirrorWindows.veilable(mock(Player.class)), "hiding a player drops them off the tab list");
+        assertFalse(Windows.veilable(mock(Player.class)), "hiding a player drops them off the tab list");
     }
 }

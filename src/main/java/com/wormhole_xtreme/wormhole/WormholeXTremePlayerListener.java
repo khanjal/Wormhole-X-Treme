@@ -44,7 +44,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
@@ -1134,7 +1134,7 @@ class WormholeXTremePlayerListener implements Listener
         // touching gate blocks, so in practice they never contend for the same block at all.
         handleRingMoveEvent(event);
         // A window mirror's view depends on where the eye is, so it follows the step.
-        MirrorWindows.moved(event.getPlayer(),
+        Windows.moved(event.getPlayer(),
             event.getTo());
         // A shut iris over an open wormhole looks different from each side, so crossing a
         // gate's plane restacks it. Only on a change of block: a plane is crossed at one.

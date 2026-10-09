@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,10 +23,13 @@ import org.bukkit.scheduler.BukkitTask;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 /**
- * Every {@link MirrorCapture} the server has, and the taking of new ones.
+ * Every {@link Capture} the server has, and the taking of new ones.
  *
  * <p>Captures are keyed by destination rather than by mirror, so two mirrors onto the same place
  * share one, renaming a mirror changes nothing, and re-pointing one simply asks for a different
@@ -38,7 +41,7 @@ import com.wormhole_xtreme.wormhole.utils.DataLayout;
  * banners, prunes what nothing could see, and writes the file off the main thread. Only the far
  * world needs to be loaded for that, and only then; the capture never needs it again.
  */
-public final class MirrorCaptures
+public final class Captures
 {
     /** Chunks read per tick while a capture is being taken. */
     private static final int CHUNKS_PER_TICK = 2;
@@ -69,10 +72,10 @@ public final class MirrorCaptures
      *            one above its highest, or null likewise
      * @return {@code {minX, minY, minZ, maxX, maxY, maxZ}}, inclusive
      */
-    static int[] needed(final MirrorPoint destination, final int depth, final Integer worldMin,
+    static int[] needed(final Place destination, final int depth, final Integer worldMin,
         final Integer worldMax)
     {
-        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
+        final WindowShape.Spot ahead = WindowShape.aheadOf(destination.yaw());
         final int arrivalX = (int) Math.floor(destination.x());
         final int arrivalY = (int) Math.floor(destination.y());
         final int arrivalZ = (int) Math.floor(destination.z());
@@ -108,7 +111,7 @@ public final class MirrorCaptures
      * {@code mirror-view-depth} to make a mirror cheaper cut every capture to match, and raising
      * it again meant taking every one again, loading each room's world for a few seconds. The
      * reach is the capture's own now, and the depth says how much of it a view draws
-     * ({@code MirrorWindows.fixedTo}), so the depth can change without a capture being touched.
+     * ({@code Windows.fixedTo}), so the depth can change without a capture being touched.
      * Never past {@link #MOST_REACH}: a box that size is what the bits of a capture being taken
      * are sized for, and past ten chunks a client has nothing to show anyway.
      *
@@ -146,7 +149,7 @@ public final class MirrorCaptures
     interface Sifter
     {
         /** @return how far the capture ended up seeing */
-        int sift(MirrorCapture.Builder builder, MirrorCapture.Arrival from, int reach, int floor);
+        int sift(Capture.Builder builder, Capture.Arrival from, int reach, int floor);
     }
 
     private static final Sifter SIFT = (builder, from, reach, floor) ->
@@ -182,10 +185,10 @@ public final class MirrorCaptures
     /** A capture in memory and when it was last wanted. */
     private static final class Held
     {
-        private final MirrorCapture capture;
+        private final Capture capture;
         private long usedAt;
 
-        Held(final MirrorCapture capture, final long usedAt)
+        Held(final Capture capture, final long usedAt)
         {
             this.capture = capture;
             this.usedAt = usedAt;
@@ -193,7 +196,7 @@ public final class MirrorCaptures
     }
 
     /** Static registry only. */
-    private MirrorCaptures()
+    private Captures()
     {
     }
 
@@ -204,7 +207,7 @@ public final class MirrorCaptures
      *            where the mirror goes
      * @return a file-safe name for that place
      */
-    static String keyOf(final MirrorPoint destination)
+    static String keyOf(final Place destination)
     {
         final String world = destination.worldName().toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9._-]", "_");
@@ -239,7 +242,7 @@ public final class MirrorCaptures
             return 0;
         }
         final Set<String> used = new HashSet<>();
-        MirrorManager.all().stream().map(MirrorCaptures::keyFor).forEach(used::add);
+        MirrorManager.all().stream().map(Captures::keyFor).forEach(used::add);
         int deleted = 0;
         for (final File file : files)
         {
@@ -278,7 +281,7 @@ public final class MirrorCaptures
      *            a mirror with somewhere to go
      * @return its capture, or null if none has been taken yet
      */
-    static MirrorCapture get(final QuantumMirror mirror)
+    static Capture get(final QuantumMirror mirror)
     {
         final String key = keyOf(mirror.destination());
         final long now = System.currentTimeMillis();
@@ -300,7 +303,7 @@ public final class MirrorCaptures
         }
         try
         {
-            final MirrorCapture capture = MirrorCapture.load(file);
+            final Capture capture = Capture.load(file);
             LOADED.put(key, new Held(capture, now));
             changed();
             return capture;
@@ -328,9 +331,9 @@ public final class MirrorCaptures
      *            its capture
      * @return true if a capture taken now would reach further, or know more
      */
-    static boolean outgrown(final QuantumMirror mirror, final MirrorCapture capture)
+    static boolean outgrown(final QuantumMirror mirror, final Capture capture)
     {
-        final MirrorPoint destination = mirror.destination();
+        final Place destination = mirror.destination();
         final World far = Bukkit.getWorld(destination.worldName());
         final int[] box = needed(destination, reach(far),
             (far == null) ? null : far.getMinHeight(), (far == null) ? null : far.getMaxHeight());
@@ -526,14 +529,14 @@ public final class MirrorCaptures
                 ABSENT.contains(key) ? MirrorText.bad("no, and its file was found missing") : "no"));
             return lines;
         }
-        final MirrorCapture capture = held.capture;
+        final Capture capture = held.capture;
         lines.addAll(capture.describeLines());
         final int x = (int) Math.floor(mirror.destination().x());
         final int y = (int) Math.floor(mirror.destination().y());
         final int z = (int) Math.floor(mirror.destination().z());
         lines.add(MirrorText.field("at arrival", capture.nameAt(x, y, z) + ", below it "
             + capture.nameAt(x, y - 1, z) + ", column top y " + capture.top(x, z)));
-        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(mirror.destination().yaw());
+        final WindowShape.Spot ahead = WindowShape.aheadOf(mirror.destination().yaw());
         lines.add(MirrorText.field("ahead", ahead.x() + "," + ahead.z() + " (yaw " + mirror.destination().yaw() + ")"));
         for (final int far : new int[] { 8, 32 })
         {
@@ -581,7 +584,7 @@ public final class MirrorCaptures
      * @param destination
      *            the place it is of
      */
-    static void install(final MirrorPoint destination, final MirrorCapture capture)
+    static void install(final Place destination, final Capture capture)
     {
         LOADED.put(keyOf(destination), new Held(capture, System.currentTimeMillis()));
         ABSENT.remove(keyOf(destination));
@@ -606,8 +609,8 @@ public final class MirrorCaptures
     {
         private final String key;
         private final World far;
-        private final MirrorPoint destination;
-        private final MirrorCapture.Builder builder;
+        private final Place destination;
+        private final Capture.Builder builder;
         private final int minX;
         private final int minY;
         private final int minZ;
@@ -624,7 +627,7 @@ public final class MirrorCaptures
         private int reachAsked;
         private volatile int reachKept;
 
-        Job(final String key, final World far, final MirrorPoint destination)
+        Job(final String key, final World far, final Place destination)
         {
             this.key = key;
             this.far = far;
@@ -636,9 +639,9 @@ public final class MirrorCaptures
             maxX = box[3];
             maxY = box[4];
             maxZ = box[5];
-            builder = new MirrorCapture.Builder(far.getName(),
+            builder = new Capture.Builder(far.getName(),
                 far.getEnvironment() == World.Environment.NORMAL,
-                new MirrorCapture.Box(minX, minY, minZ, (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1),
+                new Capture.Box(minX, minY, minZ, (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1),
                 Bukkit.createBlockData(Material.AIR));
             for (int chunkX = minX >> 4; chunkX <= (maxX >> 4); chunkX++)
             {
@@ -751,7 +754,7 @@ public final class MirrorCaptures
             // in the middle of the view.
             for (final QuantumMirror other : MirrorManager.all())
             {
-                for (final MirrorBlock banner : other.banners())
+                for (final BlockPlace banner : other.banners())
                 {
                     if (banner.worldName().equals(far.getName()))
                     {
@@ -759,8 +762,8 @@ public final class MirrorCaptures
                     }
                 }
             }
-            final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
-            final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),
+            final WindowShape.Spot ahead = WindowShape.aheadOf(destination.yaw());
+            final Capture.Arrival arrival = new Capture.Arrival((int) Math.floor(destination.x()),
                 (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z());
             final int depth = reach(far);
             final int floor = ConfigManager.getMirrorViewDepth();
@@ -832,7 +835,7 @@ public final class MirrorCaptures
         {
             done = true;
             cancel();
-            final MirrorCapture capture = builder.build();
+            final Capture capture = builder.build();
             JOBS.remove(key);
             LOADED.put(key, new Held(capture, System.currentTimeMillis()));
             ABSENT.remove(key);
@@ -869,7 +872,7 @@ public final class MirrorCaptures
         }
 
         /** Writes the file off the main thread, or on it where there is no other. */
-        private static void save(final MirrorCapture capture, final File file)
+        private static void save(final Capture capture, final File file)
         {
             final Runnable write = () ->
             {

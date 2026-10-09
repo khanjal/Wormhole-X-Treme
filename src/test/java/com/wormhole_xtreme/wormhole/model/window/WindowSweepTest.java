@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,14 +31,17 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
- * The sweep that offers every mirror to {@link MirrorWindows}.
+ * The sweep that offers every mirror to {@link Windows}.
  *
  * <p>It runs on a timer for the life of the server, so what is pinned down here is what it does
  * not touch: an unloaded world, an unloaded chunk, and the far side of a mirror somebody walks up to.
  */
-class MirrorProximityTest
+class WindowSweepTest
 {
     /** Where saves go, so no test writes a mirror file into the repository. */
     @TempDir
@@ -55,7 +58,7 @@ class MirrorProximityTest
         PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
         MirrorManager.clear();
-        MirrorProximity.clear();
+        WindowSweep.clear();
 
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -73,7 +76,7 @@ class MirrorProximityTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
-        MirrorProximity.clear();
+        WindowSweep.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -93,7 +96,7 @@ class MirrorProximityTest
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         }
 
         verify(world).isChunkLoaded(0, 0);
@@ -108,7 +111,7 @@ class MirrorProximityTest
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(null);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         }
 
         verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
@@ -136,9 +139,9 @@ class MirrorProximityTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
             bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
 
-            MirrorProximity.tick();
+            WindowSweep.tick();
             when(walker.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 10.0));
-            MirrorProximity.tick();
+            WindowSweep.tick();
         }
 
         verify(world, times(2)).getBlockAt(10, 64, 10);
@@ -151,14 +154,14 @@ class MirrorProximityTest
     @Test
     void offersATickerToSchedule()
     {
-        assertNotNull(MirrorProximity.createTicker());
+        assertNotNull(WindowSweep.createTicker());
     }
 
     /** A mirror on the banner block, stamped with a named look and going somewhere. */
     private void pointedMirror()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)).withLook(MirrorLook.named("nether")));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10),
+            new Place("far", 0, 64, 0, 0f, 0f)).withLook(MirrorLook.named("nether")));
     }
 
     /** A world on the far side, solid stone all through, with an ordinary floor and ceiling. */

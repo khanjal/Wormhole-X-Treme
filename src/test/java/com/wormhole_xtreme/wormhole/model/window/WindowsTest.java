@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,7 +72,12 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * The sweep that draws what is on the other side of window mirrors.
@@ -88,7 +93,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * of one block. The world here is a wall along z 11 -- the layer every opening in these tests
  * sits in -- with open air in front of it. {@link #wallBehind} takes the wall away.
  */
-class MirrorWindowsTest
+class WindowsTest
 {
     /** Where saves go, so no test writes a mirror file into the repository. */
     @TempDir
@@ -112,8 +117,8 @@ class MirrorWindowsTest
     private final BlockData barrier = named("minecraft:barrier");
     private final BlockData farOneBlock = named("far:one");
     private final BlockData farTwoBlock = named("far:two");
-    private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
-    private final MirrorPoint arrivalTwo = new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
+    private final Place arrival = new Place("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
+    private final Place arrivalTwo = new Place("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
 
     /** How far {@link #pause()} has moved the redraw clock past the real one. */
     private static long paused;
@@ -129,15 +134,15 @@ class MirrorWindowsTest
         // is thousands of them.
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
         MirrorManager.clear();
-        MirrorProximity.clear();
+        WindowSweep.clear();
         paused = 0L;
-        MirrorWindows.clock = () -> System.currentTimeMillis() + paused;
+        Windows.clock = () -> System.currentTimeMillis() + paused;
         // A redraw over these mocks takes hundreds of milliseconds; resting three times that would
         // put every step that follows a pause() off until a catch-up that never comes.
-        MirrorWindows.restFactor = 0L;
+        Windows.restFactor = 0L;
         // One batch a redraw, as before streaming, unless a test is about the stream: most tests
         // read a view off its first batch, and there is no scheduler here to send the rest.
-        MirrorWindows.streamPerTick = Integer.MAX_VALUE;
+        Windows.streamPerTick = Integer.MAX_VALUE;
 
         // stubOnly: a redraw asks the world for a block hundreds of thousands of times, and Mockito
         // keeps an invocation — with a stack trace — for each one. Nothing verifies the world, so
@@ -156,11 +161,11 @@ class MirrorWindowsTest
         banner = bannerAt(10);
         hangOnAWall(banner);
 
-        MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
-        MirrorCaptures.install(arrivalTwo, solidCapture(arrivalTwo, farTwoBlock));
+        Captures.install(arrival, solidCapture(arrival, farOneBlock));
+        Captures.install(arrivalTwo, solidCapture(arrivalTwo, farTwoBlock));
 
         // Nothing set on it: every mirror is a window.
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10), arrival));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10), arrival));
     }
 
     @AfterEach
@@ -169,10 +174,10 @@ class MirrorWindowsTest
         // Without this every test leaves its windows and the states it drew them from behind, and
         // 75 tests' worth pile up in static maps for the life of the class. clear() says it is for
         // a test or a reload; nothing here was calling it.
-        MirrorWindows.clear();
+        Windows.clear();
         MirrorManager.clear();
-        MirrorProximity.clear();
-        MirrorFog.sendDistanceWith(null);
+        WindowSweep.clear();
+        ViewFog.sendDistanceWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -191,8 +196,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorProximity.tick();
+            WindowSweep.tick();
+            WindowSweep.tick();
         });
 
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0,
@@ -209,22 +214,22 @@ class MirrorWindowsTest
     @Test
     void twoNamesOnOneBannerDrawOnlyTheOneItIsIndexedUnder()
     {
-        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", 10, 64, 10), arrivalTwo));
+        MirrorManager.add(new QuantumMirror("archive", new BlockPlace("world", 10, 64, 10), arrivalTwo));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         final List<String> said = new ArrayList<>();
         withServer(() ->
         {
-            MirrorProximity.tick();
-            said.addAll(MirrorWindows.describe(viewer));
+            WindowSweep.tick();
+            said.addAll(Windows.describe(viewer));
         });
 
         // Asked of the windows, not of the blocks drawn: two windows on one opening take turns per
         // block, and a single sweep can happen to draw all of one.
-        assertTrue(said.stream().map(MirrorWindowsTest::plain).anyMatch("server: 1 window(s), 1 viewer(s)"::equals),
+        assertTrue(said.stream().map(WindowsTest::plain).anyMatch("server: 1 window(s), 1 viewer(s)"::equals),
             "one banner is one window, not one per name: " + said);
-        assertTrue(said.stream().map(MirrorWindowsTest::plain).anyMatch("looking into: archive"::equals),
+        assertTrue(said.stream().map(WindowsTest::plain).anyMatch("looking into: archive"::equals),
             "the window is archive's, the mirror a click would take: " + said);
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farTwoBlock) > 0, "and archive's far side is what shows");
     }
@@ -245,9 +250,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorWindows.resendFor("museum");
-            MirrorProximity.tick();
+            WindowSweep.tick();
+            Windows.resendFor("museum");
+            WindowSweep.tick();
         });
 
         final List<Collection<BlockState>> sent = changesTo(viewer, 2);
@@ -276,11 +281,11 @@ class MirrorWindowsTest
         {
             withServer(() ->
             {
-                MirrorProximity.tick();
+                WindowSweep.tick();
                 final Block opening = world.getBlockAt(10, 64, 11);
                 final Block bannerBlock = world.getBlockAt(10, 64, 10);
                 when(opening.getRelative(BlockFace.NORTH)).thenReturn(bannerBlock);
-                MirrorWindows.resend(viewer, opening, BlockFace.NORTH);
+                Windows.resend(viewer, opening, BlockFace.NORTH);
                 final ArgumentCaptor<Runnable> soon = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler).runTaskAsynchronously(ArgumentMatchers.any(Plugin.class),
                     soon.capture());
@@ -324,8 +329,8 @@ class MirrorWindowsTest
         {
             withServer(() ->
             {
-                MirrorProximity.tick();
-                MirrorWindows.resend(viewer);
+                WindowSweep.tick();
+                Windows.resend(viewer);
                 final ArgumentCaptor<Runnable> later = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler, Mockito.atLeastOnce()).scheduleSyncDelayedTask(
                     ArgumentMatchers.any(Plugin.class), later.capture(),
@@ -359,10 +364,10 @@ class MirrorWindowsTest
         {
             withServer(() ->
             {
-                MirrorProximity.tick();
+                WindowSweep.tick();
                 final QuantumMirror museum = MirrorManager.byName("museum");
                 MirrorNetwork.scroll(museum, false);
-                MirrorWindows.redraw(museum, banner);
+                Windows.redraw(museum, banner);
             });
 
             final List<Collection<BlockState>> sent = changesTo(viewer, 2);
@@ -387,7 +392,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(barrier, drawn.get(new Spot(10, 64, 11)), "behind the banner");
@@ -409,12 +414,12 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
+            Windows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 10.4));
-            MirrorProximity.tick();
+            Windows.moved(viewer, new Location(world, 10.5, 64.0, 10.4));
+            WindowSweep.tick();
         });
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
@@ -441,15 +446,15 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
+            Windows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
             looks[0] = looksForWindows(viewer);
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
+            Windows.moved(viewer, new Location(world, 13.0, 64.0, 9.5));
             looks[1] = looksForWindows(viewer);
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 10.4));
+            Windows.moved(viewer, new Location(world, 10.5, 64.0, 10.4));
             looks[2] = looksForWindows(viewer);
         });
 
@@ -473,17 +478,17 @@ class MirrorWindowsTest
     @Test
     void aFarSideTurnedRoundIsDrawnWithItsBlocksTurnedToo()
     {
-        final MirrorPoint northward = new MirrorPoint("far", 100.5, 70.0, -20.5, 180.0f, 0.0f);
+        final Place northward = new Place("far", 100.5, 70.0, -20.5, 180.0f, 0.0f);
         final BlockData pane = named("far:pane");
         final BlockData turnedPane = named("far:pane-turned");
         when(pane.clone()).thenReturn(turnedPane);
-        MirrorCaptures.install(northward, groundBelow(northward, 1000, pane));
+        Captures.install(northward, groundBelow(northward, 1000, pane));
         MirrorManager.clear();
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10), northward));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10), northward));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(turnedPane, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 64, 13)),
             "drawn as the turned copy");
@@ -529,7 +534,7 @@ class MirrorWindowsTest
                 + ": that much of it shows the far side past the edge");
     }
 
-    /** How much of a drawn block the view keeps beside the opening, as {@code MirrorWindows} has it. */
+    /** How much of a drawn block the view keeps beside the opening, as {@code Windows} has it. */
     private static final double KEPT_BESIDE = 0.15;
 
     /** A block a first view drew, the step after it, and what that step sent. */
@@ -545,14 +550,14 @@ class MirrorWindowsTest
         wallBehind = false;
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final MirrorWindow shape = MirrorWindow.of(new MirrorBlock("world", 10, 64, 10), BlockFace.NORTH, arrival);
-        final MirrorWindow.Face open = (across, y) -> (across == 10) && ((y == 63) || (y == 64));
+        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, arrival);
+        final WindowShape.Face open = (across, y) -> (across == 10) && ((y == 63) || (y == 64));
         final Spot[] edge = { null };
         final double[] second = new double[3];
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             final Map<Spot, BlockData> first = positions(changesTo(viewer, 1).get(0));
             // To one side of the opening's column, nearer or both, in tenths of a block. From inside
             // the column a block behind the opening projects inside it however near the eye comes.
@@ -569,7 +574,7 @@ class MirrorWindowsTest
                             continue;
                         }
                         final double[] rect = shape.projected(x, 65.62, z, spot.x(), spot.y(), spot.z());
-                        if ((rect != MirrorWindow.UNSEEN) && !shape.covered(rect, open, least) && shape.covered(rect, open, most))
+                        if ((rect != WindowShape.UNSEEN) && !shape.covered(rect, open, least) && shape.covered(rect, open, most))
                         {
                             edge[0] = spot;
                             second[0] = x;
@@ -581,7 +586,7 @@ class MirrorWindowsTest
             }
             assertNotNull(edge[0], "a step that puts a drawn block partly beside the opening");
             pause();
-            MirrorWindows.moved(viewer, new Location(world, second[0], 64.0, second[2]));
+            Windows.moved(viewer, new Location(world, second[0], 64.0, second[2]));
         });
 
         return new Step(edge[0], second[0], second[2], positions(changesTo(viewer, 2).get(1)));
@@ -603,7 +608,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(11.5, 10.7);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 65, 15)),
             "straight behind the opening, which from beside it lands on the frame brick");
@@ -629,10 +634,10 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(straight), "drawn straight ahead");
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 13.5, 63.0, 9.5));
+            Windows.moved(viewer, new Location(world, 13.5, 63.0, 9.5));
         });
 
         final Map<Spot, BlockData> update = positions(changesTo(viewer, 2).get(1));
@@ -653,10 +658,10 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorWindows.blind(viewer, true);
-            MirrorProximity.tick();
-            MirrorProximity.tick();
+            WindowSweep.tick();
+            Windows.blind(viewer, true);
+            WindowSweep.tick();
+            WindowSweep.tick();
         });
 
         assertTakenBack(changesTo(viewer, 2));
@@ -679,8 +684,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorWindows.full(viewer, "museum");
-            MirrorProximity.tick();
+            Windows.full(viewer, "museum");
+            WindowSweep.tick();
         });
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
@@ -703,8 +708,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorWindows.full(viewer, "museum");
-            MirrorProximity.tick();
+            Windows.full(viewer, "museum");
+            WindowSweep.tick();
         });
 
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0, "the far side, from behind and far off");
@@ -726,18 +731,18 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorWindows.clock = () -> time[0];
-            MirrorProximity.tick();
-            assertTrue(MirrorWindows.holdsFixedView("museum"), "held while looked through");
+            Windows.clock = () -> time[0];
+            WindowSweep.tick();
+            assertTrue(Windows.holdsFixedView("museum"), "held while looked through");
             stand(viewer, 10.5, -40.0);
             time[0] += 30_000L;
-            MirrorProximity.tick();
-            assertTrue(MirrorWindows.holdsFixedView("museum"), "and for a while after");
+            WindowSweep.tick();
+            assertTrue(Windows.holdsFixedView("museum"), "and for a while after");
             time[0] += 31_000L;
-            MirrorProximity.tick();
+            WindowSweep.tick();
         });
 
-        assertFalse(MirrorWindows.holdsFixedView("museum"), "let go a minute after the last look");
+        assertFalse(Windows.holdsFixedView("museum"), "let go a minute after the last look");
     }
 
     /**
@@ -755,8 +760,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorWindows.workPerSecond = 1;
-            MirrorProximity.tick();
+            Windows.workPerSecond = 1;
+            WindowSweep.tick();
         });
 
         final long sent = mockingDetails(first).getInvocations().stream()
@@ -780,7 +785,7 @@ class MirrorWindowsTest
     {
         gap = new Spot(16, 64, 11);
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -791,13 +796,13 @@ class MirrorWindowsTest
             final String[] from = new String[3];
             withServer(() ->
             {
-                MirrorProximity.tick();
+                WindowSweep.tick();
                 from[0] = drawnFrom(viewer);
-                MirrorWindows.workPerSecond = 1;
+                Windows.workPerSecond = 1;
                 clock[0] += 200L;
-                MirrorWindows.moved(viewer, new Location(world, 13.5, 64.0, 7.5));
+                Windows.moved(viewer, new Location(world, 13.5, 64.0, 7.5));
                 from[1] = drawnFrom(viewer);
-                MirrorWindows.workPerSecond = Integer.MAX_VALUE;
+                Windows.workPerSecond = Integer.MAX_VALUE;
                 runBooked(scheduler);
                 from[2] = drawnFrom(viewer);
             });
@@ -815,7 +820,7 @@ class MirrorWindowsTest
     /** Where a viewer's last redraw was drawn from, off the debug line. */
     private static String drawnFrom(final Player viewer)
     {
-        return MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain)
+        return Windows.describe(viewer).stream().map(WindowsTest::plain)
             .filter(line -> line.startsWith("drawn from: ")).findFirst().orElseThrow()
             .substring("drawn from: ".length());
     }
@@ -835,7 +840,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
@@ -856,7 +861,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
@@ -873,7 +878,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(18, 64, 12)),
             "off to the side, drawn: nobody near enough to see the gap");
@@ -894,31 +899,31 @@ class MirrorWindowsTest
     @Test
     void behindATwoBlockWallTheFarPartStandsForAWholeBlockMoveAndFollowsABlockAndAHalf()
     {
-        MirrorWindows.nearDistance = 8.0;
+        Windows.nearDistance = 8.0;
         gap = new Spot(13, 64, 11);
         // A clock of our own: a redraw over these mocks takes longer than the second the far
         // part stands, so real time would judge it again on every step.
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
         final int[] projected = new int[3];
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
             projected[0] = projectedByTheLastRedraw(viewer);
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 11.5, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 11.5, 64.0, 7.5));
             projected[1] = projectedByTheLastRedraw(viewer);
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
             projected[2] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(1.5, MirrorWindows.farCellFor(2), "two blocks of wall: a cell of a block and a half");
+        assertEquals(1.5, Windows.farCellFor(2), "two blocks of wall: a cell of a block and a half");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         assertTrue(projected[1] < (2 * projected[0]),
             "a whole-block move inside the cell projects the near layers alone: " + projected[0] + " then "
@@ -938,10 +943,10 @@ class MirrorWindowsTest
     @Test
     void aFarPartThatStandsIsStillDrawnOnTheStepThatReusesIt()
     {
-        MirrorWindows.nearDistance = 8.0;
+        Windows.nearDistance = 8.0;
         gap = new Spot(13, 64, 11);
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
         final int[] projected = new int[2];
@@ -950,11 +955,11 @@ class MirrorWindowsTest
         withServer(() ->
         {
             // The first drawing judges the far part; a step inside the cell reuses it.
-            MirrorProximity.tick();
+            WindowSweep.tick();
             projected[0] = projectedByTheLastRedraw(viewer);
             drawn[0] = drawnCount(viewer);
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
             projected[1] = projectedByTheLastRedraw(viewer);
             drawn[1] = drawnCount(viewer);
         });
@@ -983,10 +988,10 @@ class MirrorWindowsTest
     @Test
     void behindAWideWallTheFarPartStandsAcrossFourBlocksOfMovement()
     {
-        MirrorWindows.nearDistance = 8.0;
+        Windows.nearDistance = 8.0;
         gap = new Spot(16, 64, 11);
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         // Cells are laid on the world's grid: from 8.5, the cell of four runs to 12.
         final Player viewer = playerAt(8.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -995,18 +1000,18 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             for (int step = 0; step < 4; step++)
             {
                 clock[0] += 200L;
-                MirrorWindows.moved(viewer, new Location(world, 9.5 + step, 64.0, 7.5));
+                Windows.moved(viewer, new Location(world, 9.5 + step, 64.0, 7.5));
                 projected[step] = projectedByTheLastRedraw(viewer);
             }
-            said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+            said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
         });
 
-        assertEquals(4.0, MirrorWindows.farCellFor(5), "five blocks of wall: a cell of four");
-        assertEquals(4.0, MirrorWindows.farCellFor(16), "a wall solid as far as it is read: still four");
+        assertEquals(4.0, Windows.farCellFor(5), "five blocks of wall: a cell of four");
+        assertEquals(4.0, Windows.farCellFor(16), "a wall solid as far as it is read: still four");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         for (int step = 1; step < 3; step++)
         {
@@ -1030,20 +1035,20 @@ class MirrorWindowsTest
     @Test
     void aWallsWidthSurvivesTheNextSweepBeforeTheWallIsReadAgain()
     {
-        MirrorWindows.nearDistance = 8.0;
+        Windows.nearDistance = 8.0;
         gap = new Spot(16, 64, 11);
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(8.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
         final List<String> said = new ArrayList<>();
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             clock[0] += 1_000L;
-            MirrorProximity.tick();
-            said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+            WindowSweep.tick();
+            said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
         });
 
         assertTrue(said.stream().anyMatch(line -> line.startsWith(
@@ -1065,27 +1070,27 @@ class MirrorWindowsTest
     @Test
     void behindAOneBlockWallTheFarPartFollowsAHalfBlockMove()
     {
-        MirrorWindows.nearDistance = 8.0;
+        Windows.nearDistance = 8.0;
         gap = new Spot(12, 64, 11);
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
         final int[] projected = new int[2];
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
             projected[0] = projectedByTheLastRedraw(viewer);
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 10.4, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 10.4, 64.0, 7.5));
             projected[1] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(0.5, MirrorWindows.farCellFor(1), "a one-block wall: half a block");
-        assertEquals(0.5, MirrorWindows.farCellFor(0), "no wall at all: no less than half a block");
+        assertEquals(0.5, Windows.farCellFor(1), "a one-block wall: half a block");
+        assertEquals(0.5, Windows.farCellFor(0), "no wall at all: no less than half a block");
         assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
         assertTrue(projected[1] > (2 * projected[0]),
             "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "
@@ -1101,12 +1106,12 @@ class MirrorWindowsTest
     @Test
     void aSlowRedrawEarnsARestThreeTimesAsLong()
     {
-        MirrorWindows.restFactor = 3L;
-        final int wide = MirrorWindows.SMALL_OPEN + 1;
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, wide), "a quick redraw keeps the pace");
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(30L, wide),
+        Windows.restFactor = 3L;
+        final int wide = Windows.SMALL_OPEN + 1;
+        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, wide), "a quick redraw keeps the pace");
+        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(30L, wide),
             "so does one under a third of it");
-        assertEquals(195L, MirrorWindows.restAfter(65L, wide), "sixty-five milliseconds rests nearly two hundred");
+        assertEquals(195L, Windows.restAfter(65L, wide), "sixty-five milliseconds rests nearly two hundred");
     }
 
     /**
@@ -1125,16 +1130,16 @@ class MirrorWindowsTest
     @Test
     void aSmallOpeningIsRedrawnTwiceAsOften()
     {
-        MirrorWindows.restFactor = 3L;
-        assertEquals(MirrorWindows.SMALL_REDRAW_MILLIS, MirrorWindows.restAfter(0L, 1),
+        Windows.restFactor = 3L;
+        assertEquals(Windows.SMALL_REDRAW_MILLIS, Windows.restAfter(0L, 1),
             "a one block opening is drawn twice as often");
-        assertEquals(MirrorWindows.SMALL_REDRAW_MILLIS, MirrorWindows.restAfter(0L, MirrorWindows.SMALL_OPEN),
+        assertEquals(Windows.SMALL_REDRAW_MILLIS, Windows.restAfter(0L, Windows.SMALL_OPEN),
             "so is the largest opening that still counts as small");
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, MirrorWindows.SMALL_OPEN + 1),
+        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, Windows.SMALL_OPEN + 1),
             "one block bigger keeps the ten a second every window had before");
-        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L, 0),
+        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, 0),
             "and so does a viewer whose opening size is not known");
-        assertEquals(195L, MirrorWindows.restAfter(65L, 1),
+        assertEquals(195L, Windows.restAfter(65L, 1),
             "a small opening buys no cheaper cost cap: a slow redraw still rests three times as long");
     }
 
@@ -1148,18 +1153,18 @@ class MirrorWindowsTest
     @Test
     void aSmallOpeningCatchesUpAfterOneTick()
     {
-        assertEquals(1L, MirrorWindows.catchUpTicks(MirrorWindows.SMALL_REDRAW_MILLIS, 40L),
+        assertEquals(1L, Windows.catchUpTicks(Windows.SMALL_REDRAW_MILLIS, 40L),
             "a small opening's catch-up waits one tick");
-        assertEquals(2L, MirrorWindows.catchUpTicks(MirrorWindows.REDRAW_MILLIS, 40L),
+        assertEquals(2L, Windows.catchUpTicks(Windows.REDRAW_MILLIS, 40L),
             "a wider one keeps its two");
-        assertEquals(4L, MirrorWindows.catchUpTicks(195L, 10L),
+        assertEquals(4L, Windows.catchUpTicks(195L, 10L),
             "and a slow redraw's catch-up still waits out its whole rest");
     }
 
     /** How many blocks the viewer's last redraw projected, off the debug line. */
     private static int projectedByTheLastRedraw(final Player viewer)
     {
-        final String line = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain)
+        final String line = Windows.describe(viewer).stream().map(WindowsTest::plain)
             .filter(said -> said.startsWith("last redraw: ")).findFirst().orElseThrow();
         return Integer.parseInt(line.replaceAll("last redraw: (\\d+) blocks projected.*", "$1"));
     }
@@ -1178,7 +1183,7 @@ class MirrorWindowsTest
     @Test
     void aRoomBiggerThanATickIsStreamedInATickAtATimeNearestFirst() throws Exception
     {
-        MirrorWindows.streamPerTick = 500;
+        Windows.streamPerTick = 500;
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -1190,8 +1195,8 @@ class MirrorWindowsTest
             final List<String> said = new ArrayList<>();
             withServer(() ->
             {
-                MirrorProximity.tick();
-                said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                WindowSweep.tick();
+                said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
                 ticks[0] = runBooked(scheduler);
             });
 
@@ -1224,7 +1229,7 @@ class MirrorWindowsTest
     @Test
     void aRoomIsTakenBackATickAtATimeAsTheViewerLeaves() throws Exception
     {
-        MirrorWindows.streamPerTick = 500;
+        Windows.streamPerTick = 500;
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -1237,13 +1242,13 @@ class MirrorWindowsTest
             final List<String> after = new ArrayList<>();
             withServer(() ->
             {
-                MirrorProximity.tick();
+                WindowSweep.tick();
                 ticks[0] = runBooked(scheduler);
                 pause();
-                MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-                midway.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+                midway.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
                 ticks[1] = runBooked(scheduler) - ticks[0];
-                after.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                after.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
             });
 
             assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
@@ -1286,9 +1291,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, -5.5, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, -5.5, 64.0, 7.5));
         });
 
         final List<Collection<BlockState>> sent = changesTo(viewer, 2);
@@ -1323,13 +1328,13 @@ class MirrorWindowsTest
     /** How far the farthest block of a batch is from the test viewer's eye at (10.5, 65.62, 7.5). */
     private static double farthestFromTheEye(final Collection<BlockState> batch)
     {
-        return batch.stream().mapToDouble(MirrorWindowsTest::fromTheEye).max().orElseThrow();
+        return batch.stream().mapToDouble(WindowsTest::fromTheEye).max().orElseThrow();
     }
 
     /** The same for the nearest. */
     private static double nearestToTheEye(final Collection<BlockState> batch)
     {
-        return batch.stream().mapToDouble(MirrorWindowsTest::fromTheEye).min().orElseThrow();
+        return batch.stream().mapToDouble(WindowsTest::fromTheEye).min().orElseThrow();
     }
 
     private static double fromTheEye(final BlockState state)
@@ -1350,13 +1355,13 @@ class MirrorWindowsTest
     @Test
     void aRoomCutToFitUnderTheCapSaysSo()
     {
-        MirrorWindows.mostFixed = 100;
+        Windows.mostFixed = 100;
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
-        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
             && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
     }
@@ -1371,14 +1376,14 @@ class MirrorWindowsTest
     @Test
     void aRoomFromAPrunedCaptureIsCutToFitUnderTheCapToo()
     {
-        MirrorCaptures.install(arrival, prunedGroundBelow(arrival, 70, farOneBlock));
-        MirrorWindows.mostFixed = 100;
+        Captures.install(arrival, prunedGroundBelow(arrival, 70, farOneBlock));
+        Windows.mostFixed = 100;
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
-        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
             && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
     }
@@ -1402,12 +1407,12 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
+            Windows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
         });
 
-        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye")),
             "how it is drawn: " + said);
         assertFalse(positions(changesTo(viewer, 2).get(1)).containsKey(new Spot(10, 65, 22)),
@@ -1429,7 +1434,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
@@ -1451,7 +1456,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         // The opening's middle is (10.5, 64, 11.5): fifteen blocks straight in, and seventeen.
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
@@ -1468,17 +1473,17 @@ class MirrorWindowsTest
     @Test
     void aMirrorWithNoCaptureYetStaysABannerAndAsksForOne()
     {
-        MirrorCaptures.clear();
+        Captures.clear();
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             verify(viewer, never()).sendBlockChanges(anyCollection());
-            assertEquals(1, MirrorCaptures.taking(), "asked for");
-            MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
-            MirrorProximity.tick();
+            assertEquals(1, Captures.taking(), "asked for");
+            Captures.install(arrival, solidCapture(arrival, farOneBlock));
+            WindowSweep.tick();
         });
 
         changesTo(viewer, 1);
@@ -1498,9 +1503,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorCaptures.install(arrival, solidCapture(arrival, farTwoBlock));
-            MirrorProximity.tick();
+            WindowSweep.tick();
+            Captures.install(arrival, solidCapture(arrival, farTwoBlock));
+            WindowSweep.tick();
         });
 
         assertTrue(drawnAs(changesTo(viewer, 2).get(1), farTwoBlock) > 0);
@@ -1518,7 +1523,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(barrier, drawn.get(new Spot(10, 64, 11)), "the row behind the banner opens");
@@ -1542,13 +1547,13 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             verify(viewer, never()).sendBlockChanges(anyCollection());
             doReturn(blockAt(10, 64, 9, true)).when(world).getBlockAt(10, 64, 9);
             doReturn(blockAt(10, 63, 9, true)).when(world).getBlockAt(10, 63, 9);
-            MirrorProximity.clear();
-            MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
-            MirrorProximity.tick();
+            WindowSweep.clear();
+            Captures.install(arrival, solidCapture(arrival, farOneBlock));
+            WindowSweep.tick();
         });
 
         changesTo(viewer, 1);
@@ -1571,8 +1576,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorProximity.tick();
+            WindowSweep.tick();
+            WindowSweep.tick();
         });
 
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
@@ -1598,7 +1603,7 @@ class MirrorWindowsTest
         standLow(viewer, 10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 20)), "far back, all of it behind");
@@ -1629,7 +1634,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 9.2);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         // Just behind the opening and a block to the side: two thirds of its outline lands on
         // the face beside the opening, which the side wall at x 9 hides from this eye.
@@ -1644,7 +1649,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 9.2);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertFalse(positions(changesTo(viewer, 1).get(0)).containsKey(new Spot(9, 63, 12)),
             "most of it would show beside the opening, in the open air");
@@ -1661,11 +1666,11 @@ class MirrorWindowsTest
     void inOpenAirAStraddlingBlockWhoseFarSideIsAirIsLeftAlone()
     {
         wallBehind = false;
-        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        Captures.install(arrival, groundBelow(arrival, -100, farOneBlock));
         final Player viewer = playerAt(10.5, 9.2);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(air, drawn.get(new Spot(10, 63, 12)), "straight behind the opening, carved");
@@ -1678,7 +1683,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(11, 65, 12)));
     }
@@ -1703,7 +1708,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Map<Spot, BlockData> narrow = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, narrow.get(new Spot(10, 64, 13)),
@@ -1725,10 +1730,10 @@ class MirrorWindowsTest
         final int[] span = { 0, 18 };
 
         assertArrayEquals(new int[] { 0, 18, 56, 82 },
-            MirrorWindows.withinFace(new double[] { -300.0, 300.0, -200.0, 250.0 }, span, 56, 82),
+            Windows.withinFace(new double[] { -300.0, 300.0, -200.0, 250.0 }, span, 56, 82),
             "a shadow six hundred blocks across marks the read face and no more");
         assertArrayEquals(new int[] { 10, 10, 64, 64 },
-            MirrorWindows.withinFace(new double[] { 9.9, 11.05, 63.9, 65.1 }, span, 56, 82),
+            Windows.withinFace(new double[] { 9.9, 11.05, 63.9, 65.1 }, span, 56, 82),
             "an ordinary shadow marks only the blocks wholly inside it, as before");
     }
 
@@ -1740,7 +1745,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(11, 65, 12)));
     }
@@ -1756,11 +1761,11 @@ class MirrorWindowsTest
     void theInsideOfTheFarGroundIsLeftAsTheRealWorldHasIt()
     {
         when(farOneBlock.isOccluding()).thenReturn(true);
-        MirrorCaptures.install(arrival, prunedGroundBelow(arrival, 70, farOneBlock));
+        Captures.install(arrival, prunedGroundBelow(arrival, 70, farOneBlock));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         // A block here shows the far side seven blocks higher: y 62 is the far surface, y 69.
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
@@ -1778,12 +1783,12 @@ class MirrorWindowsTest
     @Test
     void farSideAirOverAnEmptyBlockIsNotSent()
     {
-        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        Captures.install(arrival, groundBelow(arrival, -100, farOneBlock));
         localEmpty = true;
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
         assertEquals(2, drawnAs(batch, barrier), "the opening still opens");
@@ -1794,11 +1799,11 @@ class MirrorWindowsTest
     @Test
     void farSideAirOverARealBlockIsSent()
     {
-        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        Captures.install(arrival, groundBelow(arrival, -100, farOneBlock));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), air) > 10,
             "air opening up the view through whatever really stands behind the wall");
@@ -1828,11 +1833,11 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             verify(viewer).hideEntity(any(), ArgumentMatchers.eq(stand));
             verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(aside));
             stand(viewer, 10.5, -40.0);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         });
 
         verify(viewer).showEntity(any(), ArgumentMatchers.eq(stand));
@@ -1863,10 +1868,10 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             verify(viewer).hideEntity(any(), ArgumentMatchers.eq(stand));
             stand(viewer, 10.5, -40.0);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         });
 
         verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(display));
@@ -1882,9 +1887,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             stand(viewer, 10.5, -40.0);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         });
 
         assertTakenBack(changesTo(viewer, 2));
@@ -1904,8 +1909,8 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorProximity.release(MirrorManager.byName("museum"));
+            WindowSweep.tick();
+            WindowSweep.release(MirrorManager.byName("museum"));
         });
 
         assertTakenBack(changesTo(viewer, 2));
@@ -1927,9 +1932,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
         });
 
         final Collection<BlockState> update = changesTo(viewer, 2).get(1);
@@ -1952,11 +1957,11 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
-            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+            WindowSweep.tick();
+            Windows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
             verify(viewer, times(1)).sendBlockChanges(anyCollection());
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 12.5, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 12.5, 64.0, 7.5));
         });
 
         changesTo(viewer, 2);
@@ -1976,9 +1981,9 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 16.2, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 16.2, 64.0, 7.5));
         });
 
         assertEquals(2, drawnAs(changesTo(viewer, 2).get(1), barrier),
@@ -1999,21 +2004,21 @@ class MirrorWindowsTest
     void theWholeViewGoesAgainAfterTheResendInterval()
     {
         final long[] clock = { 1_000_000L };
-        MirrorWindows.clock = () -> clock[0];
+        Windows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             // A step in the same chunk, a moment later. The room is held whole behind this wall,
             // so it is drawn the same for every eye and a step changes nothing to send.
             clock[0] += 200L;
-            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
             verify(viewer, times(1)).sendBlockChanges(anyCollection());
             // The same sort of step, half a minute on: everything goes again anyway.
-            clock[0] += MirrorWindows.RESEND_MILLIS + 1L;
-            MirrorWindows.moved(viewer, new Location(world, 11.1, 64.0, 7.5));
+            clock[0] += Windows.RESEND_MILLIS + 1L;
+            Windows.moved(viewer, new Location(world, 11.1, 64.0, 7.5));
         });
 
         assertEquals(2, drawnAs(changesTo(viewer, 2).get(1), barrier),
@@ -2024,7 +2029,7 @@ class MirrorWindowsTest
     /**
      * A viewer drawn a room has their own fog pulled in to it, and gets it back on leaving.
      *
-     * <p>Wiring, not arithmetic: {@code MirrorFogTest} pins what number is asked for and why.
+     * <p>Wiring, not arithmetic: {@code ViewFogTest} pins what number is asked for and why.
      * What this holds is that the asking happens where a view begins and the putting-back where
      * one ends -- and a view ends in four places, two of them inside the stream that takes a room
      * back. Restoring only where a redraw finds nothing left to draw looked right and left a
@@ -2037,7 +2042,7 @@ class MirrorWindowsTest
     {
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
         final List<Integer> fog = new ArrayList<>();
-        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
             public int get(final Player player)
@@ -2057,16 +2062,16 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             assertEquals(List.of(2), fog, "a room 16 deep is one chunk, and one over for the edge");
             // The feature is invisible by design, so debug has to be able to say it happened.
-            final List<String> debug = MirrorWindows.describe(viewer).stream()
-                .map(MirrorWindowsTest::plain).toList();
+            final List<String> debug = Windows.describe(viewer).stream()
+                .map(WindowsTest::plain).toList();
             assertTrue(debug.stream().anyMatch(line -> line.equals("fog: pulled in to 2 chunk(s), from 10")),
                 "debug says what the fog did: " + debug);
             pause();
             // Well out of range: the room goes back, and the view ends with it.
-            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+            Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
         });
 
         assertEquals(List.of(2, 10), fog, "and the ten they were being sent before comes back");
@@ -2086,7 +2091,7 @@ class MirrorWindowsTest
     {
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
         final List<Integer> fog = new ArrayList<>();
-        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
             public int get(final Player player)
@@ -2106,12 +2111,12 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             assertEquals(List.of(2), fog, "narrowed while being drawn a room");
             // Through a portal: the drawing's world is stale, the player's fog is not.
             final World elsewhere = mock(World.class);
             when(viewer.getWorld()).thenReturn(elsewhere);
-            MirrorWindows.restoreAll();
+            Windows.restoreAll();
         });
 
         assertEquals(List.of(2, 10), fog, "the ten they had comes back wherever they are");
@@ -2135,7 +2140,7 @@ class MirrorWindowsTest
 
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
         // A client already being sent no further than a 16-deep room reaches.
-        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
             public int get(final Player player)
@@ -2169,7 +2174,7 @@ class MirrorWindowsTest
     /** The one debug line about the fog, without its colours. */
     private static String fogLine(final Player player)
     {
-        return MirrorWindows.describe(player).stream().map(MirrorWindowsTest::plain)
+        return Windows.describe(player).stream().map(WindowsTest::plain)
             .filter(line -> line.startsWith("fog: ")).findFirst().orElse("no fog line");
     }
 
@@ -2191,17 +2196,17 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             assertEquals(List.of(2), fog, "narrowed while being drawn a room");
             // A redraw on a move is throttled, so wait the gap out before stepping.
             pause();
             final World elsewhere = mock(World.class);
             when(viewer.getWorld()).thenReturn(elsewhere);
-            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+            Windows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
         });
 
         assertEquals(List.of(2, 10), fog, "and given back on the way into the new world");
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()), "nothing left remembered");
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()), "nothing left remembered");
     }
 
     /**
@@ -2219,15 +2224,15 @@ class MirrorWindowsTest
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
         assertEquals(List.of(2), fog, "narrowed while they were here");
 
         // Gone: no players in the world, so the sweep finds no player behind the view either.
         when(world.getPlayers()).thenReturn(List.of());
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertEquals(List.of(2), fog, "nothing sent to somebody who is not there");
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()),
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()),
             "and they are not remembered as narrowed, so coming back narrows them again");
     }
 
@@ -2236,7 +2241,7 @@ class MirrorWindowsTest
     {
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
         final List<Integer> asked = new ArrayList<>();
-        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
             public int get(final Player player)
@@ -2267,7 +2272,7 @@ class MirrorWindowsTest
     @Test
     void aClickPartWayThroughTakingARoomBackStillTakesAllOfItBack() throws Exception
     {
-        MirrorWindows.streamPerTick = 500;
+        Windows.streamPerTick = 500;
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -2279,16 +2284,16 @@ class MirrorWindowsTest
             final List<String> after = new ArrayList<>();
             withServer(() ->
             {
-                MirrorProximity.tick();
+                WindowSweep.tick();
                 runBooked(scheduler);
                 // What has run is done: from here only the take-back and the click are booked.
                 clearInvocations(scheduler);
                 pause();
-                MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-                MirrorWindows.resend(viewer);
-                midway.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+                Windows.resend(viewer);
+                midway.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
                 runBooked(scheduler);
-                after.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                after.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
             });
 
             assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
@@ -2312,7 +2317,7 @@ class MirrorWindowsTest
     @Test
     void aClickPartWayThroughDrawingARoomStillDrawsAllOfIt() throws Exception
     {
-        MirrorWindows.streamPerTick = 500;
+        Windows.streamPerTick = 500;
         final Player viewer = playerAt(10.5, 7.5);
         when(viewer.isOnline()).thenReturn(true);
         when(world.getPlayers()).thenReturn(List.of(viewer));
@@ -2323,8 +2328,8 @@ class MirrorWindowsTest
             final int[] drawn = new int[2];
             withServer(() ->
             {
-                MirrorProximity.tick();
-                MirrorWindows.resend(viewer);
+                WindowSweep.tick();
+                Windows.resend(viewer);
                 drawn[0] = drawnCount(viewer);
                 runBooked(scheduler);
                 drawn[1] = drawnCount(viewer);
@@ -2345,7 +2350,7 @@ class MirrorWindowsTest
     /** How many blocks a viewer has been sent, read from {@code mirror debug}. */
     private static int drawnCount(final Player viewer)
     {
-        for (final String line : MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList())
+        for (final String line : Windows.describe(viewer).stream().map(WindowsTest::plain).toList())
         {
             if (line.startsWith("drawn: "))
             {
@@ -2367,10 +2372,10 @@ class MirrorWindowsTest
 
         withServer(() ->
         {
-            MirrorProximity.tick();
+            WindowSweep.tick();
             assertEquals(List.of(), fog, "off when they walked up, so nothing yet");
             ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-            MirrorProximity.tick();
+            WindowSweep.tick();
         });
 
         assertEquals(List.of(2), fog, "on at the next sweep, without leaving the mirror");
@@ -2382,11 +2387,11 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertSame(MirrorManager.byName("museum"),
-            MirrorWindows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
-        assertNull(MirrorWindows.clicked(viewer, blockAt(40, 63, 12, true)),
+            Windows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
+        assertNull(Windows.clicked(viewer, blockAt(40, 63, 12, true)),
             "a block nowhere near the view is nothing to do with the mirror");
     }
 
@@ -2403,22 +2408,22 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         Block drawn = null;
         for (int z = 12; (z < 40) && (drawn == null); z++)
         {
             final Block candidate = blockAt(10, 63, z, true);
-            if (MirrorWindows.drew(viewer, candidate))
+            if (Windows.drew(viewer, candidate))
             {
                 drawn = candidate;
             }
         }
         assertNotNull(drawn, "the room behind the opening is drawn somewhere along its middle");
-        assertSame(MirrorManager.byName("museum"), MirrorWindows.clicked(viewer, drawn),
+        assertSame(MirrorManager.byName("museum"), Windows.clicked(viewer, drawn),
             "a click on it is a click on the mirror");
-        assertFalse(MirrorWindows.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
-        assertFalse(MirrorWindows.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
+        assertFalse(Windows.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
+        assertFalse(Windows.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
     }
 
     /** Every right-click on the server comes through here, and almost nobody is looking in. */
@@ -2427,7 +2432,7 @@ class MirrorWindowsTest
     {
         final Block wall = mock(Block.class);
 
-        assertNull(MirrorWindows.clicked(playerAt(10.5, 7.5), wall));
+        assertNull(Windows.clicked(playerAt(10.5, 7.5), wall));
 
         verifyNoInteractions(wall);
     }
@@ -2445,7 +2450,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         verify(viewer, never()).sendBlockChanges(anyCollection());
     }
@@ -2475,7 +2480,7 @@ class MirrorWindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(WindowSweep::tick);
 
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0);
     }
@@ -2486,10 +2491,10 @@ class MirrorWindowsTest
         for (final int[] spot : new int[][] { { 0, 0, 0 }, { -30000000, -64, 29999999 },
             { 12, 319, -1 }, { -1, -1, -1 } })
         {
-            final long key = MirrorWindows.key(spot[0], spot[1], spot[2]);
-            assertEquals(spot[0], MirrorWindows.unpackX(key));
-            assertEquals(spot[1], MirrorWindows.unpackY(key));
-            assertEquals(spot[2], MirrorWindows.unpackZ(key));
+            final long key = Windows.key(spot[0], spot[1], spot[2]);
+            assertEquals(spot[0], Windows.unpackX(key));
+            assertEquals(spot[1], Windows.unpackY(key));
+            assertEquals(spot[2], Windows.unpackZ(key));
         }
     }
 
@@ -2502,7 +2507,7 @@ class MirrorWindowsTest
     /** Moves the redraw clock past the least time between two redraws of one viewer. */
     private static void pause()
     {
-        paused += MirrorWindows.REDRAW_MILLIS + 30L;
+        paused += Windows.REDRAW_MILLIS + 30L;
     }
 
     /** Asserts the second of two sends put back every block the first drew over. */
@@ -2559,32 +2564,32 @@ class MirrorWindowsTest
     }
 
     /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
-    private MirrorCapture solidCapture(final MirrorPoint at, final BlockData everywhere)
+    private Capture solidCapture(final Place at, final BlockData everywhere)
     {
         return groundBelow(at, 1000, everywhere);
     }
 
     /** A capture of one block below a height and air above it. */
-    private MirrorCapture groundBelow(final MirrorPoint at, final int surface, final BlockData ground)
+    private Capture groundBelow(final Place at, final int surface, final BlockData ground)
     {
         return groundBuilder(at, surface, ground).build();
     }
 
     /** The same, with what is buried two deep marked as buried, as a capture taken on a server is. */
-    private MirrorCapture prunedGroundBelow(final MirrorPoint at, final int surface, final BlockData ground)
+    private Capture prunedGroundBelow(final Place at, final int surface, final BlockData ground)
     {
-        final MirrorCapture.Builder builder = groundBuilder(at, surface, ground);
+        final Capture.Builder builder = groundBuilder(at, surface, ground);
         builder.prune();
         return builder.build();
     }
 
-    private MirrorCapture.Builder groundBuilder(final MirrorPoint at, final int surface, final BlockData ground)
+    private Capture.Builder groundBuilder(final Place at, final int surface, final BlockData ground)
     {
         final int x = (int) Math.floor(at.x());
         final int y = (int) Math.floor(at.y());
         final int z = (int) Math.floor(at.z());
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder(at.worldName(), true,
-            new MirrorCapture.Box(x - 40, y - 16, z - 40, 81, 81, 81), air);
+        final Capture.Builder builder = new Capture.Builder(at.worldName(), true,
+            new Capture.Box(x - 40, y - 16, z - 40, 81, 81, 81), air);
         builder.fillBelow(surface, ground);
         return builder;
     }
@@ -2621,7 +2626,7 @@ class MirrorWindowsTest
     private void secondWindowAt(final int x)
     {
         hangOnAWall(bannerAt(x));
-        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", x, 64, 10), arrivalTwo));
+        MirrorManager.add(new QuantumMirror("archive", new BlockPlace("world", x, 64, 10), arrivalTwo));
     }
 
     /** Puts a solid, occluding block of the banner's world here. */
@@ -2747,7 +2752,7 @@ class MirrorWindowsTest
     private static Object uncovered(final Class<?> type, final Method method)
     {
         throw new UnsupportedOperationException(
-            "MirrorWindowsTest's " + type.getSimpleName() + " stand-in does not answer "
+            "WindowsTest's " + type.getSimpleName() + " stand-in does not answer "
                 + method.getName() + "(); add it there if the drawing now needs it");
     }
 
