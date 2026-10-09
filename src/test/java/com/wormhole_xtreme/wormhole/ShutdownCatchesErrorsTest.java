@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
-
 /**
  * Nothing in the shutdown path catches {@code Exception} alone.
  *

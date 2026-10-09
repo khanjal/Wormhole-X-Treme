@@ -11,7 +11,6 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 
-
 /**
  * The Paper methods mirrors reach reflectively are really there, under the names and types looked up.
  *
