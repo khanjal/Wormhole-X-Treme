@@ -23,11 +23,14 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 /**
@@ -650,7 +653,37 @@ public final class MirrorCaptures
     public static boolean request(final QuantumMirror mirror)
     {
         return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
-            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false);
+            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false, NO_CELLS);
+    }
+
+    /** No blocks left out. */
+    private static final int[][] NO_CELLS = new int[0][];
+
+    /**
+     * The blocks of a gate's own signs, which a view of its front would otherwise show hanging in the air:
+     * the sign hangs on a frame block the view leaves to the real world.
+     *
+     * @return each {@code {x, y, z}}, or none for a gate that is not known
+     */
+    private static int[][] signCells(final String gate)
+    {
+        final Stargate found = StargateManager.getStargate(gate);
+        if (found == null)
+        {
+            return NO_CELLS;
+        }
+        final List<int[]> cells = new ArrayList<>();
+        if (found.getGateNameBlockHolder() != null)
+        {
+            final Block name = found.getGateNameBlockHolder().getRelative(found.getGateFacing());
+            cells.add(new int[] { name.getX(), name.getY(), name.getZ() });
+        }
+        if (found.getGateDialSign() != null)
+        {
+            final Block dial = found.getGateDialSign().getBlock();
+            cells.add(new int[] { dial.getX(), dial.getY(), dial.getZ() });
+        }
+        return cells.toArray(new int[0][]);
     }
 
     /**
@@ -676,7 +709,7 @@ public final class MirrorCaptures
     {
         final boolean fill = depth > ConfigManager.getGateViewDepth();
         return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
-            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill);
+            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate));
     }
 
     /**
@@ -690,9 +723,11 @@ public final class MirrorCaptures
      *            how far ahead it reaches, or 0 for a mirror's: as far as the far world sends
      * @param background
      *            true for a capture nobody is waiting on, read at half the pace
+     * @param blank
+     *            blocks to leave out of the capture, each {@code {x, y, z}}
      */
     private static boolean request(final String key, final String what, final MirrorPoint destination,
-        final int[] hole, final int depth, final boolean background)
+        final int[] hole, final int depth, final boolean background, final int[][] blank)
     {
         if (JOBS.containsKey(key))
         {
@@ -725,6 +760,7 @@ public final class MirrorCaptures
         final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewDepth()) : ConfigManager.getMirrorViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
+        job.blank = blank;
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -1042,6 +1078,8 @@ public final class MirrorCaptures
         private final int reach;
         /** Chunks read a tick. */
         private int perTick = CHUNKS_PER_TICK;
+        /** Blocks left out of the capture: a gate's signs, which hang on a frame the view does not keep. */
+        private int[][] blank = NO_CELLS;
         private final int floor;
 
         /**
@@ -1188,6 +1226,10 @@ public final class MirrorCaptures
                         builder.clear(banner.x(), banner.y(), banner.z());
                     }
                 }
+            }
+            for (final int[] cell : blank)
+            {
+                builder.clear(cell[0], cell[1], cell[2]);
             }
             final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
             final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival((int) Math.floor(destination.x()),

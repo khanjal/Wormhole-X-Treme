@@ -42,6 +42,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -59,6 +60,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 /**
@@ -691,6 +694,44 @@ class MirrorCapturesTest
 
         assertEquals(List.of(100.0, 100.0, 98.0, 97.0), sifted, "Edora's last, and Chulak's never");
         assertEquals(0, MirrorCaptures.taking());
+    }
+
+    /**
+     * A gate's own sign is left out of the capture of its front.
+     *
+     * <p>The sign hangs on a frame block that a view of the gate's front does not keep, so it was
+     * drawn hanging in the air before the gate it belongs to.
+     */
+    @Test
+    void aGatesOwnSignIsLeftOutOfItsCapture() throws Exception
+    {
+        final Pool pool = new Pool();
+        MirrorCaptures.siftWith((builder, from, reach, floor) -> reach);
+        final Block holder = mock(Block.class);
+        final Block signBlock = mock(Block.class);
+        when(holder.getRelative(BlockFace.SOUTH)).thenReturn(signBlock);
+        when(signBlock.getX()).thenReturn(100);
+        when(signBlock.getY()).thenReturn(66);
+        when(signBlock.getZ()).thenReturn(-21);
+        final Stargate abydos = mock(Stargate.class);
+        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
+        when(abydos.getGateFacing()).thenReturn(BlockFace.SOUTH);
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
+            withServer(() ->
+            {
+                requestGate("Abydos", 0);
+                pool.tickUntilIdle();
+            });
+        }
+
+        final MirrorCapture capture = MirrorCaptures.get(MirrorCaptures.gateKey("Abydos", MirrorCaptures.GATE_OPENING,
+            MirrorCaptures.GATE_OPENING));
+        assertNotNull(capture);
+        assertNotEquals(sand, capture.at(100, 66, -21), "the sign's own block is not drawn");
+        assertEquals(sand, capture.at(100, 66, -22), "though the ground beside it is");
     }
 
     /**
