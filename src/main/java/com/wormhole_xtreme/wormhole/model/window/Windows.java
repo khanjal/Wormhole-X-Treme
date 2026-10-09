@@ -205,7 +205,7 @@ public final class Windows
     static LongSupplier clock = System::currentTimeMillis;
 
     /** Every window the last sweep found, by mirror name. */
-    private static final Map<String, WindowState> WINDOWS = new HashMap<>();
+    private static final Map<String, WindowState> ACTIVE = new HashMap<>();
 
     /** Windows found by the sweep in progress. */
     private static final Map<String, WindowState> OFFERED = new HashMap<>();
@@ -298,7 +298,7 @@ public final class Windows
     {
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.heading("your view"));
-        lines.add(MirrorText.field("server", WINDOWS.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
+        lines.add(MirrorText.field("server", ACTIVE.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
         lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
         lines.add(MirrorText.field("fog", fogState(player)));
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
@@ -330,7 +330,7 @@ public final class Windows
         }
         for (final String name : view.mirrors)
         {
-            final WindowState window = WINDOWS.get(name);
+            final WindowState window = ACTIVE.get(name);
             if (window != null)
             {
                 lines.addAll(mirrorLines(view, window, name.equals(fullName)));
@@ -373,7 +373,7 @@ public final class Windows
         final String fullName = FULL.get(player.getUniqueId());
         for (final String name : view.mirrors)
         {
-            final WindowState window = WINDOWS.get(name);
+            final WindowState window = ACTIVE.get(name);
             if (window != null)
             {
                 lines.add(MirrorText.field(name, name.equals(fullName) ? "whole and unlimited for you"
@@ -504,7 +504,7 @@ public final class Windows
     /** Forgets every view without sending anything, for a test or a reload. */
     public static void clear()
     {
-        WINDOWS.clear();
+        ACTIVE.clear();
         OFFERED.clear();
         VIEWS.clear();
         STATES.clear();
@@ -565,7 +565,7 @@ public final class Windows
         }
         final WindowState window = new WindowState(showing, shape, banner,
             openCells(shape, banner.getWorld()), capture);
-        final WindowState previous = WINDOWS.get(mirror.name());
+        final WindowState previous = ACTIVE.get(mirror.name());
         if ((previous != null) && previous.shape.equals(shape))
         {
             window.solid = previous.solid;
@@ -598,16 +598,16 @@ public final class Windows
     static void finish()
     {
         Captures.step(0);
-        if (OFFERED.isEmpty() && WINDOWS.isEmpty() && VIEWS.isEmpty())
+        if (OFFERED.isEmpty() && ACTIVE.isEmpty() && VIEWS.isEmpty())
         {
             return;
         }
         final long now = now();
-        WINDOWS.clear();
-        WINDOWS.putAll(OFFERED);
+        ACTIVE.clear();
+        ACTIVE.putAll(OFFERED);
         OFFERED.clear();
         final Set<World> worlds = new LinkedHashSet<>();
-        WINDOWS.values().forEach(window -> worlds.add(window.banner.getWorld()));
+        ACTIVE.values().forEach(window -> worlds.add(window.banner.getWorld()));
         final Set<UUID> seen = new HashSet<>();
         for (final World world : worlds)
         {
@@ -651,7 +651,7 @@ public final class Windows
      */
     public static void moved(final Player player, final Location to)
     {
-        if ((WINDOWS.isEmpty() && VIEWS.isEmpty()) || (player == null) || (to == null))
+        if ((ACTIVE.isEmpty() && VIEWS.isEmpty()) || (player == null) || (to == null))
         {
             return;
         }
@@ -685,7 +685,7 @@ public final class Windows
     public static void release(final QuantumMirror mirror)
     {
         OFFERED.remove(mirror.name());
-        if (WINDOWS.remove(mirror.name()) == null)
+        if (ACTIVE.remove(mirror.name()) == null)
         {
             return;
         }
@@ -873,7 +873,7 @@ public final class Windows
      */
     public static void redraw(final QuantumMirror mirror, final Block banner)
     {
-        if ((banner == null) || !WINDOWS.containsKey(mirror.name()))
+        if ((banner == null) || !ACTIVE.containsKey(mirror.name()))
         {
             return;
         }
@@ -882,7 +882,7 @@ public final class Windows
         {
             return;
         }
-        WINDOWS.put(mirror.name(), OFFERED.remove(mirror.name()));
+        ACTIVE.put(mirror.name(), OFFERED.remove(mirror.name()));
         final long now = now();
         for (final Player player : banner.getWorld().getPlayers())
         {
@@ -939,7 +939,7 @@ public final class Windows
         final Spot at = new Spot(block.getX(), block.getY(), block.getZ());
         for (final String name : view.mirrors)
         {
-            final WindowState window = WINDOWS.get(name);
+            final WindowState window = ACTIVE.get(name);
             if ((window != null) && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
@@ -978,7 +978,7 @@ public final class Windows
         long best = Long.MAX_VALUE;
         for (final String name : view.mirrors)
         {
-            final WindowState window = WINDOWS.get(name);
+            final WindowState window = ACTIVE.get(name);
             if ((window == null) || !window.banner.getWorld().equals(block.getWorld()))
             {
                 continue;
@@ -1253,7 +1253,7 @@ public final class Windows
             return seeing;
         }
         final String fullName = FULL.get(player.getUniqueId());
-        for (final WindowState window : WINDOWS.values())
+        for (final WindowState window : ACTIVE.values())
         {
             // A mirror drawn whole for an admin stays drawn wherever they stand, looking or not,
             // so they can walk round what the capture holds.
@@ -1293,7 +1293,7 @@ public final class Windows
     private static boolean nearAWindow(final Player player, final Location to)
     {
         final double radius = ConfigManager.getMirrorProximityDistance();
-        for (final WindowState window : WINDOWS.values())
+        for (final WindowState window : ACTIVE.values())
         {
             if (window.banner.getWorld().equals(player.getWorld())
                 && (fromBanner(window.banner, to.getX(), to.getY(), to.getZ()) <= (radius * radius)))
@@ -1521,7 +1521,7 @@ public final class Windows
      */
     private static boolean noWindowWithin(final WindowState window, final double apart)
     {
-        for (final WindowState other : WINDOWS.values())
+        for (final WindowState other : ACTIVE.values())
         {
             if ((other != window) && other.banner.getWorld().equals(window.banner.getWorld())
                 && (fromBanner(other.banner, window.banner.getX(), window.banner.getY(), window.banner.getZ())
@@ -1753,7 +1753,7 @@ public final class Windows
      */
     static boolean holdsFixedView(final String name)
     {
-        final WindowState window = WINDOWS.get(name);
+        final WindowState window = ACTIVE.get(name);
         return (window != null) && (window.fixed != null);
     }
 
