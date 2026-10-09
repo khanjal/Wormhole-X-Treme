@@ -221,9 +221,9 @@ class WindowsGateTest
     /**
      * A gate's held room is kept from sweep to sweep, and let go once a fresh capture is in.
      *
-     * <p>Kept across a new capture, the room built from the old one went on standing in for it in
-     * the debug lines and in memory until it aged out. Mirrors keep theirs either way, so this is
-     * the one thing the shared offer still asks a source's walk-through answer about.
+     * <p>The fixed view is drawn only from the capture it was built from, so one carried across a
+     * new capture is never drawn, only held until it ages out. Mirrors keep theirs either way, so
+     * this is the one thing the shared offer still asks a source's walk-through answer about.
      */
     @Test
     void aGatesHeldRoomIsKeptUntilAFreshCaptureIsIn() throws ReflectiveOperationException

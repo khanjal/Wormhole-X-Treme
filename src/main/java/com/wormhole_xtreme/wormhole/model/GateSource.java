@@ -68,7 +68,7 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
      * @param target
      *            the gate they land in front of
      * @param step
-     *            {@code gate-view-depth}
+     *            {@code gate-view-depth}; drawn to that depth, until {@link #drawnTo} says otherwise
      */
     public GateSource(final String name, final Block anchor, final WindowShape shape, final List<Spot> open,
         final Place destination, final String target, final int step)

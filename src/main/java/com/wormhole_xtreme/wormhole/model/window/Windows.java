@@ -578,7 +578,7 @@ public final class Windows
      * @param source
      *            what is drawn as a window
      * @param capture
-     *            the far side as held now, drawn until a fresh one arrives
+     *            the far side as held now, drawn until a fresh one arrives; never null
      */
     public static void offer(final WindowSource source, final Capture capture)
     {
