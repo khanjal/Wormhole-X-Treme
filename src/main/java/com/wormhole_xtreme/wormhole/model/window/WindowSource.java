@@ -11,14 +11,18 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * Something drawn as a window onto a far side: a mirror's banner, or an open gate (#522).
  *
  * <p>What {@link Windows} needs to know of the thing it draws, and no more. Each sweep offers one
- * afresh, so an answer need only hold for that sweep.
+ * afresh, but it is held until the next, and clicks and lookups between sweeps read it, so an
+ * answer must still hold then.
  */
 public interface WindowSource
 {
     /** @return what the sweep knows it by: a mirror's name, or a gate's under its prefix */
     String name();
 
-    /** @return the block a viewer's distance to it is measured from */
+    /**
+     * @return the block a viewer's distance to it is measured from; for a source that is not walked
+     *         through it is also the banner whose cells are drawn as air
+     */
     Block anchor();
 
     /** @return the opening, onto where it goes */
