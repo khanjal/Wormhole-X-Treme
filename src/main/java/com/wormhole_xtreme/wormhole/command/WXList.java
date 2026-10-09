@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -76,19 +77,13 @@ public class WXList implements CommandExecutor
      */
     private static ArrayList<Stargate> gatesOn(final String filterNet)
     {
-        final ArrayList<Stargate> gates = new ArrayList<>();
         final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
-        for (final Stargate g : StargateManager.getAllGates())
-        {
-            // No filter takes everything. "Public" means the gates on no network at all,
-            // which is a different question from being on a network of that name.
-            if ((filterNet == null)
+        // No filter takes everything. "Public" means the gates on no network at all,
+        // which is a different question from being on a network of that name.
+        return StargateManager.getAllGates().stream()
+            .filter(g -> (filterNet == null)
                 || (filterPublic ? (g.getGateNetwork() == null) : namedNetwork(g, filterNet)))
-            {
-                gates.add(g);
-            }
-        }
-        return gates;
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /** Whether this gate is on the network of that name. */

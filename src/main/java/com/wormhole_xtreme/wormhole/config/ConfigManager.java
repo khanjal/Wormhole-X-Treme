@@ -2,11 +2,11 @@ package com.wormhole_xtreme.wormhole.config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bukkit.Material;
@@ -73,6 +73,9 @@ public class ConfigManager
 
         /** Whether a player's following pets travel with them by gate, ring, beam or mirror. */
         PETS_FOLLOW_OWNER,
+
+        /** Whether a command named in chat can be clicked (#538). */
+        CLICKABLE_CHAT,
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
@@ -1734,6 +1737,17 @@ public class ConfigManager
     }
 
     /**
+     * Whether a command named in chat can be clicked, rather than only read and typed.
+     *
+     * @return true unless the setting turns it off
+     */
+    public static boolean isClickableChat()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.CLICKABLE_CHAT);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
      * Checks if same-world-only mode is enabled.
      * When true, players may only teleport through gates whose destination is in the same world.
      * 
@@ -1764,13 +1778,10 @@ public class ConfigManager
      */
     public static List<String> settingNames()
     {
-        final List<String> names = new ArrayList<String>();
-        for (final ConfigKeys key : getConfigurations().keySet())
-        {
-            names.add(key.name());
-        }
-        Collections.sort(names);
-        return names;
+        return getConfigurations().keySet().stream()
+            .map(ConfigKeys::name)
+            .sorted()
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
@@ -1980,15 +1991,9 @@ public class ConfigManager
     {
         final String wanted = (needle == null) || (needle.trim().isEmpty())
             ? "" : settingKey(needle);
-        final List<String> found = new ArrayList<String>();
-        for (final String name : settingNames())
-        {
-            if (name.contains(wanted))
-            {
-                found.add(name);
-            }
-        }
-        return found;
+        return settingNames().stream()
+            .filter(name -> name.contains(wanted))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**

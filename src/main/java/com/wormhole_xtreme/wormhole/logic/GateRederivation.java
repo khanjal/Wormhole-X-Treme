@@ -5,7 +5,10 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -271,23 +274,10 @@ public final class GateRederivation
     /** Every block the gate recorded as its frame or its lights. */
     private static Set<Long> ownBlocks(final Stargate gate)
     {
-        final Set<Long> own = new HashSet<>();
-        for (final Location l : gate.getGateStructureBlocks())
-        {
-            own.add(packed(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
-        }
-        for (final List<Location> wave : gate.getGateLightBlocks())
-        {
-            if (wave == null)
-            {
-                continue;
-            }
-            for (final Location l : wave)
-            {
-                own.add(packed(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
-            }
-        }
-        return own;
+        return Stream.concat(gate.getGateStructureBlocks().stream(),
+                gate.getGateLightBlocks().stream().filter(Objects::nonNull).flatMap(List::stream))
+            .map(l -> packed(l.getBlockX(), l.getBlockY(), l.getBlockZ()))
+            .collect(Collectors.toSet());
     }
 
     /**
@@ -358,15 +348,9 @@ public final class GateRederivation
     /** A shape's frame and chevron cells on a grid. */
     private static List<GateBlueprint.Cell> frameCells(final Stargate3DShape shape, final GateGrid grid)
     {
-        final List<GateBlueprint.Cell> frame = new ArrayList<>();
-        for (final GateBlueprint.Cell cell : GateBlueprint.of(shape, grid))
-        {
-            if ((cell.part() == GateBlueprint.Part.FRAME) || (cell.part() == GateBlueprint.Part.CHEVRON))
-            {
-                frame.add(cell);
-            }
-        }
-        return frame;
+        return GateBlueprint.of(shape, grid).stream()
+            .filter(cell -> (cell.part() == GateBlueprint.Part.FRAME) || (cell.part() == GateBlueprint.Part.CHEVRON))
+            .toList();
     }
 
     /** How many of the cells, moved by the offset, land on the gate's own blocks. */
@@ -538,11 +522,9 @@ public final class GateRederivation
     /** Whether every block the shape lights is one the gate already has as frame or light. */
     private static boolean fitsFrame(final Stargate gate, final List<List<Location>> derived)
     {
-        final Set<String> frame = new HashSet<>();
-        for (final Location l : gate.getGateStructureBlocks())
-        {
-            frame.add(key(l));
-        }
+        final Set<String> frame = gate.getGateStructureBlocks().stream()
+            .map(GateRederivation::key)
+            .collect(Collectors.toCollection(HashSet::new));
         for (final Set<String> wave : keysOf(gate.getGateLightBlocks()))
         {
             frame.addAll(wave);

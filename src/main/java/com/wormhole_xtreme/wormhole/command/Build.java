@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.bad;
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.command;
-import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.commands;
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.good;
 import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.name;
 
@@ -10,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,6 +38,7 @@ import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewText;
+import com.wormhole_xtreme.wormhole.utils.ChatLine;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
@@ -120,6 +121,35 @@ public class Build implements CommandExecutor
     private static final List<String> ACCEPTED =
         Stream.concat(ACTIONS.stream(), Stream.of(MATERIALS)).toList();
 
+    /** What each of {@link #ACTIONS} is called on its button, and what pointing at it says. */
+    private static final Map<String, Button> BUTTONS = Map.ofEntries(
+        Map.entry(CLEAR, new Button("Clear", "Takes the preview you look at away.")),
+        Map.entry(ACTIVATE, new Button("Activate", "Dials it, or shuts it down.")),
+        Map.entry(IRIS, new Button("Iris", "Closes its iris, or opens it.")),
+        Map.entry(MATERIAL, new Button("Material", "Dresses it in another group, or changes one of its blocks.")),
+        Map.entry(NEEDS, new Button("Needs", "Lists what it takes to build, and what is still to place.")),
+        Map.entry(GUIDE, new Button("Guide", "Marks what is still to place and what is wrong, or stops.")),
+        Map.entry(LAYER, new Button("Layer", "Shows it a layer more at a time, then all of it again.")),
+        Map.entry(CHEVRONS, new Button("Chevrons", "Draws its chevrons as frame, or in their own block again.")),
+        Map.entry(DHD, new Button("DHD", "Hides its DHD, or shows it.")),
+        Map.entry(SHARE, new Button("Share", "Says who else sees it, and how to show it to more.")),
+        Map.entry(PLACE, new Button("Place", "Builds it for real.")));
+
+    /**
+     * A preview action's button.
+     *
+     * @param label
+     *            what the button says, inside its brackets
+     * @param help
+     *            what pointing at it says the action does
+     */
+    private record Button(String label, String help)
+    {
+    }
+
+    /** The one action that does nothing without more typed after it, so its button fills it in. */
+    private static final List<String> NEEDS_MORE = List.of(MATERIAL);
+
     private static final String USAGE = "Usage: ";
 
     /** How far away a placed DHD button can be looked at to stand a preview on it. */
@@ -134,8 +164,7 @@ public class Build implements CommandExecutor
         }
         if (args[0].startsWith("-"))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Preview options moved to "
-                + actionList());
+            actionList(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Preview options moved to ").send(player);
             return;
         }
         if (args.length > 2)
@@ -192,13 +221,22 @@ public class Build implements CommandExecutor
                     + ((group == null) ? "" : " in " + name(group.getName()))
                     + ((dhdFacing == null) ? ". Build inside it, then press a real button on its DHD."
                         : " on your DHD. Finish it, then press the button."));
-                player.sendMessage(header + "Look at it and use " + actionList());
+                actionList(header + "Look at it and use ").send(player);
             }
-            case OVER_LIMIT -> player.sendMessage(error + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
-                ? "Previews are off on this server."
-                : "Too many preview blocks on the server. Clear one with " + hint(CLEAR) + "."));
+            case OVER_LIMIT -> overLimit(player, error);
             case NO_DHD -> player.sendMessage(error + name(shape.getShapeName()) + " has no DHD, so it cannot be previewed.");
         }
+    }
+
+    private static void overLimit(final Player player, final String error)
+    {
+        if (ConfigManager.getGatePreviewMaxBlocks() == 0)
+        {
+            player.sendMessage(error + "Previews are off on this server.");
+            return;
+        }
+        linkHint(ChatLine.of(error + "Too many preview blocks on the server. Clear one with "), CLEAR).text(".")
+            .send(player);
     }
 
     /**
@@ -245,8 +283,7 @@ public class Build implements CommandExecutor
             final String[] arguments = CommandUtilities.commandEscaper(args);
             if ((arguments.length < 1) || (arguments.length > 3))
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE
-                    + actionList());
+                actionList(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE).send(player);
                 return true;
             }
             option(player, arguments, mayPreview);
@@ -260,8 +297,8 @@ public class Build implements CommandExecutor
         final String option = args[0].toLowerCase(Locale.ROOT);
         if (!ACCEPTED.contains(option))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No preview action "
-                + name(args[0]) + ". Try " + commands(ACTIONS));
+            buttons(ChatLine.of(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No preview action "
+                + name(args[0]) + ". Try ")).send(player);
             return;
         }
         if (CLEAR.equals(option))
@@ -312,8 +349,9 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            player.sendMessage(error + USAGE + hint(MATERIAL + " <group>") + " or "
-                + hint(MATERIAL + " -<role> <block>") + ". Roles: " + roles + ".");
+            ChatLine.of(error + USAGE).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
+                .text(" or ").suggest(hint(MATERIAL + " -<role> <block>"), PREVIEW_COMMAND + MATERIAL + " -")
+                .text(". Roles: " + roles + ".").send(player);
             return null;
         }
         final Material block = Material.matchMaterial(args[2]);
@@ -393,10 +431,10 @@ public class Build implements CommandExecutor
             case NOT_LOADED -> player.sendMessage(error + "Part of it is in an unloaded chunk. Move closer. Nothing placed.");
             case OUTSIDE_BORDER -> player.sendMessage(error + "Part of it is outside the world border. Nothing placed.");
             case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
-            case IN_THE_WAY -> player.sendMessage(error + "Nothing placed. In the way: "
-                + bad(String.join(", ", placed.inTheWay())) + ". " + hint(GUIDE) + " marks them.");
-            case NOT_FOUND -> player.sendMessage(error + "Placed, but no gate was found in it. " + hint(GUIDE)
-                + " shows what is wrong.");
+            case IN_THE_WAY -> linkHint(ChatLine.of(error + "Nothing placed. In the way: "
+                + bad(String.join(", ", placed.inTheWay())) + ". "), GUIDE).text(" marks them.").send(player);
+            case NOT_FOUND -> linkHint(ChatLine.of(error + "Placed, but no gate was found in it. "), GUIDE)
+                .text(" shows what is wrong.").send(player);
             case PLACED -> {
                 player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                     + good("Placed " + placed.gate().getGateShape().getShapeName() + "."));
@@ -419,7 +457,8 @@ public class Build implements CommandExecutor
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            player.sendMessage(error + USAGE + hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"));
+            ChatLine.of(error + USAGE).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
+                PREVIEW_COMMAND + LAYER + " ").send(player);
             return null;
         }
         final GatePreviews.Layers layers = GatePreviews.layers(player, asked);
@@ -495,16 +534,61 @@ public class Build implements CommandExecutor
         return null;
     }
 
-    /** {@code /wormhole gate preview <action>} and every action, for a message that lists them. */
-    private static String actionList()
+    /**
+     * {@code /wormhole gate preview <action>: } and a button for every action, for a message that
+     * lists them.
+     *
+     * @param before
+     *            the line up to the list, header included
+     * @return the line; as plain text, the command and the actions spelled out
+     */
+    static ChatLine actionList(final String before)
     {
-        return hint("<action>") + ": " + commands(ACTIONS);
+        return buttons(ChatLine.of(before + hint("<action>") + ": "));
+    }
+
+    /**
+     * A button for each of {@link #ACTIONS}, one space apart, reading as {@code commands(ACTIONS)}
+     * where nothing can be clicked.
+     */
+    private static ChatLine buttons(final ChatLine line)
+    {
+        for (int i = 0; i < ACTIONS.size(); i++)
+        {
+            final String action = ACTIONS.get(i);
+            final Button button = BUTTONS.getOrDefault(action, new Button(action, ""));
+            final boolean needsMore = NEEDS_MORE.contains(action);
+            final String typed = PREVIEW_COMMAND + action + (needsMore ? " " : "");
+            if (i > 0)
+            {
+                line.text(" ");
+            }
+            line.link(command("[" + button.label() + "]"), command(action), typed,
+                command(typed.trim() + (needsMore ? " ..." : "")) + "\n" + button.help()
+                    + (needsMore ? " Click to finish it in chat." : ""),
+                needsMore);
+        }
+        return line;
     }
 
     /** A preview command, highlighted, for a message that points at it. */
     private static String hint(final String words)
     {
         return command(PREVIEW_COMMAND + words);
+    }
+
+    /**
+     * Adds a preview command a refusal points at, which a click runs.
+     *
+     * @param line
+     *            the refusal so far
+     * @param words
+     *            the action and anything after it
+     * @return the line
+     */
+    private static ChatLine linkHint(final ChatLine line, final String words)
+    {
+        return line.run(hint(words), PREVIEW_COMMAND + words);
     }
 
     private static void tell(final Player player, final GatePreviews.Control done)
@@ -550,8 +634,8 @@ public class Build implements CommandExecutor
             player.sendMessage(header + "Cleared. " + GatePreviews.countOf(player.getUniqueId()) + " left.");
             return;
         }
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Look at a preview to clear it, or use " + hint(CLEAR + " " + ALL) + ".");
+        linkHint(ChatLine.of(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+            + "Look at a preview to clear it, or use "), CLEAR + " " + ALL).text(".").send(player);
     }
 
     /** The group names a shape may be built in, for an error message. */

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -153,15 +154,10 @@ public final class MirrorNetwork
      */
     static List<QuantumMirror> order(final QuantumMirror mirror)
     {
-        final List<QuantumMirror> order = new ArrayList<>();
-        for (final QuantumMirror other : MirrorManager.all())
-        {
-            if (!other.name().equalsIgnoreCase(mirror.name()) && (other.destination() != null))
-            {
-                order.add(other);
-            }
-        }
-        order.sort(Comparator.comparing(other -> other.name().toLowerCase(Locale.ROOT)));
+        final List<QuantumMirror> order = MirrorManager.all().stream()
+            .filter(other -> !other.name().equalsIgnoreCase(mirror.name()) && (other.destination() != null))
+            .sorted(Comparator.comparing(other -> other.name().toLowerCase(Locale.ROOT)))
+            .collect(Collectors.toCollection(ArrayList::new));
         // Its start first, so the first right-click opens onto it.
         final String start = mirror.start();
         for (int i = 0; (start != null) && (i < order.size()); i++)

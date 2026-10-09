@@ -240,11 +240,9 @@ public class GateEditCommand implements SubCommand
      */
     public static List<String> spinNames()
     {
-        final List<String> names = new ArrayList<>();
-        for (final DialSpinPattern pattern : DialSpinPattern.values())
-        {
-            names.add(spinName(pattern));
-        }
+        final List<String> names = Arrays.stream(DialSpinPattern.values())
+            .map(GateEditCommand::spinName)
+            .collect(Collectors.toCollection(ArrayList::new));
         names.add(DEFAULT);
         return names;
     }

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
@@ -23,11 +25,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -93,6 +97,8 @@ class IrisSweepOrderingTest
     /** Tasks the sweep has booked and not had cancelled, in the order they were booked. */
     private final LinkedHashMap<Integer, Runnable> pending = new LinkedHashMap<>();
     private final List<String> events = new ArrayList<>();
+    /** The delay, in ticks, each booked step asked for. */
+    private final List<Long> delays = new ArrayList<>();
     private int nextTaskId = 1;
 
     @BeforeEach
@@ -127,6 +133,7 @@ class IrisSweepOrderingTest
             {
                 final int id = nextTaskId++;
                 pending.put(id, invocation.getArgument(1));
+                delays.add(invocation.<Long>getArgument(2));
                 events.add("booked");
                 return id;
             });
@@ -1044,5 +1051,439 @@ class IrisSweepOrderingTest
         gate.setGateIrisAnimation(null);
         gate.setGateMaterialGroup(null);
         assertEquals("sweep", gate.getEffectiveIrisAnimation(), "neither: the server's");
+    }
+
+    // ---- The invariants the gate's sweep shares with the build preview's (#429) -------------
+    //
+    // These six are the gate's half. GatePreviewsTest pins the same six through the preview's own
+    // loop, and runs a gate and a preview of one opening side by side. A change that folds the two
+    // loops into one driver has to leave every one of them as it found it.
+
+    /** The rings the gate's sweep is made of, closing order, as the animator asks for them. */
+    private List<List<Location>> closingRingsOfTheGate()
+    {
+        return IrisSweep.closingOrder(gate.getGatePortalBlocks(),
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), ConfigManager.getGateIrisMaxSteps());
+    }
+
+    /** The same, opening order. */
+    private List<List<Location>> openingRingsOfTheGate()
+    {
+        return IrisSweep.openingOrder(gate.getGatePortalBlocks(),
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), ConfigManager.getGateIrisMaxSteps());
+    }
+
+    /** Each ring as the sorted "x,y" of its cells, so a ring compares as a set. */
+    private static List<List<String>> asCells(final List<List<Location>> rings)
+    {
+        final List<List<String>> out = new ArrayList<>();
+        for (final List<Location> ring : rings)
+        {
+            final List<String> cells = new ArrayList<>();
+            for (final Location at : ring)
+            {
+                cells.add(at.getBlockX() + "," + at.getBlockY());
+            }
+            Collections.sort(cells);
+            out.add(cells);
+        }
+        return out;
+    }
+
+    /**
+     * Makes every cell of the opening hold one recognisable block, so a ring revealed as "what is
+     * really there" can be told from the bare opening it was hidden under.
+     */
+    private BlockData realBlocksInTheOpening()
+    {
+        final BlockData real = mock(BlockData.class);
+        for (final Location at : gate.getGatePortalBlocks())
+        {
+            final Block block = world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ());
+            when(block.getBlockData()).thenReturn(real);
+        }
+        return real;
+    }
+
+    /** The cells, sorted, a viewer was sent in the plane at this z that the test recognises. */
+    private static List<String> cellsSentAt(final Player viewer, final int z, final Predicate<BlockData> wanted)
+    {
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, atLeast(0)).sendBlockChange(where.capture(), what.capture());
+        final List<String> cells = new ArrayList<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            if ((at.getBlockZ() == z) && wanted.test(what.getAllValues().get(i)))
+            {
+                cells.add(at.getBlockX() + "," + at.getBlockY());
+            }
+        }
+        Collections.sort(cells);
+        return cells;
+    }
+
+    /**
+     * What one viewer was last sent for each cell of one plane, folded in step after step.
+     *
+     * <p>The picture a viewer is left with, not the packets that made it: a driver that resends a
+     * cell, or draws per viewer in another order, still reads the same if each step leaves the
+     * same picture behind.
+     */
+    private static final class Screen
+    {
+        private final Player viewer;
+        private final int z;
+        private final Map<String, BlockData> last = new HashMap<>();
+
+        Screen(final Player viewer, final int z)
+        {
+            this.viewer = viewer;
+            this.z = z;
+        }
+
+        /** Folds in what the viewer has been sent since their history was last cleared. */
+        void absorb()
+        {
+            final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+            final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+            verify(viewer, atLeast(0)).sendBlockChange(where.capture(), what.capture());
+            for (int i = 0; i < where.getAllValues().size(); i++)
+            {
+                final Location at = where.getAllValues().get(i);
+                if (at.getBlockZ() == z)
+                {
+                    last.put(at.getBlockX() + "," + at.getBlockY(), what.getAllValues().get(i));
+                }
+            }
+        }
+
+        /** The cells, sorted, whose last block sent is one the test recognises. */
+        List<String> showing(final Predicate<BlockData> wanted)
+        {
+            final List<String> cells = new ArrayList<>();
+            last.forEach((cell, data) ->
+            {
+                if (wanted.test(data))
+                {
+                    cells.add(cell);
+                }
+            });
+            Collections.sort(cells);
+            return cells;
+        }
+    }
+
+    /** Each ring together with every ring before it, sorted: what should be showing after each step. */
+    private static List<List<String>> soFar(final List<List<String>> rings)
+    {
+        final List<List<String>> out = new ArrayList<>();
+        final List<String> union = new ArrayList<>();
+        for (final List<String> ring : rings)
+        {
+            union.addAll(ring);
+            final List<String> sorted = new ArrayList<>(union);
+            Collections.sort(sorted);
+            out.add(sorted);
+        }
+        return out;
+    }
+
+    /** The cells each step added to what was showing, skipping steps that added none. */
+    private static List<List<String>> added(final List<List<String>> showing)
+    {
+        final List<List<String>> out = new ArrayList<>();
+        List<String> before = List.of();
+        for (final List<String> now : showing)
+        {
+            final List<String> fresh = new ArrayList<>(now);
+            fresh.removeAll(before);
+            if (!fresh.isEmpty())
+            {
+                out.add(fresh);
+            }
+            before = now;
+        }
+        return out;
+    }
+
+    /**
+     * Lets the sweep run one booked step at a time, calling {@code capture} once after the sweep
+     * has started and once after each step, and clearing the viewers' history between them so
+     * each capture sees only its own step.
+     */
+    private void walkSteps(final Runnable capture, final Player... viewers)
+    {
+        capture.run();
+        for (final Player viewer : viewers)
+        {
+            clearInvocations(viewer);
+        }
+        for (int guard = 0; !pending.isEmpty() && (guard < 50); guard++)
+        {
+            final Integer id = pending.keySet().iterator().next();
+            pending.remove(id).run();
+            capture.run();
+            for (final Player viewer : viewers)
+            {
+                clearInvocations(viewer);
+            }
+        }
+    }
+
+    /** Starts a sweep on the fixture's gate directly, in the given direction. */
+    private void startSweep(final boolean closing, final Runnable afterwards)
+    {
+        if (closing)
+        {
+            StargateIrisAnimator.sweepClosed(gate, Material.AIR, afterwards);
+        }
+        else
+        {
+            StargateIrisAnimator.sweepOpen(gate, Material.AIR, afterwards);
+        }
+    }
+
+    /**
+     * A sweep books one step per ring, each the configured number of ticks after the last.
+     *
+     * <p>The pace is the whole feel of the animation and the step count is its length. Both are
+     * read from the same two places by a gate and by a build preview, and the refactor in #429
+     * folds the two loops together: a step per ring that went missing, or a pace that fell back
+     * to a constant, would change how every iris looks without failing anything else.
+     */
+    @Test
+    void aSweepBooksOneStepPerRingAtTheConfiguredPace()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.GATE_IRIS_STEP_TICKS, 7);
+        try
+        {
+            final int rings = closingRingsOfTheGate().size();
+            assertTrue(rings > 1, "a sweep of one ring has no pace to speak of: " + rings);
+
+            gate.toggleIrisActive(false);
+            runSweepToCompletion();
+            assertEquals(Collections.nCopies(rings, 7L), delays,
+                "closing: one booking per ring, each seven ticks after the last, not the default two");
+
+            delays.clear();
+            gate.toggleIrisActive(false);
+            runSweepToCompletion();
+            assertEquals(Collections.nCopies(rings, 7L), delays, "and opening the same");
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /**
+     * A sweep has stopped sweeping by the time what it was to do afterwards runs.
+     *
+     * <p>The afterwards step takes the real blocks away, or lets a toggle start the next sweep,
+     * and either asks whether one is running. Run first, it would find itself still registered
+     * and a sweep begun from it would be called off by the very sweep that started it.
+     */
+    @Test
+    void aSweepIsNoLongerSweepingWhenItsAfterwardsRuns()
+    {
+        for (final boolean closing : new boolean[] {true, false})
+        {
+            final List<Boolean> sweepingAtTheTime = new ArrayList<>();
+            startSweep(closing, () -> sweepingAtTheTime.add(StargateIrisAnimator.isSweeping(gate)));
+            assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running (closing: " + closing + ")");
+            assertTrue(sweepingAtTheTime.isEmpty(), "and has not settled before its last ring");
+
+            runSweepToCompletion();
+
+            assertEquals(List.of(false), sweepingAtTheTime,
+                "settled exactly once, and already unregistered when it did (closing: " + closing + ")");
+            assertFalse(StargateIrisAnimator.isSweeping(gate), "and it stays unregistered");
+        }
+    }
+
+    /**
+     * Calling a sweep off does not settle it, and leaves no step booked behind it.
+     *
+     * <p>The afterwards step of an opening sweep is the one that takes the real blocks away. A
+     * toggle that calls the sweep off has already decided what the gate is to look like, and a
+     * settle arriving late on top of that would undo it.
+     *
+     * <p>A step does not ask whether its sweep was called off: one run after the call-off still
+     * draws, books and in time settles. Cancelling the booked step is the whole of the guard, so
+     * that is what is pinned here, not what a stale step would do.
+     */
+    @Test
+    void callingASweepOffSettlesNothingAndLeavesNothingBooked()
+    {
+        for (final boolean closing : new boolean[] {true, false})
+        {
+            final List<String> settled = new ArrayList<>();
+            startSweep(closing, () -> settled.add("settled"));
+            assertEquals(1, pending.size(), "waiting on its next step (closing: " + closing + ")");
+
+            StargateIrisAnimator.cancel(gate);
+
+            assertTrue(pending.isEmpty(), "the booked step is dropped, not left to run: " + pending.keySet());
+            assertFalse(StargateIrisAnimator.isSweeping(gate), "and it is not registered any more");
+            assertTrue(settled.isEmpty(), "and calling it off does not settle it there and then");
+
+            startSweep(closing, () -> settled.add("settled"));
+            runSweepToCompletion();
+            assertEquals(List.of("settled"), settled,
+                "the same sweep left alone does settle, through the step the call-off dropped");
+        }
+    }
+
+    /**
+     * A sweep whose world has gone stops there, without settling.
+     *
+     * <p>A handful of ticks is long enough on a server that is unloading a world. There is nothing
+     * to draw on and nobody to draw it for, and the settle step would only take real blocks away
+     * in a world that is not there.
+     *
+     * <p>Only a world lost part way through is pinned: the step asks whether the rings are done
+     * before it asks after the world, so one lost between the last ring and the settle still settles.
+     */
+    @Test
+    void aSweepWhoseWorldHasGoneStopsWithoutSettling()
+    {
+        for (final boolean closing : new boolean[] {true, false})
+        {
+            final List<String> settled = new ArrayList<>();
+            startSweep(closing, () -> settled.add("settled"));
+            assertTrue(StargateIrisAnimator.isSweeping(gate), "a sweep is running (closing: " + closing + ")");
+            gate.setGateWorld(null);
+
+            runSweepToCompletion();
+
+            assertTrue(events.contains("step"), "its next step did fire, or this proves nothing");
+            assertTrue(settled.isEmpty(), "but it did not settle (closing: " + closing + ")");
+            assertFalse(StargateIrisAnimator.isSweeping(gate), "it let go of the gate");
+            assertTrue(pending.isEmpty(), "and booked nothing more");
+
+            gate.setGateWorld(world);
+            events.clear();
+        }
+    }
+
+    /**
+     * Closing and opening bring the rings in opposite orders, and each is the order asked for.
+     *
+     * <p>Closing is rim first so the iris closes in on the middle; opening is the same rings the
+     * other way round so it draws back out. Observed on what a nearby player is sent, ring by
+     * ring, not on the ordering function: a loop that drew the rings by index rather than as it
+     * was handed them would pass every arithmetic test and play both directions the same way.
+     * Read as what the player is left looking at after each step, so a driver that sends the
+     * same picture in other packets still passes.
+     */
+    @Test
+    void closingAndOpeningDrawTheRingsInOppositeOrders()
+    {
+        final BlockData real = realBlocksInTheOpening();
+        final Screen closingScreen = new Screen(watcher, 0);
+        final List<List<String>> closingShown = new ArrayList<>();
+        startSweep(true, null);
+        walkSteps(() ->
+        {
+            closingScreen.absorb();
+            closingShown.add(closingScreen.showing(d -> d == real));
+        }, watcher);
+
+        final Screen openingScreen = new Screen(watcher, 0);
+        final List<List<String>> openingShown = new ArrayList<>();
+        startSweep(false, null);
+        walkSteps(() ->
+        {
+            openingScreen.absorb();
+            openingShown.add(openingScreen.showing(d -> d == bareOpening));
+        }, watcher);
+
+        final List<List<String>> closingRings = asCells(closingRingsOfTheGate());
+        final List<List<String>> openingRings = asCells(openingRingsOfTheGate());
+        assertEquals(soFar(closingRings), closingShown.subList(0, closingRings.size()),
+            "closing: after each step, that ring and every one before it, rim first");
+        assertEquals(soFar(openingRings), openingShown.subList(0, openingRings.size()),
+            "opening: after each step, that ring and every one before it, in the order asked for");
+        final List<List<String>> closing = added(closingShown);
+        final List<List<String>> opening = added(openingShown);
+        assertEquals(closingRings, closing, "closing: the rings, rim first, and nothing after them");
+        assertEquals(openingRings, opening, "opening: the rings in the order asked for, and nothing after them");
+        final List<List<String>> reversed = new ArrayList<>(closing);
+        Collections.reverse(reversed);
+        assertEquals(reversed, opening, "and that is the closing order reversed");
+        assertNotEquals(closing, opening, "which is a different order, or the line above proves nothing");
+    }
+
+    /**
+     * The far layer arrives with the ring that covers it, and leaves with the ring that uncovers it.
+     *
+     * <p>Two players, one on each side of the plane. Only the one in front has a far layer to move:
+     * for the one behind the wormhole stays in the ring, where the sweep is already drawing it. The
+     * layer must follow the sweep ring by ring -- all at the start, or all at the end, is the
+     * landscape showing through a see-through iris, or the wormhole popping in once the glass has
+     * long since arrived.
+     *
+     * <p>Read as what the player in front is left looking at after each step, so a driver that
+     * sends the same layer in other packets still passes, and one that brings it a ring early or
+     * late does not.
+     *
+     * <p>Not asserted here: what the player behind is drawn in the ring itself, which the first
+     * step settles for them at once, and what a player who crosses the plane mid-sweep is left
+     * with on their near side (#447).
+     */
+    @Test
+    void theFarLayerArrivesWithTheRingThatCoversItAndLeavesWithTheOneThatUncoversIt()
+    {
+        final BlockData truth = mock(BlockData.class);
+        final BlockData glass = mock(BlockData.class);
+        final BlockData ice = mock(BlockData.class);
+        final BlockData packed = mock(BlockData.class);
+        glassIrisOverAWormhole(truth);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
+        final Player rear = mock(Player.class);
+        when(rear.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(rear.getLocation()).thenReturn(new Location(world, 0, 64, -3));
+        when(world.getPlayers()).thenReturn(List.of(watcher, rear));
+        final Predicate<BlockData> standIn = d -> (d == ice) || (d == packed);
+
+        final Screen front = new Screen(watcher, -1);
+        final List<List<String>> arrived = new ArrayList<>();
+        final List<List<String>> iceToRear = new ArrayList<>();
+        gate.toggleIrisActive(false);
+        walkSteps(() ->
+        {
+            front.absorb();
+            arrived.add(front.showing(standIn));
+            // The plane at -1 is the near side for the player behind; their far side is not read.
+            iceToRear.add(cellsSentAt(rear, -1, standIn));
+        }, watcher, rear);
+
+        final List<List<String>> closingRings = asCells(closingRingsOfTheGate());
+        assertTrue(closingRings.size() > 1, "more than one ring, or arriving with its ring is arriving at once");
+        assertEquals(soFar(closingRings), arrived.subList(0, closingRings.size()),
+            "in front, after each step the far layer stands behind that ring and every one before it, "
+                + "and no other: each ring's far cells arrive with it, none earlier or later");
+        assertTrue(iceToRear.stream().allMatch(List::isEmpty),
+            "and the one behind is given no stand-in on their near side, the wormhole staying in the ring for them");
+
+        finishSweep();
+        clearInvocations(watcher);
+        final Screen afterOpening = new Screen(watcher, -1);
+        final List<List<String>> left = new ArrayList<>();
+        gate.toggleIrisActive(false);
+        walkSteps(() ->
+        {
+            afterOpening.absorb();
+            left.add(afterOpening.showing(d -> d == truth));
+        }, watcher);
+
+        final List<List<String>> openingRings = asCells(openingRingsOfTheGate());
+        assertEquals(soFar(openingRings), left.subList(0, openingRings.size()),
+            "opening, after each step the far cells of that ring and every one before it are handed back, "
+                + "and no others");
     }
 }

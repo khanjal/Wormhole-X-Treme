@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -139,14 +138,9 @@ public class CustomCommand implements SubCommand
      */
     private static void cleanSnapshottedOverrides(final CommandSender sender, final boolean confirmed)
     {
-        final List<Stargate> affected = new ArrayList<Stargate>();
-        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
-        {
-            if (hasDefaultSnapshotOverrides(gate))
-            {
-                affected.add(gate);
-            }
-        }
+        final List<Stargate> affected = StargateManager.getAllGatesUnsorted().stream()
+            .filter(CustomCommand::hasDefaultSnapshotOverrides)
+            .toList();
 
         if (affected.isEmpty())
         {

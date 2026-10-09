@@ -91,6 +91,25 @@ class WXListTest
         return sent.getAllValues();
     }
 
+    /**
+     * Completing the filter offers Public and the networks gates are on, narrowed to what has
+     * been typed in either case.
+     */
+    @Test
+    void completingTheFilterOffersOnlyTheNetworksStartingWithWhatIsTyped()
+    {
+        gate("alpha", "Milkyway");
+        gate("beta", "Pegasus");
+
+        assertEquals(List.of("Milkyway"), completeList("mi"), "a network the typing does not start is left out");
+        assertEquals(List.of("Public", "Pegasus"), completeList("p"), "and Public, which no gate names, comes first");
+    }
+
+    private static List<String> completeList(final String typed)
+    {
+        return SubCommands.find("list").completeArgs(null, new String[] { "list", typed });
+    }
+
     @Test
     void withNoFilterEveryGateIsListed()
     {
