@@ -39,9 +39,9 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -303,7 +303,7 @@ public class WormholeXTreme extends JavaPlugin
             // Cosmetic work must never cost the save.
             try
             {
-                MirrorProximity.restoreAll();
+                WindowSweep.restoreAll();
             }
             catch (final Exception | LinkageError e)
             {
@@ -697,7 +697,7 @@ public class WormholeXTreme extends JavaPlugin
             prettyLog(Level.INFO, true, LOADED + mirrors + " quantum mirror"
                 + (mirrors == 1 ? "" : "s") + ".");
             // Here and not before: until mirrors have loaded, every capture reads as abandoned.
-            final int swept = MirrorCaptures.sweepAbandoned();
+            final int swept = Captures.sweepAbandoned();
             if (swept > 0)
             {
                 prettyLog(Level.INFO, true, "Deleted " + swept + " mirror capture"

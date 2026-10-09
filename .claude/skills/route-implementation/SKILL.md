@@ -32,7 +32,7 @@ Go down the list; the first row that matches decides. Record the row number (ste
 | R1 | Two implementer attempts on the same model have failed to produce code that builds and passes its tests (plan hand-backs do not count) | one model up: Sonnet → Opus → this session. If this session is already the model that failed, stop and revisit the plan with the user instead of a third try |
 | R2 | Calls a Bukkit/Spigot/Paper API not already used in the codebase | `implementer-opus` |
 | R3 | Touches a catch block, reflection, or anything version-gated (1.20 floor, 26.x removals) | `implementer-opus` |
-| R4 | Changes state shared across classes (MirrorWindows, the gate registry, the scheduler) | `implementer-opus` |
+| R4 | Changes state shared across classes (Windows, the gate registry, the scheduler) | `implementer-opus` |
 | R5 | The plan leaves any design decision open — "either X or Y", "work out how to…" | `implementer-opus` |
 | R6 | The plan names every file, method and test, and each step is mechanical: a Sonar sweep whose plan already marks the structural false positives to leave alone (`sonar-check`), a rename, config or message plumbing, or tests for existing behaviour — the last is the likeliest to need rework, since telling a vacuous test from an equivalent mutant is judgment (`mutation-check`); watch its record | `implementer-sonnet` |
 | R7 | Anything else | `implementer-opus` |

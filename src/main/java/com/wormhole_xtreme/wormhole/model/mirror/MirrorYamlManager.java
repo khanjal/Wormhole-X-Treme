@@ -14,6 +14,8 @@ import java.util.logging.Level;
 import org.bukkit.DyeColor;
 import org.yaml.snakeyaml.Yaml;
 
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
@@ -116,7 +118,7 @@ public final class MirrorYamlManager
      *            whatever the file had there
      * @return the mirror, or null if it cannot be read
      */
-    static QuantumMirror readMirror(final String name, final Object value)
+    public static QuantumMirror readMirror(final String name, final Object value)
     {
         // A YAML mapping can carry a null or empty key, and a mirror with no name cannot be
         // put in the registry at all -- ConcurrentHashMap rejects a null key, which would
@@ -135,7 +137,7 @@ public final class MirrorYamlManager
         try
         {
             final Map<String, Object> map = YamlMaps.asMap(value);
-            final MirrorBlock banner = MirrorBlock.fromKey(String.valueOf(map.get(BANNER)));
+            final BlockPlace banner = BlockPlace.fromKey(String.valueOf(map.get(BANNER)));
             if (banner == null)
             {
                 PluginLog.log(Level.WARNING, "Skipping mirror with an unreadable banner: " + name);
@@ -165,7 +167,7 @@ public final class MirrorYamlManager
      *            the Destination section, or null
      * @return the point, or null if there is none
      */
-    private static MirrorPoint readPoint(final Object value)
+    private static Place readPoint(final Object value)
     {
         if (!(value instanceof Map))
         {
@@ -177,7 +179,7 @@ public final class MirrorYamlManager
         {
             return null;
         }
-        return new MirrorPoint(String.valueOf(world), number(map.get("X")), number(map.get("Y")),
+        return new Place(String.valueOf(world), number(map.get("X")), number(map.get("Y")),
             number(map.get("Z")), (float) number(map.get("Yaw")), (float) number(map.get("Pitch")));
     }
 
@@ -306,7 +308,7 @@ public final class MirrorYamlManager
         map.put(BANNER, mirror.banner().toKey());
         if (mirror.destination() != null)
         {
-            final MirrorPoint point = mirror.destination();
+            final Place point = mirror.destination();
             final Map<String, Object> destination = new LinkedHashMap<>();
             destination.put("World", point.worldName());
             destination.put("X", point.x());

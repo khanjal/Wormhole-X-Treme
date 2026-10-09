@@ -19,7 +19,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
@@ -414,7 +414,7 @@ class MapScannerTest
     @Test
     void aMirrorIsMarkedAtItsBanner()
     {
-        final QuantumMirror hall = new QuantumMirror("Hall", new MirrorBlock("world", 3, 65, -7), null);
+        final QuantumMirror hall = new QuantumMirror("Hall", new BlockPlace("world", 3, 65, -7), null);
 
         final MirrorMark mark = MapScanner.scan(List.of(), List.of(), List.of(), List.of(hall), MapLayers.ALL)
             .mirrors().get("hall");
@@ -435,7 +435,7 @@ class MapScannerTest
         dial(abydos, chulak);
         final RingPair pair = new RingPair("r1", "world", ring(0, 60, 0, "A"), ring(9, 60, 9, "B"));
         final BeamDestination market = new BeamDestination("Market", new BeamPoint("world", 5, 64, 6, 0f, 0f), null);
-        final QuantumMirror hall = new QuantumMirror("Hall", new MirrorBlock("world", 3, 65, -7), null);
+        final QuantumMirror hall = new QuantumMirror("Hall", new BlockPlace("world", 3, 65, -7), null);
         return MapScanner.scan(List.of(abydos, chulak), List.of(pair), List.of(market), List.of(hall), layers);
     }
 

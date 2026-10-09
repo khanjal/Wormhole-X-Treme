@@ -2,6 +2,10 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.util.List;
 
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+
 /**
  * One mirror on the network: one wall banner, or two side by side.
  *
@@ -26,7 +30,7 @@ import java.util.List;
  * @param width
  *            how many banners wide it is, one or two
  */
-public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destination,
+public record QuantumMirror(String name, BlockPlace banner, Place destination,
     MirrorLook look, String start, int width)
 {
     /**
@@ -39,8 +43,8 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      * @param destination
      *            its room
      */
-    public QuantumMirror(final String name, final MirrorBlock banner,
-        final MirrorPoint destination)
+    public QuantumMirror(final String name, final BlockPlace banner,
+        final Place destination)
     {
         this(name, banner, destination, null, null, 1);
     }
@@ -57,7 +61,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      * @param look
      *            what it looks like, or null
      */
-    public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
+    public QuantumMirror(final String name, final BlockPlace banner, final Place destination,
         final MirrorLook look)
     {
         this(name, banner, destination, look, null, 1);
@@ -77,7 +81,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      * @param start
      *            the mirror a right-click opens onto first, or null
      */
-    public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
+    public QuantumMirror(final String name, final BlockPlace banner, final Place destination,
         final MirrorLook look, final String start)
     {
         this(name, banner, destination, look, start, 1);
@@ -103,14 +107,14 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      *
      * @return one banner, or two
      */
-    public List<MirrorBlock> banners()
+    public List<BlockPlace> banners()
     {
         if ((width < 2) || (destination == null))
         {
             return List.of(banner);
         }
-        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
-        return List.of(banner, new MirrorBlock(banner.worldName(), banner.x() + ahead.z(), banner.y(),
+        final WindowShape.Spot ahead = WindowShape.aheadOf(destination.yaw());
+        return List.of(banner, new BlockPlace(banner.worldName(), banner.x() + ahead.z(), banner.y(),
             banner.z() - ahead.x()));
     }
 
@@ -121,7 +125,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      *            its room now
      * @return a new instance; this one is unchanged
      */
-    public QuantumMirror withDestination(final MirrorPoint newDestination)
+    public QuantumMirror withDestination(final Place newDestination)
     {
         return new QuantumMirror(name, banner, newDestination, look, start, width);
     }
@@ -149,7 +153,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      *            the block a player should click now
      * @return a new instance; this one is unchanged
      */
-    public QuantumMirror withBanner(final MirrorBlock newBanner)
+    public QuantumMirror withBanner(final BlockPlace newBanner)
     {
         return new QuantumMirror(name, newBanner, destination, look, start, width);
     }

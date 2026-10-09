@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,6 +8,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
+
 
 /**
  * The Paper methods mirrors reach reflectively are really there, under the names and types looked up.
@@ -21,15 +24,15 @@ class PaperApiTest
     @AfterEach
     void tearDown()
     {
-        MirrorFog.sendDistanceWith(null);
+        ViewFog.sendDistanceWith(null);
     }
 
     @Test
     void theFogFindsPapersSendViewDistance() throws NoSuchMethodException
     {
-        MirrorFog.sendDistanceWith(null);
+        ViewFog.sendDistanceWith(null);
 
-        assertTrue(MirrorFog.available(), "mirror-fog-at-depth would do nothing on Paper");
+        assertTrue(ViewFog.available(), "mirror-fog-at-depth would do nothing on Paper");
         assertEquals(int.class, Player.class.getMethod("getSendViewDistance").getReturnType());
     }
 

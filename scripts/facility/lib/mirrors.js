@@ -1,7 +1,7 @@
 'use strict';
 // Quantum mirrors for chambers and the transit routes. Every fact here is from the plugin's
 // source (MirrorCommand, MirrorPlacement, MirrorNetwork, MirrorInteraction, MirrorSignpost,
-// MirrorWindows, MirrorPackets):
+// Windows, MirrorPackets):
 //
 //  - A mirror is a wall banner. `mirror create <name> <world> <x> <y> <z>` (console form) makes
 //    one; a standing banner is refused ("A mirror hangs on a wall..."), and so is a wall that is

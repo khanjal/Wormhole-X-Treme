@@ -97,10 +97,10 @@ does not have; see the note under the tables).
 | M2 | `mirror-per-world-limit` (default 1); the round of other mirrors is the worlds you can reach | `MirrorNetwork` | no: the lab sets 0 and keeps every mirror in one world |
 | M3 | Right-click walks the others by name; own room never in the round; three-second hold when someone else is there; `-start <mirror>|-none` | `MirrorInteraction`, `MirrorSettle` | part: no start, no hold |
 | M4 | Punch to travel; land in front of the far banner facing out; pets follow | `MirrorArrival`, `PetEscort` | part |
-| M5 | Wall rules: solid one block out on every side; warning at two; a banner on a post refused; two banners wide makes one 2×2 mirror; banner and wall protected while a mirror | `MirrorPlacement`, `MirrorBlock` | no |
-| M6 | Proximity view (`mirror-proximity-distance`, `-ticks`), real-block capture from the arrival point, `-capture` retake, `mirror-view-depth` 4–160, whole-room vs through-the-opening view, fog on Paper (`mirror-fog-at-depth`), creatures hidden, lava/water rules | `MirrorWindows`, `MirrorCapture`, `MirrorView`, `MirrorFog`, `MirrorSight` | no |
+| M5 | Wall rules: solid one block out on every side; warning at two; a banner on a post refused; two banners wide makes one 2×2 mirror; banner and wall protected while a mirror | `MirrorPlacement`, `BlockPlace` | no |
+| M6 | Proximity view (`mirror-proximity-distance`, `-ticks`), real-block capture from the arrival point, `-capture` retake, `mirror-view-depth` 4–160, whole-room vs through-the-opening view, fog on Paper (`mirror-fog-at-depth`), creatures hidden, lava/water rules | `Windows`, `Capture`, `MirrorView`, `ViewFog`, `WindowSight` | no |
 | M7 | Looks: 90 shipped `.mirror` files; `-stamp <look>` and `-stamp` from the room (biome frame, dominant colours); patterned banner keeps its pattern | `MirrorStamp`, `MirrorPresetRegistry`, `MirrorPalette` | part: named stamps |
-| M8 | Approach message above the hotbar; `mirror-approach-message`; only near a mirror (1.9.0) | `MirrorSignpost`, `MirrorProximity` | no |
+| M8 | Approach message above the hotbar; `mirror-approach-message`; only near a mirror (1.9.0) | `MirrorSignpost`, `WindowSweep` | no |
 | M9 | `mirror debug [name] [-all|-full|-on|-off]`, `mirror list` | `MirrorCommand` | part: used as a wait |
 | M10 | Plain 1.20: banner stays in front of the view (no `setVisibleByDefault`) | `MirrorPackets` | no |
 

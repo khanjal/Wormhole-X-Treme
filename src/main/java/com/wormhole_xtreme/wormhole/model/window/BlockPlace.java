@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -12,7 +12,7 @@ import org.bukkit.block.Block;
  *
  * <p>The lookup this keys is on the hot path of every right-click on the server, so it has to
  * be a hash lookup rather than a scan over registered mirrors. That is the whole reason this
- * type exists rather than storing the banner's {@link MirrorPoint}: a point carries doubles
+ * type exists rather than storing the banner's {@link Place}: a point carries doubles
  * and a facing, none of which a block identity should depend on.
  *
  * @param worldName
@@ -24,7 +24,7 @@ import org.bukkit.block.Block;
  * @param z
  *            block z
  */
-public record MirrorBlock(String worldName, int x, int y, int z)
+public record BlockPlace(String worldName, int x, int y, int z)
 {
     /**
      * The key for a live block.
@@ -33,9 +33,9 @@ public record MirrorBlock(String worldName, int x, int y, int z)
      *            the block to key
      * @return its key
      */
-    public static MirrorBlock of(final Block block)
+    public static BlockPlace of(final Block block)
     {
-        return new MirrorBlock(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
+        return new BlockPlace(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
     }
 
     /**
@@ -45,9 +45,9 @@ public record MirrorBlock(String worldName, int x, int y, int z)
      *            the location to key
      * @return its key
      */
-    public static MirrorBlock of(final Location location)
+    public static BlockPlace of(final Location location)
     {
-        return new MirrorBlock(location.getWorld().getName(), location.getBlockX(),
+        return new BlockPlace(location.getWorld().getName(), location.getBlockX(),
             location.getBlockY(), location.getBlockZ());
     }
 
@@ -68,7 +68,7 @@ public record MirrorBlock(String worldName, int x, int y, int z)
      *            the stored key
      * @return the block, or null if the key is malformed
      */
-    public static MirrorBlock fromKey(final String key)
+    public static BlockPlace fromKey(final String key)
     {
         if (key == null)
         {
@@ -83,7 +83,7 @@ public record MirrorBlock(String worldName, int x, int y, int z)
         }
         try
         {
-            return new MirrorBlock(key.substring(0, firstColon),
+            return new BlockPlace(key.substring(0, firstColon),
                 Integer.parseInt(key.substring(firstColon + 1, secondColon)),
                 Integer.parseInt(key.substring(secondColon + 1, lastColon)),
                 Integer.parseInt(key.substring(lastColon + 1)));

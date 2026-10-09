@@ -43,6 +43,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
   upgrade; set it to the other name to keep the old look.
 
+### Internals
+
+- **The code that draws a far side through an opening has its own package, `model/window`**,
+  and is no longer named for mirrors: `Windows`, `WindowShape`, `Capture`, `Captures` and nine
+  more. Nothing changes for players or operators; the next users of it are gates (#516) and
+  nether portals (#514). Tracked in #522.
+
 ## 1.9.0 (2026-10-03)
 
 ### For server admins
@@ -786,7 +793,7 @@ was chosen for scaling with how much exists rather than with how much is happeni
   that way and half by guessing at the working directory.
 - **The plugin singleton is installed in one place**, where seventy-eight tests each did it
   themselves.
-- **Thirty-four command helpers that returned `true` and nothing else** return `void`, and ten
+- **Thirty-four command helpers that returned `true` and nothing else** return `void`, and nine
   class-level `@SuppressWarnings` went with them.
 - **Nine unchecked casts in the tests** are gone, and reflective field access went from 139 sites
   across 87 files to 8 across 7.

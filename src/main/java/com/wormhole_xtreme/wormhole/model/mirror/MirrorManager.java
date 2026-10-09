@@ -6,13 +6,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+
 /**
  * Every quantum mirror on the server, by name and by the block a player clicks.
  *
  * <p>Two maps over the same mirrors, because the two questions asked of this registry have
  * very different costs. An admin naming one happens a handful of times; a player right-clicking
  * a block happens constantly, on every block on the server, and has to be answered without
- * walking the list. {@link #at(MirrorBlock)} is that second question and is a hash lookup.
+ * walking the list. {@link #at(BlockPlace)} is that second question and is a hash lookup.
  *
  * <p>Names are matched without regard to case, the way gate and beam names are, so an admin who
  * typed {@code Museum} once is not caught out by {@code museum} later. The mirror keeps the
@@ -28,7 +30,7 @@ public final class MirrorManager
     private static final Map<String, QuantumMirror> BY_NAME = new ConcurrentHashMap<>();
 
     /** By the block clicked, for the interact handler. */
-    private static final Map<MirrorBlock, QuantumMirror> BY_BLOCK = new ConcurrentHashMap<>();
+    private static final Map<BlockPlace, QuantumMirror> BY_BLOCK = new ConcurrentHashMap<>();
 
     /** Static registry only. */
     private MirrorManager()
@@ -64,7 +66,7 @@ public final class MirrorManager
         if (replaced != null)
         {
             // Every banner it had and no longer has: a mirror two wide made one wide, or moved.
-            for (final MirrorBlock old : replaced.banners())
+            for (final BlockPlace old : replaced.banners())
             {
                 if (!mirror.banners().contains(old))
                 {
@@ -98,7 +100,7 @@ public final class MirrorManager
      *            the block clicked
      * @return the mirror, or null if that block is not a mirror
      */
-    public static QuantumMirror at(final MirrorBlock block)
+    public static QuantumMirror at(final BlockPlace block)
     {
         return (block == null) ? null : BY_BLOCK.get(block);
     }

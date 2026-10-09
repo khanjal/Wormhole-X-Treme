@@ -38,9 +38,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.SubCommands;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
@@ -196,8 +196,8 @@ class MirrorStampCommandTest
     @Test
     void aMirrorNamedAfterALookIsStillTheMirror()
     {
-        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("far", 100, 64, 200, 0f, 0f)));
+        MirrorManager.add(new QuantumMirror("nether", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 100, 64, 200, 0f, 0f)));
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
@@ -253,7 +253,7 @@ class MirrorStampCommandTest
             final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
-            views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(nether);
+            views.when(() -> MirrorView.look(any(Place.class))).thenReturn(nether);
 
             assertTrue(run("mirror", "set", "museum", "-stamp"));
         }
@@ -275,7 +275,7 @@ class MirrorStampCommandTest
             final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
-            views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(library);
+            views.when(() -> MirrorView.look(any(Place.class))).thenReturn(library);
 
             assertTrue(run("mirror", "set", "museum", "-stamp"));
         }
@@ -286,7 +286,7 @@ class MirrorStampCommandTest
     @Test
     void refusesAMirrorThatGoesNowhereAndHasNothingToLookAt()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
@@ -486,8 +486,8 @@ class MirrorStampCommandTest
     /** A mirror in "world" pointing into "far". */
     private void pointedMirror()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("far", 100, 64, 200, 0f, 0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 100, 64, 200, 0f, 0f)));
     }
 
     private boolean run(final String... args)

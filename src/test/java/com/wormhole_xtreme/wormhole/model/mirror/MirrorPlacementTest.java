@@ -27,6 +27,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
 
 /**
  * Where a mirror may hang, and what cannot be broken once it does.
@@ -41,7 +44,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 class MirrorPlacementTest
 {
     /** Blocks of the banner's world that are not solid. */
-    private final Set<MirrorWindow.Spot> open = new HashSet<>();
+    private final Set<WindowShape.Spot> open = new HashSet<>();
 
     private World world;
 
@@ -83,7 +86,7 @@ class MirrorPlacementTest
             return block;
         }
         final BlockData data = mock(BlockData.class);
-        when(data.isOccluding()).thenReturn(!open.contains(new MirrorWindow.Spot(x, y, z)));
+        when(data.isOccluding()).thenReturn(!open.contains(new WindowShape.Spot(x, y, z)));
         when(block.getBlockData()).thenReturn(data);
         return block;
     }
@@ -104,15 +107,15 @@ class MirrorPlacementTest
     @Test
     void theFaceIsTheOpeningAndABlockRoundIt()
     {
-        final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH);
+        final Set<WindowShape.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH);
 
         assertEquals(12, face.size());
-        assertTrue(face.contains(new MirrorWindow.Spot(10, 64, 11)), "the block the banner hangs on");
-        assertTrue(face.contains(new MirrorWindow.Spot(10, 63, 11)), "the opening's lower block");
-        assertTrue(face.contains(new MirrorWindow.Spot(9, 62, 11)), "one out and one below the opening");
-        assertTrue(face.contains(new MirrorWindow.Spot(11, 65, 11)), "one out and one above the banner");
-        assertFalse(face.contains(new MirrorWindow.Spot(10, 64, 10)), "not the banner's own block, which is in front");
-        assertFalse(face.contains(new MirrorWindow.Spot(12, 64, 11)), "and no further than one");
+        assertTrue(face.contains(new WindowShape.Spot(10, 64, 11)), "the block the banner hangs on");
+        assertTrue(face.contains(new WindowShape.Spot(10, 63, 11)), "the opening's lower block");
+        assertTrue(face.contains(new WindowShape.Spot(9, 62, 11)), "one out and one below the opening");
+        assertTrue(face.contains(new WindowShape.Spot(11, 65, 11)), "one out and one above the banner");
+        assertFalse(face.contains(new WindowShape.Spot(10, 64, 10)), "not the banner's own block, which is in front");
+        assertFalse(face.contains(new WindowShape.Spot(12, 64, 11)), "and no further than one");
     }
 
     /**
@@ -124,7 +127,7 @@ class MirrorPlacementTest
     @Test
     void aWallOnlyABlockOutIsAllowedAndSaid()
     {
-        open.add(new MirrorWindow.Spot(12, 61, 11));
+        open.add(new WindowShape.Spot(12, 61, 11));
 
         assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "a block of wall is enough");
         final String said = MirrorPlacement.thinWall(world.getBlockAt(10, 64, 10), 1);
@@ -142,17 +145,17 @@ class MirrorPlacementTest
     @Test
     void aMirrorTwoWideHasAFaceABlockWiderAndBothBannersAreProtected()
     {
-        final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH, 2);
+        final Set<WindowShape.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH, 2);
 
         assertEquals(16, face.size(), "four across and four tall");
-        assertTrue(face.contains(new MirrorWindow.Spot(9, 64, 11)), "the wall behind the second banner");
-        assertTrue(face.contains(new MirrorWindow.Spot(8, 62, 11)), "one past it, and one below the opening");
-        assertTrue(face.contains(new MirrorWindow.Spot(11, 65, 11)), "one past the first on its other side");
-        assertFalse(face.contains(new MirrorWindow.Spot(7, 64, 11)), "no further to the right");
-        assertFalse(face.contains(new MirrorWindow.Spot(12, 64, 11)), "or to the left");
+        assertTrue(face.contains(new WindowShape.Spot(9, 64, 11)), "the wall behind the second banner");
+        assertTrue(face.contains(new WindowShape.Spot(8, 62, 11)), "one past it, and one below the opening");
+        assertTrue(face.contains(new WindowShape.Spot(11, 65, 11)), "one past the first on its other side");
+        assertFalse(face.contains(new WindowShape.Spot(7, 64, 11)), "no further to the right");
+        assertFalse(face.contains(new WindowShape.Spot(12, 64, 11)), "or to the left");
 
-        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("world", 10.01, 63, 10.5, 180f, 0f)).withWidth(2));
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("world", 10, 64, 10),
+            new Place("world", 10.01, 63, 10.5, 180f, 0f)).withWidth(2));
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(9, 64, 10)), "the second banner");
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(8, 64, 11)), "the wider face");
         assertFalse(MirrorPlacement.isProtected(world.getBlockAt(7, 64, 11)), "past it is ordinary wall");
@@ -162,7 +165,7 @@ class MirrorPlacementTest
     @Test
     void aGapABlockOutIsRefusedByName()
     {
-        open.add(new MirrorWindow.Spot(11, 62, 11));
+        open.add(new WindowShape.Spot(11, 62, 11));
 
         final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library");
 
@@ -180,7 +183,7 @@ class MirrorPlacementTest
     @Test
     void aPairShortOfWallSaysHowBigItsWallHasToBe()
     {
-        open.add(new MirrorWindow.Spot(8, 64, 11));
+        open.add(new WindowShape.Spot(8, 64, 11));
 
         final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "hall", 2);
 
@@ -210,7 +213,7 @@ class MirrorPlacementTest
     @Test
     void aSecondMirrorInOneWorldIsRefusedByDefault()
     {
-        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("world", 40, 64, 40), null));
 
         final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library");
 
@@ -222,8 +225,8 @@ class MirrorPlacementTest
     @Test
     void onlyOtherMirrorsInThisWorldCountAgainstTheLimit()
     {
-        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world_nether", 40, 64, 40), null));
-        MirrorManager.add(new QuantumMirror("library", new MirrorBlock("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("nether", new BlockPlace("world_nether", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("library", new BlockPlace("world", 40, 64, 40), null));
 
         assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"),
             "moving library within its own world, with nether elsewhere, is still one mirror here");
@@ -233,11 +236,11 @@ class MirrorPlacementTest
     @Test
     void theLimitIsASettingAndZeroLiftsIt()
     {
-        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("world", 40, 64, 40), null));
         ConfigTestSupport.set(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 2);
         assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "two allowed, one there");
 
-        MirrorManager.add(new QuantumMirror("gallery", new MirrorBlock("world", 70, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("gallery", new BlockPlace("world", 70, 64, 40), null));
         assertNotNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "two allowed, two there");
 
         ConfigTestSupport.set(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
@@ -248,7 +251,7 @@ class MirrorPlacementTest
     @Test
     void theBannerAndItsFaceAreProtectedAndNothingElse()
     {
-        MirrorManager.add(new QuantumMirror("library", new MirrorBlock("world", 10, 64, 10), null));
+        MirrorManager.add(new QuantumMirror("library", new BlockPlace("world", 10, 64, 10), null));
 
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 10)), "the banner");
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 11)), "the block it hangs on");

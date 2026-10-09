@@ -12,6 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 
 /**
@@ -78,7 +79,7 @@ public final class MirrorSignpost
     }
 
     /** Forgets every hold, for a test or a reload. */
-    static void clear()
+    public static void clear()
     {
         HELD.clear();
     }
@@ -154,7 +155,7 @@ public final class MirrorSignpost
             {
                 continue;
             }
-            for (final MirrorBlock banner : mirror.banners())
+            for (final BlockPlace banner : mirror.banners())
             {
                 chunks.computeIfAbsent(banner.worldName(), name -> new HashSet<>())
                     .add(chunkKey(banner.x() >> 4, banner.z() >> 4));
@@ -210,7 +211,7 @@ public final class MirrorSignpost
         {
             return;
         }
-        final QuantumMirror mirror = MirrorManager.at(MirrorBlock.of(looked));
+        final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(looked));
         if ((mirror == null) || (mirror.destination() == null))
         {
             return;

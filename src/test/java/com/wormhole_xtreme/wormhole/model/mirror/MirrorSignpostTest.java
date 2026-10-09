@@ -34,6 +34,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -218,9 +220,9 @@ class MirrorSignpostTest
         // pass without the unpointed case ever being reached. A mutation removing the
         // destination check survived exactly that way, twice: once with no working mirror in the
         // world, and again with one six chunks off once the sweep skipped players far from any.
-        MirrorManager.add(new QuantumMirror("working", new MirrorBlock("world", 20, 64, 20),
-            new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
-        MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner), null));
+        MirrorManager.add(new QuantumMirror("working", new BlockPlace("world", 20, 64, 20),
+            new Place("nether", 0, 64, 0, 0f, 0f)));
+        MirrorManager.add(new QuantumMirror("museum", BlockPlace.of(banner), null));
         lookingAt(banner);
 
         sweep();
@@ -353,8 +355,8 @@ class MirrorSignpostTest
     @Test
     void theSecondBannerOfAPairInAnotherChunkIsStillNamed()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", -1, 64, 10),
-            new MirrorPoint("nether", 0, 64, 0, 0f, 0f)).withWidth(2));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", -1, 64, 10),
+            new Place("nether", 0, 64, 0, 0f, 0f)).withWidth(2));
         final Block right = mock(Block.class);
         when(right.getType()).thenReturn(Material.WHITE_WALL_BANNER);
         when(right.getWorld()).thenReturn(world);
@@ -372,8 +374,8 @@ class MirrorSignpostTest
     /** A mirror on the banner block, pointing at another world. */
     private void boundMirror()
     {
-        MirrorManager.add(new QuantumMirror("museum", MirrorBlock.of(banner),
-            new MirrorPoint("nether", 0, 64, 0, 0f, 0f)));
+        MirrorManager.add(new QuantumMirror("museum", BlockPlace.of(banner),
+            new Place("nether", 0, 64, 0, 0f, 0f)));
     }
 
     /** Puts the player at this x, level with the banner and four blocks out from it. */

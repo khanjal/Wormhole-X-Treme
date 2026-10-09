@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,6 +57,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 /**
@@ -65,7 +67,7 @@ import com.wormhole_xtreme.wormhole.utils.DataLayout;
  * <p>A window draws from nothing else, so a capture that missed a chunk would be a view with a
  * hole in it, and one that kept the far banner would show it hanging in mid-air.
  */
-class MirrorCapturesTest
+class CapturesTest
 {
     @TempDir
     File dataFolder;
@@ -79,7 +81,7 @@ class MirrorCapturesTest
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
-        new MirrorBlock("world", 10, 64, 10), new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f));
+        new BlockPlace("world", 10, 64, 10), new Place("far", 100.5, 70.0, -20.5, 0.0f, 0.0f));
 
     @BeforeEach
     void setUp() throws Exception
@@ -94,7 +96,7 @@ class MirrorCapturesTest
         // A small box: 33 across, so three chunks a side.
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
         MirrorManager.clear();
-        MirrorCaptures.clear();
+        Captures.clear();
         when(air.getAsString()).thenReturn("minecraft:air");
         when(air.getMaterial()).thenReturn(Material.AIR);
         when(sand.getAsString()).thenReturn("minecraft:sand");
@@ -111,7 +113,7 @@ class MirrorCapturesTest
         when(far.getHighestBlockYAt(anyInt(), anyInt(), ArgumentMatchers.any(HeightMap.class)))
             .thenAnswer(invocation -> ((torch != null) && (((int) invocation.getArgument(0)) == 100)
                 && (((int) invocation.getArgument(1)) == -18)) ? 70 : 69);
-        MirrorCaptures.readChunksWith((world, chunkX, chunkZ) ->
+        Captures.readChunksWith((world, chunkX, chunkZ) ->
         {
             final ChunkSnapshot chunk = mock(ChunkSnapshot.class);
             when(chunk.getHighestBlockYAt(anyInt(), anyInt())).thenReturn(69);
@@ -134,8 +136,8 @@ class MirrorCapturesTest
     @AfterEach
     void tearDown() throws Exception
     {
-        MirrorCaptures.clear();
-        MirrorCaptures.siftWith(null);
+        Captures.clear();
+        Captures.siftWith(null);
         PluginTestSupport.scheduler(null);
         MirrorManager.clear();
         ConfigTestSupport.clear();
@@ -154,14 +156,14 @@ class MirrorCapturesTest
         MirrorManager.add(mirror);
         final File dir = DataLayout.mirrorCaptureDir();
         assertTrue(dir.isDirectory() || dir.mkdirs(), "the captures folder");
-        final File used = new File(dir, MirrorCaptures.keyFor(mirror) + ".view");
+        final File used = new File(dir, Captures.keyFor(mirror) + ".view");
         final File abandoned = new File(dir, "far_1_2_3.view");
         for (final File file : new File[] { used, abandoned })
         {
             assertTrue(file.createNewFile(), file.getName());
         }
 
-        assertEquals(1, MirrorCaptures.sweepAbandoned(), "one file no mirror's room is");
+        assertEquals(1, Captures.sweepAbandoned(), "one file no mirror's room is");
         assertFalse(abandoned.exists(), "the abandoned capture");
         assertTrue(used.exists(), "museum's room is kept");
     }
@@ -175,18 +177,18 @@ class MirrorCapturesTest
     {
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.request(mirror));
-            assertNull(MirrorCaptures.get(mirror), "not there until it has been taken");
-            assertEquals(1, MirrorCaptures.taking());
+            assertTrue(Captures.request(mirror));
+            assertNull(Captures.get(mirror), "not there until it has been taken");
+            assertEquals(1, Captures.taking());
             // The box is x 82..118 by z -22..-3: three chunks by two.
-            MirrorCaptures.step(6);
-            assertNull(MirrorCaptures.get(mirror), "not after the first pass over the six chunks either");
-            MirrorCaptures.step(100);
+            Captures.step(6);
+            assertNull(Captures.get(mirror), "not after the first pass over the six chunks either");
+            Captures.step(100);
         });
 
-        final MirrorCapture capture = MirrorCaptures.get(mirror);
+        final Capture capture = Captures.get(mirror);
         assertNotNull(capture);
-        assertEquals(0, MirrorCaptures.taking());
+        assertEquals(0, Captures.taking());
         assertSame(sand, capture.at(100, 69, -21), "the beach at the arrival point");
         assertTrue(capture.isAir(100, 70, -21), "and air above it");
         // Yaw 0 faces south, so the box runs ahead to z -3: 16 deep and a margin of 2.
@@ -211,8 +213,8 @@ class MirrorCapturesTest
     {
         withServer(() ->
         {
-            MirrorCaptures.request(mirror);
-            MirrorCaptures.step(6);
+            Captures.request(mirror);
+            Captures.step(6);
         });
 
         final Set<String> box = new HashSet<>();
@@ -244,11 +246,11 @@ class MirrorCapturesTest
 
         withServer(() ->
         {
-            MirrorCaptures.request(mirror);
-            MirrorCaptures.step(100);
+            Captures.request(mirror);
+            Captures.step(100);
         });
 
-        assertSame(torch, MirrorCaptures.get(mirror).at(100, 70, -18), "the torch on the sand, three blocks ahead");
+        assertSame(torch, Captures.get(mirror).at(100, 70, -18), "the torch on the sand, three blocks ahead");
     }
 
     /**
@@ -261,14 +263,14 @@ class MirrorCapturesTest
     @Test
     void theBoxACaptureNeedsIsTheHalfSphereAheadOfTheArrivalBoxed()
     {
-        final MirrorPoint south = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
-        final MirrorPoint west = new MirrorPoint("far", 100.5, 70.0, -20.5, 90.0f, 0.0f);
+        final Place south = new Place("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
+        final Place west = new Place("far", 100.5, 70.0, -20.5, 90.0f, 0.0f);
 
-        assertArrayEquals(new int[] { 82, 52, -22, 118, 88, -3 }, MirrorCaptures.needed(south, 16, null, null),
+        assertArrayEquals(new int[] { 82, 52, -22, 118, 88, -3 }, Captures.needed(south, 16, null, null),
             "16 deep plus a margin of 2 ahead, either side, up and down; one layer behind");
-        assertArrayEquals(new int[] { 82, 52, -39, 101, 88, -3 }, MirrorCaptures.needed(west, 16, null, null),
+        assertArrayEquals(new int[] { 82, 52, -39, 101, 88, -3 }, Captures.needed(west, 16, null, null),
             "facing west, the box runs to lower x");
-        assertArrayEquals(new int[] { 82, 60, -22, 118, 75, -3 }, MirrorCaptures.needed(south, 16, 60, 76),
+        assertArrayEquals(new int[] { 82, 60, -22, 118, 75, -3 }, Captures.needed(south, 16, 60, 76),
             "clamped to the far world's heights when it is loaded to ask");
     }
 
@@ -281,16 +283,16 @@ class MirrorCapturesTest
     @Test
     void aMirrorBannerAtTheFarSideIsBlankedInTheCapture()
     {
-        MirrorManager.add(new QuantumMirror("return", new MirrorBlock("far", 100, 69, -21), null));
+        MirrorManager.add(new QuantumMirror("return", new BlockPlace("far", 100, 69, -21), null));
 
         withServer(() ->
         {
-            MirrorCaptures.request(mirror);
-            MirrorCaptures.step(100);
+            Captures.request(mirror);
+            Captures.step(100);
         });
 
-        assertTrue(MirrorCaptures.get(mirror).isAir(100, 69, -21));
-        assertFalse(MirrorCaptures.get(mirror).isAir(101, 69, -21), "only the banner's block");
+        assertTrue(Captures.get(mirror).isAir(100, 69, -21));
+        assertFalse(Captures.get(mirror).isAir(101, 69, -21), "only the banner's block");
     }
 
     /** The capture is written to disk, and read back by a server that has forgotten it. */
@@ -299,16 +301,16 @@ class MirrorCapturesTest
     {
         withServer(() ->
         {
-            MirrorCaptures.request(mirror);
-            MirrorCaptures.step(100);
+            Captures.request(mirror);
+            Captures.step(100);
         });
         assertTrue(DataLayout.mirrorCaptureDir().isDirectory(), "written under the data folder");
         assertTrue(DataLayout.mirrorCaptureDir().getAbsolutePath().startsWith(dataFolder.getAbsolutePath()),
             "and under this test's folder, not the repository's: " + DataLayout.mirrorCaptureDir());
 
-        MirrorCaptures.clear();
+        Captures.clear();
 
-        final MirrorCapture reloaded = MirrorCaptures.get(mirror);
+        final Capture reloaded = Captures.get(mirror);
         assertNotNull(reloaded, "read back from its file");
         assertFalse(reloaded.isAir(100, 69, -21));
     }
@@ -319,20 +321,20 @@ class MirrorCapturesTest
         MirrorManager.add(mirror);
         withServer(() ->
         {
-            MirrorCaptures.request(mirror);
-            MirrorCaptures.step(100);
+            Captures.request(mirror);
+            Captures.step(100);
         });
-        final QuantumMirror twin = new QuantumMirror("twin", new MirrorBlock("world", 20, 64, 10),
+        final QuantumMirror twin = new QuantumMirror("twin", new BlockPlace("world", 20, 64, 10),
             mirror.destination());
         MirrorManager.add(twin);
 
-        MirrorCaptures.forget(twin);
-        assertNotNull(MirrorCaptures.get(mirror), "the museum still looks there");
+        Captures.forget(twin);
+        assertNotNull(Captures.get(mirror), "the museum still looks there");
 
         MirrorManager.remove("twin");
-        MirrorCaptures.forget(mirror);
-        MirrorCaptures.clear();
-        assertNull(MirrorCaptures.get(mirror), "gone from disk too");
+        Captures.forget(mirror);
+        Captures.clear();
+        assertNull(Captures.get(mirror), "gone from disk too");
     }
 
     /**
@@ -363,10 +365,10 @@ class MirrorCapturesTest
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
 
             command.execute(admin, new String[] { "mirror", "set", "museum", "-stamp", "nether" });
-            assertEquals(0, MirrorCaptures.taking(), "stamp is about the banner, not the room");
+            assertEquals(0, Captures.taking(), "stamp is about the banner, not the room");
 
             command.execute(admin, new String[] { "mirror", "set", "museum", "-capture" });
-            assertEquals(1, MirrorCaptures.taking(), "capture is what takes the room again");
+            assertEquals(1, Captures.taking(), "capture is what takes the room again");
         }
         verify(admin, atLeastOnce()).sendMessage(contains("Capturing"));
     }
@@ -374,8 +376,8 @@ class MirrorCapturesTest
     @Test
     void aMirrorOntoAWorldThatIsNotLoadedCannotBeCaptured()
     {
-        withServer(() -> assertFalse(MirrorCaptures.request(new QuantumMirror("nowhere",
-            new MirrorBlock("world", 1, 64, 1), new MirrorPoint("gone", 0, 64, 0, 0, 0)))));
+        withServer(() -> assertFalse(Captures.request(new QuantumMirror("nowhere",
+            new BlockPlace("world", 1, 64, 1), new Place("gone", 0, 64, 0, 0, 0)))));
     }
 
 
@@ -414,23 +416,23 @@ class MirrorCapturesTest
     {
         // The configured radius is 16, the depth 32, so the capture is taken 16 deep: a box from
         // x 82..118, y 52..88, z -22..-3 for this mirror, facing south.
-        final MirrorCapture fits = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
-        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(83, 52, -22, 36, 37, 20), air).build();
-        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 19), air).build();
-        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 53, -22, 37, 36, 20), air).build();
+        final Capture fits = new Capture.Builder("far", true, new Capture.Box(82, 52, -22, 37, 37, 20), air).build();
+        final Capture narrow = new Capture.Builder("far", true, new Capture.Box(83, 52, -22, 36, 37, 20), air).build();
+        final Capture shortAhead = new Capture.Builder("far", true, new Capture.Box(82, 52, -22, 37, 37, 19), air).build();
+        final Capture shallow = new Capture.Builder("far", true, new Capture.Box(82, 53, -22, 37, 36, 20), air).build();
 
         withServer(() ->
         {
-            assertFalse(MirrorCaptures.outgrown(mirror, fits), "the box one taken now would be");
-            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "a block short to one side");
-            assertTrue(MirrorCaptures.outgrown(mirror, shortAhead), "a block short ahead");
-            assertTrue(MirrorCaptures.outgrown(mirror, shallow), "a block short below");
+            assertFalse(Captures.outgrown(mirror, fits), "the box one taken now would be");
+            assertTrue(Captures.outgrown(mirror, narrow), "a block short to one side");
+            assertTrue(Captures.outgrown(mirror, shortAhead), "a block short ahead");
+            assertTrue(Captures.outgrown(mirror, shallow), "a block short below");
         });
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
-            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "width is judged without the far world");
-            assertFalse(MirrorCaptures.outgrown(mirror, shallow), "height is not: it could not be retaken anyway");
+            assertTrue(Captures.outgrown(mirror, narrow), "width is judged without the far world");
+            assertFalse(Captures.outgrown(mirror, shallow), "height is not: it could not be retaken anyway");
         }
     }
 
@@ -447,15 +449,15 @@ class MirrorCapturesTest
     @Test
     void aCaptureReachesAsFarAsTheFarWorldSendsWhateverTheViewDepth()
     {
-        assertEquals(16, MirrorCaptures.reach(null), "not loaded to ask: the view depth, which any capture holds");
-        assertEquals(16, MirrorCaptures.reach(far), "a world sending nothing -- a bare mock -- still reaches the depth");
+        assertEquals(16, Captures.reach(null), "not loaded to ask: the view depth, which any capture holds");
+        assertEquals(16, Captures.reach(far), "a world sending nothing -- a bare mock -- still reaches the depth");
         when(far.getViewDistance()).thenReturn(6);
-        assertEquals(96, MirrorCaptures.reach(far), "six chunks is 96 blocks, well past a depth of 16");
+        assertEquals(96, Captures.reach(far), "six chunks is 96 blocks, well past a depth of 16");
         when(far.getViewDistance()).thenReturn(32);
-        assertEquals(160, MirrorCaptures.reach(far), "never past ten chunks, however far a server sends");
+        assertEquals(160, Captures.reach(far), "never past ten chunks, however far a server sends");
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 160);
         when(far.getViewDistance()).thenReturn(2);
-        assertEquals(160, MirrorCaptures.reach(far), "and never short of the depth, or a view would outrun its capture");
+        assertEquals(160, Captures.reach(far), "and never short of the depth, or a view would outrun its capture");
     }
 
     /**
@@ -471,18 +473,18 @@ class MirrorCapturesTest
     {
         when(far.getViewDistance()).thenReturn(6);
         // To a depth of 16 alone, as the old rule took it: x 82..118, y 52..88, z -22..-3.
-        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(82, 52, -22, 37, 37, 20), air).build();
+        final Capture toTheDepth = new Capture.Builder("far", true, new Capture.Box(82, 52, -22, 37, 37, 20), air).build();
         // To the reach of 96: x 2..198, y -28..168, z -22..77.
-        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(2, -28, -22, 197, 197, 100), air).build();
+        final Capture toTheReach = new Capture.Builder("far", true, new Capture.Box(2, -28, -22, 197, 197, 100), air).build();
 
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.outgrown(mirror, toTheDepth), "taken to the depth alone: taken again, once");
-            assertFalse(MirrorCaptures.outgrown(mirror, toTheReach), "taken to the reach: it holds all a view can draw");
+            assertTrue(Captures.outgrown(mirror, toTheDepth), "taken to the depth alone: taken again, once");
+            assertFalse(Captures.outgrown(mirror, toTheReach), "taken to the reach: it holds all a view can draw");
             ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 8);
-            assertFalse(MirrorCaptures.outgrown(mirror, toTheReach), "a lower depth draws less of it and asks for nothing");
+            assertFalse(Captures.outgrown(mirror, toTheReach), "a lower depth draws less of it and asks for nothing");
             ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 120);
-            assertTrue(MirrorCaptures.outgrown(mirror, toTheReach), "a depth past the reach is the one thing that grows it");
+            assertTrue(Captures.outgrown(mirror, toTheReach), "a depth past the reach is the one thing that grows it");
         });
     }
 
@@ -497,19 +499,19 @@ class MirrorCapturesTest
     void aSiftThatThrowsLetsTheNextRequestStartAgain() throws Exception
     {
         final Pool pool = new Pool();
-        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        Captures.siftWith((builder, from, reach, floor) ->
         {
             throw new IllegalStateException("a bug in the sift");
         });
 
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.request(mirror));
+            assertTrue(Captures.request(mirror));
             assertEquals(1, pool.timers.size(), "the job's tick");
             pool.tickUntilIdle();
         });
 
-        assertEquals(0, MirrorCaptures.taking(), "the job is put down");
+        assertEquals(0, Captures.taking(), "the job is put down");
         assertTrue(pool.timers.isEmpty(), "and its tick cancelled");
         assertTrue(pool.escaped.isEmpty(), "nothing left for the pool to swallow");
         verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
@@ -527,19 +529,19 @@ class MirrorCapturesTest
     void aSiftOutOfMemoryStillPutsTheJobDown() throws Exception
     {
         final Pool pool = new Pool();
-        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        Captures.siftWith((builder, from, reach, floor) ->
         {
             throw new OutOfMemoryError("a deep capture");
         });
 
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.request(mirror));
+            assertTrue(Captures.request(mirror));
             assertThrows(OutOfMemoryError.class, pool::tickUntilIdle, "the error is not swallowed");
             pool.runMain();
         });
 
-        assertEquals(0, MirrorCaptures.taking(), "the job is put down");
+        assertEquals(0, Captures.taking(), "the job is put down");
         assertTrue(pool.timers.isEmpty(), "and its tick cancelled");
         takenAfresh(pool);
     }
@@ -554,32 +556,32 @@ class MirrorCapturesTest
     void aSiftFailureIsLoggedOnceWhateverWasWarnedBefore() throws Exception
     {
         final Pool pool = new Pool();
-        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        Captures.siftWith((builder, from, reach, floor) ->
         {
             throw new IllegalStateException("a bug in the sift");
         });
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
-            assertFalse(MirrorCaptures.request(mirror), "the far world is not loaded yet");
+            assertFalse(Captures.request(mirror), "the far world is not loaded yet");
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             for (int attempt = 0; attempt < 2; attempt++)
             {
-                assertTrue(MirrorCaptures.request(mirror));
+                assertTrue(Captures.request(mirror));
                 pool.tickUntilIdle();
             }
             verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
                 any(IllegalStateException.class));
 
             // An admin's retake is said again, so whoever ran it hears that it failed.
-            assertTrue(MirrorCaptures.retake(mirror));
+            assertTrue(Captures.retake(mirror));
             pool.tickUntilIdle();
         }
 
         verify(plugin).prettyLog(eq(Level.WARNING), contains("is not loaded"));
         verify(plugin, times(2)).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
             any(IllegalStateException.class));
-        assertEquals(0, MirrorCaptures.taking());
+        assertEquals(0, Captures.taking());
     }
 
     /**
@@ -594,24 +596,24 @@ class MirrorCapturesTest
     {
         final Pool pool = new Pool();
         pool.holdAsync = true;
-        MirrorCaptures.siftWith((builder, from, reach, floor) ->
+        Captures.siftWith((builder, from, reach, floor) ->
         {
             throw new IllegalStateException("a bug in the sift");
         });
 
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.request(mirror));
+            assertTrue(Captures.request(mirror));
             for (int i = 0; (i < 100) && pool.held.isEmpty(); i++)
             {
                 pool.tick();
             }
             assertEquals(1, pool.held.size(), "the first job's sift, still on the pool");
-            MirrorCaptures.forget(mirror);
-            assertTrue(MirrorCaptures.request(mirror));
+            Captures.forget(mirror);
+            assertTrue(Captures.request(mirror));
             pool.runHeld();
             pool.runMain();
-            assertEquals(1, MirrorCaptures.taking(), "the second job is untouched");
+            assertEquals(1, Captures.taking(), "the second job is untouched");
             assertEquals(1, pool.timers.size(), "and still ticking");
             verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
                 any(IllegalStateException.class));
@@ -622,22 +624,22 @@ class MirrorCapturesTest
 
         verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not work out what the mirror capture"),
             any(IllegalStateException.class));
-        assertEquals(0, MirrorCaptures.taking());
+        assertEquals(0, Captures.taking());
     }
 
     /** With the sift working again, a request takes the capture from the start. */
     private void takenAfresh(final Pool pool)
     {
-        MirrorCaptures.siftWith(null);
+        Captures.siftWith(null);
         withServer(() ->
         {
-            assertTrue(MirrorCaptures.request(mirror));
-            assertEquals(1, MirrorCaptures.taking(), "a fresh job");
+            assertTrue(Captures.request(mirror));
+            assertEquals(1, Captures.taking(), "a fresh job");
             assertEquals(1, pool.timers.size(), "with a tick of its own");
             pool.tickUntilIdle();
         });
-        assertNotNull(MirrorCaptures.get(mirror), "the capture is taken after all");
-        assertEquals(0, MirrorCaptures.taking());
+        assertNotNull(Captures.get(mirror), "the capture is taken after all");
+        assertEquals(0, Captures.taking());
     }
 
     /**

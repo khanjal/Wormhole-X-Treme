@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
+
 /**
  * Nothing in the shutdown path catches {@code Exception} alone.
  *
@@ -60,7 +61,7 @@ class ShutdownCatchesErrorsTest
 
     /** Every step the shutdown path is known to take, used to prove the region is the region. */
     private static final List<String> SHUTDOWN_STEPS =
-        List.of("MirrorProximity.restoreAll", "saveRings", "saveBeams", "saveMirrors",
+        List.of("WindowSweep.restoreAll", "saveRings", "saveBeams", "saveMirrors",
             "disableEconomyQuietly", "shutDownForDisable", "saveForDisable");
 
     /** The shutdown path's source, between the two markers. */

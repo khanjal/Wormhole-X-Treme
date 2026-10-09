@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * The wall face round a window's opening: how far it is solid, which of it is an edge, and its frame.
@@ -21,9 +21,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * the drawing are made of.
  *
  * <p>Plain geometry over a set of solid cells: no block is read here. Split out of
- * {@link MirrorWindows}.
+ * {@link Windows}.
  */
-final class MirrorFace
+final class WindowFace
 {
     /**
      * The coordinates along a window's face that its wall is read across: the opening, one or two
@@ -31,7 +31,7 @@ final class MirrorFace
      *
      * @return {@code {from, to}}, both inclusive
      */
-    static int[] acrossSpan(final MirrorWindow shape, final int reach)
+    static int[] acrossSpan(final WindowShape shape, final int reach)
     {
         final boolean alongX = shape.into().x() != 0;
         // A step right, looking at the wall, is (-into.z, into.x); a pair's second column may lie below its first.
@@ -45,14 +45,14 @@ final class MirrorFace
     /** How far out a window's wall is read: a viewer the proximity distance to one side looks past that much of it. */
     static int wallReach()
     {
-        return Math.max(MirrorWindows.SURROUND, ConfigManager.getMirrorProximityDistance());
+        return Math.max(Windows.SURROUND, ConfigManager.getMirrorProximityDistance());
     }
 
     /** The block of a window's face at a coordinate along it. */
-    static long faceKey(final MirrorWindow shape, final int across, final int y)
+    static long faceKey(final WindowShape shape, final int across, final int y)
     {
-        return (shape.into().x() != 0) ? MirrorWindows.key(shape.base().x(), y, across)
-            : MirrorWindows.key(across, y, shape.base().z());
+        return (shape.into().x() != 0) ? Windows.key(shape.base().x(), y, across)
+            : Windows.key(across, y, shape.base().z());
     }
 
     /**
@@ -60,15 +60,15 @@ final class MirrorFace
      *
      * <p>Ring by ring out from the opening, to the first ring with a block that is not solid;
      * a wall solid to the edge of what was read counts as that far. The one-block wall is the
-     * case that matters ({@link MirrorWindows#farCellFor}).
+     * case that matters ({@link Windows#farCellFor}).
      *
      * @param solid
-     *            the solid blocks of its face, as {@link MirrorWindows#refreshSolid} read them
+     *            the solid blocks of its face, as {@link Windows#refreshSolid} read them
      * @param reach
      *            how far out the face was read
      * @return the border, in blocks, from 0 to {@code reach}
      */
-    static int borderOf(final MirrorWindow shape, final Set<Long> solid, final int reach)
+    static int borderOf(final WindowShape shape, final Set<Long> solid, final int reach)
     {
         final boolean alongX = shape.into().x() != 0;
         final int rightStep = alongX ? shape.into().x() : -shape.into().z();
@@ -76,7 +76,7 @@ final class MirrorFace
         final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
         final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
         final int bottom = shape.base().y();
-        final int top = (shape.base().y() + MirrorWindow.HEIGHT) - 1;
+        final int top = (shape.base().y() + WindowShape.HEIGHT) - 1;
         for (int ring = 1; ring <= reach; ring++)
         {
             for (int across = low - ring; across <= (high + ring); across++)
@@ -108,14 +108,14 @@ final class MirrorFace
      * <p>Only neighbours within what was read count, so a wall solid to the edge of the reading
      * has no margin there -- it is drawn whole in any case.
      */
-    static Map<Long, Integer> marginOf(final MirrorWindow shape, final Set<Long> solid, final int[] span,
+    static Map<Long, Integer> marginOf(final WindowShape shape, final Set<Long> solid, final int[] span,
         final int reach)
     {
         final boolean alongX = shape.into().x() != 0;
         final Set<Long> opening = new HashSet<>();
-        shape.forEachOpening((x, y, z) -> opening.add(MirrorWindows.key(x, y, z)));
+        shape.forEachOpening((x, y, z) -> opening.add(Windows.key(x, y, z)));
         final int lowY = shape.base().y() - reach;
-        final int highY = shape.base().y() + MirrorWindow.HEIGHT + reach;
+        final int highY = shape.base().y() + WindowShape.HEIGHT + reach;
         final int[][] steps = { { 1, 0, OPEN_AFTER }, { -1, 0, OPEN_BEFORE }, { 0, 1, OPEN_ABOVE }, { 0, -1, OPEN_BELOW } };
         final Map<Long, Integer> margin = new HashMap<>();
         for (final long face : solid)
@@ -124,8 +124,8 @@ final class MirrorFace
             {
                 continue;
             }
-            final int across = alongX ? MirrorWindows.unpackZ(face) : MirrorWindows.unpackX(face);
-            final int y = MirrorWindows.unpackY(face);
+            final int across = alongX ? Windows.unpackZ(face) : Windows.unpackX(face);
+            final int y = Windows.unpackY(face);
             int open = 0;
             for (final int[] step : steps)
             {
@@ -151,14 +151,14 @@ final class MirrorFace
      * can be drawn before the eye moves to where it shows: sliding along a frame into view, it
      * was drawn only once it came into the opening, a step late.
      */
-    static List<Spot> frameOf(final MirrorWindow shape, final Set<Long> solid)
+    static List<Spot> frameOf(final WindowShape shape, final Set<Long> solid)
     {
         final boolean alongX = shape.into().x() != 0;
         final Set<Long> opening = new HashSet<>();
         final List<int[]> cells = new ArrayList<>();
         shape.forEachOpening((x, y, z) ->
         {
-            opening.add(MirrorWindows.key(x, y, z));
+            opening.add(Windows.key(x, y, z));
             cells.add(new int[] { alongX ? z : x, y });
         });
         final Set<Long> frame = new LinkedHashSet<>();
@@ -177,12 +177,12 @@ final class MirrorFace
             }
         }
         final List<Spot> spots = new ArrayList<>();
-        frame.forEach(face -> spots.add(new Spot(MirrorWindows.unpackX(face),
-            MirrorWindows.unpackY(face), MirrorWindows.unpackZ(face))));
+        frame.forEach(face -> spots.add(new Spot(Windows.unpackX(face),
+            Windows.unpackY(face), Windows.unpackZ(face))));
         return spots;
     }
     /** Static state only. */
-    private MirrorFace()
+    private WindowFace()
     {
     }
 }

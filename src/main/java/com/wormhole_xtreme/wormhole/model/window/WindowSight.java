@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,21 +7,21 @@ import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * What a viewer can see past: whether a block is solid, and where the ground ends.
  *
  * <p>Every answer here is a block read, and a block read is the expensive part of drawing a
  * room -- so each is cached per world and thrown away every few seconds
- * ({@link MirrorWindows#RESAMPLE_MILLIS}) rather than watched for changes. A wall somebody
+ * ({@link Windows#RESAMPLE_MILLIS}) rather than watched for changes. A wall somebody
  * knocks through is noticed within that, which is soon enough for what these answers are for:
  * whether a line of sight is clear, and whether a block is really open air.
  *
- * <p>Split out of {@link MirrorWindows}, which had grown to hold every part of drawing a room.
+ * <p>Split out of {@link Windows}, which had grown to hold every part of drawing a room.
  * These three caches were touched by nothing else in it.
  */
-final class MirrorSight
+final class WindowSight
 {
     /** Whether each block behind an opening is really empty, by world and block, briefly. */
     private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
@@ -71,13 +71,13 @@ final class MirrorSight
     static boolean solidHere(final World here, final int x, final int y, final int z,
         final long now)
     {
-        if ((now - solidReadAt) >= MirrorWindows.RESAMPLE_MILLIS)
+        if ((now - solidReadAt) >= Windows.RESAMPLE_MILLIS)
         {
             SOLID.clear();
             solidReadAt = now;
         }
         return SOLID.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            MirrorWindows.key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
+            Windows.key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
                 && here.getBlockAt(x, y, z).getBlockData().isOccluding());
     }
 
@@ -91,7 +91,7 @@ final class MirrorSight
     /** The highest block that is not air in a real column, remembered for a few seconds. */
     private static int topHere(final World here, final int x, final int z, final long now)
     {
-        if ((now - emptyReadAt) >= MirrorWindows.RESAMPLE_MILLIS)
+        if ((now - emptyReadAt) >= Windows.RESAMPLE_MILLIS)
         {
             EMPTY.clear();
             TOPS.clear();
@@ -102,7 +102,7 @@ final class MirrorSight
             return Integer.MAX_VALUE;
         }
         return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            MirrorWindows.chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
+            Windows.chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
     /** Forgets every cached read, for a test or a reload. */
     static void clear()
@@ -115,7 +115,7 @@ final class MirrorSight
     }
 
     /** Static state only. */
-    private MirrorSight()
+    private WindowSight()
     {
     }
 }

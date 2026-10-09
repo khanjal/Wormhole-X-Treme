@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -24,12 +24,12 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
  *
  * <p>{@code Player.setSendViewDistance} is Paper's and no Spigot jar has it, so the reflective
  * lookup finds nothing on the compile path here and every decision in
- * {@link MirrorFog#apply} would be unreachable in a test. A stand-in goes in through
- * {@link MirrorFog#sendDistanceWith} instead, which records what it was asked to set: the
+ * {@link ViewFog#apply} would be unreachable in a test. A stand-in goes in through
+ * {@link ViewFog#sendDistanceWith} instead, which records what it was asked to set: the
  * arithmetic, the two reasons to do nothing, and putting back exactly what was there are all
  * this class's own and worth pinning whatever server is underneath.
  */
-class MirrorFogTest
+class ViewFogTest
 {
     /** What the stand-in was asked to set, in order. */
     private final List<Integer> set = new ArrayList<>();
@@ -42,7 +42,7 @@ class MirrorFogTest
     {
         ConfigTestSupport.clear();
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
             public int get(final Player player)
@@ -62,7 +62,7 @@ class MirrorFogTest
     @AfterEach
     void tearDown()
     {
-        MirrorFog.sendDistanceWith(null);
+        ViewFog.sendDistanceWith(null);
         ConfigTestSupport.clear();
     }
 
@@ -85,13 +85,13 @@ class MirrorFogTest
     {
         final Player viewer = player();
 
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
         assertEquals(List.of(4), set, "three chunks of room, and one over for the edge");
-        assertTrue(MirrorFog.narrowed(viewer.getUniqueId()));
+        assertTrue(ViewFog.narrowed(viewer.getUniqueId()));
 
-        MirrorFog.restore(viewer.getUniqueId(), viewer);
+        ViewFog.restore(viewer.getUniqueId(), viewer);
         assertEquals(List.of(4, 10), set, "exactly what they were being sent before");
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()));
     }
 
     /**
@@ -105,7 +105,7 @@ class MirrorFogTest
     @Test
     void aRoomAsDeepAsTheClientIsSentChangesNothing()
     {
-        MirrorFog.apply(player(), 160);
+        ViewFog.apply(player(), 160);
 
         assertEquals(List.of(), set, "the room already reaches as far as the chunks do");
     }
@@ -116,7 +116,7 @@ class MirrorFogTest
     {
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
 
-        MirrorFog.apply(player(), 48);
+        ViewFog.apply(player(), 48);
 
         assertEquals(List.of(), set, "nothing asked for with the setting off");
     }
@@ -129,9 +129,9 @@ class MirrorFogTest
     @Test
     void aTinyRoomStillLeavesTheViewerTwoChunks()
     {
-        MirrorFog.apply(player(), 4);
+        ViewFog.apply(player(), 4);
 
-        assertEquals(List.of(MirrorFog.LEAST_CHUNKS), set, "the floor, not a chunk on its own");
+        assertEquals(List.of(ViewFog.LEAST_CHUNKS), set, "the floor, not a chunk on its own");
     }
 
     /**
@@ -146,9 +146,9 @@ class MirrorFogTest
     {
         final Player viewer = player();
 
-        MirrorFog.apply(viewer, 48);
-        MirrorFog.apply(viewer, 16);
-        MirrorFog.restore(viewer.getUniqueId(), viewer);
+        ViewFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 16);
+        ViewFog.restore(viewer.getUniqueId(), viewer);
 
         assertEquals(List.of(4, 2, 10), set,
             "a shallower room pulls it in further, and leaving still gives back the original ten");
@@ -159,13 +159,13 @@ class MirrorFogTest
     void turningTheSettingOffWhileNarrowedGivesTheFogBack()
     {
         final Player viewer = player();
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
 
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
 
         assertEquals(List.of(4, 10), set, "given back the moment the setting is off");
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()));
     }
 
     /** Deepening the room past what the client is sent gives the fog back: nothing left to gain. */
@@ -173,12 +173,12 @@ class MirrorFogTest
     void deepeningTheRoomPastWhatIsSentGivesTheFogBack()
     {
         final Player viewer = player();
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
 
-        MirrorFog.apply(viewer, 160);
+        ViewFog.apply(viewer, 160);
 
         assertEquals(List.of(4, 10), set, "eleven chunks is no nearer than the ten being sent");
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()));
     }
 
     /** Runs every redraw, and each change of send distance is chunk traffic: ask only when it moves. */
@@ -187,9 +187,9 @@ class MirrorFogTest
     {
         final Player viewer = player();
 
-        MirrorFog.apply(viewer, 48);
-        MirrorFog.apply(viewer, 48);
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
 
         assertEquals(List.of(4), set, "set once, however many redraws");
     }
@@ -200,7 +200,7 @@ class MirrorFogTest
     {
         final Player viewer = player();
 
-        MirrorFog.restore(viewer.getUniqueId(), viewer);
+        ViewFog.restore(viewer.getUniqueId(), viewer);
 
         assertEquals(List.of(), set, "nothing to put back");
     }
@@ -210,24 +210,24 @@ class MirrorFogTest
      *
      * <p>From the review. Their send distance dies with the connection, so there is nothing to
      * put back -- but leaving them remembered as narrowed would keep the entry for the life of
-     * the server and, worse, make {@link MirrorFog#apply} skip them if they came back on the
+     * the server and, worse, make {@link ViewFog#apply} skip them if they came back on the
      * same id, since it does nothing for a viewer it thinks is already narrowed.
      */
     @Test
     void aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn()
     {
         final Player viewer = player();
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
         set.clear();
         sending = 10;
 
         // Gone: the server has the id but no player to send anything to.
-        MirrorFog.restore(viewer.getUniqueId(), null);
+        ViewFog.restore(viewer.getUniqueId(), null);
 
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()), "not remembered as narrowed");
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()), "not remembered as narrowed");
         assertEquals(List.of(), set, "and nothing sent to somebody who is not there");
 
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
         assertEquals(List.of(4), set, "so coming back narrows again rather than being skipped");
     }
 
@@ -241,12 +241,12 @@ class MirrorFogTest
     void clearForgetsWithoutSendingAnything()
     {
         final Player viewer = player();
-        MirrorFog.apply(viewer, 48);
+        ViewFog.apply(viewer, 48);
         set.clear();
 
-        MirrorFog.clear();
+        ViewFog.clear();
 
-        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+        assertFalse(ViewFog.narrowed(viewer.getUniqueId()));
         assertEquals(List.of(), set, "a reload sends nothing");
     }
 
@@ -255,10 +255,10 @@ class MirrorFogTest
     @DisabledIfSystemProperty(named = "server.api", matches = "paper")
     void withoutTheServersMethodThereIsNoFeature()
     {
-        MirrorFog.sendDistanceWith(null);
+        ViewFog.sendDistanceWith(null);
 
-        assertFalse(MirrorFog.available(), "no Spigot jar in the supported range has it");
-        MirrorFog.apply(player(), 48);
+        assertFalse(ViewFog.available(), "no Spigot jar in the supported range has it");
+        ViewFog.apply(player(), 48);
         assertEquals(List.of(), set, "and nothing is asked of the server");
     }
 }
