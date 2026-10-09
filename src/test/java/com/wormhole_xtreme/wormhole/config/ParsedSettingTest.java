@@ -234,6 +234,17 @@ class ParsedSettingTest
             parsed.getRefusal());
     }
 
+    /** A gate view level is one of the three, in any case; anything else is refused by name (#516). */
+    @Test
+    void aGateViewThatIsNotOneIsRefused()
+    {
+        storesAs(ConfigKeys.GATE_VIEW, "Open", "open");
+        storesAs(ConfigKeys.GATE_VIEW, " behind ", "behind");
+        final ParsedSetting parsed = refuses(ConfigKeys.GATE_VIEW, "window");
+        assertTrue(parsed.getRefusal().contains("horizon") && parsed.getRefusal().contains("open"),
+            parsed.getRefusal());
+    }
+
     /**
      * A sign colour that is not a colour is refused, naming the colours there are. Stage 6 of the
      * research facility set sign-color-gate-name to PINK: it was accepted, and every sign written

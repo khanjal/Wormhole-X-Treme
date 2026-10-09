@@ -27,9 +27,11 @@ import org.bukkit.block.BlockFace;
  *            the block a traveller arrives in
  * @param ahead
  *            one step the way a traveller faces on arrival
+ * @param height
+ *            how tall the opening is: a banner's two, or a gate's own opening
  */
 public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowShape.Spot far,
-    WindowShape.Spot ahead, boolean mirrored, int width)
+    WindowShape.Spot ahead, boolean mirrored, int width, int height)
 {
     /**
      * A window one banner wide onto somewhere, not a reflection.
@@ -48,14 +50,27 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
         this(base, into, far, ahead, false, 1);
     }
 
-    /** A width is one banner or two. */
-    public WindowShape
+    /**
+     * A mirror's window, one banner wide or two, and a banner's cloth tall.
+     *
+     * @param width
+     *            one banner or two; anything wider is two
+     */
+    public WindowShape(final Spot base, final Spot into, final Spot far, final Spot ahead,
+        final boolean mirrored, final int width)
     {
-        width = (width >= 2) ? 2 : 1;
+        this(base, into, far, ahead, mirrored, (width >= 2) ? 2 : 1, BANNER_HEIGHT);
     }
 
-    /** How tall the opening is: the banner's cloth. */
-    public static final int HEIGHT = 2;
+    /** An opening is at least a block each way. */
+    public WindowShape
+    {
+        width = Math.max(1, width);
+        height = Math.max(1, height);
+    }
+
+    /** How tall a mirror's opening is: the banner's cloth. */
+    public static final int BANNER_HEIGHT = 2;
 
     /** The furthest a candidate may be from the opening along its face, however close the eye. */
     static final int WIDEST = 64;
@@ -179,12 +194,42 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
         }
         final Spot into = new Spot(-facing.getModX(), 0, -facing.getModZ());
         // A wall banner hangs down from where it is hung, so the opening runs down from it.
-        final int bottom = banner.y() - (HEIGHT - 1);
+        final int bottom = banner.y() - (BANNER_HEIGHT - 1);
         return new WindowShape(
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,
             new Spot(floor(destination.x()), floor(destination.y()), floor(destination.z())),
             aheadOf(destination.yaw()), mirrored, width);
+    }
+
+    /**
+     * The window through a gate's opening: any size, onto where a traveller through it lands.
+     *
+     * <p>The opening's middle column shows the arrival block, and its bottom row the arrival's
+     * height, so the ground seen through the gate is the ground stepped out onto.
+     *
+     * @param base
+     *            the opening's bottom left block, looking through it
+     * @param into
+     *            one step through the opening
+     * @param arrival
+     *            where a traveller lands, facing the way they leave
+     * @param width
+     *            the opening's width
+     * @param height
+     *            the opening's height
+     * @return the window
+     */
+    public static WindowShape through(final Spot base, final Spot into, final Place arrival,
+        final int width, final int height)
+    {
+        final Spot ahead = aheadOf(arrival.yaw());
+        final Spot farRight = rightOf(ahead);
+        final int middle = (width - 1) / 2;
+        return new WindowShape(base, into,
+            new Spot(floor(arrival.x()) - (middle * farRight.x()), floor(arrival.y()),
+                floor(arrival.z()) - (middle * farRight.z())),
+            ahead, false, width, height);
     }
 
     /**
@@ -217,7 +262,7 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
         // From the left banner's column, rightwards, looking at the wall.
         for (int across = 0; across < width; across++)
         {
-            for (int up = 0; up < HEIGHT; up++)
+            for (int up = 0; up < height; up++)
             {
                 opening.at(base.x() + (across * right.x()), base.y() + up,
                     base.z() + (across * right.z()));
@@ -370,7 +415,7 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
         final int dx = x - base.x();
         final int dz = z - base.z();
         if ((((dx * into.x()) + (dz * into.z())) != 0) || (y < base.y())
-            || (y >= (base.y() + HEIGHT)))
+            || (y >= (base.y() + height)))
         {
             return false;
         }

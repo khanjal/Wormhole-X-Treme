@@ -26,6 +26,16 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Added**
 
+- **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
+  `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
+  side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,
+  and only with its iris open. Every gate with a ring round its opening shows it through the whole
+  opening, Grand and Massive too; a Minimal gate, with no ring, keeps its horizon. A first capture
+  takes a few seconds in the background, and the fill behind it up to a minute and a half over open
+  sky, one gate at a time; over open ground the fill is cut to fit a million blocks. An existing
+  `config.yml` keeps the old comment on `gate-view`, which is harmless. `gate-view-depth` (32) is how
+  far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
+  there after a restart, and is taken again as gates are dialled and while somebody is at them.
 - **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
   to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
   than running, since it needs a group or a block after it, and a refusal that names a command
@@ -136,6 +146,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **A mirror in a wall more than a block wide keeps its wide far part between wall readings.**
   For four seconds in five it fell back to a half-block one, and `mirror debug` said "wall 0".
+- **A view sees six layers into leaves, not through a whole forest.** A capture kept every crown
+  in its way; a mirror onto woodland now holds far fewer blocks. Retake one with `mirror set -capture`.
 - **Two mirrors made at once on a new server both keep their view after a restart.** One of them
   logged "Could not write mirror capture", and after a restart showed its banner until the view
   was taken again.

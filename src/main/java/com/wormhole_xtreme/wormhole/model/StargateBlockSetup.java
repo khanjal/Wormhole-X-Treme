@@ -1345,8 +1345,8 @@ class StargateBlockSetup
      */
     private static void sendPortalTo(final Player player, final Stargate gate)
     {
-        final BlockData blockData =
-            MaterialUtils.drawnAcross(gate.getEffectivePortalMaterial(), gate.getGateFacing());
+        final Material horizon = GateViews.horizonOf(gate, gate.getEffectivePortalMaterial());
+        final BlockData blockData = MaterialUtils.drawnAcross(horizon, gate.getGateFacing());
         for (final Location bc : gate.getGatePortalBlocks())
         {
             player.sendBlockChange(

@@ -11,7 +11,9 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -59,9 +61,26 @@ final class WindowState
     Windows.Whole full;
     Capture fullFrom;
 
+    /**
+     * A gate's opening rather than a banner's: walked through, so never barred, and with no banner
+     * to take down while it is drawn.
+     */
+    final boolean walkThrough;
+
+    /** How far past the opening its view is drawn: {@code mirror-view-depth} for a mirror, {@code gate-view-depth} for a gate. */
+    final int depth;
+
     WindowState(final QuantumMirror mirror, final WindowShape shape, final Block banner,
         final List<Spot> open, final Capture capture)
     {
+        this(mirror, shape, banner, open, capture, false, ConfigManager.getMirrorViewDepth());
+    }
+
+    WindowState(final QuantumMirror mirror, final WindowShape shape, final Block banner,
+        final List<Spot> open, final Capture capture, final boolean walkThrough, final int depth)
+    {
+        this.walkThrough = walkThrough;
+        this.depth = depth;
         this.mirror = mirror;
         this.shape = shape;
         this.banner = banner;

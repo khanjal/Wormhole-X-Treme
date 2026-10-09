@@ -15,6 +15,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -54,7 +56,10 @@ public final class Capture
     private static final int MAGIC = 0x4D495257;
 
     /** 3 keeps only entries, sorted; 1 and 2 wrote a dense grid, and are taken again. */
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
+
+    /** The version before a capture recorded how far it kept; still read, as never cut. */
+    private static final int UNCUT_VERSION = 3;
 
     /** Most distinct block states a capture may hold; a short index per block. */
     private static final int MOST_STATES = 65_535;
@@ -85,6 +90,13 @@ public final class Capture
     /** The air that can be seen, which has no entries. */
     private final SeenAir air;
     private BlockData standIn;
+
+    /**
+     * How far ahead of its arrival this capture kept, where a cut to fit {@code MOST_KEPT} made
+     * that short of its box; -1 for a capture never cut. The box is not shrunk with it, so a view
+     * does not ask again for a depth the cut will only take away again.
+     */
+    private int keptReach = -1;
 
     private Capture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
         final long takenAt, final Blocks blocks, final SeenAir air)
@@ -162,9 +174,18 @@ public final class Capture
      *            one step the way a traveller faces on arrival, x
      * @param aheadZ
      *            the same, z
+     * @param width
+     *            how wide a hole the capture is seen through
+     * @param height
+     *            how tall
      */
-    public record Arrival(int x, int y, int z, int aheadX, int aheadZ)
+    public record Arrival(int x, int y, int z, int aheadX, int aheadZ, int width, int height)
     {
+        /** Seen through a mirror's hole: three wide, so either width of mirror is served, and two tall. */
+        public Arrival(final int x, final int y, final int z, final int aheadX, final int aheadZ)
+        {
+            this(x, y, z, aheadX, aheadZ, 3, 2);
+        }
     }
 
     /** The palette and the entries that index into it, as a capture is made from them. */
@@ -215,6 +236,7 @@ public final class Capture
         private short lastIndex;
         private boolean lastOccludes;
         private boolean lastMurky;
+        private boolean lastLeafy;
         /** Every block that is not air. */
         private final BitSet filled;
         /** Every block that hides what is behind it. */
@@ -223,6 +245,8 @@ public final class Capture
         private final BitSet cleared;
         /** Every block of water, which a ray sees through for {@link #WATER_SIGHT} blocks and no further. */
         private final BitSet murky;
+        /** Every block of leaves, which a ray sees through for {@link #LEAF_SIGHT} blocks and no further. */
+        private final BitSet leafy;
         /** After {@link #keepOnlySeen}, the blocks it kept; before it, null: everything. */
         private BitSet kept;
         /** After {@link #keepOnlySeen}, the air it saw; before it, null: none. */
@@ -258,6 +282,7 @@ public final class Capture
             this.solid = new BitSet(volume);
             this.cleared = new BitSet(volume);
             this.murky = new BitSet(volume);
+            this.leafy = new BitSet(volume);
             names.add((air == null) ? "minecraft:air" : air.getAsString());
             states.add(air);
             byName.put(names.get(0), (short) 0);
@@ -298,10 +323,12 @@ public final class Capture
                     lastIndex = -1;
                     lastOccludes = hides(data);
                     lastMurky = isWater(data);
+                    lastLeafy = isLeaves(data);
                 }
                 filled.set(at);
                 solid.set(at, lastOccludes);
                 murky.set(at, lastMurky);
+                leafy.set(at, lastLeafy);
             }
         }
 
@@ -330,10 +357,12 @@ public final class Capture
                 lastIndex = index(data);
                 lastOccludes = (lastIndex != 0) && hides(data);
                 lastMurky = (lastIndex != 0) && isWater(data);
+                lastLeafy = (lastIndex != 0) && isLeaves(data);
             }
             filled.set(at, lastIndex != 0);
             solid.set(at, lastOccludes);
             murky.set(at, lastMurky);
+            leafy.set(at, lastLeafy);
             add(x, y, z, lastIndex);
         }
 
@@ -353,6 +382,18 @@ public final class Capture
         private static boolean isWater(final BlockData data)
         {
             return data.getMaterial() == Material.WATER;
+        }
+
+        /**
+         * Whether a block is leaves, which can be seen through a few layers deep, but no more.
+         *
+         * <p>By name rather than {@code Tag.LEAVES}, which needs a live registry, so every kind of
+         * leaves any version adds is counted without being listed.
+         */
+        private static boolean isLeaves(final BlockData data)
+        {
+            // valueOf: a stand-in block with no material reads as "null", not as leaves.
+            return String.valueOf(data.getMaterial()).endsWith("_LEAVES");
         }
 
         /**
@@ -381,6 +422,7 @@ public final class Capture
                 filled.clear(at);
                 solid.clear(at);
                 murky.clear(at);
+                leafy.clear(at);
                 cleared.set(at);
                 add(x, y, z, (short) 0);
             }
@@ -518,7 +560,72 @@ public final class Capture
          */
         static final int WATER_SIGHT = 32;
 
-        /** @return how many blocks that are not air this would keep, as it stands */
+        /**
+         * How many blocks of leaves a ray sees through before they hide the rest.
+         *
+         * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+         * crown in its way and a view onto one kept the whole canopy, though nobody can see more
+         * than a few trees in. Past the last leaf a ray reaches, the real world shows through the
+         * gaps in it, which is why this is not smaller.
+         */
+        static final int LEAF_SIGHT = 6;
+
+        /**
+         * The widest a gate capture's rays are spread, in degrees between neighbours (#516).
+         *
+         * <p>Spread with the hole alone, a Massive gate's rays were seven degrees apart, and a flat
+         * floor 64 blocks off kept under half its blocks. With the grids staggered ({@link #STAGGER}),
+         * two and a half kept every block of a wall and a floor out to 160 through every opening from
+         * five to eighteen square. Wider, some sizes began to lose a few: at four, a twentieth of a wall
+         * 160 blocks off through Grand's opening. A mirror's is one.
+         */
+        static final double WIDEST_STEP = 2.5;
+
+        /**
+         * How far each point's grid of directions is shifted, across and up, as a share of a step:
+         * the plastic number's two fractions, so ninety points' grids fill in between each other.
+         *
+         * <p>Every point's grid used to start half a step in. Lined up like that they fell on the
+         * same few directions, and the gaps between those were what a far wall or floor lost: a Large
+         * gate's capture kept 40% of a wall 160 blocks off, and a Grand gate's three quarters of the
+         * floor 24 out.
+         */
+        static final double[] STAGGER = { 0.7548776662466927, 0.5698402909980532 };
+
+        /** Asked before each start point's rays whether the capture is still wanted; never stopped unless set. */
+        private BooleanSupplier stopped = () -> false;
+
+        /**
+         * Has the sift give up between one start point's rays and the next once a capture is no longer
+         * wanted, by throwing {@link CancellationException}.
+         *
+         * <p>A gate's sift over open sky runs a minute and a half. A gate removed, or the plugin disabled,
+         * left it computing all that time for nobody; a /reload, in the old classloader.
+         *
+         * @param stop
+         *            true once the capture is not wanted
+         */
+        public void stopWhen(final BooleanSupplier stop)
+        {
+            stopped = stop;
+        }
+
+        /** Gives up the sift if nobody wants the capture any more. */
+        private void stopIfUnwanted()
+        {
+            if (stopped.getAsBoolean())
+            {
+                throw new CancellationException("the capture is no longer wanted");
+            }
+        }
+
+        /** How far into its first step a mirror's every grid of directions starts: half a step, as it always has. */
+        static final double MIRROR_SHIFT = 0.5;
+
+        /**
+         * @return how many cells this would keep, as it stands: blocks, and the air seen among them
+         *         that a view carves through the real world
+         */
         public int keptCount()
         {
             return (kept == null) ? filled.cardinality() : kept.cardinality();
@@ -563,9 +670,11 @@ public final class Capture
          *
          * <p>Rays from points across the front of the opening, in every direction that leaves
          * through its back -- the opening is a hole a block deep, so nothing steeper gets
-         * through, however close the eye -- a degree apart, which at the far end of the depth
-         * is under a block; each followed a block at a time until it meets something that
-         * hides what is behind it, or leaves the box, or passes the depth. Every block a
+         * through, however close the eye -- a degree apart through a mirror's hole, and at most
+         * {@link #WIDEST_STEP} through a gate's, with each point's directions {@link #STAGGER staggered}
+         * so the points fill in between each other at the far end of the depth; each followed a
+         * block at a time until it meets something that hides what is behind it, or leaves the box,
+         * or passes the depth. Every block a
          * ray passes through or ends on is seen, air included: air that a viewer can see is what
          * the view carves through the real world. A block beside anything seen that can be seen
          * through is kept too, which catches what a ray a degree wide slipped past and what
@@ -620,10 +729,10 @@ public final class Capture
         /** Marks what every ray through the opening passes, out to {@code reach}. */
         private void castRays(final BitSet seen, final Arrival from, final double reach)
         {
-            // The opening is a hole a block wide, two tall and a block deep, through the wall.
-            // A line of sight goes in at its front and out at its back, so what can be seen is
-            // bounded by the hole's own shape: nothing steeper than a block sideways or two up
-            // per block in. The back of the hole is the back of the block behind the arrival
+            // The opening is a hole of the arrival's width and height and a block deep: a mirror's
+            // three by two, a gate's eighteen square. A line of sight goes in at its front and out at
+            // its back, so what can be seen is bounded by the hole's own shape: nothing steeper than
+            // its width sideways or its height up per block in. The back of the hole is the back of the block behind the arrival
             // block, which is where the rays start; the front is a block further back.
             // A hair inside the arrival block, whichever way it faces. On the boundary itself a ray
             // facing north or west starts in the block behind, which for a mirror is its wall: every
@@ -634,22 +743,35 @@ public final class Capture
             final double exitZ = (from.z() + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            final double step = Math.tan(Math.toRadians(1.0));
+            // A bigger hole lets through more directions from each point; the rays are spread wider,
+            // but never past WIDEST_STEP, and a gate's grids are staggered. A mirror's are as they were.
+            final double step = Math.tan(Math.toRadians(Math.min(WIDEST_STEP,
+                Math.max(1.0, Math.sqrt((from.width() * from.height()) / 6.0)))));
+            int point = 0;
             // Filled afresh for each ray, which only reads them.
             final double[] origin = new double[3];
             final double[] direction = new double[3];
-            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
-            // than its room's, on whichever side its view turns that column to, so a room captured
-            // once serves a mirror of either width looking in either way.
+            // A mirror's is three blocks wide, centred on the arrival: a mirror two banners wide sees
+            // one column more than its room's, on whichever side its view turns that column to, so a
+            // room captured once serves a mirror of either width looking in either way. An even-width
+            // gate's arrival is left of its middle, so its hole sits half a block right.
+            final double half = from.width() / 2.0;
+            final double centre = ((from.width() - 1) % 2) / 2.0;
+            final double spacing = (from.width() == 3) ? 0.35 : ((half - 0.1) / 4);
+            final double rise = (from.height() == 2) ? 0.2 : (from.height() / 10.0);
             for (int column = -4; column <= 4; column++)
             {
-                final double across = column * 0.35;
-                for (double up = 0.1; up < 2.0; up += 0.2)
+                final double across = centre + (column * spacing);
+                for (double up = rise / 2; up < from.height(); up += rise)
                 {
+                    stopIfUnwanted();
+                    point++;
+                    final double shiftAcross = shiftFor(from, point, 0);
+                    final double shiftUp = shiftFor(from, point, 1);
                     // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
+                    for (double sideways = ((centre - half) - across) + (step * shiftAcross); sideways < ((centre + half) - across); sideways += step)
                     {
-                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
+                        for (double upward = -up + (step * shiftUp); upward < (from.height() - up); upward += step)
                         {
                             final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
                             origin[0] = (exitX + ((across + sideways) * rightX)) - minX;
@@ -663,6 +785,37 @@ public final class Capture
                     }
                 }
             }
+        }
+
+        /**
+         * How far into its first step one point's grid of directions starts, as a share of a step.
+         *
+         * @param from
+         *            the arrival, whose hole says whether it is a mirror's
+         * @param point
+         *            which point across the hole, counted from one
+         * @param axis
+         *            0 across, 1 up
+         * @return {@link #MIRROR_SHIFT} through a mirror's three-by-two hole, as it always was;
+         *         {@link #gateShift} through any other
+         */
+        static double shiftFor(final Arrival from, final int point, final int axis)
+        {
+            return ((from.width() == 3) && (from.height() == 2)) ? MIRROR_SHIFT : gateShift(point, axis);
+        }
+
+        /**
+         * A gate's point's own share of a step, from {@link #STAGGER}.
+         *
+         * @param point
+         *            which point across the hole, counted from one
+         * @param axis
+         *            0 across, 1 up
+         * @return between 0 and 1
+         */
+        static double gateShift(final int point, final int axis)
+        {
+            return (0.5 + (STAGGER[axis] * point)) % 1.0;
         }
 
         /** Keeps the six blocks round one, where they are not air. */
@@ -689,6 +842,19 @@ public final class Capture
                     keep.set(at);
                 }
             }
+        }
+
+        /**
+         * Whether a ray ends at a block: one that hides what is behind it, or the last of as much
+         * water or leaves as can be seen through.
+         *
+         * @param through
+         *            {@code {water, leaves}} seen through so far along this ray, counted on
+         */
+        private boolean ends(final int at, final int[] through)
+        {
+            return solid.get(at) || (murky.get(at) && (++through[0] > WATER_SIGHT))
+                || (leafy.get(at) && (++through[1] > LEAF_SIGHT));
         }
 
         /** Which axis a ray crosses a block boundary on next: whichever crossing comes soonest. */
@@ -723,7 +889,8 @@ public final class Capture
                 final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
                 tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
             }
-            int water = 0;
+            // Blocks of water and of leaves seen through so far, for when either ends the ray.
+            final int[] through = new int[2];
             double t = 0.0;
             while (t < reach)
             {
@@ -733,7 +900,7 @@ public final class Capture
                 }
                 final int at = offset(c[0], c[1], c[2], sizeY, sizeZ);
                 seen.set(at);
-                if (solid.get(at) || (murky.get(at) && (++water > WATER_SIGHT)))
+                if (ends(at, through))
                 {
                     return;
                 }
@@ -744,8 +911,34 @@ public final class Capture
             }
         }
 
+        /** How far ahead the sift kept, where it was cut short of the box; -1 if not. */
+        private int keptReach = -1;
+
+        /**
+         * Records that the sift was cut short of the box, to fit.
+         *
+         * @param reach
+         *            how far ahead of the arrival it kept
+         */
+        void keptReach(final int reach)
+        {
+            keptReach = reach;
+        }
+
         /** @return the finished capture, taken now */
         public Capture build()
+        {
+            return build(System.currentTimeMillis());
+        }
+
+        /**
+         * The finished capture, as though taken at a given time: for a test of what an old one does.
+         *
+         * @param takenAt
+         *            when it counts as taken, in milliseconds
+         * @return the capture
+         */
+        Capture build(final long takenAt)
         {
             // Sorted by position, the last word on each block winning: a block put and then
             // cleared is air, and a block put twice is what it was put as last.
@@ -772,11 +965,13 @@ public final class Capture
                     out++;
                 }
             }
-            return new Capture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                System.currentTimeMillis(),
+            final Capture capture = new Capture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt,
                 new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
                     Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
                 SeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
+            capture.keptReach = keptReach;
+            return capture;
         }
 
         /**
@@ -1075,6 +1270,7 @@ public final class Capture
             out.writeInt(sizeY);
             out.writeInt(sizeZ);
             out.writeLong(takenAt);
+            out.writeInt(keptReach);
             out.writeInt(names.length);
             for (final String name : names)
             {
@@ -1130,7 +1326,7 @@ public final class Capture
                 throw new IOException(file + " is not a mirror capture");
             }
             final int version = in.readInt();
-            if (version != VERSION)
+            if ((version != VERSION) && (version != UNCUT_VERSION))
             {
                 throw new IOException(file + " is capture version " + version + ", not " + VERSION
                     + "; it will be taken again");
@@ -1145,6 +1341,7 @@ public final class Capture
             final int sizeY = in.readInt();
             final int sizeZ = in.readInt();
             final long takenAt = in.readLong();
+            final int kept = (version == UNCUT_VERSION) ? -1 : in.readInt();
             final int count = in.readInt();
             if ((count < 1) || (count > MOST_STATES) || (sizeX < 1) || (sizeY < 1) || (sizeZ < 1)
                 || (((long) sizeX * sizeY * sizeZ) > Integer.MAX_VALUE))
@@ -1173,8 +1370,10 @@ public final class Capture
                 }
             }
             final SeenAir air = SeenAir.read(in, file, sizeX, sizeY, sizeZ);
-            return new Capture(worldName, hasSky, complete, new Box(minX, minY, minZ, sizeX, sizeY, sizeZ),
-                takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            final Capture capture = new Capture(worldName, hasSky, complete,
+                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            capture.keptReach = kept;
+            return capture;
         }
     }
 
@@ -1239,6 +1438,12 @@ public final class Capture
     long secondsOld()
     {
         return (System.currentTimeMillis() - takenAt) / 1000L;
+    }
+
+    /** @return how far ahead of its arrival this capture kept, where a cut made that short of its box; -1 if never cut */
+    int keptReach()
+    {
+        return keptReach;
     }
 
     /**

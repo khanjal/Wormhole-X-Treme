@@ -35,6 +35,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
+import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
@@ -137,6 +138,18 @@ public final class Windows
 
     /** The same, settable so a test can make a room not fit. */
     static int mostFixed = MOST_FIXED;
+
+    /**
+     * Most blocks one gate's view may hold (#516): four times a mirror's, some 50 MB while it is drawn.
+     *
+     * <p>A gate view is filled to 160 blocks through an opening up to eighteen square, and at a
+     * mirror's cap open ground past a hundred or so was cut away, leaving this world showing
+     * behind the far side. One view serves everybody looking into the gate.
+     */
+    private static final int MOST_GATE_FIXED = 1_000_000;
+
+    /** The same, settable so a test can make a gate's view not fit. */
+    static int mostGateFixed = MOST_GATE_FIXED;
 
     /** What {@link #fixedTo} gives for a view past its limit, told apart by identity from any real view. */
     private static final Map<Long, BlockData> TOO_MANY = Collections.unmodifiableMap(new HashMap<>());
@@ -428,6 +441,16 @@ public final class Windows
         final boolean fixedForViewer = view.fixedNames.contains(name);
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.field(name, howDrawn(window, fixedForViewer)));
+        if (window.walkThrough)
+        {
+            // A gate's view comes in steps, and which step it is on is the first question when it looks short.
+            final int box = reachAhead(window);
+            final int kept = window.capture.keptReach();
+            lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
+                + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth
+                + " (full " + Captures.gateFillDepth(window.mirror.destination(), ConfigManager.getGateViewDepth())
+                + "), " + window.capture.secondsOld() + "s old"));
+        }
         if (!fixedForViewer)
         {
             final Far far = view.far.get(name);
@@ -485,15 +508,42 @@ public final class Windows
             + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
     }
 
+    /**
+     * How far past its arrival a window's capture reaches, the way a traveller faces.
+     *
+     * @return blocks, counted to the far edge of the capture's box
+     */
+    static int reachAhead(final WindowState window)
+    {
+        final int[] box = window.capture.bounds();
+        final Spot far = window.shape.far();
+        final Spot ahead = window.shape.ahead();
+        if (ahead.x() != 0)
+        {
+            return (ahead.x() > 0) ? (box[3] - far.x()) : (far.x() - box[0]);
+        }
+        return (ahead.z() > 0) ? (box[5] - far.z()) : (far.z() - box[2]);
+    }
+
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
     private static String toDepth(final WindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
-            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
+            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixedFor(window)
                 + BLOCKS);
         }
         return "to depth " + window.fixedDepth;
+    }
+
+    /**
+     * The most blocks a window's view may hold before its depth is cut to fit.
+     *
+     * @return a gate's cap for a gate's window, a mirror's for a mirror's
+     */
+    static int mostFixedFor(final WindowState window)
+    {
+        return window.walkThrough ? mostGateFixed : mostFixed;
     }
 
     /** Static state only. */
@@ -516,6 +566,7 @@ public final class Windows
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
+        mostGateFixed = MOST_GATE_FIXED;
         streamPerTick = STREAM_PER_TICK;
         nearDistance = NEAR_DISTANCE;
         restFactor = REST_FACTOR;
@@ -592,6 +643,180 @@ public final class Windows
         }
         OFFERED.put(mirror.name(), window);
         return true;
+    }
+
+    /**
+     * The deepest of the views a viewer is being drawn: a gate's is its own, not a mirror's.
+     *
+     * @return blocks; {@code mirror-view-depth} for none
+     */
+    private static int deepest(final List<WindowState> seeing)
+    {
+        return seeing.stream().mapToInt(window -> window.depth).max().orElse(ConfigManager.getMirrorViewDepth());
+    }
+
+    /**
+     * A gate's capture of its first step alone, older than this, is retaken as the gate is dialled or
+     * opens, the old one drawn until the new is ready.
+     */
+    static final long GATE_CAPTURE_SECONDS = 60L;
+
+    /**
+     * The same for a capture that holds the fill (#516): ten minutes, as for somebody standing at the gate.
+     *
+     * <p>A minute was priced for a capture of seconds. A fill is the whole cut-to-fit loop, over open
+     * sky a minute and a half of a core and two passes over some 440 chunks, so a gate dialled every
+     * two minutes kept a core sifting for as long as it was used. The old capture is drawn meanwhile,
+     * so a remote gate still shows its view at once.
+     */
+    static final long GATE_FILL_CAPTURE_SECONDS = 600L;
+
+    /**
+     * Offers an open gate's opening to the sweep in progress, as a window onto where it goes (#516).
+     *
+     * <p>Drawn as a mirror's is, but walked through: never barred, never punched through, and its
+     * opening left to the gate's own horizon. Drawn from the capture kept for it, which survives a
+     * restart, and asked for again when it is missing, shallower than the depth, or old as the gate opens.
+     *
+     * @param gate
+     *            the gate, as the drawing sees it
+     * @param opened
+     *            true on the first sweep since the gate or its iris opened
+     * @return true if it is a window now, false while its first capture is being taken
+     */
+    public static boolean offerGate(final GateWindow gate, final boolean opened)
+    {
+        final Capture capture = gateCapture(gate, opened);
+        if (capture == null)
+        {
+            return false;
+        }
+        final String name = gate.name();
+        final WindowShape shape = gate.shape();
+        final QuantumMirror stand = new QuantumMirror(name, BlockPlace.of(gate.anchor()), gate.destination());
+        final WindowState window = new WindowState(stand, shape, gate.anchor(), gate.open(), capture,
+            true, drawDepthOf(gate, capture));
+        final WindowState previous = ACTIVE.get(name);
+        if ((previous != null) && previous.shape.equals(shape))
+        {
+            window.solid = previous.solid;
+            window.margin = previous.margin;
+            window.frame = previous.frame;
+            window.border = previous.border;
+            window.solidAt = previous.solidAt;
+            // A gate set in a wall is drawn whole, and walking that room again every sweep is what the cache is for.
+            if ((previous.fixed != null) && (previous.capture == capture) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
+            {
+                window.fixed = previous.fixed;
+                window.fixedFrom = previous.fixedFrom;
+                window.fixedAt = previous.fixedAt;
+                window.fixedFor = previous.fixedFor;
+                window.fixedDepth = previous.fixedDepth;
+                window.fixedUsedAt = previous.fixedUsedAt;
+            }
+        }
+        OFFERED.put(name, window);
+        return true;
+    }
+
+    /**
+     * Makes sure a gate's capture is on its way as the gate is dialled, before its kawoosh.
+     *
+     * <p>Waiting for the first sweep after the kawoosh cost that long again before anything showed,
+     * and a capture of somewhere nobody had loaded starts with reading it off the disk.
+     *
+     * @param gate
+     *            the gate, as the drawing sees it
+     */
+    public static void prepareGate(final GateWindow gate)
+    {
+        gateCapture(gate, true);
+    }
+
+    /**
+     * The capture a gate is drawn from, asking for the next step of it: the first, out to
+     * {@code gate-view-depth}, if it has none or it is shallower than that; a retake at the depth it
+     * is drawn to, if the gate has just opened and it is old; otherwise the fill out to
+     * {@code gate-view-full-depth}, behind the first, if it does not reach that yet.
+     *
+     * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
+     * fill several times that, most of them read off the disk. A retake keeps the depth drawn, the
+     * old capture shown until it lands, so an opening never shrinks the view.
+     *
+     * @return the capture held now, which is drawn until a fresh one arrives; null for none yet
+     */
+    private static Capture gateCapture(final GateWindow gate, final boolean opened)
+    {
+        final Capture capture = Captures.get(gate.captureKey());
+        final int full = fullDepthOf(gate);
+        final int ask;
+        if ((capture == null) || !Captures.reaches(capture, gate.destination(), gate.depth()))
+        {
+            ask = gate.depth();
+        }
+        else if (opened && (capture.secondsOld() > retakeAfter(gate, capture)))
+        {
+            // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
+            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
+            ask = drawDepthOf(gate, capture);
+        }
+        else
+        {
+            ask = Captures.reaches(capture, gate.destination(), full) ? 0 : full;
+        }
+        if (ask > 0)
+        {
+            Captures.requestGate(gate.captureKey(), gate.target(), gate.destination(), Captures.GATE_OPENING,
+                Captures.GATE_OPENING, ask);
+        }
+        return capture;
+    }
+
+    /**
+     * How old a gate's capture may be before an opening retakes it: a minute for one of the first
+     * step alone, ten for one holding the fill.
+     *
+     * @return seconds
+     */
+    static long retakeAfter(final GateWindow gate, final Capture capture)
+    {
+        // The box, not the depth drawn: a fill cut to fit cost as much as one that was not.
+        final int full = fullDepthOf(gate);
+        return ((full > gate.depth()) && Captures.reaches(capture, gate.destination(), full))
+            ? GATE_FILL_CAPTURE_SECONDS : GATE_CAPTURE_SECONDS;
+    }
+
+    /**
+     * How far a gate's view is filled in behind its first step.
+     *
+     * @return {@link Captures#gateFillDepth}
+     */
+    static int fullDepthOf(final GateWindow gate)
+    {
+        return Captures.gateFillDepth(gate.destination(), gate.depth());
+    }
+
+    /**
+     * How deep a gate is drawn from its capture: the full depth once the fill is in, and the first
+     * step's until then; never past where a cut to fit left it.
+     */
+    private static int drawDepthOf(final GateWindow gate, final Capture capture)
+    {
+        final int full = fullDepthOf(gate);
+        return Captures.reaches(capture, gate.destination(), full) ? Captures.drawableReach(capture, full)
+            : gate.depth();
+    }
+
+    /**
+     * Whether a gate's window is being drawn for anybody: its capture is in and it was offered.
+     *
+     * @param name
+     *            the name it was offered under
+     * @return true if the sweep holds it as a window
+     */
+    public static boolean holdsWindow(final String name)
+    {
+        return ACTIVE.containsKey(name) || OFFERED.containsKey(name);
     }
 
     /** Ends a sweep: the windows offered become the windows there are, and every view follows. */
@@ -684,15 +909,27 @@ public final class Windows
      */
     public static void release(final QuantumMirror mirror)
     {
-        OFFERED.remove(mirror.name());
-        if (ACTIVE.remove(mirror.name()) == null)
+        release(mirror.name());
+    }
+
+    /**
+     * Takes one window out of every view it is in, by the name it was offered under: a mirror's,
+     * or a gate's that has just closed.
+     *
+     * @param name
+     *            the window no longer being drawn
+     */
+    public static void release(final String name)
+    {
+        OFFERED.remove(name);
+        if (ACTIVE.remove(name) == null)
         {
             return;
         }
         final long now = now();
         for (final Map.Entry<UUID, ViewerDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
-            if (entry.getValue().mirrors.contains(mirror.name()))
+            if (entry.getValue().mirrors.contains(name))
             {
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)
@@ -940,7 +1177,8 @@ public final class Windows
         for (final String name : view.mirrors)
         {
             final WindowState window = ACTIVE.get(name);
-            if ((window != null) && window.open.contains(at)
+            // A gate is walked through under its own rules; a punch at its view goes nowhere.
+            if ((window != null) && !window.walkThrough && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
                 return window.mirror;
@@ -979,7 +1217,7 @@ public final class Windows
         for (final String name : view.mirrors)
         {
             final WindowState window = ACTIVE.get(name);
-            if ((window == null) || !window.banner.getWorld().equals(block.getWorld()))
+            if ((window == null) || window.walkThrough || !window.banner.getWorld().equals(block.getWorld()))
             {
                 continue;
             }
@@ -1013,7 +1251,7 @@ public final class Windows
             VIEWS.put(id, view);
         }
         // Before any early return, so a fog setting changed mid-view still reaches the viewer.
-        ViewFog.apply(player, ConfigManager.getMirrorViewDepth());
+        ViewFog.apply(player, deepest(seeing));
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
@@ -1275,13 +1513,25 @@ public final class Windows
         return seeing;
     }
 
-    /** Whether a clear line runs from an eye to any open block of a window's opening. */
-    private static boolean canSee(final World here, final Location eye, final WindowState window,
+    /**
+     * Most lines of sight tried to one window's opening per redraw.
+     *
+     * <p>A Grand gate's opening is 274 cells. Every one of them blocked -- somebody behind a wall in
+     * front of a gate -- cost some 80 ms a redraw where a Large gate's 52 had cost about 14.
+     */
+    static final int MOST_SIGHT_LINES = 64;
+
+    /**
+     * Whether a clear line runs from an eye to any open block of a window's opening: to every block of
+     * one up to {@link #MOST_SIGHT_LINES}, and to that many spread evenly over a bigger one.
+     */
+    static boolean canSee(final World here, final Location eye, final WindowState window,
         final long now)
     {
-        for (final Spot cell : window.open)
+        final int stride = Math.max(1, (window.open.size() + MOST_SIGHT_LINES - 1) / MOST_SIGHT_LINES);
+        for (int i = 0; i < window.open.size(); i += stride)
         {
-            if (WindowSight.clearLine(here, eye, cell, window.shape.into(), now))
+            if (WindowSight.clearLine(here, eye, window.open.get(i), window.shape.into(), now))
             {
                 return true;
             }
@@ -1326,6 +1576,11 @@ public final class Windows
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final WindowState window : seeing)
         {
+            // A gate's opening is walked into, and its horizon is the gate's own to draw.
+            if (window.walkThrough)
+            {
+                continue;
+            }
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
             // stays hanging in front of the view.
             if (MirrorPackets.available())
@@ -1357,7 +1612,7 @@ public final class Windows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).banner.getWorld(), eye, ConfigManager.getMirrorViewDepth(), seeing, fixed,
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, deepest(seeing), seeing, fixed,
                 allOpen, inside);
         }
         return wanted;
@@ -1730,7 +1985,7 @@ public final class Windows
     private static boolean fixedIsFresh(final WindowState window, final long now)
     {
         return (window.fixed != null) && (window.fixedFrom == window.capture)
-            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
+            && (window.fixedFor == window.depth) && ((now - window.fixedAt) < FIXED_MILLIS);
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -1781,7 +2036,7 @@ public final class Windows
         final int[] span = WindowFace.acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
         {
-            for (int y = shape.base().y() - reach; y <= (shape.base().y() + WindowShape.HEIGHT + reach); y++)
+            for (int y = shape.base().y() - reach; y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = WindowFace.faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
@@ -1818,23 +2073,24 @@ public final class Windows
      * the whole far side is drawn once, and kept for a minute before the real world is read again.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
+     * A view past {@link #mostFixedFor} blocks is cut shallower until it fits.
      */
     private static void fixedView(final WindowState window, final long now)
     {
-        final int configured = ConfigManager.getMirrorViewDepth();
+        final int configured = window.depth;
         if (fixedIsFresh(window, now))
         {
             return;
         }
         int depth = configured;
-        Map<Long, BlockData> view = fixedTo(window, depth, now, mostFixed);
+        final int most = mostFixedFor(window);
+        Map<Long, BlockData> view = fixedTo(window, depth, now, most);
         // Half a sphere of the depth is what was looked at, found in the capture or not.
         workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
         while ((view == TOO_MANY) && (depth > 4))
         {
             depth = Math.max(4, (depth * 3) / 4);
-            view = fixedTo(window, depth, now, mostFixed);
+            view = fixedTo(window, depth, now, most);
             workSpent += (int) (2.1 * depth * depth * depth);
         }
         window.fixed = (view == TOO_MANY) ? new HashMap<>() : view;
@@ -2027,7 +2283,7 @@ public final class Windows
         final int rightStep = alongX ? shape.into().x() : -shape.into().z();
         final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5
             + ((shape.width() - 1) * 0.5 * rightStep);
-        final double y = shape.base().y() + (WindowShape.HEIGHT / 2.0);
+        final double y = shape.base().y() + (shape.height() / 2.0);
         final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
         return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
     }
@@ -2339,7 +2595,7 @@ public final class Windows
         final boolean alongX = shape.into().x() != 0;
         final int[] span = WindowFace.acrossSpan(shape, SURROUND);
         final int lowY = shape.base().y() - SURROUND;
-        final int highY = shape.base().y() + WindowShape.HEIGHT + SURROUND;
+        final int highY = shape.base().y() + shape.height() + SURROUND;
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = lowY; y <= highY; y++)
@@ -2403,7 +2659,7 @@ public final class Windows
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - reach;
-                y <= (shape.base().y() + WindowShape.HEIGHT + reach); y++)
+                y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = WindowFace.faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())

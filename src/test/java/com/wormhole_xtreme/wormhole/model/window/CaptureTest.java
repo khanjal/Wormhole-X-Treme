@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -75,6 +76,232 @@ class CaptureTest
         assertNull(capture.at(4, 0, 0), "outside the box");
         assertTrue(capture.isAir(-1, 0, 0), "outside the box reads as air too");
         assertEquals(2, capture.states(), "air and stone");
+    }
+
+    /**
+     * A capture taken through a gate's opening sees what that opening lets through (#516).
+     *
+     * <p>A mirror's hole is three wide and two tall, and every capture used to be taken through
+     * it. A gate five by five taken that way lost everything seen past the mirror's fan: the
+     * ground either side of the arrival and the top of the view came out as holes onto this world.
+     * The blocks here stand in the arrival's own layer just far enough out that no face of them
+     * shows through a mirror's hole -- a block is kept for any see-through neighbour a ray
+     * reaches, so the air behind each is out of a mirror's fan too -- to both sides, so a flipped
+     * sideways axis cannot pass, and above.
+     */
+    @Test
+    void aCaptureThroughAWiderHoleSeesWhatAMirrorsCannot()
+    {
+        for (final boolean gate : new boolean[] { false, true })
+        {
+            // A box 21 wide, 12 tall and 9 deep, arrival at (10, 2, 0) facing +z.
+            final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 12, 9), air);
+            builder.put(1, 2, 0, stone);
+            builder.put(19, 2, 0, stone);
+            builder.put(10, 8, 0, stone);
+            builder.keepOnlySeen(gate ? new Capture.Arrival(10, 2, 0, 0, 1, 5, 5) : new Capture.Arrival(10, 2, 0, 0, 1), 8);
+
+            final Capture capture = builder.build();
+
+            if (gate)
+            {
+                assertSame(stone, capture.at(1, 2, 0), "nine blocks to one side of a gate's arrival");
+                assertSame(stone, capture.at(19, 2, 0), "and to the other");
+                assertSame(stone, capture.at(10, 8, 0), "six up, over the top of a gate's opening");
+            }
+            else
+            {
+                assertTrue(capture.isBuried(1, 2, 0), "past a mirror's fan, left to the real world");
+                assertTrue(capture.isBuried(19, 2, 0), "on either side");
+                assertTrue(capture.isBuried(10, 8, 0), "and above its two-tall hole");
+            }
+        }
+    }
+
+    /**
+     * A capture through the largest gate opening keeps every block of a floor and a wall far off,
+     * straight ahead and off to the side (#516).
+     *
+     * <p>Spread with the hole alone, the rays through a Grand or Massive gate's opening were seven
+     * degrees apart, and each point's directions started half a step in, so the ninety points' rays
+     * fell on the same few lines: a floor 64 blocks off kept under half its blocks, and, not
+     * staggered, even at two and a half degrees a wall at 160 lost a third. What was missed was left
+     * to this world, so the far side's ground came through with holes in it. The spread is bounded
+     * now, and each point's directions are staggered so they fill in between. Checked out to
+     * forty-five degrees either side, which is as far as a viewer standing back from a gate sees
+     * through it; the probe that chose the bounds looked to sixty, all of it kept.
+     */
+    @Test
+    void aCaptureThroughTheLargestGateOpeningMissesNothingFarOff()
+    {
+        final int half = 172;
+        final int wall = 160;
+        final Capture.Builder builder = floorAndWall(half, wall);
+        builder.keepOnlySeen(new Capture.Arrival(half, 1, 0, 0, 1, Captures.GATE_OPENING,
+            Captures.GATE_OPENING), wall + 70);
+
+        final Capture capture = builder.build();
+
+        final List<String> missed = new ArrayList<>();
+        for (int x = 0; x <= (2 * half); x++)
+        {
+            final int off = Math.abs(x - half);
+            for (int z = Math.max(16, off); z < wall; z++)
+            {
+                missedAt(capture, x, 0, z, "floor", missed);
+            }
+            for (int y = 1; (y <= 20) && (off <= wall); y++)
+            {
+                missedAt(capture, x, y, wall, "wall", missed);
+            }
+        }
+        assertTrue(missed.isEmpty(), missed.size() + " blocks a viewer sees were left to this world, e.g. "
+            + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /**
+     * Through a hole one short of the gates' own, seventeen square, the floor a hundred blocks out is
+     * kept whole.
+     *
+     * <p>Pins the stagger across the hole, which the eighteen-square hole happens not to need: there
+     * the nine columns' grids fall between each other anyway, on a floor, a wall and rows of posts
+     * alike. At seventeen they line up, and without the stagger a fifth of the floor about a hundred
+     * blocks out was missed. A different opening is one constant away.
+     */
+    @Test
+    void aHoleOneShortOfTheGatesStillKeepsTheFloorFarOff()
+    {
+        final int half = 40;
+        final int deep = 122;
+        final Capture.Builder builder = floorAndWall(half, deep);
+        builder.keepOnlySeen(new Capture.Arrival(half, 1, 0, 0, 1, 17, 17), deep + 20);
+
+        final Capture capture = builder.build();
+
+        final List<String> missed = new ArrayList<>();
+        for (int x = half - 20; x <= (half + 20); x++)
+        {
+            for (int z = 96; z < 120; z++)
+            {
+                missedAt(capture, x, 0, z, "floor", missed);
+            }
+        }
+        assertTrue(missed.isEmpty(), missed.size() + " floor blocks left to this world, e.g. "
+            + missed.subList(0, Math.min(5, missed.size())));
+    }
+
+    /**
+     * A sift asks whether it is still wanted before each start point's rays, and stops when it is not.
+     *
+     * <p>A gate's sift over open sky runs a minute and a half; forgotten, or with the plugin stopped,
+     * it ran to the end for nobody.
+     */
+    @Test
+    void aSiftNoLongerWantedStopsAtItsNextStartPoint()
+    {
+        final int[] asked = { 0 };
+        final Capture.Builder wanted = floorAndWall(20, 12);
+        wanted.stopWhen(() -> (++asked[0]) < 0);
+        wanted.keepOnlySeen(new Capture.Arrival(20, 1, 0, 0, 1, 18, 18), 16);
+        assertEquals(90, asked[0], "asked once a start point, not once a ray");
+
+        asked[0] = 0;
+        final Capture.Builder forgotten = floorAndWall(20, 12);
+        forgotten.stopWhen(() -> (++asked[0]) > 3);
+        final Capture.Arrival arrival = new Capture.Arrival(20, 1, 0, 0, 1, 18, 18);
+
+        assertThrows(CancellationException.class, () -> forgotten.keepOnlySeenWithin(arrival, 16, 8, 1));
+        assertEquals(4, asked[0], "stopped at the first start point after it was forgotten");
+    }
+
+    /** Notes a block that should be the far side's stone but was not kept. */
+    private void missedAt(final Capture capture, final int x, final int y, final int z, final String what,
+        final List<String> missed)
+    {
+        if (capture.at(x, y, z) != stone)
+        {
+            missed.add(what + " " + x + "," + y + "," + z);
+        }
+    }
+
+    /**
+     * A mirror's rays are exactly what they were before gates' were staggered and bounded.
+     *
+     * <p>Every room already captured, and every view of it, depends on them; the change was for
+     * gates. Each of a mirror's grids starts half a step in, as it always did, and a capture of a
+     * scene of posts through a mirror's hole keeps exactly the cells it kept before: the fingerprint
+     * here was taken from the code as it stood before the change.
+     */
+    @Test
+    void aMirrorsRaysAreAsTheyWere()
+    {
+        final Capture.Arrival mirror = new Capture.Arrival(30, 1, 0, 0, 1);
+        final Capture.Arrival gate = new Capture.Arrival(30, 1, 0, 0, 1, 18, 18);
+        boolean gateMoved = false;
+        for (int point = 1; point <= 90; point++)
+        {
+            for (int axis = 0; axis < 2; axis++)
+            {
+                assertEquals(0.5, Capture.Builder.shiftFor(mirror, point, axis), "point " + point + " axis " + axis);
+                gateMoved |= Capture.Builder.shiftFor(gate, point, axis) != 0.5;
+            }
+        }
+        assertTrue(gateMoved, "a gate's grids are staggered, so this is not comparing like with like");
+
+        final Capture.Builder builder = postsScene();
+        builder.keepOnlySeen(mirror, 56);
+        final long[] print = { 0L, 0L };
+        builder.build().forEachKept((x, y, z, isAir) ->
+        {
+            print[0]++;
+            print[1] = (print[1] * 1_000_003L) + (((x * 64L) + y) * 64L) + z + (isAir ? 7L : 0L);
+        });
+
+        assertEquals(49_198L, print[0], "cells kept, as before");
+        assertEquals(6_013_164_860_287_022_334L, print[1], "and exactly the same cells");
+    }
+
+    /** Flat ground sixty blocks deep, with single blocks standing on it in widening rows, every third block across. */
+    private Capture.Builder postsScene()
+    {
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 61, 16, 60), air);
+        for (int x = 0; x < 61; x++)
+        {
+            for (int z = 0; z < 60; z++)
+            {
+                builder.put(x, 0, z, stone);
+            }
+        }
+        for (int z = 6; z < 58; z += 4)
+        {
+            for (int x = 30 - z; x <= (30 + z); x += 3)
+            {
+                if ((x >= 0) && (x < 61))
+                {
+                    builder.put(x, 1 + ((x + z) % 5), z, stone);
+                }
+            }
+        }
+        return builder;
+    }
+
+    /** Open ground {@code wall} blocks deep with a wall across its end, {@code half} either side of x {@code half}. */
+    private Capture.Builder floorAndWall(final int half, final int wall)
+    {
+        final Capture.Builder builder = new Capture.Builder("far", true,
+            new Capture.Box(0, 0, 0, (2 * half) + 1, 24, wall + 2), air);
+        for (int x = 0; x <= (2 * half); x++)
+        {
+            for (int z = 0; z < wall; z++)
+            {
+                builder.put(x, 0, z, stone);
+            }
+            for (int y = 0; y < 24; y++)
+            {
+                builder.put(x, y, wall, stone);
+            }
+        }
+        return builder;
     }
 
     @Test
@@ -258,6 +485,73 @@ class CaptureTest
     }
 
     /**
+     * Leaves can be seen through a few layers deep, and no more.
+     *
+     * <p>Bukkit counts no leaves as occluding, so a ray through a forest went on through every
+     * crown in its way and a view onto one kept the whole canopy, though in a world nobody sees
+     * more than a few trees in. A ray ends after {@code LEAF_SIGHT} blocks of leaves; the block it
+     * ends on and the one behind it are kept, as behind any block, and the rest is buried.
+     */
+    @Test
+    void leavesAreSeenThroughOnlyAFewLayersDeep()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new Capture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final Capture capture = builder.build();
+
+        assertSame(leaves, capture.at(1, 2, 3), "the first few layers are seen");
+        assertSame(leaves, capture.at(1, 2, Capture.Builder.LEAF_SIGHT), "as far as the leaves' sight");
+        assertTrue(capture.isBuried(1, 2, Capture.Builder.LEAF_SIGHT + 4), "a few past it is hidden by the leaves in front");
+        assertTrue(capture.isBuried(1, 2, 40), "and so is the rest of the forest");
+    }
+
+    /**
+     * Water and leaves are counted apart: a ray through a pond is not short of leaves to see through after it.
+     *
+     * <p>A corridor of water twenty long, then leaves. Counted together, the water spent the leaves'
+     * sight before the ray reached them, and a forest past a lake was left to the real world.
+     */
+    @Test
+    void waterAndLeavesAreCountedApart()
+    {
+        final BlockData leaves = named("minecraft:oak_leaves", false);
+        when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 5, 60), air);
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 5; y++)
+            {
+                for (int z = 1; z < 60; z++)
+                {
+                    builder.put(x, y, z, (z <= 20) ? water : leaves);
+                }
+            }
+        }
+        builder.keepOnlySeen(new Capture.Arrival(1, 2, 0, 0, 1), 58);
+
+        final Capture capture = builder.build();
+
+        assertSame(water, capture.at(1, 2, 20), "the water, within its own sight");
+        // Leaves 21 to 26 seen through, and the ray ends on the seventh, at 27. Counted together with
+        // the water it would end on the first, at 21, and keep no further than the two layers behind it.
+        assertSame(leaves, capture.at(1, 2, 20 + Capture.Builder.LEAF_SIGHT + 1),
+            "the leaves past it, with their own sight to spend");
+    }
+
+    /**
      * Water can be seen through only so far; glass has no such limit.
      *
      * <p>A ray through an ocean went on to the bed however deep, and a mirror onto a beach kept
@@ -325,6 +619,45 @@ class CaptureTest
         final Capture capture = tight.build();
         assertSame(glass, capture.at(10, 2, 5), "the room to the depth is still there");
         assertTrue(capture.isBuried(10, 2, 20), "and past the shortened reach it is left to the real world");
+    }
+
+    /**
+     * A gate's capture is cut to a budget of its own, a million blocks, where a mirror's is 500,000.
+     *
+     * <p>The cut keeps a mirror's room to about five megabytes by shortening how far it sees. A gate
+     * is seen through a far wider hole and is meant to be deep, and its view draws at most a million
+     * blocks, so none are kept past that.
+     */
+    @Test
+    void aGateCaptureIsCutToItsOwnBudgetWhereAMirrorsIsCutToAnother()
+    {
+        final int mirrorBefore = Captures.mostKept;
+        final int gateBefore = Captures.mostGateKept;
+        Captures.mostKept = 2000;
+        try
+        {
+            final Capture.Arrival arrival = new Capture.Arrival(10, 2, 0, 0, 1);
+            final Capture.Builder mirror = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
+            mirror.fillBelow(21, glass);
+            assertEquals(8, Captures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
+                "a mirror's capture is cut to the floor to fit its budget");
+
+            final Capture.Builder roomy = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
+            roomy.fillBelow(21, glass);
+            assertEquals(32, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(roomy, arrival, 32, 8),
+                "a gate's is not cut to a mirror's budget");
+
+            Captures.mostGateKept = 2000;
+            final Capture.Builder tight = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
+            tight.fillBelow(21, glass);
+            assertEquals(8, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(tight, arrival, 32, 8),
+                "but is cut to its own");
+        }
+        finally
+        {
+            Captures.mostKept = mirrorBefore;
+            Captures.mostGateKept = gateBefore;
+        }
     }
 
     /**
@@ -602,5 +935,67 @@ class CaptureTest
         Files.write(file.toPath(), new byte[] { 1, 2, 3 });
 
         assertThrows(IOException.class, () -> Capture.load(file));
+    }
+
+    /**
+     * A capture remembers how far it kept, through the disk.
+     *
+     * <p>A cut to fit keeps the box, so without this a capture cut from 160 to 90 said it reached
+     * 160: the view was drawn to 160 with this world showing past 90, and the debug line said the
+     * same, after a restart too.
+     */
+    @Test
+    void aCaptureRemembersHowFarItKeptThroughTheDisk(@TempDir final File dir) throws IOException
+    {
+        final Capture.Builder cut = box();
+        cut.keptReach(3);
+        final File file = new File(dir, "cut.view");
+        cut.build().save(file);
+        final File whole = new File(dir, "whole.view");
+        box().build().save(whole);
+
+        assertEquals(3, Capture.load(file).keptReach(), "cut short, and says where");
+        assertEquals(-1, Capture.load(whole).keptReach(), "never cut");
+    }
+
+    /**
+     * A file from before a capture recorded how far it kept still loads, as never cut.
+     *
+     * <p>Every mirror capture on a server is one; refused, each would be taken again on the next look.
+     */
+    @Test
+    void aVersionThreeFileStillLoadsAsNeverCut(@TempDir final File dir) throws IOException
+    {
+        final Capture.Builder builder = box();
+        builder.put(1, 2, 3, stone);
+        final File file = new File(dir, "three.view");
+        builder.build().save(file);
+        asVersionThree(file);
+
+        final Capture loaded = Capture.load(file);
+
+        assertEquals(-1, loaded.keptReach());
+        assertEquals("minecraft:stone", loaded.nameAt(1, 2, 3), "and reads the rest as it always did");
+    }
+
+    /** Rewrites a capture file as version 3 wrote it: the same, less the kept reach after when it was taken. */
+    private static void asVersionThree(final File file) throws IOException
+    {
+        final byte[] raw;
+        try (GZIPInputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
+        {
+            raw = in.readAllBytes();
+        }
+        final ByteBuffer buffer = ByteBuffer.wrap(raw);
+        buffer.putInt(4, 3);
+        // Magic, version, the world's name, sky and complete, the box's six ints, when it was taken.
+        final int kept = 8 + 4 + buffer.getInt(8) + 2 + 24 + 8;
+        final byte[] three = new byte[raw.length - 4];
+        System.arraycopy(raw, 0, three, 0, kept);
+        System.arraycopy(raw, kept + 4, three, kept, raw.length - kept - 4);
+        try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        {
+            out.write(three);
+        }
     }
 }

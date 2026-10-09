@@ -1,9 +1,12 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import java.util.logging.Level;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -20,6 +23,24 @@ public final class WindowSweep
     /** Static state only. */
     private WindowSweep()
     {
+    }
+
+    /** Offers whatever else is drawn as a window, before the sweep settles them: open gates (#516). */
+    private static Runnable alsoOffer = () ->
+    {
+    };
+
+    /**
+     * Sets what else each sweep offers as a window, alongside the mirrors.
+     *
+     * @param offer
+     *            run once a sweep, after the mirrors and before the windows are settled; null for nothing
+     */
+    public static void alsoOffer(final Runnable offer)
+    {
+        alsoOffer = (offer == null) ? () ->
+        {
+        } : offer;
     }
 
     /** @return the sweep, for the scheduler */
@@ -85,6 +106,15 @@ public final class WindowSweep
                 continue;
             }
             offerWindow(mirror);
+        }
+        try
+        {
+            alsoOffer.run();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            // An experiment's failure must not freeze every mirror's view, which finish() is what moves on.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not offer gate views to the mirror sweep", e);
         }
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.

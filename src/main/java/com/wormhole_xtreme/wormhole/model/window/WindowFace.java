@@ -76,7 +76,7 @@ final class WindowFace
         final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
         final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
         final int bottom = shape.base().y();
-        final int top = (shape.base().y() + WindowShape.HEIGHT) - 1;
+        final int top = (shape.base().y() + shape.height()) - 1;
         for (int ring = 1; ring <= reach; ring++)
         {
             for (int across = low - ring; across <= (high + ring); across++)
@@ -115,7 +115,7 @@ final class WindowFace
         final Set<Long> opening = new HashSet<>();
         shape.forEachOpening((x, y, z) -> opening.add(Windows.key(x, y, z)));
         final int lowY = shape.base().y() - reach;
-        final int highY = shape.base().y() + WindowShape.HEIGHT + reach;
+        final int highY = shape.base().y() + shape.height() + reach;
         final int[][] steps = { { 1, 0, OPEN_AFTER }, { -1, 0, OPEN_BEFORE }, { 0, 1, OPEN_ABOVE }, { 0, -1, OPEN_BELOW } };
         final Map<Long, Integer> margin = new HashMap<>();
         for (final long face : solid)
