@@ -59,6 +59,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   and is no longer named for mirrors: `Windows`, `WindowShape`, `Capture`, `Captures` and nine
   more. Nothing changes for players or operators; the next users of it are gates (#516) and
   nether portals (#514). Tracked in #522.
+- **A gate's view is no longer drawn as a stand-in mirror**: gates and mirrors are window sources,
+  offered to the drawing through one `Windows.offer`. Nothing changes for players or operators.
 
 ## 1.9.0 (2026-10-03)
 

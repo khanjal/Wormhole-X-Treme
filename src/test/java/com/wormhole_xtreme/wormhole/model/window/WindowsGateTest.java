@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -214,6 +216,52 @@ class WindowsGateTest
         Windows.release(NAME);
 
         assertFalse(Windows.holdsWindow(NAME), "released by name as its gate closes");
+    }
+
+    /**
+     * A gate's held room is kept from sweep to sweep, and let go once a fresh capture is in.
+     *
+     * <p>Kept across a new capture, the room built from the old one went on standing in for it in
+     * the debug lines and in memory until it aged out. Mirrors keep theirs either way, so this is
+     * the one thing the shared offer still asks a source's walk-through answer about.
+     */
+    @Test
+    void aGatesHeldRoomIsKeptUntilAFreshCaptureIsIn() throws ReflectiveOperationException
+    {
+        Captures.install(key(), capture(32));
+        assertTrue(GateSource.offer(gate, false));
+        Windows.finish();
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<Long, BlockData> room = new HashMap<>();
+        active.get(NAME).fixed = room;
+        active.get(NAME).fixedUsedAt = System.currentTimeMillis();
+
+        assertTrue(GateSource.offer(gate, false));
+        assertSame(room, offered.get(NAME).fixed, "the same capture: the room built from it is kept");
+
+        Captures.install(key(), capture(32));
+        assertTrue(GateSource.offer(gate, false));
+        assertNull(offered.get(NAME).fixed, "a fresh capture: the old room is let go");
+    }
+
+    /** A mirror's held room, unlike a gate's, outlives a fresh capture until it is rebuilt from it. */
+    @Test
+    void aMirrorsHeldRoomIsKeptAcrossAFreshCapture() throws ReflectiveOperationException
+    {
+        final MirrorSource mirror = new MirrorSource(new QuantumMirror("museum", BlockPlace.of(anchor), ARRIVAL), anchor,
+            gate.shape(), gate.open(), 16);
+        Windows.offer(mirror, capture(32));
+        Windows.finish();
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<Long, BlockData> room = new HashMap<>();
+        active.get("museum").fixed = room;
+        active.get("museum").fixedUsedAt = System.currentTimeMillis();
+
+        Windows.offer(mirror, capture(32));
+
+        assertSame(room, offered.get("museum").fixed, "kept, and rebuilt from the fresh capture when next drawn");
     }
 
     /**
