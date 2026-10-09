@@ -49,7 +49,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
-import com.wormhole_xtreme.wormhole.model.IrisSweep;
+import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -1927,8 +1927,8 @@ public final class GatePreviews
      *
      * <p>The preview is display entities rather than blocks, so none of the care a real gate
      * needs applies -- there is nothing here to walk through, and no {@code BlockPhysicsEvent}
-     * to raise. What matters is that it looks the same: the same rings in the same order at the
-     * same pace, from {@link IrisSweep}, {@code gate-iris-step-ticks} and the same
+     * to raise. What matters is that it looks the same: the gate's own {@link IrisSweepDriver},
+     * with the same rings in the same order at the same {@code gate-iris-step-ticks} and the same
      * {@code gate-iris-sweep-max-ticks} that merges a big gate's rings into bands, so a preview
      * is a rehearsal of the gate rather than an approximation of one.
      *
@@ -1952,16 +1952,12 @@ public final class GatePreviews
         // Marked before the first ring: the layers stay where they are until the sweep ends,
         // and the first draw is part of the sweep.
         preview.sweeping(true);
-        stepIrisSweep(owner, preview, ringsOfOpening(preview, preview.isGateIrisActive()), 0);
+        new IrisSweepDriver<>(ringsOfOpening(preview, preview.isGateIrisActive()), new IrisCanvas(owner, preview))
+            .start();
     }
 
     /**
      * The opening's cell indexes, grouped into rings in the order they are drawn.
-     *
-     * <p>Mapped back by identity: {@link IrisSweep} groups the very objects it is handed, so a
-     * location found in a ring is the one built for that cell and no other. Equality would do
-     * the wrong thing on an opening with two cells at the same coordinates, which a malformed
-     * shape can produce.
      *
      * @param closing
      *            true for the closing order, rim first
@@ -1969,107 +1965,179 @@ public final class GatePreviews
      */
     private static List<List<Integer>> ringsOfOpening(final GatePreview preview, final boolean closing)
     {
-        final List<Cell> cells = preview.opening();
-        final List<Location> places = new ArrayList<>(cells.size());
-        final IdentityHashMap<Location, Integer> index = new IdentityHashMap<>();
-        for (int i = 0; i < cells.size(); i++)
-        {
-            final Cell cell = cells.get(i);
-            final Location at = new Location(preview.world(), cell.x(), cell.y(), cell.z());
-            places.add(at);
-            index.put(at, i);
-        }
-        final IrisSweep.Style style = IrisSweep.Style.of(irisAnimation(preview));
-        final int maxSteps = ConfigManager.getGateIrisMaxSteps();
-        final List<List<Location>> rings = closing
-            ? IrisSweep.closingOrder(places, style, maxSteps) : IrisSweep.openingOrder(places, style, maxSteps);
-        final List<List<Integer>> out = new ArrayList<>(rings.size());
-        for (final List<Location> ring : rings)
-        {
-            final List<Integer> ringIndexes = new ArrayList<>(ring.size());
-            for (final Location at : ring)
-            {
-                ringIndexes.add(index.get(at));
-            }
-            out.add(ringIndexes);
-        }
-        return out;
-    }
-
-    /** Draws one ring of the sweep and books the next. */
-    private static void stepIrisSweep(final Player owner, final GatePreview preview,
-        final List<List<Integer>> rings, final int ring)
-    {
-        if ((ring >= rings.size()) || !stillHeld(preview))
-        {
-            final boolean finished = ring >= rings.size();
-            irisSweeps.remove(preview);
-            preview.sweeping(false);
-            if (finished && stillHeld(preview))
-            {
-                // Dropped from the sweep map first, so this draw is the one that stacks: the
-                // wormhole moves behind the ring, and a viewer round the back gets it in the
-                // ring with the iris beyond, now that there is no sweep left to cover.
-                draw(owner, preview);
-            }
-            return;
-        }
-        for (final int cell : rings.get(ring))
-        {
-            if (preview.isGateIrisActive())
-            {
-                preview.irisShown().add(cell);
-            }
-            else
-            {
-                preview.irisShown().remove(cell);
-            }
-        }
-        draw(owner, preview);
-        sweepHorizon(owner, preview, rings.get(ring), preview.isGateIrisActive());
-        // Through `later`, not the scheduler directly: it is the seam the dial animation books
-        // its own steps with, and the one a test swaps out to drive an animation by hand.
-        irisSweeps.put(preview, irisLater.after(ConfigManager.getGateIrisStepTicks(),
-            () -> stepIrisSweep(owner, preview, rings, ring + 1)));
+        final List<Location> places = preview.opening().stream()
+            .map(cell -> new Location(preview.world(), cell.x(), cell.y(), cell.z()))
+            .toList();
+        return IrisSweepDriver.ringIndexes(places, irisAnimation(preview), closing);
     }
 
     /**
-     * Moves the wormhole behind the ring for the cells one sweep step has just covered.
+     * A preview's sweep: its displays for the rings, {@link #irisLater} for the steps.
      *
-     * <p>A preview's iris is a display entity standing in the same cell as the wormhole rather
-     * than a block replacing it, so an opaque one simply hides the water and needs nothing
-     * here. A see-through one does not hide it -- the game declines to draw a liquid behind a
-     * translucent block at all -- so the cell reads as empty, and a gate sweeping shut appeared
-     * to erase its own wormhole a ring at a time.
-     *
-     * <p>So the wormhole moves behind the ring as each ring of iris covers it, in the ice that
-     * stands in for it there, and comes back as each ring uncovers. The cells the sweep has not
-     * reached keep the real water in the ring, which is what makes the iris look like it is
-     * covering something.
-     *
-     * @param owner
-     *            the preview's owner
-     * @param ringCells
-     *            the opening indexes this step covered or uncovered
-     * @param covering
-     *            true while the iris is closing, false while it opens
+     * <p>The direction is read off the preview's iris at every step rather than fixed at the
+     * start, as it always was.
      */
-    private static void sweepHorizon(final Player owner, final GatePreview preview,
-        final List<Integer> ringCells, final boolean covering)
+    private record IrisCanvas(Player owner, GatePreview preview) implements IrisSweepDriver.Canvas<Integer>
     {
-        if (!preview.open() || (preview.grid().facing() == null)
-            || !DrawnHorizon.standsIn(preview.palette().iris()))
+        @Override
+        public boolean stillValid()
         {
-            return;
+            return stillHeld(preview);
         }
-        for (final Player viewer : watching(owner, preview))
+
+        @Override
+        public void drawRing(final List<Integer> ring)
         {
-            final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
-            preview.sweepSides().put(viewer.getUniqueId(), layers);
-            for (final int index : ringCells)
+            for (final int cell : ring)
             {
-                sweepHorizonAt(viewer, preview, layers, index, covering);
+                if (preview.isGateIrisActive())
+                {
+                    preview.irisShown().add(cell);
+                }
+                else
+                {
+                    preview.irisShown().remove(cell);
+                }
             }
+            draw(owner, preview);
+        }
+
+        @Override
+        public void moveHorizon(final List<Integer> ring)
+        {
+            sweepHorizon(owner, preview, ring, preview.isGateIrisActive());
+        }
+
+        /** Its own seam, which a test swaps out to drive an animation by hand. */
+        @Override
+        public IrisSweepDriver.Booking later(final long ticks, final Runnable step)
+        {
+            final BukkitTask task = irisLater.after(ticks, step);
+            return () ->
+            {
+                if (task != null)
+                {
+                    task.cancel();
+                }
+            };
+        }
+
+        @Override
+        public void register(final IrisSweepDriver<Integer> sweep)
+        {
+            irisSweeps.put(preview, sweep);
+        }
+
+        @Override
+        public void unregister()
+        {
+            irisSweeps.remove(preview);
+            preview.sweeping(false);
+        }
+
+        @Override
+        public void settle()
+        {
+            if (stillHeld(preview))
+            {
+                // Unregistered first, so this draw is the one that stacks: the wormhole moves
+                // behind the ring, and a viewer round the back gets it in the ring with the iris
+                // beyond, now that there is no sweep left to cover.
+                draw(owner, preview);
+            }
+        }
+
+        /**
+         * Moves the wormhole behind the ring for the cells one sweep step has just covered.
+         *
+         * <p>A preview's iris is a display entity standing in the same cell as the wormhole rather
+         * than a block replacing it, so an opaque one simply hides the water and needs nothing
+         * here. A see-through one does not hide it -- the game declines to draw a liquid behind a
+         * translucent block at all -- so the cell reads as empty, and a gate sweeping shut appeared
+         * to erase its own wormhole a ring at a time.
+         *
+         * <p>So the wormhole moves behind the ring as each ring of iris covers it, in the ice that
+         * stands in for it there, and comes back as each ring uncovers. The cells the sweep has not
+         * reached keep the real water in the ring, which is what makes the iris look like it is
+         * covering something.
+         *
+         * @param owner
+         *            the preview's owner
+         * @param ringCells
+         *            the opening indexes this step covered or uncovered
+         * @param covering
+         *            true while the iris is closing, false while it opens
+         */
+        private static void sweepHorizon(final Player owner, final GatePreview preview,
+            final List<Integer> ringCells, final boolean covering)
+        {
+            if (!preview.open() || (preview.grid().facing() == null)
+                || !DrawnHorizon.standsIn(preview.palette().iris()))
+            {
+                return;
+            }
+            for (final Player viewer : watching(owner, preview))
+            {
+                final List<IrisLayering.Placement> layers = layersFor(preview, viewer.getLocation());
+                preview.sweepSides().put(viewer.getUniqueId(), layers);
+                for (final int index : ringCells)
+                {
+                    sweepHorizonAt(viewer, preview, layers, index, covering);
+                }
+            }
+        }
+
+        /**
+         * One cell of one viewer's sweep step.
+         *
+         * @param layers
+         *            where their layers go, from {@link GatePreviews#layersFor}
+         * @param index
+         *            the opening cell's index
+         * @param covering
+         *            true while the iris is closing, false while it opens
+         */
+        private static void sweepHorizonAt(final Player viewer, final GatePreview preview,
+            final List<IrisLayering.Placement> layers, final int index, final boolean covering)
+        {
+            final IrisLayering.At ring = at(preview.opening().get(index));
+            final IrisLayering.At where = layers.get(index).horizon();
+            if ((where == null) || where.equals(ring))
+            {
+                // A viewer behind the gate keeps the wormhole in the ring, where the sweep's own
+                // draw has already put it, and the iris display goes beyond it rather than over it.
+                return;
+            }
+            if (covering)
+            {
+                takeBackAt(viewer, preview, ring);
+                viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+                    horizonData(preview, ring, layers.get(index)));
+            }
+            else
+            {
+                takeBackAt(viewer, preview, where);
+            }
+        }
+
+        /**
+         * Whether a preview is still one somebody holds.
+         *
+         * <p>A step that fired after its preview was cleared would spawn fresh displays for one
+         * nobody is holding any more, and nothing left would ever take them away again.
+         *
+         * @return true if it is still in the register
+         */
+        private static boolean stillHeld(final GatePreview preview)
+        {
+            for (final List<GatePreview> held : PREVIEWS.values())
+            {
+                if (held.contains(preview))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -2120,59 +2188,6 @@ public final class GatePreviews
     }
 
     /**
-     * One cell of one viewer's sweep step.
-     *
-     * @param layers
-     *            where their layers go, from {@link #layersFor}
-     * @param index
-     *            the opening cell's index
-     * @param covering
-     *            true while the iris is closing, false while it opens
-     */
-    private static void sweepHorizonAt(final Player viewer, final GatePreview preview,
-        final List<IrisLayering.Placement> layers, final int index, final boolean covering)
-    {
-        final IrisLayering.At ring = at(preview.opening().get(index));
-        final IrisLayering.At where = layers.get(index).horizon();
-        if ((where == null) || where.equals(ring))
-        {
-            // A viewer behind the gate keeps the wormhole in the ring, where the sweep's own
-            // draw has already put it, and the iris display goes beyond it rather than over it.
-            return;
-        }
-        if (covering)
-        {
-            takeBackAt(viewer, preview, ring);
-            viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
-                horizonData(preview, ring, layers.get(index)));
-        }
-        else
-        {
-            takeBackAt(viewer, preview, where);
-        }
-    }
-
-    /**
-     * Whether a preview is still one somebody holds.
-     *
-     * <p>A step that fired after its preview was cleared would spawn fresh displays for one
-     * nobody is holding any more, and nothing left would ever take them away again.
-     *
-     * @return true if it is still in the register
-     */
-    private static boolean stillHeld(final GatePreview preview)
-    {
-        for (final List<GatePreview> held : PREVIEWS.values())
-        {
-            if (held.contains(preview))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Calls off a sweep running on a preview, leaving its iris where it was going.
      *
      * <p>Called when the iris is toggled again mid-sweep, and when a preview goes away -- a
@@ -2180,11 +2195,11 @@ public final class GatePreviews
      */
     static void cancelIrisSweep(final GatePreview preview)
     {
-        final BukkitTask task = irisSweeps.remove(preview);
+        final IrisSweepDriver<Integer> sweep = irisSweeps.remove(preview);
         preview.sweeping(false);
-        if (task != null)
+        if (sweep != null)
         {
-            task.cancel();
+            sweep.cancel();
         }
     }
 
@@ -2394,7 +2409,7 @@ public final class GatePreviews
     }
 
     /** The sweep running on each preview, so a second toggle can call the first off. */
-    private static final Map<GatePreview, BukkitTask> irisSweeps = new IdentityHashMap<>();
+    private static final Map<GatePreview, IrisSweepDriver<Integer>> irisSweeps = new IdentityHashMap<>();
 
     /** What the opening's displays show: they stand only while the iris is closed. */
     static BlockData openingData(final GatePreview preview)

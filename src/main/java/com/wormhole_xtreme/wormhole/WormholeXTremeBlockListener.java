@@ -22,7 +22,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -301,10 +301,10 @@ class WormholeXTremeBlockListener implements Listener
         final Block block = event.getBlock();
         final Player player = event.getPlayer();
         // What they broke is drawn over by a mirror's view: the real block behind is not theirs to touch.
-        if (MirrorWindows.drew(player, block))
+        if (Windows.drew(player, block))
         {
             event.setCancelled(true);
-            MirrorWindows.resend(player, block, null);
+            Windows.resend(player, block, null);
             return;
         }
         // Punching a mirror is how you go through it, so one never breaks; mirror remove takes it down.
@@ -398,10 +398,10 @@ class WormholeXTremeBlockListener implements Listener
         final Block block = event.getBlockPlaced();
         final Player player = event.getPlayer();
         // Into a spot drawn over by a mirror's view: it would be built unseen behind the view.
-        if (MirrorWindows.drew(player, block))
+        if (Windows.drew(player, block))
         {
             event.setCancelled(true);
-            MirrorWindows.resend(player, block, null);
+            Windows.resend(player, block, null);
             return;
         }
         final Stargate stargate = StargateManager.getGateFromBlock(block);
@@ -446,7 +446,7 @@ class WormholeXTremeBlockListener implements Listener
     public void onBlockDamage(final BlockDamageEvent event)
     {
         // Not even started: a punch on a mirror is a trip, and an instant break would lose the banner.
-        if (MirrorWindows.drew(event.getPlayer(), event.getBlock()) || MirrorPlacement.isProtected(event.getBlock()))
+        if (Windows.drew(event.getPlayer(), event.getBlock()) || MirrorPlacement.isProtected(event.getBlock()))
         {
             event.setCancelled(true);
             return;

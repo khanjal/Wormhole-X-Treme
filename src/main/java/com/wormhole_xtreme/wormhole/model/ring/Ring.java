@@ -6,10 +6,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
-import org.bukkit.World;
 
 /**
  * One end of a transport ring pair: a pad set into a floor or ceiling.
@@ -649,49 +647,6 @@ public class Ring
         for (final RingPattern.Offset offset : offsets)
         {
             out.add(new int[] { anchorX + offset.getDx(), y, anchorZ + offset.getDz() });
-        }
-        return out;
-    }
-
-    /**
-     * The perimeter as Bukkit locations, for the code that actually places blocks.
-     *
-     * @param world
-     *            the world the ring is in
-     * @return the perimeter block locations
-     */
-    public List<Location> perimeterLocations(final World world)
-    {
-        return locations(perimeterBlocks(), world);
-    }
-
-    /**
-     * The interior plane as Bukkit locations.
-     *
-     * @param world
-     *            the world the ring is in
-     * @return the interior block locations in the ring plane
-     */
-    public List<Location> interiorLocations(final World world)
-    {
-        return locations(interiorBlocks(), world);
-    }
-
-    /**
-     * Attaches a world to a list of raw block coordinates.
-     *
-     * @param blocks
-     *            blocks as {@code {x, y, z}}
-     * @param world
-     *            the world to attach
-     * @return the same blocks as locations
-     */
-    private static List<Location> locations(final List<int[]> blocks, final World world)
-    {
-        final List<Location> out = new ArrayList<>(blocks.size());
-        for (final int[] block : blocks)
-        {
-            out.add(new Location(world, block[0], block[1], block[2]));
         }
         return out;
     }

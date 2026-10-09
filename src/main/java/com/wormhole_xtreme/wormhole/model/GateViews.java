@@ -17,11 +17,11 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 
 /**
  * An open gate drawn as a window onto where it goes, the way a mirror draws its room (#516).
@@ -41,7 +41,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
 public final class GateViews
 {
     /** The widest or tallest opening drawn, the one every capture is seen through; a bigger one keeps its horizon. */
-    static final int MOST = MirrorCaptures.GATE_OPENING;
+    static final int MOST = Captures.GATE_OPENING;
 
     /** Before a gate's name, so the sweep cannot mistake it for a mirror's. */
     private static final String PREFIX = "gate:";
@@ -107,7 +107,7 @@ public final class GateViews
         }
         CLEARED.remove(gate.getGateName());
         OPEN.remove(gate.getGateName());
-        MirrorWindows.release(PREFIX + gate.getGateName());
+        Windows.release(PREFIX + gate.getGateName());
     }
 
     /** Offers every open gate that can show a view to the mirror sweep, and clears or restores horizons to match. */
@@ -169,9 +169,9 @@ public final class GateViews
         if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
         {
             // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
-            final MirrorPoint at = MirrorPoint.of(arrival);
-            MirrorCaptures.refreshGate(gate.getGateName(), at,
-                MirrorCaptures.gateFillDepth(at, ConfigManager.getGateViewDepth()), REFRESH_SECONDS);
+            final Place at = Place.of(arrival);
+            Captures.refreshGate(gate.getGateName(), at,
+                Captures.gateFillDepth(at, ConfigManager.getGateViewDepth()), REFRESH_SECONDS);
         }
     }
 
@@ -191,7 +191,7 @@ public final class GateViews
         }
         closed(gate);
         LOOKED.remove(gate.getGateName());
-        MirrorCaptures.forgetGate(gate.getGateName());
+        Captures.forgetGate(gate.getGateName());
     }
 
     /**
@@ -212,22 +212,22 @@ public final class GateViews
             return;
         }
         final Location arrival = gate.getGateTarget().getGatePlayerTeleportLocation();
-        final MirrorWindow shape = ((arrival == null) || (arrival.getWorld() == null)) ? null
-            : shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), MirrorPoint.of(arrival));
+        final WindowShape shape = ((arrival == null) || (arrival.getWorld() == null)) ? null
+            : shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), Place.of(arrival));
         if (shape != null)
         {
-            MirrorWindows.prepareGate(windowOf(gate, shape));
+            Windows.prepareGate(windowOf(gate, shape));
         }
     }
 
     /** An open gate as the window drawing sees it. */
-    private static GateWindow windowOf(final Stargate gate, final MirrorWindow shape)
+    private static GateWindow windowOf(final Stargate gate, final WindowShape shape)
     {
         final List<Spot> open = cellsOf(gate);
         final Spot middle = middleOf(open);
         final Stargate target = gate.getGateTarget();
         return new GateWindow(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
-            shape, open, MirrorPoint.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
+            shape, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
             ConfigManager.getGateViewDepth());
     }
 
@@ -273,7 +273,7 @@ public final class GateViews
     private static void offer(final Stargate gate, final boolean crossing, final boolean clears,
         final Set<String> open, final Set<String> clear)
     {
-        final MirrorWindow shape = shapeOf(gate, crossing);
+        final WindowShape shape = shapeOf(gate, crossing);
         if (shape == null)
         {
             return;
@@ -285,7 +285,7 @@ public final class GateViews
         {
             return;
         }
-        final boolean drawn = MirrorWindows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
+        final boolean drawn = Windows.offerGate(windowOf(gate, shape), !OPEN.contains(name));
         if (drawn && clears && !crossing)
         {
             clear.add(name);
@@ -363,7 +363,7 @@ public final class GateViews
      *            true while its iris is crossing, when a shut iris still shows the view it is closing over
      * @return the window, or null for a gate that keeps its horizon
      */
-    static MirrorWindow shapeOf(final Stargate gate, final boolean crossing)
+    static WindowShape shapeOf(final Stargate gate, final boolean crossing)
     {
         if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.isGateIrisActive() && !crossing)
             || (gate.getGateWorld() == null) || (gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
@@ -375,7 +375,7 @@ public final class GateViews
         {
             return null;
         }
-        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), MirrorPoint.of(arrival));
+        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), Place.of(arrival));
     }
 
     /**
@@ -395,8 +395,8 @@ public final class GateViews
      * @return the window, the whole of the opening, or null for no opening, a gate lying flat, one
      *         with no frame round its opening, or one too big
      */
-    static MirrorWindow shapeOf(final BlockFace facing, final List<Spot> cells, final Set<Spot> frame,
-        final MirrorPoint arrival)
+    static WindowShape shapeOf(final BlockFace facing, final List<Spot> cells, final Set<Spot> frame,
+        final Place arrival)
     {
         if ((facing == null) || (facing.getModY() != 0) || ((facing.getModX() == 0) == (facing.getModZ() == 0))
             || cells.isEmpty() || (arrival == null))
@@ -427,7 +427,7 @@ public final class GateViews
         final Spot plane = cells.get(0);
         final Spot base = (into.x() != 0) ? new Spot(plane.x(), lowY, lowAcross * right.z())
             : new Spot(lowAcross * right.x(), lowY, plane.z());
-        return MirrorWindow.through(base, into, arrival, width, height);
+        return WindowShape.through(base, into, arrival, width, height);
     }
 
     /**

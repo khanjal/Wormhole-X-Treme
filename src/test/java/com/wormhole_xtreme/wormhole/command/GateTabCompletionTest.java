@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -43,9 +44,11 @@ class GateTabCompletionTest
         clearGates();
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
-        // test JVM. It is a shared static, so put back whatever the rest of the suite had.
+        // test JVM. It is a shared static, so put back whatever the rest of the suite had, and
+        // start from empty so a shape another class left behind cannot join an exact list.
         savedShapes = new HashMap<String, StargateShape>(
             StargateShapeRegistry.getStargateShapes());
+        StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
     }
 
@@ -207,6 +210,28 @@ class GateTabCompletionTest
         assertTrue(complete("gate", "build", "").contains("Standard"),
             "the shipped shapes are offered");
         assertTrue(complete("gate", "build", "Standard", "Standard", "").isEmpty());
+    }
+
+    /**
+     * Shape names are narrowed to what has been typed, in either case, and come back sorted.
+     *
+     * <p>The registry is a hash map, so its own order is whatever the hashes give; a list that
+     * comes back in that order is one nobody can scan for the shape they want.
+     */
+    @Test
+    void shapeNamesAreNarrowedByWhatIsTypedAndSorted()
+    {
+        StargateShapeRegistry.getStargateShapes().put("Tollan", new StargateShape());
+        StargateShapeRegistry.getStargateShapes().put("Atlantis", new StargateShape());
+        StargateShapeRegistry.getStargateShapes().put("Taurian", new StargateShape());
+        final List<String> sorted = List.of("Atlantis", "Standard", "Taurian", "Tollan");
+        assertNotEquals(sorted, new ArrayList<>(StargateShapeRegistry.getStargateShapes().keySet()),
+            "the fixture is no test of sorting if the registry already iterates in order");
+
+        assertEquals(sorted, complete("gate", "build", ""),
+            "every shape, alphabetically");
+        assertEquals(List.of("Taurian", "Tollan"), complete("gate", "build", "t"),
+            "only the shapes starting with what was typed, whatever its case");
     }
 
     /** {@code shapes} takes an action, then a shape name for validate. */

@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -961,15 +962,10 @@ public final class SubCommands
         {
             return shapeNames(args[args.length - 1]);
         }
-        final List<String> flags = new ArrayList<>();
-        for (final String flag : new String[] { "-shape", "-fill", "-water" })
-        {
-            if (Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
-            {
-                flags.add(flag);
-            }
-        }
-        return prefixed(args[args.length - 1], flags.toArray(new String[0]));
+        final String[] flags = Stream.of("-shape", "-fill", "-water")
+            .filter(flag -> Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
+            .toArray(String[]::new);
+        return prefixed(args[args.length - 1], flags);
     }
 
     /**
@@ -1067,15 +1063,10 @@ public final class SubCommands
     public static List<String> namesMatching(final String prefix)
     {
         final String p = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<>();
-        for (final Entry e : ORDERED)
-        {
-            if (!e.isHidden() && e.getName().startsWith(p))
-            {
-                out.add(e.getName());
-            }
-        }
-        return out;
+        return ORDERED.stream()
+            .filter(e -> !e.isHidden() && e.getName().startsWith(p))
+            .map(Entry::getName)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
@@ -1127,15 +1118,9 @@ public final class SubCommands
     private static List<String> prefixed(final String typed, final String... candidates)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<>();
-        for (final String c : candidates)
-        {
-            if (c.toLowerCase(Locale.ROOT).startsWith(p))
-            {
-                out.add(c);
-            }
-        }
-        return out;
+        return Arrays.stream(candidates)
+            .filter(c -> c.toLowerCase(Locale.ROOT).startsWith(p))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /** The fields {@code /wormhole ring edit} understands. */
@@ -1611,17 +1596,10 @@ public final class SubCommands
     private static List<String> shapeNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<>();
-        for (final String name
-            : StargateShapeRegistry.getStargateShapes().keySet())
-        {
-            if (name.toLowerCase(Locale.ROOT).startsWith(p))
-            {
-                out.add(name);
-            }
-        }
-        Collections.sort(out);
-        return out;
+        return StargateShapeRegistry.getStargateShapes().keySet().stream()
+            .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(p))
+            .sorted()
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private static List<String> gateNames(final String typed)
@@ -1652,14 +1630,8 @@ public final class SubCommands
                 nets.add(g.getGateNetwork().getNetworkName());
             }
         }
-        final List<String> out = new ArrayList<>();
-        for (final String n : nets)
-        {
-            if (n.toLowerCase(Locale.ROOT).startsWith(p))
-            {
-                out.add(n);
-            }
-        }
-        return out;
+        return nets.stream()
+            .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(p))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 }

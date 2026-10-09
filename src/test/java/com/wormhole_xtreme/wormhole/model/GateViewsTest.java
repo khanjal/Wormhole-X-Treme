@@ -26,9 +26,9 @@ import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * Where an open gate's window looks (#516): which far block each block behind the opening shows.
@@ -41,7 +41,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 class GateViewsTest
 {
     /** Where a traveller through the gates below lands: facing south, the way they walk out. */
-    private static final MirrorPoint ARRIVAL = new MirrorPoint("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+    private static final Place ARRIVAL = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
 
     /** An opening of the given size, in the plane z = 20 for a gate facing north or south, or x = 20 for east or west. */
     private static List<Spot> opening(final BlockFace facing, final int low, final int width, final int height)
@@ -58,7 +58,7 @@ class GateViewsTest
     }
 
     /** An opening's window with a frame closing it in on every side, as every ring gate has. */
-    private static MirrorWindow shapeOf(final BlockFace facing, final List<Spot> cells)
+    private static WindowShape shapeOf(final BlockFace facing, final List<Spot> cells)
     {
         return GateViews.shapeOf(facing, cells, ringOf(facing, cells), ARRIVAL);
     }
@@ -83,7 +83,7 @@ class GateViewsTest
     void theArrivalBlockShowsThroughTheMiddleOfTheOpeningAtItsBottomRow()
     {
         // Faces south, so it is looked into northwards: the first layer behind it is z = 19.
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         assertNotNull(shape);
         assertEquals(new Spot(100, 70, 200), shape.farOf(11, 64, 19),
@@ -93,7 +93,7 @@ class GateViewsTest
     @Test
     void aStepToTheViewersRightIsAStepToTheTravellersRight()
     {
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         // The viewer looks north, so their right is east (x 12). The traveller faces south, so
         // theirs is west (x 99). A mirrored window would show x 101 here.
@@ -105,7 +105,7 @@ class GateViewsTest
     @Test
     void furtherBehindTheGateIsFurtherAheadOfTheArrival()
     {
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, opening(BlockFace.SOUTH, 10, 3, 3));
 
         assertEquals(new Spot(100, 70, 204), shape.farOf(11, 64, 15),
             "five blocks behind the gate is four past the arrival block, in the way the traveller faces");
@@ -122,7 +122,7 @@ class GateViewsTest
     void anOpeningFacingEastCoversItsOwnCells()
     {
         final List<Spot> cells = opening(BlockFace.EAST, 5, 3, 3);
-        final MirrorWindow shape = shapeOf(BlockFace.EAST, cells);
+        final WindowShape shape = shapeOf(BlockFace.EAST, cells);
 
         assertNotNull(shape);
         for (final Spot cell : cells)
@@ -141,7 +141,7 @@ class GateViewsTest
     {
         final List<Spot> cells = new ArrayList<>(opening(BlockFace.SOUTH, 10, 5, 5));
         cells.removeIf(cell -> ((cell.x() == 10) || (cell.x() == 14)) && ((cell.y() == 64) || (cell.y() == 68)));
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, cells);
 
         assertNotNull(shape, "a ring with its corners filled is still an opening");
         assertEquals(5, shape.width(), "its own width, not the capture's");
@@ -169,7 +169,7 @@ class GateViewsTest
     @Test
     void aLargeOpeningIsDrawnWholeFromItsBottomRow()
     {
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, round(4, 6, 8, 8, 8, 8, 6, 4));
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, round(4, 6, 8, 8, 8, 8, 6, 4));
 
         assertNotNull(shape);
         assertEquals(8, shape.width(), "the whole of its width, not a Standard window carved in it");
@@ -188,7 +188,7 @@ class GateViewsTest
     void aGrandOpeningIsDrawnWhole()
     {
         final List<Spot> cells = round(10, 12, 14, 16, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 16, 14, 12);
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, cells);
 
         assertNotNull(shape);
         assertEquals(18, shape.width(), "the whole of its width");
@@ -206,7 +206,7 @@ class GateViewsTest
     void aMassiveOpeningIsDrawnWholeFromItsBottomRow()
     {
         final List<Spot> cells = round(5, 9, 11, 13, 15, 15, 17, 17, 17, 17, 17, 15, 15, 13, 11, 9, 5);
-        final MirrorWindow shape = shapeOf(BlockFace.SOUTH, cells);
+        final WindowShape shape = shapeOf(BlockFace.SOUTH, cells);
 
         assertNotNull(shape);
         assertEquals(17, shape.width());
@@ -331,7 +331,7 @@ class GateViewsTest
     {
         final Spot at = new Spot(0, 64, 0);
         final Spot step = new Spot(0, 0, 1);
-        final MirrorWindow mirror = new MirrorWindow(at, step, at, step, false, 3);
+        final WindowShape mirror = new WindowShape(at, step, at, step, false, 3);
 
         assertEquals(2, mirror.width(), "three banners is still drawn as two");
         assertEquals(2, mirror.height(), "a banner's cloth");

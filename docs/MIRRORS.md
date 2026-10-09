@@ -631,7 +631,7 @@ The same blocks are sent per block travelled, in a fraction of the batches, and 
 re-meshes each far chunk section a fraction as often: nothing gained behind a one-block wall,
 where the cell is the same half block it was, and a quarter of the batches behind a wall five
 wide. `mirror debug` says the cell and the wall for each clipped mirror. Not measured on a
-server yet; the test surface is `MirrorWindowsTest`'s three `behindA...Wall` tests.
+server yet; the test surface is `WindowsTest`'s three `behindA...Wall` tests.
 
 ### Built: streaming
 
@@ -647,7 +647,7 @@ handed — the shorter of the server's view distance and the client's, a chunk o
 where it used to send the whole view. A server that reports no reach falls back to all of it, and
 the half-minute resend stands behind both. `mirror debug` says `still to send` while a stream is
 going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
-`aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `MirrorWindowsTest`.
+`aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `WindowsTest`.
 
 ### Built: the far edge in the client's own fog
 
@@ -679,7 +679,7 @@ they came back on the same id. The tests are
 `stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
 `aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
 
-On Spigot `MirrorFog.available()` is false and nothing happens: this world shows past the room,
+On Spigot `ViewFog.available()` is false and nothing happens: this world shows past the room,
 which is what it did before. The setting is read all the same, so a server that moves to Paper
 gets it without editing anything.
 

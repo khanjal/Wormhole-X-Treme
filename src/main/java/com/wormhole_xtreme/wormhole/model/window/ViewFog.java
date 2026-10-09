@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -37,7 +37,7 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * why it suits a shallow depth: at the default 160 there is nothing to gain, since the room
  * already reaches as far as a server usually sends.
  */
-final class MirrorFog
+final class ViewFog
 {
     /**
      * The least a client's send distance is ever set to, in chunks.
@@ -75,7 +75,7 @@ final class MirrorFog
     private static SendDistance sendDistance = reflective();
 
     /** Static state only. */
-    private MirrorFog()
+    private ViewFog()
     {
     }
 

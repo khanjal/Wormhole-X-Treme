@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -7,17 +7,19 @@ import static org.mockito.Mockito.when;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 
-/** Lets a MockBukkit test reach the mirror package's package-private seams. */
-public final class MirrorCaptureSeam
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
+
+/** Lets a MockBukkit test reach the window and mirror packages' package-private seams. */
+public final class CaptureSeam
 {
-    private MirrorCaptureSeam()
+    private CaptureSeam()
     {
     }
 
     /** Captures read the world's own blocks, as MockBukkit's snapshots cannot answer a height. */
     public static void readFromWorldBlocks()
     {
-        MirrorCaptures.readChunksWith((world, chunkX, chunkZ) -> {
+        Captures.readChunksWith((world, chunkX, chunkZ) -> {
             final ChunkSnapshot snapshot = mock(ChunkSnapshot.class);
             final int baseX = chunkX << 4;
             final int baseZ = chunkZ << 4;
@@ -34,14 +36,14 @@ public final class MirrorCaptureSeam
     /** Forgets every viewer's sight, fog and signpost, which the mirrors' own clears leave. */
     public static void forgetViewers()
     {
-        MirrorSight.clear();
-        MirrorFog.clear();
+        WindowSight.clear();
+        ViewFog.clear();
         MirrorSignpost.clear();
     }
 
     /** Back to the server's own snapshots. */
     public static void readFromServer()
     {
-        MirrorCaptures.readChunksWith((world, chunkX, chunkZ) -> world.getChunkAt(chunkX, chunkZ).getChunkSnapshot());
+        Captures.readChunksWith((world, chunkX, chunkZ) -> world.getChunkAt(chunkX, chunkZ).getChunkSnapshot());
     }
 }

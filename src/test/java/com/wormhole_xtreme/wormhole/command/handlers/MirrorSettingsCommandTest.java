@@ -24,7 +24,7 @@ import org.mockito.ArgumentCaptor;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
@@ -56,7 +56,7 @@ class MirrorSettingsCommandTest
 
         sender = mock(Player.class);
         when(sender.isOp()).thenReturn(true);
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
     }
 
     @AfterEach
@@ -86,7 +86,7 @@ class MirrorSettingsCommandTest
     @Test
     void theSettingSurvivesARestart()
     {
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5), null));
         run("mirror", "set", "museum", "-start", "hub");
 
         MirrorManager.clear();
@@ -99,7 +99,7 @@ class MirrorSettingsCommandTest
     @Test
     void listsOnlyTheSettingsThatAreNotTheDefault()
     {
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5), null));
         run("mirror", "list");
         verify(sender, never()).sendMessage(contains("(starts on"));
 
@@ -140,7 +140,7 @@ class MirrorSettingsCommandTest
         final CommandSender console = mock(CommandSender.class);
         when(console.isOp()).thenReturn(true);
 
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5), null));
 
         assertTrue(new MirrorCommand().execute(console,
             new String[] { "mirror", "set", "museum", "-start", "hub" }));

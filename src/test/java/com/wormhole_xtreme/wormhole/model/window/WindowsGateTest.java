@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,7 +37,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * An open gate offered to the mirror sweep as a window (#516): when it is one, and where its capture comes from.
@@ -47,14 +49,14 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * hole, with the real world showing round its edges; a gate that was a window one sweep had to stay
  * one, and go when released, or a closed gate went on showing where it used to go.
  *
- * <p>Its own class rather than more of {@code MirrorWindowsTest}, which already needs gigabytes.
+ * <p>Its own class rather than more of {@code WindowsTest}, which already needs gigabytes.
  */
-class MirrorWindowsGateTest
+class WindowsGateTest
 {
     private static final String NAME = "gate:Abydos";
 
     /** Where travellers through the gate land, in front of Chulak: facing south. */
-    private static final MirrorPoint ARRIVAL = new MirrorPoint("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+    private static final Place ARRIVAL = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
 
     @TempDir
     File dataFolder;
@@ -73,7 +75,7 @@ class MirrorWindowsGateTest
         ConfigTestSupport.clear();
         // No fill behind the first step unless a test is about it.
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 0);
-        MirrorWindows.clear();
+        Windows.clear();
 
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -84,7 +86,7 @@ class MirrorWindowsGateTest
         when(anchor.getY()).thenReturn(64);
         when(anchor.getZ()).thenReturn(20);
         // A Standard gate's five by five, facing south: looked into northwards.
-        final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 5, 5);
+        final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 5, 5);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
         gate = new GateWindow(NAME, anchor, shape, open, ARRIVAL, "Chulak", 16);
@@ -93,22 +95,22 @@ class MirrorWindowsGateTest
     @AfterEach
     void tearDown() throws Exception
     {
-        MirrorWindows.clear();
+        Windows.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
 
     /** A capture of the far side as though it had been taken, reaching {@code ahead} blocks past the arrival. */
-    private static MirrorCapture capture(final int ahead)
+    private static Capture capture(final int ahead)
     {
         final BlockData air = mock(BlockData.class);
         when(air.getAsString()).thenReturn("minecraft:air");
-        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(80, 60, 199, 41, 20, ahead + 2), air).build();
+        return new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, ahead + 2), air).build();
     }
 
     private static String key()
     {
-        return MirrorCaptures.gateKey("Chulak", MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING);
+        return Captures.gateKey("Chulak", Captures.GATE_OPENING, Captures.GATE_OPENING);
     }
 
     @Test
@@ -119,8 +121,8 @@ class MirrorWindowsGateTest
             // The far world is not loaded, so the capture cannot even be started.
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(MirrorWindows.offerGate(gate, true), "nothing to draw from, so it keeps its horizon");
-            assertFalse(MirrorWindows.holdsWindow(NAME));
+            assertFalse(Windows.offerGate(gate, true), "nothing to draw from, so it keeps its horizon");
+            assertFalse(Windows.holdsWindow(NAME));
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
     }
@@ -128,21 +130,21 @@ class MirrorWindowsGateTest
     @Test
     void aGateIsAWindowOnceTheCaptureOfItsFarGateIsIn()
     {
-        MirrorCaptures.install(key(), capture(32));
+        Captures.install(key(), capture(32));
 
-        assertTrue(MirrorWindows.offerGate(gate, true), "its capture is in");
-        assertTrue(MirrorWindows.holdsWindow(NAME), "and the sweep holds it");
+        assertTrue(Windows.offerGate(gate, true), "its capture is in");
+        assertTrue(Windows.holdsWindow(NAME), "and the sweep holds it");
     }
 
     @Test
     void aMirrorsCaptureOfTheSamePlaceIsNotAGates()
     {
-        MirrorCaptures.install(ARRIVAL, capture(32));
+        Captures.install(ARRIVAL, capture(32));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertFalse(MirrorWindows.offerGate(gate, true),
+            assertFalse(Windows.offerGate(gate, true),
                 "a capture seen through a mirror's three by two is not drawn through a five by five");
         }
     }
@@ -156,12 +158,12 @@ class MirrorWindowsGateTest
     @Test
     void aShallowCaptureIsDrawnWhileADeeperOneIsTaken()
     {
-        MirrorCaptures.install(key(), capture(4));
+        Captures.install(key(), capture(4));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            assertTrue(MirrorWindows.offerGate(gate, false), "drawn from what there is");
+            assertTrue(Windows.offerGate(gate, false), "drawn from what there is");
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
     }
@@ -169,10 +171,10 @@ class MirrorWindowsGateTest
     @Test
     void aFreshCaptureDeepEnoughIsNotTakenAgain()
     {
-        MirrorCaptures.install(key(), capture(32));
+        Captures.install(key(), capture(32));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
-            assertTrue(MirrorWindows.offerGate(gate, true));
+            assertTrue(Windows.offerGate(gate, true));
             bukkit.verify(() -> Bukkit.getWorld(anyString()), never());
         }
     }
@@ -190,7 +192,7 @@ class MirrorWindowsGateTest
         {
             bukkit.when(() -> Bukkit.getWorld(anyString())).thenReturn(null);
 
-            MirrorWindows.prepareGate(gate);
+            Windows.prepareGate(gate);
 
             bukkit.verify(() -> Bukkit.getWorld("far"));
         }
@@ -199,17 +201,17 @@ class MirrorWindowsGateTest
     @Test
     void aGateStaysAWindowAcrossSweepsUntilItIsReleased()
     {
-        MirrorCaptures.install(key(), capture(32));
-        assertTrue(MirrorWindows.offerGate(gate, true));
-        MirrorWindows.finish();
+        Captures.install(key(), capture(32));
+        assertTrue(Windows.offerGate(gate, true));
+        Windows.finish();
 
-        assertTrue(MirrorWindows.offerGate(gate, false), "offered again the next sweep");
-        MirrorWindows.finish();
-        assertTrue(MirrorWindows.holdsWindow(NAME), "a window between sweeps");
+        assertTrue(Windows.offerGate(gate, false), "offered again the next sweep");
+        Windows.finish();
+        assertTrue(Windows.holdsWindow(NAME), "a window between sweeps");
 
-        MirrorWindows.release(NAME);
+        Windows.release(NAME);
 
-        assertFalse(MirrorWindows.holdsWindow(NAME), "released by name as its gate closes");
+        assertFalse(Windows.holdsWindow(NAME), "released by name as its gate closes");
     }
 
     /**
@@ -222,17 +224,17 @@ class MirrorWindowsGateTest
     void theFirstStepIsFollowedByTheFill()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
-        // Outside the verify: a call to MirrorCaptures inside it would be what is verified.
+        // Outside the verify: a call to Captures inside it would be what is verified.
         final String key = key();
-        MirrorCaptures.install(key, capture(20));
+        Captures.install(key, capture(20));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertTrue(MirrorWindows.offerGate(gate, false), "the first step is drawn meanwhile");
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(18),
+            assertTrue(Windows.offerGate(gate, false), "the first step is drawn meanwhile");
+            captures.verify(() -> Captures.requestGate(eq(key), eq("Chulak"), any(Place.class), eq(18),
                 eq(18), eq(48)), times(1));
         }
     }
@@ -241,12 +243,12 @@ class MirrorWindowsGateTest
     void aCaptureThatReachesTheFullDepthIsLeftAlone()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
-        MirrorCaptures.install(key(), capture(60));
+        Captures.install(key(), capture(60));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            assertTrue(MirrorWindows.offerGate(gate, false));
-            captures.verify(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            assertTrue(Windows.offerGate(gate, false));
+            captures.verify(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt()), never());
         }
     }
@@ -254,14 +256,14 @@ class MirrorWindowsGateTest
     @Test
     void theFullDepthIsTheFirstStepsWhereItIsOffOrShallower()
     {
-        assertEquals(16, MirrorWindows.fullDepthOf(gate), "off");
+        assertEquals(16, Windows.fullDepthOf(gate), "off");
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 8);
-        assertEquals(16, MirrorWindows.fullDepthOf(gate), "shallower than the first step");
+        assertEquals(16, Windows.fullDepthOf(gate), "shallower than the first step");
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             // The far world not loaded to ask: as far as it is set.
-            assertEquals(48, MirrorWindows.fullDepthOf(gate));
+            assertEquals(48, Windows.fullDepthOf(gate));
         }
     }
 
@@ -274,45 +276,45 @@ class MirrorWindowsGateTest
     @Test
     void aGatesViewMayHoldMoreThanAMirrorsBeforeItIsCut()
     {
-        final MirrorCapture held = capture(32);
-        final QuantumMirror stand = new QuantumMirror(NAME, MirrorBlock.of(anchor), ARRIVAL);
-        final MirrorWindowState gateWindow = new MirrorWindowState(stand, gate.shape(), anchor, gate.open(), held, true, 16);
-        final MirrorWindowState mirrorWindow = new MirrorWindowState(stand, gate.shape(), anchor, gate.open(), held, false, 16);
+        final Capture held = capture(32);
+        final QuantumMirror stand = new QuantumMirror(NAME, BlockPlace.of(anchor), ARRIVAL);
+        final WindowState gateWindow = new WindowState(stand, gate.shape(), anchor, gate.open(), held, true, 16);
+        final WindowState mirrorWindow = new WindowState(stand, gate.shape(), anchor, gate.open(), held, false, 16);
 
-        assertEquals(1_000_000, MirrorWindows.mostFixedFor(gateWindow), "a gate's");
-        assertEquals(250_000, MirrorWindows.mostFixedFor(mirrorWindow), "a mirror's, as it was");
+        assertEquals(1_000_000, Windows.mostFixedFor(gateWindow), "a gate's");
+        assertEquals(250_000, Windows.mostFixedFor(mirrorWindow), "a mirror's, as it was");
     }
 
     /** A capture of the far side as though taken two minutes ago, reaching {@code ahead} blocks past the arrival. */
-    private static MirrorCapture oldCapture(final int ahead)
+    private static Capture oldCapture(final int ahead)
     {
         return oldCapture(ahead, 120);
     }
 
     /** A capture of the far side as though taken {@code seconds} ago, reaching {@code ahead} blocks past the arrival. */
-    private static MirrorCapture oldCapture(final int ahead, final int seconds)
+    private static Capture oldCapture(final int ahead, final int seconds)
     {
         final BlockData air = mock(BlockData.class);
         when(air.getAsString()).thenReturn("minecraft:air");
-        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(80, 60, 199, 41, 20, ahead + 2), air)
+        return new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, ahead + 2), air)
             .build(System.currentTimeMillis() - (seconds * 1000L));
     }
 
     /** Opens the gate with a capture installed, and counts the captures asked for, by depth. */
-    private Map<Integer, Integer> askedAsItOpens(final MirrorCapture held)
+    private Map<Integer, Integer> askedAsItOpens(final Capture held)
     {
         final Map<Integer, Integer> asked = new HashMap<>();
-        MirrorCaptures.install(key(), held);
+        Captures.install(key(), held);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenAnswer(call ->
                 {
                     asked.merge(call.getArgument(5), 1, Integer::sum);
                     return true;
                 });
-            assertTrue(MirrorWindows.offerGate(gate, true), "drawn from the capture it has meanwhile");
+            assertTrue(Windows.offerGate(gate, true), "drawn from the capture it has meanwhile");
         }
         return asked;
     }
@@ -329,7 +331,7 @@ class MirrorWindowsGateTest
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
 
         assertEquals(Map.of(), askedAsItOpens(oldCapture(60, 300)), "five minutes old: drawn as it is");
-        MirrorCaptures.clear();
+        Captures.clear();
         assertEquals(Map.of(48, 1), askedAsItOpens(oldCapture(60, 660)), "eleven minutes old: retaken, at the depth drawn");
     }
 
@@ -338,7 +340,7 @@ class MirrorWindowsGateTest
     void aFirstStepCaptureIsRetakenAsTheGateOpensOnceAMinuteOld()
     {
         assertEquals(Map.of(), askedAsItOpens(oldCapture(20, 30)), "half a minute old: drawn as it is");
-        MirrorCaptures.clear();
+        Captures.clear();
         assertEquals(Map.of(16, 1), askedAsItOpens(oldCapture(20, 120)), "two minutes old: retaken");
     }
 
@@ -354,17 +356,17 @@ class MirrorWindowsGateTest
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
         final String key = key();
-        MirrorCaptures.install(key, oldCapture(60, 660));
+        Captures.install(key, oldCapture(60, 660));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertTrue(MirrorWindows.offerGate(gate, true), "drawn from the old one meanwhile");
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), anyString(), any(MirrorPoint.class), anyInt(),
+            assertTrue(Windows.offerGate(gate, true), "drawn from the old one meanwhile");
+            captures.verify(() -> Captures.requestGate(eq(key), anyString(), any(Place.class), anyInt(),
                 anyInt(), eq(48)), times(1));
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), anyString(), any(MirrorPoint.class), anyInt(),
+            captures.verify(() -> Captures.requestGate(eq(key), anyString(), any(Place.class), anyInt(),
                 anyInt(), eq(16)), never());
         }
     }
@@ -373,12 +375,12 @@ class MirrorWindowsGateTest
     void anOldCaptureIsNotRetakenUnlessTheGateHasJustOpened()
     {
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
-        MirrorCaptures.install(key(), oldCapture(60));
+        Captures.install(key(), oldCapture(60));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            assertTrue(MirrorWindows.offerGate(gate, false));
-            captures.verify(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            assertTrue(Windows.offerGate(gate, false));
+            captures.verify(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt()), never());
         }
     }
@@ -396,20 +398,20 @@ class MirrorWindowsGateTest
         when(air.getAsString()).thenReturn("minecraft:air");
         // Yaw 0 south, 90 west, 180 north, 270 east; each box reaches 40 past the arrival at (100, 70, 200) that way.
         final Object[][] facings = {
-            { 0.0f, new MirrorCapture.Box(80, 60, 199, 41, 20, 42) },
-            { 90.0f, new MirrorCapture.Box(60, 60, 180, 42, 20, 41) },
-            { 180.0f, new MirrorCapture.Box(80, 60, 160, 41, 20, 42) },
-            { 270.0f, new MirrorCapture.Box(99, 60, 180, 42, 20, 41) },
+            { 0.0f, new Capture.Box(80, 60, 199, 41, 20, 42) },
+            { 90.0f, new Capture.Box(60, 60, 180, 42, 20, 41) },
+            { 180.0f, new Capture.Box(80, 60, 160, 41, 20, 42) },
+            { 270.0f, new Capture.Box(99, 60, 180, 42, 20, 41) },
         };
         for (final Object[] facing : facings)
         {
-            final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, 200.5, (float) facing[0], 0.0f);
-            final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 1, 2);
-            final MirrorCapture held = new MirrorCapture.Builder("far", true, (MirrorCapture.Box) facing[1], air).build();
-            final MirrorWindowState window = new MirrorWindowState(new QuantumMirror(NAME, MirrorBlock.of(anchor), arrival),
+            final Place arrival = new Place("far", 100.5, 70.0, 200.5, (float) facing[0], 0.0f);
+            final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 1, 2);
+            final Capture held = new Capture.Builder("far", true, (Capture.Box) facing[1], air).build();
+            final WindowState window = new WindowState(new QuantumMirror(NAME, BlockPlace.of(anchor), arrival),
                 shape, anchor, List.of(), held, true, 16);
 
-            assertEquals(40, MirrorWindows.reachAhead(window), "facing yaw " + facing[0]);
+            assertEquals(40, Windows.reachAhead(window), "facing yaw " + facing[0]);
         }
     }
 
@@ -422,34 +424,34 @@ class MirrorWindowsGateTest
     @Test
     void aSmallGateAsksForTheFarGatesOneCapture()
     {
-        final MirrorWindow small = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 1, 2);
+        final WindowShape small = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 1, 2);
         final GateWindow standard = new GateWindow(NAME, anchor, small, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20)),
             ARRIVAL, "Chulak", 16);
         final String key = key();
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
-            MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class, CALLS_REAL_METHODS))
+            MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
         {
-            captures.when(() -> MirrorCaptures.requestGate(anyString(), anyString(), any(MirrorPoint.class), anyInt(),
+            captures.when(() -> Captures.requestGate(anyString(), anyString(), any(Place.class), anyInt(),
                 anyInt(), anyInt())).thenReturn(true);
 
-            assertFalse(MirrorWindows.offerGate(standard, true));
-            captures.verify(() -> MirrorCaptures.requestGate(eq(key), eq("Chulak"), any(MirrorPoint.class), eq(18), eq(18),
+            assertFalse(Windows.offerGate(standard, true));
+            captures.verify(() -> Captures.requestGate(eq(key), eq("Chulak"), any(Place.class), eq(18), eq(18),
                 eq(16)), times(1));
         }
     }
 
     /** A window of a whole opening of the given size, as a gate's: every cell of it open. */
-    private MirrorWindowState windowOf(final int wide, final int tall)
+    private WindowState windowOf(final int wide, final int tall)
     {
-        final MirrorWindow shape = MirrorWindow.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, wide, tall);
+        final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, wide, tall);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new MirrorWindowState(new QuantumMirror(NAME, MirrorBlock.of(anchor), ARRIVAL), shape, anchor, open,
+        return new WindowState(new QuantumMirror(NAME, BlockPlace.of(anchor), ARRIVAL), shape, anchor, open,
             capture(32), true, 16);
     }
 
     /**
-     * Whether a viewer can see into a big gate tries at most {@link MirrorWindows#MOST_SIGHT_LINES} lines of sight.
+     * Whether a viewer can see into a big gate tries at most {@link Windows#MOST_SIGHT_LINES} lines of sight.
      *
      * <p>It tried every cell of the opening, on the main thread, each redraw: for somebody behind a
      * wall in front of a Grand gate, 274 blocked lines, some 80 ms a redraw against a Large gate's 14.
@@ -460,18 +462,18 @@ class MirrorWindowsGateTest
     {
         final Location eye = new Location(world, 19.0, 66.0, 36.0);
         final AtomicInteger lines = new AtomicInteger();
-        try (MockedStatic<MirrorSight> sight = mockStatic(MirrorSight.class))
+        try (MockedStatic<WindowSight> sight = mockStatic(WindowSight.class))
         {
-            sight.when(() -> MirrorSight.clearLine(any(), any(), any(), any(), anyLong()))
+            sight.when(() -> WindowSight.clearLine(any(), any(), any(), any(), anyLong()))
                 .thenAnswer(call -> (lines.incrementAndGet() < 0));
 
-            assertFalse(MirrorWindows.canSee(world, eye, windowOf(18, 17), 0L), "every line blocked");
+            assertFalse(Windows.canSee(world, eye, windowOf(18, 17), 0L), "every line blocked");
             final int grand = lines.getAndSet(0);
-            assertFalse(MirrorWindows.canSee(world, eye, windowOf(8, 8), 0L));
+            assertFalse(Windows.canSee(world, eye, windowOf(8, 8), 0L));
             final int large = lines.get();
 
-            assertTrue(grand <= MirrorWindows.MOST_SIGHT_LINES, grand + " lines into 306 cells, not every one");
-            assertTrue(grand >= (MirrorWindows.MOST_SIGHT_LINES / 2), grand + " lines, spread over the opening");
+            assertTrue(grand <= Windows.MOST_SIGHT_LINES, grand + " lines into 306 cells, not every one");
+            assertTrue(grand >= (Windows.MOST_SIGHT_LINES / 2), grand + " lines, spread over the opening");
             assertEquals(64, large, "an opening of 64 cells is tried at every one, as before");
         }
     }

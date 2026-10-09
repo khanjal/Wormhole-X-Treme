@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -35,8 +35,8 @@ class MirrorTabCompletionTest
     void setUp()
     {
         MirrorManager.clear();
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
-        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 2, 64, 2), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("lobby", new BlockPlace("world", 2, 64, 2), null));
     }
 
     @AfterEach

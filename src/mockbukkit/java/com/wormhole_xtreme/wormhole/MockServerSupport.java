@@ -34,11 +34,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigSnapshot;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptureSeam;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
+import com.wormhole_xtreme.wormhole.model.window.CaptureSeam;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSettle;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -70,7 +70,7 @@ final class MockServerSupport
         MockBukkit.load(WormholeXTreme.class);
         ConfigTestSupport.set(
             ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 4);
-        MirrorCaptureSeam.readFromWorldBlocks();
+        CaptureSeam.readFromWorldBlocks();
         return server;
     }
 
@@ -87,7 +87,7 @@ final class MockServerSupport
         }
         finally
         {
-            MirrorCaptureSeam.readFromServer();
+            CaptureSeam.readFromServer();
             configBefore.restore();
             PluginTestSupport.forgetAllGates();
             ProjectileGateTracker.clear();
@@ -98,10 +98,10 @@ final class MockServerSupport
             BeamManager.clear();
             MirrorManager.clear();
             MirrorNetwork.clear();
-            MirrorProximity.clear();
-            MirrorCaptures.clear();
+            WindowSweep.clear();
+            Captures.clear();
             MirrorSettle.clear();
-            MirrorCaptureSeam.forgetViewers();
+            CaptureSeam.forgetViewers();
         }
     }
 

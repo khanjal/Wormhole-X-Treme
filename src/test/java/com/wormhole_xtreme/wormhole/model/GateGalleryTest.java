@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
+
 /**
  * The gallery in the documentation still shows the shapes that ship.
  *

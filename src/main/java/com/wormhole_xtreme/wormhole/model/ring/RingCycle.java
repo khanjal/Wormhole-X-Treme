@@ -1,10 +1,11 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 
@@ -565,15 +566,9 @@ public class RingCycle
     private List<RingPassenger> permitted(final List<RingPassenger> passengers, final Ring from,
         final Ring to)
     {
-        final List<RingPassenger> allowed = new ArrayList<>(passengers.size());
-        for (final RingPassenger passenger : passengers)
-        {
-            if (mayTravel(passenger, from, to))
-            {
-                allowed.add(passenger);
-            }
-        }
-        return riddenBySomethingElse(allowed);
+        return riddenBySomethingElse(passengers.stream()
+            .filter(passenger -> mayTravel(passenger, from, to))
+            .toList());
     }
 
     /**
@@ -617,18 +612,14 @@ public class RingCycle
      */
     private static List<RingPassenger> riddenBySomethingElse(final List<RingPassenger> travelling)
     {
-        final Set<String> going = new HashSet<String>();
-        for (final RingPassenger passenger : travelling)
-        {
-            // Nulls are left out deliberately. Two things that cannot say what they are would
-            // otherwise match each other — "riding nothing" would look like "riding the other
-            // one that is also riding nothing" — and both would be dropped as somebody's
-            // passenger with nothing to carry them.
-            if (passenger.getUniqueId() != null)
-            {
-                going.add(passenger.getUniqueId());
-            }
-        }
+        // Nulls are left out deliberately. Two things that cannot say what they are would
+        // otherwise match each other — "riding nothing" would look like "riding the other
+        // one that is also riding nothing" — and both would be dropped as somebody's
+        // passenger with nothing to carry them.
+        final Set<String> going = travelling.stream()
+            .map(RingPassenger::getUniqueId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
         final List<RingPassenger> out = new ArrayList<>(travelling.size());
         for (final RingPassenger passenger : travelling)
         {

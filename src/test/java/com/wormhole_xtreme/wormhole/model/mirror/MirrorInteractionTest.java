@@ -43,6 +43,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -146,8 +148,8 @@ class MirrorInteractionTest
     /** A mirror on this banner storing its own room, which is what a new mirror does. */
     private QuantumMirror reflecting(final String name, final Block banner)
     {
-        final QuantumMirror mirror = new QuantumMirror(name, MirrorBlock.of(banner),
-            new MirrorPoint("world", banner.getX() + 0.5, 63, 0.5, 180f, 0f));
+        final QuantumMirror mirror = new QuantumMirror(name, BlockPlace.of(banner),
+            new Place("world", banner.getX() + 0.5, 63, 0.5, 180f, 0f));
         MirrorManager.add(mirror);
         return mirror;
     }
@@ -217,7 +219,7 @@ class MirrorInteractionTest
     void aFreestandingBannerOfAnyColourIsRecognised()
     {
         final Block banner = block(Material.MAGENTA_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner), null));
 
         assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror claims its own click");
     }
@@ -232,7 +234,7 @@ class MirrorInteractionTest
     void punchingAMirrorWithNoRoomSaysHowToSetItUp()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner), null));
 
         assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror claims its own click");
         verify(player, never()).teleport(any(Location.class));
@@ -253,7 +255,7 @@ class MirrorInteractionTest
         ConfigTestSupport.set(ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
         when(player.isOp()).thenReturn(false);
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner), null));
 
         assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror still claims its click");
         verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
@@ -329,8 +331,8 @@ class MirrorInteractionTest
     void aFollowingPetGoesThroughTheMirrorWithItsOwner() throws Exception
     {
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
-            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(here),
+            new Place("museum_world", 9, 64, 0, 0, 0)));
         PetTestSupport.standsWhereTeleported(player, new Location(world, 5.5, 64.0, 1.5));
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
@@ -383,8 +385,8 @@ class MirrorInteractionTest
     void punchingAMirrorIntoAnUnloadedWorldNamesTheWorld()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
-            new MirrorPoint("a_world_nobody_started", 0, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner),
+            new Place("a_world_nobody_started", 0, 64, 0, 0, 0)));
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -408,8 +410,8 @@ class MirrorInteractionTest
     void aMirrorWhoseTeleportAnotherPluginCancelledSaysSo()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
-            new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner),
+            new Place("museum_world", 0, 64, 0, 0, 0)));
         when(player.teleport(any(Location.class))).thenReturn(false);
 
         travelTo(banner, "museum_world");
@@ -423,8 +425,8 @@ class MirrorInteractionTest
     void aMirrorThatTravelsDoesNotComplainAboutBeingRefused()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
-            new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner),
+            new Place("museum_world", 0, 64, 0, 0, 0)));
         when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(banner, "museum_world");
@@ -436,7 +438,7 @@ class MirrorInteractionTest
     /**
      * Punches a mirror with its destination world loaded.
      *
-     * <p>{@link MirrorPoint} resolves its world through {@link Bukkit}, so a mirror that actually
+     * <p>{@link Place} resolves its world through {@link Bukkit}, so a mirror that actually
      * travels can only be exercised with the static standing in. The world is a bare mock: the
      * safe-location search gets null for every block and falls back to the stored point.
      */
@@ -464,10 +466,10 @@ class MirrorInteractionTest
     {
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
         final Block there = block(Material.WHITE_WALL_BANNER, 9);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
-            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        MirrorManager.add(new QuantumMirror("Library", MirrorBlock.of(there),
-            new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(here),
+            new Place("museum_world", 9, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Library", BlockPlace.of(there),
+            new Place("museum_world", 5, 64, 0, 0, 0)));
         when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(here, "museum_world");
@@ -483,10 +485,10 @@ class MirrorInteractionTest
     {
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
         final Block there = block(Material.WHITE_WALL_BANNER, 9);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
-            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        MirrorManager.add(new QuantumMirror("Library", MirrorBlock.of(there),
-            new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(here),
+            new Place("museum_world", 9, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Library", BlockPlace.of(there),
+            new Place("museum_world", 5, 64, 0, 0, 0)));
         when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(here, "museum_world");
@@ -502,8 +504,8 @@ class MirrorInteractionTest
     void aRefusedTripDoesNotStartTheSettle()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
-            new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum", BlockPlace.of(banner),
+            new Place("museum_world", 0, 64, 0, 0, 0)));
         when(player.teleport(any(Location.class))).thenReturn(false);
 
         travelTo(banner, "museum_world");

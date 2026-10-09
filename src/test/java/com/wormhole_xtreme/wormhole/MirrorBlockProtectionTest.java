@@ -31,7 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -69,7 +69,7 @@ class MirrorBlockProtectionTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         // An operator: nobody may break a mirror by hand, not even one who may remove it.
         when(player.isOp()).thenReturn(true);
-        MirrorManager.add(new QuantumMirror("library", new MirrorBlock("world", 10, 64, 10), null));
+        MirrorManager.add(new QuantumMirror("library", new BlockPlace("world", 10, 64, 10), null));
     }
 
     @AfterEach

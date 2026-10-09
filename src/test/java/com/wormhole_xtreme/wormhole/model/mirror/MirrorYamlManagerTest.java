@@ -20,6 +20,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 
 /**
  * Turning a mirror into what goes in the file, and back.
@@ -70,8 +72,8 @@ class MirrorYamlManagerTest
     void aPointedMirrorSurvivesTheRoundTrip()
     {
         final QuantumMirror before = new QuantumMirror("Museum",
-            new MirrorBlock("world", 12, 64, -30),
-            new MirrorPoint("snapshot_1_18", 100.5, 65.0, -20.5, 90.0f, -5.0f));
+            new BlockPlace("world", 12, 64, -30),
+            new Place("snapshot_1_18", 100.5, 65.0, -20.5, 90.0f, -5.0f));
 
         final QuantumMirror after = roundTrip(before);
 
@@ -89,7 +91,7 @@ class MirrorYamlManagerTest
     void aMirrorWithNoDestinationSurvivesTheRoundTrip()
     {
         final QuantumMirror before =
-            new QuantumMirror("New", new MirrorBlock("world", 1, 2, 3), null);
+            new QuantumMirror("New", new BlockPlace("world", 1, 2, 3), null);
 
         final QuantumMirror after = roundTrip(before);
 
@@ -102,10 +104,10 @@ class MirrorYamlManagerTest
     @Test
     void fractionalCoordinatesAndFacingAreNotRounded()
     {
-        final MirrorPoint exact = new MirrorPoint("w", 0.5, 64.0625, -0.5, 177.5f, -12.25f);
+        final Place exact = new Place("w", 0.5, 64.0625, -0.5, 177.5f, -12.25f);
 
-        final MirrorPoint after = roundTrip(
-            new QuantumMirror("M", new MirrorBlock("w", 0, 64, 0), exact)).destination();
+        final Place after = roundTrip(
+            new QuantumMirror("M", new BlockPlace("w", 0, 64, 0), exact)).destination();
 
         assertEquals(exact, after,
             "a rounded yaw turns an arriving player to face a wall they were meant to face away from");
@@ -116,7 +118,7 @@ class MirrorYamlManagerTest
     void aWorldNameWithAColonSurvives()
     {
         final QuantumMirror before = new QuantumMirror("M",
-            new MirrorBlock("my:museum", 5, 64, 5), new MirrorPoint("other", 0, 64, 0, 0, 0));
+            new BlockPlace("my:museum", 5, 64, 5), new Place("other", 0, 64, 0, 0, 0));
 
         assertEquals(before.banner(), roundTrip(before).banner());
     }
@@ -159,20 +161,20 @@ class MirrorYamlManagerTest
         when(plugin.getDataFolder()).thenReturn(dataFolder);
 
         MirrorManager.clear();
-        MirrorManager.add(new QuantumMirror("Museum", new MirrorBlock("world", 12, 64, -30),
-            new MirrorPoint("snapshot_1_18", 100.5, 65.0, -20.5, 202.5f, 0.0f)));
-        MirrorManager.add(new QuantumMirror("Unpointed", new MirrorBlock("world", 20, 64, 0), null));
+        MirrorManager.add(new QuantumMirror("Museum", new BlockPlace("world", 12, 64, -30),
+            new Place("snapshot_1_18", 100.5, 65.0, -20.5, 202.5f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("Unpointed", new BlockPlace("world", 20, 64, 0), null));
 
         MirrorYamlManager.saveAll();
         MirrorManager.clear();
         final int loaded = MirrorYamlManager.loadAll();
 
         assertEquals(2, loaded, "both mirrors should come back");
-        assertEquals(new MirrorPoint("snapshot_1_18", 100.5, 65.0, -20.5, 202.5f, 0.0f),
+        assertEquals(new Place("snapshot_1_18", 100.5, 65.0, -20.5, 202.5f, 0.0f),
             MirrorManager.byName("Museum").destination());
         assertNotNull(MirrorManager.byName("Unpointed"), "including the one going nowhere yet");
         assertNull(MirrorManager.byName("Unpointed").destination());
-        assertNotNull(MirrorManager.at(new MirrorBlock("world", 12, 64, -30)),
+        assertNotNull(MirrorManager.at(new BlockPlace("world", 12, 64, -30)),
             "and the block index is rebuilt, or the banner stops answering after a restart");
     }
 
@@ -217,8 +219,8 @@ class MirrorYamlManagerTest
     {
         MirrorManager.clear();
 
-        MirrorManager.add(new QuantumMirror(null, new MirrorBlock("world", 1, 2, 3), null));
-        MirrorManager.add(new QuantumMirror("  ", new MirrorBlock("world", 4, 5, 6), null));
+        MirrorManager.add(new QuantumMirror(null, new BlockPlace("world", 1, 2, 3), null));
+        MirrorManager.add(new QuantumMirror("  ", new BlockPlace("world", 4, 5, 6), null));
 
         assertEquals(0, MirrorManager.count(),
             "a nameless mirror has no key, so it must be refused rather than thrown over");
@@ -270,7 +272,7 @@ class MirrorYamlManagerTest
     @Test
     void keepsANamedLookAcrossARoundTrip()
     {
-        final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
+        final QuantumMirror before = new QuantumMirror("M", new BlockPlace("world", 1, 2, 3),
             null).withLook(MirrorLook.named("cavern"));
 
         final QuantumMirror after =
@@ -284,14 +286,14 @@ class MirrorYamlManagerTest
     @Test
     void keepsAStartAcrossARoundTripAndWritesNoneWhenThereIsNone()
     {
-        final QuantumMirror before = new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 2, 3),
+        final QuantumMirror before = new QuantumMirror("archive", new BlockPlace("world_2011", 1, 2, 3),
             null).withStart("hub");
 
         final QuantumMirror after =
             MirrorYamlManager.readMirror("archive", MirrorYamlManager.writeMirror(before));
 
         assertEquals("hub", after.start());
-        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new BlockPlace("world", 1, 2, 3), null))
             .containsKey("Start"), "an ordinary mirror's entry reads the way it always did");
     }
 
@@ -299,13 +301,13 @@ class MirrorYamlManagerTest
     @Test
     void keepsTheWidthAcrossARoundTripAndWritesNoneForOneWide()
     {
-        final QuantumMirror before = new QuantumMirror("hall", new MirrorBlock("world", 1, 2, 3),
-            new MirrorPoint("world", 1.01, 1, 3.5, 180f, 0f)).withWidth(2);
+        final QuantumMirror before = new QuantumMirror("hall", new BlockPlace("world", 1, 2, 3),
+            new Place("world", 1.01, 1, 3.5, 180f, 0f)).withWidth(2);
 
         final QuantumMirror after = MirrorYamlManager.readMirror("hall", MirrorYamlManager.writeMirror(before));
 
         assertEquals(2, after.width());
-        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new BlockPlace("world", 1, 2, 3), null))
             .containsKey("Width"));
     }
 
@@ -314,7 +316,7 @@ class MirrorYamlManagerTest
     {
         final MirrorView seen = new MirrorView("DRIPSTONE_CAVES",
             List.of(DyeColor.GRAY, DyeColor.BROWN), true);
-        final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
+        final QuantumMirror before = new QuantumMirror("M", new BlockPlace("world", 1, 2, 3),
             null).withLook(MirrorLook.seen(seen));
 
         final QuantumMirror after =
@@ -334,7 +336,7 @@ class MirrorYamlManagerTest
     void writesNothingExtraForAnOrdinaryMirror()
     {
         final Map<String, Object> written = MirrorYamlManager.writeMirror(
-            new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null));
+            new QuantumMirror("M", new BlockPlace("world", 1, 2, 3), null));
 
         assertFalse(written.containsKey("Display"));
         assertFalse(written.containsKey("Mode"));

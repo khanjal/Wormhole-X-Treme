@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.logging.Level;
 
@@ -7,18 +7,21 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
+import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
- * The sweep that offers every mirror to {@link MirrorWindows}, which draws the ones hung on a wall.
+ * The sweep that offers every mirror to {@link Windows}, which draws the ones hung on a wall.
  *
  * <p>It runs forever, on a timer, so the order of the checks is the design. Before anything
  * touches a block it has already ruled out mirrors going nowhere, worlds that are not loaded and
  * chunks that are not loaded.
  */
-public final class MirrorProximity
+public final class WindowSweep
 {
     /** Static state only. */
-    private MirrorProximity()
+    private WindowSweep()
     {
     }
 
@@ -43,13 +46,13 @@ public final class MirrorProximity
     /** @return the sweep, for the scheduler */
     public static Runnable createTicker()
     {
-        return MirrorProximity::tick;
+        return WindowSweep::tick;
     }
 
     /** Forgets every view, for a test or a reload. */
     public static void clear()
     {
-        MirrorWindows.clear();
+        Windows.clear();
     }
 
     /**
@@ -60,7 +63,7 @@ public final class MirrorProximity
      */
     public static void release(final QuantumMirror mirror)
     {
-        MirrorWindows.release(mirror);
+        Windows.release(mirror);
     }
 
     /**
@@ -75,18 +78,18 @@ public final class MirrorProximity
     public static void forget(final QuantumMirror mirror)
     {
         release(mirror);
-        MirrorCaptures.forget(mirror);
+        Captures.forget(mirror);
         MirrorNetwork.forget(mirror.name());
     }
 
     /** Takes every view back, so the world is what everybody sees, as the plugin stops. */
     public static void restoreAll()
     {
-        MirrorWindows.restoreAll();
+        Windows.restoreAll();
     }
 
     /**
-     * One pass over every mirror, offering each to {@link MirrorWindows}.
+     * One pass over every mirror, offering each to {@link Windows}.
      *
      * <p>Nothing marks a window in the file, so every mirror with somewhere to go has its banner
      * read to find out.
@@ -115,11 +118,11 @@ public final class MirrorProximity
         }
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.
-        MirrorWindows.finish();
+        Windows.finish();
     }
 
     /**
-     * Offers a mirror to {@link MirrorWindows}, which takes it if its banner hangs on a wall.
+     * Offers a mirror to {@link Windows}, which takes it if its banner hangs on a wall.
      */
     private static void offerWindow(final QuantumMirror mirror)
     {
@@ -131,13 +134,13 @@ public final class MirrorProximity
         }
         // Nobody at it any more: back to its own room.
         MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null));
-        MirrorWindows.offer(mirror, block);
+        Windows.offer(mirror, block);
     }
 
     /** The live banner block, or null if it cannot be reached or is no longer a banner. */
     private static Block bannerOf(final QuantumMirror mirror)
     {
-        final MirrorBlock at = mirror.banner();
+        final BlockPlace at = mirror.banner();
         final World world = Bukkit.getWorld(at.worldName());
         if (world == null)
         {

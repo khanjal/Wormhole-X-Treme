@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -11,6 +13,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -174,6 +177,44 @@ class CustomCommandTest
         verify(sender).sendMessage(contains("Invalid boolean option: yes"));
         assertFalse(s.isGateCustom());
         assertNothingSaved();
+    }
+
+    /** Gives a gate the four overrides an old {@code custom true} copied from the shape. */
+    private static void snapshot(final Stargate gate)
+    {
+        gate.setGateCustomStructureMaterial(Material.OBSIDIAN);
+        gate.setGateCustomPortalMaterial(Material.WATER);
+        gate.setGateCustomIrisMaterial(Material.STONE);
+        gate.setGateCustomLightMaterial(Material.GLOWSTONE);
+    }
+
+    /**
+     * {@code -clean} reports, then on {@code -confirm} clears, only the gates carrying the
+     * whole default snapshot.
+     *
+     * <p>A gate with even one override that differs had it chosen by somebody, and clearing
+     * that would throw away a deliberate setting along with the stale copies.
+     */
+    @Test
+    void cleanTouchesOnlyTheGatesCarryingTheWholeDefaultSnapshot()
+    {
+        final Stargate snapshotted = gate("alpha", true);
+        snapshot(snapshotted);
+        final Stargate chosen = gate("beta", true);
+        snapshot(chosen);
+        chosen.setGateCustomIrisMaterial(Material.GLASS);
+
+        assertTrue(run("custom", "-clean"));
+        verify(sender).sendMessage(contains("1 gate(s) carry"));
+        verify(sender).sendMessage(contains("alpha"));
+        verify(sender, never()).sendMessage(contains("beta"));
+        assertNothingSaved();
+
+        assertTrue(run("custom", "-clean", "-confirm"));
+        assertNull(snapshotted.getGateCustomStructureMaterial(), "the snapshot is cleared");
+        assertEquals(Material.GLASS, chosen.getGateCustomIrisMaterial(), "a chosen iris is kept");
+        assertSaved(snapshotted);
+        db.verify(() -> StargateDBManager.saveStargate(chosen), never());
     }
 
     /** The -all form reaches and saves every gate that has a shape, and skips one without. */

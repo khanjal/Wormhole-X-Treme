@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 
 /**
  * Every mirror is on the network: it shows its own room until somebody at it chooses another.
@@ -59,8 +61,8 @@ class MirrorNetworkTest
     /** A mirror storing its own room, in a world of its own, as a new mirror does. */
     private static QuantumMirror mirror(final String name, final String world)
     {
-        final QuantumMirror mirror = new QuantumMirror(name, new MirrorBlock(world, 10, 64, 10),
-            new MirrorPoint(world, 10.5, 63, 10.5, 180f, 0f));
+        final QuantumMirror mirror = new QuantumMirror(name, new BlockPlace(world, 10, 64, 10),
+            new Place(world, 10.5, 63, 10.5, 180f, 0f));
         MirrorManager.add(mirror);
         return mirror;
     }
@@ -80,7 +82,7 @@ class MirrorNetworkTest
         when(banner.getY()).thenReturn(70);
         when(banner.getZ()).thenReturn(-3);
 
-        assertEquals(new MirrorPoint("world", 4.5, 69, -2.5, 270f, 0f), MirrorNetwork.roomOf(banner));
+        assertEquals(new Place("world", 4.5, 69, -2.5, 270f, 0f), MirrorNetwork.roomOf(banner));
     }
 
     /** A new mirror shows its own room, and a mirror from before the network does not. */
@@ -88,8 +90,8 @@ class MirrorNetworkTest
     void aMirrorStoringItsOwnRoomReflectsAndOnePointedElsewhereDoesNot()
     {
         final QuantumMirror library = mirror("library", "world");
-        final QuantumMirror old = new QuantumMirror("old", new MirrorBlock("world", 40, 64, 40),
-            new MirrorPoint("world_nether", 0, 64, 0, 0f, 0f));
+        final QuantumMirror old = new QuantumMirror("old", new BlockPlace("world", 40, 64, 40),
+            new Place("world_nether", 0, 64, 0, 0f, 0f));
 
         assertTrue(MirrorNetwork.reflects(library));
         assertFalse(MirrorNetwork.reflects(old), "an old mirror still opens where it was pointed");
@@ -208,8 +210,8 @@ class MirrorNetworkTest
     {
         mirror("hub", "world");
         mirror("end", "world_the_end");
-        final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
-            new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
+        final QuantumMirror archive = new QuantumMirror("archive", new BlockPlace("world_2011", 10, 64, 10),
+            new Place("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
         MirrorManager.add(archive);
 
         assertTrue(MirrorNetwork.reflects(archive), "off until somebody right-clicks it");
@@ -231,8 +233,8 @@ class MirrorNetworkTest
     @Test
     void aStartThatIsGoneIsLeftOutOfTheList()
     {
-        final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
-            new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
+        final QuantumMirror archive = new QuantumMirror("archive", new BlockPlace("world_2011", 10, 64, 10),
+            new Place("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
         MirrorManager.add(archive);
 
         assertTrue(MirrorNetwork.reflects(archive));
@@ -253,7 +255,7 @@ class MirrorNetworkTest
         when(far.getLocation()).thenReturn(new Location(world, 10.5, 63, 40.5));
         final Player nowhere = mock(Player.class);
         when(world.getPlayers()).thenReturn(List.of(nowhere, clicker, far));
-        final MirrorBlock banner = new MirrorBlock("world", 10, 64, 10);
+        final BlockPlace banner = new BlockPlace("world", 10, 64, 10);
 
         assertFalse(MirrorNetwork.anybodyNear(world, banner, clicker), "thirty blocks away is not at it");
         assertTrue(MirrorNetwork.anybodyNear(world, banner, null), "the clicker is, when counted");

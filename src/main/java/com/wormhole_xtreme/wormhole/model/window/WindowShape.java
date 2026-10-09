@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import org.bukkit.block.BlockFace;
  * wall banner hangs down, so the opening runs down from the banner's row. Only a wall banner makes
  * a window; one on a post has nothing round it to hide its room past its edges.
  *
- * <p>Plain numbers only, so all of it is testable without a server. {@link MirrorWindows} is the
+ * <p>Plain numbers only, so all of it is testable without a server. {@link Windows} is the
  * part that reads blocks and sends them.
  *
  * <p>Right through the opening is right at the far side, not left, for a window onto another
@@ -30,8 +30,8 @@ import org.bukkit.block.BlockFace;
  * @param height
  *            how tall the opening is: a banner's two, or a gate's own opening
  */
-public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, MirrorWindow.Spot far,
-    MirrorWindow.Spot ahead, boolean mirrored, int width, int height)
+public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowShape.Spot far,
+    WindowShape.Spot ahead, boolean mirrored, int width, int height)
 {
     /**
      * A window one banner wide onto somewhere, not a reflection.
@@ -45,7 +45,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * @param ahead
      *            one step the way a traveller faces on arrival
      */
-    public MirrorWindow(final Spot base, final Spot into, final Spot far, final Spot ahead)
+    public WindowShape(final Spot base, final Spot into, final Spot far, final Spot ahead)
     {
         this(base, into, far, ahead, false, 1);
     }
@@ -56,21 +56,21 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * @param width
      *            one banner or two; anything wider is two
      */
-    public MirrorWindow(final Spot base, final Spot into, final Spot far, final Spot ahead,
+    public WindowShape(final Spot base, final Spot into, final Spot far, final Spot ahead,
         final boolean mirrored, final int width)
     {
         this(base, into, far, ahead, mirrored, (width >= 2) ? 2 : 1, BANNER_HEIGHT);
     }
 
     /** An opening is at least a block each way. */
-    public MirrorWindow
+    public WindowShape
     {
         width = Math.max(1, width);
         height = Math.max(1, height);
     }
 
     /** How tall a mirror's opening is: the banner's cloth. */
-    static final int BANNER_HEIGHT = 2;
+    public static final int BANNER_HEIGHT = 2;
 
     /** The furthest a candidate may be from the opening along its face, however close the eye. */
     static final int WIDEST = 64;
@@ -118,7 +118,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
          *            the block's y
          * @return the part of the block, as {@code {acrossMin, acrossMax, yMin, yMax}} in face
          *         coordinates, on which a drawn block cannot be seen anywhere it should not be;
-         *         or {@link MirrorWindow#HIDES_NOTHING} for none of it
+         *         or {@link WindowShape#HIDES_NOTHING} for none of it
          */
         double[] clear(int across, int y);
     }
@@ -147,7 +147,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            where the mirror goes
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination)
+    public static WindowShape of(final BlockPlace banner, final BlockFace facing, final Place destination)
     {
         return of(banner, facing, destination, false);
     }
@@ -164,7 +164,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            than turned to face the viewer
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination,
+    public static WindowShape of(final BlockPlace banner, final BlockFace facing, final Place destination,
         final boolean mirrored)
     {
         return of(banner, facing, destination, mirrored, 1);
@@ -185,7 +185,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            one banner or two, the second to the right of the first
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination,
+    public static WindowShape of(final BlockPlace banner, final BlockFace facing, final Place destination,
         final boolean mirrored, final int width)
     {
         if ((banner == null) || (destination == null) || (facing == null) || !isCardinal(facing))
@@ -195,7 +195,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         final Spot into = new Spot(-facing.getModX(), 0, -facing.getModZ());
         // A wall banner hangs down from where it is hung, so the opening runs down from it.
         final int bottom = banner.y() - (BANNER_HEIGHT - 1);
-        return new MirrorWindow(
+        return new WindowShape(
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,
             new Spot(floor(destination.x()), floor(destination.y()), floor(destination.z())),
@@ -220,13 +220,13 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            the opening's height
      * @return the window
      */
-    public static MirrorWindow through(final Spot base, final Spot into, final MirrorPoint arrival,
+    public static WindowShape through(final Spot base, final Spot into, final Place arrival,
         final int width, final int height)
     {
         final Spot ahead = aheadOf(arrival.yaw());
         final Spot farRight = rightOf(ahead);
         final int middle = (width - 1) / 2;
-        return new MirrorWindow(base, into,
+        return new WindowShape(base, into,
             new Spot(floor(arrival.x()) - (middle * farRight.x()), floor(arrival.y()),
                 floor(arrival.z()) - (middle * farRight.z())),
             ahead, false, width, height);
@@ -239,7 +239,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            Minecraft yaw: 0 is south, and it turns clockwise through west
      * @return one step that way
      */
-    static Spot aheadOf(final float yaw)
+    public static Spot aheadOf(final float yaw)
     {
         return switch (Math.floorMod(Math.round(yaw / 90.0f), 4))
         {
@@ -443,7 +443,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *
      * @return true if a line of sight through one could instead pass through the other
      */
-    boolean sharesFace(final MirrorWindow other)
+    boolean sharesFace(final WindowShape other)
     {
         return into.equals(other.into) && (face() == other.face());
     }

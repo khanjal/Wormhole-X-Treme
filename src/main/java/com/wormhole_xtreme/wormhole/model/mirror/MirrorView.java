@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
@@ -83,7 +84,7 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
      *            where the mirror comes out
      * @return what a player standing there would see, or null if the world is not loaded
      */
-    public static MirrorView look(final MirrorPoint point)
+    public static MirrorView look(final Place point)
     {
         final Location at = (point == null) ? null : point.toLocation();
         if (at == null)
@@ -175,13 +176,7 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         entries.sort(Comparator.<Map.Entry<DyeColor, Integer>>comparingInt(Map.Entry::getValue)
             .reversed().thenComparing(entry -> entry.getKey().name()));
 
-        final List<DyeColor> colours = new ArrayList<>();
-        for (final Map.Entry<DyeColor, Integer> entry : entries.subList(0,
-            Math.min(WANTED, entries.size())))
-        {
-            colours.add(entry.getKey());
-        }
-        return colours;
+        return entries.stream().limit(WANTED).map(Map.Entry::getKey).toList();
     }
 
     /**

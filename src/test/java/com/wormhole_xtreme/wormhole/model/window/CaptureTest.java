@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>The windows draw from these and nothing else, so a capture that read back wrong would be a
  * mirror onto the wrong place, and one that pruned wrong would be a hillside with holes in it.
  */
-class MirrorCaptureTest
+class CaptureTest
 {
     private final BlockData air = named("minecraft:air", false);
     private final BlockData stone = named("minecraft:stone", true);
@@ -49,9 +49,9 @@ class MirrorCaptureTest
     }
 
     /** A 4×4×4 box at the origin. */
-    private MirrorCapture.Builder box()
+    private Capture.Builder box()
     {
-        return new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 4, 4, 4), air);
+        return new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 4, 4, 4), air);
     }
 
     /** A fluid, which does not occlude as Bukkit counts it, whatever a player can see through it. */
@@ -65,10 +65,10 @@ class MirrorCaptureTest
     @Test
     void answersWhatWasPutAndAirForTheRest()
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         builder.put(1, 2, 3, stone);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(stone, capture.at(1, 2, 3));
         assertTrue(capture.isAir(0, 0, 0), "never written, so air");
@@ -95,13 +95,13 @@ class MirrorCaptureTest
         for (final boolean gate : new boolean[] { false, true })
         {
             // A box 21 wide, 12 tall and 9 deep, arrival at (10, 2, 0) facing +z.
-            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 12, 9), air);
+            final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 12, 9), air);
             builder.put(1, 2, 0, stone);
             builder.put(19, 2, 0, stone);
             builder.put(10, 8, 0, stone);
-            builder.keepOnlySeen(gate ? new MirrorCapture.Arrival(10, 2, 0, 0, 1, 5, 5) : new MirrorCapture.Arrival(10, 2, 0, 0, 1), 8);
+            builder.keepOnlySeen(gate ? new Capture.Arrival(10, 2, 0, 0, 1, 5, 5) : new Capture.Arrival(10, 2, 0, 0, 1), 8);
 
-            final MirrorCapture capture = builder.build();
+            final Capture capture = builder.build();
 
             if (gate)
             {
@@ -136,11 +136,11 @@ class MirrorCaptureTest
     {
         final int half = 172;
         final int wall = 160;
-        final MirrorCapture.Builder builder = floorAndWall(half, wall);
-        builder.keepOnlySeen(new MirrorCapture.Arrival(half, 1, 0, 0, 1, MirrorCaptures.GATE_OPENING,
-            MirrorCaptures.GATE_OPENING), wall + 70);
+        final Capture.Builder builder = floorAndWall(half, wall);
+        builder.keepOnlySeen(new Capture.Arrival(half, 1, 0, 0, 1, Captures.GATE_OPENING,
+            Captures.GATE_OPENING), wall + 70);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         final List<String> missed = new ArrayList<>();
         for (int x = 0; x <= (2 * half); x++)
@@ -173,10 +173,10 @@ class MirrorCaptureTest
     {
         final int half = 40;
         final int deep = 122;
-        final MirrorCapture.Builder builder = floorAndWall(half, deep);
-        builder.keepOnlySeen(new MirrorCapture.Arrival(half, 1, 0, 0, 1, 17, 17), deep + 20);
+        final Capture.Builder builder = floorAndWall(half, deep);
+        builder.keepOnlySeen(new Capture.Arrival(half, 1, 0, 0, 1, 17, 17), deep + 20);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         final List<String> missed = new ArrayList<>();
         for (int x = half - 20; x <= (half + 20); x++)
@@ -200,22 +200,22 @@ class MirrorCaptureTest
     void aSiftNoLongerWantedStopsAtItsNextStartPoint()
     {
         final int[] asked = { 0 };
-        final MirrorCapture.Builder wanted = floorAndWall(20, 12);
+        final Capture.Builder wanted = floorAndWall(20, 12);
         wanted.stopWhen(() -> (++asked[0]) < 0);
-        wanted.keepOnlySeen(new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18), 16);
+        wanted.keepOnlySeen(new Capture.Arrival(20, 1, 0, 0, 1, 18, 18), 16);
         assertEquals(90, asked[0], "asked once a start point, not once a ray");
 
         asked[0] = 0;
-        final MirrorCapture.Builder forgotten = floorAndWall(20, 12);
+        final Capture.Builder forgotten = floorAndWall(20, 12);
         forgotten.stopWhen(() -> (++asked[0]) > 3);
-        final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival(20, 1, 0, 0, 1, 18, 18);
+        final Capture.Arrival arrival = new Capture.Arrival(20, 1, 0, 0, 1, 18, 18);
 
         assertThrows(CancellationException.class, () -> forgotten.keepOnlySeenWithin(arrival, 16, 8, 1));
         assertEquals(4, asked[0], "stopped at the first start point after it was forgotten");
     }
 
     /** Notes a block that should be the far side's stone but was not kept. */
-    private void missedAt(final MirrorCapture capture, final int x, final int y, final int z, final String what,
+    private void missedAt(final Capture capture, final int x, final int y, final int z, final String what,
         final List<String> missed)
     {
         if (capture.at(x, y, z) != stone)
@@ -235,20 +235,20 @@ class MirrorCaptureTest
     @Test
     void aMirrorsRaysAreAsTheyWere()
     {
-        final MirrorCapture.Arrival mirror = new MirrorCapture.Arrival(30, 1, 0, 0, 1);
-        final MirrorCapture.Arrival gate = new MirrorCapture.Arrival(30, 1, 0, 0, 1, 18, 18);
+        final Capture.Arrival mirror = new Capture.Arrival(30, 1, 0, 0, 1);
+        final Capture.Arrival gate = new Capture.Arrival(30, 1, 0, 0, 1, 18, 18);
         boolean gateMoved = false;
         for (int point = 1; point <= 90; point++)
         {
             for (int axis = 0; axis < 2; axis++)
             {
-                assertEquals(0.5, MirrorCapture.Builder.shiftFor(mirror, point, axis), "point " + point + " axis " + axis);
-                gateMoved |= MirrorCapture.Builder.shiftFor(gate, point, axis) != 0.5;
+                assertEquals(0.5, Capture.Builder.shiftFor(mirror, point, axis), "point " + point + " axis " + axis);
+                gateMoved |= Capture.Builder.shiftFor(gate, point, axis) != 0.5;
             }
         }
         assertTrue(gateMoved, "a gate's grids are staggered, so this is not comparing like with like");
 
-        final MirrorCapture.Builder builder = postsScene();
+        final Capture.Builder builder = postsScene();
         builder.keepOnlySeen(mirror, 56);
         final long[] print = { 0L, 0L };
         builder.build().forEachKept((x, y, z, isAir) ->
@@ -262,9 +262,9 @@ class MirrorCaptureTest
     }
 
     /** Flat ground sixty blocks deep, with single blocks standing on it in widening rows, every third block across. */
-    private MirrorCapture.Builder postsScene()
+    private Capture.Builder postsScene()
     {
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 61, 16, 60), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 61, 16, 60), air);
         for (int x = 0; x < 61; x++)
         {
             for (int z = 0; z < 60; z++)
@@ -286,10 +286,10 @@ class MirrorCaptureTest
     }
 
     /** Open ground {@code wall} blocks deep with a wall across its end, {@code half} either side of x {@code half}. */
-    private MirrorCapture.Builder floorAndWall(final int half, final int wall)
+    private Capture.Builder floorAndWall(final int half, final int wall)
     {
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true,
-            new MirrorCapture.Box(0, 0, 0, (2 * half) + 1, 24, wall + 2), air);
+        final Capture.Builder builder = new Capture.Builder("far", true,
+            new Capture.Box(0, 0, 0, (2 * half) + 1, 24, wall + 2), air);
         for (int x = 0; x <= (2 * half); x++)
         {
             for (int z = 0; z < wall; z++)
@@ -307,11 +307,11 @@ class MirrorCaptureTest
     @Test
     void theTopOfAColumnIsItsHighestBlockThatIsNotAir()
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         builder.put(2, 0, 2, stone);
         builder.put(2, 3, 2, glass);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertEquals(3, capture.top(2, 2));
         assertEquals(-1, capture.top(0, 0), "one below the box for an empty column");
@@ -328,7 +328,7 @@ class MirrorCaptureTest
     @Test
     void pruningBlanksOnlyWhatIsBuriedOnAllSides()
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         for (int x = 0; x < 4; x++)
         {
             for (int y = 0; y < 4; y++)
@@ -342,7 +342,7 @@ class MirrorCaptureTest
         builder.put(1, 1, 1, glass);
         builder.prune();
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertTrue(capture.isBuried(2, 2, 2), "buried in stone on every side");
         assertFalse(capture.isAir(2, 2, 2), "and not air, which would be drawn as a hole");
@@ -362,7 +362,7 @@ class MirrorCaptureTest
     @Test
     void pruningKeepsTheLayerUnderTheSurface()
     {
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 7, 7, 7), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 7, 7, 7), air);
         for (int x = 0; x < 7; x++)
         {
             for (int y = 0; y < 7; y++)
@@ -376,7 +376,7 @@ class MirrorCaptureTest
         builder.put(3, 3, 0, air);
         builder.prune();
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(stone, capture.at(3, 3, 1), "the surface, with a face on the air");
         assertSame(stone, capture.at(3, 3, 2), "the layer under it, kept in case");
@@ -402,7 +402,7 @@ class MirrorCaptureTest
     {
         // A box 9 wide, 12 tall and 9 deep, arrival at (4, 2, 0) facing +z; a stone wall right across
         // at z 4, to the top.
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 9, 12, 9), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 9, 12, 9), air);
         for (int x = 0; x < 9; x++)
         {
             for (int y = 0; y < 12; y++)
@@ -422,9 +422,9 @@ class MirrorCaptureTest
         // A pane of glass in the way, with stone behind it: what a viewer sees through the pane.
         builder.put(6, 2, 2, glass);
         builder.put(6, 2, 3, stone);
-        builder.keepOnlySeen(new MirrorCapture.Arrival(4, 2, 0, 0, 1), 8);
+        builder.keepOnlySeen(new Capture.Arrival(4, 2, 0, 0, 1), 8);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(stone, capture.at(4, 2, 4), "the wall, straight ahead");
         assertSame(stone, capture.at(1, 3, 3), "to one side, within a block sideways per block in");
@@ -456,7 +456,7 @@ class MirrorCaptureTest
         {
             // A box 9 wide, 12 tall and 9 deep, arrival at (4, 2, 0) facing +z; a wall of the fluid
             // right across at z 4, and stone two and three blocks behind it.
-            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 9, 12, 9), air);
+            final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 9, 12, 9), air);
             for (int x = 0; x < 9; x++)
             {
                 for (int y = 0; y < 12; y++)
@@ -466,9 +466,9 @@ class MirrorCaptureTest
             }
             builder.put(4, 2, 6, stone);
             builder.put(4, 2, 7, stone);
-            builder.keepOnlySeen(new MirrorCapture.Arrival(4, 2, 0, 0, 1), 8);
+            builder.keepOnlySeen(new Capture.Arrival(4, 2, 0, 0, 1), 8);
 
-            final MirrorCapture capture = builder.build();
+            final Capture capture = builder.build();
 
             assertSame(wall, capture.at(4, 2, 4), "the wall itself is seen either way");
             if (wall == lava)
@@ -497,7 +497,7 @@ class MirrorCaptureTest
     {
         final BlockData leaves = named("minecraft:oak_leaves", false);
         when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 5, 60), air);
         for (int x = 0; x < 3; x++)
         {
             for (int y = 0; y < 5; y++)
@@ -508,13 +508,13 @@ class MirrorCaptureTest
                 }
             }
         }
-        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+        builder.keepOnlySeen(new Capture.Arrival(1, 2, 0, 0, 1), 58);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(leaves, capture.at(1, 2, 3), "the first few layers are seen");
-        assertSame(leaves, capture.at(1, 2, MirrorCapture.Builder.LEAF_SIGHT), "as far as the leaves' sight");
-        assertTrue(capture.isBuried(1, 2, MirrorCapture.Builder.LEAF_SIGHT + 4), "a few past it is hidden by the leaves in front");
+        assertSame(leaves, capture.at(1, 2, Capture.Builder.LEAF_SIGHT), "as far as the leaves' sight");
+        assertTrue(capture.isBuried(1, 2, Capture.Builder.LEAF_SIGHT + 4), "a few past it is hidden by the leaves in front");
         assertTrue(capture.isBuried(1, 2, 40), "and so is the rest of the forest");
     }
 
@@ -529,7 +529,7 @@ class MirrorCaptureTest
     {
         final BlockData leaves = named("minecraft:oak_leaves", false);
         when(leaves.getMaterial()).thenReturn(Material.OAK_LEAVES);
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 5, 60), air);
         for (int x = 0; x < 3; x++)
         {
             for (int y = 0; y < 5; y++)
@@ -540,14 +540,14 @@ class MirrorCaptureTest
                 }
             }
         }
-        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+        builder.keepOnlySeen(new Capture.Arrival(1, 2, 0, 0, 1), 58);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(water, capture.at(1, 2, 20), "the water, within its own sight");
         // Leaves 21 to 26 seen through, and the ray ends on the seventh, at 27. Counted together with
         // the water it would end on the first, at 21, and keep no further than the two layers behind it.
-        assertSame(leaves, capture.at(1, 2, 20 + MirrorCapture.Builder.LEAF_SIGHT + 1),
+        assertSame(leaves, capture.at(1, 2, 20 + Capture.Builder.LEAF_SIGHT + 1),
             "the leaves past it, with their own sight to spend");
     }
 
@@ -564,7 +564,7 @@ class MirrorCaptureTest
     {
         for (final BlockData fill : List.of(water, glass))
         {
-            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 5, 60), air);
+            final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 5, 60), air);
             for (int x = 0; x < 3; x++)
             {
                 for (int y = 0; y < 5; y++)
@@ -575,9 +575,9 @@ class MirrorCaptureTest
                     }
                 }
             }
-            builder.keepOnlySeen(new MirrorCapture.Arrival(1, 2, 0, 0, 1), 58);
+            builder.keepOnlySeen(new Capture.Arrival(1, 2, 0, 0, 1), 58);
 
-            final MirrorCapture capture = builder.build();
+            final Capture capture = builder.build();
 
             assertSame(fill, capture.at(1, 2, 20), "twenty blocks in is seen through either");
             if (fill == water)
@@ -606,17 +606,17 @@ class MirrorCaptureTest
     @Test
     void aCaptureThatKeepsTooMuchIsCutShorterUntilItFitsButNeverBelowTheDepth()
     {
-        final MirrorCapture.Builder generous = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+        final Capture.Builder generous = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
         generous.fillBelow(21, glass);
-        assertEquals(32, generous.keepOnlySeenWithin(new MirrorCapture.Arrival(10, 2, 0, 0, 1), 32, 8, 1_000_000),
+        assertEquals(32, generous.keepOnlySeenWithin(new Capture.Arrival(10, 2, 0, 0, 1), 32, 8, 1_000_000),
             "within a generous budget the reach asked for is the reach kept");
         assertSame(glass, generous.build().at(10, 2, 30), "and the room is seen to the end of it");
 
-        final MirrorCapture.Builder tight = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+        final Capture.Builder tight = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
         tight.fillBelow(21, glass);
-        final int kept = tight.keepOnlySeenWithin(new MirrorCapture.Arrival(10, 2, 0, 0, 1), 32, 8, 2000);
+        final int kept = tight.keepOnlySeenWithin(new Capture.Arrival(10, 2, 0, 0, 1), 32, 8, 2000);
         assertEquals(8, kept, "cut a quarter at a time until it fits, and stopped at the floor: 32, 24, 18, 13, 9, 8");
-        final MirrorCapture capture = tight.build();
+        final Capture capture = tight.build();
         assertSame(glass, capture.at(10, 2, 5), "the room to the depth is still there");
         assertTrue(capture.isBuried(10, 2, 20), "and past the shortened reach it is left to the real world");
     }
@@ -630,24 +630,24 @@ class MirrorCaptureTest
     @Test
     void aGateCaptureKeepsItsWholeReachWhereAMirrorsIsCutToABudget()
     {
-        final int before = MirrorCaptures.mostKept;
-        MirrorCaptures.mostKept = 2000;
+        final int before = Captures.mostKept;
+        Captures.mostKept = 2000;
         try
         {
-            final MirrorCapture.Arrival arrival = new MirrorCapture.Arrival(10, 2, 0, 0, 1);
-            final MirrorCapture.Builder mirror = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+            final Capture.Arrival arrival = new Capture.Arrival(10, 2, 0, 0, 1);
+            final Capture.Builder mirror = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
             mirror.fillBelow(21, glass);
-            assertEquals(8, MirrorCaptures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
+            assertEquals(8, Captures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
                 "a mirror's capture is cut to the floor to fit the budget");
 
-            final MirrorCapture.Builder gate = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 21, 21, 41), air);
+            final Capture.Builder gate = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
             gate.fillBelow(21, glass);
-            assertEquals(32, MirrorCaptures.siftFor(MirrorCaptures.gateKey("far", 18, 18)).sift(gate, arrival, 32, 8),
+            assertEquals(32, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(gate, arrival, 32, 8),
                 "a gate's keeps the reach it was asked for");
         }
         finally
         {
-            MirrorCaptures.mostKept = before;
+            Captures.mostKept = before;
         }
     }
 
@@ -663,7 +663,7 @@ class MirrorCaptureTest
     void aMirrorFacingNorthOrWestSeesItsRoomPastItsOwnWall()
     {
         // Facing north: the arrival at z 7, its wall behind at z 8, a far wall across at z 3.
-        final MirrorCapture.Builder north = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 9, 9, 9), air);
+        final Capture.Builder north = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 9, 9, 9), air);
         for (int x = 0; x < 9; x++)
         {
             for (int y = 0; y < 9; y++)
@@ -672,14 +672,14 @@ class MirrorCaptureTest
                 north.put(x, y, 3, stone);
             }
         }
-        north.keepOnlySeen(new MirrorCapture.Arrival(4, 2, 7, 0, -1), 8);
-        final MirrorCapture northward = north.build();
+        north.keepOnlySeen(new Capture.Arrival(4, 2, 7, 0, -1), 8);
+        final Capture northward = north.build();
 
         assertTrue(northward.isAir(4, 2, 5), "the room in front of a north-facing mirror is seen");
         assertSame(stone, northward.at(4, 2, 3), "and so is the wall across it");
 
         // Facing west: the arrival at x 7, its wall behind at x 8, a far wall across at x 3.
-        final MirrorCapture.Builder west = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 9, 9, 9), air);
+        final Capture.Builder west = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 9, 9, 9), air);
         for (int z = 0; z < 9; z++)
         {
             for (int y = 0; y < 9; y++)
@@ -688,8 +688,8 @@ class MirrorCaptureTest
                 west.put(3, y, z, stone);
             }
         }
-        west.keepOnlySeen(new MirrorCapture.Arrival(7, 2, 4, -1, 0), 8);
-        final MirrorCapture westward = west.build();
+        west.keepOnlySeen(new Capture.Arrival(7, 2, 4, -1, 0), 8);
+        final Capture westward = west.build();
 
         assertTrue(westward.isAir(5, 2, 4), "the room in front of a west-facing mirror is seen");
         assertSame(stone, westward.at(3, 2, 4), "and so is the wall across it");
@@ -699,7 +699,7 @@ class MirrorCaptureTest
     @Test
     void aBuriedBlockSurvivesTheDiskAsBuried(@TempDir final File dir) throws IOException
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         for (int x = 0; x < 4; x++)
         {
             for (int y = 0; y < 4; y++)
@@ -714,7 +714,7 @@ class MirrorCaptureTest
         final File file = new File(dir, "buried.view");
 
         builder.build().save(file);
-        final MirrorCapture after = MirrorCapture.load(file);
+        final Capture after = Capture.load(file);
 
         assertTrue(after.isBuried(2, 2, 2));
         assertFalse(after.isBuried(0, 0, 0), "the edge");
@@ -735,7 +735,7 @@ class MirrorCaptureTest
         when(folder.isDirectory()).thenReturn(false, true);
         when(folder.mkdirs()).thenReturn(false);
 
-        MirrorCapture.makeFolder(folder);
+        Capture.makeFolder(folder);
 
         verify(folder).mkdirs();
     }
@@ -749,7 +749,7 @@ class MirrorCaptureTest
         when(folder.mkdirs()).thenReturn(false);
         when(folder.toString()).thenReturn("captures");
 
-        final IOException refused = assertThrows(IOException.class, () -> MirrorCapture.makeFolder(folder));
+        final IOException refused = assertThrows(IOException.class, () -> Capture.makeFolder(folder));
 
         assertTrue(refused.getMessage().contains("captures"), refused.getMessage());
     }
@@ -768,7 +768,7 @@ class MirrorCaptureTest
         box().build().save(file);
         rewriteVersion(file, 2);
 
-        final IOException refused = assertThrows(IOException.class, () -> MirrorCapture.load(file));
+        final IOException refused = assertThrows(IOException.class, () -> Capture.load(file));
 
         assertTrue(refused.getMessage().contains("version 2"), refused.getMessage());
     }
@@ -782,11 +782,11 @@ class MirrorCaptureTest
     @Test
     void whatIsKeptIsVisitedInOrderWithSeenAirMarked()
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         builder.put(3, 0, 0, stone);
         builder.put(0, 0, 3, glass);
         builder.put(1, 2, 1, air);
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertEquals(List.of("0,0,3", "1,2,1 air", "3,0,0"), visits(capture));
         assertEquals(3, capture.kept());
@@ -803,7 +803,7 @@ class MirrorCaptureTest
     @Test
     void aBlockPutOutOfOrderIsWhatItWasPutAsLast()
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         builder.put(2, 0, 0, stone);
         builder.put(0, 0, 0, glass);
         builder.put(2, 0, 0, glass);
@@ -811,7 +811,7 @@ class MirrorCaptureTest
         // Refused: a cleared block is a far banner's, and stays air whatever the second pass reads there.
         builder.put(0, 0, 0, stone);
 
-        final MirrorCapture capture = builder.build();
+        final Capture capture = builder.build();
 
         assertSame(glass, capture.at(2, 0, 0), "put twice, so the second");
         assertTrue(capture.isAir(0, 0, 0), "cleared after it was put, and not put over afterwards");
@@ -830,7 +830,7 @@ class MirrorCaptureTest
     {
         // A corridor three wide, arrival at (1, 1, 0) facing +z, a floor, and a block hanging in
         // the middle of the view at (1, 3, 4) with air seen under it and over it.
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, new MirrorCapture.Box(0, 0, 0, 3, 7, 10), air);
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 3, 7, 10), air);
         for (int x = 0; x < 3; x++)
         {
             for (int z = 0; z < 10; z++)
@@ -839,13 +839,13 @@ class MirrorCaptureTest
             }
         }
         builder.put(1, 3, 4, stone);
-        builder.keepOnlySeen(new MirrorCapture.Arrival(1, 1, 0, 0, 1), 8);
+        builder.keepOnlySeen(new Capture.Arrival(1, 1, 0, 0, 1), 8);
         builder.clear(1, 2, 4);
-        final MirrorCapture before = builder.build();
+        final Capture before = builder.build();
         final File file = new File(dir, "air.view");
 
         before.save(file);
-        final MirrorCapture after = MirrorCapture.load(file);
+        final Capture after = Capture.load(file);
 
         assertTrue(before.isAir(1, 1, 4) && !before.isBuried(1, 1, 4), "seen under the hanging block");
         assertSame(stone, before.at(1, 3, 4));
@@ -872,7 +872,7 @@ class MirrorCaptureTest
     }
 
     /** Every block {@code forEachKept} visits, in order, seen air marked. */
-    private static List<String> visits(final MirrorCapture capture)
+    private static List<String> visits(final Capture capture)
     {
         final List<String> visited = new ArrayList<>();
         capture.forEachKept((x, y, z, isAir) -> visited.add(x + "," + y + "," + z + (isAir ? " air" : "")));
@@ -897,14 +897,14 @@ class MirrorCaptureTest
     @Test
     void survivesTheDiskWithItsShapeNamesAndBlocks(@TempDir final File dir) throws IOException
     {
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", false, new MirrorCapture.Box(-3, 60, 7, 3, 5, 2), air);
+        final Capture.Builder builder = new Capture.Builder("far", false, new Capture.Box(-3, 60, 7, 3, 5, 2), air);
         builder.put(-2, 63, 8, stone);
         builder.put(-1, 60, 7, glass);
-        final MirrorCapture before = builder.build();
+        final Capture before = builder.build();
         final File file = new File(dir, "a.view");
 
         before.save(file);
-        final MirrorCapture after = MirrorCapture.load(file);
+        final Capture after = Capture.load(file);
 
         assertEquals("far", after.worldName());
         assertFalse(after.hasSky());
@@ -925,7 +925,7 @@ class MirrorCaptureTest
         final File file = new File(dir, "not.view");
         Files.write(file.toPath(), new byte[] { 1, 2, 3 });
 
-        assertThrows(IOException.class, () -> MirrorCapture.load(file));
+        assertThrows(IOException.class, () -> Capture.load(file));
     }
 
     /**
@@ -938,15 +938,15 @@ class MirrorCaptureTest
     @Test
     void aCaptureRemembersHowFarItKeptThroughTheDisk(@TempDir final File dir) throws IOException
     {
-        final MirrorCapture.Builder cut = box();
+        final Capture.Builder cut = box();
         cut.keptReach(3);
         final File file = new File(dir, "cut.view");
         cut.build().save(file);
         final File whole = new File(dir, "whole.view");
         box().build().save(whole);
 
-        assertEquals(3, MirrorCapture.load(file).keptReach(), "cut short, and says where");
-        assertEquals(-1, MirrorCapture.load(whole).keptReach(), "never cut");
+        assertEquals(3, Capture.load(file).keptReach(), "cut short, and says where");
+        assertEquals(-1, Capture.load(whole).keptReach(), "never cut");
     }
 
     /**
@@ -957,13 +957,13 @@ class MirrorCaptureTest
     @Test
     void aVersionThreeFileStillLoadsAsNeverCut(@TempDir final File dir) throws IOException
     {
-        final MirrorCapture.Builder builder = box();
+        final Capture.Builder builder = box();
         builder.put(1, 2, 3, stone);
         final File file = new File(dir, "three.view");
         builder.build().save(file);
         asVersionThree(file);
 
-        final MirrorCapture loaded = MirrorCapture.load(file);
+        final Capture loaded = Capture.load(file);
 
         assertEquals(-1, loaded.keptReach());
         assertEquals("minecraft:stone", loaded.nameAt(1, 2, 3), "and reads the rest as it always did");

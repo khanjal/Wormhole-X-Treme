@@ -22,20 +22,20 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -304,7 +304,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final MirrorBlock here = MirrorBlock.of(block);
+        final BlockPlace here = BlockPlace.of(block);
         final QuantumMirror byThatName = MirrorManager.byName(name);
         final QuantumMirror onThisBanner = MirrorManager.at(here);
         if (alreadyNamed(sender, name, byThatName, onThisBanner))
@@ -325,7 +325,7 @@ public class MirrorCommand implements SubCommand
         }
         sayWhereToClick(sender, block);
         setFrom(sender, (byThatName != null) ? byThatName : onThisBanner, name,
-            (onThisBanner != null) ? onThisBanner.banner() : MirrorBlock.of(base));
+            (onThisBanner != null) ? onThisBanner.banner() : BlockPlace.of(base));
         if ((byThatName == null) && (onThisBanner == null))
         {
             dressPlainBanners(block, partner, name);
@@ -383,7 +383,7 @@ public class MirrorCommand implements SubCommand
     private static void giveRoom(final CommandSender sender, final String name, final Block base, final int width)
     {
         final QuantumMirror made = MirrorManager.byName(name);
-        final MirrorPoint room = MirrorNetwork.roomOf(base, width);
+        final Place room = MirrorNetwork.roomOf(base, width);
         if ((made != null) && (room != null))
         {
             MirrorManager.add(made.withDestination(room).withWidth(width));
@@ -418,7 +418,7 @@ public class MirrorCommand implements SubCommand
                 block.getY(), block.getZ() - (side * facing.getModX()));
             if ((beside != null) && (beside.getType() != null) && beside.getType().name().endsWith("WALL_BANNER")
                 && (beside.getBlockData() instanceof Directional other)
-                && (other.getFacing() == facing) && (MirrorManager.at(MirrorBlock.of(beside)) == null))
+                && (other.getFacing() == facing) && (MirrorManager.at(BlockPlace.of(beside)) == null))
             {
                 return beside;
             }
@@ -469,7 +469,7 @@ public class MirrorCommand implements SubCommand
      *            the banner it should hang on
      */
     private static void setFrom(final CommandSender sender, final QuantumMirror existing,
-        final String name, final MirrorBlock here)
+        final String name, final BlockPlace here)
     {
         final String previous = (existing == null) ? null : existing.name();
         final QuantumMirror mirror = (existing == null)
@@ -567,7 +567,7 @@ public class MirrorCommand implements SubCommand
         if (MirrorStamp.apply(banner, preset))
         {
             // The banner just written reaches every client over the view that hides it.
-            MirrorWindows.resendFor(mirror.name());
+            Windows.resendFor(mirror.name());
             remember(mirror, MirrorLook.named(preset.name()));
             say(sender, MirrorText.quoted(mirror.name()) + " looks like "
                 + MirrorText.name(preset.name()) + " now.");
@@ -613,7 +613,7 @@ public class MirrorCommand implements SubCommand
     private static void stampFromDestination(final CommandSender sender,
         final QuantumMirror mirror, final Block banner)
     {
-        final MirrorPoint destination = mirror.destination();
+        final Place destination = mirror.destination();
         if (destination == null)
         {
             say(sender, MirrorText.quoted(mirror.name())
@@ -647,7 +647,7 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset, view))
         {
-            MirrorWindows.resendFor(mirror.name());
+            Windows.resendFor(mirror.name());
             remember(mirror, look);
             say(sender, MirrorText.quoted(mirror.name()) + " now shows "
                 + describe(view, preset) + ".");
@@ -792,7 +792,7 @@ public class MirrorCommand implements SubCommand
      */
     private static Block bannerBlockOf(final CommandSender sender, final QuantumMirror mirror)
     {
-        final MirrorBlock at = mirror.banner();
+        final BlockPlace at = mirror.banner();
         final World world = Bukkit.getWorld(at.worldName());
         if (world == null)
         {
@@ -883,7 +883,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        if (MirrorCaptures.retake(mirror))
+        if (Captures.retake(mirror))
         {
             say(sender, "Capturing " + MirrorText.quoted(mirror.name()) + "'s room again; the view"
                 + " changes when the new one is ready.");
@@ -907,7 +907,7 @@ public class MirrorCommand implements SubCommand
         MirrorManager.remove(mirror.name());
         // Anybody looking through it still has the view drawn, and nothing will visit this mirror
         // again to take it back.
-        MirrorProximity.forget(mirror);
+        WindowSweep.forget(mirror);
         MirrorYamlManager.saveAll();
         say(sender, MirrorText.quoted(mirror.name()) + " is an ordinary banner again.");
     }
@@ -925,7 +925,7 @@ public class MirrorCommand implements SubCommand
         final List<String> lines = new ArrayList<>();
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            final String key = MirrorCaptures.keyFor(mirror);
+            final String key = Captures.keyFor(mirror);
             lines.add(MirrorText.BODY_COLOUR + "  " + MirrorText.name(mirror.name()) + " -- "
                 + MirrorText.name(mirror.banner().worldName()) + " -> " + showing(mirror)
                 + settingsOf(mirror) + ((key == null) ? "" : (", capture " + key)));
@@ -968,7 +968,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /** A destination as a person would read it. */
-    private static String describe(final MirrorPoint point)
+    private static String describe(final Place point)
     {
         return MirrorText.name(point.worldName()) + " at " + Math.round(point.x()) + ", "
             + Math.round(point.y()) + ", " + Math.round(point.z());
@@ -1229,7 +1229,7 @@ public class MirrorCommand implements SubCommand
             usage.run();
             return null;
         }
-        final QuantumMirror mirror = MirrorManager.at(MirrorBlock.of(block));
+        final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(block));
         if (mirror == null)
         {
             say(sender, "That banner is not a mirror. Name it with "
@@ -1273,7 +1273,7 @@ public class MirrorCommand implements SubCommand
             final Player player = asPlayer(sender);
             if (player != null)
             {
-                MirrorWindows.describe(player).forEach(line -> say(sender, line));
+                Windows.describe(player).forEach(line -> say(sender, line));
             }
             return;
         }
@@ -1301,10 +1301,10 @@ public class MirrorCommand implements SubCommand
         say(sender, MirrorText.heading("mirror ") + MirrorText.quoted(mirror.name()));
         say(sender, MirrorText.field("banner", bannerOf(mirror)));
         say(sender, MirrorText.field("room", roomOf(mirror)));
-        MirrorCaptures.describe(mirror).forEach(line -> say(sender, line));
+        Captures.describe(mirror).forEach(line -> say(sender, line));
         if (sender instanceof Player player)
         {
-            MirrorWindows.describe(player).forEach(line -> say(sender, line));
+            Windows.describe(player).forEach(line -> say(sender, line));
             final Location eye = player.getEyeLocation();
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
@@ -1317,7 +1317,7 @@ public class MirrorCommand implements SubCommand
         final Player player = asPlayer(sender);
         if (player != null)
         {
-            MirrorWindows.blind(player, off);
+            Windows.blind(player, off);
             say(sender, off ? "Views are off for you: mirrors are banners, and the world is as it is. "
                 + "mirror debug -on turns them back on." : "Views are back on for you, as everyone sees them.");
         }
@@ -1329,7 +1329,7 @@ public class MirrorCommand implements SubCommand
         final Player player = asPlayer(sender);
         if (player != null)
         {
-            MirrorWindows.full(player, mirror.name());
+            Windows.full(player, mirror.name());
             say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
                 + "everything its capture holds, through the opening, past the edges and into the ground. "
                 + "mirror debug -on stops that.");
@@ -1345,10 +1345,10 @@ public class MirrorCommand implements SubCommand
     {
         say(sender, MirrorText.heading("mirror ") + MirrorText.quoted(mirror.name()) + " at " + MirrorText.VALUE_COLOUR
             + bannerOf(mirror) + MirrorText.BODY_COLOUR + ", room " + MirrorText.VALUE_COLOUR + roomOf(mirror));
-        say(sender, MirrorCaptures.summary(mirror));
+        say(sender, Captures.summary(mirror));
         if (sender instanceof Player player)
         {
-            MirrorWindows.summary(player).forEach(line -> say(sender, line));
+            Windows.summary(player).forEach(line -> say(sender, line));
         }
         say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " -all") + " for the rest.");
     }

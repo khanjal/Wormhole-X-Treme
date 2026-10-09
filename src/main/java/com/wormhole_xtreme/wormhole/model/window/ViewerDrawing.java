@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.model.mirror;
+package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -18,10 +18,10 @@ import org.bukkit.entity.Entity;
  * time, which mirrors it is looking through, which creatures are hidden inside a view, and where
  * its eye was when that was worked out.
  *
- * <p>Mutable and package-private on purpose, the same as {@link MirrorWindowState}: it is the
- * scratch pad {@link MirrorWindows} keeps for one viewer. Split out of {@link MirrorWindows}.
+ * <p>Mutable and package-private on purpose, the same as {@link WindowState}: it is the
+ * scratch pad {@link Windows} keeps for one viewer. Split out of {@link Windows}.
  */
-final class MirrorDrawing
+final class ViewerDrawing
 {
     final World world;
     /** What the client has been sent, as sent. */
@@ -40,14 +40,14 @@ final class MirrorDrawing
     long chunk = Long.MIN_VALUE;
     Location pendingEye;
     boolean catchUpQueued;
-    MirrorWindows.Redraw lastRedraw;
-    /** Each clipped window's far part as last judged, by mirror name; see {@link MirrorWindows#NEAR_DISTANCE}. */
-    final Map<String, MirrorWindows.Far> far = new HashMap<>();
+    Windows.Redraw lastRedraw;
+    /** Each clipped window's far part as last judged, by mirror name; see {@link Windows#NEAR_DISTANCE}. */
+    final Map<String, Windows.Far> far = new HashMap<>();
     /** The least time before this viewer's next redraw on a move, longer after a slow one. */
-    long rest = MirrorWindows.REDRAW_MILLIS;
+    long rest = Windows.REDRAW_MILLIS;
     String stamp = "";
 
-    MirrorDrawing(final World world)
+    ViewerDrawing(final World world)
     {
         this.world = world;
     }

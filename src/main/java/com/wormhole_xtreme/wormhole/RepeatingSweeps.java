@@ -10,7 +10,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
+import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
 
 /**
@@ -60,7 +60,7 @@ public final class RepeatingSweeps
             ConfigManager::getGateSoundAmbientTicks));
         // A mirror on a wall is drawn as a view of its room, and names itself to whoever looks at
         // it. Two tasks, one walking the mirrors and one the players, sharing the period.
-        sweeps.add(new Sweep(ConfigKeys.MIRROR_PROXIMITY_TICKS, 40L, MirrorProximity.createTicker(),
+        sweeps.add(new Sweep(ConfigKeys.MIRROR_PROXIMITY_TICKS, 40L, WindowSweep.createTicker(),
             ConfigManager::getMirrorProximityTicks));
         sweeps.add(new Sweep(ConfigKeys.MIRROR_PROXIMITY_TICKS, 40L, MirrorSignpost.createTicker(),
             ConfigManager::getMirrorProximityTicks));

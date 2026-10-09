@@ -10,6 +10,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+
 /**
  * The registry every right-click on the server asks a question of.
  *
@@ -20,8 +23,8 @@ import org.junit.jupiter.api.Test;
  */
 class MirrorManagerTest
 {
-    private static final MirrorPoint SOMEWHERE_ELSE =
-        new MirrorPoint("museum_1_18", 100.5, 64.0, -20.5, 90.0f, 0.0f);
+    private static final Place SOMEWHERE_ELSE =
+        new Place("museum_1_18", 100.5, 64.0, -20.5, 90.0f, 0.0f);
 
     @BeforeEach
     void setUp()
@@ -37,7 +40,7 @@ class MirrorManagerTest
 
     private static QuantumMirror mirror(final String name, final int x)
     {
-        return new QuantumMirror(name, new MirrorBlock("world", x, 64, 0), SOMEWHERE_ELSE);
+        return new QuantumMirror(name, new BlockPlace("world", x, 64, 0), SOMEWHERE_ELSE);
     }
 
     @Test
@@ -47,7 +50,7 @@ class MirrorManagerTest
         MirrorManager.add(m);
 
         assertEquals(m, MirrorManager.byName("Museum"));
-        assertEquals(m, MirrorManager.at(new MirrorBlock("world", 10, 64, 0)));
+        assertEquals(m, MirrorManager.at(new BlockPlace("world", 10, 64, 0)));
     }
 
     /**
@@ -58,16 +61,16 @@ class MirrorManagerTest
     @Test
     void aMirrorTwoWideIsFoundByEitherBannerAndForgottenByBoth()
     {
-        final QuantumMirror hall = new QuantumMirror("Hall", new MirrorBlock("world", 10, 64, 0),
-            new MirrorPoint("world", 10.01, 63.0, 0.5, 180.0f, 0.0f)).withWidth(2);
+        final QuantumMirror hall = new QuantumMirror("Hall", new BlockPlace("world", 10, 64, 0),
+            new Place("world", 10.01, 63.0, 0.5, 180.0f, 0.0f)).withWidth(2);
         MirrorManager.add(hall);
 
-        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 10, 64, 0)), "the left banner");
-        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 9, 64, 0)), "and the right one");
+        assertEquals(hall, MirrorManager.at(new BlockPlace("world", 10, 64, 0)), "the left banner");
+        assertEquals(hall, MirrorManager.at(new BlockPlace("world", 9, 64, 0)), "and the right one");
 
         MirrorManager.remove("Hall");
-        assertNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 0)));
-        assertNull(MirrorManager.at(new MirrorBlock("world", 9, 64, 0)), "neither left answering a click");
+        assertNull(MirrorManager.at(new BlockPlace("world", 10, 64, 0)));
+        assertNull(MirrorManager.at(new BlockPlace("world", 9, 64, 0)), "neither left answering a click");
     }
 
     /** Names match the way gate and beam names do, so a remembered capital is not a trap. */
@@ -86,8 +89,8 @@ class MirrorManagerTest
     {
         MirrorManager.add(mirror("Museum", 10));
 
-        assertNull(MirrorManager.at(new MirrorBlock("world", 11, 64, 0)));
-        assertNull(MirrorManager.at(new MirrorBlock("nether", 10, 64, 0)),
+        assertNull(MirrorManager.at(new BlockPlace("world", 11, 64, 0)));
+        assertNull(MirrorManager.at(new BlockPlace("nether", 10, 64, 0)),
             "same coordinates in another world is a different block");
     }
 
@@ -105,9 +108,9 @@ class MirrorManagerTest
         MirrorManager.add(mirror("Museum", 10));
         MirrorManager.add(mirror("Museum", 20));
 
-        assertNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 0)),
+        assertNull(MirrorManager.at(new BlockPlace("world", 10, 64, 0)),
             "the banner this name used to be on must stop answering");
-        assertNotNull(MirrorManager.at(new MirrorBlock("world", 20, 64, 0)));
+        assertNotNull(MirrorManager.at(new BlockPlace("world", 20, 64, 0)));
         assertEquals(1, MirrorManager.count(), "it is the same mirror, renamed to a new block");
     }
 
@@ -121,7 +124,7 @@ class MirrorManagerTest
 
         assertNotNull(removed, "removal matches case-insensitively too");
         assertNull(MirrorManager.byName("Museum"));
-        assertNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 0)),
+        assertNull(MirrorManager.at(new BlockPlace("world", 10, 64, 0)),
             "a removed mirror's banner must stop teleporting people");
         assertEquals(0, MirrorManager.count());
     }
@@ -138,14 +141,14 @@ class MirrorManagerTest
     void oneWorldCanHoldManyMirrors()
     {
         MirrorManager.add(new QuantumMirror("Museum1",
-            new MirrorBlock("world", 10, 64, 0), new MirrorPoint("snapshot_a", 0, 64, 0, 0, 0)));
+            new BlockPlace("world", 10, 64, 0), new Place("snapshot_a", 0, 64, 0, 0, 0)));
         MirrorManager.add(new QuantumMirror("Museum2",
-            new MirrorBlock("world", 12, 64, 0), new MirrorPoint("snapshot_b", 0, 64, 0, 0, 0)));
+            new BlockPlace("world", 12, 64, 0), new Place("snapshot_b", 0, 64, 0, 0, 0)));
 
         assertEquals(2, MirrorManager.count(),
             "the cross-world rule is per mirror, not a one-mirror-per-world cap");
-        assertNotNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 0)));
-        assertNotNull(MirrorManager.at(new MirrorBlock("world", 12, 64, 0)));
+        assertNotNull(MirrorManager.at(new BlockPlace("world", 10, 64, 0)));
+        assertNotNull(MirrorManager.at(new BlockPlace("world", 12, 64, 0)));
     }
 
     /** The cross-world rule is about the mirror's own two ends. */
@@ -153,8 +156,8 @@ class MirrorManagerTest
     void aMirrorKnowsWhetherBothItsEndsShareAWorld()
     {
         assertFalse(mirror("Away", 10).isSameWorld(), "world -> museum_1_18 is two worlds");
-        assertTrue(new QuantumMirror("Here", new MirrorBlock("world", 10, 64, 0),
-            new MirrorPoint("world", 200, 64, 200, 0, 0)).isSameWorld());
+        assertTrue(new QuantumMirror("Here", new BlockPlace("world", 10, 64, 0),
+            new Place("world", 200, 64, 200, 0, 0)).isSameWorld());
     }
 
     /** A named but unpointed mirror is a real state, not a broken one. */
@@ -162,7 +165,7 @@ class MirrorManagerTest
     void aMirrorWithNoDestinationIsNotSameWorld()
     {
         final QuantumMirror unpointed =
-            new QuantumMirror("New", new MirrorBlock("world", 10, 64, 0), null);
+            new QuantumMirror("New", new BlockPlace("world", 10, 64, 0), null);
 
         assertFalse(unpointed.isSameWorld(),
             "with nowhere to go it cannot be going somewhere in this world");
@@ -182,10 +185,10 @@ class MirrorManagerTest
     @Test
     void removingOneOfTwoMirrorsOnOneBannerLeavesTheOtherClickable()
     {
-        final MirrorBlock shared = new MirrorBlock("world", 10, 64, 0);
+        final BlockPlace shared = new BlockPlace("world", 10, 64, 0);
         MirrorManager.add(new QuantumMirror("stale", shared, null));
         final QuantumMirror live = new QuantumMirror("live", shared,
-            new MirrorPoint("world", 200, 64, 200, 0, 0));
+            new Place("world", 200, 64, 200, 0, 0));
         MirrorManager.add(live);
 
         assertNotNull(MirrorManager.remove("stale"), "the stale entry should come out");

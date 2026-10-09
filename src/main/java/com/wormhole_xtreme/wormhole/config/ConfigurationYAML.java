@@ -556,8 +556,7 @@ public class ConfigurationYAML
                 writer.write(keyName + ": " + formatValueForYaml(s.getValue()) + System.lineSeparator());
                 writer.write(System.lineSeparator());
             }
-            final List<String> names = new ArrayList<>();
-            for (final Setting s : missing) { names.add(s.getName().name()); }
+            final List<String> names = missing.stream().map(s -> s.getName().name()).toList();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "config.yml was missing " + missing.size() + " key(s); added defaults: " + names.toString());
         }
@@ -784,15 +783,10 @@ public class ConfigurationYAML
     private static List<Setting> missingFrom(final Map<String, Setting> byKey,
                                              final Set<String> updated)
     {
-        final List<Setting> missing = new ArrayList<>();
-        for (final Map.Entry<String, Setting> e : byKey.entrySet())
-        {
-            if (!updated.contains(e.getKey()))
-            {
-                missing.add(e.getValue());
-            }
-        }
-        return missing;
+        return byKey.entrySet().stream()
+            .filter(e -> !updated.contains(e.getKey()))
+            .map(Map.Entry::getValue)
+            .toList();
     }
 
     /**

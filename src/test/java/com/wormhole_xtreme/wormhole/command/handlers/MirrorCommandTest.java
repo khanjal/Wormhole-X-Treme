@@ -47,13 +47,13 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -151,8 +151,8 @@ class MirrorCommandTest
     @Test
     void debugSaysOneThingALineWithWhatStopsAViewInRed()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
         when(player.getEyeLocation()).thenReturn(standing);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
 
@@ -179,8 +179,8 @@ class MirrorCommandTest
     @Test
     void debugWithoutAllFitsOnAScreenOfChat()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
 
@@ -206,17 +206,17 @@ class MirrorCommandTest
     @Test
     void debugOffOnAndFullDoWhatTheySay()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         try
         {
             run(player, "mirror", "debug", "-off");
-            assertTrue(MirrorWindows.isBlind(player), "off");
+            assertTrue(Windows.isBlind(player), "off");
             verify(player).sendMessage(contains("Views are off for you"));
 
             run(player, "mirror", "debug", "-on");
-            assertFalse(MirrorWindows.isBlind(player), "back on");
+            assertFalse(Windows.isBlind(player), "back on");
             verify(player).sendMessage(contains("Views are back on for you"));
 
             run(player, "mirror", "debug", "museum", "-full");
@@ -224,7 +224,7 @@ class MirrorCommandTest
         }
         finally
         {
-            MirrorWindows.blind(player, false);
+            Windows.blind(player, false);
         }
     }
 
@@ -244,7 +244,7 @@ class MirrorCommandTest
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
         assertNotNull(mirror, "create has to bind the banner, not print the form");
-        assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
+        assertEquals(new BlockPlace("world", 1, 64, 1), mirror.banner());
     }
 
     /** Runs a mirror command with the world "world" loaded, as {@link #here}. */
@@ -272,7 +272,7 @@ class MirrorCommandTest
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
         assertNotNull(mirror);
-        assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
+        assertEquals(new BlockPlace("world", 1, 64, 1), mirror.banner());
         assertNotNull(mirror.destination(), "given its own room, as a player's mirror is");
     }
 
@@ -289,7 +289,7 @@ class MirrorCommandTest
 
         runWithTheWorldLoaded(commandBlock, "mirror", "create", "museum", "world", "~", "~2", "~-2");
 
-        assertEquals(new MirrorBlock("world", 1, 64, 1), MirrorManager.byName("museum").banner());
+        assertEquals(new BlockPlace("world", 1, 64, 1), MirrorManager.byName("museum").banner());
     }
 
     /** Everything wrong with a coordinate line is said, and no mirror is made. */
@@ -323,7 +323,7 @@ class MirrorCommandTest
     void aMirrorMadeTooCloseToAnotherSaysSo()
     {
         ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
-        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 12), null));
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("world", 1, 64, 12), null));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -366,8 +366,8 @@ class MirrorCommandTest
     void aMirrorFarEnoughAwayOrInAnotherWorldIsNotWarnedAbout()
     {
         ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
-        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 66), null));
-        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world_nether", 1, 64, 2), null));
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("world", 1, 64, 66), null));
+        MirrorManager.add(new QuantumMirror("nether", new BlockPlace("world_nether", 1, 64, 2), null));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -388,8 +388,8 @@ class MirrorCommandTest
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
         assertNotNull(mirror, "the mirror should exist after create");
-        assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
-        assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), mirror.destination(),
+        assertEquals(new BlockPlace("world", 1, 64, 1), mirror.banner());
+        assertEquals(new Place("world", 1.5, 63, 1.5, 180f, 0f), mirror.destination(),
             "its own room: in front of the banner, level with the bottom of the opening, facing out");
     }
 
@@ -406,8 +406,8 @@ class MirrorCommandTest
     @Test
     void setRenamesTheMirrorOnThatBannerAndBringsEverythingWithIt()
     {
-        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
-        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
+        final BlockPlace hung = new BlockPlace("world", 1, 64, 1);
+        final Place far = new Place("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("world_2011_05_09", hung, far,
             MirrorLook.named("cavern"), "hub"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
@@ -436,8 +436,8 @@ class MirrorCommandTest
     @Test
     void setMovesAnExistingMirrorToTheBannerYouAreLookingAtWithItsLook()
     {
-        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 40, 64, 40), far,
+        final Place far = new Place("snapshot", 8, 70, 9, 0f, 0f);
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 40, 64, 40), far,
             MirrorLook.named("end")));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
@@ -445,11 +445,11 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "create", "museum"));
 
         final QuantumMirror moved = MirrorManager.byName("museum");
-        assertEquals(new MirrorBlock("world", 1, 64, 1), moved.banner(), "moved to this banner");
-        assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), moved.destination(),
+        assertEquals(new BlockPlace("world", 1, 64, 1), moved.banner(), "moved to this banner");
+        assertEquals(new Place("world", 1.5, 63, 1.5, 180f, 0f), moved.destination(),
             "a moved mirror's room is in front of the banner it hangs on now");
         assertEquals(MirrorLook.named("end"), moved.look(), "a move should keep the look");
-        assertNull(MirrorManager.at(new MirrorBlock("world", 40, 64, 40)),
+        assertNull(MirrorManager.at(new BlockPlace("world", 40, 64, 40)),
             "and should let go of the banner it came from");
     }
 
@@ -463,8 +463,8 @@ class MirrorCommandTest
     @Test
     void setRefusesWhenTheNameAndTheBannerBelongToDifferentMirrors()
     {
-        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
-        final MirrorBlock elsewhere = new MirrorBlock("world", 40, 64, 40);
+        final BlockPlace hung = new BlockPlace("world", 1, 64, 1);
+        final BlockPlace elsewhere = new BlockPlace("world", 40, 64, 40);
         MirrorManager.add(new QuantumMirror("library", hung, null));
         MirrorManager.add(new QuantumMirror("museum", elsewhere, null));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
@@ -481,8 +481,8 @@ class MirrorCommandTest
     @Test
     void setSaysThereIsNothingToDoWhenTheBannerAlreadyHasThatName()
     {
-        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
-        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
+        final BlockPlace hung = new BlockPlace("world", 1, 64, 1);
+        final Place far = new Place("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("museum", hung, far));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
@@ -579,8 +579,8 @@ class MirrorCommandTest
 
         final QuantumMirror hall = MirrorManager.byName("hall");
         assertEquals(2, hall.width(), "two banners, one mirror");
-        assertEquals(new MirrorBlock("world", 1, 64, 1), hall.banner(), "held by the left banner, looking at the wall");
-        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 0, 64, 1)), "and the other answers a click too");
+        assertEquals(new BlockPlace("world", 1, 64, 1), hall.banner(), "held by the left banner, looking at the wall");
+        assertEquals(hall, MirrorManager.at(new BlockPlace("world", 0, 64, 1)), "and the other answers a click too");
     }
 
     /** A banner somebody already patterned keeps its patterns. */
@@ -636,8 +636,8 @@ class MirrorCommandTest
     @Test
     void startSetsTheMirrorOneOpensOntoAndNoneClearsIt()
     {
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
-        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("archive", new BlockPlace("world_2011", 1, 64, 1), null));
 
         assertTrue(run(player, "mirror", "set", "archive", "-start", "hub"));
         assertEquals("hub", MirrorManager.byName("archive").start());
@@ -651,7 +651,7 @@ class MirrorCommandTest
     @Test
     void startRefusesAMirrorNobodyHasAndTheMirrorItself()
     {
-        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("archive", new BlockPlace("world_2011", 1, 64, 1), null));
 
         run(player, "mirror", "set", "archive", "-start", "nowhere");
         verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
@@ -671,8 +671,8 @@ class MirrorCommandTest
     @Test
     void aNamedStartWithNoValueIsRefusedRatherThanSetOnTheBannerLookedAt()
     {
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
-        MirrorManager.add(new QuantumMirror("lobby", MirrorBlock.of(banner(Material.WHITE_WALL_BANNER)), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("lobby", BlockPlace.of(banner(Material.WHITE_WALL_BANNER)), null));
         final Block lookedAt = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(lookedAt);
 
@@ -687,7 +687,7 @@ class MirrorCommandTest
     @Test
     void removeForgetsTheMirror()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 0, 64, 0), null));
 
         assertTrue(run(player, "mirror", "remove", "museum"));
 
@@ -715,7 +715,7 @@ class MirrorCommandTest
     void removeTakesTheBannerBeingLookedAtWhenNoNameIsGiven()
     {
         MirrorManager.add(new QuantumMirror("nether-return",
-            new MirrorBlock("world", 1, 64, 1), null));
+            new BlockPlace("world", 1, 64, 1), null));
         final Block inFront = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
@@ -777,7 +777,7 @@ class MirrorCommandTest
     @Test
     void listShowsAMirrorThatGoesNowhereYet()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 0, 64, 0), null));
 
         run(player, "mirror", "list");
 
@@ -793,8 +793,8 @@ class MirrorCommandTest
     @Test
     void listNamesEachMirrorsCaptureKey()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0),
-            new MirrorPoint("World", 0.5, 63.0, -0.5, 180.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 0, 64, 0),
+            new Place("World", 0.5, 63.0, -0.5, 180.0f, 0.0f)));
 
         run(player, "mirror", "list");
 
@@ -997,7 +997,7 @@ class MirrorCommandTest
     @Test
     void renamingAMirrorAlreadyOnAPostKeepsItAndSaysWhereToClick()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
         final Block post = banner(Material.WHITE_BANNER);
         final Rotatable onAPost = mock(Rotatable.class);
         when(post.getBlockData()).thenReturn(onAPost);
@@ -1049,7 +1049,7 @@ class MirrorCommandTest
     @Test
     void setWithoutAPropertySaysItsForm()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
 
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
@@ -1061,8 +1061,8 @@ class MirrorCommandTest
     @Test
     void aPropertyWithoutItsDashIsRefused()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5), null));
 
         assertTrue(run(player, "mirror", "set", "museum", "start", "hub"));
 
@@ -1074,7 +1074,7 @@ class MirrorCommandTest
     @Test
     void setRefusesAWordAMirrorDoesNotHave()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
 
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
@@ -1091,8 +1091,8 @@ class MirrorCommandTest
     @Test
     void thePropertiesAreNotVerbsAtTheTop()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
-        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5), null));
 
         assertTrue(run(player, "mirror", "start", "museum", "hub"));
 
@@ -1140,8 +1140,8 @@ class MirrorCommandTest
     @Test
     void captureSaysWhichWorldIsNotLoadedWhenTheRoomCannotBeTaken()
     {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
-            new MirrorPoint("archive", 0, 64, 0, 0f, 0f)));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("archive", 0, 64, 0, 0f, 0f)));
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {

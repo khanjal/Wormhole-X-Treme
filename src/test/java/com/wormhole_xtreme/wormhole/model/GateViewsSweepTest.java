@@ -34,9 +34,9 @@ import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 
 /**
  * What each sweep does with an open gate at each level of {@code gate-view} (#516).
@@ -54,7 +54,7 @@ class GateViewsSweepTest
     private Player player;
     private Stargate gate;
     private MockedStatic<StargateManager> manager;
-    private MockedStatic<MirrorWindows> windows;
+    private MockedStatic<Windows> windows;
 
     @BeforeEach
     void setUp() throws Exception
@@ -91,7 +91,7 @@ class GateViewsSweepTest
         manager = mockStatic(StargateManager.class);
         manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate));
         manager.when(() -> StargateManager.getStargate("Abydos")).thenReturn(gate);
-        windows = mockStatic(MirrorWindows.class);
+        windows = mockStatic(Windows.class);
     }
 
     @AfterEach
@@ -144,12 +144,12 @@ class GateViewsSweepTest
     /** What the mirror sweep answers when the gate is offered: whether its view is drawn. */
     private void drawn(final boolean drawn)
     {
-        windows.when(() -> MirrorWindows.offerGate(any(GateWindow.class), anyBoolean())).thenReturn(drawn);
+        windows.when(() -> Windows.offerGate(any(GateWindow.class), anyBoolean())).thenReturn(drawn);
     }
 
     private void offeredTimes(final int times)
     {
-        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
+        windows.verify(() -> Windows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
     }
 
     @Test
@@ -186,7 +186,7 @@ class GateViewsSweepTest
 
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(argThat(window -> (window.open().size() == (18 * 17))
+        windows.verify(() -> Windows.offerGate(argThat(window -> (window.open().size() == (18 * 17))
             && (window.shape().width() == 18) && (window.shape().height() == 17)), anyBoolean()));
         verify(gate).fillGateInterior(Material.AIR);
         assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the whole opening, not a window in it");
@@ -234,7 +234,7 @@ class GateViewsSweepTest
         GateViews.dialled(gate);
 
         offeredTimes(0);
-        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
         verify(gate, never()).fillGateInterior(Material.AIR);
     }
 
@@ -261,7 +261,7 @@ class GateViewsSweepTest
         GateViews.dialled(gate);
 
         offeredTimes(0);
-        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
     }
 
     /** Somebody six blocks in front of a tall gate's foot is ten from its middle, and watches it. */
@@ -336,8 +336,8 @@ class GateViewsSweepTest
         GateViews.offerAll();
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
+        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**
@@ -427,8 +427,8 @@ class GateViewsSweepTest
         near(true);
         GateViews.offerAll();
 
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(true)), times(1));
-        windows.verify(() -> MirrorWindows.offerGate(any(GateWindow.class), eq(false)), times(1));
+        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(true)), times(1));
+        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(false)), times(1));
     }
 
     /**
@@ -474,7 +474,7 @@ class GateViewsSweepTest
 
         GateViews.dialled(gate);
 
-        windows.verify(() -> MirrorWindows.prepareGate(argThat(window -> "gate:Abydos".equals(window.name())
+        windows.verify(() -> Windows.prepareGate(argThat(window -> "gate:Abydos".equals(window.name())
             && "Chulak".equals(window.target()) && (window.depth() == 32))), times(1));
     }
 
@@ -486,7 +486,7 @@ class GateViewsSweepTest
         near(false);
         GateViews.dialled(gate);
 
-        windows.verify(() -> MirrorWindows.prepareGate(any(GateWindow.class)), never());
+        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
     }
 
     /**
@@ -502,9 +502,9 @@ class GateViewsSweepTest
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
         when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 21.5, 0.0f, 0.0f));
         manager.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(gate));
-        try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
         {
-            captures.when(() -> MirrorCaptures.gateFillDepth(any(MirrorPoint.class), anyInt())).thenReturn(160);
+            captures.when(() -> Captures.gateFillDepth(any(Place.class), anyInt())).thenReturn(160);
             GateViews.refreshWatched(1_000_000L);
             // Within the minute: not looked at again.
             GateViews.refreshWatched(1_030_000L);
@@ -518,7 +518,7 @@ class GateViewsSweepTest
             GateViews.refreshWatched(1_210_000L);
 
             // To the full depth, which gateFillDepth decides: somebody there means most of the fill's chunks are loaded.
-            captures.verify(() -> MirrorCaptures.refreshGate(eq("Abydos"), any(MirrorPoint.class), eq(160),
+            captures.verify(() -> Captures.refreshGate(eq("Abydos"), any(Place.class), eq(160),
                 eq(GateViews.REFRESH_SECONDS)), times(2));
         }
     }
@@ -532,12 +532,12 @@ class GateViewsSweepTest
     @Test
     void removingAGateDeletesWhatItShows()
     {
-        try (MockedStatic<MirrorCaptures> captures = mockStatic(MirrorCaptures.class))
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
         {
             GateViews.removed(gate);
 
-            captures.verify(() -> MirrorCaptures.forgetGate("Abydos"), times(1));
-            windows.verify(() -> MirrorWindows.release("gate:Abydos"), times(1));
+            captures.verify(() -> Captures.forgetGate("Abydos"), times(1));
+            windows.verify(() -> Windows.release("gate:Abydos"), times(1));
         }
     }
 }

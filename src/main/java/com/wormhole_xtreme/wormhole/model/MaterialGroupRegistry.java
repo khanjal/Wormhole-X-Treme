@@ -281,11 +281,9 @@ public final class MaterialGroupRegistry
         STATE.set(new Snapshot(Collections.unmodifiableMap(byName),
             Collections.unmodifiableMap(byMaterial), first));
 
-        final List<String> names = new ArrayList<>();
-        for (final MaterialGroup g : byName.values())
-        {
-            names.add(g.getName() + "=" + g.getStructureMaterial());
-        }
+        final List<String> names = byName.values().stream()
+            .map(g -> g.getName() + "=" + g.getStructureMaterial())
+            .toList();
         log("Loaded " + names.size() + " gate material group(s), default \"" + first.getName() + "\": " + names);
     }
 

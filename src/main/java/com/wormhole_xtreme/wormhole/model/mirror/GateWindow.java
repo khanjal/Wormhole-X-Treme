@@ -4,7 +4,10 @@ import java.util.List;
 
 import org.bukkit.block.Block;
 
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * An open gate as the window drawing sees it (#516): what the sweep calls it, where it is measured
@@ -28,12 +31,12 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * @param depth
  *            how far past the opening the view is captured and drawn
  */
-public record GateWindow(String name, Block anchor, MirrorWindow shape, List<Spot> open, MirrorPoint destination,
+public record GateWindow(String name, Block anchor, WindowShape shape, List<Spot> open, Place destination,
     String target, int depth)
 {
     /** @return the key its capture is kept under: the far gate's one, seen through the largest opening */
-    String captureKey()
+    public String captureKey()
     {
-        return MirrorCaptures.gateKey(target, MirrorCaptures.GATE_OPENING, MirrorCaptures.GATE_OPENING);
+        return Captures.gateKey(target, Captures.GATE_OPENING, Captures.GATE_OPENING);
     }
 }

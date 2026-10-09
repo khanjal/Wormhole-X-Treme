@@ -24,7 +24,7 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * <p>{@link #available()} is how a window asks. On 1.20 it answers false, and the banner stays
  * hanging in front of the view rather than being taken away with no way to put it back.
  */
-final class MirrorPackets
+public final class MirrorPackets
 {
     /** {@code Player.sendBlockUpdate}, or null on a server that has no such method. */
     private static final Method SEND_BLOCK_UPDATE = findSendBlockUpdate();
@@ -35,7 +35,7 @@ final class MirrorPackets
     }
 
     /** @return true if this server can show one player a block the others do not see */
-    static boolean available()
+    public static boolean available()
     {
         return SEND_BLOCK_UPDATE != null;
     }
@@ -55,7 +55,7 @@ final class MirrorPackets
      *            the appearance to send
      * @return true if the packet was handed off
      */
-    static boolean send(final Player player, final Location location, final TileState state)
+    public static boolean send(final Player player, final Location location, final TileState state)
     {
         if ((SEND_BLOCK_UPDATE == null) || (player == null) || (location == null)
             || (state == null))
