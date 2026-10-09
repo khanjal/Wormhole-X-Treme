@@ -697,13 +697,13 @@ class MirrorCapturesTest
     }
 
     /**
-     * A gate's own sign is left out of the capture of its front.
+     * A gate's name sign is left out of the capture of its front.
      *
      * <p>The sign hangs on a frame block that a view of the gate's front does not keep, so it was
      * drawn hanging in the air before the gate it belongs to.
      */
     @Test
-    void aGatesOwnSignIsLeftOutOfItsCapture() throws Exception
+    void aGatesNameSignIsLeftOutOfItsCapture() throws Exception
     {
         final Pool pool = new Pool();
         MirrorCaptures.siftWith((builder, from, reach, floor) -> reach);

@@ -660,8 +660,9 @@ public final class MirrorCaptures
     private static final int[][] NO_CELLS = new int[0][];
 
     /**
-     * The blocks of a gate's own signs, which a view of its front would otherwise show hanging in the air:
-     * the sign hangs on a frame block the view leaves to the real world.
+     * The block of a gate's name sign, which a view of its front would otherwise show hanging in the air:
+     * the sign hangs on a frame block the view leaves to the real world. The dial sign stays, since it
+     * hangs on a dialling device that is there to be seen.
      *
      * @return each {@code {x, y, z}}, or none for a gate that is not known
      */
@@ -677,11 +678,6 @@ public final class MirrorCaptures
         {
             final Block name = found.getGateNameBlockHolder().getRelative(found.getGateFacing());
             cells.add(new int[] { name.getX(), name.getY(), name.getZ() });
-        }
-        if (found.getGateDialSign() != null)
-        {
-            final Block dial = found.getGateDialSign().getBlock();
-            cells.add(new int[] { dial.getX(), dial.getY(), dial.getZ() });
         }
         return cells.toArray(new int[0][]);
     }
@@ -1078,7 +1074,7 @@ public final class MirrorCaptures
         private final int reach;
         /** Chunks read a tick. */
         private int perTick = CHUNKS_PER_TICK;
-        /** Blocks left out of the capture: a gate's signs, which hang on a frame the view does not keep. */
+        /** Blocks left out of the capture: a gate's name sign, which hangs on a frame the view does not keep. */
         private int[][] blank = NO_CELLS;
         private final int floor;
 
