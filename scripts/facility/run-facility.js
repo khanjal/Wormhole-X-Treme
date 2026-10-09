@@ -57,6 +57,14 @@
 //                        .local-server/shots/<version>/<name>.png (needs Chrome or Edge, or
 //                        WX_BROWSER); then the self-test with --selftest, the hold with --viewer,
 //                        else the end
+//   --gallery [names|all] documentation pictures and animations, taken in a white studio under open
+//                        sky (lib/gallery.js): a PNG of each gate shape and material group, idle and
+//                        open, and a GIF of each ring pattern dialling and of each shape's woosh, to
+//                        .local-server/gallery/<version>/<name>.png|gif. Names are scenes or a
+//                        prefix ending in a dash (dial-, kawoosh-, palette-). Needs Chrome or Edge
+//   --gallery-out <dir>  put the gallery's files in <dir> instead
+//   --gallery-slow <n>   run the server n times slower for a reel (default 4; 1.20.3 and later), so
+//                        every tick of an animation is caught; the GIF plays at real speed
 //   --schematics <dir>   paste the WorldEdit schematics campus.SCHEMATICS and <dir>/placements.json
 //                        place, from <dir>, after the build; each box checked by the decoration
 //                        guardrail first (lib/schematics.js). Needs --with worldedit; a placement
@@ -204,6 +212,16 @@ function parseArgs(argv) {
       a.shots = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : 'all';
       require('./lib/shots').select(a.shots); // a name it does not know is refused here
     }
+    else if (x === '--gallery') {
+      const next = argv[i + 1];
+      a.gallery = next !== undefined && !next.startsWith('--') && !/^\d+\.\d+/.test(next) ? argv[++i] : 'all';
+      require('./lib/gallery').select(a.gallery); // a scene it does not know is refused here
+    }
+    else if (x === '--gallery-out') a.galleryOut = path.resolve(value(i++));
+    else if (x === '--gallery-slow') {
+      a.gallerySlow = whole('--gallery-slow', value(i++), 1);
+      if (a.gallerySlow > 20) throw new Error(`--gallery-slow takes a whole number from 1 to 20, not ${a.gallerySlow}`);
+    }
     else if (x === '--schematics') a.schematics = path.resolve(value(i++));
     else if (x === '--design') a.design = true;
     else if (x === '--design-check') { a.design = true; a.designCheck = true; }
@@ -219,12 +237,13 @@ function parseArgs(argv) {
   if ((a.watch || a.watchBot) && !a.selftest) throw new Error('--watch and --watch-bot watch a self-test: add --selftest');
   if (a.watch && a.watchBot) throw new Error('--watch waits for a person, --watch-bot joins a stand-in: one of them');
   if (a.watch && (a.versions || a.shards > 1)) throw new Error('--watch is one person on one server: not with --versions or --shards (--watch-bot is)');
-  if ((a.versions || a.shards) && (a.viewer || a.shots || a.schematics || a.designImport)) throw new Error('--viewer, --shots, --schematics and --design-import take one version and one server');
+  if ((a.versions || a.shards) && (a.viewer || a.shots || a.gallery || a.schematics || a.designImport)) throw new Error('--viewer, --shots, --gallery, --schematics and --design-import take one version and one server');
+  if ((a.galleryOut || a.gallerySlow) && !a.gallery) throw new Error('--gallery-out and --gallery-slow go with --gallery');
   if (a.designImport && a.schematics) throw new Error('--design-import is a --schematics of its own: give one of them');
   if (a.design) {
     const design = require('./lib/design');
     if (a.version && a.version !== design.VERSION) throw new Error(`design mode runs Minecraft ${design.VERSION} only, not ${a.version}`);
-    const clash = [['--selftest', a.selftest], ['--versions', a.versions], ['--shards', a.shards], ['--viewer', a.viewer], ['--shots', a.shots],
+    const clash = [['--selftest', a.selftest], ['--versions', a.versions], ['--shards', a.shards], ['--viewer', a.viewer], ['--shots', a.shots], ['--gallery', a.gallery],
       ['--schematics', a.schematics], ['--design-import', a.designImport], ['--keep-world', a.keepWorld]].filter(([, on]) => on).map(([n]) => n);
     if (clash.length) throw new Error(`design mode runs no tests and keeps its own world: not with ${clash.join(', ')}`);
     if (a.designCheck && a.designExport) throw new Error('--design-check or --design-export, one at a time');
@@ -641,10 +660,10 @@ async function main() {
   if (!java) throw new Error(`no Java ${need.major}+ found (${need.why.join('; ')}); pass --java`);
   const javaMajor = server.checkJava(java, version, need.major, need.why.join('; '));
   // The viewer and the schematics are refused here, before a server is started for nothing.
-  const viewer = args.viewer || args.shots ? require('./lib/viewer') : null;
+  const viewer = args.viewer || args.shots || args.gallery ? require('./lib/viewer') : null;
   if (viewer) viewer.assetVersion(version);
   const webPort = viewer ? args.viewerPort || viewer.viewerPort(args.port) : null;
-  if (args.shots && !require('./lib/shots').findBrowser()) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
+  if ((args.shots || args.gallery) && !require('./lib/shots').findBrowser()) throw new Error(`${args.shots ? '--shots' : '--gallery'} needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser`);
   const schematics = schematicsLib();
   let placed = [];
   if (args.schematics) {
@@ -681,7 +700,7 @@ async function main() {
   if (args.design) props.push('broadcast-console-to-ops=false', `white-list=${!args.designMade}`, `enforce-whitelist=${!args.designMade}`);
   // The dashboard's command box talks RCON, with a password made for this run: on a hand lab's
   // hold only, never during a self-test (whose fences it would interleave with) or on a design server.
-  const hold = !args.design && !args.selftest && !(args.shots && !args.viewer);
+  const hold = !args.design && !args.selftest && !((args.shots || args.gallery) && !args.viewer);
   const rcon = hold && rconPort(args.port) !== null;
   if (rcon) props.push('enable-rcon=true', `rcon.port=${rconPort(args.port)}`, `rcon.password=${crypto.randomBytes(24).toString('hex')}`);
   else props.push('enable-rcon=false');
@@ -851,9 +870,18 @@ async function main() {
       console.log(`\nshots on ${version}: ${shots.length - shotsBad} of ${shots.length} drawn, in ${dir}`);
       for (const x of shots) if (x.file) console.log(`  ${x.file}`);
     }
+    if (args.gallery) {
+      const galleryLib = require('./lib/gallery');
+      const dir = args.galleryOut || path.join(LOCAL, 'gallery', version);
+      const done = await galleryLib.takeScenes(fac, web, galleryLib.select(args.gallery), dir, { slow: args.gallerySlow });
+      shotChecks = shotChecks.concat(galleryLib.asResults(done));
+      const bad = done.filter((x) => !x.ok).length;
+      console.log(`\ngallery on ${version}: ${done.length - bad} of ${done.length} made, in ${dir}`);
+      for (const x of done) if (x.file) console.log(`  ${x.file}`);
+    }
     const shotsFailed = shotChecks.some((r) => !r.ok);
 
-    if (args.shots && !args.selftest && !args.viewer) {
+    if ((args.shots || args.gallery) && !args.selftest && !args.viewer) {
       exit = shotsFailed || setup.length || stray.length ? 1 : 0;
     } else if (args.selftest) {
       if (fac.watcher && !(await fac.watcher.arrive())) throw new Error('the server stopped before the watcher joined');

@@ -131,6 +131,20 @@ function asResults(shots) {
   return shots.map((s) => ({ section: 'shots', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
+/** Starts the headless browser the viewer's pages are drawn in; `launch` is a test's stand-in for puppeteer's. */
+async function launchBrowser(launch = null) {
+  const exe = findBrowser();
+  if (!exe) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
+  // An ES module: imported, not required (Node 22 warns that requiring one is experimental).
+  const start = launch || (await import('puppeteer-core')).default.launch;
+  return start({
+    executablePath: exe,
+    headless: true,
+    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check', '--mute-audio'],
+    env: browserEnv(),
+  });
+}
+
 /**
  * Takes each shot: { name, file, ok, detail }. `fac` has Probe; `viewer` is lib/viewer.js's
  * running viewer; PNGs go to `outDir`/<name>.png. A shot that is not a picture (see judge) is
@@ -140,17 +154,8 @@ function asResults(shots) {
 async function takeShots(fac, viewer, shots, outDir, {
   log = console.log, width = 1280, height = 720, settleMs = Number(process.env.WX_SHOTS_SETTLE_MS) || 60000, launch = null,
 } = {}) {
-  const exe = findBrowser();
-  if (!exe) throw new Error('--shots needs Chrome or Edge installed, or WX_BROWSER naming a Chromium-based browser');
-  // An ES module: imported, not required (Node 22 warns that requiring one is experimental).
-  const start = launch || (await import('puppeteer-core')).default.launch;
+  const browser = await launchBrowser(launch);
   fs.mkdirSync(outDir, { recursive: true });
-  const browser = await start({
-    executablePath: exe,
-    headless: true,
-    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check', '--mute-audio'],
-    env: browserEnv(),
-  });
   const out = [];
   const bot = fac.probe.bot;
   try {
@@ -198,4 +203,4 @@ async function takeShots(fac, viewer, shots, outDir, {
   return out;
 }
 
-module.exports = { select, findBrowser, browserEnv, takeShots, settle, asResults, judge, sceneShare, SKY, MIN_SCENE };
+module.exports = { select, findBrowser, browserEnv, launchBrowser, takeShots, settle, asResults, judge, sceneShare, shareIn, sleep, SKY, MIN_SCENE };
