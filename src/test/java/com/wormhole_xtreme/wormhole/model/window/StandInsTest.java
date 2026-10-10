@@ -837,6 +837,29 @@ class StandInsTest
         return new WindowState(window.source, builder.build());
     }
 
+    /**
+     * A happy ghast and the nautili hover or swim without being a Flying or a WaterMob, and are known
+     * by their type's name, which a server older than them does not have.
+     */
+    @Test
+    void creaturesNewerThanTheCompilePathAreKnownByTheirTypesName()
+    {
+        assertTrue(StandIns.hovering.containsAll(Set.of("HAPPY_GHAST", "NAUTILUS", "ZOMBIE_NAUTILUS")));
+        final Zombie zombie = creature(Zombie.class, 100.5, 70.0, -18.5);
+        when(zombie.hasGravity()).thenReturn(true);
+        assertFalse(StandIns.floats(zombie), "a zombie walks");
+        final Set<String> before = StandIns.hovering;
+        StandIns.hovering = Set.of("ZOMBIE");
+        try
+        {
+            assertTrue(StandIns.floats(zombie), "a type named in the list needs no floor");
+        }
+        finally
+        {
+            StandIns.hovering = before;
+        }
+    }
+
     private FarCreatures.Wanted wanted(final Entity original)
     {
         return new FarCreatures.Wanted(original, FarCreatures.hereOf(here, window.shape, original.getLocation()), window);

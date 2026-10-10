@@ -6,6 +6,9 @@ import java.util.Map;
 /**
  * Why the far creatures one window shows a viewer were or were not given stand-ins, as last
  * judged, for {@code mirror debug} (#296): the first thing asked when a zombie does not show.
+ *
+ * <p>Per window: a creature standing in two windows' rooms and shown through one is counted by the
+ * other as not in view or past the twenty.
  */
 final class CreatureTally
 {

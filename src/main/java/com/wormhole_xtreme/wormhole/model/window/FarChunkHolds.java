@@ -28,10 +28,12 @@ import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
  *
  * <p>While a window is being drawn for at least one viewer, the chunks in front of where it goes
  * are held with the plugin's chunk ticket, through {@link ChunkTickets} so a chunk a ring or a pet
- * also holds keeps one ticket. Let go a grace period after the last viewer stops, at once on a
- * shutdown, a reset or the far world unloading. Loaded a couple a tick, nearest the arrival first:
- * on Paper asynchronously and never generated, elsewhere only once the server says the chunk was
- * generated (a chunk generated only in part is finished by loading it, which Spigot leaves no way to avoid).
+ * also holds keeps one ticket. A plugin ticket holds its chunk as {@code /forceload} does, which
+ * also keeps a ring two chunks wide loaded round it, and that ring can generate terrain at the edge
+ * of explored land. Let go a grace period after the last viewer stops, at once on a shutdown, a
+ * reset or the far world unloading. Loaded nearest the arrival first: on Paper two a tick,
+ * asynchronously, asking for the held chunk itself not to be generated; on Spigot one a tick on the
+ * main thread, once the server says the chunk is on disk.
  */
 public final class FarChunkHolds
 {
@@ -41,8 +43,11 @@ public final class FarChunkHolds
     /** The most chunks held across every window. */
     static final int MOST_HELD = 400;
 
-    /** How many chunks are asked for a tick. */
+    /** How many chunks are asked for a tick, where they load off the main thread. */
     static final int PER_TICK = 2;
+
+    /** The same through Spigot's own loader, which loads, and may finish generating, on the main thread. */
+    static final int PER_TICK_ON_MAIN = 1;
 
     /** How long a load may take before it is given up on. */
     static final long LOAD_TIMEOUT_MILLIS = 30_000L;
@@ -55,7 +60,7 @@ public final class FarChunkHolds
     {
     }
 
-    /** Loads a chunk without generating it, and hands it over (null for one never generated), or says why it could not. */
+    /** Loads a chunk not to be generated, and hands it over (null for one not on disk), or says why it could not. */
     @FunctionalInterface
     interface Loader
     {
@@ -92,6 +97,9 @@ public final class FarChunkHolds
 
     /** How chunks are loaded. */
     private static Loader loader = FarChunkHolds::loadReal;
+
+    /** Whether that is the server's own loader, which on Spigot loads on the main thread. */
+    private static boolean real = true;
 
     private static int task = -1;
     private static boolean warnedCap;
@@ -164,7 +172,9 @@ public final class FarChunkHolds
                 let(area);
             }
         }
-        QUEUE.removeIf(area -> !wanted.contains(area));
+        // Rebuilt in the order wanted, so a newly watched window's arrival is not left behind older windows' edges.
+        QUEUE.clear();
+        LOADING.keySet().removeIf(area -> !wanted.contains(area));
         RESTING.keySet().removeIf(area -> !wanted.contains(area));
         for (final Area area : wanted)
         {
@@ -225,14 +235,15 @@ public final class FarChunkHolds
     }
 
     /**
-     * Every claimed area up to {@link #MOST_HELD}: the chunks already held first, so the cap does not
-     * swap which window is cut as viewers move, then the other watched windows' nearest first, then
-     * those in their grace.
+     * Every claimed area up to {@link #MOST_HELD}: the chunks already held first, a window's in its
+     * grace too, so the cap does not swap which window is cut as viewers move, then the other watched
+     * windows' nearest first, then those in their grace.
      */
     private static Set<Area> capped(final Map<String, List<Area>> watched)
     {
         final Set<Area> all = new LinkedHashSet<>();
         watched.values().forEach(areas -> areas.stream().filter(HELD::containsKey).forEach(all::add));
+        CLAIMS.values().forEach(claim -> claim.areas.stream().filter(HELD::containsKey).forEach(all::add));
         watched.values().forEach(all::addAll);
         CLAIMS.values().forEach(claim -> all.addAll(claim.areas));
         if (all.size() <= MOST_HELD)
@@ -260,7 +271,8 @@ public final class FarChunkHolds
     static void step()
     {
         final long now = Windows.clock.getAsLong();
-        for (int i = 0; (i < PER_TICK) && !QUEUE.isEmpty(); i++)
+        final int pace = ((async == null) && real) ? PER_TICK_ON_MAIN : PER_TICK;
+        for (int i = 0; (i < pace) && !QUEUE.isEmpty(); i++)
         {
             final Area area = QUEUE.poll();
             final World world = Bukkit.getWorld(area.world());
@@ -484,8 +496,8 @@ public final class FarChunkHolds
     }
 
     /**
-     * Loads a chunk: on Paper off the main thread and never generated; elsewhere on it, and only once
-     * the server says the chunk was generated, since a plain load generates one that was not.
+     * Loads a chunk: on Paper off the main thread, asking for it not to be generated; elsewhere on it,
+     * and only once the server says the chunk is on disk, since a plain load generates one that is not.
      */
     static void loadReal(final World world, final int x, final int z, final Consumer<Chunk> loaded,
         final Consumer<Throwable> failed)
@@ -557,6 +569,7 @@ public final class FarChunkHolds
     static void loaderWith(final Loader stand)
     {
         loader = (stand == null) ? FarChunkHolds::loadReal : stand;
+        real = (stand == null);
     }
 
     /**

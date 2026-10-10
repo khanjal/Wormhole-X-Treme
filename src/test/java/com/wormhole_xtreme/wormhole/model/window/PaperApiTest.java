@@ -38,7 +38,7 @@ class PaperApiTest
         assertEquals(int.class, Player.class.getMethod("getSendViewDistance").getReturnType());
     }
 
-    /** Paper loads the chunks held for a view's creatures off the main thread, without generating them. */
+    /** Paper loads the chunks held for a view's creatures off the main thread, asking for each held chunk not to be generated. */
     @Test
     void theChunkHoldsFindPapersAsyncChunkLoad() throws NoSuchMethodException
     {

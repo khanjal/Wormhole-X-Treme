@@ -739,20 +739,26 @@ that one viewer (`HiddenEntities`).
   side, so nothing there was loaded and no creature showed until somebody had been over. So while a
   window is being drawn for at least one viewer, `mirror-entity-load-radius` (2 by default, 0 for
   none, read up to 4) holds the arrival's chunk and that many chunks ahead of it and to either side
-  with the plugin's chunk ticket: 15 chunks at 2, nothing behind the arrival, which no view shows.
-  Two windows onto one place share one ticket a chunk (through `ChunkTickets`, which rings and pets
-  use too). The chunks are asked for two a tick, the arrival's own first: on Paper with
-  `getChunkAtAsync(x, z, false)`, off the main thread; on Spigot, which has no asynchronous load, by
-  `getChunkAt` after `isChunkGenerated`, so on the main thread but paced. Paper's load is asked not
-  to generate, so a chunk never generated stays so. Spigot only says whether a chunk was generated:
-  one never generated is skipped, but one generated only in part reads as generated and loading it
-  finishes it. A load that fails or does not answer in 30 seconds is given up on, logged once, and
-  not asked again for a minute. They are let go ten seconds after the window's last viewer stops
+  with the plugin's chunk ticket: 15 held chunks at 2, nothing behind the arrival, which no view
+  shows. A plugin ticket holds its chunk the way `/forceload` does, and the server keeps a ring two
+  chunks wide loaded round every held chunk: the 3 by 5 block of 15 keeps about 7 by 9, some 63
+  chunks, loaded, about 35 of them ticking blocks (hoppers, furnaces, redstone) as well as entities.
+  That ring can generate terrain at the edge of explored land, on Paper and Spigot alike. Two windows
+  onto one place share one ticket a chunk (through `ChunkTickets`, which rings and pets use too). The
+  held chunks are asked for nearest the arrival first. On Paper, two a tick with
+  `getChunkAtAsync(x, z, false)`, off the main thread, which asks for the held chunk itself not to be
+  generated. On Spigot, which has no asynchronous load, one a tick on the main thread: by `getChunkAt`
+  once `isChunkGenerated` says the chunk is on disk. That check is itself a read of the region file
+  that waits for the disk, and it is true for any chunk saved at all, including the half-made chunks
+  the game leaves round the edge of explored land, which loading then finishes generating, tens to
+  hundreds of milliseconds each, on the main thread. A load that fails or does not answer in 30
+  seconds is given up on, logged once, and not asked again for a minute. They are let go ten seconds after the window's last viewer stops
   being drawn it (a view ending, a quit, a death, a world change, the window released, a gate closing,
   the setting turned off; a lower radius lets the outer chunks go at once), and at once on a reset,
-  on shutdown and when the far world unloads. No more than 400 are held across every window: the
-  chunks already held keep their place, then the nearest windows' come, so viewers moving about do
-  not swap which window is cut. Reaching it is logged once. A window onto a world that is not loaded
+  on shutdown and when the far world unloads. No more than 400 are held across every window (held:
+  the rings round them come on top, so far-apart windows at the cap keep up to about 1,900 chunks
+  loaded): the chunks already held keep their place, a window's in its grace too, then the nearest
+  windows' come, so viewers moving about do not swap which window is cut. Reaching it is logged once. A window onto a world that is not loaded
   holds nothing. `mirror debug -all` says how many of a
   window's chunks are held.
 - **Read only where loaded.** The far room is the capture's box, cut to what the view's depth could
@@ -806,9 +812,11 @@ that one viewer (`HiddenEntities`).
 - **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
   in front of it is a later step, with the rule that a viewer never sees themselves.
 
-**What it costs.** A watched window holds up to 15 chunks loaded at the default radius, 45 at 4,
-and the entities in them are simulated as any loaded chunk's are; other plugins that list chunk
-tickets see the plugin's. Simulated means despawning too: a mob that may despawn, with no player
+**What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
+ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
+blocks; the entities in them are simulated as any loaded chunk's are, and the ring can generate
+terrain at the edge of explored land. On Spigot each held chunk is loaded on the main thread, one a
+tick. Other plugins that list chunk tickets see the plugin's. Simulated means despawning too: a mob that may despawn, with no player
 within 128 blocks, can go almost at once, as in any loaded chunk, so a first dial may show none of
 those. That is the server's own rule; nothing here changes a real mob's. A stand-in is a real entity, so other plugins see it: a spawn event, a body in
 an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns

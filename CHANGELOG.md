@@ -24,9 +24,10 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **Mobs in a mirror's or an open gate's far room can show through it** (`mirror-show-entities`, off
   by default; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)), as copies only the
   viewer sees, up to twenty each. While a window is watched, the chunks just in front of its far
-  side are kept loaded so they show on the first look (`mirror-entity-load-radius`, 2: 15 chunks a
-  window; 0 for none, at most 4; Paper is asked not to generate terrain and Spigot skips chunks never
-  generated). A
+  side are held loaded so they show on the first look (`mirror-entity-load-radius`, 2: 15 chunks a
+  window held as `/forceload` holds them, with the ring round them about 63 loaded; 0 for none, at
+  most 4; the ring can generate terrain at the edge of explored land, and on Spigot each held chunk
+  loads on the main thread, one a tick). A
   copy shows its mob as it looked when the copy appeared: its name, what it wears and holds, and a
   sheep's wool colour and whether it is shorn; only baby or grown is kept in step. The copies
   are real entities, so other plugins count them. Players are not shown yet. See

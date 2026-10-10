@@ -346,8 +346,8 @@ class FarChunkHoldsTest
     }
 
     /**
-     * Through the server's own loader on Spigot: a chunk never generated is never loaded or ticketed,
-     * so nothing is generated for this; a generated one is loaded and held.
+     * Through the server's own loader on Spigot: a chunk not on disk is never loaded or ticketed by
+     * this; one on disk is loaded and held. (The ring round a held chunk is the server's to load.)
      */
     @Test
     void onSpigotAChunkNeverGeneratedIsNeverLoadedAndAGeneratedOneIsHeld()
@@ -554,6 +554,88 @@ class FarChunkHoldsTest
         ConfigTestSupport.set(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, " 3 ");
         assertEquals(3, ConfigManager.getMirrorEntityLoadRadius(), "a number written as text is still read");
         verify(plugin, times(1)).prettyLog(eq(Level.WARNING), anyString());
+    }
+
+    /** A chunk on its way for a window no longer wanted is forgotten, and never later reported as unanswered. */
+    @Test
+    void aLoadForAWindowLetGoIsForgottenNotReportedLater()
+    {
+        final long[] now = { 0L };
+        Windows.clock = () -> now[0];
+        FarChunkHolds.settle(watching("museum", SOUTH), now[0]);
+        stepAll();
+        assertEquals(15, FarChunkHolds.loadingCount(), "fifteen asked for, none answered");
+
+        FarChunkHolds.settle(Map.of(), now[0]);
+        now[0] += FarChunkHolds.GRACE_MILLIS;
+        FarChunkHolds.settle(Map.of(), now[0]);
+        assertEquals(0, FarChunkHolds.loadingCount(), "nobody wants them now");
+
+        now[0] += FarChunkHolds.LOAD_TIMEOUT_MILLIS;
+        FarChunkHolds.settle(Map.of(), now[0]);
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString(), any());
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString());
+    }
+
+    /**
+     * Under the cap, a window in its grace keeps its held chunks ahead of a newly watched one, so a
+     * viewer stepping back to it within the grace does not find them released and loaded again.
+     */
+    @Test
+    void underTheCapAWindowInItsGraceKeepsItsHeldChunks()
+    {
+        final Map<String, List<FarChunkHolds.Area>> first = new LinkedHashMap<>();
+        for (int i = 0; i < 26; i++)
+        {
+            first.put("window" + i, FarChunkHolds.ahead(new Place("far", 100.5 + (i * 200), 70.0, -20.5, 0.0f, 0.0f), 2));
+        }
+        FarChunkHolds.settle(first, 0L);
+        stepAll();
+        loadAll();
+        assertEquals(390, FarChunkHolds.heldCount());
+
+        final Map<String, List<FarChunkHolds.Area>> next = new LinkedHashMap<>(first);
+        next.remove("window0");
+        next.put("window26", FarChunkHolds.ahead(new Place("far", 100.5 + (26 * 200), 70.0, -20.5, 0.0f, 0.0f), 2));
+        FarChunkHolds.settle(next, 1L);
+
+        for (final FarChunkHolds.Area area : first.get("window0"))
+        {
+            verify(chunks.get(area), never()).removePluginChunkTicket(plugin);
+        }
+        assertArrayEquals(new int[] { 15, 15 }, FarChunkHolds.heldFor("window0"), "all of it, in its grace");
+    }
+
+    /** A newly watched window's arrival is asked for next, not behind an older window's outer chunks. */
+    @Test
+    void aNewlyWatchedWindowsArrivalIsAskedForNext()
+    {
+        FarChunkHolds.settle(watching("museum", SOUTH), 0L);
+        FarChunkHolds.step();
+        assertEquals(2, asked.size());
+
+        final Place nearer = new Place("far", 900.5, 70.0, -20.5, 0.0f, 0.0f);
+        final Map<String, List<FarChunkHolds.Area>> both = new LinkedHashMap<>();
+        both.put("gate:Abydos", FarChunkHolds.ahead(nearer, 2));
+        both.put("museum", FarChunkHolds.ahead(SOUTH, 2));
+        FarChunkHolds.settle(both, 1L);
+        FarChunkHolds.step();
+
+        assertEquals(FarChunkHolds.ahead(nearer, 2).get(0), asked.get(2), "the new window's arrival first");
+    }
+
+    /** Through Spigot's own loader, which loads on the main thread, one chunk is asked for a tick. */
+    @Test
+    void throughSpigotsLoaderOneChunkIsAskedATick()
+    {
+        FarChunkHolds.loaderWith(null);
+        FarChunkHolds.asyncNone();
+        FarChunkHolds.settle(watching("museum", SOUTH), 0L);
+
+        FarChunkHolds.step();
+        verify(far, times(1)).isChunkGenerated(anyInt(), anyInt());
+        FarChunkHolds.step();
+        verify(far, times(2)).isChunkGenerated(anyInt(), anyInt());
     }
 
     private void stepAll()

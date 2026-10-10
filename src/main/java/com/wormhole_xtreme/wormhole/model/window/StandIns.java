@@ -66,6 +66,13 @@ public final class StandIns
     /** How far below the feet of a creature in the air its floor may be: mid-jump, or a short fall. */
     static final double FALL_BELOW = 2.0;
 
+    /**
+     * Types newer than the 1.20 compile path that hover or swim without being a {@link Flying} or a
+     * {@link WaterMob}, by their {@code EntityType} name: the happy ghast, its ghastling a baby of the
+     * same type, and the nautili of 26.x. Settable for a test.
+     */
+    static Set<String> hovering = Set.of("HAPPY_GHAST", "NAUTILUS", "ZOMBIE_NAUTILUS");
+
     /** How far either side of a creature's middle its floor may be, for one standing over a block's edge. */
     private static final double FLOOR_ASIDE = 0.3;
 
@@ -374,7 +381,8 @@ public final class StandIns
      */
     static boolean floats(final Entity creature)
     {
-        return !creature.hasGravity() || (creature instanceof Flying) || (creature instanceof Bat) || (creature instanceof Bee)
+        return !creature.hasGravity() || hovering.contains(String.valueOf(creature.getType()))
+            || (creature instanceof Flying) || (creature instanceof Bat) || (creature instanceof Bee)
             || (creature instanceof Parrot) || (creature instanceof Allay) || (creature instanceof Vex)
             || (creature instanceof Blaze) || (creature instanceof WaterMob) || creature.isInWater()
             || ((creature instanceof LivingEntity living) && (living.isClimbing() || living.isSwimming() || living.isGliding()));
