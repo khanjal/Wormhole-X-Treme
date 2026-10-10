@@ -532,13 +532,21 @@ entity standing in the wormhole's own cell rather than a block replacing it, so 
 hides the water by covering it and needs nothing, while a see-through one hides it without
 replacing it and leaves the cell reading as empty. Only an iris that would hide the liquid pays
 for the move; a sweep runs on every cell of every ring, and a picture nobody can tell apart is
-not worth the packets. A preview's sweep keeps where each viewer's wormhole stands, cell by cell,
-and a step or a crossing sends only the cells that have moved (#432). Drawn all at once before the sweep, a gate shows the wormhole twice over
+not worth the packets. Drawn all at once before the sweep, a gate shows the wormhole twice over
 for the length of its animation; drawn after it, every ring of a see-through iris arrives with
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
 so both sweeps say which cells they have just reached and `StargateBlockSetup.horizonBehind`
 moves only those.
+
+**A preview's sweep keeps a record per viewer** (#432) of where each cell's wormhole stands for
+them, and a step or a crossing sends only the cells that have moved. It used to send the whole
+wormhole into the ring at every step, which put water back under the glass over every ring
+already covered. The periodic redraw and a palette change send the whole record again, which is
+what puts right a client that lost the blocks. Behind an opaque iris the wormhole stays in the
+ring for the length of a sweep, so an opening sweep takes back the copy a shut preview drew
+behind the ring at its first ring rather than at its end; the iris covers both, and nothing looks
+different.
 
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
