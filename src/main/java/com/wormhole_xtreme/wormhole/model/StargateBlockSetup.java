@@ -922,7 +922,7 @@ class StargateBlockSetup
      *            the gate being drawn
      * @return the players to send to, empty if nobody is close
      */
-    private static List<Player> nearby(final Stargate gate)
+    static List<Player> nearby(final Stargate gate)
     {
         final List<Player> recipients = new ArrayList<>();
         if ((gate == null) || (gate.getGateWorld() == null))
@@ -942,7 +942,7 @@ class StargateBlockSetup
     /** The players in the gate's world within the radius clients are shown a gate's drawing from. */
     // Runs on every frame of the woosh and the dial, so it stays a plain loop.
     @SuppressWarnings("java:S9391")
-    private static List<Player> playersNear(final Stargate gate, final Location reference)
+    static List<Player> playersNear(final Stargate gate, final Location reference)
     {
         final List<Player> near = new ArrayList<>();
         for (final Player p : gate.getGateWorld().getPlayers())
