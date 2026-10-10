@@ -77,6 +77,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Fixed**
 
+- **Walking round a gate while its iris opens or closes no longer leaves a block on your side of
+  it that is not there** ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)). Behind
+  a see-through iris the wormhole's stand-in ice, and from behind any drawn iris the iris a block
+  in front of the ring, stayed where they were until the sweep ended, solid to you and not to the
+  server; walking round to the front left the rings already covered with nothing behind them.
 - **A build preview's see-through iris no longer shows empty cells part way through a sweep**
   ([#432](https://github.com/khanjal/Wormhole-X-Treme/issues/432)). Turned back mid-sweep, or
   dialled open behind an iris still sweeping shut, the covered cells read as empty until the sweep
