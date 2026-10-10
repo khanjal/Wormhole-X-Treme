@@ -1326,7 +1326,7 @@ public final class Windows
                 seeing.add(window);
             }
         }
-        seeing.sort(Comparator.comparing(window -> window.name()));
+        seeing.sort(Comparator.comparing(WindowState::name));
         return seeing;
     }
 
@@ -2332,7 +2332,7 @@ public final class Windows
         sorted.sort(Comparator
             .comparingDouble((WindowState window) -> fromBanner(window.anchor(),
                 eye.getX(), eye.getY(), eye.getZ()))
-            .thenComparing(window -> window.name()));
+            .thenComparing(WindowState::name));
         return sorted;
     }
 
