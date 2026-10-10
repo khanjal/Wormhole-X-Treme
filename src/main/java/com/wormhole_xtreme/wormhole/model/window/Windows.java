@@ -749,7 +749,8 @@ public final class Windows
         final long now = now();
         for (final Map.Entry<UUID, ViewerDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
-            if (entry.getValue().mirrors.contains(name))
+            // Stand-ins too: a first redraw that spawned them may have stopped before naming its windows.
+            if (entry.getValue().mirrors.contains(name) || StandIns.shownThrough(entry.getValue(), name))
             {
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)
@@ -1212,7 +1213,15 @@ public final class Windows
         {
             if (!view.standIns.isEmpty())
             {
-                StandIns.follow(view);
+                try
+                {
+                    StandIns.follow(view);
+                }
+                catch (final Exception | LinkageError failed)
+                {
+                    StandIns.failedOnce("Could not move the stand-ins shown through a view", failed);
+                    dropQuietly(view);
+                }
             }
         }
         if (StandIns.count() == 0)
@@ -1228,27 +1237,50 @@ public final class Windows
     private static void showStandIns(final Player player, final ViewerDrawing view, final Location eye,
         final List<WindowState> seeing, final Map<WindowState, Whole> fixed, final long now)
     {
-        if (!ConfigManager.isMirrorShowEntities() || player.isDead())
+        try
         {
-            if (!view.standIns.isEmpty())
+            if (!ConfigManager.isMirrorShowEntities() || player.isDead())
             {
-                StandIns.removeAll(view);
+                if (!view.standIns.isEmpty())
+                {
+                    StandIns.removeAll(view);
+                }
+                return;
             }
-            return;
+            StandIns.show(player, view, standInsFor(player, view, eye, seeing, fixed), now);
         }
-        StandIns.show(player, view, standInsFor(view.world, eye, seeing, fixed), now);
+        catch (final Exception | LinkageError failed)
+        {
+            // Cosmetic: the blocks of the view, and every other viewer, must still be drawn.
+            StandIns.failedOnce("Could not show the creatures in a view's far room", failed);
+            dropQuietly(view);
+        }
+    }
+
+    /** Takes a viewer's stand-ins away after a failure, without letting a second one escape. */
+    private static void dropQuietly(final ViewerDrawing view)
+    {
+        try
+        {
+            StandIns.removeAll(view);
+        }
+        catch (final Exception | LinkageError alsoFailed)
+        {
+            // Already logged once; the stray sweep tries again.
+            view.standIns.clear();
+        }
     }
 
     /**
      * The far creatures a viewer sees through these windows, and where: inside a room as drawn, at
      * most {@link FarCreatures#MOST_PER_VIEWER}, nearest first.
      */
-    private static List<FarCreatures.Wanted> standInsFor(final World here, final Location eye,
-        final List<WindowState> seeing, final Map<WindowState, Whole> fixed)
+    private static List<FarCreatures.Wanted> standInsFor(final Player player, final ViewerDrawing view,
+        final Location eye, final List<WindowState> seeing, final Map<WindowState, Whole> fixed)
     {
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
-        final List<FarCreatures.Wanted> candidates = new ArrayList<>();
+        final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
         for (final WindowState window : nearestFirst(seeing, eye))
         {
             // A reflection's room is the viewer's own, which is a later step of #296.
@@ -1256,15 +1288,21 @@ public final class Windows
             {
                 for (final Entity creature : farCreatures(window))
                 {
-                    final Location at = FarCreatures.hereOf(here, window.shape, creature.getLocation());
-                    if (creature.isValid() && StandIns.inRoom(window, at) && inAnyView(eye, at, seeing, fixed, allOpen))
+                    if (creature.isValid() && player.canSee(creature))
                     {
-                        candidates.add(new FarCreatures.Wanted(creature, at, window));
+                        final Location at = FarCreatures.hereOf(view.world, window.shape, creature.getLocation());
+                        if (StandIns.inRoom(window, at))
+                        {
+                            inRoom.add(new FarCreatures.Wanted(creature, at, window));
+                        }
                     }
                 }
             }
         }
-        return FarCreatures.nearest(candidates, eye, FarCreatures.MOST_PER_VIEWER);
+        // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
+        return FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
+            FarCreatures.keepOrShow(view.standIns.keySet(), wanted -> stillSeen(eye, wanted.here(), seeing, fixed),
+                wanted -> inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
     }
 
     /** The creatures in a window's far room, read once for the window as this sweep offered it. */
@@ -2313,6 +2351,29 @@ public final class Windows
             final boolean inView = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
                 : seenAndCovered(eye, window, x, y, z, seeing, allOpen);
             if (inView)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The looser test a stand-in already shown is kept by: seen through an opening at all, the wall
+     * hiding its outline or not, so one at the edge of the view is not spawned and removed each step.
+     */
+    private static boolean stillSeen(final Location eye, final Location at, final List<WindowState> seeing,
+        final Map<WindowState, Whole> fixed)
+    {
+        final int x = at.getBlockX();
+        final int y = at.getBlockY();
+        final int z = at.getBlockZ();
+        for (final WindowState window : seeing)
+        {
+            final Whole whole = fixed.get(window);
+            final boolean seen = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
+                : (seenThrough(eye, window, x, y, z, seeing, 0.0) != WindowShape.UNSEEN);
+            if (seen)
             {
                 return true;
             }

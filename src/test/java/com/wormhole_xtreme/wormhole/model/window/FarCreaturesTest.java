@@ -15,7 +15,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -24,9 +26,11 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Cat;
 import org.bukkit.entity.Cow;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wither;
 import org.bukkit.entity.Zombie;
 import org.bukkit.util.BoundingBox;
 import org.junit.jupiter.api.AfterEach;
@@ -317,12 +321,85 @@ class FarCreaturesTest
         assertEquals(-2.0, chosen.get(0).here().getZ(), 1.0e-9, "the nearest creature where it is nearest, not where it is also seen");
     }
 
+    /**
+     * The costly view test is asked nearest first and not at all once twenty are chosen, and the
+     * answer is the one testing every creature would give.
+     *
+     * <p>A mob farm in the far room is hundreds of creatures, and a view test projects each onto the
+     * opening: asked of all of them it cost a redraw that many projections for twenty stand-ins.
+     */
+    @Test
+    void theViewTestStopsAtTheCapWithTheSameAnswerAsTestingEveryCreature()
+    {
+        final Location eye = new Location(here, 0.5, 65.0, -3.0);
+        final List<FarCreatures.Wanted> candidates = new ArrayList<>();
+        for (int i = 1; i <= 200; i++)
+        {
+            candidates.add(new FarCreatures.Wanted(creature(Zombie.class, here, 0, 0, 0), new Location(here, 0.5, 65.0, -3.0 + i), null));
+        }
+        // Every third out of view.
+        final List<FarCreatures.Wanted> asked = new ArrayList<>();
+        final List<FarCreatures.Wanted> chosen = FarCreatures.choose(candidates, eye, FarCreatures.MOST_PER_VIEWER, wanted ->
+        {
+            asked.add(wanted);
+            return (candidates.indexOf(wanted) % 3) != 2;
+        });
+
+        final List<FarCreatures.Wanted> everyInView = new ArrayList<>();
+        for (final FarCreatures.Wanted wanted : candidates)
+        {
+            if ((candidates.indexOf(wanted) % 3) != 2)
+            {
+                everyInView.add(wanted);
+            }
+        }
+        assertEquals(FarCreatures.nearest(everyInView, eye, FarCreatures.MOST_PER_VIEWER), chosen,
+            "the nearest twenty in view, as testing all two hundred would give");
+        assertEquals(29, asked.size(), "asked only of the twenty-nine nearest it took to find twenty in view, not all 200");
+    }
+
+    /**
+     * A creature already shown is kept by the looser test, and a new one needs the stricter, so one at
+     * the edge of the view is not spawned and removed on every step across it.
+     */
+    @Test
+    void aShownCreatureIsKeptByTheLooserTestAndANewOneNeedsTheStricter()
+    {
+        final Entity shown = creature(Zombie.class, here, 0, 0, 0);
+        final Entity fresh = creature(Zombie.class, here, 0, 0, 0);
+        final FarCreatures.Wanted shownOne = new FarCreatures.Wanted(shown, new Location(here, 0, 0, 0), null);
+        final FarCreatures.Wanted freshOne = new FarCreatures.Wanted(fresh, new Location(here, 0, 0, 0), null);
+        final Predicate<FarCreatures.Wanted> test =
+            FarCreatures.keepOrShow(Set.of(shown.getUniqueId()), wanted -> true, wanted -> false);
+
+        assertTrue(test.test(shownOne), "kept while still seen at all");
+        assertFalse(test.test(freshOne), "not spawned until properly in view");
+        assertTrue(FarCreatures.keepOrShow(Set.of(), wanted -> false, wanted -> true).test(shownOne),
+            "a creature with no stand-in is judged by the stricter test alone");
+    }
+
+    /**
+     * Nothing another plugin hides by default is copied, nor a boss whose copy would bring its bar or
+     * its parts; the same zombie, visible, is.
+     */
+    @Test
+    void hiddenCreaturesAndBossesAreNotCopied()
+    {
+        final Zombie hidden = creature(Zombie.class, here, 0, 0, 0);
+        assertTrue(FarCreatures.copied(hidden), "visible, it is copied");
+        when(hidden.isVisibleByDefault()).thenReturn(false);
+        assertFalse(FarCreatures.copied(hidden), "hidden by default, as a preview's or another plugin's creature is");
+        assertFalse(FarCreatures.copied(creature(EnderDragon.class, here, 0, 0, 0)), "the dragon has parts and a bar");
+        assertFalse(FarCreatures.copied(creature(Wither.class, here, 0, 0, 0)), "the wither has a bar");
+    }
+
     private static <T extends Entity> T creature(final Class<T> type, final World world, final double x, final double y,
         final double z)
     {
         final T entity = mock(type);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
         when(entity.isValid()).thenReturn(true);
+        when(entity.isVisibleByDefault()).thenReturn(true);
         when(entity.getLocation()).thenReturn(new Location(world, x, y, z));
         return entity;
     }

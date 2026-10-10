@@ -6,13 +6,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.ComplexLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wither;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
@@ -54,7 +57,8 @@ public final class FarCreatures
 
     /**
      * Whether a creature in a far room is shown: a mob, not a player, not scenery, and not
-     * somebody's companion or one of the stand-ins themselves.
+     * somebody's companion or one of the stand-ins themselves, and nothing another plugin hides by
+     * default or a boss whose copy would bring its bar or its parts with it.
      *
      * @param entity
      *            an entity in a far room
@@ -63,7 +67,8 @@ public final class FarCreatures
     static boolean copied(final Entity entity)
     {
         return (entity instanceof LivingEntity living) && !(entity instanceof Player)
-            && !(entity instanceof ArmorStand) && !living.isInvisible() && entity.isValid()
+            && !(entity instanceof ArmorStand) && !(entity instanceof ComplexLivingEntity) && !(entity instanceof Wither)
+            && !living.isInvisible() && entity.isValid() && entity.isVisibleByDefault()
             && !FreyaCompanion.isCompanion(entity) && !StandIns.isStandIn(entity);
     }
 
@@ -170,18 +175,56 @@ public final class FarCreatures
      */
     static List<Wanted> nearest(final List<Wanted> candidates, final Location eye, final int most)
     {
+        return choose(candidates, eye, most, wanted -> true);
+    }
+
+    /**
+     * The same, asking a test of each nearest first and none once the cap is reached: the same
+     * answer as testing every one and taking the nearest that pass, for a fraction of the tests.
+     *
+     * @param candidates
+     *            every far creature in the room, in the order the windows were looked through
+     * @param eye
+     *            the viewer's eye
+     * @param most
+     *            the cap
+     * @param shown
+     *            whether one is to be shown; asked only while the cap is not reached
+     * @return those to show
+     */
+    static List<Wanted> choose(final List<Wanted> candidates, final Location eye, final int most,
+        final Predicate<Wanted> shown)
+    {
         final List<Wanted> sorted = new ArrayList<>(candidates);
         sorted.sort(Comparator.comparingDouble(wanted -> apart(wanted.here(), eye)));
         final Set<UUID> taken = new HashSet<>();
         final List<Wanted> chosen = new ArrayList<>();
         for (final Wanted wanted : sorted)
         {
-            if ((chosen.size() < most) && taken.add(wanted.original().getUniqueId()))
+            if ((chosen.size() < most) && !taken.contains(wanted.original().getUniqueId()) && shown.test(wanted))
             {
+                taken.add(wanted.original().getUniqueId());
                 chosen.add(wanted);
             }
         }
         return chosen;
+    }
+
+    /**
+     * Which test a creature is shown by: one with a stand-in already is kept by the looser, so the
+     * edge of the view does not spawn and remove it on every step; a new one needs the stricter.
+     *
+     * @param held
+     *            the creatures with a stand-in now
+     * @param kept
+     *            the test a held creature passes to stay
+     * @param fresh
+     *            the test a new one passes to be spawned
+     * @return the test for {@link #choose}
+     */
+    static Predicate<Wanted> keepOrShow(final Set<UUID> held, final Predicate<Wanted> kept, final Predicate<Wanted> fresh)
+    {
+        return wanted -> held.contains(wanted.original().getUniqueId()) ? kept.test(wanted) : fresh.test(wanted);
     }
 
     /** How far apart two places are, squared, by their numbers alone. */

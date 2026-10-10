@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -57,6 +58,9 @@ public final class StandIns
     /** The task following them, or -1 for none. */
     private static int followTask = -1;
 
+    /** Whether a failure has been logged yet: stand-ins are cosmetic, and one log line is enough. */
+    private static boolean warned;
+
     /** One far creature's stand-in, shown to one viewer through one window. */
     static final class StandIn
     {
@@ -89,6 +93,25 @@ public final class StandIns
     {
         final UUID id = (entity == null) ? null : entity.getUniqueId();
         return (id != null) && (ALL.get(id) == entity);
+    }
+
+    /**
+     * @param view
+     *            a viewer's drawing
+     * @param window
+     *            the name a window is offered under
+     * @return true if any of the viewer's stand-ins was placed through it
+     */
+    static boolean shownThrough(final ViewerDrawing view, final String window)
+    {
+        for (final StandIn standIn : view.standIns.values())
+        {
+            if (standIn.window.name().equals(window))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @return how many stand-ins are alive, across every viewer */
@@ -225,9 +248,13 @@ public final class StandIns
     static boolean inRoom(final WindowState window, final Location at)
     {
         final int x = at.getBlockX();
+        final int y = at.getBlockY();
         final int z = at.getBlockZ();
-        return Windows.insideFixed(window, x, at.getBlockY(), z, window.depth())
-            && at.getWorld().isChunkLoaded(x >> 4, z >> 4);
+        final World here = at.getWorld();
+        // Skipped rather than clamped: a stand-in moved to the world's edge stands somewhere its creature is not.
+        return Windows.insideFixed(window, x, y, z, window.depth()) && (y >= here.getMinHeight())
+            && (y < here.getMaxHeight()) && here.isChunkLoaded(x >> 4, z >> 4)
+            && here.getChunkAt(x >> 4, z >> 4).isEntitiesLoaded();
     }
 
     /**
@@ -252,6 +279,8 @@ public final class StandIns
         }
         ALL.clear();
         stopFollowing();
+        // Once per enable, not once per JVM: a reload that fixed nothing says so again.
+        warned = false;
     }
 
     /**
@@ -349,20 +378,54 @@ public final class StandIns
         {
             return null;
         }
+        // Tracked before it is dressed, so a throw anywhere after the entity exists still finds it to remove.
+        final Entity[] made = new Entity[1];
         try
         {
             final Entity copy = HiddenEntities.spawnFor(WormholeXTreme.getThisPlugin(), viewer, one.here(), kind,
-                made -> dress(made, original));
-            if (copy != null)
+                entity ->
+                {
+                    made[0] = entity;
+                    track(entity);
+                    dress(entity, original);
+                });
+            if ((copy == null) && (made[0] != null))
             {
-                track(copy);
+                // Refused after it was made: never added, or added and taken out again.
+                remove(made[0]);
             }
             return copy;
         }
-        catch (final RuntimeException refused)
+        catch (final RuntimeException | LinkageError failed)
         {
-            // A type the world will not spawn this way: shown as nothing, like a refused spawn.
+            if (made[0] != null)
+            {
+                remove(made[0]);
+            }
+            failedOnce("Could not spawn a stand-in for a far creature", failed);
             return null;
+        }
+    }
+
+    /**
+     * Logs a stand-in failure, the first time only, so a broken server is told once rather than
+     * every redraw of every viewer.
+     *
+     * @param what
+     *            what failed
+     * @param failure
+     *            why
+     */
+    static void failedOnce(final String what, final Throwable failure)
+    {
+        if (!warned)
+        {
+            warned = true;
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, what, failure);
+            }
         }
     }
 

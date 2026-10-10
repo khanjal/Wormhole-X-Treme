@@ -2633,6 +2633,7 @@ class WindowsTest
         farZombie = mock(Zombie.class);
         when(farZombie.getUniqueId()).thenReturn(UUID.randomUUID());
         when(farZombie.isValid()).thenReturn(true);
+        when(farZombie.isVisibleByDefault()).thenReturn(true);
         when(farZombie.getType()).thenReturn(EntityType.ZOMBIE);
         standIn = mock(Zombie.class);
         when(standIn.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -2642,6 +2643,7 @@ class WindowsTest
             final Chunk chunk = mock(Chunk.class);
             when(chunk.isEntitiesLoaded()).thenReturn(true);
             when(far.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+            when(world.getChunkAt(anyInt(), anyInt())).thenReturn(chunk);
             when(far.getChunkAt(anyInt(), anyInt())).thenReturn(chunk);
             when(farZombie.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -18.5, 0.0f, 0.0f));
             when(far.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.of(farZombie));
@@ -2830,6 +2832,68 @@ class WindowsTest
         {
             Windows.release("museum");
         }
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /** A far creature hidden from this viewer, by another plugin or a vanish, is not shown to them. */
+    @Test
+    void aFarCreatureHiddenFromTheViewerIsNotShownToThem()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        when(viewer.canSee(farZombie)).thenReturn(false);
+
+        withServer(WindowSweep::tick);
+        assertEquals(0, standInsMade, "hidden from them there, so not shown to them here");
+
+        when(viewer.canSee(farZombie)).thenReturn(true);
+        withServer(WindowSweep::tick);
+        assertEquals(1, standInsMade, "shown once they may see it");
+    }
+
+    /**
+     * A failure in the stand-ins costs the viewer their stand-ins and nothing else: the view's blocks
+     * are still drawn, and the sweep goes on.
+     *
+     * <p>The sweep and every move run this; a throw escaping it froze every mirror's view.
+     */
+    @Test
+    void aStandInFailureLeavesTheViewDrawn()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final Consumer<World> stubs = farSetup;
+        farSetup = far ->
+        {
+            stubs.accept(far);
+            when(farZombie.getLocation()).thenThrow(new NoSuchMethodError("a server without it"));
+        };
+
+        withServer(WindowSweep::tick);
+
+        assertFalse(changesTo(viewer, 1).get(0).isEmpty(), "the room is still drawn");
+        assertEquals(0, standInsMade);
+    }
+
+    /** A failure following stand-ins takes that viewer's away, rather than leaving them stuck or the task dead. */
+    @Test
+    void aFailureFollowingStandInsTakesThemAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        withServer(WindowSweep::tick);
+        assertTrue(StandIns.isStandIn(standIn));
+        when(farZombie.getLocation()).thenThrow(new IllegalStateException("gone wrong"));
+
+        Windows.followStandIns();
 
         verify(standIn).remove();
         assertFalse(StandIns.isStandIn(standIn));
@@ -3077,6 +3141,7 @@ class WindowsTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getWorld()).thenReturn(world);
         when(player.getEyeHeight()).thenReturn(1.62);
+        when(player.canSee(any(Entity.class))).thenReturn(true);
         stand(player, x, z);
         return player;
     }

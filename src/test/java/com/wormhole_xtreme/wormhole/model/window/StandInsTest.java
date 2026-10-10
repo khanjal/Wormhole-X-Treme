@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -18,7 +19,9 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,6 +33,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Zombie;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
@@ -64,6 +69,7 @@ class StandInsTest
     private Entity nextCopy;
     private WormholeXTreme plugin;
     private World here;
+    private Chunk hereChunk;
     private World far;
     private Player viewer;
     private ViewerDrawing view;
@@ -81,6 +87,11 @@ class StandInsTest
         StandIns.removeEverything();
         here = mock(World.class);
         when(here.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        hereChunk = mock(Chunk.class);
+        when(hereChunk.isEntitiesLoaded()).thenReturn(true);
+        when(here.getChunkAt(anyInt(), anyInt())).thenReturn(hereChunk);
+        when(here.getMinHeight()).thenReturn(-64);
+        when(here.getMaxHeight()).thenReturn(320);
         far = mock(World.class);
         when(far.getName()).thenReturn("far");
         viewer = mock(Player.class);
@@ -416,6 +427,8 @@ class StandInsTest
         assertTrue(StandIns.inRoom(window, new Location(here, 10.5, 63.0, 14.5)), "three behind the opening");
         assertFalse(StandIns.inRoom(window, new Location(here, 10.5, 63.0, 10.5)), "in front of it, in the viewer's room");
         final World unloaded = mock(World.class);
+        when(unloaded.getMinHeight()).thenReturn(-64);
+        when(unloaded.getMaxHeight()).thenReturn(320);
         assertFalse(StandIns.inRoom(window, new Location(unloaded, 10.5, 63.0, 14.5)), "in a chunk not loaded");
         assertNull(StandIns.whereNow(here, new StandIns.StandIn(creature(Zombie.class, 100.5, 70.0, 0.0),
             copy(Zombie.class), window)), "past the view's depth");
@@ -443,6 +456,120 @@ class StandInsTest
         assertEquals(12.5, at.getX(), 1.0e-9, "the middle of a five-wide opening from 10 to 14");
         assertEquals(64.0, at.getY(), 1.0e-9, "level with the opening's bottom, as the arrival is");
         assertEquals(16.5, at.getZ(), 1.0e-9, "four behind the plane, as it stands three past the arrival");
+    }
+
+    /**
+     * A throw while a stand-in is being dressed or shown leaves nothing in the world: it was known
+     * for a stand-in before anything could throw, so it is found and removed.
+     *
+     * <p>Tracked only once the spawn returned, a throw in between left a real, invisible mob in the
+     * viewer's world that no sweep could find.
+     */
+    @Test
+    void aThrowWhileDressingOrShowingLeavesNothingInTheWorld()
+    {
+        final Zombie dressedBadly = copy(Zombie.class);
+        doThrow(new IllegalStateException("broken setter")).when(dressedBadly).setSilent(true);
+        nextCopy = dressedBadly;
+        StandIns.show(viewer, view, List.of(wanted(creature(Zombie.class, 100.5, 70.0, -18.5))), 0L);
+
+        verify(dressedBadly).remove();
+        assertFalse(StandIns.isStandIn(dressedBadly));
+        assertTrue(view.standIns.isEmpty());
+
+        final Zombie shownBadly = copy(Zombie.class);
+        doThrow(new IllegalStateException("broken show")).when(viewer).showEntity(plugin, shownBadly);
+        nextCopy = shownBadly;
+        StandIns.show(viewer, view, List.of(wanted(creature(Zombie.class, 100.5, 70.0, -17.5))), 0L);
+
+        verify(shownBadly).remove();
+        assertFalse(StandIns.isStandIn(shownBadly));
+        assertEquals(0, StandIns.count(), "nothing left anywhere");
+    }
+
+    /** A failure is logged once, not on every redraw of every viewer. */
+    @Test
+    void aFailureIsLoggedOnce()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            final Zombie broken = copy(Zombie.class);
+            doThrow(new IllegalStateException("broken")).when(broken).setSilent(true);
+            nextCopy = broken;
+            StandIns.show(viewer, view, List.of(wanted(creature(Zombie.class, 100.5, 70.0, -18.5))), i * 10_000L);
+        }
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), any(String.class), any(Throwable.class));
+    }
+
+    /** A stand-in wears and holds what its creature does, not what a fresh spawn rolled. */
+    @Test
+    void aStandInWearsAndHoldsWhatItsCreatureDoes()
+    {
+        final Zombie original = creature(Zombie.class, 100.5, 70.0, -18.5);
+        final EntityEquipment worn = mock(EntityEquipment.class);
+        final ItemStack[] armour = { mock(ItemStack.class), mock(ItemStack.class), mock(ItemStack.class), mock(ItemStack.class) };
+        final ItemStack sword = mock(ItemStack.class);
+        final ItemStack shield = mock(ItemStack.class);
+        when(worn.getArmorContents()).thenReturn(armour);
+        when(worn.getItemInMainHand()).thenReturn(sword);
+        when(worn.getItemInOffHand()).thenReturn(shield);
+        when(original.getEquipment()).thenReturn(worn);
+        final Zombie copy = copy(Zombie.class);
+        final EntityEquipment copied = mock(EntityEquipment.class);
+        when(copy.getEquipment()).thenReturn(copied);
+
+        StandIns.dress(copy, original);
+
+        verify(copied).setArmorContents(armour);
+        verify(copied).setItemInMainHand(sword);
+        verify(copied).setItemInOffHand(shield);
+    }
+
+    /** A grown creature's stand-in is grown, though the copy came out a baby. */
+    @Test
+    void aGrownCreaturesStandInIsGrown()
+    {
+        final Zombie original = creature(Zombie.class, 100.5, 70.0, -18.5);
+        when(original.isAdult()).thenReturn(true);
+        final Zombie copy = copy(Zombie.class);
+        when(copy.isAdult()).thenReturn(false);
+
+        StandIns.dress(copy, original);
+
+        verify(copy).setAdult();
+        verify(copy, never()).setBaby();
+    }
+
+    /**
+     * A stand-in is never placed in a chunk whose entities have not loaded, nor above or below the
+     * world, where the server would refuse or move it.
+     */
+    @Test
+    void aStandInIsNotPlacedWhereEntitiesAreNotLoadedOrOutsideTheWorld()
+    {
+        final Location behind = new Location(here, 10.5, 63.0, 14.5);
+        assertTrue(StandIns.inRoom(window, behind), "the same place, with everything loaded");
+        when(hereChunk.isEntitiesLoaded()).thenReturn(false);
+        assertFalse(StandIns.inRoom(window, behind), "its chunk loaded but its entities not yet");
+        when(hereChunk.isEntitiesLoaded()).thenReturn(true);
+        when(here.getMaxHeight()).thenReturn(63);
+        assertFalse(StandIns.inRoom(window, behind), "at the top of the world");
+        when(here.getMaxHeight()).thenReturn(320);
+        when(here.getMinHeight()).thenReturn(64);
+        assertFalse(StandIns.inRoom(window, behind), "below the bottom of the world");
+    }
+
+    /** A viewer is known to be shown something through a window by their stand-ins alone. */
+    @Test
+    void aViewerIsKnownToBeShownThroughAWindowByTheirStandIns()
+    {
+        assertFalse(StandIns.shownThrough(view, "museum"), "nothing shown yet");
+        nextCopy = copy(Zombie.class);
+        StandIns.show(viewer, view, List.of(wanted(creature(Zombie.class, 100.5, 70.0, -18.5))), 0L);
+
+        assertTrue(StandIns.shownThrough(view, "museum"));
+        assertFalse(StandIns.shownThrough(view, "gallery"));
     }
 
     private FarCreatures.Wanted wanted(final Entity original)
