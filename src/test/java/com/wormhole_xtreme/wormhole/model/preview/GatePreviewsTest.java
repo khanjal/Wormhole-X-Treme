@@ -2888,6 +2888,12 @@ class GatePreviewsTest
             irisPending.remove(id).run();
         }
         assertFalse(irisPending.isEmpty(), "still sweeping");
+        // From behind, every ring cell holds the wormhole, covered or not.
+        final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(walker, 0);
+        assertEquals(openingCells().size(), inRing.size(), "every ring cell has been sent the wormhole");
+        assertTrue(inRing.values().stream().allMatch(d -> d == portalData()),
+            "and every one is showing it before the crossing: " + inRing.values());
+        clearInvocations(walker);
 
         final Cell first = openingCells().get(0);
         final Location front = new Location(world, first.x() + (4 * facing.getModX()) + 0.5,
@@ -2896,13 +2902,9 @@ class GatePreviewsTest
         when(walker.getEyeLocation()).thenReturn(front);
         GatePreviews.moved(walker, front);
 
-        // What they are left looking at, over everything they were ever sent.
-        final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(walker, 0);
-        assertEquals(openingCells().size(), inRing.size(), "every ring cell has been sent something");
-        assertTrue(inRing.values().stream().allMatch(d -> d == portalData()),
-            "and every one is left showing the wormhole, never the bare opening: " + inRing.values());
-        assertTrue(lastSentPerCellAlong(walker, 1).values().stream().noneMatch(d -> (d == data.get(Material.BLUE_ICE))
-            || (d == data.get(Material.PACKED_ICE))), "and no ice on their new near side");
+        // In front, the stone leaves nowhere off the ring, so the ring keeps it: no hand-back of the
+        // ring, no ice on their near side, nothing sent at all.
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 
     /** What the fixture draws a wormhole in the ring as. */

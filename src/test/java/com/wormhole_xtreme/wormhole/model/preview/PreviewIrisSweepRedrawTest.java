@@ -228,6 +228,17 @@ class PreviewIrisSweepRedrawTest
         GatePreviews.moved(viewer, at);
     }
 
+    /** Every opening cell the iris has covered since the preview was shown. */
+    private final Set<Integer> everCovered = new HashSet<>();
+
+    /** Turns the iris, as its owner does, and notes what it covers. */
+    private void toggleIris()
+    {
+        everCovered.addAll(preview().irisShown());
+        GatePreviews.iris(owner);
+        everCovered.addAll(preview().irisShown());
+    }
+
     /** Runs one booked sweep step, and says which cells it covered or uncovered. */
     private Set<Integer> stepTheSweep()
     {
@@ -235,6 +246,7 @@ class PreviewIrisSweepRedrawTest
         final Set<Integer> before = new HashSet<>(preview().irisShown());
         final Integer id = irisPending.keySet().iterator().next();
         irisPending.remove(id).run();
+        everCovered.addAll(preview().irisShown());
         final Set<Integer> changed = new HashSet<>(preview().irisShown());
         changed.removeAll(before);
         final Set<Integer> uncovered = new HashSet<>(before);
@@ -275,10 +287,23 @@ class PreviewIrisSweepRedrawTest
     }
 
     /**
-     * The picture for a viewer in front: covered cells show air in the ring, or were never sent it,
-     * with the ice behind; uncovered ones the wormhole in the ring and nothing behind.
+     * The picture for a viewer in front: covered cells have the wormhole handed back out of the ring
+     * and the ice behind it; uncovered ones the wormhole in the ring, and the ice handed back from
+     * behind wherever the iris has been.
      */
     private void assertFrontPicture(final Player viewer, final String when)
+    {
+        assertFrontPicture(viewer, when, false);
+    }
+
+    /**
+     * The same.
+     *
+     * @param ringNeverSent
+     *            true where a covered ring may never have been sent anything, which shows the
+     *            same: a client that lost its blocks, or a preview opened behind the iris
+     */
+    private void assertFrontPicture(final Player viewer, final String when, final boolean ringNeverSent)
     {
         for (int i = 0; i < opening().size(); i++)
         {
@@ -287,15 +312,22 @@ class PreviewIrisSweepRedrawTest
             final String behind = shownAt(viewer, i, -1);
             if (covered)
             {
-                assertTrue(ring.equals("air") || ring.equals("nothing sent"), when + ": covered cell " + i
-                    + " has the wormhole out of the ring, where the iris would hide real water, not " + ring);
+                assertTrue(ring.equals("air") || (ringNeverSent && ring.equals("nothing sent")),
+                    when + ": covered cell " + i + " has the wormhole handed back out of the ring, not " + ring);
                 assertEquals("ice", behind, when + ": covered cell " + i + " has its stand-in behind the ring");
             }
             else
             {
                 assertEquals("wormhole", ring, when + ": uncovered cell " + i + " shows the wormhole in the ring");
-                assertTrue(behind.equals("air") || behind.equals("nothing sent"),
-                    when + ": uncovered cell " + i + " keeps nothing behind the ring, not " + behind);
+                if (everCovered.contains(i))
+                {
+                    assertEquals("air", behind, when + ": uncovered cell " + i + " has its stand-in handed back");
+                }
+                else
+                {
+                    assertTrue(behind.equals("air") || behind.equals("nothing sent"),
+                        when + ": never-covered cell " + i + " keeps nothing behind the ring, not " + behind);
+                }
             }
         }
     }
@@ -328,7 +360,7 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         sends.get(front).clear();
 
         final Set<Integer> covered = stepTheSweep();
@@ -360,7 +392,7 @@ class PreviewIrisSweepRedrawTest
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
         final Player back = viewerAlong("Bea", -4);
-        GatePreviews.iris(owner);
+        toggleIris();
 
         while (irisPending.size() == 1 && (preview().irisShown().size() < opening().size()))
         {
@@ -383,11 +415,11 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         finishTheSweep();
         assertFrontPicture(front, "settled shut");
 
-        GatePreviews.iris(owner);
+        toggleIris();
 
         assertFalse(irisPending.isEmpty(), "still sweeping open");
         assertFalse(preview().irisShown().isEmpty(), "with some of the iris still covering the opening");
@@ -410,7 +442,7 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player walker = viewerAlong("Fran", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
 
         walkTo(walker, -4);
@@ -432,9 +464,9 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player walker = viewerAlong("Bea", -4);
-        GatePreviews.iris(owner);
+        toggleIris();
         finishTheSweep();
-        GatePreviews.iris(owner);
+        toggleIris();
 
         walkTo(walker, 4);
         assertFrontPicture(walker, "walked round to the front");
@@ -457,16 +489,139 @@ class PreviewIrisSweepRedrawTest
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
         final Player back = viewerAlong("Bea", -4);
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
 
-        GatePreviews.iris(owner);
+        toggleIris();
 
         assertEquals(1, irisPending.size(), "one sweep running, the opening one");
         assertFrontPicture(front, "first step of the sweep that took over");
         assertBehindPicture(back, "first step of the sweep that took over");
         finishTheSweep();
         assertFrontPicture(front, "settled open");
+    }
+
+    /**
+     * A viewer whose client lost the preview's blocks mid-sweep -- a chunk reloaded, or out of range
+     * when they were sent -- gets their whole picture back at the next periodic redraw.
+     *
+     * <p>A step sends only what moved, so nothing else would put those cells right until the sweep
+     * settled; the redraw every few seconds used to, by sending everybody the whole ring.
+     */
+    @Test
+    void aViewerWhoLostTheBlocksGetsThemBackAtThePeriodicRedraw()
+    {
+        openAGlassIrisPreview();
+        final Player front = viewerAlong("Fran", 4);
+        toggleIris();
+        stepTheSweep();
+        pictures.get(front).clear();
+        sends.get(front).clear();
+
+        GatePreviews.tick();
+
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        assertFrontPicture(front, "after the redraw", true);
+    }
+
+    /**
+     * A new portal material mid-sweep is sent at once, to every cell holding the wormhole, rather
+     * than waiting for the cells to move.
+     */
+    @Test
+    void aPortalMaterialChangedMidSweepIsSentAtOnce()
+    {
+        openAGlassIrisPreview();
+        final Player front = viewerAlong("Fran", 4);
+        toggleIris();
+        stepTheSweep();
+
+        GatePreviews.material(owner, GateBlueprint.Role.PORTAL, Material.NETHER_PORTAL);
+
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        final BlockData portal = data.get(Material.NETHER_PORTAL);
+        for (int i = 0; i < opening().size(); i++)
+        {
+            if (!preview().irisShown().contains(i))
+            {
+                assertTrue(pictures.get(front).get(along(i, 0)) == portal,
+                    "uncovered cell " + i + " shows the new portal material: " + shownAt(front, i, 0));
+            }
+        }
+    }
+
+    /**
+     * A viewer who leaves the preview's world mid-sweep and comes back is drawn the sweep as it
+     * stands, from what the return sent them; their client kept none of what it had.
+     */
+    @Test
+    void aViewerReturningFromAnotherWorldMidSweepIsDrawnAsItStands()
+    {
+        openAGlassIrisPreview();
+        final Player traveller = viewerAlong("Tia", 4);
+        toggleIris();
+        stepTheSweep();
+        when(traveller.getWorld()).thenReturn(mock(World.class));
+        GatePreviews.tick();
+        stepTheSweep();
+        when(traveller.getWorld()).thenReturn(world);
+        pictures.get(traveller).clear();
+
+        GatePreviews.tick();
+
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        assertFrontPicture(traveller, "back in the world");
+    }
+
+    /**
+     * A viewer unshared and shared again mid-sweep is drawn at their first step, not left with the
+     * wormhole in the covered rings until the next ring: their layers from before compared equal.
+     */
+    @Test
+    void aViewerSharedAgainMidSweepIsDrawnAtTheirFirstStep()
+    {
+        openAGlassIrisPreview();
+        final Player back = viewerAlong("Rae", 4);
+        toggleIris();
+        stepTheSweep();
+        GatePreviews.share(owner, back);
+        GatePreviews.share(owner, back);
+
+        walkTo(back, 5);
+
+        assertFrontPicture(back, "a step after being shared again");
+    }
+
+    /**
+     * Behind an opaque iris the wormhole goes back into the ring at the first ring of an opening
+     * sweep, not at its end.
+     *
+     * <p>A front viewer of a shut preview holds the wormhole a block behind the ring, however opaque
+     * the iris. Nobody sees the difference -- the iris covers the ring and hides what is behind it
+     * -- but it is the one change for an opaque iris, so it is pinned.
+     */
+    @Test
+    void anOpaqueIrisOpeningPutsTheWormholeBackInTheRingAtTheFirstRing()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        final Player front = viewerAlong("Fran", 4);
+        toggleIris();
+        finishTheSweep();
+        assertEquals("wormhole", shownAt(front, 0, -1), "shut, the wormhole stands behind the opaque iris");
+
+        toggleIris();
+
+        assertFalse(preview().irisShown().isEmpty(), "still sweeping open");
+        for (int i = 0; i < opening().size(); i++)
+        {
+            assertEquals("wormhole", shownAt(front, i, 0), "cell " + i + " has the wormhole in the ring");
+            assertEquals("air", shownAt(front, i, -1), "and nothing behind it any more");
+        }
     }
 
     /**
@@ -500,7 +655,7 @@ class PreviewIrisSweepRedrawTest
         }
         assertTrue(preview().open(), "the preview opened");
         final Player viewer = viewerAt("Uma", above);
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
         finishTheSweep();
 
@@ -522,12 +677,12 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
         assertFrontPicture(front, "mid-sweep");
 
         ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "instant");
-        GatePreviews.iris(owner);
+        toggleIris();
 
         assertTrue(irisPending.isEmpty(), "the iris opened at once");
         assertTrue(preview().irisShown().isEmpty(), "all of it");
@@ -547,7 +702,7 @@ class PreviewIrisSweepRedrawTest
         GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
         final Player front = viewerAlong("Fran", 4);
         GatePreviews.activate(owner);
-        GatePreviews.iris(owner);
+        toggleIris();
         assertFalse(preview().irisShown().isEmpty(), "the first ring is in");
 
         for (int step = 0; (step < 13) && !preview().open(); step++)
@@ -557,7 +712,7 @@ class PreviewIrisSweepRedrawTest
 
         assertTrue(preview().open(), "the preview opened");
         assertFalse(irisPending.isEmpty(), "with the sweep still crossing");
-        assertFrontPicture(front, "opened mid-sweep");
+        assertFrontPicture(front, "opened mid-sweep", true);
 
         // And shutting it again takes all of that back, the ring cells included.
         GatePreviews.activate(owner);
@@ -582,7 +737,7 @@ class PreviewIrisSweepRedrawTest
     void aViewerSharedMidSweepIsDrawnByTheNextStep()
     {
         openAGlassIrisPreview();
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
         final Player late = viewerAlong("Lou", 4);
 
@@ -603,12 +758,12 @@ class PreviewIrisSweepRedrawTest
     {
         openAGlassIrisPreview();
         final Player walker = viewerAlong("Fran", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         finishTheSweep();
         walkTo(walker, -4);
         sends.get(walker).clear();
 
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
 
         assertFalse(preview().irisShown().isEmpty(), "still sweeping open");
@@ -626,7 +781,7 @@ class PreviewIrisSweepRedrawTest
         openAGlassIrisPreview();
         final Player front = viewerAlong("Fran", 4);
         final Player gone = viewerAlong("Gus", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         when(gone.getWorld()).thenReturn(mock(World.class));
         sends.get(gone).clear();
 
@@ -646,9 +801,10 @@ class PreviewIrisSweepRedrawTest
         openAGlassIrisPreview();
         final Player shut = viewerAlong("Fran", 4);
         final Player unshared = viewerAlong("Una", 4);
-        GatePreviews.iris(owner);
+        toggleIris();
         stepTheSweep();
         assertFrontPicture(shut, "mid-sweep");
+        assertFrontPicture(unshared, "mid-sweep, before they were unshared");
 
         GatePreviews.share(owner, unshared);
         GatePreviews.activate(owner);

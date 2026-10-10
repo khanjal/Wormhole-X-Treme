@@ -440,7 +440,7 @@ public final class GatePreviews
         }
         preview.palette(Palette.of(preview.shape(), group));
         restyle(preview);
-        draw(owner, preview);
+        redraw(owner, preview);
         return Control.CHANGED;
     }
 
@@ -469,7 +469,7 @@ public final class GatePreviews
         }
         preview.palette(preview.palette().with(role, material));
         restyle(preview);
-        draw(owner, preview);
+        redraw(owner, preview);
         return Control.CHANGED;
     }
 
@@ -915,7 +915,7 @@ public final class GatePreviews
                 if ((owner != null) && preview.world().equals(owner.getWorld()))
                 {
                     showToAudience(owner, preview);
-                    draw(owner, preview);
+                    redraw(owner, preview);
                 }
                 return false;
             });
@@ -1353,8 +1353,10 @@ public final class GatePreviews
         sendTo(viewer, preview, sentCells(preview));
         if (preview.sweeping())
         {
-            // What they were just sent, for the sweep to draw on from.
+            // What they were just sent, for the sweep to draw on from; and no layers to compare
+            // their first move with, or one from before they were unshared skips it.
             preview.sweepDrawn().put(viewer.getUniqueId(), heldBeforeTheSweep(preview, null));
+            preview.sweepSides().remove(viewer.getUniqueId());
         }
     }
 
@@ -2180,16 +2182,49 @@ public final class GatePreviews
             {
                 takeBackAt(viewer, preview, was);
             }
-            if (wanted.equals(ring))
-            {
-                sendTo(viewer, preview, List.of(cell));
-            }
-            else
-            {
-                viewer.sendBlockChange(new Location(preview.world(), wanted.x(), wanted.y(), wanted.z()),
-                    horizonData(preview, ring, layers.get(i)));
-            }
+            drawSweptAt(viewer, preview, cell, wanted);
         }
+    }
+
+    /** Sends one viewer one cell's wormhole where the sweep holds it: in the ring, or its stand-in off it. */
+    private static void drawSweptAt(final Player viewer, final GatePreview preview, final Cell cell,
+        final IrisLayering.At where)
+    {
+        final IrisLayering.At ring = at(cell);
+        if (where.equals(ring))
+        {
+            sendTo(viewer, preview, List.of(cell));
+            return;
+        }
+        viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
+            horizonData(preview, ring, new IrisLayering.Placement(ring, where)));
+    }
+
+    /**
+     * Sends every watcher their whole wormhole as a running sweep holds it.
+     *
+     * <p>A step sends only what moved, so a client that lost the blocks -- a chunk reloaded, or out
+     * of range when they were sent -- and a palette changed mid-sweep are put right here, by the
+     * periodic redraw and by the change itself.
+     */
+    private static void resendSwept(final Player owner, final GatePreview preview)
+    {
+        if (!preview.sweeping() || !preview.open())
+        {
+            return;
+        }
+        for (final Player viewer : watching(owner, preview))
+        {
+            preview.sweepDrawn().getOrDefault(viewer.getUniqueId(), Map.of())
+                .forEach((index, where) -> drawSweptAt(viewer, preview, preview.opening().get(index), where));
+        }
+    }
+
+    /** Draws a preview, and sends a running sweep's whole picture again as well. */
+    private static void redraw(final Player owner, final GatePreview preview)
+    {
+        draw(owner, preview);
+        resendSwept(owner, preview);
     }
 
     /**
