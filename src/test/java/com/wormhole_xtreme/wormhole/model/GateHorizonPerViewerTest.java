@@ -228,6 +228,25 @@ class GateHorizonPerViewerTest
         sentTheOpeningAs(front, air, 2, "back in front: cleared again");
     }
 
+    /**
+     * A mirror's window is not a gate's, whatever its name ends in.
+     *
+     * <p>Only a gate's window carries the prefix; read without it, a mirror named five letters and then
+     * a cleared gate's name was taken for that gate's view, and its opening sent cleared to somebody
+     * looking into the mirror.
+     */
+    @Test
+    void aMirrorNamedLikeAGateIsNotItsView()
+    {
+        clearedForTheView();
+
+        drawsTheView(front, Set.of("hallsAbydos"));
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        drawsTheView(front, Set.of(WINDOW));
+        sentTheOpeningAs(front, air, 1, "the gate's own window is its view");
+    }
+
     @Test
     void aRedrawThatChangesNothingSendsNothing()
     {
