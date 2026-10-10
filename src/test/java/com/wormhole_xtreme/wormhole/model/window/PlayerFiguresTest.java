@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -20,9 +21,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.logging.Level;
 
@@ -35,6 +40,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MainHand;
 import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.junit.jupiter.api.AfterEach;
@@ -106,9 +112,16 @@ class PlayerFiguresTest
         void setMainHand(MainHand hand);
     }
 
+    private static final URL SKIN = url("http://textures.minecraft.net/texture/alexskin");
+
     private WormholeXTreme plugin;
     private Function<VisibleItems.Visible, ItemStack> items;
+    private Function<UUID, PlayerProfile> profiles;
     private final List<VisibleItems.Visible> made = new ArrayList<>();
+    /** The fresh, skin-only profile the last figure was given, its textures, and the id it was made with. */
+    private PlayerProfile fresh;
+    private PlayerTextures freshTextures;
+    private UUID freshId;
 
     @BeforeEach
     void setUp() throws Exception
@@ -122,12 +135,22 @@ class PlayerFiguresTest
             made.add(seen);
             return mock(ItemStack.class);
         };
+        profiles = VisibleItems.profiles;
+        VisibleItems.profiles = id ->
+        {
+            freshId = id;
+            fresh = mock(PlayerProfile.class);
+            freshTextures = mock(PlayerTextures.class);
+            when(fresh.getTextures()).thenReturn(freshTextures);
+            return fresh;
+        };
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
         VisibleItems.items = items;
+        VisibleItems.profiles = profiles;
         PlayerFigures.mannequinFromServer();
         StandIns.removeEverything();
         PluginTestSupport.remove();
@@ -161,6 +184,8 @@ class PlayerFiguresTest
         PlayerFigures.mannequinWith(SpigotMannequin.class);
         final SkinnedPlayer player = mock(SkinnedPlayer.class);
         when(player.getName()).thenReturn("Alex");
+        when(player.getDisplayName()).thenReturn("Alex");
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         final Object profile = profileOf(player);
         when(player.getPose()).thenReturn(Pose.SNEAKING);
         when(player.getMainHand()).thenReturn(MainHand.LEFT);
@@ -172,7 +197,9 @@ class PlayerFiguresTest
 
         verify(copy).setCustomName("Alex");
         verify(copy).setCustomNameVisible(true);
-        verify(copy).setPlayerProfile((PlayerProfile) profile);
+        verify(copy).setPlayerProfile(fresh);
+        verify(copy, never()).setPlayerProfile((PlayerProfile) profile);
+        skinOnlyWasGiven(player);
         verify(copy).setHideDescription(true);
         verify(copy).setImmovable(true);
         verify(copy).setMainHand(MainHand.LEFT);
@@ -197,7 +224,9 @@ class PlayerFiguresTest
 
         PlayerFigures.dress(copy, player, null);
 
-        verify(copy).setProfile(new Resolvable(profile));
+        verify(copy).setProfile(new Resolvable(fresh));
+        verify(copy, never()).setProfile(new Resolvable(profile));
+        skinOnlyWasGiven(player);
         verify(copy).setDescription(null);
         verify(copy).setImmovable(true);
         verify(copy).setMainHand(MainHand.LEFT);
@@ -238,7 +267,8 @@ class PlayerFiguresTest
         final Player player = player("Alex");
         final Object profile = profileOf(player);
         final ItemStack head = mock(ItemStack.class);
-        VisibleItems.items = seen -> ((seen.type() == Material.PLAYER_HEAD) && (seen.skull() == profile)) ? head : null;
+        VisibleItems.items = seen -> ((seen.type() == Material.PLAYER_HEAD) && (seen.skull() != null) && (seen.skull() == fresh)
+            && (seen.skull() != profile)) ? head : null;
         final ArmorStand stand = mock(ArmorStand.class);
         final EntityEquipment worn = mock(EntityEquipment.class);
         when(stand.getEquipment()).thenReturn(worn);
@@ -276,7 +306,7 @@ class PlayerFiguresTest
 
     /**
      * The name is the display name without its colours, so a nickname shows as the nickname, and the
-     * account name where there is no display name.
+     * account name where the display name is only colours.
      */
     @Test
     void theNameShownIsTheDisplayNameWithoutColoursOrTheirNameWithoutOne()
@@ -288,7 +318,6 @@ class PlayerFiguresTest
         final Player plain = player("Alex");
         when(plain.getDisplayName()).thenReturn("§r ");
         assertEquals("Alex", PlayerFigures.shownName(plain), "a display name of colours alone");
-        assertEquals("Alex", PlayerFigures.shownName(player("Alex")), "no display name at all");
     }
 
     /**
@@ -536,7 +565,34 @@ class PlayerFiguresTest
     {
         final Player player = mock(Player.class);
         when(player.getName()).thenReturn(name);
+        when(player.getDisplayName()).thenReturn(name);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         return player;
+    }
+
+    /**
+     * The figure was given a fresh profile carrying the player's skin and slim arms, made with an id
+     * that is not theirs and no name at all: a client logging packets learns neither.
+     */
+    private void skinOnlyWasGiven(final Player player)
+    {
+        assertNotNull(fresh, "a fresh profile was made");
+        assertNotEquals(player.getUniqueId(), freshId, "not the player's id");
+        verify(freshTextures).setSkin(SKIN, PlayerTextures.SkinModel.SLIM);
+        verify(fresh).setTextures(freshTextures);
+        verify(fresh, never()).setTextures(null);
+    }
+
+    private static URL url(final String spec)
+    {
+        try
+        {
+            return URI.create(spec).toURL();
+        }
+        catch (final MalformedURLException bad)
+        {
+            throw new IllegalArgumentException(bad);
+        }
     }
 
     /**
@@ -545,7 +601,11 @@ class PlayerFiguresTest
      */
     private static Object profileOf(final Player player) throws ReflectiveOperationException
     {
-        final Object profile = mock(Player.class.getMethod("getPlayerProfile").getReturnType());
+        final PlayerProfile profile = (PlayerProfile) mock(Player.class.getMethod("getPlayerProfile").getReturnType());
+        final PlayerTextures textures = mock(PlayerTextures.class);
+        when(textures.getSkin()).thenReturn(SKIN);
+        when(textures.getSkinModel()).thenReturn(PlayerTextures.SkinModel.SLIM);
+        when(profile.getTextures()).thenReturn(textures);
         doReturn(profile).when(player).getPlayerProfile();
         return profile;
     }

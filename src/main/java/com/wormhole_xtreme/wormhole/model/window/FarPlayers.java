@@ -56,7 +56,9 @@ final class FarPlayers
     }
 
     /**
-     * Why a far player is not shown to this viewer, or null if they may be.
+     * Why a far player is not shown to this viewer, or null if they may be: asked at every redraw and
+     * every follow, since the far room is read only once a sweep, and a player who has turned
+     * invisible or spectator, died or mounted since must not flash up in between.
      *
      * @param viewer
      *            who looks
@@ -64,11 +66,16 @@ final class FarPlayers
      *            a player in the far room
      * @param window
      *            the window they would show through
-     * @return {@link CreatureTally.Skip#YOU} for the viewer themselves, {@link CreatureTally.Skip#PLAYER_HIDDEN}
+     * @return {@link CreatureTally.Skip#PLAYER_UNSHOWN} for one {@link #copied} no longer lets through,
+     *         {@link CreatureTally.Skip#YOU} for the viewer themselves, {@link CreatureTally.Skip#PLAYER_HIDDEN}
      *         for one hidden from the viewer, as a vanish plugin hides one; null otherwise
      */
     static CreatureTally.Skip whyNot(final Player viewer, final Player other, final WindowState window)
     {
+        if (!copied(other))
+        {
+            return CreatureTally.Skip.PLAYER_UNSHOWN;
+        }
         if (other.getUniqueId().equals(viewer.getUniqueId()) && !showsTheViewer(window))
         {
             return CreatureTally.Skip.YOU;
@@ -90,6 +97,6 @@ final class FarPlayers
      */
     static boolean stillShown(final Player viewer, final Player other, final WindowState window)
     {
-        return copied(other) && (whyNot(viewer, other, window) == null);
+        return whyNot(viewer, other, window) == null;
     }
 }

@@ -118,6 +118,23 @@ final class PlayerFigures
             return ((type != null) && LivingEntity.class.isAssignableFrom(type))
                 ? new Mannequins(type.asSubclass(LivingEntity.class)) : null;
         }
+
+        /** A public method by name and number of parameters, for a type this API cannot name; null where there is none. */
+        private static Method method(final Class<?> on, final String name, final int parameters)
+        {
+            return Arrays.stream(on.getMethods())
+                .filter(found -> found.getName().equals(name) && (found.getParameterCount() == parameters))
+                .findFirst().orElse(null);
+        }
+
+        /** A static one-parameter factory by name, or null where there is none. */
+        private static Method factory(final Class<?> on, final String name)
+        {
+            return Arrays.stream(on.getMethods())
+                .filter(found -> found.getName().equals(name) && (found.getParameterCount() == 1)
+                    && Modifier.isStatic(found.getModifiers()))
+                .findFirst().orElse(null);
+        }
     }
 
     /** Static state only. */
@@ -193,9 +210,8 @@ final class PlayerFigures
      */
     static String shownName(final Player player)
     {
-        final String display = player.getDisplayName();
-        final String plain = (display == null) ? null : ChatColor.stripColor(display).trim();
-        return ((plain == null) || plain.isEmpty()) ? player.getName() : plain;
+        final String plain = ChatColor.stripColor(player.getDisplayName()).trim();
+        return plain.isEmpty() ? player.getName() : plain;
     }
 
     /**
@@ -217,10 +233,6 @@ final class PlayerFigures
         try
         {
             final Scoreboard board = viewer.getScoreboard();
-            if (board == null)
-            {
-                return true;
-            }
             final Team team = board.getEntryTeam(player.getName());
             if (team == null)
             {
@@ -331,13 +343,18 @@ final class PlayerFigures
         {
             call(with.description, copy, (Object) null);
         }
-        if (with.playerProfile != null)
+        // The skin alone, on a profile of its own, never the player's name and id; none leaves the default skin.
+        final PlayerProfile skin = VisibleItems.skinOnly(original.getPlayerProfile());
+        if (skin != null)
         {
-            call(with.playerProfile, copy, original.getPlayerProfile());
-        }
-        else if ((with.profile != null) && (with.resolve != null))
-        {
-            call(with.profile, copy, answer(with.resolve, null, original.getPlayerProfile()));
+            if (with.playerProfile != null)
+            {
+                call(with.playerProfile, copy, skin);
+            }
+            else if ((with.profile != null) && (with.resolve != null))
+            {
+                call(with.profile, copy, answer(with.resolve, null, skin));
+            }
         }
         call(with.mainHand, copy, original.getMainHand());
         pose(with, copy, figurePose(original.getPose()));
@@ -418,23 +435,6 @@ final class PlayerFigures
         {
             return null;
         }
-    }
-
-    /** A public method by name and number of parameters, for a type this API cannot name; null where there is none. */
-    private static Method method(final Class<?> on, final String name, final int parameters)
-    {
-        return Arrays.stream(on.getMethods())
-            .filter(found -> found.getName().equals(name) && (found.getParameterCount() == parameters))
-            .findFirst().orElse(null);
-    }
-
-    /** A static one-parameter factory by name, or null where there is none. */
-    private static Method factory(final Class<?> on, final String name)
-    {
-        return Arrays.stream(on.getMethods())
-            .filter(found -> found.getName().equals(name) && (found.getParameterCount() == 1)
-                && Modifier.isStatic(found.getModifiers()))
-            .findFirst().orElse(null);
     }
 
     /** The server's own Mannequin, or null where it has none or its methods cannot be read. */

@@ -1,8 +1,11 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.UUID;
 import java.util.function.Function;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -16,6 +19,7 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
 import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 
 /**
  * What a stand-in wears and holds (#296): only what can be seen of its creature's items, never the
@@ -24,7 +28,7 @@ import org.bukkit.profile.PlayerProfile;
  * <p>An item put on an entity is sent whole to whoever sees it, so a copied shulker box, bundle,
  * written book or map would hand the viewer its contents, pages, name and lore. A stand-in gets a
  * fresh item of the same kind instead, one of it, with only its glint, armour trim, leather dye and a
- * head's skin carried over.
+ * head's skin carried over, the skin on a profile of its own ({@link #skinOnly}).
  */
 final class VisibleItems
 {
@@ -36,6 +40,9 @@ final class VisibleItems
 
     /** Makes the item for what is seen; replaceable for a test, which has no item factory. */
     static Function<Visible, ItemStack> items = VisibleItems::itemOf;
+
+    /** Makes an empty profile with this id and no name; replaceable for a test, which has no server. */
+    static Function<UUID, PlayerProfile> profiles = Bukkit::createPlayerProfile;
 
     /**
      * What can be seen of an item.
@@ -148,11 +155,45 @@ final class VisibleItems
         }
         try
         {
-            return items.apply(seen);
+            return items.apply((seen.skull() == null) ? seen
+                : new Visible(seen.type(), seen.glint(), seen.trim(), seen.dye(), skinOnly(seen.skull())));
         }
         catch (final RuntimeException | LinkageError notMade)
         {
             StandIns.failedOnce("Could not make an item a stand-in wears", notMade);
+            return null;
+        }
+    }
+
+    /**
+     * A profile carrying only a skin: a fresh id and no name, so the account behind the skin does not
+     * travel to the viewer with it, as the original profile's name, id and signed textures would.
+     *
+     * @param from
+     *            a profile with a skin
+     * @return a new profile with that skin and cape and nothing else, or null for no skin or one that
+     *         could not be made, which shows the default skin
+     */
+    static PlayerProfile skinOnly(final PlayerProfile from)
+    {
+        try
+        {
+            final PlayerTextures theirs = from.getTextures();
+            final URL skin = theirs.getSkin();
+            if (skin == null)
+            {
+                return null;
+            }
+            final PlayerProfile fresh = profiles.apply(UUID.randomUUID());
+            final PlayerTextures textures = fresh.getTextures();
+            textures.setSkin(skin, theirs.getSkinModel());
+            textures.setCape(theirs.getCape());
+            fresh.setTextures(textures);
+            return fresh;
+        }
+        catch (final RuntimeException | LinkageError notMade)
+        {
+            StandIns.failedOnce("Could not copy a skin for a stand-in", notMade);
             return null;
         }
     }

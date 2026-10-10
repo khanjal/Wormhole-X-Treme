@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +53,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scoreboard.Scoreboard;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,7 +93,7 @@ class StandInsTest
     private WindowState window;
     private BukkitScheduler scheduler;
     /** The fresh item handed out for each kind a stand-in is given to wear. */
-    private final Map<Material, ItemStack> itemsMade = new HashMap<>();
+    private final Map<Material, ItemStack> itemsMade = new EnumMap<>(Material.class);
     private Function<VisibleItems.Visible, ItemStack> items;
 
     @BeforeEach
@@ -117,6 +118,8 @@ class StandInsTest
         when(far.getName()).thenReturn("far");
         viewer = mock(Player.class);
         when(viewer.getUniqueId()).thenReturn(UUID.randomUUID());
+        final Scoreboard board = mock(Scoreboard.class);
+        when(viewer.getScoreboard()).thenReturn(board);
         view = new ViewerDrawing(here);
         final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, ARRIVAL);
         final List<Spot> open = List.of(new Spot(10, 63, 11), new Spot(10, 64, 11));
@@ -693,17 +696,17 @@ class StandInsTest
     }
 
     /**
-     * A Mannequin whose skin call throws is still shown and held, dressed as far as it got, and taken
-     * away cleanly with the rest.
+     * A Mannequin whose first dressing call throws is still shown and held, dressed as far as it can
+     * be, and taken away cleanly with the rest.
      */
     @Test
-    void aMannequinWhoseSkinCallThrowsIsStillHeldAndRemovedCleanly() throws ReflectiveOperationException
+    void aMannequinWhoseDressingCallThrowsIsStillHeldAndRemovedCleanly() throws ReflectiveOperationException
     {
         PlayerFigures.mannequinWith(PlayerFiguresTest.SpigotMannequin.class);
         try
         {
             final PlayerFiguresTest.SpigotMannequin copy = copy(PlayerFiguresTest.SpigotMannequin.class);
-            doThrow(new IllegalStateException("bad profile")).when(copy).setPlayerProfile(any());
+            doThrow(new IllegalStateException("broken")).when(copy).setImmovable(true);
             nextCopy = copy;
             final Player player = farPlayer("Alex");
             final Object profile = mock(Player.class.getMethod("getPlayerProfile").getReturnType());
@@ -713,7 +716,7 @@ class StandInsTest
 
             assertSame(copy, view.standIns.get(player.getUniqueId()).copy, "shown and held");
             verify(viewer).showEntity(plugin, copy);
-            verify(copy).setImmovable(true);
+            verify(copy).setHideDescription(true);
 
             StandIns.removeAll(view);
             verify(copy).remove();
@@ -722,6 +725,31 @@ class StandInsTest
         finally
         {
             PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /**
+     * A player read with the far room who has since turned invisible or spectator, died or mounted
+     * something is not offered at the next redraw: the room is read once a sweep, and a figure spawned
+     * between, to be taken away by the follow two ticks later, would flash up for a spectator.
+     */
+    @Test
+    void aPlayerWhoChangedSinceTheRoomWasReadIsNotOfferedAtTheNextRedraw()
+    {
+        final Map<String, WindowState> seeing = Map.of(window.name(), window);
+        assertNull(Windows.whyNot(viewer, view, window, seeing, wanted -> true, farPlayer("Alex")),
+            "as read, the player is offered");
+        final List<Consumer<Player>> changes = List.of(
+            player -> when(player.isInvisible()).thenReturn(true),
+            player -> when(player.getGameMode()).thenReturn(GameMode.SPECTATOR),
+            player -> when(player.isDead()).thenReturn(true),
+            player -> when(player.isInsideVehicle()).thenReturn(true));
+        for (int which = 0; which < changes.size(); which++)
+        {
+            final Player player = farPlayer("Alex");
+            changes.get(which).accept(player);
+            assertEquals(CreatureTally.Skip.PLAYER_UNSHOWN, Windows.whyNot(viewer, view, window, seeing, wanted -> true, player),
+                "change " + which + " still offered");
         }
     }
 
@@ -1173,6 +1201,7 @@ class StandInsTest
     {
         final Player player = creature(Player.class, 100.5, 70.0, -18.5);
         when(player.getName()).thenReturn(name);
+        when(player.getDisplayName()).thenReturn(name);
         when(player.isOnline()).thenReturn(true);
         when(player.isVisibleByDefault()).thenReturn(true);
         when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);

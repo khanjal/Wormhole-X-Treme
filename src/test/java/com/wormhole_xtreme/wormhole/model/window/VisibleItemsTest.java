@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -10,8 +11,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.bukkit.Color;
@@ -28,6 +32,8 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -153,6 +159,63 @@ class VisibleItemsTest
         verify(worn, never()).setItemInMainHand(shulker);
         assertNotSame(shulker, handedOut.get(1));
         verify(worn).setHelmet(null);
+    }
+
+    /**
+     * A skin goes on a profile of its own, with a fresh id and no name, carrying the skin, its arm
+     * shape and the cape and nothing else: the account behind it does not travel with it. A head worn
+     * by a creature is given the same treatment. No skin, or one that cannot be copied, gives none
+     * rather than the original profile.
+     */
+    @Test
+    void aSkinTravelsOnAFreshProfileWithoutTheAccountsNameOrId() throws Exception
+    {
+        final UUID theirs = UUID.randomUUID();
+        final PlayerProfile original = mock(PlayerProfile.class);
+        when(original.getUniqueId()).thenReturn(theirs);
+        when(original.getName()).thenReturn("Alex");
+        final PlayerTextures textures = mock(PlayerTextures.class);
+        final URL skin = URI.create("http://textures.minecraft.net/texture/alexskin").toURL();
+        final URL cape = URI.create("http://textures.minecraft.net/texture/alexcape").toURL();
+        when(textures.getSkin()).thenReturn(skin);
+        when(textures.getSkinModel()).thenReturn(PlayerTextures.SkinModel.SLIM);
+        when(textures.getCape()).thenReturn(cape);
+        when(original.getTextures()).thenReturn(textures);
+        final List<UUID> ids = new ArrayList<>();
+        final PlayerProfile fresh = mock(PlayerProfile.class);
+        final PlayerTextures freshTextures = mock(PlayerTextures.class);
+        when(fresh.getTextures()).thenReturn(freshTextures);
+        final Function<UUID, PlayerProfile> before = VisibleItems.profiles;
+        VisibleItems.profiles = id ->
+        {
+            ids.add(id);
+            return fresh;
+        };
+        try
+        {
+            assertSame(fresh, VisibleItems.skinOnly(original));
+            assertEquals(1, ids.size());
+            assertNotEquals(theirs, ids.get(0), "a fresh id, not the account's");
+            verify(freshTextures).setSkin(skin, PlayerTextures.SkinModel.SLIM);
+            verify(freshTextures).setCape(cape);
+            verify(fresh).setTextures(freshTextures);
+
+            VisibleItems.itemFor(new VisibleItems.Visible(Material.PLAYER_HEAD, false, null, null, original));
+            assertSame(fresh, made.get(made.size() - 1).skull(), "a worn head's skin, on the fresh profile");
+
+            when(textures.getSkin()).thenReturn(null);
+            assertNull(VisibleItems.skinOnly(original), "no skin, no profile");
+            VisibleItems.profiles = id ->
+            {
+                throw new IllegalStateException("no server");
+            };
+            when(textures.getSkin()).thenReturn(skin);
+            assertNull(VisibleItems.skinOnly(original), "one that cannot be made gives none, not the original");
+        }
+        finally
+        {
+            VisibleItems.profiles = before;
+        }
     }
 
     /** An armour stand keeps the head it wears: its helmet slot is left alone. */

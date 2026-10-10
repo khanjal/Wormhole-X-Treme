@@ -21,6 +21,8 @@ final class CreatureTally
         YOU("you"),
         /** A player this viewer cannot see, as a vanish plugin hides one. */
         PLAYER_HIDDEN("player(s) hidden from you"),
+        /** A player gone invisible, spectating, riding, dead or offline since the room was read. */
+        PLAYER_UNSHOWN("player(s) no longer to be shown"),
         /** Already shown through another window. */
         OTHER_WINDOW("shown through another window"),
         /** Outside the room as drawn, or where this world has nowhere to put it. */
