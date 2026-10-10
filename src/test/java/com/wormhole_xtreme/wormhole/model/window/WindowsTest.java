@@ -3269,6 +3269,18 @@ class WindowsTest
             assertEquals(List.of(), spawned, "players off: nobody shown");
 
             ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_PLAYERS, true);
+            when(viewer.canSee(farPlayer)).thenReturn(false);
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                said.addAll(Windows.describe(viewer));
+            });
+            assertEquals(List.of(), spawned, "a player hidden from the viewer, as vanish hides one, is not shown");
+            assertTrue(said.stream().anyMatch(line -> line.contains("1 player(s) hidden from you")),
+                "mirror debug says why: " + said);
+
+            said.clear();
+            when(viewer.canSee(farPlayer)).thenReturn(true);
             withServer(() ->
             {
                 WindowSweep.tick();

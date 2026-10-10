@@ -169,6 +169,9 @@ class FarPlayersTest
         verify(player, never()).isOnline();
 
         assertEquals(List.of(player), FarCreatures.inRoom(far, box, new int[3], true), "on: the player");
+
+        when(player.getGameMode()).thenReturn(GameMode.SPECTATOR);
+        assertEquals(List.of(), FarCreatures.inRoom(far, box, new int[3], true), "on, but a spectator is still not read");
     }
 
     /**
