@@ -79,7 +79,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * <li>The far side is read from the capture, in memory, never from the live world.</li>
  * </ul>
  *
- * <p>Blocks only, no entities, and lit and tinted by this world.
+ * <p>Blocks, lit and tinted by this world; with {@code mirror-show-entities} on, the far room's
+ * creatures too, as {@link StandIns}.
  */
 public final class Windows
 {
@@ -550,6 +551,7 @@ public final class Windows
     /** Forgets every view without sending anything, for a test or a reload. */
     public static void clear()
     {
+        StandIns.removeEverything();
         ACTIVE.clear();
         OFFERED.clear();
         VIEWS.clear();
@@ -675,6 +677,7 @@ public final class Windows
                 }
             }
         }
+        StandIns.sweepStrays(VIEWS.values());
         trimStates(now);
         Captures.unloadIdle();
     }
@@ -951,6 +954,8 @@ public final class Windows
     /** Takes every view back, as the plugin stops. */
     public static void restoreAll()
     {
+        // First, so a send that throws below cannot leave a stand-in in the world.
+        StandIns.removeEverything();
         final long now = now();
         for (final Map.Entry<UUID, ViewerDrawing> entry : VIEWS.entrySet())
         {
@@ -1079,6 +1084,8 @@ public final class Windows
         // Made only of windows drawn whole, the view is the same from wherever the eye is.
         final boolean eyeMatters = wholes.whole().size() < seeing.size();
         final String stamp = stampOf(seeing, wholes);
+        // Before the view may be kept as drawn: a creature moves, or walks in, while the viewer stands still.
+        showStandIns(player, view, eye, seeing, wholes.whole(), now);
         if (!crossed && (fromSweep || !eyeMatters)
             && unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
         {
@@ -1174,8 +1181,103 @@ public final class Windows
      */
     private static void endView(final UUID id, final Player player)
     {
-        VIEWS.remove(id);
+        final ViewerDrawing view = VIEWS.remove(id);
+        if (view != null)
+        {
+            StandIns.removeAll(view);
+        }
         ViewFog.restore(id, player);
+    }
+
+    /**
+     * Takes away the stand-ins one viewer is shown (#296), for one who has quit, died, respawned or
+     * changed world; a viewer still looking is given them again on their next redraw.
+     *
+     * @param id
+     *            the viewer
+     */
+    public static void dropStandIns(final UUID id)
+    {
+        final ViewerDrawing view = (id == null) ? null : VIEWS.get(id);
+        if (view != null)
+        {
+            StandIns.removeAll(view);
+        }
+    }
+
+    /** Moves every viewer's stand-ins after their creatures: the follow task's pass, while any are shown. */
+    static void followStandIns()
+    {
+        for (final ViewerDrawing view : VIEWS.values())
+        {
+            if (!view.standIns.isEmpty())
+            {
+                StandIns.follow(view);
+            }
+        }
+        if (StandIns.count() == 0)
+        {
+            StandIns.stopFollowing();
+        }
+    }
+
+    /**
+     * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
+     * setting is on; takes away any they have otherwise.
+     */
+    private static void showStandIns(final Player player, final ViewerDrawing view, final Location eye,
+        final List<WindowState> seeing, final Map<WindowState, Whole> fixed, final long now)
+    {
+        if (!ConfigManager.isMirrorShowEntities() || player.isDead())
+        {
+            if (!view.standIns.isEmpty())
+            {
+                StandIns.removeAll(view);
+            }
+            return;
+        }
+        StandIns.show(player, view, standInsFor(view.world, eye, seeing, fixed), now);
+    }
+
+    /**
+     * The far creatures a viewer sees through these windows, and where: inside a room as drawn, at
+     * most {@link FarCreatures#MOST_PER_VIEWER}, nearest first.
+     */
+    private static List<FarCreatures.Wanted> standInsFor(final World here, final Location eye,
+        final List<WindowState> seeing, final Map<WindowState, Whole> fixed)
+    {
+        final Set<Long> allOpen = new HashSet<>();
+        seeing.forEach(window -> allOpen.addAll(window.openKeys));
+        final List<FarCreatures.Wanted> candidates = new ArrayList<>();
+        for (final WindowState window : nearestFirst(seeing, eye))
+        {
+            // A reflection's room is the viewer's own, which is a later step of #296.
+            if (!window.shape.mirrored())
+            {
+                for (final Entity creature : farCreatures(window))
+                {
+                    final Location at = FarCreatures.hereOf(here, window.shape, creature.getLocation());
+                    if (creature.isValid() && StandIns.inRoom(window, at) && inAnyView(eye, at, seeing, fixed, allOpen))
+                    {
+                        candidates.add(new FarCreatures.Wanted(creature, at, window));
+                    }
+                }
+            }
+        }
+        return FarCreatures.nearest(candidates, eye, FarCreatures.MOST_PER_VIEWER);
+    }
+
+    /** The creatures in a window's far room, read once for the window as this sweep offered it. */
+    private static List<Entity> farCreatures(final WindowState window)
+    {
+        if (window.creatures == null)
+        {
+            final World far = Bukkit.getWorld(window.capture.worldName());
+            final int[] box = (far == null) ? null
+                : FarCreatures.roomBox(window.shape, window.depth(), window.capture.bounds());
+            window.creatures = (box == null) ? List.of() : FarCreatures.inRoom(far, box);
+        }
+        return window.creatures;
     }
 
     /**
@@ -2138,7 +2240,7 @@ public final class Windows
     }
 
     /** Whether a block is inside a walled window's fixed view: behind its wall, within its depth. */
-    private static boolean insideFixed(final WindowState window, final int x, final int y, final int z,
+    static boolean insideFixed(final WindowState window, final int x, final int y, final int z,
         final int depth)
     {
         final WindowShape shape = window.shape;
@@ -2194,7 +2296,8 @@ public final class Windows
         return !(entity instanceof Player)
             && !(entity instanceof Display)
             && !(entity instanceof Interaction)
-            && !FreyaCompanion.isCompanion(entity);
+            && !FreyaCompanion.isCompanion(entity)
+            && !StandIns.isStandIn(entity);
     }
 
     /** Whether a place is inside the view through any of these windows, as {@link #creaturesInside} judges it. */
