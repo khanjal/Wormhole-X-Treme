@@ -742,8 +742,10 @@ that one viewer (`HiddenEntities`).
   there and nothing shown. The test is `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities`.
 - **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
   displays, interactions, the companion, invisible mobs or another stand-in. Baby or adult, the
-  custom name, a sheep's colour, and what it wears and holds. Other per-type looks (villager
-  type, slime size, cat breed) are left for later. At most twenty a viewer, nearest the eye first.
+  custom name, a sheep's colour and whether it is shorn, and what it wears and holds. Other
+  per-type looks are left for later: villager type and cat breed change from enums to registry
+  types inside the supported range, wolf variants do not exist on 1.20, and slime size moves to a
+  new super-interface in 26.x, so each wants its own cross-version care. At most twenty a viewer, nearest the eye first.
 - **Inert.** No AI, silent, invulnerable, no gravity, not collidable, picks nothing up, never
   saved. Damage, interaction, catching fire and turning into something else are cancelled, and
   nothing it drops is dropped. The drawing never veils a stand-in, and the gates' entity sweep

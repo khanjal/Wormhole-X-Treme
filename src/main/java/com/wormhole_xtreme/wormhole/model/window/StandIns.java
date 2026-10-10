@@ -19,6 +19,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Sheep;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.material.Colorable;
 
@@ -302,6 +303,11 @@ public final class StandIns
         if ((copy instanceof Colorable dyed) && (original instanceof Colorable source))
         {
             dyed.setColor(source.getColor());
+        }
+        // Declared on Sheep up to 1.20.4 and on its Shearable from 1.21; called through Sheep, it links on both.
+        if ((copy instanceof Sheep shorn) && (original instanceof Sheep source))
+        {
+            shorn.setSheared(source.isSheared());
         }
         age(copy, original);
     }

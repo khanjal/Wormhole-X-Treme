@@ -2811,6 +2811,30 @@ class WindowsTest
         assertFalse(StandIns.isStandIn(standIn));
     }
 
+    /**
+     * A view ended with no sweep to follow, for a viewer the server no longer has, still takes its
+     * stand-ins away: every ending goes through one place.
+     */
+    @Test
+    void aViewEndedForAViewerWhoHasGoneTakesItsStandInsAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        withServer(WindowSweep::tick);
+        assertTrue(StandIns.isStandIn(standIn));
+
+        // A server that no longer knows the viewer: the mirror's release ends their view outright.
+        try (MockedStatic<Bukkit> gone = mockStatic(Bukkit.class))
+        {
+            Windows.release("museum");
+        }
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
     /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
     private Capture solidCapture(final Place at, final BlockData everywhere)
     {

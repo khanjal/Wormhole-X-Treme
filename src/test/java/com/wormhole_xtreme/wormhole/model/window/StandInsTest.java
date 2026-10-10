@@ -177,6 +177,24 @@ class StandInsTest
         verify(copy).setColor(DyeColor.RED);
     }
 
+    /** A shorn sheep's stand-in is shorn, and a woolly one's is not, whatever a fresh one would be. */
+    @Test
+    void aSheepsStandInIsShornOnlyIfItsSheepIs()
+    {
+        for (final boolean shorn : new boolean[] { true, false })
+        {
+            final Sheep original = creature(Sheep.class, 100.5, 70.0, -18.5);
+            when(original.getType()).thenReturn(EntityType.SHEEP);
+            when(original.isSheared()).thenReturn(shorn);
+            final Sheep copy = copy(Sheep.class);
+            when(copy.isSheared()).thenReturn(!shorn);
+
+            StandIns.dress(copy, original);
+
+            verify(copy).setSheared(shorn);
+        }
+    }
+
     /** A creature still wanted keeps its stand-in, moved after it, rather than a new one each redraw. */
     @Test
     void aKeptStandInIsMovedAfterItsCreatureNotSpawnedAgain()
