@@ -1442,7 +1442,7 @@ class StargateBlockSetup
      *            1 for along the facing, -1 for against it
      * @return the cells, index for index with the portal cells
      */
-    // Runs on every frame of the woosh, so it stays a plain loop.
+    // Redrawn as players move near a gate, so it stays a plain loop.
     @SuppressWarnings("java:S9391")
     private static List<Location> offsetCells(final Stargate gate, final int sign)
     {
