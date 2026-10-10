@@ -75,6 +75,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   nether portals (#514). Tracked in #522.
 - **A gate's view is no longer drawn as a stand-in mirror**: gates and mirrors are window sources,
   offered to the drawing through one `Windows.offer`. Nothing changes for players or operators.
+- **The build no longer fails at random with a corrupt-zip error.** The shaded jar is written
+  beside the original, which is kept as `original-WormholeXTreme-<version>.jar`.
 
 ## 1.9.0 (2026-10-03)
 
