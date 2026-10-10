@@ -107,10 +107,10 @@
 							<goal>shade</goal>
 						</goals>
 						<configuration>
-							<!-- Replace the primary artifact with the shaded jar (no -shaded classifier) -->
+							<!-- Replace the primary artifact with the shaded jar (no -shaded classifier). No outputFile:
+							     pointed at the jar it reads, the output overwrote its own input, and a jar big enough for the
+							     write to catch the read failed at random with 'invalid LOC header' on newer JDKs. -->
 							<shadedArtifactAttached>false</shadedArtifactAttached>
-							<!-- Write output directly to the project's finalName so no -shaded jar remains -->
-							<outputFile>${project.build.directory}/${project.build.finalName}.jar</outputFile>
 							<!-- Avoid producing a dependency-reduced POM to keep the build simple -->
 							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<filters>
