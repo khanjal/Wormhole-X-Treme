@@ -1273,9 +1273,9 @@ public final class Windows
         if (window.creatures == null)
         {
             final World far = Bukkit.getWorld(window.capture.worldName());
-            final int[] box = (far == null) ? null
+            final int[] box = (far == null) ? FarCreatures.NOWHERE
                 : FarCreatures.roomBox(window.shape, window.depth(), window.capture.bounds());
-            window.creatures = (box == null) ? List.of() : FarCreatures.inRoom(far, box);
+            window.creatures = (box.length == 0) ? List.of() : FarCreatures.inRoom(far, box);
         }
         return window.creatures;
     }

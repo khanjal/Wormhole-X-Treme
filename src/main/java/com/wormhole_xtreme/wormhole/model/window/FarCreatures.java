@@ -30,6 +30,9 @@ public final class FarCreatures
     /** The most stand-ins one viewer is shown, nearest their eye first. */
     static final int MOST_PER_VIEWER = 20;
 
+    /** What {@link #roomBox} gives where there is nowhere to look. */
+    static final int[] NOWHERE = {};
+
     /**
      * A far creature, and where its stand-in stands in the viewer's world.
      *
@@ -73,7 +76,7 @@ public final class FarCreatures
      *            how deep its view is drawn
      * @param captured
      *            the capture's box, {@code {minX, minY, minZ, maxX, maxY, maxZ}}
-     * @return the box to look in, the same way round, or null where the two do not meet
+     * @return the box to look in, the same way round, or {@link #NOWHERE} where the two do not meet
      */
     static int[] roomBox(final WindowShape shape, final int depth, final int[] captured)
     {
@@ -85,7 +88,7 @@ public final class FarCreatures
             box[axis + 3] = Math.min(view[axis + 3], captured[axis + 3]);
             if (box[axis] > box[axis + 3])
             {
-                return null;
+                return NOWHERE;
             }
         }
         return box;

@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -89,24 +88,28 @@ class FarCreaturesTest
     @Test
     void aCreatureStandsInsideTheBlockThatShowsWhereItStands()
     {
-        final double[] inside = { 0.05, 0.3, 0.5, 0.95 };
         for (final boolean reflection : new boolean[] { false, true })
         {
             for (final float yaw : new float[] { 0.0f, 90.0f, 180.0f, -90.0f })
             {
-                final WindowShape shape = window(yaw, reflection);
-                for (final double across : inside)
-                {
-                    for (final double along : inside)
-                    {
-                        final double[] at = shape.hereOf(103 + across, 70.25, -18 + along);
-                        final Spot block = shape.hereOf(103, 70, -18);
-                        assertEquals(block, new Spot((int) Math.floor(at[0]), (int) Math.floor(at[1]), (int) Math.floor(at[2])),
-                            "a creature at +" + across + ", +" + along + " in its block, yaw " + yaw
-                                + (reflection ? ", reflected" : "") + ", should stand in the block drawn for it");
-                        assertEquals(63.25, at[1], 1.0e-9, "and as high above that block's floor as it is above its own");
-                    }
-                }
+                everyPointOfABlockStandsInItsBlock(window(yaw, reflection), "yaw " + yaw + (reflection ? ", reflected" : ""));
+            }
+        }
+    }
+
+    private static void everyPointOfABlockStandsInItsBlock(final WindowShape shape, final String which)
+    {
+        final double[] inside = { 0.05, 0.3, 0.5, 0.95 };
+        final Spot block = shape.hereOf(103, 70, -18);
+        for (final double across : inside)
+        {
+            for (final double along : inside)
+            {
+                final double[] at = shape.hereOf(103 + across, 70.25, -18 + along);
+                assertEquals(block, new Spot((int) Math.floor(at[0]), (int) Math.floor(at[1]), (int) Math.floor(at[2])),
+                    "a creature at +" + across + ", +" + along + " in its block, " + which
+                        + ", should stand in the block drawn for it");
+                assertEquals(63.25, at[1], 1.0e-9, "and as high above that block's floor as it is above its own");
             }
         }
     }
@@ -163,7 +166,7 @@ class FarCreaturesTest
         final WindowShape shape = window(0.0f, false);
         assertArrayEquals(new int[] { 98, 66, -20, 104, 72, -18 },
             FarCreatures.roomBox(shape, 4, new int[] { 98, 0, -20, 200, 72, 0 }), "cut to the capture");
-        assertNull(FarCreatures.roomBox(shape, 4, new int[] { 200, 0, 0, 300, 100, 100 }),
+        assertEquals(0, FarCreatures.roomBox(shape, 4, new int[] { 200, 0, 0, 300, 100, 100 }).length,
             "a capture somewhere else gives nothing to look in");
     }
 
