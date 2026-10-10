@@ -24,10 +24,10 @@ class StargateNearbyPlayersTest
 {
     private final World world = mock(World.class);
 
-    private static Player playerAt(final double x)
+    private Player playerAt(final double x)
     {
         final Player player = mock(Player.class);
-        when(player.getLocation()).thenReturn(new Location(null, x, 64, 0));
+        when(player.getLocation()).thenReturn(new Location(world, x, 64, 0));
         return player;
     }
 
@@ -46,7 +46,7 @@ class StargateNearbyPlayersTest
         final Player onTheOtherSide = playerAt(-64);
         when(world.getPlayers()).thenReturn(List.of(atTheEdge, justBeyond, onTheOtherSide));
 
-        final List<Player> near = StargateBlockSetup.playersNear(gateInWorld(), new Location(null, 0, 64, 0));
+        final List<Player> near = StargateBlockSetup.playersNear(gateInWorld(), new Location(world, 0, 64, 0));
 
         assertEquals(List.of(atTheEdge, onTheOtherSide), near, "64 blocks is still near, 65 is not");
     }
@@ -55,13 +55,13 @@ class StargateNearbyPlayersTest
     void aGateWithANameBlockIsMeasuredFromIt()
     {
         final Block nameBlock = mock(Block.class);
-        when(nameBlock.getLocation()).thenReturn(new Location(null, 500, 64, 0));
+        when(nameBlock.getLocation()).thenReturn(new Location(world, 500, 64, 0));
         final Player byTheNameBlock = playerAt(520);
         final Player byTheArrivalPoint = playerAt(10);
         when(world.getPlayers()).thenReturn(List.of(byTheNameBlock, byTheArrivalPoint));
         final Stargate gate = gateInWorld();
         gate.setGateNameBlockHolder(nameBlock);
-        gate.setGatePlayerTeleportLocation(new Location(null, 0, 64, 0));
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 0));
 
         assertEquals(List.of(byTheNameBlock), StargateBlockSetup.nearby(gate),
             "the name block, not the arrival point, is where the gate is");
@@ -74,7 +74,7 @@ class StargateNearbyPlayersTest
         final Player far = playerAt(500);
         when(world.getPlayers()).thenReturn(List.of(far, byTheArrivalPoint));
         final Stargate gate = gateInWorld();
-        gate.setGatePlayerTeleportLocation(new Location(null, 0, 64, 0));
+        gate.setGatePlayerTeleportLocation(new Location(world, 0, 64, 0));
 
         assertEquals(List.of(byTheArrivalPoint), StargateBlockSetup.nearby(gate));
     }
@@ -82,7 +82,8 @@ class StargateNearbyPlayersTest
     @Test
     void aGateWithNowhereToMeasureFromHasNobodyNear()
     {
-        when(world.getPlayers()).thenReturn(List.of(playerAt(0)));
+        final Player here = playerAt(0);
+        when(world.getPlayers()).thenReturn(List.of(here));
 
         assertTrue(StargateBlockSetup.nearby(gateInWorld()).isEmpty());
     }
