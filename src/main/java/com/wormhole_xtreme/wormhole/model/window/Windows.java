@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -1266,7 +1267,12 @@ public final class Windows
         final Map<String, List<FarChunkHolds.Area>> watched = new LinkedHashMap<>();
         for (final String name : order)
         {
-            watched.put(name, FarChunkHolds.ahead(ACTIVE.get(name).source.destination(), radius));
+            final Place destination = ACTIVE.get(name).source.destination();
+            // A far world not loaded has nothing to hold, and nothing is asked of it.
+            if (Bukkit.getWorld(destination.worldName()) != null)
+            {
+                watched.put(name, FarChunkHolds.ahead(destination, radius));
+            }
         }
         try
         {
@@ -1354,7 +1360,13 @@ public final class Windows
         final Map<WindowState, Whole> fixed = wholes.whole();
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
-        final Set<String> names = names(seeing);
+        final Map<String, WindowState> byName = new HashMap<>();
+        seeing.forEach(window -> byName.put(window.name(), window));
+        // A window whose room is not held this redraw draws nothing new: its stand-ins stay as they are, and none are added.
+        final Set<WindowState> drawn = new HashSet<>(fixed.keySet());
+        drawn.addAll(wholes.clipped().keySet());
+        final Predicate<FarCreatures.Wanted> kept =
+            wanted -> !drawn.contains(wanted.window()) || stillSeen(eye, wanted.here(), seeing, fixed);
         final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
         view.tallies.clear();
         for (final WindowState window : nearestFirst(seeing, eye))
@@ -1364,16 +1376,12 @@ public final class Windows
             {
                 final CreatureTally tally = new CreatureTally();
                 view.tallies.put(window.name(), tally);
-                inRoomThrough(player, view, window, names, inRoom, tally);
+                inRoomThrough(player, view, window, byName, kept, inRoom, tally);
             }
         }
-        // A window whose room is not held this redraw draws nothing new: its stand-ins stay as they are, and none are added.
-        final Set<WindowState> drawn = new HashSet<>(fixed.keySet());
-        drawn.addAll(wholes.clipped().keySet());
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
         final List<FarCreatures.Wanted> chosen = FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
-            FarCreatures.keepOrShow(view.standIns.keySet(),
-                wanted -> !drawn.contains(wanted.window()) || stillSeen(eye, wanted.here(), seeing, fixed),
+            FarCreatures.keepOrShow(view.standIns.keySet(), kept,
                 wanted -> drawn.contains(wanted.window()) && inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
         chosen.forEach(wanted -> view.tallies.get(wanted.window().name()).shown++);
         return chosen;
@@ -1387,14 +1395,15 @@ public final class Windows
      * must stand on drawn floor, so one stepping over a gap is not taken away and shown again.
      */
     private static void inRoomThrough(final Player player, final ViewerDrawing view, final WindowState window,
-        final Set<String> seeing, final List<FarCreatures.Wanted> inRoom, final CreatureTally tally)
+        final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept,
+        final List<FarCreatures.Wanted> inRoom, final CreatureTally tally)
     {
         for (final Entity creature : farCreatures(window))
         {
             if (creature.isValid())
             {
                 tally.found++;
-                final CreatureTally.Skip why = whyNot(player, view, window, seeing, creature);
+                final CreatureTally.Skip why = whyNot(player, view, window, seeing, kept, creature);
                 if (why == null)
                 {
                     inRoom.add(new FarCreatures.Wanted(creature, FarCreatures.hereOf(view.world, window.shape,
@@ -1408,30 +1417,55 @@ public final class Windows
         }
     }
 
-    /** Why a far creature is not offered through this window, or null if it is. */
+    /**
+     * Why a far creature is not offered through this window, or null if it is.
+     *
+     * @param seeing
+     *            the windows the viewer sees, by name
+     * @param kept
+     *            whether a creature already shown is kept where it would stand
+     */
     static CreatureTally.Skip whyNot(final Player player, final ViewerDrawing view, final WindowState window,
-        final Set<String> seeing, final Entity creature)
+        final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept, final Entity creature)
     {
         if (!visibleTo(player, view, creature))
         {
             return CreatureTally.Skip.HIDDEN;
         }
         final StandIns.StandIn held = view.standIns.get(creature.getUniqueId());
-        if ((held != null) && !held.window.name().equals(window.name()) && seeing.contains(held.window.name()))
+        final Location far = creature.getLocation();
+        if ((held != null) && keptThroughAnother(view, held, window, seeing, kept, far))
         {
             return CreatureTally.Skip.OTHER_WINDOW;
         }
-        final Location far = creature.getLocation();
         if (!StandIns.inRoom(window, FarCreatures.hereOf(view.world, window.shape, far), held != null))
         {
             return CreatureTally.Skip.OUT_OF_ROOM;
         }
         // A flying, swimming or climbing creature has no floor to stand on, and is shown floating, as it is.
-        if ((held == null) && creature.isOnGround() && !StandIns.onDrawnFloor(view, window, far))
+        if ((held == null) && !StandIns.floats(creature)
+            && !StandIns.onDrawnFloor(view, window, far, StandIns.floorReach(creature)))
         {
             return CreatureTally.Skip.NO_FLOOR;
         }
         return null;
+    }
+
+    /**
+     * Whether a shown creature is still kept through the window it was shown through, so it is not
+     * also offered through this one; if that window would let it go, this one may take it over at once.
+     */
+    private static boolean keptThroughAnother(final ViewerDrawing view, final StandIns.StandIn held,
+        final WindowState window, final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept,
+        final Location far)
+    {
+        final WindowState holding = seeing.get(held.window.name());
+        if ((holding == null) || holding.name().equals(window.name()))
+        {
+            return false;
+        }
+        final Location there = FarCreatures.hereOf(view.world, holding.shape, far);
+        return StandIns.inRoom(holding, there, true) && kept.test(new FarCreatures.Wanted(held.original, there, holding));
     }
 
     /**

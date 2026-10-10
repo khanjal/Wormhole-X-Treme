@@ -743,12 +743,17 @@ that one viewer (`HiddenEntities`).
   Two windows onto one place share one ticket a chunk (through `ChunkTickets`, which rings and pets
   use too). The chunks are asked for two a tick, the arrival's own first: on Paper with
   `getChunkAtAsync(x, z, false)`, off the main thread; on Spigot, which has no asynchronous load, by
-  `getChunkAt` after `isChunkGenerated`, so on the main thread but paced. Neither generates a chunk:
-  one never generated is skipped. They are let go ten seconds after the window's last viewer stops
+  `getChunkAt` after `isChunkGenerated`, so on the main thread but paced. Paper's load is asked not
+  to generate, so a chunk never generated stays so. Spigot only says whether a chunk was generated:
+  one never generated is skipped, but one generated only in part reads as generated and loading it
+  finishes it. A load that fails or does not answer in 30 seconds is given up on, logged once, and
+  not asked again for a minute. They are let go ten seconds after the window's last viewer stops
   being drawn it (a view ending, a quit, a death, a world change, the window released, a gate closing,
   the setting turned off; a lower radius lets the outer chunks go at once), and at once on a reset,
-  on shutdown and when the far world unloads. No more than 400 are held across every window, the
-  nearest windows' first, and reaching that is logged once. `mirror debug -all` says how many of a
+  on shutdown and when the far world unloads. No more than 400 are held across every window: the
+  chunks already held keep their place, then the nearest windows' come, so viewers moving about do
+  not swap which window is cut. Reaching it is logged once. A window onto a world that is not loaded
+  holds nothing. `mirror debug -all` says how many of a
   window's chunks are held.
 - **Read only where loaded.** The far room is the capture's box, cut to what the view's depth could
   show. A chunk there is read only if `isChunkLoaded` says so and its entities have loaded
@@ -784,10 +789,13 @@ that one viewer (`HiddenEntities`).
   or falls past the twenty is taken away. One already shown is kept while it is still seen through
   the opening at all; a new one must be properly in view, so a creature at the edge of the view is
   not spawned and removed with every step; it also stays with the window it was shown through while
-  that window is seen, and may stand a block past the room's depth. A creature on the ground is
-  shown only where the viewer has been drawn a captured block under its feet: the capture is old and
-  a clipped view draws only what it sees, so without this a stand-in could stand on air. Flying,
-  swimming and climbing creatures are not on the ground and are shown as they are. Placing, keeping
+  that window is seen, and hands over to another window at once if its own would let it go; it may
+  stand a block past the room's depth. A creature with gravity is shown only where the viewer has
+  been drawn a captured block under its feet (within half a block and a little standing, which finds
+  a fence or a wall, and within two blocks mid-jump or falling): the capture is old and a clipped
+  view draws only what it sees, so without this a stand-in could stand on air. Flyers (bats, bees,
+  parrots, allays, vexes, blazes, ghasts, phantoms), water creatures, and anything in water, swimming,
+  gliding, climbing or without gravity need no floor and are shown as they are. Placing, keeping
   and following all go by the creature's live position through one mapping, and nothing is decided
   on a redraw whose rooms the server had no time to hold. `mirror debug` says, per window, how many
   far creatures were found and why each was not shown. A failure in any of this costs that viewer their
@@ -800,7 +808,9 @@ that one viewer (`HiddenEntities`).
 
 **What it costs.** A watched window holds up to 15 chunks loaded at the default radius, 45 at 4,
 and the entities in them are simulated as any loaded chunk's are; other plugins that list chunk
-tickets see the plugin's. A stand-in is a real entity, so other plugins see it: a spawn event, a body in
+tickets see the plugin's. Simulated means despawning too: a mob that may despawn, with no player
+within 128 blocks, can go almost at once, as in any loaded chunk, so a first dial may show none of
+those. That is the server's own rule; nothing here changes a real mob's. A stand-in is a real entity, so other plugins see it: a spawn event, a body in
 an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
 in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
 never saved, but anything that reacts to every spawn will react to them. Each viewer has copies

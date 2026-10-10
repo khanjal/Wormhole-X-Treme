@@ -16,11 +16,19 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Ageable;
+import org.bukkit.entity.Allay;
+import org.bukkit.entity.Bat;
+import org.bukkit.entity.Bee;
+import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Flying;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
+import org.bukkit.entity.Vex;
+import org.bukkit.entity.WaterMob;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.material.Colorable;
 
@@ -49,8 +57,14 @@ public final class StandIns
     /** How much deeper than the room a stand-in already shown may stand before it is taken away. */
     static final int HELD_SLACK = 1;
 
-    /** How far below a creature's feet its floor is looked for, for a creature standing on a block's top face. */
+    /** How far below a creature's feet its floor starts to be looked for: just under a block's top face. */
     private static final double FLOOR_BELOW = 0.05;
+
+    /** How far below a standing creature's feet its floor may be: a fence, a wall or a gate stands half a block above its block. */
+    static final double STAND_BELOW = 0.6;
+
+    /** How far below the feet of a creature in the air its floor may be: mid-jump, or a short fall. */
+    static final double FALL_BELOW = 2.0;
 
     /** How far either side of a creature's middle its floor may be, for one standing over a block's edge. */
     private static final double FLOOR_ASIDE = 0.3;
@@ -304,7 +318,36 @@ public final class StandIns
      */
     static boolean onDrawnFloor(final ViewerDrawing view, final WindowState window, final Location far)
     {
-        final int y = (int) Math.floor(far.getY() - FLOOR_BELOW);
+        return onDrawnFloor(view, window, far, STAND_BELOW);
+    }
+
+    /**
+     * The same, looking for the floor down to a distance below the feet: half a block and a little for
+     * one standing, which finds a fence or a wall it stands on in the block below its feet' own, and
+     * two blocks for one in the air, mid-jump or falling.
+     *
+     * @param below
+     *            how far below the feet the floor may be
+     * @return true if a drawn, captured block is that close under its feet or under an edge of it
+     */
+    static boolean onDrawnFloor(final ViewerDrawing view, final WindowState window, final Location far,
+        final double below)
+    {
+        final int top = (int) Math.floor(far.getY() - FLOOR_BELOW);
+        final int bottom = (int) Math.floor(far.getY() - below);
+        for (int y = top; y >= bottom; y--)
+        {
+            if (drawnFloorAt(view, window, far, y))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether a drawn, captured block at this height is under the feet or under an edge of them. */
+    private static boolean drawnFloorAt(final ViewerDrawing view, final WindowState window, final Location far, final int y)
+    {
         for (final double[] aside : new double[][] { { 0.0, 0.0 }, { -FLOOR_ASIDE, -FLOOR_ASIDE },
             { FLOOR_ASIDE, -FLOOR_ASIDE }, { -FLOOR_ASIDE, FLOOR_ASIDE }, { FLOOR_ASIDE, FLOOR_ASIDE } })
         {
@@ -320,6 +363,33 @@ public final class StandIns
             }
         }
         return false;
+    }
+
+    /**
+     * Whether a creature needs no floor: no gravity, a flyer, in water, swimming, gliding or climbing.
+     *
+     * @param creature
+     *            a far creature
+     * @return true if it is shown wherever it is
+     */
+    static boolean floats(final Entity creature)
+    {
+        return !creature.hasGravity() || (creature instanceof Flying) || (creature instanceof Bat) || (creature instanceof Bee)
+            || (creature instanceof Parrot) || (creature instanceof Allay) || (creature instanceof Vex)
+            || (creature instanceof Blaze) || (creature instanceof WaterMob) || creature.isInWater()
+            || ((creature instanceof LivingEntity living) && (living.isClimbing() || living.isSwimming() || living.isGliding()));
+    }
+
+    /**
+     * How far below its feet a creature's floor may be.
+     *
+     * @param creature
+     *            a far creature that needs a floor
+     * @return {@link #STAND_BELOW} on the ground, {@link #FALL_BELOW} in the air
+     */
+    static double floorReach(final Entity creature)
+    {
+        return creature.isOnGround() ? STAND_BELOW : FALL_BELOW;
     }
 
     /**

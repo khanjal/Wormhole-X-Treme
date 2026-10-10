@@ -193,5 +193,5 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 | `mirror-view-depth` | 160 | How far from the opening the room is drawn, 4 to 160. |
 | `mirror-fog-at-depth` | `false` | Pull a viewer's fog in to where the room ends. Paper only. |
 | `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
-| `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are kept loaded: 15 at 2, 0 for none, at most 4. Never generates terrain. |
+| `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are kept loaded: 15 at 2, 0 for none, at most 4. On Paper never generates terrain; on Spigot skips chunks never generated. |
 | `mirror-approach-message` | `true` | Whether a mirror names itself above the hotbar to whoever looks at it. |

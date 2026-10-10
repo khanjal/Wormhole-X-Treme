@@ -196,6 +196,8 @@ class WindowsTest
         WindowSweep.clear();
         ViewFog.sendDistanceWith(null);
         HiddenEntities.creationWith(null);
+        // A failed hold test leaves nothing for the next: clear() let go of the chunks above.
+        FarChunkHolds.loaderWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -2854,6 +2856,7 @@ class WindowsTest
         when(world.getPlayers()).thenReturn(List.of(viewer));
         zombieInTheFarRoom();
         when(farZombie.isOnGround()).thenReturn(true);
+        when(farZombie.hasGravity()).thenReturn(true);
 
         withServer(WindowSweep::tick);
         assertEquals(1, standInsMade, "the solid room has a floor under it, drawn");
@@ -2889,7 +2892,7 @@ class WindowsTest
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
         final List<Chunk> held = new ArrayList<>();
-        FarChunkHolds.loaderWith((in, x, z, loaded) ->
+        FarChunkHolds.loaderWith((in, x, z, loaded, failed) ->
         {
             final Chunk chunk = mock(Chunk.class);
             when(chunk.getWorld()).thenReturn(in);
@@ -2950,7 +2953,7 @@ class WindowsTest
         ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        FarChunkHolds.loaderWith((in, x, z, loaded) ->
+        FarChunkHolds.loaderWith((in, x, z, loaded, failed) ->
         {
             final Chunk chunk = mock(Chunk.class);
             when(chunk.getWorld()).thenReturn(in);

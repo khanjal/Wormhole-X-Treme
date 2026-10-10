@@ -1818,8 +1818,42 @@ public class ConfigManager
     public static int getMirrorEntityLoadRadius()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS);
-        final int radius = (s == null) ? DEFAULT_ENTITY_LOAD_RADIUS : s.getIntValue();
+        final int radius = (s == null) ? DEFAULT_ENTITY_LOAD_RADIUS : wholeNumberOr(s, DEFAULT_ENTITY_LOAD_RADIUS);
         return Math.max(0, Math.min(MOST_ENTITY_LOAD_RADIUS, radius));
+    }
+
+    /** Whether a setting that is not a whole number has been reported yet. */
+    private static boolean warnedNotWhole;
+
+    /**
+     * A setting's whole number, or a fallback, said once, for a value written by hand that is not
+     * one: getIntValue casts, and a config.yml with "two" in it threw on every read.
+     */
+    private static int wholeNumberOr(final Setting setting, final int fallback)
+    {
+        final Object value = setting.getValue();
+        if (value instanceof Integer whole)
+        {
+            return whole.intValue();
+        }
+        try
+        {
+            return Integer.parseInt(String.valueOf(value).trim());
+        }
+        catch (final NumberFormatException notWhole)
+        {
+            if (!warnedNotWhole)
+            {
+                warnedNotWhole = true;
+                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+                if (plugin != null)
+                {
+                    plugin.prettyLog(Level.WARNING, setting.getName() + " is \"" + value + "\", not a whole number; using "
+                        + fallback);
+                }
+            }
+            return fallback;
+        }
     }
 
     /**

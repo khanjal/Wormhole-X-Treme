@@ -5,7 +5,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -30,8 +29,9 @@ import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
  * <p>While a window is being drawn for at least one viewer, the chunks in front of where it goes
  * are held with the plugin's chunk ticket, through {@link ChunkTickets} so a chunk a ring or a pet
  * also holds keeps one ticket. Let go a grace period after the last viewer stops, at once on a
- * shutdown, a reset or the far world unloading. Loaded a couple a tick, nearest the arrival first,
- * asynchronously where the server can, and never generated: a chunk nobody has made stays unmade.
+ * shutdown, a reset or the far world unloading. Loaded a couple a tick, nearest the arrival first:
+ * on Paper asynchronously and never generated, elsewhere only once the server says the chunk was
+ * generated (a chunk generated only in part is finished by loading it, which Spigot leaves no way to avoid).
  */
 public final class FarChunkHolds
 {
@@ -44,16 +44,22 @@ public final class FarChunkHolds
     /** How many chunks are asked for a tick. */
     static final int PER_TICK = 2;
 
+    /** How long a load may take before it is given up on. */
+    static final long LOAD_TIMEOUT_MILLIS = 30_000L;
+
+    /** How long a chunk that failed to load, or was never generated, is left before it is asked again. */
+    static final long RETRY_MILLIS = 60_000L;
+
     /** One chunk of one world. */
     record Area(String world, int x, int z)
     {
     }
 
-    /** Loads a chunk without generating it, and hands it over, or null for one never generated. */
+    /** Loads a chunk without generating it, and hands it over (null for one never generated), or says why it could not. */
     @FunctionalInterface
     interface Loader
     {
-        void load(World world, int x, int z, Consumer<Chunk> loaded);
+        void load(World world, int x, int z, Consumer<Chunk> loaded, Consumer<Throwable> failed);
     }
 
     /** One window's hold: the chunks it wants, and when it lets go, or {@link Long#MAX_VALUE} while watched. */
@@ -72,23 +78,24 @@ public final class FarChunkHolds
     /** The chunks still to ask for, nearest their arrival first. */
     private static final Deque<Area> QUEUE = new ArrayDeque<>();
 
-    /** The chunks asked for and not yet handed over. */
-    private static final Set<Area> LOADING = new HashSet<>();
+    /** The chunks asked for and not yet handed over, with when they were asked. */
+    private static final Map<Area, Long> LOADING = new HashMap<>();
 
-    /** Chunks found never generated, not asked for again while wanted. */
-    private static final Set<Area> UNMADE = new HashSet<>();
+    /** Chunks never generated or that failed to load, with when they may be asked again. */
+    private static final Map<Area, Long> RESTING = new HashMap<>();
 
     /** The chunks wanted now, after the cap. */
     private static Set<Area> wanted = Set.of();
 
     /** Paper's {@code getChunkAtAsync(int, int, boolean)}, or null on a server without it. */
-    private static final Method ASYNC = findAsync();
+    private static Method async = findAsync();
 
     /** How chunks are loaded. */
     private static Loader loader = FarChunkHolds::loadReal;
 
     private static int task = -1;
     private static boolean warnedCap;
+    private static boolean warnedLoad;
 
     /** Static state only. */
     private FarChunkHolds()
@@ -148,6 +155,7 @@ public final class FarChunkHolds
             claim.releaseAt = Long.MAX_VALUE;
         }
         expire(watched, now);
+        giveUpOnSlowLoads(now);
         wanted = capped(watched);
         for (final Area area : new ArrayList<>(HELD.keySet()))
         {
@@ -157,18 +165,30 @@ public final class FarChunkHolds
             }
         }
         QUEUE.removeIf(area -> !wanted.contains(area));
-        UNMADE.retainAll(wanted);
+        RESTING.keySet().removeIf(area -> !wanted.contains(area));
         for (final Area area : wanted)
         {
-            if (!HELD.containsKey(area) && !LOADING.contains(area) && !UNMADE.contains(area) && !QUEUE.contains(area))
+            if (askable(area, now))
             {
                 QUEUE.add(area);
             }
         }
-        if (!QUEUE.isEmpty())
+        if (QUEUE.isEmpty())
+        {
+            stopPacing();
+        }
+        else
         {
             pace();
         }
+    }
+
+    /** Whether a wanted chunk is to be asked for now: not held, not on its way, not resting, and in a loaded world. */
+    private static boolean askable(final Area area, final long now)
+    {
+        final Long resting = RESTING.get(area);
+        return !HELD.containsKey(area) && !LOADING.containsKey(area) && !QUEUE.contains(area)
+            && ((resting == null) || (now >= resting)) && (Bukkit.getWorld(area.world()) != null);
     }
 
     /** Starts the grace of each window no longer watched, and drops the claims whose grace is up. */
@@ -192,10 +212,27 @@ public final class FarChunkHolds
         }
     }
 
-    /** Every claimed area, the watched windows' first and nearest first, up to {@link #MOST_HELD}. */
+    /** Gives up on loads that never answered, as on any failure. */
+    private static void giveUpOnSlowLoads(final long now)
+    {
+        for (final Map.Entry<Area, Long> loading : new ArrayList<>(LOADING.entrySet()))
+        {
+            if ((now - loading.getValue()) >= LOAD_TIMEOUT_MILLIS)
+            {
+                failed(loading.getKey(), null, now);
+            }
+        }
+    }
+
+    /**
+     * Every claimed area up to {@link #MOST_HELD}: the chunks already held first, so the cap does not
+     * swap which window is cut as viewers move, then the other watched windows' nearest first, then
+     * those in their grace.
+     */
     private static Set<Area> capped(final Map<String, List<Area>> watched)
     {
         final Set<Area> all = new LinkedHashSet<>();
+        watched.values().forEach(areas -> areas.stream().filter(HELD::containsKey).forEach(all::add));
         watched.values().forEach(all::addAll);
         CLAIMS.values().forEach(claim -> all.addAll(claim.areas));
         if (all.size() <= MOST_HELD)
@@ -205,12 +242,8 @@ public final class FarChunkHolds
         if (!warnedCap)
         {
             warnedCap = true;
-            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-            if (plugin != null)
-            {
-                plugin.prettyLog(Level.WARNING, "Views want " + all.size() + " chunks held for their creatures; holding the "
-                    + MOST_HELD + " nearest (mirror-entity-load-radius)");
-            }
+            log("Views want " + all.size() + " chunks held for their creatures; holding " + MOST_HELD
+                + ", the windows already held first (mirror-entity-load-radius)", null);
         }
         final Set<Area> kept = new LinkedHashSet<>();
         for (final Area area : all)
@@ -226,14 +259,23 @@ public final class FarChunkHolds
     /** Asks for the next few chunks: the pacing task's step. */
     static void step()
     {
+        final long now = Windows.clock.getAsLong();
         for (int i = 0; (i < PER_TICK) && !QUEUE.isEmpty(); i++)
         {
             final Area area = QUEUE.poll();
             final World world = Bukkit.getWorld(area.world());
             if (world != null)
             {
-                LOADING.add(area);
-                loader.load(world, area.x(), area.z(), chunk -> loaded(area, chunk));
+                LOADING.put(area, now);
+                try
+                {
+                    loader.load(world, area.x(), area.z(), chunk -> loaded(area, chunk),
+                        failure -> failed(area, failure, Windows.clock.getAsLong()));
+                }
+                catch (final Exception | LinkageError failure)
+                {
+                    failed(area, failure, now);
+                }
             }
         }
         if (QUEUE.isEmpty())
@@ -242,18 +284,56 @@ public final class FarChunkHolds
         }
     }
 
-    /** Holds a chunk once it is in, if it is still wanted. */
+    /** Holds a chunk once it is in, if it is still wanted; rests one never generated. */
     static void loaded(final Area area, final Chunk chunk)
     {
-        LOADING.remove(area);
+        if (LOADING.remove(area) == null)
+        {
+            // Given up on already, or let go meanwhile.
+            return;
+        }
         if (chunk == null)
         {
-            UNMADE.add(area);
+            RESTING.put(area, Windows.clock.getAsLong() + RETRY_MILLIS);
         }
         else if (wanted.contains(area) && !HELD.containsKey(area))
         {
             ChunkTickets.hold(chunk);
             HELD.put(area, chunk);
+        }
+    }
+
+    /** A load that failed or never answered: rested a while, and said once. */
+    static void failed(final Area area, final Throwable failure, final long now)
+    {
+        if (LOADING.remove(area) == null)
+        {
+            return;
+        }
+        RESTING.put(area, now + RETRY_MILLIS);
+        if (!warnedLoad)
+        {
+            warnedLoad = true;
+            log("Could not load chunk " + area.x() + "," + area.z() + " of " + area.world()
+                + " for a view's creatures" + ((failure == null) ? ": no answer in " + (LOAD_TIMEOUT_MILLIS / 1000) + "s" : ""),
+                failure);
+        }
+    }
+
+    private static void log(final String message, final Throwable failure)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if (plugin == null)
+        {
+            return;
+        }
+        if (failure == null)
+        {
+            plugin.prettyLog(Level.WARNING, message);
+        }
+        else
+        {
+            plugin.prettyLog(Level.WARNING, message, failure);
         }
     }
 
@@ -294,6 +374,18 @@ public final class FarChunkHolds
         return HELD.size();
     }
 
+    /** @return how many chunks are on their way, for a test */
+    static int loadingCount()
+    {
+        return LOADING.size();
+    }
+
+    /** @return true while the pacing task runs, for a test */
+    static boolean pacing()
+    {
+        return task != -1;
+    }
+
     /**
      * Lets go of every chunk held in a world that is unloading.
      *
@@ -310,13 +402,18 @@ public final class FarChunkHolds
             }
         }
         QUEUE.removeIf(area -> area.world().equals(world));
-        LOADING.removeIf(area -> area.world().equals(world));
+        LOADING.keySet().removeIf(area -> area.world().equals(world));
+        RESTING.keySet().removeIf(area -> area.world().equals(world));
         CLAIMS.values().forEach(claim -> claim.areas = claim.areas.stream().filter(area -> !area.world().equals(world)).toList());
         wanted = new LinkedHashSet<>(wanted);
         wanted.removeIf(area -> area.world().equals(world));
+        if (QUEUE.isEmpty())
+        {
+            stopPacing();
+        }
     }
 
-    /** Lets go of everything, at once: shutdown, a reset, or the setting turned off. */
+    /** Lets go of everything, at once: shutdown, or a reset. */
     public static void releaseAll()
     {
         for (final Area area : new ArrayList<>(HELD.keySet()))
@@ -326,9 +423,10 @@ public final class FarChunkHolds
         CLAIMS.clear();
         QUEUE.clear();
         LOADING.clear();
-        UNMADE.clear();
+        RESTING.clear();
         wanted = Set.of();
         warnedCap = false;
+        warnedLoad = false;
         stopPacing();
     }
 
@@ -386,23 +484,36 @@ public final class FarChunkHolds
     }
 
     /**
-     * Loads a chunk without generating it: on Paper off the main thread, elsewhere on it, after
-     * asking whether the chunk was ever generated, since a plain load generates one that was not.
+     * Loads a chunk: on Paper off the main thread and never generated; elsewhere on it, and only once
+     * the server says the chunk was generated, since a plain load generates one that was not.
      */
-    private static void loadReal(final World world, final int x, final int z, final Consumer<Chunk> loaded)
+    static void loadReal(final World world, final int x, final int z, final Consumer<Chunk> loaded,
+        final Consumer<Throwable> failed)
     {
-        if (ASYNC != null)
+        if (async != null)
         {
+            final CompletableFuture<?> future;
             try
             {
-                final CompletableFuture<?> future = (CompletableFuture<?>) ASYNC.invoke(world, x, z, Boolean.FALSE);
-                future.thenAccept(chunk -> onMain(() -> loaded.accept((Chunk) chunk)));
-                return;
+                future = (CompletableFuture<?>) async.invoke(world, x, z, Boolean.FALSE);
             }
             catch (final ReflectiveOperationException | RuntimeException | LinkageError notAsync)
             {
-                // Loaded the plain way instead.
+                failed.accept(notAsync);
+                return;
             }
+            future.whenComplete((chunk, failure) -> onMain(() ->
+            {
+                if (failure == null)
+                {
+                    loaded.accept((Chunk) chunk);
+                }
+                else
+                {
+                    failed.accept(failure);
+                }
+            }));
+            return;
         }
         loaded.accept(world.isChunkGenerated(x, z) ? world.getChunkAt(x, z) : null);
     }
@@ -448,9 +559,20 @@ public final class FarChunkHolds
         loader = (stand == null) ? FarChunkHolds::loadReal : stand;
     }
 
+    /**
+     * Uses this as Paper's asynchronous load, for a test: the API on the compile path has none.
+     *
+     * @param method
+     *            a {@code getChunkAtAsync(int, int, boolean)} to call, or null for the server's own
+     */
+    static void asyncWith(final Method method)
+    {
+        async = (method == null) ? findAsync() : method;
+    }
+
     /** @return true on a server that loads chunks off the main thread, for a test */
     static boolean loadsAsync()
     {
-        return ASYNC != null;
+        return async != null;
     }
 }

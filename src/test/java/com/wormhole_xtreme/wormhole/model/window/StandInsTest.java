@@ -19,8 +19,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -670,27 +672,71 @@ class StandInsTest
             new BlockPlace("world", 10, 64, 10), ARRIVAL), mock(Block.class), window.shape, window.open, 16), window.capture);
         final Zombie walker = creature(Zombie.class, 100.5, 70.0, -18.5);
         when(walker.isOnGround()).thenReturn(true);
-        final Set<String> both = Set.of("museum", "gallery");
+        when(walker.hasGravity()).thenReturn(true);
+        final Map<String, WindowState> both = Map.of("museum", window, "gallery", other);
+        final Predicate<FarCreatures.Wanted> keeps = wanted -> true;
 
-        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, window, both, walker),
+        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, window, both, keeps, walker),
             "new, on ground with no drawn floor: not offered");
         final Zombie flying = creature(Zombie.class, 100.5, 72.0, -18.5);
-        assertNull(Windows.whyNot(viewer, view, window, both, flying), "off the ground, it needs no floor and floats as it does");
+        assertNull(Windows.whyNot(viewer, view, window, both, keeps, flying), "with no gravity it needs no floor and floats as it does");
         nextCopy = copy(Zombie.class);
         StandIns.show(viewer, view, List.of(wanted(walker)), 0L);
-        assertNull(Windows.whyNot(viewer, view, window, both, walker), "shown already: kept without a drawn floor");
-        assertEquals(CreatureTally.Skip.OTHER_WINDOW, Windows.whyNot(viewer, view, other, both, walker),
-            "not handed to the other window while its own is still seen");
-        assertNull(Windows.whyNot(viewer, view, other, Set.of("gallery"), walker),
+        assertNull(Windows.whyNot(viewer, view, window, both, keeps, walker), "shown already: kept without a drawn floor");
+        assertEquals(CreatureTally.Skip.OTHER_WINDOW, Windows.whyNot(viewer, view, other, both, keeps, walker),
+            "not handed to the other window while its own still keeps it");
+        assertNull(Windows.whyNot(viewer, view, other, both, wanted -> false, walker),
+            "handed over at once when its own window would let it go, so it is in no gap between the two");
+        assertNull(Windows.whyNot(viewer, view, other, Map.of("gallery", other), keeps, walker),
             "handed over once its own window is no longer seen");
 
         // Seventeen blocks in from the opening's middle: past the depth of 16, inside it with the slack.
         when(walker.getLocation()).thenReturn(new Location(far, 100.5, 70.5, -5.5));
-        assertNull(Windows.whyNot(viewer, view, window, both, walker), "a held one a block past the room stays");
+        assertNull(Windows.whyNot(viewer, view, window, both, keeps, walker), "a held one a block past the room stays");
         assertNotNull(StandIns.whereNow(here, view.standIns.get(walker.getUniqueId())), "and is followed there");
         StandIns.removeAll(view);
-        assertEquals(CreatureTally.Skip.OUT_OF_ROOM, Windows.whyNot(viewer, view, window, both, walker),
+        assertEquals(CreatureTally.Skip.OUT_OF_ROOM, Windows.whyNot(viewer, view, window, both, keeps, walker),
             "a new one there is not offered");
+    }
+
+    /**
+     * A zombie mid-jump or falling needs a drawn floor within two blocks below it, as one standing
+     * does right under it: a jump over terrain the drawn room does not have is not shown on air.
+     */
+    @Test
+    void aJumpingZombieNeedsADrawnFloorWithinTwoBlocks()
+    {
+        when(viewer.canSee(any(Entity.class))).thenReturn(true);
+        final WindowState floored = windowWithFloorAt(100, 69, -19);
+        final Map<String, WindowState> seeing = Map.of("museum", floored);
+        final Zombie jumping = creature(Zombie.class, 100.5, 71.5, -18.5);
+        when(jumping.hasGravity()).thenReturn(true);
+        when(jumping.isOnGround()).thenReturn(false);
+
+        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
+            "in the air over a floor not drawn for this viewer");
+        final Spot drawn = floored.shape.hereOf(100, 69, -19);
+        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+        assertNull(Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping), "a block and a half over a drawn floor");
+        when(jumping.getLocation()).thenReturn(new Location(far, 100.5, 73.5, -18.5, 0.0f, 0.0f));
+        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
+            "three and a half over it is past the two blocks a jump or a short fall reaches");
+        when(jumping.isInWater()).thenReturn(true);
+        assertNull(Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping), "in water it needs no floor");
+    }
+
+    /** A creature on a fence or a wall stands half a block above its block: the floor is found in the block below its feet's own. */
+    @Test
+    void aCreatureOnAFenceOrAWallHasItsFloorFound()
+    {
+        final WindowState fenced = windowWithFloorAt(100, 69, -19);
+        final Spot drawn = fenced.shape.hereOf(100, 69, -19);
+        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+
+        assertTrue(StandIns.onDrawnFloor(view, fenced, new Location(far, 100.5, 70.5, -18.5)),
+            "standing on top of a fence or a wall, a block and a half above its foot");
+        assertFalse(StandIns.onDrawnFloor(view, fenced, new Location(far, 100.5, 71.0, -18.5)),
+            "two blocks above it, over air, as before");
     }
 
     /**
