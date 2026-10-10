@@ -162,7 +162,7 @@ class GateViewsSweepTest
 
         GateViews.offerAll();
 
-        verify(gate).fillGateInterior(Material.AIR);
+        verify(gate, never()).fillGateInterior(Material.AIR); // cleared for whoever is drawn the view, not filled for everybody
         assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "cleared for the view");
 
         drawn(false);
@@ -190,7 +190,7 @@ class GateViewsSweepTest
 
         sources.verify(() -> GateSource.offer(argThat(window -> (window.open().size() == (18 * 17))
             && (window.shape().width() == 18) && (window.shape().height() == 17)), anyBoolean()));
-        verify(gate).fillGateInterior(Material.AIR);
+        verify(gate, never()).fillGateInterior(Material.AIR); // cleared for whoever is drawn the view, not filled for everybody
         assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the whole opening, not a window in it");
     }
 
@@ -358,7 +358,7 @@ class GateViewsSweepTest
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
         drawn(true);
         GateViews.offerAll();
-        verify(gate).fillGateInterior(Material.AIR);
+        verify(gate, never()).fillGateInterior(Material.AIR); // cleared for whoever is drawn the view, not filled for everybody
 
         final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
         running.put("Abydos", 1);
@@ -452,7 +452,7 @@ class GateViewsSweepTest
             GateViews.offerAll();
 
             offeredTimes(1);
-            verify(gate, never()).fillGateInterior(Material.AIR);
+            assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "not cleared under the crossing");
         }
         finally
         {
@@ -460,7 +460,7 @@ class GateViewsSweepTest
         }
         GateViews.offerAll();
 
-        verify(gate).fillGateInterior(Material.AIR);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "cleared once it is open");
     }
 
     /**

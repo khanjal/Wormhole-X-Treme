@@ -1,12 +1,13 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.bukkit.Location;
@@ -27,8 +28,9 @@ import com.wormhole_xtreme.wormhole.model.window.Windows;
  *
  * <p>An experiment behind {@code gate-view}, which is {@code horizon} by default and changes
  * nothing there. At {@code behind} the far side is drawn behind the horizon; at {@code open} the
- * horizon clears once the far side is ready -- for everybody, not per viewer, which is the first
- * thing a real build would change. Only the dialling end of an upright gate with its iris open.
+ * horizon clears once the far side is ready, and only for whoever is drawn the view: anybody behind
+ * the gate, too far off or not drawn it yet sees the horizon as it always is. Only the dialling end
+ * of an upright gate with its iris open.
  * The whole opening is drawn, up to {@link #MOST} each way, and only a gate with a frame round
  * its opening: nothing else hides the view's edges as one walks round it.
  *
@@ -47,6 +49,12 @@ public final class GateViews
 
     /** Gates whose horizon has cleared for their view, by name. */
     private static final Set<String> CLEARED = new HashSet<>();
+
+    /** The cleared gates each player has been sent with nothing in the opening: those they are drawn the view of. */
+    private static final Map<UUID, Set<String>> SEES_THROUGH = new HashMap<>();
+
+    /** Gates whose iris was crossing last sweep, so the sweep it ends on is known. */
+    private static final Set<String> CROSSING = new HashSet<>();
 
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
@@ -68,6 +76,8 @@ public final class GateViews
     public static void clear()
     {
         CLEARED.clear();
+        SEES_THROUGH.clear();
+        CROSSING.clear();
         OPEN.clear();
         LOOKED.clear();
     }
@@ -89,6 +99,100 @@ public final class GateViews
     }
 
     /**
+     * What a gate's opening is drawn as for one player: nothing only where its horizon has cleared and
+     * they are drawn its view, the portal for everybody else.
+     *
+     * <p>The horizon was cleared for everybody, so from behind the gate, or too far off to be drawn the
+     * view, it was an empty ring onto this world.
+     *
+     * @param gate
+     *            the gate
+     * @param portal
+     *            what it would otherwise show
+     * @param player
+     *            who it is drawn for
+     * @return the material to draw
+     */
+    public static Material horizonFor(final Stargate gate, final Material portal, final Player player)
+    {
+        final Set<String> through = (player == null) ? null : SEES_THROUGH.get(player.getUniqueId());
+        return ((gate != null) && (through != null) && through.contains(gate.getGateName())) ? horizonOf(gate, portal)
+            : portal;
+    }
+
+    /**
+     * Follows the windows a viewer is drawn, sending the opening of each cleared gate they come to be
+     * drawn as nothing, and of each they stop being drawn as its horizon again.
+     *
+     * <p>The drawing's own judgement of who is drawn a view, so the half-space is its: in front of the
+     * opening's face, within range and with a clear line to it. Somebody in the plane or inside the
+     * opening is not drawn it, and sees the horizon as at any gate they walk into.
+     *
+     * @param viewer
+     *            whose drawing it is
+     * @param player
+     *            that player, or null when their drawing went with them, which is forgotten unsent
+     * @param windows
+     *            the windows they are drawn now
+     */
+    public static void drawn(final UUID viewer, final Player player, final Set<String> windows)
+    {
+        final Set<String> was = SEES_THROUGH.getOrDefault(viewer, Set.of());
+        if (player == null)
+        {
+            SEES_THROUGH.remove(viewer);
+            return;
+        }
+        // On every redraw of everybody near a window, so a server with no cleared gate stops here.
+        if (was.isEmpty() && CLEARED.isEmpty())
+        {
+            return;
+        }
+        final Set<String> now = new HashSet<>();
+        for (final String window : windows)
+        {
+            if (window.startsWith(PREFIX) && CLEARED.contains(window.substring(PREFIX.length())))
+            {
+                now.add(window.substring(PREFIX.length()));
+            }
+        }
+        if (now.equals(was))
+        {
+            return;
+        }
+        if (now.isEmpty())
+        {
+            SEES_THROUGH.remove(viewer);
+        }
+        else
+        {
+            SEES_THROUGH.put(viewer, now);
+        }
+        final Set<String> changed = new HashSet<>(was);
+        changed.addAll(now);
+        changed.removeIf(name -> was.contains(name) && now.contains(name));
+        changed.forEach(name -> StargateBlockSetup.redrawHorizonFor(player, StargateManager.getStargate(name)));
+    }
+
+    /**
+     * Forgets a player who has left, and whatever gates they were being drawn the view of.
+     *
+     * @param viewer
+     *            who left
+     */
+    public static void forgetViewer(final UUID viewer)
+    {
+        SEES_THROUGH.remove(viewer);
+    }
+
+    /** Forgets everybody's being drawn one gate's view, as its horizon stops being cleared. */
+    private static void unclear(final String name)
+    {
+        CLEARED.remove(name);
+        SEES_THROUGH.values().removeIf(through -> through.remove(name) && through.isEmpty());
+    }
+
+    /**
      * Forgets a gate that has just closed, and takes its view back from whoever has it.
      *
      * <p>Rather than waiting for the next sweep: until then the far side stood behind an empty
@@ -104,7 +208,8 @@ public final class GateViews
         {
             return;
         }
-        CLEARED.remove(gate.getGateName());
+        unclear(gate.getGateName());
+        CROSSING.remove(gate.getGateName());
         OPEN.remove(gate.getGateName());
         Windows.release(PREFIX + gate.getGateName());
     }
@@ -325,19 +430,21 @@ public final class GateViews
     }
 
     /**
-     * Clears the horizon of every gate newly showing an open view, and puts it back on every gate no
-     * longer showing one; a gate mid iris crossing is left as it is until the crossing is over.
+     * Marks the horizon of every gate newly showing an open view cleared, and puts it back on every
+     * gate no longer showing one; a gate mid iris crossing is left as it is until the crossing is over.
+     *
+     * <p>Cleared is not drawn: whoever is drawn the view is sent the opening as nothing once the
+     * drawing has settled ({@link #drawn}), and nobody else is sent anything.
      */
     private static void settleHorizons(final Set<String> clear, final Set<String> busy)
     {
-        for (final Iterator<String> it = CLEARED.iterator(); it.hasNext();)
+        for (final String name : new ArrayList<>(CLEARED))
         {
-            final String name = it.next();
             if (clear.contains(name) || busy.contains(name))
             {
                 continue;
             }
-            it.remove();
+            unclear(name);
             final Stargate gate = StargateManager.getStargate(name);
             // Only a wormhole still showing: a shut iris or a closed gate draws its own.
             if ((gate != null) && gate.isGateActive() && gate.isGatePortalOpen() && !gate.isGateIrisActive())
@@ -348,10 +455,22 @@ public final class GateViews
         for (final String name : clear)
         {
             final Stargate gate = StargateManager.getStargate(name);
-            if ((gate != null) && CLEARED.add(name))
+            // A crossing over a cleared horizon paints it as nothing for everybody, so its end is drawn again for each.
+            if ((gate != null) && !CLEARED.add(name) && CROSSING.contains(name))
             {
-                gate.fillGateInterior(Material.AIR);
+                redrawFor(gate);
             }
+        }
+        CROSSING.clear();
+        CROSSING.addAll(busy);
+    }
+
+    /** Sends everybody near a gate its opening as they are to see it, each by {@link #horizonFor}. */
+    private static void redrawFor(final Stargate gate)
+    {
+        for (final Player player : gate.getGateWorld().getPlayers())
+        {
+            StargateBlockSetup.redrawHorizonFor(player, gate);
         }
     }
 

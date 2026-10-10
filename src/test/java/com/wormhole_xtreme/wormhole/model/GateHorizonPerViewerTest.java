@@ -1,0 +1,341 @@
+package com.wormhole_xtreme.wormhole.model;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+
+/**
+ * At {@code gate-view: open} a gate's horizon clears only for whoever is drawn its view (#516).
+ *
+ * <p>It used to clear for everybody: anybody behind the gate, too far off to be drawn the view, or
+ * with no clear line to it saw an empty ring onto this world where the horizon should be. The
+ * opening is a drawing either way, the server keeping air in it, so what each player is sent is
+ * the whole of it. The window drawing itself is stood in for: {@link GateViews#drawn} is what it
+ * tells after each redraw.
+ */
+class GateHorizonPerViewerTest
+{
+    private static final String WINDOW = "gate:Abydos";
+
+    /** A Standard-sized opening's nine cells here, three by three. */
+    private static final int CELLS = 9;
+
+    private World world;
+    private Player front;
+    private Player behind;
+    private Stargate gate;
+    private final BlockData water = mock(BlockData.class);
+    private final BlockData air = mock(BlockData.class);
+    private MockedStatic<StargateManager> manager;
+    private MockedStatic<Windows> windows;
+    private MockedStatic<GateSource> sources;
+    private MockedStatic<MaterialUtils> materials;
+
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install();
+        ConfigTestSupport.clear();
+        GateViews.clear();
+
+        world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        final Block anyBlock = mock(Block.class);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(anyBlock);
+        // The gate faces south, its opening in the plane z = 20: in front is z > 20.
+        front = playerAt(25.0);
+        behind = playerAt(15.0);
+        when(world.getPlayers()).thenReturn(List.of(front, behind));
+
+        final World far = mock(World.class);
+        final Stargate target = mock(Stargate.class);
+        when(target.getGateName()).thenReturn("Chulak");
+        when(target.getGatePlayerTeleportLocation()).thenReturn(new Location(far, 100.5, 70.0, 200.5, 0.0f, 0.0f));
+
+        gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("Abydos");
+        when(gate.isGateActive()).thenReturn(true);
+        when(gate.isGatePortalOpen()).thenReturn(true);
+        when(gate.getGateWorld()).thenReturn(world);
+        when(gate.getGateTarget()).thenReturn(target);
+        when(gate.getGateFacing()).thenReturn(BlockFace.SOUTH);
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.WATER);
+        opening();
+
+        manager = mockStatic(StargateManager.class);
+        manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate));
+        manager.when(() -> StargateManager.getStargate("Abydos")).thenReturn(gate);
+        windows = mockStatic(Windows.class);
+        sources = mockStatic(GateSource.class);
+        sources.when(() -> GateSource.offer(any(GateSource.class), anyBoolean())).thenReturn(true);
+        materials = mockStatic(MaterialUtils.class);
+        materials.when(() -> MaterialUtils.drawnAcross(Material.WATER, BlockFace.SOUTH)).thenReturn(water);
+        materials.when(() -> MaterialUtils.drawnAcross(Material.AIR, BlockFace.SOUTH)).thenReturn(air);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        materials.close();
+        sources.close();
+        windows.close();
+        manager.close();
+        GateViews.clear();
+        ConfigTestSupport.clear();
+        PluginTestSupport.remove();
+    }
+
+    private Player playerAt(final double z)
+    {
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.isOnline()).thenReturn(true);
+        when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenReturn(new Location(world, 11.0, 64.0, z));
+        return player;
+    }
+
+    /** Gives the gate a three by three opening in the plane z = 20 and a frame round it. */
+    private void opening()
+    {
+        final List<Location> portal = new ArrayList<>();
+        final List<Location> ring = new ArrayList<>();
+        for (int x = 9; x <= 13; x++)
+        {
+            for (int y = 63; y <= 67; y++)
+            {
+                final boolean inside = (x >= 10) && (x <= 12) && (y >= 64) && (y <= 66);
+                (inside ? portal : ring).add(new Location(world, x, y, 20));
+            }
+        }
+        when(gate.getGatePortalBlocks()).thenReturn(portal);
+        when(gate.getGateStructureBlocks()).thenReturn(ring);
+    }
+
+    /** One sweep at {@code open}, which clears the horizon: the view is drawn. */
+    private void clearedForTheView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        GateViews.offerAll();
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the horizon cleared for the view");
+    }
+
+    /** The drawing's word that this player is drawn the gate's view after a redraw, or is not. */
+    private static void drawsTheView(final Player player, final boolean drawn)
+    {
+        GateViews.drawn(player.getUniqueId(), player, drawn ? Set.of(WINDOW) : Set.of());
+    }
+
+    /** How many of the opening's cells a player was sent as this. */
+    private static void sentTheOpeningAs(final Player player, final BlockData data, final int times, final String why)
+    {
+        verify(player, times(times * CELLS).description(why)).sendBlockChange(any(Location.class), eq(data));
+    }
+
+    @Test
+    void aViewerDrawnTheViewSeesThroughTheOpeningAndOneBehindTheGateSeesTheHorizon()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        drawsTheView(behind, false);
+
+        sentTheOpeningAs(front, air, 1, "drawn the view: the opening is cleared for them");
+
+        StargateBlockSetup.refreshPortalVisuals(behind);
+        StargateBlockSetup.refreshPortalVisuals(front);
+
+        sentTheOpeningAs(behind, water, 1, "behind the gate: the horizon, not an empty ring onto this world");
+        verify(behind, never().description("nobody behind the gate is sent the cleared opening"))
+            .sendBlockChange(any(Location.class), eq(air));
+        sentTheOpeningAs(front, air, 2, "a chunk crossing redraws it cleared for the viewer still drawn the view");
+    }
+
+    /**
+     * The clearing sweep itself sends nobody anything: each viewer is sent the cleared opening as the
+     * drawing says they are drawn the view, and everybody else keeps what they have, the horizon.
+     */
+    @Test
+    void clearingTheHorizonFillsItForNobody()
+    {
+        clearedForTheView();
+
+        verify(gate, never()).fillGateInterior(Material.AIR);
+        StargateBlockSetup.refreshPortalVisuals(front);
+        sentTheOpeningAs(front, water, 1, "not yet drawn the view, so the horizon");
+    }
+
+    @Test
+    void walkingRoundTheGateSendsTheHorizonOneWayAndTheClearedOpeningTheOther()
+    {
+        clearedForTheView();
+
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "in front and drawn the view");
+        drawsTheView(front, false);
+        sentTheOpeningAs(front, water, 1, "walked behind the gate: the horizon is back for them");
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 2, "back in front: cleared again");
+    }
+
+    @Test
+    void aRedrawThatChangesNothingSendsNothing()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        clearInvocations(front);
+
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    @Test
+    void aViewerWhoseDrawingWentWithThemIsForgotten()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        // Quit, or into another world: the drawing goes, and nothing is sent to where they were.
+        GateViews.drawn(front.getUniqueId(), null, Set.of());
+        StargateBlockSetup.refreshPortalVisuals(front);
+
+        sentTheOpeningAs(front, water, 1, "back again and not drawn the view: the horizon");
+    }
+
+    @Test
+    void aViewerWhoLeavesTheServerIsForgotten()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        // What the quit listener calls.
+        manager.when(() -> StargateManager.forgetPortalVisuals(any(UUID.class))).thenCallRealMethod();
+        StargateManager.forgetPortalVisuals(front.getUniqueId());
+        StargateBlockSetup.refreshPortalVisuals(front);
+
+        sentTheOpeningAs(front, water, 1, "rejoined, not drawn the view yet: the horizon");
+    }
+
+    @Test
+    void aGateThatClosesIsClearedForNobody()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        GateViews.closed(gate);
+
+        assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front),
+            "a redial settles into the horizon, not into an opening cleared for whoever was looking");
+    }
+
+    @Test
+    void turningTheViewOffPutsTheHorizonBackForTheViewerToo()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        GateViews.offerAll();
+        StargateBlockSetup.refreshPortalVisuals(front);
+
+        verify(gate).fillGateInterior(Material.WATER);
+        sentTheOpeningAs(front, water, 1, "no view any more, so the horizon, for them as for everybody");
+    }
+
+    @Test
+    void theViewerIsForgottenAsThePluginStops()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        GateViews.clear();
+
+        assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
+    }
+
+    /**
+     * At {@code behind} the horizon never clears, so a viewer drawn the view is sent nothing for it.
+     */
+    @Test
+    void behindSendsAViewerOfTheViewNothingForTheOpening()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        GateViews.offerAll();
+
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
+    }
+
+    @Test
+    void horizonSendsAViewerNothingForTheOpening()
+    {
+        GateViews.offerAll();
+
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
+    }
+
+    /**
+     * An iris crossing paints the opening alike for everybody, a cleared one as nothing, so the sweep
+     * it ends on sends each their own again.
+     */
+    @Test
+    void theSweepAfterACrossingSendsEachTheirOwnOpeningAgain() throws ReflectiveOperationException
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        try
+        {
+            GateViews.offerAll();
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
+        GateViews.offerAll();
+
+        sentTheOpeningAs(front, air, 2, "still drawn the view: cleared again, once when first drawn and once now");
+        sentTheOpeningAs(behind, water, 1, "behind the gate: the horizon the crossing painted over");
+    }
+}
