@@ -55,6 +55,8 @@ class GateHorizonPerViewerTest
     private static final int CELLS = 9;
 
     private World world;
+    /** A field, not a local: a Location holds its world weakly, and a far world only it held was collected mid-test. */
+    private World far;
     private Player front;
     private Player behind;
     private Stargate gate;
@@ -82,7 +84,7 @@ class GateHorizonPerViewerTest
         behind = playerAt(15.0);
         when(world.getPlayers()).thenReturn(List.of(front, behind));
 
-        final World far = mock(World.class);
+        far = mock(World.class);
         final Stargate target = mock(Stargate.class);
         when(target.getGateName()).thenReturn("Chulak");
         when(target.getGatePlayerTeleportLocation()).thenReturn(new Location(far, 100.5, 70.0, 200.5, 0.0f, 0.0f));
@@ -261,6 +263,73 @@ class GateHorizonPerViewerTest
 
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front),
             "a redial settles into the horizon, not into an opening cleared for whoever was looking");
+        // Dialled again and cleared again: still drawn the view, so the opening is sent cleared again.
+        clearedForTheView();
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 2, "the close forgot them, so the next clearing sends them the opening again");
+    }
+
+    /**
+     * A view turned off and on again is sent cleared again to whoever is still drawn it.
+     *
+     * <p>Turned off, the horizon was filled back for everybody; remembered as still sent nothing, a
+     * viewer drawn the view again was sent nothing, and saw the horizon standing over the view.
+     */
+    @Test
+    void aViewTurnedOffAndOnAgainIsSentClearedAgainToItsViewer()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        GateViews.offerAll();
+
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        sentTheOpeningAs(front, air, 2, "cleared again for the viewer drawn the view");
+    }
+
+    /** Somebody too far off to be drawn the horizon is sent nothing for it, whatever the drawing says. */
+    @Test
+    void somebodyBeyondTheHorizonsReachIsSentNothing()
+    {
+        clearedForTheView();
+        when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 200.0));
+
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** A crossing paints the opening itself, so a viewer walking about under it is left to the crossing. */
+    @Test
+    void aViewerMovingDuringACrossingIsLeftToTheCrossing() throws ReflectiveOperationException
+    {
+        clearedForTheView();
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        try
+        {
+            drawsTheView(front, true);
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** A shut iris draws its own opening, which a viewer's horizon must not be sent over. */
+    @Test
+    void aShutIrisIsNotDrawnOverForAViewer()
+    {
+        clearedForTheView();
+        when(gate.isGateIrisActive()).thenReturn(true);
+
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 
     @Test
@@ -286,6 +355,10 @@ class GateHorizonPerViewerTest
         GateViews.clear();
 
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
+        // Started again: nothing is remembered as sent, so the first clearing sends the viewer the opening.
+        clearedForTheView();
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 2, "sent the cleared opening again after the restart");
     }
 
     /**
