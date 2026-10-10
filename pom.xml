@@ -192,7 +192,10 @@
 
 				     Declared after the shade plugin on purpose. Both bind to package, and
 				     Maven runs same-phase executions in the order they appear here, so this
-				     copies the shaded jar rather than the thin one it replaces. -->
+				     copies the shaded jar rather than the thin one it replaces. It also
+				     deletes the -shaded jar shade leaves behind when it cannot rename over an
+				     existing jar (a second build without clean, on Windows), which would
+				     match the WormholeXTreme-*.jar glob. -->
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>
 				<version>3.1.0</version>
@@ -205,6 +208,7 @@
 						</goals>
 						<configuration>
 							<target>
+								<delete file="${project.build.directory}/${project.build.finalName}-shaded.jar" quiet="true"/>
 								<copy file="${project.build.directory}/${project.build.finalName}.jar"
 								      tofile="${project.build.directory}/${project.artifactId}.jar"
 								      overwrite="true"/>

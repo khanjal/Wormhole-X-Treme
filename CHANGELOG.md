@@ -58,15 +58,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ### Internals
 
-- **The shaded jar no longer overwrites the jar it reads.** The build failed at a random entry
-  on newer JDKs with a corrupt-zip error once the jar grew; it now writes the shaded jar beside
-  the original, which becomes `original-WormholeXTreme-<version>.jar`.
 - **The code that draws a far side through an opening has its own package, `model/window`**,
   and is no longer named for mirrors: `Windows`, `WindowShape`, `Capture`, `Captures` and nine
   more. Nothing changes for players or operators; the next users of it are gates (#516) and
   nether portals (#514). Tracked in #522.
 - **A gate's view is no longer drawn as a stand-in mirror**: gates and mirrors are window sources,
   offered to the drawing through one `Windows.offer`. Nothing changes for players or operators.
+- **The build no longer fails at random with a corrupt-zip error.** The shaded jar is written
+  beside the original, which is kept as `original-WormholeXTreme-<version>.jar`.
 
 ## 1.9.0 (2026-10-03)
 
