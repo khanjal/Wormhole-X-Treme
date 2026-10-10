@@ -353,8 +353,7 @@ class FarChunkHoldsTest
     void onSpigotAChunkNeverGeneratedIsNeverLoadedAndAGeneratedOneIsHeld()
     {
         FarChunkHolds.loaderWith(null);
-        FarChunkHolds.asyncWith(null);
-        assertFalse(FarChunkHolds.loadsAsync(), "the compile path is Spigot's, with no asynchronous load");
+        FarChunkHolds.asyncNone();
         final Chunk arrival = chunk(new FarChunkHolds.Area("far", 6, -2));
         when(far.isChunkGenerated(6, -2)).thenReturn(true);
         when(far.getChunkAt(6, -2)).thenReturn(arrival);
@@ -374,7 +373,7 @@ class FarChunkHoldsTest
     void aSpigotLoadThatThrowsIsCaught()
     {
         FarChunkHolds.loaderWith(null);
-        FarChunkHolds.asyncWith(null);
+        FarChunkHolds.asyncNone();
         when(far.isChunkGenerated(anyInt(), anyInt())).thenThrow(new IllegalStateException("region file"));
 
         FarChunkHolds.settle(watching("museum", SOUTH), 0L);
@@ -430,7 +429,7 @@ class FarChunkHoldsTest
     void atRadiusZeroTheWorldIsNeverAskedThroughTheRealLoader()
     {
         FarChunkHolds.loaderWith(null);
-        FarChunkHolds.asyncWith(null);
+        FarChunkHolds.asyncNone();
 
         FarChunkHolds.settle(Map.of("museum", FarChunkHolds.ahead(SOUTH, 0)), 0L);
         stepAll();

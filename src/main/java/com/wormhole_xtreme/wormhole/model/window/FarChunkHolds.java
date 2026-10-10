@@ -570,6 +570,12 @@ public final class FarChunkHolds
         async = (method == null) ? findAsync() : method;
     }
 
+    /** Loads as a server without an asynchronous load does, for a test on whichever API it compiles against. */
+    static void asyncNone()
+    {
+        async = null;
+    }
+
     /** @return true on a server that loads chunks off the main thread, for a test */
     static boolean loadsAsync()
     {
