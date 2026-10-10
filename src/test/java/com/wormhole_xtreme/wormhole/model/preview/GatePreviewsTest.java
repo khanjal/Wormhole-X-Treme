@@ -1690,6 +1690,8 @@ class GatePreviewsTest
     {
         openThePreview();
         final Player front = viewerAlong("Fran", 4);
+        assertEquals(openingCells().size(), lastSentPerCellAlong(front, 0).size(),
+            "they were sent the wormhole in every ring cell when shared");
         clearInvocations(front);
 
         GatePreviews.iris(owner);

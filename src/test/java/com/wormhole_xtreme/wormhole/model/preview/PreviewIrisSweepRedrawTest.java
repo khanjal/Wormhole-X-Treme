@@ -394,14 +394,19 @@ class PreviewIrisSweepRedrawTest
         final Player back = viewerAlong("Bea", -4);
         toggleIris();
 
+        int steps = 0;
         while (irisPending.size() == 1 && (preview().irisShown().size() < opening().size()))
         {
             sends.get(back).clear();
             stepTheSweep();
+            steps++;
             assertFrontPicture(front, "covered " + preview().irisShown().size());
             assertBehindPicture(back, "covered " + preview().irisShown().size());
             assertEquals(List.of(), sends.get(back), "a step sends a viewer behind nothing");
         }
+
+        assertTrue(steps > 1, "the sweep took several steps to cover the opening, not " + steps);
+        assertEquals(opening().size(), preview().irisShown().size(), "and it got all the way across");
     }
 
     /**
@@ -661,6 +666,10 @@ class PreviewIrisSweepRedrawTest
 
         final Set<List<Integer>> ring = new HashSet<>();
         cells.forEach(cell -> ring.add(List.of(cell.x(), cell.y(), cell.z())));
+        for (final List<Integer> at : ring)
+        {
+            assertEquals("wormhole", shown(pictures.get(viewer).get(at)), "settled, the ring at " + at + " shows it");
+        }
         pictures.get(viewer).forEach((at, sent) -> assertTrue(ring.contains(at) || !"ice".equals(shown(sent)),
             "ice left at " + at + ", off a preview that never stacks"));
         GatePreviews.activate(owner);
@@ -821,5 +830,39 @@ class PreviewIrisSweepRedrawTest
                 }
             }
         }
+    }
+
+    /**
+     * A viewer a sweep never drew anything off the ring for has only the ring taken back when the
+     * preview goes: behind an opaque iris the wormhole never leaves it, and handing back both cells
+     * either side of every ring cell was two openings of sends for nothing.
+     */
+    @Test
+    void clearingMidSweepTakesOnlyTheRingFromAViewerWhoHeldNothingOffIt()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        final Player front = viewerAlong("Fran", 4);
+        toggleIris();
+        stepTheSweep();
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        sends.get(front).clear();
+
+        GatePreviews.clearAll(owner);
+
+        final Set<List<Integer>> ring = new HashSet<>();
+        for (int i = 0; i < opening().size(); i++)
+        {
+            ring.add(along(i, 0));
+        }
+        final Set<List<Integer>> sent = new HashSet<>();
+        sends.get(front).forEach(change -> sent.add(change.getKey()));
+        assertEquals(ring, sent, "the ring cells are taken back, and nothing either side of them");
+        assertEquals(ring.size(), sends.get(front).size(), "once each");
+        ring.forEach(at -> assertEquals("air", shown(pictures.get(front).get(at)), "the ring at " + at + " is air"));
     }
 }
