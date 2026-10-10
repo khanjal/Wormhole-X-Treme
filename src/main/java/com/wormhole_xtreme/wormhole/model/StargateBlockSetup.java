@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -1635,8 +1636,9 @@ class StargateBlockSetup
      * The layers each viewer has been drawn by a gate's iris sweep, per cell the sweep has covered for them (#447).
      *
      * <p>Each step is worked out from where the viewer stands then, so this is what says where the far
-     * layer they already hold is. Kept until a whole draw or a take-back replaces it, so a sweep called
-     * off hands what it drew to the next one.
+     * layer they already hold is. A sweep called off hands it to the next one. Dropped for one viewer by
+     * a whole draw or a take-back, which replace it, and on quit or a change of world; for everybody when
+     * the gate's sweep ends ({@code GateCanvas.unregister}) or the gate is removed.
      */
     private static final Map<UUID,
         Map<String, Map<Integer, IrisLayering.Placement>>> SWEPT =
@@ -1980,9 +1982,14 @@ class StargateBlockSetup
             return;
         }
         final Set<IrisLayering.At> wanted = (only == null) ? null : new HashSet<>(asPositions(only));
+        // Whoever the ring is sent to: sendCells measures from the step's own first cell, and a viewer
+        // near enough for one and not the other was shown glass with nothing behind it.
+        final Location from = ((only == null) || only.isEmpty()) ? gate.getGatePortalBlocks().get(0) : only.get(0);
+        final List<Player> near =
+            playersNear(gate, new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ()));
         for (final Player player : world.getPlayers())
         {
-            if (isNearEnoughToRedraw(gate, player.getLocation()))
+            if (near.contains(player))
             {
                 horizonBehindFor(player, gate, wanted, show);
             }
@@ -2040,8 +2047,28 @@ class StargateBlockSetup
             final boolean covered = (before != null) ? (show || !stepped) : (show && stepped);
             final IrisLayering.Placement after = covered ? layers.get(i) : null;
             moveLayers(player, gate, cell, before, after);
-            remember(held, i, before, after);
+            remember(held, i, before, heldAfter(before, after, cell));
         }
+    }
+
+    /**
+     * What a viewer holds once a cell is moved to a placement: the placement, but an iris off the ring only
+     * if they held it already.
+     *
+     * <p>A sweep never draws the iris beyond the ring; only a whole draw does. Filed as held, it would be
+     * handed back to a viewer who never had it as soon as they walked round.
+     *
+     * @return what to file, or null for a cell not covered
+     */
+    private static IrisLayering.Placement heldAfter(final IrisLayering.Placement before,
+        final IrisLayering.Placement after, final IrisLayering.At cell)
+    {
+        if ((after == null) || (after.iris() == null) || after.iris().equals(cell)
+            || ((before != null) && after.iris().equals(before.iris())))
+        {
+            return after;
+        }
+        return new IrisLayering.Placement(null, after.horizon());
     }
 
     /** Files one cell's new placement in a viewer's sweep record, touching it only if it changed. */
@@ -2232,7 +2259,7 @@ class StargateBlockSetup
         final List<Location> ring = gate.getGatePortalBlocks();
         final Map<String, List<IrisLayering.Placement>> drawnFor = LAYER_DRAWN.get(player.getUniqueId());
         final List<IrisLayering.Placement> drawn = (drawnFor == null) ? null : drawnFor.get(gate.getGateName());
-        return IntStream.range(0, ring.size()).boxed().collect(Collectors.toMap(i -> i, i ->
+        return IntStream.range(0, ring.size()).boxed().collect(Collectors.toMap(Function.identity(), i ->
         {
             final IrisLayering.Placement known = (before != null) ? before.get(i) : placementAt(drawn, i);
             // Covered with nothing behind: the call-off finished the iris over cells it had not reached.

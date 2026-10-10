@@ -883,6 +883,89 @@ class IrisSweepCrossingTest
         verify(viewer, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
     }
 
+    /** Every block sent to one viewer a block in front of the ring, as "x,y", in order. */
+    private static List<String> sentInFront(final Player viewer)
+    {
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        verify(viewer, atLeast(0)).sendBlockChange(where.capture(), any(BlockData.class));
+        return where.getAllValues().stream().filter(at -> at.getBlockZ() == 1)
+            .map(at -> at.getBlockX() + "," + at.getBlockY()).toList();
+    }
+
+    /**
+     * A viewer behind who walks round to the front mid-close is sent nothing a block in front of the ring.
+     *
+     * <p>The sweep never drew them an iris there, only the iris in the ring. Filed as if it had, every
+     * covered cell was handed back to them as they came round: a packet per cell for a block they never
+     * held, hundreds on a big gate.
+     */
+    @Test
+    void aViewerBehindWhoWalksRoundMidCloseIsSentNothingInFrontOfTheRing()
+    {
+        final Player viewer = viewerAt(BEHIND);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(true);
+        gate.toggleIrisActive(false);
+        step();
+        iced(plane);
+
+        stand(viewer, FRONT);
+        step();
+
+        assertEquals(List.of(), sentInFront(viewer), "nothing a block in front of the ring");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), iced(plane),
+            "while the wormhole did come in behind every covered ring, so the step reached them");
+    }
+
+    /**
+     * A closing called off by an opening sends a viewer behind nothing a block in front of the ring.
+     *
+     * <p>The opening starts from what the closing drew them, which was never an iris beyond the ring.
+     */
+    @Test
+    void aClosingCalledOffByOpeningSendsAViewerBehindNothingInFrontOfTheRing()
+    {
+        final Player viewer = viewerAt(BEHIND);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        gate.toggleIrisActive(false);
+        step();
+        iced(plane);
+
+        gate.toggleIrisActive(false);
+        step();
+        step();
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the opening has not settled yet, which hands every cell back");
+        verify(viewer, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
+        assertEquals(List.of(), sentInFront(viewer), "nothing a block in front of the ring, while the rings were drawn");
+    }
+
+    /**
+     * A viewer the ring is sent to is a viewer the far layer is drawn for, on a gate wide enough to tell.
+     *
+     * <p>The ring was sent to whoever was near its own first cell, the far layer to whoever was near the
+     * gate's first cell. On a big gate those are blocks apart, and a viewer between the two distances saw
+     * every ring of glass arrive with nothing behind it.
+     */
+    @Test
+    void aViewerTheRingReachesIsDrawnTheFarLayerToo()
+    {
+        final Player viewer = viewerAt(63.9);
+        when(viewer.getLocation()).thenReturn(new Location(world, 2, 66, 63.9));
+        watching(viewer);
+        final Location corner = gate.getGatePortalBlocks().get(gate.getGatePortalBlocks().size() - 1);
+        assertTrue(new Location(world, 2, 66, 63.9).distance(gate.getGatePortalBlocks().get(0)) > 64,
+            "past the reach from the gate's first cell, or this proves nothing");
+        assertTrue(new Location(world, 2, 66, 63.9).distance(corner) <= 64, "and within it from the ring's");
+
+        StargateBlockSetup.horizonBehind(gate, List.of(corner), true);
+
+        verify(viewer).sendBlockChange(argThat(at -> (at.getBlockX() == 2) && (at.getBlockY() == 66)
+            && (at.getBlockZ() == -1)), argThat(d -> (d == ice) || (d == packed)));
+    }
+
     /** The cells covered after this step: closing, the rings so far; opening, the rings still to go. */
     private static List<String> covered(final List<List<String>> rings, final boolean closing, final int step)
     {

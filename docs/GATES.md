@@ -790,6 +790,11 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
   drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
   how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old
   name's capture behind.
+- **An iris crossing a viewed gate shares a block with the view.** The window is still offered
+  while the iris crosses, and at `behind` and `open` its first slab is the cells a block behind the
+  ring, where the stand-in for a wormhole behind a see-through iris is drawn. The two drawings take
+  turns there: a hand-back as somebody walks round sends the real block over the window's slab, and
+  the window, which only sends what changed since it last drew, does not send it again until it does.
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.
