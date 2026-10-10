@@ -132,7 +132,8 @@ standing in the room show through the mirror (or an open gate) as copies only yo
 default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
 their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself, and
 never anyone you could not see standing beside them (vanished, invisible, spectating), nor anyone
-riding something. While you look, a small area in front of the
+riding something. The skin is the player's real one, not a disguise plugin's, so a server that
+hides who its players are should leave it off. While you look, a small area in front of the
 far side is kept loaded so its creatures show on the first look (`mirror-entity-load-radius`). Your own world's creatures inside the view are hidden while
 you look. The room is lit by this world, so a room behind a wall is
 dark except for what makes its own light. Lava hides what is behind it and water is seen through

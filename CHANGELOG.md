@@ -37,6 +37,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   it tells a viewer who is at the destination. A mannequin in their skin and pose from 1.21.9, an
   armour stand wearing their head and armour before, named, within the same twenty. Never the
   viewer, nor anyone the viewer cannot see (vanished, invisible, spectating), an NPC or a rider.
+  The skin is the real one, not a disguise plugin's: a server that hides identities should leave it
+  off. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
 
 ### Stargates
 

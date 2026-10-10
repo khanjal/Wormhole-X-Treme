@@ -805,7 +805,7 @@ that one viewer (`HiddenEntities`).
   and following all go by the creature's live position through one mapping, and nothing is decided
   on a redraw whose rooms the server had no time to hold. `mirror debug` says, per window, how many
   far creatures were found and why each was not shown. A failure in any of this costs that viewer their
-  stand-ins, logged once, and never the view's blocks or the sweep.
+  stand-ins, logged once for each kind of failure, and never the view's blocks or the sweep.
 - **Players.** `mirror-show-players`, off by default and read only while `mirror-show-entities` is
   on, shows the players standing in the far room as well. That is what a window does, but it is
   also information: it tells the viewer who is at the destination, so it is a separate choice for
@@ -819,9 +819,15 @@ that one viewer (`HiddenEntities`).
   sets, or not online), or a rider, since a seated figure cannot be copied yet. Each follow asks
   again, so a player who vanishes, drinks invisibility, goes into spectator, mounts something or
   leaves loses their stand-in within two ticks. From 1.21.9 the stand-in is a **Mannequin** wearing
-  the player's skin (their profile), their name above it and its own "Mannequin" label hidden,
-  immovable, in their main hand, pose (standing, sneaking, swimming, sleeping, gliding; any other
-  shows standing) and, on Spigot, skin layers; what they wear and hold is copied too. The plugin
+  the player's skin (their profile), its own "Mannequin" label hidden, immovable, in their main
+  hand, pose (standing, sneaking, swimming, sleeping, gliding; any other shows standing) and, on
+  Spigot, skin layers; what they wear and hold shows too. **The skin is the player's real one:** a
+  disguise plugin's look is not copied, so a server that hides who its players are (disguises,
+  nicknames meant to hide an account) should leave `mirror-show-players` off. The name above a
+  stand-in is the player's display name without its colours, so a nickname shows as the nickname,
+  and it is left off where the player's team on the viewer's scoreboard hides name tags from that
+  viewer (`never`, or hidden from the viewer's side), as the real player's would be; both are read
+  once, when the stand-in appears. The plugin
   compiles against 1.20, so the Mannequin is reached by name, and Spigot's and Paper's differ:
   Spigot's takes a `PlayerProfile`, `setHideDescription` and `setPose(Pose)`; Paper's a
   `ResolvableProfile`, a null description and `setPose(Pose, true)`, which keeps the pose.
@@ -829,10 +835,19 @@ that one viewer (`HiddenEntities`).
   wearing a player head with their skin in place of any helmet, their chestplate, leggings, boots
   and both hands' items, and their name. Neither swings its legs or turns its head of itself; each
   follows the player by teleport like a mob's, its facing from the player's, the pose copied the
-  follow it changes and what is worn and held looked at once a second and put on only when it has
-  changed. No permission opts a player out, beyond what hides them already; the name always shows.
-  Both kinds are tagged, in the same registry and inert as a mob's, so every refusal and cleanup
-  below covers them, and a real armour stand in the far room is still never copied.
+  follow it changes and what is worn and held looked at once a second by the clock, however often
+  it is placed, and put on only when what shows of it has changed. No permission opts a player
+  out, beyond what hides them already. Both kinds are tagged, in the same registry and inert as a
+  mob's, so every refusal and cleanup below covers them, and a real armour stand in the far room is
+  still never copied. If choosing the figure fails, the players go unshown and the mobs do not.
+  `mirror debug`, which needs `wormhole.config`, counts the far players hidden from whoever asks:
+  an admin's tool, and that count says someone hidden is there.
+- **Only what shows of an item.** An item on an entity is sent whole to whoever sees it, so a
+  copied shulker box, bundle, written book or map would hand the viewer its contents, pages, name
+  and lore. Every stand-in, a mob's as much as a player's, wears fresh items instead: the same
+  kind, one of it, with only an enchantment glint, an armour trim, a leather colour and a head's
+  skin carried over. Custom model data is not carried (its API changed shape inside the supported
+  range), so a resource pack's custom model shows as the plain item.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
