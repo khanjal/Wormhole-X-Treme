@@ -387,6 +387,29 @@ class GateHorizonPerViewerTest
     }
 
     /**
+     * A gate still drawn as a window after its iris opened, its clearing ended, is sent the cleared
+     * opening once the next sweep clears it again.
+     *
+     * <p>Counted as cleared while it was not, it was sent its horizon and remembered as sent the
+     * cleared opening, so the clearing that followed sent nothing.
+     */
+    @Test
+    void aWindowWhoseClearingEndedIsSentClearedWhenItClearsAgain() throws ReflectiveOperationException
+    {
+        final Stargate byblos = byblos();
+        clearedForTheView();
+        drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+
+        final Set<String> cleared = PrivateStatics.of(GateViews.class, "CLEARED");
+        cleared.add("Byblos");
+        drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+
+        verify(front, times(CELLS).description("cleared now, so its opening is sent cleared"))
+            .sendBlockChange(argThat(at -> (at != null) && (at.getBlockX() >= 20)), eq(air));
+        assertEquals(Material.AIR, GateViews.horizonFor(byblos, Material.WATER, front));
+    }
+
+    /**
      * A gate whose view is drawn before its horizon has cleared is sent cleared once it does.
      *
      * <p>Beside another gate already cleared, one whose iris was still opening was remembered as sent
