@@ -537,7 +537,10 @@ for the length of its animation; drawn after it, every ring of a see-through iri
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
 so both sweeps say which cells they have just reached and `StargateBlockSetup.horizonBehind`
-moves only those.
+moves only those. It follows the viewer as well (#447): what each viewer has been drawn is kept
+per cell, and every step checks all the cells the sweep has covered for them against where they
+now stand, so somebody who walks round mid-sweep has the stand-in handed back from their own side
+and drawn on the far one, rather than keeping it as a solid block nobody else has until the sweep ends.
 
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
