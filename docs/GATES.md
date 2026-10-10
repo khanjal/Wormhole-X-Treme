@@ -535,12 +535,19 @@ for the move; a sweep runs on every cell of every ring, and a picture nobody can
 not worth the packets. Drawn all at once before the sweep, a gate shows the wormhole twice over
 for the length of its animation; drawn after it, every ring of a see-through iris arrives with
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
-two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
-so both sweeps say which cells they have just reached and `StargateBlockSetup.horizonBehind`
-moves only those. It follows the viewer as well (#447): what each viewer has been drawn is kept
-per cell, and every step checks all the cells the sweep has covered for them against where they
-now stand, so somebody who walks round mid-sweep has the stand-in handed back from their own side
-and drawn on the far one, rather than keeping it as a solid block nobody else has until the sweep ends.
+two ways of being wrong, in reverse. `IrisSweepDriver.Canvas.moveHorizon` is the per-ring hook
+for it, so both sweeps say which cells they have just reached; for a gate,
+`StargateBlockSetup.horizonBehind` moves the far layer of those cells.
+
+It follows the viewer as well (#447). What each viewer has been drawn is kept per cell, and every
+step checks, beside the cells it has just reached, every cell the sweep has covered for them
+against where they now stand. Somebody who walks round mid-sweep has the stand-in handed back
+from what is now their own side and drawn on the far one, and an iris they held a block in front
+of the ring from behind is handed back too, rather than either staying as a solid block nobody
+else has until the sweep ends. The iris in the ring itself stays the sweep's: a viewer who walks
+round to the back keeps it there and is not drawn a second one beyond it until the sweep settles.
+The iris beyond the ring for a viewer behind now leaves with the ring that uncovers it, and the
+stand-in's shimmer waits for the sweep to finish.
 
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer

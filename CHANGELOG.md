@@ -58,11 +58,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Fixed**
 
-- **Walking round a gate while its see-through iris opens or closes no longer leaves the wormhole's
-  stand-in on your side of it** ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)).
-  The ice already drawn behind the ring stayed where it was, a solid block you could walk into
-  that the server did not have, until the sweep ended; walking round to the front left the rings
-  already covered with nothing behind them.
+- **Walking round a gate while its iris opens or closes no longer leaves a block on your side of
+  it that is not there** ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)). Behind
+  a see-through iris the wormhole's stand-in ice, and from behind any drawn iris the iris a block
+  in front of the ring, stayed where they were until the sweep ended, solid to you and not to the
+  server; walking round to the front left the rings already covered with nothing behind them.
 
 ### Internals
 
