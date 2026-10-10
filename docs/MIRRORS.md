@@ -21,6 +21,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [Arriving, and the bounce that cost](#arriving-and-the-bounce-that-cost)
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
+- [Seeing creatures](#seeing-creatures)
 - [What was considered and not done](#what-was-considered-and-not-done)
 
 ## The network
@@ -725,6 +726,45 @@ Each of these is a real lever, and none is free. The first is the one to build n
 What is not on the list: another shell, wall or painting past the depth. Three have been tried
 and each drew the eye to the very edge it was there to hide.
 
+## Seeing creatures
+
+`mirror-show-entities`, off by default, and it governs gate views as much as mirrors
+([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). With it on, the mobs standing in
+a window's far room show through it. Bukkit has no call for a fake entity, so each is a
+**stand-in**: a real entity of the same type, spawned in the viewer's world where the far side's
+blocks for that spot are drawn, turned or flipped as they are, hidden from everybody and shown to
+that one viewer (`HiddenEntities`).
+
+- **Only what is already loaded.** The far room is the capture's box, cut to what the view's depth
+  could show. A chunk there is read only if `isChunkLoaded` says so and its entities have loaded
+  (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); `getChunkAt` is never asked of a chunk
+  that is not loaded, and nothing takes a ticket. Nobody on the far side means nothing loaded
+  there and nothing shown. The test is `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities`.
+- **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
+  displays, interactions, the companion, invisible mobs or another stand-in. Baby or adult, the
+  custom name, a sheep's colour, and what it wears and holds. Other per-type looks (villager
+  type, slime size, cat breed) are left for later. At most twenty a viewer, nearest the eye first.
+- **Inert.** No AI, silent, invulnerable, no gravity, not collidable, picks nothing up, never
+  saved. Damage, interaction, catching fire and turning into something else are cancelled, and
+  nothing it drops is dropped. The drawing never veils a stand-in, and the gates' entity sweep
+  never sends one through.
+- **How it keeps up.** The far room is read once a sweep, so a mob walking in shows within a
+  second. Stand-ins are placed on every redraw and followed every two ticks while a viewer has
+  any, by a task that only runs while one exists. One that walks out of the room, dies, unloads
+  or falls past the twenty is taken away.
+- **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
+  all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
+  has lost track of is removed at the next sweep.
+- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
+  in front of it is a later step, with the rule that a viewer never sees themselves.
+
+**What it costs.** A stand-in is a real entity, so other plugins see it: a spawn event, a body in
+an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
+in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
+never saved, but anything that reacts to every spawn will react to them. A gate's stand-ins sit
+behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
+wall it hangs on.
+
 ## What was considered and not done
 
 **A map in an item frame**, rendered from the far side, was the first idea for a window. It was
@@ -741,8 +781,8 @@ the other, and the second banner's name was one nobody chose. The network replac
 mirror, and the choice of where to open made at the mirror.
 
 **Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, would need a copy of each that moves with them — entities, sent per viewer — and is
-its own piece of work, alongside showing the players and creatures in another mirror's room.
+of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
+a later step of #296, with the rule that the viewer never sees themselves.
 
 **Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).

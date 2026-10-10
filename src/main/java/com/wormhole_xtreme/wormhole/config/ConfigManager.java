@@ -282,6 +282,12 @@ public class ConfigManager
          */
         MIRROR_FOG_AT_DEPTH,
 
+        /**
+         * Whether the creatures standing in a mirror's or a gate's far room are shown through it
+         * (#296), as stand-ins only the viewer can see. Off by default: they are real entities.
+         */
+        MIRROR_SHOW_ENTITIES,
+
         MIRROR_APPROACH_MESSAGE
     }
 
@@ -1775,6 +1781,20 @@ public class ConfigManager
     public static boolean isMirrorFogAtDepth()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_FOG_AT_DEPTH);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
+     *
+     * <p>False when the setting is missing, as on an upgraded server's config.yml: stand-ins are
+     * real entities that other plugins see, so they are something an admin turns on.
+     *
+     * @return true if a view shows the creatures standing in its far room
+     */
+    public static boolean isMirrorShowEntities()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_ENTITIES);
         return (s != null) && s.getBooleanValue();
     }
 

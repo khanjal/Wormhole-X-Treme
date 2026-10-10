@@ -356,6 +356,87 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
     }
 
     /**
+     * The point behind the opening that shows a far-side point: {@link #hereOf(int, int, int)} for a
+     * position anywhere inside a block, such as a creature's (#296).
+     *
+     * @param farX
+     *            the far-side point, x
+     * @param farY
+     *            its y
+     * @param farZ
+     *            its z
+     * @return the point here, as {@code {x, y, z}}
+     */
+    public double[] hereOf(final double farX, final double farY, final double farZ)
+    {
+        final Spot right = rightOf(into);
+        final Spot farRight = farRight();
+        // From block middles, so the turn or flip keeps a point inside the block that shows its own.
+        final double dx = farX - (far.x() + 0.5);
+        final double dz = farZ - (far.z() + 0.5);
+        final double depth = (dx * ahead.x()) + (dz * ahead.z()) + 1.0;
+        final double across = (dx * farRight.x()) + (dz * farRight.z());
+        return new double[] { base.x() + 0.5 + (depth * into.x()) + (across * right.x()),
+            base.y() + (farY - far.y()),
+            base.z() + 0.5 + (depth * into.z()) + (across * right.z()) };
+    }
+
+    /**
+     * The way a far-side creature faces, as seen behind the opening: turned, or flipped, as the
+     * blocks are.
+     *
+     * @param farYaw
+     *            Minecraft yaw at the far side: 0 is south, turning clockwise through west
+     * @return the yaw here, from -180 up to 180
+     */
+    public float hereYaw(final float farYaw)
+    {
+        final double radians = Math.toRadians(farYaw);
+        final double dx = -Math.sin(radians);
+        final double dz = Math.cos(radians);
+        final Spot right = rightOf(into);
+        final Spot farRight = farRight();
+        final double along = (dx * ahead.x()) + (dz * ahead.z());
+        final double across = (dx * farRight.x()) + (dz * farRight.z());
+        final double hereX = (along * into.x()) + (across * right.x());
+        final double hereZ = (along * into.z()) + (across * right.z());
+        final double yaw = Math.toDegrees(Math.atan2(-hereX, hereZ));
+        return (float) (((yaw % 360.0) + 540.0) % 360.0 - 180.0);
+    }
+
+    /**
+     * The far-side blocks a view this deep could show, as a box round all of them.
+     *
+     * @param depth
+     *            how far past the opening the view is drawn
+     * @return {@code {minX, minY, minZ, maxX, maxY, maxZ}}, inclusive
+     */
+    public int[] farBox(final int depth)
+    {
+        final Spot right = rightOf(into);
+        final int[] box = { Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE,
+            Integer.MIN_VALUE, Integer.MIN_VALUE };
+        for (final int layer : new int[] { 1, Math.max(1, depth) })
+        {
+            for (final int across : new int[] { -depth, (width - 1) + depth })
+            {
+                for (final int up : new int[] { -depth, (height - 1) + depth })
+                {
+                    final Spot at = farOf(base.x() + (layer * into.x()) + (across * right.x()), base.y() + up,
+                        base.z() + (layer * into.z()) + (across * right.z()));
+                    box[0] = Math.min(box[0], at.x());
+                    box[1] = Math.min(box[1], at.y());
+                    box[2] = Math.min(box[2], at.z());
+                    box[3] = Math.max(box[3], at.x());
+                    box[4] = Math.max(box[4], at.y());
+                    box[5] = Math.max(box[5], at.z());
+                }
+            }
+        }
+        return box;
+    }
+
+    /**
      * The far-side block a block behind the opening shows.
      *
      * <p>The first layer behind the opening shows the arrival block's own layer, and the

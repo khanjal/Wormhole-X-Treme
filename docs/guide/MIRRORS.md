@@ -127,8 +127,11 @@ default, does nothing on Spigot, and does nothing at the default depth of 160: l
 `mirror-view-depth` first, then turn it on. It pulls the fog in every way you look, not only
 through the mirror, which is the price.
 
-**Blocks only.** No players or creatures from the room shown; your own world's creatures inside
-the view are hidden while you look. The room is lit by this world, so a room behind a wall is
+**Blocks, and creatures if the server turns them on.** No players from the room are shown. With
+`mirror-show-entities` on, the mobs standing in the room show through the mirror (or an open
+gate) as copies only you see, as long as somebody or something already has that part of the far
+world loaded; it is off by default. Your own world's creatures inside the view are hidden while
+you look. The room is lit by this world, so a room behind a wall is
 dark except for what makes its own light. Lava hides what is behind it and water is seen through
 for about thirty blocks, as in the game.
 
@@ -189,4 +192,5 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 | `mirror-proximity-ticks` | 20 | How often the proximity sweep runs. Mirrors whose world or chunk is not loaded are skipped. |
 | `mirror-view-depth` | 160 | How far from the opening the room is drawn, 4 to 160. |
 | `mirror-fog-at-depth` | `false` | Pull a viewer's fog in to where the room ends. Paper only. |
+| `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
 | `mirror-approach-message` | `true` | Whether a mirror names itself above the hotbar to whoever looks at it. |
