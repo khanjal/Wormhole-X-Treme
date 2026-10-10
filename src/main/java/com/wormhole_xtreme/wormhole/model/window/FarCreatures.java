@@ -131,27 +131,7 @@ public final class FarCreatures
      */
     static List<Entity> inRoom(final World far, final int[] box, final int[] tally)
     {
-        final Set<Long> ready = new HashSet<>();
-        for (int cx = box[0] >> 4; cx <= (box[3] >> 4); cx++)
-        {
-            for (int cz = box[2] >> 4; cz <= (box[5] >> 4); cz++)
-            {
-                // isChunkLoaded first: getChunkAt loads a chunk that is not, and Chunk.getEntities
-                // would load its entities, so neither is asked of one the server does not have.
-                if (!far.isChunkLoaded(cx, cz))
-                {
-                    tally[0]++;
-                }
-                else if (far.getChunkAt(cx, cz).isEntitiesLoaded())
-                {
-                    ready.add(Windows.chunkKey(cx, cz));
-                }
-                else
-                {
-                    tally[1]++;
-                }
-            }
-        }
+        final Set<Long> ready = readyChunks(far, box, tally);
         if (ready.isEmpty())
         {
             return List.of();
@@ -174,6 +154,33 @@ public final class FarCreatures
             }
         }
         return found;
+    }
+
+    /** The chunks of a box loaded with their entities, counting the others; loads nothing to find out. */
+    private static Set<Long> readyChunks(final World far, final int[] box, final int[] tally)
+    {
+        final Set<Long> ready = new HashSet<>();
+        for (int cx = box[0] >> 4; cx <= (box[3] >> 4); cx++)
+        {
+            for (int cz = box[2] >> 4; cz <= (box[5] >> 4); cz++)
+            {
+                // isChunkLoaded first: getChunkAt loads a chunk that is not, and Chunk.getEntities
+                // would load its entities, so neither is asked of one the server does not have.
+                if (!far.isChunkLoaded(cx, cz))
+                {
+                    tally[0]++;
+                }
+                else if (far.getChunkAt(cx, cz).isEntitiesLoaded())
+                {
+                    ready.add(Windows.chunkKey(cx, cz));
+                }
+                else
+                {
+                    tally[1]++;
+                }
+            }
+        }
+        return ready;
     }
 
     /**
