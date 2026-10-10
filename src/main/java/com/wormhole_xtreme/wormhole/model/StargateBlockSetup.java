@@ -729,14 +729,7 @@ class StargateBlockSetup
         // them is a good enough filter for the whole gate.
         final Location reference = new Location(gate.getGateWorld(),
             portalBlocks.get(0).getBlockX(), portalBlocks.get(0).getBlockY(), portalBlocks.get(0).getBlockZ());
-        final List<Player> recipients = new ArrayList<>();
-        for (final Player p : gate.getGateWorld().getPlayers())
-        {
-            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
-            {
-                recipients.add(p);
-            }
-        }
+        final List<Player> recipients = playersNear(gate, reference);
         if (recipients.isEmpty())
         {
             return;
@@ -790,14 +783,7 @@ class StargateBlockSetup
         }
         final Location reference = new Location(gate.getGateWorld(),
             cells.get(0).getBlockX(), cells.get(0).getBlockY(), cells.get(0).getBlockZ());
-        final List<Player> recipients = new ArrayList<>();
-        for (final Player p : gate.getGateWorld().getPlayers())
-        {
-            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
-            {
-                recipients.add(p);
-            }
-        }
+        final List<Player> recipients = playersNear(gate, reference);
         if (recipients.isEmpty())
         {
             return;
@@ -936,7 +922,7 @@ class StargateBlockSetup
      *            the gate being drawn
      * @return the players to send to, empty if nobody is close
      */
-    private static List<Player> nearby(final Stargate gate)
+    static List<Player> nearby(final Stargate gate)
     {
         final List<Player> recipients = new ArrayList<>();
         if ((gate == null) || (gate.getGateWorld() == null))
@@ -950,14 +936,23 @@ class StargateBlockSetup
         {
             return recipients;
         }
+        return playersNear(gate, reference);
+    }
+
+    /** The players in the gate's world within the radius clients are shown a gate's drawing from. */
+    // Runs on every frame of the woosh and the dial, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
+    static List<Player> playersNear(final Stargate gate, final Location reference)
+    {
+        final List<Player> near = new ArrayList<>();
         for (final Player p : gate.getGateWorld().getPlayers())
         {
             if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
             {
-                recipients.add(p);
+                near.add(p);
             }
         }
-        return recipients;
+        return near;
     }
 
     /**
@@ -1500,6 +1495,8 @@ class StargateBlockSetup
      *            1 for along the facing, -1 for against it
      * @return the cells, index for index with the portal cells
      */
+    // Redrawn as players move near a gate, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private static List<Location> offsetCells(final Stargate gate, final int sign)
     {
         final List<Location> cells = new ArrayList<>();
@@ -1699,6 +1696,8 @@ class StargateBlockSetup
      *            where it is being looked at from
      * @return one placement per portal cell, in the portal cells' own order
      */
+    // Runs on every tick of the iris sweep, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private static List<IrisLayering.Placement> layersFor(final Stargate gate, final Location from)
     {
         final List<IrisLayering.Placement> layers = new ArrayList<>();
@@ -2130,6 +2129,8 @@ class StargateBlockSetup
      *
      * @return their positions, in the same order
      */
+    // Runs on every tick of the iris sweep, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private static List<IrisLayering.At> asPositions(final List<Location> blocks)
     {
         final List<IrisLayering.At> cells = new ArrayList<>(blocks.size());

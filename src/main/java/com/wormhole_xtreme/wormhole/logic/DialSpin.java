@@ -279,6 +279,8 @@ public final class DialSpin
     }
 
     /** One chevron's cells on the ring, empty for one not on it. */
+    // Runs for every frame of the spin, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private Set<Cell> chevron(final int wave)
     {
         final Set<Cell> cells = new LinkedHashSet<>();
@@ -332,6 +334,8 @@ public final class DialSpin
      * chevron as the point of origin from the start, carried round with the ring. Each is its
      * chevron's own cells, so no two ever share one.
      */
+    // Runs for every frame of the spin, so it stays a plain loop. The other loop here counts glyphs.
+    @SuppressWarnings("java:S9391")
     private Set<Cell> universe(final int glyph, final int tick, final int ticks, final boolean landed)
     {
         final int n = ring.size();

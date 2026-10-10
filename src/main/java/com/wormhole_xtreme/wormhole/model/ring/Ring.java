@@ -643,12 +643,9 @@ public class Ring
      */
     private List<int[]> layer(final List<RingPattern.Offset> offsets, final int y)
     {
-        final List<int[]> out = new ArrayList<>(offsets.size());
-        for (final RingPattern.Offset offset : offsets)
-        {
-            out.add(new int[] { anchorX + offset.getDx(), y, anchorZ + offset.getDz() });
-        }
-        return out;
+        return offsets.stream()
+            .map(offset -> new int[] { anchorX + offset.getDx(), y, anchorZ + offset.getDz() })
+            .toList();
     }
 
     /**
