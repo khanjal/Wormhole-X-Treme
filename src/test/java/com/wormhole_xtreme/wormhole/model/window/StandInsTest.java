@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -504,6 +505,43 @@ class StandInsTest
         assertFalse(StandIns.isStandIn(refused));
         assertEquals(0, StandIns.count());
         verify(viewer, never()).showEntity(plugin, refused);
+    }
+
+    /**
+     * The documented tag marks a stand-in for everything that asks, yet nothing removes an entity
+     * this plugin did not make: a real mob an admin tagged is refused damage, never taken away.
+     */
+    @Test
+    void theTagMarksAStandInButOnlyOursAreEverRemoved()
+    {
+        final Zombie tagged = copy(Zombie.class);
+        when(tagged.getScoreboardTags()).thenReturn(Set.of(StandIns.TAG));
+        final Zombie untagged = copy(Zombie.class);
+
+        assertTrue(StandIns.isStandIn(tagged), "the tag alone marks one");
+        assertFalse(StandIns.isStandIn(untagged), "and nothing else does");
+
+        StandIns.sweepStrays(List.of(view));
+        StandIns.removeEverything();
+        verify(tagged, never()).remove();
+    }
+
+    /**
+     * A creature hidden from the viewer only by this view's own veil may still be shown: a mirror onto
+     * the room behind its own wall would otherwise show that room empty. One hidden otherwise may not.
+     */
+    @Test
+    void aCreatureHiddenOnlyByThisViewsVeilMayStillBeShown()
+    {
+        final Zombie veiled = creature(Zombie.class, 100.5, 70.0, -18.5);
+        final Zombie hidden = creature(Zombie.class, 101.5, 70.0, -18.5);
+        final Zombie seen = creature(Zombie.class, 102.5, 70.0, -18.5);
+        when(viewer.canSee(seen)).thenReturn(true);
+        view.veiled.put(veiled.getUniqueId(), veiled);
+
+        assertTrue(Windows.visibleTo(viewer, view, veiled), "hidden by our own veil, so shown");
+        assertFalse(Windows.visibleTo(viewer, view, hidden), "hidden by something else, so not");
+        assertTrue(Windows.visibleTo(viewer, view, seen), "not hidden at all");
     }
 
     /** A failure is logged once, not on every redraw of every viewer. */

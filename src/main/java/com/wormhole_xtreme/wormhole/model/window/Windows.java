@@ -1286,7 +1286,7 @@ public final class Windows
             // A reflection's room is the viewer's own, which is a later step of #296.
             if (!window.shape.mirrored())
             {
-                inRoomThrough(player, view.world, window, inRoom);
+                inRoomThrough(player, view, window, inRoom);
             }
         }
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
@@ -1296,20 +1296,31 @@ public final class Windows
     }
 
     /** Adds the far creatures this viewer may see that stand inside one window's room as drawn. */
-    private static void inRoomThrough(final Player player, final World here, final WindowState window,
+    private static void inRoomThrough(final Player player, final ViewerDrawing view, final WindowState window,
         final List<FarCreatures.Wanted> inRoom)
     {
         for (final Entity creature : farCreatures(window))
         {
-            if (creature.isValid() && player.canSee(creature))
+            if (creature.isValid() && visibleTo(player, view, creature))
             {
-                final Location at = FarCreatures.hereOf(here, window.shape, creature.getLocation());
+                final Location at = FarCreatures.hereOf(view.world, window.shape, creature.getLocation());
                 if (StandIns.inRoom(window, at))
                 {
                     inRoom.add(new FarCreatures.Wanted(creature, at, window));
                 }
             }
         }
+    }
+
+    /**
+     * Whether a viewer may see a far creature: not hidden from them, unless the hiding is this view's
+     * own veil, which a mirror onto the room behind its own wall would otherwise show empty.
+     *
+     * @return true if it may be shown to them
+     */
+    static boolean visibleTo(final Player player, final ViewerDrawing view, final Entity creature)
+    {
+        return player.canSee(creature) || view.veiled.containsKey(creature.getUniqueId());
     }
 
     /** The creatures in a window's far room, read once for the window as this sweep offered it. */

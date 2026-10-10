@@ -742,7 +742,10 @@ that one viewer (`HiddenEntities`).
   there and nothing shown. The test is `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities`.
 - **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
   displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
-  this viewer, the dragon or the wither (a boss bar, and the dragon's parts), or another stand-in.
+  this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
+  dragon's parts), a snow golem or a shulker (with no AI at all, one still lays snow and the other
+  still teleports itself), or another stand-in, which is known by the plugin's own list or by the
+  `wormhole_stand_in` scoreboard tag. Nothing is ever removed that is not on the list.
   A copy shows what its creature looked like when it appeared: the custom name, a sheep's colour
   and whether it is shorn, and what it wears and holds. Only baby or adult is kept in step after
   that; the rest is not re-copied, so a mob that picks up a sword shows it the next time it is
@@ -753,8 +756,10 @@ that one viewer (`HiddenEntities`).
   view, so a mob farm on the far side costs a sort, not a projection each.
 - **Inert.** No AI, silent, invulnerable, no gravity, not collidable, picks nothing up, never
   saved. Damage, interaction, catching fire, turning into something else, being targeted, pressing
-  a plate, going through a nether or end portal, a slime splitting, dropping an item and changing a
-  block are cancelled first, at the lowest priority, so other plugins see them cancelled; one
+  a plate, going through a nether or end portal, a slime splitting, dropping an item, changing a
+  block and forming one are cancelled first, at the lowest priority, so other plugins see them
+  cancelled; damage and targeting are cancelled again at the highest, past any plugin that uncancels
+  them; one
   killed anyway drops nothing. The drawing never veils a stand-in, and neither the gates' entity
   sweep, a closing iris nor a ring moves one. A stand-in is placed only in a chunk whose entities
   have loaded and inside the world's height.

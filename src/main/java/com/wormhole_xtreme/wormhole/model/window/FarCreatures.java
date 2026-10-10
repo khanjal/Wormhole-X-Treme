@@ -15,6 +15,8 @@ import org.bukkit.entity.ComplexLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
+import org.bukkit.entity.Snowman;
 import org.bukkit.entity.Wither;
 import org.bukkit.util.BoundingBox;
 
@@ -58,7 +60,8 @@ public final class FarCreatures
     /**
      * Whether a creature in a far room is shown: a mob, not a player, not scenery, and not
      * somebody's companion or one of the stand-ins themselves, and nothing another plugin hides by
-     * default or a boss whose copy would bring its bar or its parts with it.
+     * default or a boss whose copy would bring its bar or its parts with it. Nor a snow golem, which
+     * lays snow, or a shulker, which teleports, with no AI at all.
      *
      * @param entity
      *            an entity in a far room
@@ -68,6 +71,7 @@ public final class FarCreatures
     {
         return (entity instanceof LivingEntity living) && !(entity instanceof Player)
             && !(entity instanceof ArmorStand) && !(entity instanceof ComplexLivingEntity) && !(entity instanceof Wither)
+            && !(entity instanceof Snowman) && !(entity instanceof Shulker)
             && !living.isInvisible() && entity.isValid() && entity.isVisibleByDefault()
             && !FreyaCompanion.isCompanion(entity) && !StandIns.isStandIn(entity);
     }

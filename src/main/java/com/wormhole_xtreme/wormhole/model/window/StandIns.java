@@ -83,7 +83,7 @@ public final class StandIns
     }
 
     /**
-     * Whether an entity is one of the stand-ins a view is showing, by identity.
+     * Whether an entity is a view's stand-in: one this plugin holds, or one carrying {@link #TAG}.
      *
      * @param entity
      *            any entity
@@ -91,8 +91,13 @@ public final class StandIns
      */
     public static boolean isStandIn(final Entity entity)
     {
-        final UUID id = (entity == null) ? null : entity.getUniqueId();
-        return (id != null) && (ALL.get(id) == entity);
+        if (entity == null)
+        {
+            return false;
+        }
+        final UUID id = entity.getUniqueId();
+        // Removal only ever touches the registry; the tag also catches one this session never made.
+        return ((id != null) && ALL.containsKey(id)) || entity.getScoreboardTags().contains(TAG);
     }
 
     /**

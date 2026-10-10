@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -29,6 +30,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -109,6 +111,11 @@ class StandInListenerTest
         check("dropping something", EntityDropItemEvent.class, EntityDropItemEvent::getEntity, StandInListener::onDrop);
         check("changing a block", EntityChangeBlockEvent.class, EntityChangeBlockEvent::getEntity,
             StandInListener::onChangeBlock);
+        check("forming a block", EntityBlockFormEvent.class, EntityBlockFormEvent::getEntity, StandInListener::onForm);
+        check("damage another plugin uncancelled", EntityDamageEvent.class, EntityDamageEvent::getEntity,
+            StandInListener::onDamageAgain);
+        check("targeting another plugin uncancelled", EntityTargetEvent.class, EntityTargetEvent::getTarget,
+            StandInListener::onTargetAgain);
     }
 
     /** A stand-in killed anyway, by a command, drops nothing; a real creature's drops are left. */
@@ -145,6 +152,7 @@ class StandInListenerTest
     {
         int handlers = 0;
         int refusals = 0;
+        int again = 0;
         for (final Method method : StandInListener.class.getDeclaredMethods())
         {
             if (Modifier.isPublic(method.getModifiers()) && method.getName().startsWith("on"))
@@ -152,6 +160,12 @@ class StandInListenerTest
                 handlers++;
                 final EventHandler handler = method.getAnnotation(EventHandler.class);
                 assertNotNull(handler, method.getName() + " is never called without @EventHandler");
+                if (AGAIN.contains(method.getName()))
+                {
+                    again++;
+                    assertEquals(EventPriority.HIGHEST, handler.priority(), method.getName() + " should cancel last");
+                    assertFalse(handler.ignoreCancelled(), method.getName() + " must see an event another plugin uncancelled");
+                }
                 // By name: Paper makes the death events cancellable too, and those are not refusals.
                 if (REFUSALS.contains(method.getName()))
                 {
@@ -161,13 +175,17 @@ class StandInListenerTest
                 }
             }
         }
-        assertEquals(16, handlers, "every handler counted, so a renamed one is not skipped");
-        assertEquals(11, refusals, "the eleven that cancel");
+        assertEquals(19, handlers, "every handler counted, so a renamed one is not skipped");
+        assertEquals(12, refusals, "the twelve that cancel first");
+        assertEquals(2, again, "the two that cancel again last");
     }
 
     /** The handlers that cancel an event about a stand-in. */
     private static final Set<String> REFUSALS = Set.of("onDamage", "onInteract", "onInteractAt", "onCombust", "onTransform",
-        "onTarget", "onPress", "onPortal", "onSplit", "onDrop", "onChangeBlock");
+        "onTarget", "onPress", "onPortal", "onSplit", "onDrop", "onChangeBlock", "onForm");
+
+    /** The handlers that cancel again, last. */
+    private static final Set<String> AGAIN = Set.of("onDamageAgain", "onTargetAgain");
 
     /** The plugin registers the listener with the others, or none of it runs. */
     @Test

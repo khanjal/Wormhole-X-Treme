@@ -28,8 +28,11 @@ import org.bukkit.entity.Cat;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.IronGolem;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
+import org.bukkit.entity.Snowman;
 import org.bukkit.entity.Wither;
 import org.bukkit.entity.Zombie;
 import org.bukkit.util.BoundingBox;
@@ -391,6 +394,18 @@ class FarCreaturesTest
         assertFalse(FarCreatures.copied(hidden), "hidden by default, as a preview's or another plugin's creature is");
         assertFalse(FarCreatures.copied(creature(EnderDragon.class, here, 0, 0, 0)), "the dragon has parts and a bar");
         assertFalse(FarCreatures.copied(creature(Wither.class, here, 0, 0, 0)), "the wither has a bar");
+    }
+
+    /**
+     * A snow golem and a shulker are not copied, though another golem is: with no AI at all, the
+     * golem still lays snow in the viewer's world and the shulker still teleports itself into it.
+     */
+    @Test
+    void aSnowGolemAndAShulkerAreNotCopiedThoughAnIronGolemIs()
+    {
+        assertTrue(FarCreatures.copied(creature(IronGolem.class, here, 0, 0, 0)), "an iron golem is copied");
+        assertFalse(FarCreatures.copied(creature(Snowman.class, here, 0, 0, 0)), "a snow golem lays snow");
+        assertFalse(FarCreatures.copied(creature(Shulker.class, here, 0, 0, 0)), "a shulker teleports itself");
     }
 
     private static <T extends Entity> T creature(final Class<T> type, final World world, final double x, final double y,

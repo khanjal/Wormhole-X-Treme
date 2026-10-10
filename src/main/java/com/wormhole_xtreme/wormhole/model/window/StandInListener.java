@@ -5,6 +5,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -160,6 +161,43 @@ public class StandInListener implements Listener
     public void onChangeBlock(final EntityChangeBlockEvent event)
     {
         refuse(event, event.getEntity());
+    }
+
+    /**
+     * A snow golem's trail and the like: a stand-in forms no block. Snow golems are not copied, so
+     * this is the second line.
+     *
+     * @param event
+     *            the forming
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onForm(final EntityBlockFormEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * Damage again, last: a plugin at a normal priority that uncancels damage must not expose one.
+     *
+     * @param event
+     *            the damage, cancelled or not
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDamageAgain(final EntityDamageEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * Targeting again, last, for the same reason.
+     *
+     * @param event
+     *            the targeting, cancelled or not
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onTargetAgain(final EntityTargetEvent event)
+    {
+        refuse(event, event.getTarget());
     }
 
     /**
