@@ -253,15 +253,15 @@ class IrisSweepCrossingTest
         }
 
         /** The cells, sorted, whose last block is one of these. */
-        List<String> showing(final BlockData... any)
+        List<String> showing(final BlockData... wanted)
         {
             absorb();
             final TreeSet<String> cells = new TreeSet<>();
             last.forEach((cell, data) ->
             {
-                for (final BlockData wanted : any)
+                for (final BlockData one : wanted)
                 {
-                    if (data == wanted)
+                    if (data == one)
                     {
                         cells.add(cell);
                     }
