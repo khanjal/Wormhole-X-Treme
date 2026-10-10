@@ -487,6 +487,25 @@ class StandInsTest
         assertEquals(0, StandIns.count(), "nothing left anywhere");
     }
 
+    /**
+     * A stand-in made and dressed, then refused as it is added (a protection plugin cancelling the
+     * spawn), is forgotten and removed rather than left known for a stand-in.
+     */
+    @Test
+    void aStandInRefusedAsItIsAddedIsForgotten()
+    {
+        final Zombie refused = copy(Zombie.class);
+        when(refused.isValid()).thenReturn(false);
+        nextCopy = refused;
+
+        StandIns.show(viewer, view, List.of(wanted(creature(Zombie.class, 100.5, 70.0, -18.5))), 0L);
+
+        verify(refused).remove();
+        assertFalse(StandIns.isStandIn(refused));
+        assertEquals(0, StandIns.count());
+        verify(viewer, never()).showEntity(plugin, refused);
+    }
+
     /** A failure is logged once, not on every redraw of every viewer. */
     @Test
     void aFailureIsLoggedOnce()
