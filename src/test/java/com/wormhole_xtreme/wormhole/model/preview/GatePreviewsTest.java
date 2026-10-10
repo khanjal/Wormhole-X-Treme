@@ -3044,6 +3044,8 @@ class GatePreviewsTest
         clearInvocations(walker);
 
         walkTo(walker, -4);
+        // And back: from in front, the covered rings would otherwise move behind the gate.
+        walkTo(walker, 4);
 
         verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
