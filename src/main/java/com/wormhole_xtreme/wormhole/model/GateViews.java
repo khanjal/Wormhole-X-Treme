@@ -234,15 +234,8 @@ public final class GateViews
     /** The cleared gates among some windows' names, by gate name. */
     private static Set<String> clearedAmong(final Set<String> windows)
     {
-        final Set<String> cleared = new HashSet<>();
-        for (final String window : windows)
-        {
-            if (window.startsWith(PREFIX) && CLEARED.contains(window.substring(PREFIX.length())))
-            {
-                cleared.add(window.substring(PREFIX.length()));
-            }
-        }
-        return cleared;
+        return windows.stream().filter(window -> window.startsWith(PREFIX))
+            .map(window -> window.substring(PREFIX.length())).filter(CLEARED::contains).collect(Collectors.toSet());
     }
 
     /** Whether a gate's cleared opening is off a client after this: sent the horizon, or the gate draws its own. */
