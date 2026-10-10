@@ -766,7 +766,7 @@ that one viewer (`HiddenEntities`).
   (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); the reading never loads one itself. So a
   held chunk's creatures show at the next sweep once its entities are in. The tests are
   `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities` and `FarChunkHoldsTest`.
-- **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
+- **What is copied.** Mobs, and players only with `mirror-show-players` (below); not armour stands,
   displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
   this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
   dragon's parts), a snow golem or a shulker (with no AI at all, one still lays snow and the other
@@ -800,12 +800,39 @@ that one viewer (`HiddenEntities`).
   been drawn a captured block under its feet (within half a block and a little standing, which finds
   a fence or a wall, and within two blocks mid-jump or falling): the capture is old and a clipped
   view draws only what it sees, so without this a stand-in could stand on air. Flyers (bats, bees,
-  parrots, allays, vexes, blazes, ghasts, phantoms), water creatures, and anything in water, swimming,
-  gliding, climbing or without gravity need no floor and are shown as they are. Placing, keeping
+  parrots, allays, vexes, blazes, ghasts, phantoms), water creatures, a flying player, and anything in
+  water, swimming, gliding, climbing or without gravity need no floor and are shown as they are. Placing, keeping
   and following all go by the creature's live position through one mapping, and nothing is decided
   on a redraw whose rooms the server had no time to hold. `mirror debug` says, per window, how many
   far creatures were found and why each was not shown. A failure in any of this costs that viewer their
   stand-ins, logged once, and never the view's blocks or the sweep.
+- **Players.** `mirror-show-players`, off by default and read only while `mirror-show-entities` is
+  on, shows the players standing in the far room as well. That is what a window does, but it is
+  also information: it tells the viewer who is at the destination, so it is a separate choice for
+  an admin, and anyone the viewer could not see standing beside them is not shown through a window
+  either. A far player is chosen by the mobs' rules (read from loaded chunks only, in the room, in
+  view, on drawn floor unless flying or swimming) and shares their twenty, nearest first. Never the
+  viewer themselves, through a mirror or a gate (one condition, `FarPlayers.showsTheViewer`, which a
+  gate facing back at its viewer will turn on later); never one the viewer cannot see
+  (`canSee`, which is what vanish plugins change with `hidePlayer`), nor an invisible player, a
+  spectator, one hidden by default, a dead one, an NPC (a player with `NPC` metadata, as Citizens
+  sets, or not online), or a rider, since a seated figure cannot be copied yet. Each follow asks
+  again, so a player who vanishes, drinks invisibility, goes into spectator, mounts something or
+  leaves loses their stand-in within two ticks. From 1.21.9 the stand-in is a **Mannequin** wearing
+  the player's skin (their profile), their name above it and its own "Mannequin" label hidden,
+  immovable, in their main hand, pose (standing, sneaking, swimming, sleeping, gliding; any other
+  shows standing) and, on Spigot, skin layers; what they wear and hold is copied too. The plugin
+  compiles against 1.20, so the Mannequin is reached by name, and Spigot's and Paper's differ:
+  Spigot's takes a `PlayerProfile`, `setHideDescription` and `setPose(Pose)`; Paper's a
+  `ResolvableProfile`, a null description and `setPose(Pose, true)`, which keeps the pose.
+  Before 1.21.9 it is an **armour stand**: seen, arms out, no base plate, full size, not a marker,
+  wearing a player head with their skin in place of any helmet, their chestplate, leggings, boots
+  and both hands' items, and their name. Neither swings its legs or turns its head of itself; each
+  follows the player by teleport like a mob's, its facing from the player's, the pose copied the
+  follow it changes and what is worn and held looked at once a second and put on only when it has
+  changed. No permission opts a player out, beyond what hides them already; the name always shows.
+  Both kinds are tagged, in the same registry and inert as a mob's, so every refusal and cleanup
+  below covers them, and a real armour stand in the far room is still never copied.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
