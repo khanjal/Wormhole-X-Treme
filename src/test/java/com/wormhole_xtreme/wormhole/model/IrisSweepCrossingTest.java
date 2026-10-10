@@ -713,6 +713,7 @@ class IrisSweepCrossingTest
             && rings.get(2).contains(at.getBlockX() + "," + at.getBlockY())), any(BlockData.class));
         assertEquals(cellsOf(rings.get(0), rings.get(1)), plane.showing(truth),
             "the rings uncovered so far were handed back, and only those");
+        assertEquals(List.of(), plane.showingAt(0, truth), "and the ring is the sweep's: nothing hands its cells back");
     }
 
     /**
