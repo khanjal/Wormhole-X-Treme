@@ -1469,6 +1469,10 @@ public final class Windows
             if (creature.isValid())
             {
                 tally.found++;
+                if (creature instanceof Player)
+                {
+                    tally.players++;
+                }
                 final CreatureTally.Skip why = whyNot(player, view, window, seeing, kept, creature);
                 if (why == null)
                 {
@@ -1494,7 +1498,15 @@ public final class Windows
     static CreatureTally.Skip whyNot(final Player player, final ViewerDrawing view, final WindowState window,
         final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept, final Entity creature)
     {
-        if (!visibleTo(player, view, creature))
+        if (creature instanceof Player other)
+        {
+            final CreatureTally.Skip unseen = FarPlayers.whyNot(player, other, window);
+            if (unseen != null)
+            {
+                return unseen;
+            }
+        }
+        else if (!visibleTo(player, view, creature))
         {
             return CreatureTally.Skip.HIDDEN;
         }
@@ -1554,7 +1566,8 @@ public final class Windows
             final int[] box = (far == null) ? FarCreatures.NOWHERE
                 : FarCreatures.roomBox(window.shape, window.depth(), window.capture.bounds());
             final int[] tally = new int[3];
-            window.creatures = (box.length == 0) ? List.of() : FarCreatures.inRoom(far, box, tally);
+            window.creatures = (box.length == 0) ? List.of()
+                : FarCreatures.inRoom(far, box, tally, ConfigManager.isMirrorShowPlayers());
             window.notLoaded = tally[0];
             window.entitiesNotLoaded = tally[1];
             window.notCopied = tally[2];

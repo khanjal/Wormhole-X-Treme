@@ -23,21 +23,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.DyeColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Pose;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.EntityEquipment;
@@ -882,6 +886,156 @@ class StandInsTest
 
         assertTrue(StandIns.floats(ghast), "a ghast flies");
         assertTrue(StandIns.floats(phantom), "a phantom flies");
+    }
+
+    /**
+     * A far player's stand-in is spawned as the figure this server has, inert, tagged, named and
+     * shown to the viewer alone, and held in the same registry as a mob's, so every path that takes
+     * stand-ins away takes it too.
+     *
+     * <p>A player's stand-in left out of the registry would be veiled, swept up by a gate, copied as
+     * a creature, and left standing in the viewer's world when they quit.
+     */
+    @Test
+    void aPlayersStandInIsTheFigureInertTaggedNamedAndHeldLikeAMobs()
+    {
+        PlayerFigures.mannequinWith(null);
+        final List<Class<?>> types = new ArrayList<>();
+        final ArmorStand copy = copy(ArmorStand.class);
+        HiddenEntities.creationWith(new HiddenEntities.Creation()
+        {
+            @Override
+            public <T extends Entity> T create(final World world, final Location at, final Class<T> type)
+            {
+                types.add(type);
+                return type.cast(copy);
+            }
+
+            @Override
+            public <T extends Entity> T add(final World world, final T entity)
+            {
+                return entity;
+            }
+        });
+        final Player player = farPlayer("Alex");
+        try
+        {
+            StandIns.show(viewer, view, List.of(wanted(player)), 0L);
+
+            assertEquals(List.of(ArmorStand.class), types, "an armour stand before 1.21.9, not a Player");
+            verify(copy).setPersistent(false);
+            verify(copy).setVisibleByDefault(false);
+            verify(copy).setAI(false);
+            verify(copy).setSilent(true);
+            verify(copy).setInvulnerable(true);
+            verify(copy).setGravity(false);
+            verify(copy).setCollidable(false);
+            verify(copy).addScoreboardTag(StandIns.TAG);
+            verify(copy).setCustomName("Alex");
+            verify(copy).setCustomNameVisible(true);
+            verify(viewer).showEntity(plugin, copy);
+            assertTrue(StandIns.isStandIn(copy));
+            assertFalse(FarCreatures.copied(copy), "an armour-stand stand-in is never copied in its turn");
+            assertSame(viewer, view.standIns.get(player.getUniqueId()).viewer, "held with the viewer it is shown to");
+
+            StandIns.removeAll(view);
+
+            verify(copy).remove();
+            assertEquals(0, StandIns.count(), "taken away as a mob's is");
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /**
+     * A far player who vanishes, goes invisible or into spectator, mounts something or leaves loses
+     * their stand-in at the next follow, without waiting for the far room to be read again.
+     *
+     * <p>A vanish plugin hides a staff member mid-view; their stand-in standing on in the gate for up
+     * to a second would show exactly what the vanish is for.
+     */
+    @Test
+    void aPlayerWhoVanishesGoesInvisibleSpectatesRidesOrLeavesIsDroppedAtTheNextFollow()
+    {
+        PlayerFigures.mannequinWith(null);
+        final List<Consumer<Player>> hidings = List.of(
+            player -> when(viewer.canSee(player)).thenReturn(false),
+            player -> when(player.isInvisible()).thenReturn(true),
+            player -> when(player.getGameMode()).thenReturn(GameMode.SPECTATOR),
+            player -> when(player.isInsideVehicle()).thenReturn(true),
+            player -> when(player.isOnline()).thenReturn(false));
+        try
+        {
+            for (int which = 0; which < hidings.size(); which++)
+            {
+                final ArmorStand copy = copy(ArmorStand.class);
+                nextCopy = copy;
+                final Player player = farPlayer("Alex");
+                StandIns.show(viewer, view, List.of(wanted(player)), 0L);
+                StandIns.follow(view);
+                verify(copy, never()).remove();
+
+                hidings.get(which).accept(player);
+                StandIns.follow(view);
+
+                verify(copy).remove();
+                assertTrue(view.standIns.isEmpty(), "hiding " + which + " left the stand-in shown");
+            }
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /** A player's Mannequin takes their new pose as it follows them. */
+    @Test
+    void aPlayersMannequinTakesTheirPoseAsItFollows()
+    {
+        PlayerFigures.mannequinWith(PlayerFiguresTest.SpigotMannequin.class);
+        try
+        {
+            final PlayerFiguresTest.SpigotMannequin copy = copy(PlayerFiguresTest.SpigotMannequin.class);
+            nextCopy = copy;
+            final Player player = farPlayer("Alex");
+            when(player.getPose()).thenReturn(Pose.STANDING);
+            StandIns.show(viewer, view, List.of(wanted(player)), 0L);
+            assertEquals(List.of(copy), made, "spawned as the Mannequin");
+
+            when(player.getPose()).thenReturn(Pose.SLEEPING);
+            StandIns.follow(view);
+
+            verify(copy).setPose(Pose.SLEEPING);
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /** A player flying needs no floor under them; one walking does. */
+    @Test
+    void aFlyingPlayerNeedsNoFloorAndAWalkingOneDoes()
+    {
+        final Player player = farPlayer("Alex");
+        when(player.hasGravity()).thenReturn(true);
+        assertFalse(StandIns.floats(player), "walking");
+        when(player.isFlying()).thenReturn(true);
+        assertTrue(StandIns.floats(player), "flying");
+    }
+
+    /** A player standing in the far room, seen by the viewer. */
+    private Player farPlayer(final String name)
+    {
+        final Player player = creature(Player.class, 100.5, 70.0, -18.5);
+        when(player.getName()).thenReturn(name);
+        when(player.isOnline()).thenReturn(true);
+        when(player.isVisibleByDefault()).thenReturn(true);
+        when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);
+        when(viewer.canSee(player)).thenReturn(true);
+        return player;
     }
 
     private FarCreatures.Wanted wanted(final Entity original)

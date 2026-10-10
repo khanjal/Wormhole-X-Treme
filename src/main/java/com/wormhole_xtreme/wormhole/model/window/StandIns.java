@@ -104,12 +104,23 @@ public final class StandIns
         final Entity copy;
         /** The window it was last placed through, which says where it goes as its creature moves. */
         WindowState window;
+        /** Who is shown it, asked again on every follow of a player's stand-in; null in a test that needs none. */
+        final Player viewer;
+        /** What a player's stand-in last showed; null for a mob's. */
+        final PlayerFigures.Look look;
 
         StandIn(final Entity original, final Entity copy, final WindowState window)
+        {
+            this(original, copy, window, null);
+        }
+
+        StandIn(final Entity original, final Entity copy, final WindowState window, final Player viewer)
         {
             this.original = original;
             this.copy = copy;
             this.window = window;
+            this.viewer = viewer;
+            this.look = (original instanceof Player player) ? PlayerFigures.Look.of(player) : null;
         }
     }
 
@@ -260,11 +271,17 @@ public final class StandIns
      *            the viewer's world
      * @param standIn
      *            the stand-in
-     * @return where, or null if its creature has gone, unloaded, changed world or left the room
+     * @return where, or null if its creature has gone, unloaded, changed world or left the room, or is a
+     *         player the viewer may no longer be shown
      */
     static Location whereNow(final World here, final StandIn standIn)
     {
         if (!standIn.original.isValid() || !standIn.copy.isValid())
+        {
+            return null;
+        }
+        if ((standIn.original instanceof Player player)
+            && ((standIn.viewer == null) || !FarPlayers.stillShown(standIn.viewer, player, standIn.window)))
         {
             return null;
         }
@@ -381,7 +398,8 @@ public final class StandIns
     }
 
     /**
-     * Whether a creature needs no floor: no gravity, a flyer, in water, swimming, gliding or climbing.
+     * Whether a creature needs no floor: no gravity, a flyer or a flying player, in water, swimming,
+     * gliding or climbing.
      *
      * @param creature
      *            a far creature
@@ -393,6 +411,7 @@ public final class StandIns
             || (creature instanceof Bat) || (creature instanceof Bee)
             || (creature instanceof Parrot) || (creature instanceof Allay) || (creature instanceof Vex)
             || (creature instanceof Blaze) || (creature instanceof WaterMob) || creature.isInWater()
+            || ((creature instanceof Player player) && player.isFlying())
             || ((creature instanceof LivingEntity living) && (living.isClimbing() || living.isSwimming() || living.isGliding()));
     }
 
@@ -467,8 +486,6 @@ public final class StandIns
         copy.setSilent(true);
         copy.setInvulnerable(true);
         copy.setGravity(false);
-        copy.setCustomName(original.getCustomName());
-        copy.setCustomNameVisible(original.isCustomNameVisible());
         if (copy instanceof LivingEntity living)
         {
             living.setAI(false);
@@ -480,6 +497,13 @@ public final class StandIns
                 wear(living, source);
             }
         }
+        if (original instanceof Player player)
+        {
+            PlayerFigures.dress(copy, player);
+            return;
+        }
+        copy.setCustomName(original.getCustomName());
+        copy.setCustomNameVisible(original.isCustomNameVisible());
         if ((copy instanceof Colorable dyed) && (original instanceof Colorable source))
         {
             dyed.setColor(source.getColor());
@@ -514,18 +538,15 @@ public final class StandIns
             return false;
         }
         view.refused.remove(id);
-        view.standIns.put(id, new StandIn(one.original(), copy, one.window()));
+        view.standIns.put(id, new StandIn(one.original(), copy, one.window(), viewer));
         return true;
     }
 
     /** The stand-in itself, or null if it could not be made or something refused it. */
-    // A mock creature that stubs no type has none, where a server always gives one.
-    @SuppressWarnings("java:S2583")
     private static Entity spawn(final Player viewer, final FarCreatures.Wanted one)
     {
         final Entity original = one.original();
-        final EntityType type = original.getType();
-        final Class<? extends Entity> kind = (type == null) ? null : type.getEntityClass();
+        final Class<? extends Entity> kind = kindOf(original);
         if (kind == null)
         {
             return null;
@@ -557,6 +578,25 @@ public final class StandIns
             failedOnce("Could not spawn a stand-in for a far creature", failed);
             return null;
         }
+    }
+
+    /**
+     * What a creature's stand-in is spawned as: its own type for a mob, a figure for a player.
+     *
+     * @param original
+     *            the far creature
+     * @return the type, or null for one with none
+     */
+    // A mock creature that stubs no type has none, where a server always gives one.
+    @SuppressWarnings("java:S2583")
+    static Class<? extends Entity> kindOf(final Entity original)
+    {
+        if (original instanceof Player)
+        {
+            return PlayerFigures.kind();
+        }
+        final EntityType type = original.getType();
+        return (type == null) ? null : type.getEntityClass();
     }
 
     /**
@@ -650,7 +690,14 @@ public final class StandIns
         {
             standIn.copy.teleport(at);
         }
-        age(standIn.copy, standIn.original);
+        if ((standIn.look != null) && (standIn.original instanceof Player player))
+        {
+            PlayerFigures.keepInStep(standIn.copy, player, standIn.look);
+        }
+        else
+        {
+            age(standIn.copy, standIn.original);
+        }
     }
 
     /** Whether two places differ by enough to send. */
