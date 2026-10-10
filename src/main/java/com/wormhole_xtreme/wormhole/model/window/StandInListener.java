@@ -1,7 +1,10 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import java.util.function.Function;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -11,18 +14,21 @@ import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 
 /**
  * Keeps a view's stand-ins (#296) out of the game: they are real entities, so without this they
@@ -128,16 +134,75 @@ public class StandInListener implements Listener
         refuse(event, event.getEntity());
     }
 
-    /**
-     * A slime stand-in killed anyway would split into small slimes nobody holds, shown to everybody.
-     *
-     * @param event
-     *            the split
-     */
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onSplit(final SlimeSplitEvent event)
+    /** The split event's name from 26.x, where {@code SlimeSplitEvent} is deprecated and only a subclass of it. */
+    static final String CUBE_SPLIT = "org.bukkit.event.entity.CubeMobSplitEvent";
+
+    /** The split event's name before 26.x, named rather than imported so 26.x builds see no deprecated use. */
+    static final String SLIME_SPLIT = "org.bukkit.event.entity.SlimeSplitEvent";
+
+    /** Refuses a split of a stand-in: a slime one killed anyway would split into small slimes nobody holds. */
+    static final EventExecutor REFUSE_SPLIT = (listener, event) ->
     {
-        refuse(event, event.getEntity());
+        if ((event instanceof EntityEvent split) && (event instanceof Cancellable cancellable)
+            && StandIns.isStandIn(split.getEntity()))
+        {
+            cancellable.setCancelled(true);
+        }
+    };
+
+    /**
+     * Registers the listener, and its split refusal for whichever split event this server fires.
+     *
+     * <p>Not an annotated handler: on Spigot 26.x {@code SlimeSplitEvent} is deprecated in favour of
+     * {@code CubeMobSplitEvent}, and the server warns at startup about a handler for a deprecated event.
+     *
+     * @param manager
+     *            the plugin manager
+     * @param plugin
+     *            this plugin
+     */
+    public static void register(final PluginManager manager, final Plugin plugin)
+    {
+        final StandInListener listener = new StandInListener();
+        manager.registerEvents(listener, plugin);
+        final Class<? extends Event> split = splitEvent(StandInListener::classNamed);
+        if (split != null)
+        {
+            manager.registerEvent(split, listener, EventPriority.LOWEST, REFUSE_SPLIT, plugin, true);
+        }
+    }
+
+    /**
+     * The split event to listen for: {@code CubeMobSplitEvent} where the server has it, else
+     * {@code SlimeSplitEvent}.
+     *
+     * @param lookup
+     *            finds a class by name, or null where there is none
+     * @return the event class, or null on a server with neither
+     */
+    static Class<? extends Event> splitEvent(final Function<String, Class<?>> lookup)
+    {
+        final Class<? extends Event> cube = event(lookup.apply(CUBE_SPLIT));
+        return (cube != null) ? cube : event(lookup.apply(SLIME_SPLIT));
+    }
+
+    /** The class as an event class, or null for none or one that is not an event. */
+    private static Class<? extends Event> event(final Class<?> found)
+    {
+        return ((found != null) && Event.class.isAssignableFrom(found)) ? found.asSubclass(Event.class) : null;
+    }
+
+    /** A class by name, or null where this server has none. */
+    private static Class<?> classNamed(final String name)
+    {
+        try
+        {
+            return Class.forName(name);
+        }
+        catch (final ClassNotFoundException | LinkageError absent)
+        {
+            return null;
+        }
     }
 
     /**

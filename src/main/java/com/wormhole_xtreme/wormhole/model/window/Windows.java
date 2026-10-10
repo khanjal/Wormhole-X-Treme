@@ -1236,10 +1236,6 @@ public final class Windows
     }
 
     /**
-     * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
-     * setting is on; takes away any they have otherwise.
-     */
-    /**
      * Holds the area in front of each watched window's far side loaded, so its creatures show on the
      * first look (#296): every window being drawn for a viewer, nearest its viewers first, while
      * creatures are shown and {@code mirror-entity-load-radius} is above 0.
@@ -1249,7 +1245,7 @@ public final class Windows
         final int radius = ConfigManager.isMirrorShowEntities() ? ConfigManager.getMirrorEntityLoadRadius() : 0;
         final Map<String, Double> nearest = (radius > 0) ? watchedWindows() : Map.of();
         final List<String> order = new ArrayList<>(nearest.keySet());
-        order.sort(Comparator.comparingDouble((String name) -> nearest.get(name)).thenComparing(name -> name));
+        order.sort(Comparator.<String>comparingDouble(nearest::get).thenComparing(Comparator.naturalOrder()));
         final Map<String, List<FarChunkHolds.Area>> watched = new LinkedHashMap<>();
         for (final String name : order)
         {
@@ -1317,6 +1313,10 @@ public final class Windows
         }
     }
 
+    /**
+     * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
+     * setting is on; takes away any they have otherwise.
+     */
     private static void showStandIns(final Player player, final ViewerDrawing view, final Location eye,
         final List<WindowState> seeing, final Wholes wholes, final long now)
     {

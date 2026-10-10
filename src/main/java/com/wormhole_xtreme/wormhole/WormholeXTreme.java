@@ -158,7 +158,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
-        pm.registerEvents(new StandInListener(), tp);
+        StandInListener.register(pm, tp);
         registerDismountListener(pm, tp);
     }
 

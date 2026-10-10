@@ -1123,7 +1123,7 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Seventy-five at present; the one naming both `unchecked` and
+quiet one that is inconvenient. Seventy-eight at present; the one naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -1132,12 +1132,12 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S3516` | 20 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
 | `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
 | `java:S9391` | 11 | – | – | Loops on a per-tick, per-frame or per-move path, or whose body is also the test and the side effect, that a stream would only slow or obscure; each says which. |
-| `java:S2589` | 5 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
+| `java:S2589` | 7 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
 | `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
 | `deprecation` | 2 | 1 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. |
-| `java:S2583` | 1 | – | – | A null check that never fires on a server; a mock player with no UUID would throw without it. |
+| `java:S2583` | 2 | – | – | Null checks that never fire on a server; a mock player with no UUID, or a mock creature with no type, would throw without them. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `java:S9395` | 1 | – | – | `Math.sqrt(long)` in `RingCommand.apart`: S9395 wants the cast, S1905 calls it redundant and S2153 flags the alternative. |
 | `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |

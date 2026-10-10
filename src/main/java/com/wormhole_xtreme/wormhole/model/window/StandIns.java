@@ -119,6 +119,8 @@ public final class StandIns
      *            any entity
      * @return true for a stand-in
      */
+    // A mock entity with no UUID is asked this throughout the tests, and a concurrent map refuses a null key.
+    @SuppressWarnings("java:S2589")
     public static boolean isStandIn(final Entity entity)
     {
         if (entity == null)
@@ -512,6 +514,8 @@ public final class StandIns
     }
 
     /** The stand-in itself, or null if it could not be made or something refused it. */
+    // A mock creature that stubs no type has none, where a server always gives one.
+    @SuppressWarnings("java:S2583")
     private static Entity spawn(final Player viewer, final FarCreatures.Wanted one)
     {
         final Entity original = one.original();
@@ -602,6 +606,8 @@ public final class StandIns
     }
 
     /** Moves a stand-in to where its creature now shows, if that has changed. */
+    // A mock stand-in that stubs no place has none, where a server always gives one.
+    @SuppressWarnings("java:S2589")
     private static void moveTo(final StandIn standIn, final Location at)
     {
         final Location was = standIn.copy.getLocation();

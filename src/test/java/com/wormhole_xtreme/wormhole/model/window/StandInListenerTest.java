@@ -3,7 +3,9 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -27,6 +29,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Slime;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.EventException;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -44,6 +47,7 @@ import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,7 +105,7 @@ class StandInListenerTest
         StandIns.track(slime);
         try
         {
-            check("splitting", SlimeSplitEvent.class, SlimeSplitEvent::getEntity, StandInListener::onSplit, slime,
+            check("splitting", SlimeSplitEvent.class, SlimeSplitEvent::getEntity, StandInListenerTest::refuseSplit, slime,
                 mock(Slime.class));
         }
         finally
@@ -175,17 +179,86 @@ class StandInListenerTest
                 }
             }
         }
-        assertEquals(20, handlers, "every handler counted, so a renamed one is not skipped");
-        assertEquals(12, refusals, "the twelve that cancel first");
+        assertEquals(19, handlers, "every handler counted, so a renamed one is not skipped");
+        assertEquals(11, refusals, "the eleven that cancel first");
         assertEquals(2, again, "the two that cancel again last");
     }
 
     /** The handlers that cancel an event about a stand-in. */
     private static final Set<String> REFUSALS = Set.of("onDamage", "onInteract", "onInteractAt", "onCombust", "onTransform",
-        "onTarget", "onPress", "onPortal", "onSplit", "onDrop", "onChangeBlock", "onForm");
+        "onTarget", "onPress", "onPortal", "onDrop", "onChangeBlock", "onForm");
 
     /** The handlers that cancel again, last. */
     private static final Set<String> AGAIN = Set.of("onDamageAgain", "onTargetAgain");
+
+    /**
+     * No handler is for an event this server deprecates: the server warns about one at startup, and
+     * on Spigot 26.x {@code SlimeSplitEvent} is deprecated for {@code CubeMobSplitEvent}. Run against
+     * every API in CI, so the leg whose API deprecates an event is the one that fails.
+     */
+    @Test
+    void noHandlerIsForAnEventThisServerDeprecates()
+    {
+        int handlers = 0;
+        for (final Method method : StandInListener.class.getDeclaredMethods())
+        {
+            if (method.isAnnotationPresent(EventHandler.class))
+            {
+                handlers++;
+                assertFalse(method.getParameterTypes()[0].isAnnotationPresent(Deprecated.class),
+                    method.getName() + " handles a deprecated event, which the server warns about at startup");
+            }
+        }
+        assertEquals(19, handlers, "every annotated handler looked at");
+        assertFalse(StandInListener.splitEvent(StandInListenerTest::classNamed).isAnnotationPresent(Deprecated.class),
+            "nor the split event registered by hand");
+    }
+
+    /**
+     * The split refusal is registered for CubeMobSplitEvent where the server has it, and for
+     * SlimeSplitEvent where it does not, at the lowest priority and only for an event not cancelled.
+     */
+    @Test
+    void theSplitRefusalIsRegisteredForTheSplitEventThisServerHas()
+    {
+        assertEquals(EntityDamageEvent.class, StandInListener.splitEvent(name -> EntityDamageEvent.class),
+            "a split event of the server's own, where it has one");
+        assertEquals(SlimeSplitEvent.class, StandInListener.splitEvent(
+            name -> StandInListener.SLIME_SPLIT.equals(name) ? SlimeSplitEvent.class : null), "SlimeSplitEvent where it has no other");
+        assertNull(StandInListener.splitEvent(name -> String.class), "nothing where the names are no events");
+
+        final PluginManager manager = mock(PluginManager.class);
+        final Plugin plugin = mock(Plugin.class);
+        StandInListener.register(manager, plugin);
+
+        verify(manager).registerEvents(any(StandInListener.class), eq(plugin));
+        verify(manager).registerEvent(eq(StandInListener.splitEvent(StandInListenerTest::classNamed)), any(StandInListener.class),
+            eq(EventPriority.LOWEST), eq(StandInListener.REFUSE_SPLIT), eq(plugin), eq(true));
+    }
+
+    private static Class<?> classNamed(final String name)
+    {
+        try
+        {
+            return Class.forName(name);
+        }
+        catch (final ClassNotFoundException absent)
+        {
+            return null;
+        }
+    }
+
+    private static void refuseSplit(final StandInListener listener, final SlimeSplitEvent event)
+    {
+        try
+        {
+            StandInListener.REFUSE_SPLIT.execute(listener, event);
+        }
+        catch (final EventException failed)
+        {
+            throw new IllegalStateException(failed);
+        }
+    }
 
     /** The plugin registers the listener with the others, or none of it runs. */
     @Test

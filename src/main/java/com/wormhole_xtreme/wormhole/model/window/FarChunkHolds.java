@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -256,15 +257,7 @@ public final class FarChunkHolds
             log("Views want " + all.size() + " chunks held for their creatures; holding " + MOST_HELD
                 + ", the windows already held first (mirror-entity-load-radius)", null);
         }
-        final Set<Area> kept = new LinkedHashSet<>();
-        for (final Area area : all)
-        {
-            if (kept.size() < MOST_HELD)
-            {
-                kept.add(area);
-            }
-        }
-        return kept;
+        return all.stream().limit(MOST_HELD).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /** Asks for the next few chunks: the pacing task's step. */
@@ -308,10 +301,13 @@ public final class FarChunkHolds
         {
             RESTING.put(area, Windows.clock.getAsLong() + RETRY_MILLIS);
         }
-        else if (wanted.contains(area) && !HELD.containsKey(area))
+        else if (wanted.contains(area))
         {
-            ChunkTickets.hold(chunk);
-            HELD.put(area, chunk);
+            HELD.computeIfAbsent(area, held ->
+            {
+                ChunkTickets.hold(chunk);
+                return chunk;
+            });
         }
     }
 

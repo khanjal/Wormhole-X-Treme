@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -213,9 +214,9 @@ class FarCreaturesTest
             {
                 final int x = call.getArgument(0);
                 final int z = call.getArgument(1);
-                assertTrue(z == -2, "getChunkAt(" + x + ", " + z + ") would load a chunk that is not loaded");
+                assertEquals(-2, z, "getChunkAt(" + x + ", " + z + ") would load a chunk that is not loaded");
             }
-            assertFalse(call.getMethod().getName().equals("getEntities"), "a whole world's entities were read");
+            assertNotEquals("getEntities", call.getMethod().getName(), "a whole world's entities were read");
         }
     }
 
